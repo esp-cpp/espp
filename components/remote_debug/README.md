@@ -6,6 +6,10 @@ Web-based remote debugging interface providing GPIO control, real-time ADC
 monitoring, and optional console log viewing over HTTP. Uses `espp::Timer` for
 efficient, configurable periodic updates.
 
+https://github.com/user-attachments/assets/ee806c6c-0f6b-4dd0-a5b0-82b80410b5bc
+
+<img width="607" height="2048" alt="image" src="https://github.com/user-attachments/assets/5977033c-eee8-4be2-a9c4-634fd3100480" />
+
 ## Features
 
 - **GPIO Control**: Configure pins as input/output, read states, control outputs via web interface

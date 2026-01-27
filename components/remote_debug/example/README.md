@@ -4,6 +4,10 @@ This example demonstrates the `espp::RemoteDebug` component, providing a
 web-based interface for GPIO control, real-time ADC monitoring, and console log
 viewing.
 
+https://github.com/user-attachments/assets/ee806c6c-0f6b-4dd0-a5b0-82b80410b5bc
+
+<img width="607" height="2048" alt="image" src="https://github.com/user-attachments/assets/5977033c-eee8-4be2-a9c4-634fd3100480" />
+
 ## How to use example
 
 ### Hardware Required
@@ -53,15 +57,11 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 ## Example Output
 
-```
-I (380) Remote Debug Example: Starting Remote Debug Example
-I (390) Remote Debug Example: Connecting to WiFi: MyNetwork
-I (2450) Remote Debug Example: WiFi connected! IP: 192.168.1.105
-I (2456) Remote Debug Example: Initialized 2 ADC channels
-I (2461) Remote Debug Example: Remote Debug Server started
-I (2462) Remote Debug Example: Web interface: http://192.168.1.105:8080
-I (2463) Remote Debug Example: GPIO pins: 4 | ADC channels: 2
-```
+<img width="1396" height="460" alt="CleanShot 2026-01-27 at 00 13 39@2x" src="https://github.com/user-attachments/assets/bc129b24-24c0-4ed0-9976-33035eef5630" />
+
+Screenshots:
+<img width="1764" height="2274" alt="CleanShot 2026-01-27 at 00 12 32@2x" src="https://github.com/user-attachments/assets/5a22eb67-8cad-468e-b214-117ff70ed73e" />
+<img width="1764" height="2274" alt="CleanShot 2026-01-27 at 00 13 06@2x" src="https://github.com/user-attachments/assets/f893a8b2-35f6-4bc6-81ca-24e500e12232" />
 
 ## Web Interface Features
 
