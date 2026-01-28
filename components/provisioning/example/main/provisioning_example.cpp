@@ -1,6 +1,7 @@
 #include <chrono>
 #include <thread>
 
+#include "dns_server.hpp"
 #include "logger.hpp"
 #include "provisioning.hpp"
 
@@ -77,6 +78,16 @@ extern "C" void app_main(void) {
   logger.info("Provisioning started");
   logger.info("Connect to WiFi network: {}", provisioning.get_ap_ssid());
   logger.info("Open browser to: http://192.168.4.1");
+
+  // Start DNS server for captive portal (redirects all DNS queries to AP IP)
+  espp::DnsServer::Config dns_config{.ip_address = "192.168.4.1",
+                                     .log_level = espp::Logger::Verbosity::INFO};
+  espp::DnsServer dns_server(dns_config);
+  if (!dns_server.start()) {
+    logger.error("Failed to start DNS server");
+  } else {
+    logger.info("DNS server started for captive portal");
+  }
 
   // Keep running until user completes provisioning
   while (!provisioning.is_completed()) {

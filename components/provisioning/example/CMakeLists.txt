@@ -12,7 +12,7 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py provisioning wifi task"
+  "main esptool_py provisioning wifi task dns_server"
   CACHE STRING
   "List of components to include"
   )

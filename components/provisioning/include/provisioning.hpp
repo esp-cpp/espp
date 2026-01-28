@@ -125,6 +125,7 @@ protected:
   static esp_err_t status_handler(httpd_req_t *req);
   static esp_err_t saved_handler(httpd_req_t *req);
   static esp_err_t delete_handler(httpd_req_t *req);
+  static esp_err_t captive_portal_handler(httpd_req_t *req);
 
   // Helper methods
   std::string generate_html() const;
