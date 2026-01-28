@@ -88,10 +88,13 @@ Screenshots:
 Programmatic access via JSON REST API:
 
 ```
-GET  /data              - Batched update (GPIO states + ADC data)
-GET  /gpio              - List all GPIOs and current states
-POST /gpio/direction    - Set GPIO direction (input/output)
-POST /gpio/set          - Set GPIO output state
-GET  /adc               - Get current ADC values
-GET  /logs              - Get console log content (if enabled)
+GET  /api/gpio/get      - Get all GPIO states and configurations
+POST /api/gpio/set      - Set GPIO output state (JSON: {"pin": N, "value": 0|1})
+POST /api/gpio/config   - Configure GPIO direction (JSON: {"pin": N, "mode": 1|3})
+GET  /api/adc/data      - Get ADC readings and plot data
+POST /api/logs/start    - Start log capture (redirects stdout to file)
+POST /api/logs/stop     - Stop log capture (restores stdout to /dev/console)
+GET  /api/logs          - Get console log content (text/plain with ANSI colors)
 ```
+
+Note: GPIO mode values are `1` for INPUT and `3` for INPUT_OUTPUT. OUTPUT mode (2) is automatically promoted to INPUT_OUTPUT for safety.

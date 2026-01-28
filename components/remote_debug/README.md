@@ -53,11 +53,14 @@ CONFIG_LITTLEFS_FLUSH_FILE_EVERY_WRITE=y
 The component exposes the following HTTP endpoints:
 
 - `GET /` - Main web interface (HTML page)
-- `GET /api/gpio/get` - Get current GPIO states (JSON)
-- `POST /api/gpio/set` - Set GPIO output level (params: pin, level)
-- `POST /api/gpio/config` - Configure GPIO direction (params: pin, mode)
-- `GET /api/adc/data` - Get ADC channel data with history (JSON)
-- `GET /api/logs` - Get console log contents (if logging enabled)
+- `GET /api/gpio/get` - Get all GPIO states and configurations (JSON)
+- `POST /api/gpio/set` - Set GPIO output state (JSON: `{"pin": N, "value": 0|1}`)
+- `POST /api/gpio/config` - Configure GPIO direction (JSON: `{"pin": N, "mode": 1|3}`)
+  - Mode values: `1` = INPUT, `3` = INPUT_OUTPUT (OUTPUT is promoted to INPUT_OUTPUT for safety)
+- `GET /api/adc/data` - Get ADC readings and plot data (JSON with ring buffer indices)
+- `GET /api/logs` - Get console log contents (text/plain with ANSI colors)
+- `POST /api/logs/start` - Start log capture (redirects stdout to file)
+- `POST /api/logs/stop` - Stop log capture (restores stdout to /dev/console)
 
 Set this in your `sdkconfig.defaults` or via `idf.py menuconfig` → Component
 config → LittleFS. Without this, logs only appear after the buffer fills.
