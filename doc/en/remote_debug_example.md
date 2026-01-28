@@ -1,33 +1,5 @@
-# Remote Debug Example
-
-Example demonstrating the Remote Debug component for web-based GPIO control, ADC monitoring, and console log viewing.
-
-## How to use example
-
-### Hardware Required
-
-This example can run on any ESP32 development board. To use all features:
-- Connect GPIO pins to test inputs/outputs
-- Connect analog signals to ADC channels for monitoring
-- Ensure WiFi connectivity for web interface access
-
-### Configure the project
-
+```{include} ../../components/remote_debug/example/README.md
 ```
-idf.py menuconfig
-```
-
-Key configuration options:
-- **WiFi Settings**: Configure SSID and password under "Example Configuration"
-- **Debug Interface**: Set title, GPIO pins, and ADC channels to expose
-- **Logging**: Enable stdout redirection and set buffer size
-- **Performance**: Adjust sample rates, batch sizes, task priorities
-
-**Important**: To enable real-time log viewing, set `CONFIG_LITTLEFS_FLUSH_FILE_EVERY_WRITE=y` in your sdkconfig.
-
-### Build and Flash
-
-Build the project and flash it to the board, then run monitor tool to view serial output:
 
 ```
 idf.py -p PORT flash monitor
