@@ -1074,7 +1074,10 @@ void RemoteDebug::stop_log_redirection() {
 
   log_file_ = nullptr;
   logger_.info("Successfully restored stdout to console");
-}
+  // we have to suppress the resource leak warning here because freopen returns
+  // a new FILE* that we don't own and shouldn't fclose since this is just a
+  // virtual file system
+} // cppcheck-suppress resourceLeak
 
 void RemoteDebug::cleanup_log_redirection() { stop_log_redirection(); }
 
