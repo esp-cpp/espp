@@ -135,6 +135,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/qtpy/example/main/qtpy_example.cpp \
   $(PROJECT_PATH)/components/qmi8658/example/main/qmi8658_example.cpp \
   $(PROJECT_PATH)/components/qwiicnes/example/main/qwiicnes_example.cpp \
+  $(PROJECT_PATH)/components/remote_debug/example/main/remote_debug_example.cpp \
   $(PROJECT_PATH)/components/rmt/example/main/rmt_example.cpp \
   $(PROJECT_PATH)/components/rtsp/example/main/rtsp_example.cpp \
   $(PROJECT_PATH)/components/ping/example/main/ping_example.cpp \
@@ -301,6 +302,7 @@ INPUT = \
   $(PROJECT_PATH)/components/qmi8658/include/qmi8658_detail.hpp \
   $(PROJECT_PATH)/components/qtpy/include/qtpy.hpp \
   $(PROJECT_PATH)/components/qwiicnes/include/qwiicnes.hpp \
+  $(PROJECT_PATH)/components/remote_debug/include/remote_debug.hpp \
   $(PROJECT_PATH)/components/rmt/include/rmt.hpp \
   $(PROJECT_PATH)/components/rmt/include/rmt_encoder.hpp \
   $(PROJECT_PATH)/components/rtsp/include/rtsp_client.hpp \

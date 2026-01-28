@@ -1,0 +1,24 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "Remote debugging server with GPIO and ADC control"
+url: "https://github.com/esp-cpp/espp/tree/main/components/remote_debug"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/remote_debug.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Debug
+  - GPIO
+  - ADC
+  - HTTP
+  - WebServer
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/adc: '>=1.0'
+  espp/base_component: '>=1.0'
+  espp/file_system: '>=1.0'
+  espp/timer: '>=1.0'

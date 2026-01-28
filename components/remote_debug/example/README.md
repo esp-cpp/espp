@@ -1,0 +1,100 @@
+# Remote Debug Example
+
+This example demonstrates the `espp::RemoteDebug` component, providing a
+web-based interface for GPIO control, real-time ADC monitoring, and console log
+viewing.
+
+https://github.com/user-attachments/assets/ee806c6c-0f6b-4dd0-a5b0-82b80410b5bc
+
+<img width="607" height="2048" alt="image" src="https://github.com/user-attachments/assets/5977033c-eee8-4be2-a9c4-634fd3100480" />
+
+## How to use example
+
+### Hardware Required
+
+This example can run on any ESP32 development board. For testing:
+- Connect LEDs or other peripherals / inputs to GPIO pins
+- Connect analog sensors to ADC-capable pins
+
+### Configure the project
+
+```
+idf.py menuconfig
+```
+
+Navigate to `Remote Debug Example Configuration`:
+- WiFi credentials (SSID and password)
+- Server configuration (port, title)
+- GPIO configuration (number of pins, pin numbers, labels)
+- ADC configuration (channels, attenuation, labels, sample rate, buffer size)
+- Console logging (enable/disable, buffer size)
+
+**Important**: If enabling console logging, you must also set:
+- Component config → LittleFS → `CONFIG_LITTLEFS_FLUSH_FILE_EVERY_WRITE=y`
+
+This ensures real-time log updates on the web interface.
+
+### Build and Flash
+
+Build the project and flash it to the board, then run monitor tool to view serial output:
+
+```
+idf.py -p PORT flash monitor
+```
+
+(Replace PORT with the name of the serial port to use.)
+
+(To exit the serial monitor, type ``Ctrl-]``.)
+
+See the Getting Started Guide for full steps to configure and use ESP-IDF to build projects.
+
+### Access the Interface
+
+1. Device connects to configured WiFi network
+2. Check serial monitor for assigned IP address
+3. Open web browser to `http://<device-ip>:<port>` (default port: 8080)
+4. Use the interface to control GPIOs, monitor ADCs, and view console logs
+
+## Example Output
+
+<img width="1396" height="460" alt="CleanShot 2026-01-27 at 00 13 39@2x" src="https://github.com/user-attachments/assets/bc129b24-24c0-4ed0-9976-33035eef5630" />
+
+Screenshots:
+<img width="1764" height="2274" alt="CleanShot 2026-01-27 at 00 12 32@2x" src="https://github.com/user-attachments/assets/5a22eb67-8cad-468e-b214-117ff70ed73e" />
+<img width="1764" height="2274" alt="CleanShot 2026-01-27 at 00 13 06@2x" src="https://github.com/user-attachments/assets/f893a8b2-35f6-4bc6-81ca-24e500e12232" />
+
+## Web Interface Features
+
+- **GPIO Control**
+  - Configure pins as input or output
+  - Read current states in real-time
+  - Set output pins HIGH or LOW
+  - Visual state indicators
+
+- **ADC Monitoring**  
+  - Real-time plotting with automatic updates
+  - Multiple channels displayed simultaneously
+  - Voltage display (converted from raw values)
+  - Configurable sample rate and buffer size
+
+- **Console Log Viewer** (when enabled)
+  - Live stdout output
+  - ANSI color code support
+  - Auto-scrolling display
+  - Configurable buffer size
+
+## API Endpoints
+
+Programmatic access via JSON REST API:
+
+```
+GET  /api/gpio/get      - Get all GPIO states and configurations
+POST /api/gpio/set      - Set GPIO output state (JSON: {"pin": N, "value": 0|1})
+POST /api/gpio/config   - Configure GPIO direction (JSON: {"pin": N, "mode": 1|3})
+GET  /api/adc/data      - Get ADC readings and plot data
+POST /api/logs/start    - Start log capture (redirects stdout to file)
+POST /api/logs/stop     - Stop log capture (restores stdout to /dev/console)
+GET  /api/logs          - Get console log content (text/plain with ANSI colors)
+```
+
+Note: GPIO mode values are `1` for INPUT and `3` for INPUT_OUTPUT. OUTPUT mode (2) is automatically promoted to INPUT_OUTPUT for safety.

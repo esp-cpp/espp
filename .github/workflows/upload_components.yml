@@ -103,6 +103,7 @@ jobs:
             components/qmi8658
             components/qtpy
             components/qwiicnes
+            components/remote_debug
             components/rmt
             components/rtsp
             components/runqueue

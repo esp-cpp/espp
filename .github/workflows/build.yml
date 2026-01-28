@@ -165,6 +165,8 @@ jobs:
           target: esp32s3
         - path: 'components/qwiicnes/example'
           target: esp32
+        - path: 'components/remote_debug/example'
+          target: esp32s3
         - path: 'components/rmt/example'
           target: esp32s3
         - path: 'components/rtsp/example'
