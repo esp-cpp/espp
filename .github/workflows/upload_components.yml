@@ -54,6 +54,7 @@ jobs:
             components/csv
             components/display
             components/display_drivers
+            components/dns_server
             components/drv2605
             components/encoder
             components/esp-box

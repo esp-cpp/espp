@@ -1,0 +1,20 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "DNS server component for captive portal functionality - responds to all DNS queries with a configured IP address"
+url: "https://github.com/esp-cpp/espp/tree/main/components/dns_server"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/network/dns_server.html"
+tas:
+  - cpp
+  - DNS
+  - Captive Portal
+dependencies:
+  idf:
+    version: ">=5.0"
+  espp/base_component: ">=1.0"
+  espp/logger: ">=1.0"
+  espp/socket: ">=1.0"
+examples:
+  - path: example

@@ -12,11 +12,11 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py provisioning wifi task dns_server"
+  "main esptool_py nvs_flash dns_server wifi"
   CACHE STRING
   "List of components to include"
   )
 
-project(provisioning_example)
+project(dns_server_example)
 
 set(CMAKE_CXX_STANDARD 20)
