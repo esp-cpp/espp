@@ -5,10 +5,79 @@
 #include <filesystem>
 #include <iomanip>
 #include <sstream>
+#include <unistd.h>
 
 #include "file_system.hpp"
 
 using namespace espp;
+
+namespace {
+// Helper function to escape JSON strings
+std::string json_escape(const std::string &str) {
+  std::string escaped;
+  escaped.reserve(str.size());
+  for (char c : str) {
+    switch (c) {
+    case '\"':
+      escaped += "\\\"";
+      break;
+    case '\\':
+      escaped += "\\\\";
+      break;
+    case '\n':
+      escaped += "\\n";
+      break;
+    case '\r':
+      escaped += "\\r";
+      break;
+    case '\t':
+      escaped += "\\t";
+      break;
+    case '\b':
+      escaped += "\\b";
+      break;
+    case '\f':
+      escaped += "\\f";
+      break;
+    default:
+      escaped += c;
+    }
+  }
+  return escaped;
+}
+
+// Helper to read full HTTP request body
+bool read_request_body(httpd_req_t *req, std::string &buffer, size_t max_size = 4096) {
+  size_t content_len = req->content_len;
+
+  if (content_len == 0) {
+    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Empty request body");
+    return false;
+  }
+
+  if (content_len > max_size) {
+    httpd_resp_send_err(req, HTTPD_413_CONTENT_TOO_LARGE, "Request too large");
+    return false;
+  }
+
+  buffer.resize(content_len);
+  size_t received = 0;
+
+  while (received < content_len) {
+    int ret = httpd_req_recv(req, &buffer[received], content_len - received);
+    if (ret < 0) {
+      if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
+        continue;
+      }
+      httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read request");
+      return false;
+    }
+    received += ret;
+  }
+
+  return true;
+}
+} // anonymous namespace
 
 RemoteDebug::RemoteDebug(const Config &config)
     : BaseComponent("RemoteDebug", config.log_level) {
@@ -20,23 +89,34 @@ RemoteDebug::~RemoteDebug() { stop(); }
 void RemoteDebug::init(const Config &config) {
   config_ = config;
 
-  // Initialize GPIO - default to input mode
+  // Initialize GPIO with configured mode
   for (const auto &gpio : config_.gpios) {
+    gpio_mode_t init_mode = gpio.mode;
+
+    // Promote OUTPUT to INPUT_OUTPUT for bidirectional capability
+    if (init_mode == GPIO_MODE_OUTPUT) {
+      init_mode = GPIO_MODE_INPUT_OUTPUT;
+      logger_.debug("Promoting GPIO {} from OUTPUT to INPUT_OUTPUT", gpio.pin);
+    } else if (init_mode == GPIO_MODE_OUTPUT_OD) {
+      init_mode = GPIO_MODE_INPUT_OUTPUT_OD;
+      logger_.debug("Promoting GPIO {} from OUTPUT_OD to INPUT_OUTPUT_OD", gpio.pin);
+    }
+
     gpio_config_t io_conf = {};
     io_conf.pin_bit_mask = (1ULL << gpio.pin);
-    io_conf.mode = GPIO_MODE_INPUT; // Default to input
+    io_conf.mode = init_mode;
     io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
     io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
     io_conf.intr_type = GPIO_INTR_DISABLE;
     gpio_config(&io_conf);
 
-    // Store the GPIO config with input mode
+    // Store the GPIO config
     GpioConfig gpio_copy = gpio;
-    gpio_copy.mode = GPIO_MODE_INPUT;
+    gpio_copy.mode = init_mode;
     gpio_map_[gpio.pin] = gpio_copy;
     gpio_state_[gpio.pin] = gpio_get_level(gpio.pin);
 
-    logger_.debug("Configured GPIO {} as input, initial state: {}", gpio.pin,
+    logger_.debug("Configured GPIO {} as mode {}, initial state: {}", gpio.pin, init_mode,
                   gpio_state_[gpio.pin]);
   }
 
@@ -136,6 +216,17 @@ bool RemoteDebug::start() {
                                                         .log_level = config_.log_level});
     gpio_timer_->start();
   }
+
+  // Register log control endpoints
+  httpd_uri_t start_log_uri = {.uri = "/api/logs/start",
+                               .method = HTTP_POST,
+                               .handler = start_log_handler,
+                               .user_ctx = this};
+  httpd_register_uri_handler(server_, &start_log_uri);
+
+  httpd_uri_t stop_log_uri = {
+      .uri = "/api/logs/stop", .method = HTTP_POST, .handler = stop_log_handler, .user_ctx = this};
+  httpd_register_uri_handler(server_, &stop_log_uri);
 
   // Setup log redirection if enabled
   if (config_.enable_log_capture) {
@@ -331,52 +422,57 @@ esp_err_t RemoteDebug::gpio_get_handler(httpd_req_t *req) {
 esp_err_t RemoteDebug::gpio_set_handler(httpd_req_t *req) {
   auto *self = static_cast<RemoteDebug *>(req->user_ctx);
 
-  // Parse POST data
-  char buf[100];
-  int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
-  if (ret <= 0) {
-    httpd_resp_send_500(req);
+  // Read request body properly
+  std::string body;
+  if (!read_request_body(req, body)) {
     return ESP_FAIL;
   }
-  buf[ret] = '\0';
 
   // Parse pin=X&level=Y
   int pin = -1, level = -1;
-  sscanf(buf, "pin=%d&level=%d", &pin, &level);
+  sscanf(body.c_str(), "pin=%d&level=%d", &pin, &level);
 
-  if (pin >= 0 && (level == 0 || level == 1)) {
-    self->set_gpio(static_cast<gpio_num_t>(pin), level);
-    httpd_resp_send(req, "OK", 2);
-  } else {
-    httpd_resp_send_500(req);
+  if (pin < 0 || (level != 0 && level != 1)) {
+    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid pin or level");
+    return ESP_FAIL;
   }
 
+  // Attempt to set GPIO
+  if (!self->set_gpio(static_cast<gpio_num_t>(pin), level)) {
+    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "GPIO not configured or not an output");
+    return ESP_FAIL;
+  }
+
+  httpd_resp_send(req, "OK", 2);
   return ESP_OK;
 }
 
 esp_err_t RemoteDebug::gpio_config_handler(httpd_req_t *req) {
   auto *self = static_cast<RemoteDebug *>(req->user_ctx);
 
-  // Parse POST data
-  char buf[100];
-  int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
-  if (ret <= 0) {
-    httpd_resp_send_500(req);
+  // Read request body properly
+  std::string body;
+  if (!read_request_body(req, body)) {
     return ESP_FAIL;
   }
-  buf[ret] = '\0';
 
   // Parse pin=X&mode=Y
   int pin = -1, mode = -1;
-  sscanf(buf, "pin=%d&mode=%d", &pin, &mode);
+  sscanf(body.c_str(), "pin=%d&mode=%d", &pin, &mode);
 
-  if (pin >= 0 && mode >= 0 && mode <= 6) {
-    self->configure_gpio(static_cast<gpio_num_t>(pin), static_cast<gpio_mode_t>(mode));
-    httpd_resp_send(req, "OK", 2);
-  } else {
-    httpd_resp_send_500(req);
+  // Validate mode (ESP-IDF supports modes 0-5)
+  if (pin < 0 || mode < 0 || mode > 5) {
+    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid pin or mode");
+    return ESP_FAIL;
   }
 
+  // Attempt to configure GPIO
+  if (!self->configure_gpio(static_cast<gpio_num_t>(pin), static_cast<gpio_mode_t>(mode))) {
+    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "GPIO configuration failed");
+    return ESP_FAIL;
+  }
+
+  httpd_resp_send(req, "OK", 2);
   return ESP_OK;
 }
 
@@ -486,6 +582,10 @@ button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.
   if (config_.enable_log_capture) {
     ss << R"(<div class='card'>
 <h2>Console Logs</h2>
+<div style='margin-bottom: 10px;'>
+<button class='btn-high' onclick='startLogs()'>Start Logging</button>
+<button class='btn-low' onclick='stopLogs()'>Stop Logging</button>
+</div>
 <div style='background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 8px; font-family: "Courier New", monospace; font-size: 12px; max-height: 400px; overflow-y: auto;'>
 <div id='logBox' style='margin: 0; white-space: pre-wrap; word-wrap: break-word;'>Loading logs...</div>
 </div>
@@ -506,6 +606,20 @@ function setMode(pin, mode) {
       updateGpio();
     })
     .catch(err => console.error('Failed to set mode:', err));
+}
+
+function startLogs() {
+  fetch('/api/logs/start', {method: 'POST'})
+    .then(r => r.text())
+    .then(() => console.log('Logging started'))
+    .catch(err => console.error('Failed to start logs:', err));
+}
+
+function stopLogs() {
+  fetch('/api/logs/stop', {method: 'POST'})
+    .then(r => r.text())
+    .then(() => console.log('Logging stopped'))
+    .catch(err => console.error('Failed to stop logs:', err));
 }
 
 function setGpio(pin, level) {
@@ -782,7 +896,7 @@ std::string RemoteDebug::get_gpio_state_json() const {
 }
 
 std::string RemoteDebug::get_adc_data_json() const {
-  std::lock_guard<std::mutex> lock(const_cast<std::mutex &>(adc_mutex_));
+  std::lock_guard<std::mutex> lock(adc_mutex_);
   std::stringstream ss;
   ss << "{";
 
@@ -794,6 +908,9 @@ std::string RemoteDebug::get_adc_data_json() const {
     if (!first)
       ss << ",";
 
+    // Use unique key based on unit and channel (not label which can be non-unique)
+    std::string key = fmt::format("ADC1_{}", static_cast<int>(data.channel));
+
     // Get the most recent value
     float voltage = 0.0f;
     if (data.count > 0) {
@@ -801,10 +918,10 @@ std::string RemoteDebug::get_adc_data_json() const {
       voltage = data.values[latest_idx];
     }
 
-    ss << "\"" << data.label << "\":{";
+    ss << "\"" << key << "\":{";
     ss << "\"voltage\":" << std::fixed << std::setprecision(3) << voltage << ",";
     ss << "\"current\":" << voltage << ",";
-    ss << "\"label\":\"" << data.label << "\",";
+    ss << "\"label\":\"" << json_escape(data.label) << "\",";
     ss << "\"unit\":1,";
     ss << "\"channel\":" << static_cast<int>(data.channel) << ",";
 
@@ -843,6 +960,9 @@ std::string RemoteDebug::get_adc_data_json() const {
     if (!first)
       ss << ",";
 
+    // Use unique key based on unit and channel (not label which can be non-unique)
+    std::string key = fmt::format("ADC2_{}", static_cast<int>(data.channel));
+
     // Get the most recent value
     float voltage = 0.0f;
     if (data.count > 0) {
@@ -850,10 +970,10 @@ std::string RemoteDebug::get_adc_data_json() const {
       voltage = data.values[latest_idx];
     }
 
-    ss << "\"" << data.label << "\":{";
+    ss << "\"" << key << "\":{";
     ss << "\"voltage\":" << std::fixed << std::setprecision(3) << voltage << ",";
     ss << "\"current\":" << voltage << ",";
-    ss << "\"label\":\"" << data.label << "\",";
+    ss << "\"label\":\"" << json_escape(data.label) << "\",";
     ss << "\"unit\":2,";
     ss << "\"channel\":" << static_cast<int>(data.channel) << ",";
 
@@ -896,6 +1016,11 @@ void RemoteDebug::setup_log_redirection() {
     return;
   }
 
+  if (log_file_) {
+    logger_.warn("Stdout already redirected to log file");
+    return;
+  }
+
 #ifndef CONFIG_LITTLEFS_FLUSH_FILE_EVERY_WRITE
   logger_.warn("**************************************************************");
   logger_.warn("WARNING: CONFIG_LITTLEFS_FLUSH_FILE_EVERY_WRITE is not enabled!");
@@ -911,46 +1036,47 @@ void RemoteDebug::setup_log_redirection() {
   logger_.info("Attempting to redirect stdout to: {}", log_path);
   logger_.info("Log buffer size: {} bytes", config_.max_log_size);
 
-  // Save original stdout before redirecting
-  original_stdout_ = stdout;
-
   // Redirect stdout using freopen
-  log_file_ = freopen(log_path.string().c_str(), "w", stdout);
-  if (!log_file_) {
+  FILE *result = freopen(log_path.string().c_str(), "w", stdout);
+  if (!result) {
     logger_.error("Failed to redirect stdout to log file: {} (errno: {})", log_path,
                   strerror(errno));
     return;
   }
 
+  log_file_ = result;
+
   // remove file buffer so logs are written immediately
   setvbuf(log_file_, nullptr, _IONBF, 0);
 
-  // Write test messages directly to stdout (which is now the file)
+  // Write test message directly to stdout (which is now the file)
   fmt::print("=== Log capture started at {} s ===\n", Logger::get_time());
   fmt::print("Remote Debug log file: {}\n", log_path);
   fflush(stdout);
 }
 
-void RemoteDebug::cleanup_log_redirection() {
-  if (log_file_) {
-    printf("=== Log capture stopped ===\n");
-    fflush(log_file_);
-
-    // Restore original stdout
-    if (original_stdout_) {
-      auto ret = freopen("/dev/null", "w", stdout); // dummy call to reset stdout
-      if (!ret) {
-        logger_.error("Failed to reset stdout (errno: {})", strerror(errno));
-        return;
-      }
-      *stdout = *original_stdout_; // restore the FILE structure
-      original_stdout_ = nullptr;
-    }
-
-    // Don't close log_file_ since it's the same as stdout after freopen
-    log_file_ = nullptr;
+void RemoteDebug::stop_log_redirection() {
+  if (!log_file_) {
+    logger_.warn("Stdout not redirected to log file");
+    return;
   }
+
+  // Write final message
+  fmt::print("=== Log capture stopped at {} s ===\n", Logger::get_time());
+  fflush(stdout);
+
+  // Redirect stdout back to console
+  FILE *result = freopen("/dev/console", "w", stdout);
+  if (!result) {
+    // Can't log this error since stdout is broken
+    return;
+  }
+
+  log_file_ = nullptr;
+  logger_.info("Successfully restored stdout to console");
 }
+
+void RemoteDebug::cleanup_log_redirection() { stop_log_redirection(); }
 
 std::string RemoteDebug::get_logs() const {
   if (!config_.enable_log_capture) {
@@ -1007,5 +1133,31 @@ esp_err_t RemoteDebug::logs_handler(httpd_req_t *req) {
 
   httpd_resp_set_type(req, "text/plain");
   httpd_resp_send(req, logs.c_str(), logs.length());
+  return ESP_OK;
+}
+
+esp_err_t RemoteDebug::start_log_handler(httpd_req_t *req) {
+  RemoteDebug *self = static_cast<RemoteDebug *>(req->user_ctx);
+
+  if (!self->config_.enable_log_capture) {
+    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Log capture not enabled");
+    return ESP_FAIL;
+  }
+
+  self->setup_log_redirection();
+  httpd_resp_sendstr(req, "OK");
+  return ESP_OK;
+}
+
+esp_err_t RemoteDebug::stop_log_handler(httpd_req_t *req) {
+  RemoteDebug *self = static_cast<RemoteDebug *>(req->user_ctx);
+
+  if (!self->config_.enable_log_capture) {
+    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Log capture not enabled");
+    return ESP_FAIL;
+  }
+
+  self->stop_log_redirection();
+  httpd_resp_sendstr(req, "OK");
   return ESP_OK;
 }

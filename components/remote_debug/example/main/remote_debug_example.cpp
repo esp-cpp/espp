@@ -130,7 +130,7 @@ extern "C" void app_main(void) {
     .adc2_channels = {}, .server_port = static_cast<uint16_t>(CONFIG_REMOTE_DEBUG_SERVER_PORT),
     .adc_sample_rate = std::chrono::milliseconds(1000 / adc_sample_rate_hz),
     .gpio_update_rate = std::chrono::milliseconds(100), .adc_history_size = adc_buffer_size,
-    .adc_batch_size = adc_buffer_size / 3, .task_priority = 5, .task_stack_size = task_stack_size,
+    .task_priority = 5, .task_stack_size = task_stack_size,
 #if CONFIG_REMOTE_DEBUG_ENABLE_LOGS
     .enable_log_capture = true, .max_log_size = CONFIG_REMOTE_DEBUG_LOG_BUFFER_SIZE,
 #else

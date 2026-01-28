@@ -39,7 +39,7 @@ The component has been optimized for efficiency:
 
 ## Console Logging
 
-When `enable_logging` is enabled in the config, stdout is redirected to a file
+When `enable_log_capture` is enabled in the config, stdout is redirected to a file
 viewable in the web interface. The log viewer supports ANSI color codes.
 
 **Important**: For real-time log updates, enable LittleFS file flushing:
@@ -47,6 +47,17 @@ viewable in the web interface. The log viewer supports ANSI color codes.
 ```
 CONFIG_LITTLEFS_FLUSH_FILE_EVERY_WRITE=y
 ```
+
+## API Endpoints
+
+The component exposes the following HTTP endpoints:
+
+- `GET /` - Main web interface (HTML page)
+- `GET /api/gpio/get` - Get current GPIO states (JSON)
+- `POST /api/gpio/set` - Set GPIO output level (params: pin, level)
+- `POST /api/gpio/config` - Configure GPIO direction (params: pin, mode)
+- `GET /api/adc/data` - Get ADC channel data with history (JSON)
+- `GET /api/logs` - Get console log contents (if logging enabled)
 
 Set this in your `sdkconfig.defaults` or via `idf.py menuconfig` → Component
 config → LittleFS. Without this, logs only appear after the buffer fills.

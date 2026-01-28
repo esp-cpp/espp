@@ -26,7 +26,6 @@ namespace espp {
  * Features:
  * - GPIO control (set high/low, read state, configure mode)
  * - ADC value reading and real-time plotting
- * - WebSocket support for live data streaming
  * - Configurable sampling rates
  * - Mobile-friendly responsive interface
  *
@@ -65,7 +64,6 @@ public:
     std::chrono::milliseconds adc_sample_rate{100};  ///< ADC sampling interval
     std::chrono::milliseconds gpio_update_rate{100}; ///< GPIO state update interval
     size_t adc_history_size{20};                     ///< Number of ADC samples to keep
-    size_t adc_batch_size{10};                       ///< Number of ADC samples to send per update
     size_t task_priority{5};                         ///< Priority for update tasks
     size_t task_stack_size{4096};                    ///< Stack size for update tasks
     bool enable_log_capture{false};                  ///< Enable stdout redirection to file
@@ -140,12 +138,15 @@ protected:
   static esp_err_t gpio_config_handler(httpd_req_t *req);
   static esp_err_t adc_data_handler(httpd_req_t *req);
   static esp_err_t logs_handler(httpd_req_t *req);
+  static esp_err_t start_log_handler(httpd_req_t *req);
+  static esp_err_t stop_log_handler(httpd_req_t *req);
 
   std::string generate_html() const;
   std::string get_gpio_state_json() const;
   std::string get_adc_data_json() const;
   std::string get_logs() const;
   void setup_log_redirection();
+  void stop_log_redirection();
   void cleanup_log_redirection();
 
   Config config_;
@@ -156,7 +157,7 @@ protected:
 
   std::unordered_map<gpio_num_t, GpioConfig> gpio_map_;
   std::unordered_map<gpio_num_t, int> gpio_state_; // Cached GPIO states
-  std::mutex gpio_mutex_;
+  mutable std::mutex gpio_mutex_;
 
   // ADC data storage - ring buffer implementation
   struct AdcData {
@@ -169,7 +170,7 @@ protected:
   };
   std::vector<AdcData> adc1_data_;
   std::vector<AdcData> adc2_data_;
-  std::mutex adc_mutex_;
+  mutable std::mutex adc_mutex_;
 
   std::atomic<bool> is_active_{false};
   std::atomic<bool> sampling_active_{false};
@@ -178,7 +179,7 @@ protected:
 
   // Log redirection
   FILE *log_file_{nullptr};
-  FILE *original_stdout_{nullptr};
+  mutable std::mutex log_mutex_;
 };
 } // namespace espp
 
