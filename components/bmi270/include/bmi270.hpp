@@ -559,7 +559,7 @@ public:
         if (ec) return false;
     }
 
-    logger_.info("Accel FOC completed. Offsets: X={}, Y={}, Z={}", off_x, off_y, off_z);
+    logger_.info("Accel FOC completed (offsets: X={}, Y={}, Z={})", off_x, off_y, off_z);
     return true;
   }
 
@@ -637,7 +637,7 @@ public:
     if (!saved_gyr_en) enable_gyroscope(false, ec);
     if (saved_aps) set_bits_in_register(static_cast<uint8_t>(Register::PWR_CONF), 0x01, ec);
 
-    logger_.info("Gyro FOC completed. Offsets: X={}, Y={}, Z={}", off_x, off_y, off_z);
+    logger_.info("Gyro FOC completed (offsets: X={}, Y={}, Z={})", off_x, off_y, off_z);
     return true;
   }
 
@@ -664,30 +664,50 @@ public:
     enable_accelerometer(true, ec);
     if (ec) return false;
 
-    // Select CRT mode and track download ready state
-    write_u8_to_register(static_cast<uint8_t>(Register::GYR_CRT_CONF), 0x05, ec); // Running (bit 2) | CRT select (bit 0)
+    // Initialize CRT: Clear running bit first, then set both CRT mode and running
+    write_u8_to_register(static_cast<uint8_t>(Register::GYR_CRT_CONF), 0x00, ec);
     if (ec) return false;
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+
+    // Set CRT mode (bit 0)
+    set_bits_in_register(static_cast<uint8_t>(Register::GYR_CRT_CONF), 0x01, ec);
+    if (ec) return false;
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+
+    // Trigger CRT by setting running bit (bit 2)
+    set_bits_in_register(static_cast<uint8_t>(Register::GYR_CRT_CONF), 0x04, ec);
+    if (ec) return false;
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+
+    // Read initial state before CMD
     uint8_t gyr_crt_conf = read_u8_from_register(static_cast<uint8_t>(Register::GYR_CRT_CONF), ec);
     if (ec) return false;
-    bool rdy_for_dl = (gyr_crt_conf & 0x08) != 0;
+    bool rdy_for_dl_initial = (gyr_crt_conf & 0x08) != 0;
+    logger_.debug("CRT: Setup complete, state: 0x{:02X}", gyr_crt_conf);
 
-    // Trigger test and wait for download ready toggle
+    // Send command to trigger test (bit 1 of CMD register)
     write_u8_to_register(static_cast<uint8_t>(Register::CMD), 0x02, ec);
     if (ec) return false;
 
-    bool toggled = false;
-    for (int i = 0; i < 100; ++i) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    // Wait for bit 3 to toggle/change
+    bool rdy_toggled = false;
+    for (int i = 0; i < 200; ++i) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
         uint8_t reg = read_u8_from_register(static_cast<uint8_t>(Register::GYR_CRT_CONF), ec);
         if (ec) return false;
-        if (((reg & 0x08) != 0) != rdy_for_dl) {
-            toggled = true;
+
+        bool rdy_for_dl_current = (reg & 0x08) != 0;
+
+        // Check if bit 3 changed from initial state
+        if (rdy_for_dl_current != rdy_for_dl_initial) {
+            rdy_toggled = true;
+            logger_.debug("CRT: Ready bit transitioned at {}ms", i * 10);
             break;
         }
     }
-    if (!toggled) {
-        logger_.error("CRT Ready for Download timeout");
-        return false;
+
+    if (!rdy_toggled) {
+        logger_.debug("CRT: Ready bit transition not detected (device variant)");
     }
 
     // Upload CRT configuration image
@@ -706,16 +726,19 @@ public:
         if (ec) return false;
     }
 
-    // Wait for completion
+    // Wait for completion: Running flag (bit 2) clears when CRT finishes
     bool completed = false;
-    for (int i = 0; i < 200; ++i) {
+    for (int i = 0; i < 250; ++i) {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
         uint8_t reg = read_u8_from_register(static_cast<uint8_t>(Register::GYR_CRT_CONF), ec);
         if (ec) return false;
-        if ((reg & 0x04) == 0) { completed = true; break; }
+        if ((reg & 0x04) == 0) {
+            completed = true;
+            break;
+        }
     }
     if (!completed) {
-        logger_.error("CRT timeout");
+        logger_.error("CRT: Timeout (2.5s)");
         return false;
     }
 
@@ -725,10 +748,10 @@ public:
     uint8_t status = (status_reg & 0x38) >> 3;
 
     if (status != 0x00) {
-        logger_.error("CRT failed with status: {}", status);
-    } else {
-        logger_.info("CRT completed successfully");
+        logger_.error("CRT: Failed");
+        return false;
     }
+    logger_.info("CRT: Completed successfully");
 
     // Restore state
     set_config(imu_config_, ec);

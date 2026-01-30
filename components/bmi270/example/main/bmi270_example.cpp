@@ -119,6 +119,8 @@ extern "C" void app_main(void) {
   // Note: This assumes the device is flat on a table (Z-axis = 1g)
   // For a real application, you might want to trigger this based on a user action
   // or store the offsets in NVS.
+  std::error_code ec;
+  
   logger.info("Performing Accelerometer FOC...");
   Imu::AccelFocGValue accel_foc_target = {.x = 0, .y = 0, .z = 1, .sign = 0}; // 1g on Z axis
   if (imu.perform_accel_foc(accel_foc_target, ec)) {
