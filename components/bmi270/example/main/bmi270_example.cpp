@@ -108,6 +108,43 @@ extern "C" void app_main(void) {
   // create the IMU
   Imu imu(config);
 
+  // ---------------------------------------------------------------------------
+  // [Optional] Sensor Calibration (FOC & CRT)
+  // WARNING: 
+  // 1. The device must be COMPLETELY STATIONARY on a flat surface.
+  // 2. Enable these lines only when you need calibration (e.g., once after assembly).
+  // ---------------------------------------------------------------------------
+  #if 0
+  // Perform FOC (Fast Offset Compensation)
+  // Note: This assumes the device is flat on a table (Z-axis = 1g)
+  // For a real application, you might want to trigger this based on a user action
+  // or store the offsets in NVS.
+  logger.info("Performing Accelerometer FOC...");
+  Imu::AccelFocGValue accel_foc_target = {.x = 0, .y = 0, .z = 1, .sign = 0}; // 1g on Z axis
+  if (imu.perform_accel_foc(accel_foc_target, ec)) {
+    logger.info("Accelerometer FOC completed successfully");
+  } else {
+    logger.error("Accelerometer FOC failed: {}", ec.message());
+  }
+
+  logger.info("Performing Gyroscope FOC...");
+  // Note: Device must be stationary for Gyro FOC
+  if (imu.perform_gyro_foc(ec)) {
+    logger.info("Gyroscope FOC completed successfully");
+  } else {
+    logger.error("Gyroscope FOC failed: {}", ec.message());
+  }
+
+  // Perform CRT (Component Re-Trim)
+  // This feature compensates for sensitivity changes in the gyroscope.
+  logger.info("Performing CRT...");
+  if (imu.perform_crt(ec)) {
+    logger.info("CRT completed successfully");
+  } else {
+    logger.error("CRT failed: {}", ec.message());
+  }
+  #endif
+
   // make a task to read out the IMU data and print it to console
   auto task_fn = [&](std::mutex &m, std::condition_variable &cv) -> bool {
     // sleep first in case we don't get IMU data and need to exit early
@@ -142,24 +179,6 @@ extern "C" void app_main(void) {
         fmt::format("{:02.3f},{:02.3f},{:02.3f},", (float)accel.x, (float)accel.y, (float)accel.z);
     text += fmt::format("{:03.3f},{:03.3f},{:03.3f},", (float)gyro.x, (float)gyro.y, (float)gyro.z);
     text += fmt::format("{:02.1f},", temp);
-    // print kalman filter outputs
-    text += fmt::format("{:03.3f},{:03.3f},{:03.3f},", (float)orientation.x, (float)orientation.y,
-                        (float)orientation.z);
-    text += fmt::format("{:03.3f},{:03.3f},{:03.3f},", (float)gravity_vector.x,
-                        (float)gravity_vector.y, (float)gravity_vector.z);
-
-    auto madgwick_orientation = madgwick_filter_fn(dt, accel, gyro);
-    float roll = madgwick_orientation.roll;
-    float pitch = madgwick_orientation.pitch;
-    float yaw = madgwick_orientation.yaw;
-    float vx = sin(pitch);
-    float vy = -cos(pitch) * sin(roll);
-    float vz = -cos(pitch) * cos(roll);
-
-    // print madgwick filter outputs
-    text += fmt::format("{:03.3f},{:03.3f},{:03.3f},", roll, pitch, yaw);
-    text += fmt::format("{:03.3f},{:03.3f},{:03.3f}", vx, vy, vz);
-
     fmt::print("{}\n", text);
 
     return false;

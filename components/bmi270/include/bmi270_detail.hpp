@@ -209,6 +209,38 @@ struct FifoConfig {
   uint16_t watermark_level = 1024;  ///< FIFO watermark level (bytes)
 };
 
+/// Structure to define accelerometer FOC target values
+struct AccelFocGValue {
+  uint8_t x;    ///< Target value for x axis: '0' for 0g, '1' for 1g
+  uint8_t y;    ///< Target value for y axis: '0' for 0g, '1' for 1g
+  uint8_t z;    ///< Target value for z axis: '0' for 0g, '1' for 1g
+  uint8_t sign; ///< Sign of 1g: '0' for positive (+), '1' for negative (-)
+};
+
+/// Structure to store the status of gyro self test result
+struct GyroSelfTestStatus {
+  bool gyr_st_axes_done; ///< gyro self test axes done
+  bool gyr_axis_x_ok;    ///< status of gyro X-axis self test
+  bool gyr_axis_y_ok;    ///< status of gyro Y-axis self test
+  bool gyr_axis_z_ok;    ///< status of gyro Z-axis self test
+};
+
+/// G trigger status
+enum class GTriggerStatus : uint8_t {
+  NO_ERROR = 0x00,     ///< No error
+  PRECON_ERROR = 0x01, ///< Pre-condition error
+  DL_ERROR = 0x02,     ///< Download error
+  ABORT_ERROR = 0x03,  ///< Abort error
+};
+
+/// Structure to define gyroscope saturation status of user gain
+struct GyrUserGainStatus {
+  uint8_t sat_x;                 ///< Status in x-axis
+  uint8_t sat_y;                 ///< Status in y-axis
+  uint8_t sat_z;                 ///< Status in z-axis
+  GTriggerStatus g_trigger_status; ///< G trigger status
+};
+
 } // namespace bmi270
 } // namespace espp
 
@@ -279,5 +311,24 @@ template <> struct fmt::formatter<espp::bmi270::Value> {
   template <typename FormatContext>
   auto format(const espp::bmi270::Value &value, FormatContext &ctx) const {
     return format_to(ctx.out(), "{{ x: {:.2f}, y: {:.2f}, z: {:.2f} }}", value.x, value.y, value.z);
+  }
+};
+
+template <> struct fmt::formatter<espp::bmi270::GTriggerStatus> {
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
+  template <typename FormatContext>
+  auto format(espp::bmi270::GTriggerStatus status, FormatContext &ctx) const {
+    switch (status) {
+    case espp::bmi270::GTriggerStatus::NO_ERROR:
+      return format_to(ctx.out(), "No Error");
+    case espp::bmi270::GTriggerStatus::PRECON_ERROR:
+      return format_to(ctx.out(), "Pre-condition Error");
+    case espp::bmi270::GTriggerStatus::DL_ERROR:
+      return format_to(ctx.out(), "Download Error");
+    case espp::bmi270::GTriggerStatus::ABORT_ERROR:
+      return format_to(ctx.out(), "Abort Error");
+    default:
+      return format_to(ctx.out(), "Unknown ({})", static_cast<uint8_t>(status));
+    }
   }
 };

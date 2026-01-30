@@ -1,5 +1,10 @@
 #pragma once
 
+#include <algorithm>
+#include <cmath>
+#include <thread>
+#include <chrono>
+
 #include "base_peripheral.hpp"
 #include "bmi270_detail.hpp"
 
@@ -68,6 +73,7 @@ public:
   using WristData = bmi270::WristData;
   using InterruptConfig = bmi270::InterruptConfig;
   using FifoConfig = bmi270::FifoConfig;
+  using AccelFocGValue = bmi270::AccelFocGValue;
 
   /// Filter function for filtering 6-axis data into 3-axis orientation data
   /// @param dt The time step in seconds
@@ -446,6 +452,494 @@ public:
     return !ec;
   }
 
+  /// Perform accelerometer Fast Offset Compensation (FOC)
+  /// @param accel_g_value Target values for FOC
+  /// @param ec The error code to set if an error occurs
+  /// @return True if successful
+  bool perform_accel_foc(const AccelFocGValue &accel_g_value, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+
+    // Check for input validity
+    if ((std::abs(accel_g_value.x) + std::abs(accel_g_value.y) + std::abs(accel_g_value.z)) != 1) {
+      logger_.error("Invalid AccelFocGValue: exactly one axis must be 1");
+      return false;
+    }
+
+    // Perform simplified verification consistent with the C driver
+    ImuConfig saved_config = imu_config_;
+    bool saved_acc_en = (read_u8_from_register(static_cast<uint8_t>(Register::PWR_CTRL), ec) & ACC_ENABLE) != 0;
+    if (ec) return false;
+    uint8_t pwr_conf = read_u8_from_register(static_cast<uint8_t>(Register::PWR_CONF), ec);
+    if (ec) return false;
+    bool saved_aps = (pwr_conf & 0x01) != 0;
+
+    // Prepare for FOC
+    if (saved_aps) {
+      clear_bits_in_register(static_cast<uint8_t>(Register::PWR_CONF), 0x01, ec);
+      if (ec) return false;
+    }
+    if (!saved_acc_en) {
+      set_bits_in_register(static_cast<uint8_t>(Register::PWR_CTRL), ACC_ENABLE, ec);
+      if (ec) return false;
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+
+    write_u8_to_register(static_cast<uint8_t>(Register::ACC_CONF), 0xB7, ec); // 50Hz, CIC_AVG8, Perf Opt
+    if (ec) return false;
+    write_u8_to_register(static_cast<uint8_t>(Register::ACC_RANGE), 0x00, ec); // 2G
+    if (ec) return false;
+
+    // Read 128 samples
+    int32_t x_sum = 0, y_sum = 0, z_sum = 0;
+    for (int i = 0; i < 128; ++i) {
+        // Wait for data ready (20ms for 50Hz)
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        auto raw = get_accelerometer_raw(ec);
+        if (ec) return false;
+        x_sum += raw.x;
+        y_sum += raw.y;
+        z_sum += raw.z;
+    }
+
+    // Average
+    RawValue avg = {
+        static_cast<int16_t>(x_sum / 128),
+        static_cast<int16_t>(y_sum / 128),
+        static_cast<int16_t>(z_sum / 128)
+    };
+
+    // Calculate target
+    int16_t target_x = 0, target_y = 0, target_z = 0;
+    int16_t ref_1g = 16384;
+    int16_t target_g = (accel_g_value.sign == 1) ? -ref_1g : ref_1g;
+
+    if (accel_g_value.x) target_x = target_g;
+    if (accel_g_value.y) target_y = target_g;
+    if (accel_g_value.z) target_z = target_g;
+
+    // Calculate delta (offset)
+    // Offset = Average - Target
+    // However, the offset register subtracts the value from the signal?
+    // C driver: comp_data = data - target.
+    // scale_accel_offset: scale it.
+    // invert_accel_offset: multiply by -1.
+    // So register value = -(Average - Target) = Target - Average.
+
+    int32_t delta_x = avg.x - target_x;
+    int32_t delta_y = avg.y - target_y;
+    int32_t delta_z = avg.z - target_z;
+
+    // Invert
+    int8_t off_x = static_cast<int8_t>(-(delta_x / 64));
+    int8_t off_y = static_cast<int8_t>(-(delta_y / 64));
+    int8_t off_z = static_cast<int8_t>(-(delta_z / 64));
+
+    // Write offset registers
+    uint8_t data[3] = {static_cast<uint8_t>(off_x), static_cast<uint8_t>(off_y), static_cast<uint8_t>(off_z)};
+    write_many_to_register(static_cast<uint8_t>(Register::ACC_OFF_COMP_0), data, 3, ec);
+    if (ec) return false;
+
+    // Enable Accelerometer offset compensation
+    // NV_CONF (0x70) bit 3 (BMI2_NV_ACC_OFFSET_MASK = 0x08)
+    set_bits_in_register(static_cast<uint8_t>(Register::NV_CONF), 0x08, ec);
+    if (ec) return false;
+
+    // Restore configuration
+    // Restore config
+    set_config(saved_config, ec);
+    if (ec) return false;
+
+    if (!saved_acc_en) {
+        enable_accelerometer(false, ec);
+        if (ec) return false;
+    }
+
+    if (saved_aps) {
+        set_bits_in_register(static_cast<uint8_t>(Register::PWR_CONF), 0x01, ec);
+        if (ec) return false;
+    }
+
+    logger_.info("Accel FOC completed. Offsets: X={}, Y={}, Z={}", off_x, off_y, off_z);
+    return true;
+  }
+
+  /// Perform gyroscope Fast Offset Compensation (FOC)
+  /// @param ec The error code to set if an error occurs
+  /// @return True if successful
+  bool perform_gyro_foc(std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+
+    // Save status
+    ImuConfig saved_config = imu_config_;
+    bool saved_gyr_en = (read_u8_from_register(static_cast<uint8_t>(Register::PWR_CTRL), ec) & GYR_ENABLE) != 0;
+    if (ec) return false;
+    uint8_t pwr_conf = read_u8_from_register(static_cast<uint8_t>(Register::PWR_CONF), ec);
+    if (ec) return false;
+    bool saved_aps = (pwr_conf & 0x01) != 0;
+
+    // Prepare for FOC
+    if (saved_aps) {
+      clear_bits_in_register(static_cast<uint8_t>(Register::PWR_CONF), 0x01, ec);
+      if (ec) return false;
+    }
+    if (!saved_gyr_en) {
+      set_bits_in_register(static_cast<uint8_t>(Register::PWR_CTRL), GYR_ENABLE, ec);
+      if (ec) return false;
+      std::this_thread::sleep_for(std::chrono::milliseconds(80));
+    }
+
+    // Configure FOC (25Hz, 2000dps)
+    write_u8_to_register(static_cast<uint8_t>(Register::GYR_CONF), 0xB6, ec);
+    if (ec) return false;
+    write_u8_to_register(static_cast<uint8_t>(Register::GYR_RANGE), 0x00, ec);
+    if (ec) return false;
+
+    // Accumulate 128 samples
+    int32_t x_sum = 0, y_sum = 0, z_sum = 0;
+    for (int i = 0; i < 128; ++i) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(45));
+        auto raw = get_gyroscope_raw(ec);
+        if (ec) return false;
+        x_sum += raw.x;
+        y_sum += raw.y;
+        z_sum += raw.z;
+    }
+
+    // Average and saturate (10-bit)
+    auto saturate = [](int16_t val) -> int16_t {
+        return std::clamp<int16_t>(val, -512, 511);
+    };
+    int16_t off_x = saturate(-(x_sum / 128));
+    int16_t off_y = saturate(-(y_sum / 128));
+    int16_t off_z = saturate(-(z_sum / 128));
+
+    uint8_t current_reg = read_u8_from_register(static_cast<uint8_t>(Register::GYR_OFF_COMP_6), ec);
+    if (ec) return false;
+    bool gain_enabled = (current_reg & 0x80) != 0;
+
+    // Write offset and enable compensation (Bit 6)
+    uint8_t data[4];
+    data[0] = static_cast<uint8_t>(off_x & 0xFF);
+    data[1] = static_cast<uint8_t>(off_y & 0xFF);
+    data[2] = static_cast<uint8_t>(off_z & 0xFF);
+    data[3] = static_cast<uint8_t>(((off_x >> 8) & 0x03) | ((off_y >> 6) & 0x0C) | ((off_z >> 4) & 0x30)) | 0x40;
+
+    if (gain_enabled) {
+        data[3] |= 0x80;
+    }
+
+    write_many_to_register(static_cast<uint8_t>(Register::GYR_OFF_COMP_3), data, 4, ec);
+    if (ec) return false;
+
+    // Restore status
+    set_config(saved_config, ec);
+    if (ec) return false;
+    if (!saved_gyr_en) enable_gyroscope(false, ec);
+    if (saved_aps) set_bits_in_register(static_cast<uint8_t>(Register::PWR_CONF), 0x01, ec);
+
+    logger_.info("Gyro FOC completed. Offsets: X={}, Y={}, Z={}", off_x, off_y, off_z);
+    return true;
+  }
+
+  /// Perform Component Re-Trim (CRT)
+  /// @param ec The error code to set if an error occurs
+  /// @return True if successful
+  bool perform_crt(std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+
+    // Save status and disable APS
+    uint8_t pwr_conf = read_u8_from_register(static_cast<uint8_t>(Register::PWR_CONF), ec);
+    if (ec) return false;
+    bool saved_aps = (pwr_conf & 0x01) != 0;
+    if (saved_aps) {
+      clear_bits_in_register(static_cast<uint8_t>(Register::PWR_CONF), 0x01, ec);
+      if (ec) return false;
+    }
+
+    // Setup: Disable Gyro/FIFO, Enable Accel
+    enable_gyroscope(false, ec);
+    if (ec) return false;
+    clear_bits_in_register(static_cast<uint8_t>(Register::FIFO_CONFIG_1), 0xE0, ec);
+    if (ec) return false;
+    enable_accelerometer(true, ec);
+    if (ec) return false;
+
+    // Select CRT mode and track download ready state
+    write_u8_to_register(static_cast<uint8_t>(Register::GYR_CRT_CONF), 0x05, ec); // Running (bit 2) | CRT select (bit 0)
+    if (ec) return false;
+    uint8_t gyr_crt_conf = read_u8_from_register(static_cast<uint8_t>(Register::GYR_CRT_CONF), ec);
+    if (ec) return false;
+    bool rdy_for_dl = (gyr_crt_conf & 0x08) != 0;
+
+    // Trigger test and wait for download ready toggle
+    write_u8_to_register(static_cast<uint8_t>(Register::CMD), 0x02, ec);
+    if (ec) return false;
+
+    bool toggled = false;
+    for (int i = 0; i < 100; ++i) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        uint8_t reg = read_u8_from_register(static_cast<uint8_t>(Register::GYR_CRT_CONF), ec);
+        if (ec) return false;
+        if (((reg & 0x08) != 0) != rdy_for_dl) {
+            toggled = true;
+            break;
+        }
+    }
+    if (!toggled) {
+        logger_.error("CRT Ready for Download timeout");
+        return false;
+    }
+
+    // Upload CRT configuration image
+    uint8_t addr_data[2] = {static_cast<uint8_t>((0x1800 / 2) & 0x0F), static_cast<uint8_t>((0x1800 / 2) >> 4)};
+    write_many_to_register(static_cast<uint8_t>(Register::INIT_ADDR_0), addr_data, 2, ec);
+    if (ec) return false;
+
+    if (config_file_size < 0x1800 + 2048) {
+        logger_.error("Config file too small for CRT");
+        return false;
+    }
+    const uint8_t* crt_data = config_file + 0x1800;
+    for (size_t offset = 0; offset < 2048; offset += burst_write_size_) {
+        size_t to_write = std::min(static_cast<size_t>(burst_write_size_), 2048 - offset);
+        write_many_to_register(static_cast<uint8_t>(Register::INIT_DATA), crt_data + offset, to_write, ec);
+        if (ec) return false;
+    }
+
+    // Wait for completion
+    bool completed = false;
+    for (int i = 0; i < 200; ++i) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        uint8_t reg = read_u8_from_register(static_cast<uint8_t>(Register::GYR_CRT_CONF), ec);
+        if (ec) return false;
+        if ((reg & 0x04) == 0) { completed = true; break; }
+    }
+    if (!completed) {
+        logger_.error("CRT timeout");
+        return false;
+    }
+
+    // Verify result
+    uint8_t status_reg = read_u8_from_register(static_cast<uint8_t>(Register::GYR_USR_GAIN_0), ec);
+    if (ec) return false;
+    uint8_t status = (status_reg & 0x38) >> 3;
+
+    if (status != 0x00) {
+        logger_.error("CRT failed with status: {}", status);
+    } else {
+        logger_.info("CRT completed successfully");
+    }
+
+    // Restore state
+    set_config(imu_config_, ec);
+    if (ec) return false;
+    if (saved_aps) set_bits_in_register(static_cast<uint8_t>(Register::PWR_CONF), 0x01, ec);
+
+    return status == 0x00;
+  }
+
+  /// Abort CRT or Gyro Self Test
+  bool abort_crt_gyro_self_test(std::error_code &ec) {
+      std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+      set_bits_in_register(static_cast<uint8_t>(Register::PWR_CONF), 0x02, ec);
+      return !ec;
+  }
+
+  /// Perform Gyro Self Test
+  bool perform_gyro_self_test(std::error_code &ec) {
+      std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+
+      uint8_t pwr_conf = read_u8_from_register(static_cast<uint8_t>(Register::PWR_CONF), ec);
+      if (ec) return false;
+      bool saved_aps = (pwr_conf & 0x01) != 0;
+      if (saved_aps) {
+        clear_bits_in_register(static_cast<uint8_t>(Register::PWR_CONF), 0x01, ec);
+        if (ec) return false;
+      }
+
+      enable_gyroscope(false, ec);
+      if (ec) return false;
+      clear_bits_in_register(static_cast<uint8_t>(Register::FIFO_CONFIG_1), 0xE0, ec);
+      if (ec) return false;
+      enable_accelerometer(true, ec);
+      if (ec) return false;
+
+      // Set Running (Bit 2), Clear Selection (Bit 0 for Self Test)
+      set_bits_in_register(static_cast<uint8_t>(Register::GYR_CRT_CONF), 0x04, ec);
+      if (ec) return false;
+      clear_bits_in_register(static_cast<uint8_t>(Register::GYR_CRT_CONF), 0x01, ec);
+      if (ec) return false;
+
+      write_u8_to_register(static_cast<uint8_t>(Register::CMD), 0x02, ec);
+      if (ec) return false;
+
+      bool completed = false;
+      for (int i = 0; i < 200; ++i) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+          uint8_t reg = read_u8_from_register(static_cast<uint8_t>(Register::GYR_CRT_CONF), ec);
+          if (ec) return false;
+          if ((reg & 0x04) == 0) { completed = true; break; }
+      }
+
+      if (!completed) {
+          logger_.error("Gyro Self Test timeout");
+          return false;
+      }
+
+      uint8_t st_result = read_u8_from_register(static_cast<uint8_t>(Register::GYR_SELF_TEST_AXES), ec);
+      if (ec) return false;
+
+      bool success = (st_result & 0x01) && (st_result & 0x02) && (st_result & 0x04) && (st_result & 0x08);
+      if (success) {
+          logger_.info("Gyro Self Test passed");
+      } else {
+          logger_.error("Gyro Self Test failed: 0x{:02X}", st_result);
+      }
+
+      set_config(imu_config_, ec);
+      if (ec) return false;
+      if (saved_aps) set_bits_in_register(static_cast<uint8_t>(Register::PWR_CONF), 0x01, ec);
+
+      return success;
+  }
+
+  /// Get Accelerometer Offsets
+  /// @param x [out] X-axis offset (8-bit signed)
+  /// @param y [out] Y-axis offset (8-bit signed)
+  /// @param z [out] Z-axis offset (8-bit signed)
+  /// @param ec The error code to set if an error occurs
+  /// @return True if successful
+  bool get_accel_offset(int8_t &x, int8_t &y, int8_t &z, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    uint8_t data[3];
+    // ACC_OFF_COMP_0 is 0x71. Reads 0x71 (X), 0x72 (Y), 0x73 (Z)
+    read_many_from_register(static_cast<uint8_t>(Register::ACC_OFF_COMP_0), data, 3, ec);
+    if (ec) return false;
+
+    x = static_cast<int8_t>(data[0]);
+    y = static_cast<int8_t>(data[1]);
+    z = static_cast<int8_t>(data[2]);
+    return true;
+  }
+
+  /// Set Accelerometer Offsets
+  /// @param x X-axis offset (8-bit signed)
+  /// @param y Y-axis offset (8-bit signed)
+  /// @param z Z-axis offset (8-bit signed)
+  /// @param ec The error code to set if an error occurs
+  /// @return True if successful
+  bool set_accel_offset(int8_t x, int8_t y, int8_t z, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    uint8_t data[3] = {static_cast<uint8_t>(x), static_cast<uint8_t>(y), static_cast<uint8_t>(z)};
+    write_many_to_register(static_cast<uint8_t>(Register::ACC_OFF_COMP_0), data, 3, ec);
+    return !ec;
+  }
+
+  /// Enable/Disable Accelerometer Offset Compensation
+  /// @param enable True to enable, false to disable
+  /// @param ec The error code to set if an error occurs
+  /// @return True if successful
+  bool set_accel_offset_enable(bool enable, std::error_code &ec) {
+      std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+      // NV_CONF (0x70) Bit 3 controls Accel Offset Enable
+      static constexpr uint8_t ACC_OFFSET_EN_MASK = 0x08;
+      if (enable) {
+          set_bits_in_register(static_cast<uint8_t>(Register::NV_CONF), ACC_OFFSET_EN_MASK, ec);
+      } else {
+          clear_bits_in_register(static_cast<uint8_t>(Register::NV_CONF), ACC_OFFSET_EN_MASK, ec);
+      }
+      return !ec;
+  }
+
+  /// Get Gyroscope Offsets
+  /// @param x [out] X-axis offset
+  /// @param y [out] Y-axis offset
+  /// @param z [out] Z-axis offset
+  /// @param ec The error code to set if an error occurs
+  /// @return True if successful
+  bool get_gyro_offset(int16_t &x, int16_t &y, int16_t &z, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    uint8_t data[4];
+    // GYR_OFF_COMP_3 is 0x74. Reads 0x74...0x77
+    read_many_from_register(static_cast<uint8_t>(Register::GYR_OFF_COMP_3), data, 4, ec);
+    if (ec) return false;
+
+    // LSBs
+    x = static_cast<int16_t>(data[0]);
+    y = static_cast<int16_t>(data[1]);
+    z = static_cast<int16_t>(data[2]);
+
+    // MSBs from data[3]
+    x |= static_cast<int16_t>((data[3] & 0x03) << 8);
+    y |= static_cast<int16_t>((data[3] & 0x0C) << 6);
+    z |= static_cast<int16_t>((data[3] & 0x30) << 4);
+
+    // Sign extension for 10-bit values
+    if (x & 0x0200) x |= 0xFC00;
+    if (y & 0x0200) y |= 0xFC00;
+    if (z & 0x0200) z |= 0xFC00;
+
+    return true;
+  }
+
+  /// Set Gyroscope Offsets
+  /// @param x X-axis offset
+  /// @param y Y-axis offset
+  /// @param z Z-axis offset
+  /// @param ec The error code to set if an error occurs
+  /// @return True if successful
+  bool set_gyro_offset(int16_t x, int16_t y, int16_t z, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+
+    // Read current register to preserve enable bit (bit 6 of data[3] / register 0x77)
+    uint8_t current_reg;
+    current_reg = read_u8_from_register(static_cast<uint8_t>(Register::GYR_OFF_COMP_6), ec);
+    if (ec) return false;
+    uint8_t preserved_bits = current_reg & 0xC0;
+
+    uint8_t data[4];
+    data[0] = static_cast<uint8_t>(x & 0xFF);
+    data[1] = static_cast<uint8_t>(y & 0xFF);
+    data[2] = static_cast<uint8_t>(z & 0xFF);
+    data[3] = static_cast<uint8_t>(((x >> 8) & 0x03) | ((y >> 6) & 0x0C) | ((z >> 4) & 0x30));
+    
+    data[3] |= preserved_bits;
+
+    write_many_to_register(static_cast<uint8_t>(Register::GYR_OFF_COMP_3), data, 4, ec);
+    return !ec;
+  }
+
+  /// Enable/Disable Gyroscope Offset Compensation
+  /// @param enable True to enable, false to disable
+  /// @param ec The error code to set if an error occurs
+  /// @return True if successful
+  bool set_gyro_offset_enable(bool enable, std::error_code &ec) {
+      std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+      // GYR_OFF_COMP_6 (0x77) Bit 6
+      static constexpr uint8_t GYR_OFFSET_EN_MASK = 0x40;
+      if (enable) {
+          set_bits_in_register(static_cast<uint8_t>(Register::GYR_OFF_COMP_6), GYR_OFFSET_EN_MASK, ec);
+      } else {
+          clear_bits_in_register(static_cast<uint8_t>(Register::GYR_OFF_COMP_6), GYR_OFFSET_EN_MASK, ec);
+      }
+      return !ec;
+  }
+
+  /// Enable/Disable Gyroscope Gain Compensation
+  /// @param enable True to enable, false to disable
+  /// @param ec The error code to set if an error occurs
+  /// @return True if successful
+  bool set_gyro_gain_enable(bool enable, std::error_code &ec) {
+      std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+      static constexpr uint8_t GYR_GAIN_EN_MASK = 0x80;
+      if (enable) {
+          set_bits_in_register(static_cast<uint8_t>(Register::GYR_OFF_COMP_6), GYR_GAIN_EN_MASK, ec);
+      } else {
+          clear_bits_in_register(static_cast<uint8_t>(Register::GYR_OFF_COMP_6), GYR_GAIN_EN_MASK, ec);
+      }
+      return !ec;
+  }
+
 protected:
   // BMI270 specific constants
   static constexpr uint8_t BMI270_CHIP_ID = 0x24; ///< BMI270 chip ID
@@ -539,11 +1033,12 @@ protected:
     INIT_ADDR_0 = 0x5B,        ///< Initialization address LSB
     INIT_ADDR_1 = 0x5C,        ///< Initialization address MSB
     INIT_DATA = 0x5E,          ///< Initialization data
+    GYR_CRT_CONF = 0x69,       ///< Gyroscope CRT configuration
     ACC_SELF_TEST = 0x6D,      ///< Accelerometer self-test
     GYR_SELF_TEST_AXES = 0x6E, ///< Gyroscope self-test axes
-    NV_CONF = 0x6A,            ///< Non-volatile memory configuration
     IF_CONF = 0x6B,            ///< Interface configuration
     DRV = 0x6C,                ///< Drive register
+    NV_CONF = 0x70,     ///< Non-volatile memory configuration offset
     ACC_OFF_COMP_0 = 0x71,     ///< Accelerometer offset compensation 0
     GYR_OFF_COMP_3 = 0x74,     ///< Gyroscope offset compensation 3
     GYR_OFF_COMP_6 = 0x77,     ///< Gyroscope offset compensation 6
