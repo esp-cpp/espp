@@ -76,6 +76,15 @@ retrieve saved credentials from NVS and use the `WifiSta` component to connect.
 ## Example Output
 
 
+Aut-opening provisioning portal on Android when connecting to the AP:
+
+https://github.com/user-attachments/assets/bd43125d-1641-4586-a958-39720e82f960
+
+And on iOS:
+<img width="1206" height="2622" alt="image" src="https://github.com/user-attachments/assets/be61fcba-177f-4266-a5a7-c74d05c32097" />
+<img width="1206" height="2622" alt="image" src="https://github.com/user-attachments/assets/129184eb-53d4-49ec-b391-9a8021bec6b2" />
+<img width="1206" height="2622" alt="image" src="https://github.com/user-attachments/assets/3e0fbd40-5176-4853-a5c2-2606d001d05b" />
+
 Scanning for network and connecting:
 <img width="852" height="1898" alt="image" src="https://github.com/user-attachments/assets/ffc31171-8575-49a9-b5bf-0b934f030497" />
 <img width="852" height="1898" alt="image" src="https://github.com/user-attachments/assets/e230ce28-c1a4-4919-bac0-91757ac3f71c" />

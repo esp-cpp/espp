@@ -91,6 +91,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/cst816/example/main/cst816_example.cpp \
   $(PROJECT_PATH)/components/csv/example/main/csv_example.cpp \
   $(PROJECT_PATH)/components/display_drivers/example/main/display_drivers_example.cpp \
+  $(PROJECT_PATH)/components/dns_server/example/main/dns_server_example.cpp \
   $(PROJECT_PATH)/components/drv2605/example/main/drv2605_example.cpp \
   $(PROJECT_PATH)/components/encoder/example/main/encoder_example.cpp \
   $(PROJECT_PATH)/components/esp32-timer-cam/example/main/esp_timer_cam_example.cpp \
@@ -215,6 +216,7 @@ INPUT = \
   $(PROJECT_PATH)/components/display_drivers/include/ssd1351.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/st7789.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/sh8601.hpp \
+  $(PROJECT_PATH)/components/dns_server/include/dns_server.hpp \
   $(PROJECT_PATH)/components/drv2605/include/drv2605.hpp \
   $(PROJECT_PATH)/components/drv2605/include/drv2605_menu.hpp \
   $(PROJECT_PATH)/components/encoder/include/abi_encoder.hpp \

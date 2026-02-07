@@ -318,6 +318,8 @@ bool Provisioning::start_server() {
   server_config.max_uri_handlers = 8;
   server_config.lru_purge_enable = true;
   server_config.stack_size = 8192;
+  // set the uri_match_fn to use wildcard matching
+  server_config.uri_match_fn = httpd_uri_match_wildcard;
 
   if (httpd_start(&server_, &server_config) != ESP_OK) {
     logger_.error("Failed to start HTTP server");
@@ -357,6 +359,14 @@ bool Provisioning::start_server() {
   httpd_uri_t delete_net = {
       .uri = "/delete", .method = HTTP_POST, .handler = delete_handler, .user_ctx = this};
   httpd_register_uri_handler(server_, &delete_net);
+
+  // Wildcard handler catches all captive portal detection URIs
+  // Handles Android (/generate_204, /gen_204), iOS/macOS (/hotspot-detect.html,
+  // /library/test/success.html), Windows (/ncsi.txt, /connecttest.txt), Ubuntu (/canonical.html,
+  // /connectivity-check), Firefox (/success.txt), and various others (e.g., /mmtls/*)
+  httpd_uri_t catchall = {
+      .uri = "/*", .method = HTTP_GET, .handler = captive_portal_handler, .user_ctx = this};
+  httpd_register_uri_handler(server_, &catchall);
 
   return true;
 }
@@ -424,6 +434,9 @@ bool Provisioning::test_connection(const std::string &ssid, const std::string &p
     logger_.info("Cleaning up previous test STA");
     test_sta_.reset();
     std::this_thread::sleep_for(500ms); // Give WiFi stack time to clean up
+  } else {
+    // Even if no previous test STA, give WiFi a moment to stabilize
+    std::this_thread::sleep_for(100ms);
   }
 
   std::atomic<bool> connected{false};
@@ -619,6 +632,14 @@ esp_err_t Provisioning::saved_handler(httpd_req_t *req) {
   std::string json = prov->get_saved_networks_json();
   httpd_resp_set_type(req, "application/json");
   httpd_resp_send(req, json.c_str(), json.length());
+  return ESP_OK;
+}
+
+esp_err_t Provisioning::captive_portal_handler(httpd_req_t *req) {
+  // Redirect to the main provisioning page
+  httpd_resp_set_status(req, "302 Found");
+  httpd_resp_set_hdr(req, "Location", "/");
+  httpd_resp_send(req, nullptr, 0);
   return ESP_OK;
 }
 
