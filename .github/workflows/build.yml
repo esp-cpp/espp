@@ -64,7 +64,7 @@ jobs:
         - path: 'components/display_drivers/example'
           target: esp32
         - path: 'components/dns_server/example'
-          target: esp32
+          target: esp32s3
         - path: 'components/drv2605/example'
           target: esp32
         - path: 'components/encoder/example'
