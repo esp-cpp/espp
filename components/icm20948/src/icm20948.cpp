@@ -698,9 +698,9 @@ Icm20948<I>::Value Icm20948<I>::read_magnetometer(std::error_code &ec) {
   }
   float sensitivity = get_magnetometer_sensitivity();
   Value value = {
-      static_cast<float>(raw.x) / sensitivity,
-      static_cast<float>(raw.y) / sensitivity,
-      static_cast<float>(raw.z) / sensitivity,
+      static_cast<float>(raw.x) * sensitivity,
+      static_cast<float>(raw.y) * sensitivity,
+      static_cast<float>(raw.z) * sensitivity,
   };
   // update values
   mag_values_ = value;
@@ -1021,7 +1021,17 @@ Icm20948<I>::RawValue Icm20948<I>::get_gyroscope_raw(std::error_code &ec) {
 
 template <espp::icm20948::Interface I>
 Icm20948<I>::RawValue Icm20948<I>::get_magnetometer_raw(std::error_code &ec) {
-  return get_raw(RegisterBank0::MAG_DATA, ec);
+  // the magnetometer data is read through the I2C master, but it has a
+  // different endianess than the accelerometer and gyroscope data.
+  auto raw_mag = get_raw(RegisterBank0::MAG_DATA, ec);
+  if (ec) {
+    return {0, 0, 0};
+  }
+  return {
+      static_cast<int16_t>(((raw_mag.x & 0xFF00) >> 8) | ((raw_mag.x & 0xFF) << 8)),
+      static_cast<int16_t>(((raw_mag.y & 0xFF00) >> 8) | ((raw_mag.y & 0xFF) << 8)),
+      static_cast<int16_t>(((raw_mag.z & 0xFF00) >> 8) | ((raw_mag.z & 0xFF) << 8)),
+  };
 }
 
 template <espp::icm20948::Interface I>
