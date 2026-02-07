@@ -1,4 +1,5 @@
 #include <chrono>
+#include <system_error>
 #include <vector>
 
 #include "dns_server.hpp"
@@ -45,11 +46,13 @@ extern "C" void app_main(void) {
   // Create and start DNS server
   logger.info("Starting DNS server on {}:53", ap_ip);
 
-  espp::DnsServer::Config dns_config{.log_level = espp::Logger::Verbosity::INFO};
+  espp::DnsServer::Config dns_config{.ip_address = ap_ip,
+                                     .log_level = espp::Logger::Verbosity::INFO};
 
   espp::DnsServer dns_server(dns_config);
-  if (!dns_server.start()) {
-    logger.error("Failed to start DNS server");
+  std::error_code ec;
+  if (!dns_server.start(ec)) {
+    logger.error("Failed to start DNS server: {}", ec.message());
     return;
   }
 

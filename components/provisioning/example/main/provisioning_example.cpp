@@ -77,14 +77,14 @@ extern "C" void app_main(void) {
 
   logger.info("Provisioning started");
   logger.info("Connect to WiFi network: {}", provisioning.get_ap_ssid());
-  logger.info("Open browser to: http://192.168.4.1");
+  logger.info("Open browser to: http://{}", provisioning.get_ip_address());
 
   // Start DNS server for captive portal (redirects all DNS queries to AP IP)
-  espp::DnsServer::Config dns_config{.ip_address = "192.168.4.1",
+  espp::DnsServer::Config dns_config{.ip_address = provisioning.get_ip_address(),
                                      .log_level = espp::Logger::Verbosity::INFO};
   espp::DnsServer dns_server(dns_config);
-  if (!dns_server.start()) {
-    logger.error("Failed to start DNS server");
+  if (!dns_server.start(ec)) {
+    logger.error("Failed to start DNS server: {}", ec.message());
   } else {
     logger.info("DNS server started for captive portal");
   }

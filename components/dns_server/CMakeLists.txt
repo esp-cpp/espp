@@ -1,5 +1,5 @@
 idf_component_register(
-    SRCS "src/dns_server.cpp"
     INCLUDE_DIRS "include"
+    SRC_DIRS "src"
     REQUIRES base_component logger socket
 )

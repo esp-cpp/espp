@@ -13,9 +13,18 @@ DnsServer::DnsServer(const Config &config)
 
 DnsServer::~DnsServer() { stop(); }
 
-bool DnsServer::start() {
+bool DnsServer::start(std::error_code &ec) {
   if (running_) {
     logger_.warn("DNS server already running");
+    ec = std::make_error_code(std::errc::device_or_resource_busy);
+    return false;
+  }
+
+  // Validate IP address before starting
+  in_addr addr;
+  if (inet_pton(AF_INET, ip_address_.c_str(), &addr) != 1) {
+    logger_.error("Invalid IP address: {}", ip_address_);
+    ec = std::make_error_code(std::errc::invalid_argument);
     return false;
   }
 
@@ -56,11 +65,13 @@ bool DnsServer::start() {
   if (!socket_->start_receiving(task_config, receive_config)) {
     logger_.error("Failed to start DNS server");
     socket_.reset();
+    ec = std::make_error_code(std::errc::io_error);
     return false;
   }
 
   running_ = true;
   logger_.info("DNS server started successfully");
+  ec.clear();
   return true;
 }
 
@@ -79,8 +90,13 @@ bool DnsServer::is_running() const { return running_; }
 
 size_t DnsServer::process_dns_query(const uint8_t *query, size_t query_len, uint8_t *response,
                                     size_t response_len) {
-  if (query_len < 12 || response_len < 512) {
-    logger_.error("Invalid DNS packet size");
+  if (query_len < 12) {
+    logger_.error("Invalid DNS packet size (too small)");
+    return 0;
+  }
+
+  if (response_len < 512) {
+    logger_.error("Response buffer too small");
     return 0;
   }
 
@@ -96,6 +112,12 @@ size_t DnsServer::process_dns_query(const uint8_t *query, size_t query_len, uint
 
   const DnsHeader *query_header = reinterpret_cast<const DnsHeader *>(query);
   DnsHeader *response_header = reinterpret_cast<DnsHeader *>(response);
+
+  // Bounds check: ensure we don't copy more than response buffer size
+  if (query_len > response_len) {
+    logger_.error("Query too large for response buffer ({} > {})", query_len, response_len);
+    return 0;
+  }
 
   // Copy query to response
   std::memcpy(response, query, query_len);
@@ -136,6 +158,14 @@ size_t DnsServer::process_dns_query(const uint8_t *query, size_t query_len, uint
   // Build answer section
   size_t answer_start = pos;
 
+  // Calculate required space for answer section (16 bytes total)
+  const size_t answer_size = 16;
+  if (answer_start + answer_size > response_len) {
+    logger_.error("Not enough space for DNS answer ({} + {} > {})", answer_start, answer_size,
+                  response_len);
+    return 0;
+  }
+
   // Name pointer (points back to question name)
   response[answer_start++] = 0xC0;
   response[answer_start++] = 0x0C;
@@ -158,7 +188,7 @@ size_t DnsServer::process_dns_query(const uint8_t *query, size_t query_len, uint
   response[answer_start++] = 0x00;
   response[answer_start++] = 0x04;
 
-  // Parse IP address
+  // Parse IP address (validated in constructor, but check again for safety)
   in_addr addr;
   if (inet_pton(AF_INET, ip_address_.c_str(), &addr) != 1) {
     logger_.error("Failed to parse IP address: {}", ip_address_);

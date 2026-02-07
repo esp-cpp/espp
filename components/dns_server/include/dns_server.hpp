@@ -44,9 +44,10 @@ public:
 
   /**
    * @brief Start the DNS server
+   * @param ec Error code set if start fails
    * @return true if server started successfully, false otherwise
    */
-  bool start();
+  bool start(std::error_code &ec);
 
   /**
    * @brief Stop the DNS server

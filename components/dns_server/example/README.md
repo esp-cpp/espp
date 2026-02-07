@@ -31,13 +31,6 @@ idf.py -p PORT flash monitor
 [DNS Server Example/I][0.909]: All DNS queries will resolve to: 192.168.4.1
 ```
 
-When a client connects and makes DNS queries, you'll see output like:
-
-```
-[DnsServer/I][15.234]: Resolved 'www.google.com' to 192.168.4.1
-[DnsServer/I][15.456]: Resolved 'www.apple.com' to 192.168.4.1
-```
-
 ## Testing
 
 1. Connect your phone or computer to the WiFi network "ESP-DNS-Test" with password "testpassword"
