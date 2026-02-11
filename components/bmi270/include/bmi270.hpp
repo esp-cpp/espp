@@ -452,26 +452,38 @@ public:
     return !ec;
   }
 
-  /// Perform accelerometer Fast Offset Compensation (FOC)
-  /// @param accel_g_value Target values for FOC
-  /// @param ec The error code to set if an error occurs
-  /// @return True if successful
+  /// Perform the accelerometer Fast Offset Compensation (FOC).
+  /// @param accel_g_value The g-value to use for FOC (must have exactly one axis set to 1 or -1).
+  /// @param ec Error code to set if an error occurs.
+  /// @return True if the FOC completed successfully, false otherwise.
+  /// @note This function blocks for at least 2.5 seconds.
   bool perform_accel_foc(const AccelFocGValue &accel_g_value, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
 
     // Check for input validity
     if ((std::abs(accel_g_value.x) + std::abs(accel_g_value.y) + std::abs(accel_g_value.z)) != 1) {
       logger_.error("Invalid AccelFocGValue: exactly one axis must be 1");
+      ec = std::make_error_code(std::errc::invalid_argument);
       return false;
     }
 
     // Perform simplified verification consistent with the C driver
     ImuConfig saved_config = imu_config_;
-    bool saved_acc_en = (read_u8_from_register(static_cast<uint8_t>(Register::PWR_CTRL), ec) & ACC_ENABLE) != 0;
+    uint8_t saved_pwr_ctrl = read_u8_from_register(static_cast<uint8_t>(Register::PWR_CTRL), ec);
     if (ec) return false;
-    uint8_t pwr_conf = read_u8_from_register(static_cast<uint8_t>(Register::PWR_CONF), ec);
+    uint8_t saved_pwr_conf = read_u8_from_register(static_cast<uint8_t>(Register::PWR_CONF), ec);
     if (ec) return false;
-    bool saved_aps = (pwr_conf & 0x01) != 0;
+
+    // Use ScopeGuard to ensure state is restored on all exit paths
+    auto state_guard = make_scope_guard([&]() {
+        std::error_code internal_ec;
+        set_config(saved_config, internal_ec);
+        write_u8_to_register(static_cast<uint8_t>(Register::PWR_CTRL), saved_pwr_ctrl, internal_ec);
+        write_u8_to_register(static_cast<uint8_t>(Register::PWR_CONF), saved_pwr_conf, internal_ec);
+    });
+
+    bool saved_acc_en = (saved_pwr_ctrl & ACC_ENABLE) != 0;
+    bool saved_aps = (saved_pwr_conf & 0x01) != 0;
 
     // Prepare for FOC
     if (saved_aps) {
@@ -519,7 +531,6 @@ public:
 
     // Calculate delta (offset)
     // Offset = Average - Target
-    // However, the offset register subtracts the value from the signal?
     // C driver: comp_data = data - target.
     // scale_accel_offset: scale it.
     // invert_accel_offset: multiply by -1.
@@ -529,10 +540,10 @@ public:
     int32_t delta_y = avg.y - target_y;
     int32_t delta_z = avg.z - target_z;
 
-    // Invert
-    int8_t off_x = static_cast<int8_t>(-(delta_x / 64));
-    int8_t off_y = static_cast<int8_t>(-(delta_y / 64));
-    int8_t off_z = static_cast<int8_t>(-(delta_z / 64));
+    // Invert and clamp to int8_t range [-128, 127]
+    int8_t off_x = static_cast<int8_t>(std::clamp<int32_t>(-(delta_x / 64), -128, 127));
+    int8_t off_y = static_cast<int8_t>(std::clamp<int32_t>(-(delta_y / 64), -128, 127));
+    int8_t off_z = static_cast<int8_t>(std::clamp<int32_t>(-(delta_z / 64), -128, 127));
 
     // Write offset registers
     uint8_t data[3] = {static_cast<uint8_t>(off_x), static_cast<uint8_t>(off_y), static_cast<uint8_t>(off_z)};
@@ -544,38 +555,34 @@ public:
     set_bits_in_register(static_cast<uint8_t>(Register::NV_CONF), 0x08, ec);
     if (ec) return false;
 
-    // Restore configuration
-    // Restore config
-    set_config(saved_config, ec);
-    if (ec) return false;
-
-    if (!saved_acc_en) {
-        enable_accelerometer(false, ec);
-        if (ec) return false;
-    }
-
-    if (saved_aps) {
-        set_bits_in_register(static_cast<uint8_t>(Register::PWR_CONF), 0x01, ec);
-        if (ec) return false;
-    }
-
     logger_.info("Accel FOC completed (offsets: X={}, Y={}, Z={})", off_x, off_y, off_z);
     return true;
   }
 
-  /// Perform gyroscope Fast Offset Compensation (FOC)
-  /// @param ec The error code to set if an error occurs
-  /// @return True if successful
+  /// Perform the gyroscope Fast Offset Compensation (FOC).
+  /// @param ec Error code to set if an error occurs.
+  /// @return True if the FOC completed successfully, false otherwise.
+  /// @note This function blocks for more than 5.5 seconds.
   bool perform_gyro_foc(std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
 
     // Save status
     ImuConfig saved_config = imu_config_;
-    bool saved_gyr_en = (read_u8_from_register(static_cast<uint8_t>(Register::PWR_CTRL), ec) & GYR_ENABLE) != 0;
+    uint8_t saved_pwr_ctrl = read_u8_from_register(static_cast<uint8_t>(Register::PWR_CTRL), ec);
     if (ec) return false;
-    uint8_t pwr_conf = read_u8_from_register(static_cast<uint8_t>(Register::PWR_CONF), ec);
+    uint8_t saved_pwr_conf = read_u8_from_register(static_cast<uint8_t>(Register::PWR_CONF), ec);
     if (ec) return false;
-    bool saved_aps = (pwr_conf & 0x01) != 0;
+
+    // Use ScopeGuard to ensure state is restored on all exit paths
+    auto state_guard = make_scope_guard([&]() {
+        std::error_code internal_ec;
+        set_config(saved_config, internal_ec);
+        write_u8_to_register(static_cast<uint8_t>(Register::PWR_CTRL), saved_pwr_ctrl, internal_ec);
+        write_u8_to_register(static_cast<uint8_t>(Register::PWR_CONF), saved_pwr_conf, internal_ec);
+    });
+
+    bool saved_gyr_en = (saved_pwr_ctrl & GYR_ENABLE) != 0;
+    bool saved_aps = (saved_pwr_conf & 0x01) != 0;
 
     // Prepare for FOC
     if (saved_aps) {
@@ -631,26 +638,36 @@ public:
     write_many_to_register(static_cast<uint8_t>(Register::GYR_OFF_COMP_3), data, 4, ec);
     if (ec) return false;
 
-    // Restore status
-    set_config(saved_config, ec);
-    if (ec) return false;
-    if (!saved_gyr_en) enable_gyroscope(false, ec);
-    if (saved_aps) set_bits_in_register(static_cast<uint8_t>(Register::PWR_CONF), 0x01, ec);
-
     logger_.info("Gyro FOC completed (offsets: X={}, Y={}, Z={})", off_x, off_y, off_z);
     return true;
   }
 
-  /// Perform Component Re-Trim (CRT)
-  /// @param ec The error code to set if an error occurs
-  /// @return True if successful
+  /// Perform the Component Re-Trimming (CRT) for the gyroscope.
+  /// @param ec Error code to set if an error occurs.
+  /// @return True if the CRT completed successfully, false otherwise.
+  /// @note This function blocks for up to 2.5 seconds.
   bool perform_crt(std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
 
     // Save status and disable APS
-    uint8_t pwr_conf = read_u8_from_register(static_cast<uint8_t>(Register::PWR_CONF), ec);
+    uint8_t saved_pwr_conf = read_u8_from_register(static_cast<uint8_t>(Register::PWR_CONF), ec);
     if (ec) return false;
-    bool saved_aps = (pwr_conf & 0x01) != 0;
+    uint8_t saved_pwr_ctrl = read_u8_from_register(static_cast<uint8_t>(Register::PWR_CTRL), ec);
+    if (ec) return false;
+    uint8_t saved_fifo_conf_1 = read_u8_from_register(static_cast<uint8_t>(Register::FIFO_CONFIG_1), ec);
+    if (ec) return false;
+
+    // Use ScopeGuard to ensure state is restored on all exit paths
+    auto state_guard = make_scope_guard([&]() {
+        std::error_code internal_ec;
+        set_config(imu_config_, internal_ec);
+        write_u8_to_register(static_cast<uint8_t>(Register::PWR_CTRL), saved_pwr_ctrl, internal_ec);
+        write_u8_to_register(static_cast<uint8_t>(Register::PWR_CONF), saved_pwr_conf, internal_ec);
+        write_u8_to_register(static_cast<uint8_t>(Register::FIFO_CONFIG_1), saved_fifo_conf_1, internal_ec);
+    });
+
+    bool saved_aps = (saved_pwr_conf & 0x01) != 0;
+
     if (saved_aps) {
       clear_bits_in_register(static_cast<uint8_t>(Register::PWR_CONF), 0x01, ec);
       if (ec) return false;
@@ -748,15 +765,10 @@ public:
     uint8_t status = (status_reg & 0x38) >> 3;
 
     if (status != 0x00) {
-        logger_.error("CRT: Failed");
+        logger_.error("CRT: Failed with status: {}", static_cast<bmi270::GTriggerStatus>(status));
         return false;
     }
     logger_.info("CRT: Completed successfully");
-
-    // Restore state
-    set_config(imu_config_, ec);
-    if (ec) return false;
-    if (saved_aps) set_bits_in_register(static_cast<uint8_t>(Register::PWR_CONF), 0x01, ec);
 
     return status == 0x00;
   }
@@ -768,13 +780,31 @@ public:
       return !ec;
   }
 
-  /// Perform Gyro Self Test
+  /// Perform the gyroscope self-test procedure.
+  /// @param ec Error code to set if an error occurs.
+  /// @return True if the self-test passed, false otherwise.
+  /// @note This function blocks for at least 2 seconds.
   bool perform_gyro_self_test(std::error_code &ec) {
       std::lock_guard<std::recursive_mutex> lock(base_mutex_);
 
-      uint8_t pwr_conf = read_u8_from_register(static_cast<uint8_t>(Register::PWR_CONF), ec);
+      uint8_t saved_pwr_conf = read_u8_from_register(static_cast<uint8_t>(Register::PWR_CONF), ec);
       if (ec) return false;
-      bool saved_aps = (pwr_conf & 0x01) != 0;
+      uint8_t saved_pwr_ctrl = read_u8_from_register(static_cast<uint8_t>(Register::PWR_CTRL), ec);
+      if (ec) return false;
+      uint8_t saved_fifo_conf_1 = read_u8_from_register(static_cast<uint8_t>(Register::FIFO_CONFIG_1), ec);
+      if (ec) return false;
+
+      // Use ScopeGuard to ensure state is restored on all exit paths
+      auto state_guard = make_scope_guard([&]() {
+          std::error_code internal_ec;
+          set_config(imu_config_, internal_ec);
+          write_u8_to_register(static_cast<uint8_t>(Register::PWR_CTRL), saved_pwr_ctrl, internal_ec);
+          write_u8_to_register(static_cast<uint8_t>(Register::PWR_CONF), saved_pwr_conf, internal_ec);
+          write_u8_to_register(static_cast<uint8_t>(Register::FIFO_CONFIG_1), saved_fifo_conf_1, internal_ec);
+      });
+
+      bool saved_aps = (saved_pwr_conf & 0x01) != 0;
+
       if (saved_aps) {
         clear_bits_in_register(static_cast<uint8_t>(Register::PWR_CONF), 0x01, ec);
         if (ec) return false;
@@ -818,10 +848,6 @@ public:
       } else {
           logger_.error("Gyro Self Test failed: 0x{:02X}", st_result);
       }
-
-      set_config(imu_config_, ec);
-      if (ec) return false;
-      if (saved_aps) set_bits_in_register(static_cast<uint8_t>(Register::PWR_CONF), 0x01, ec);
 
       return success;
   }
@@ -913,6 +939,13 @@ public:
   /// @return True if successful
   bool set_gyro_offset(int16_t x, int16_t y, int16_t z, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+
+    // Check for valid 10-bit range [-512, 511]
+    if (x < -512 || x > 511 || y < -512 || y > 511 || z < -512 || z > 511) {
+      logger_.error("Invalid gyroscope offset: must be within range [-512, 511]");
+      ec = std::make_error_code(std::errc::invalid_argument);
+      return false;
+    }
 
     // Read current register to preserve enable bit (bit 6 of data[3] / register 0x77)
     uint8_t current_reg;

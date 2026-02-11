@@ -142,9 +142,9 @@ struct ImuConfig {
 
 /// Raw IMU data (16-bit signed)
 struct RawValue {
-  int16_t x; ///< Raw X-axis value
-  int16_t y; ///< Raw Y-axis value
-  int16_t z; ///< Raw Z-axis value
+  int16_t x = 0; ///< Raw X-axis value
+  int16_t y = 0; ///< Raw Y-axis value
+  int16_t z = 0; ///< Raw Z-axis value
 };
 
 /// Processed IMU data (floating point)
@@ -211,18 +211,18 @@ struct FifoConfig {
 
 /// Structure to define accelerometer FOC target values
 struct AccelFocGValue {
-  uint8_t x;    ///< Target value for x axis: '0' for 0g, '1' for 1g
-  uint8_t y;    ///< Target value for y axis: '0' for 0g, '1' for 1g
-  uint8_t z;    ///< Target value for z axis: '0' for 0g, '1' for 1g
-  uint8_t sign; ///< Sign of 1g: '0' for positive (+), '1' for negative (-)
+  uint8_t x = 0;    ///< Target value for x axis: '0' for 0g, '1' for 1g
+  uint8_t y = 0;    ///< Target value for y axis: '0' for 0g, '1' for 1g
+  uint8_t z = 0;    ///< Target value for z axis: '0' for 0g, '1' for 1g
+  uint8_t sign = 0; ///< Sign of 1g: '0' for positive (+), '1' for negative (-)
 };
 
 /// Structure to store the status of gyro self test result
 struct GyroSelfTestStatus {
-  bool gyr_st_axes_done; ///< gyro self test axes done
-  bool gyr_axis_x_ok;    ///< status of gyro X-axis self test
-  bool gyr_axis_y_ok;    ///< status of gyro Y-axis self test
-  bool gyr_axis_z_ok;    ///< status of gyro Z-axis self test
+  bool gyr_st_axes_done = false; ///< gyro self test axes done
+  bool gyr_axis_x_ok = false;    ///< status of gyro X-axis self test
+  bool gyr_axis_y_ok = false;    ///< status of gyro Y-axis self test
+  bool gyr_axis_z_ok = false;    ///< status of gyro Z-axis self test
 };
 
 /// G trigger status
@@ -235,11 +235,36 @@ enum class GTriggerStatus : uint8_t {
 
 /// Structure to define gyroscope saturation status of user gain
 struct GyrUserGainStatus {
-  uint8_t sat_x;                 ///< Status in x-axis
-  uint8_t sat_y;                 ///< Status in y-axis
-  uint8_t sat_z;                 ///< Status in z-axis
-  GTriggerStatus g_trigger_status; ///< G trigger status
+  uint8_t sat_x = 0;                 ///< Status in x-axis
+  uint8_t sat_y = 0;                 ///< Status in y-axis
+  uint8_t sat_z = 0;                 ///< Status in z-axis
+  GTriggerStatus g_trigger_status = GTriggerStatus::NO_ERROR; ///< G trigger status
 };
+
+/// ScopeGuard class for RAII-based cleanup
+template <typename F> class ScopeGuard {
+public:
+  explicit ScopeGuard(F &&f) : f_(std::forward<F>(f)), active_(true) {}
+  ~ScopeGuard() {
+    if (active_)
+      f_();
+  }
+  void dismiss() { active_ = false; }
+
+  ScopeGuard(const ScopeGuard &) = delete;
+  ScopeGuard &operator=(const ScopeGuard &) = delete;
+
+  ScopeGuard(ScopeGuard &&other) : f_(std::move(other.f_)), active_(other.active_) {
+    other.active_ = false;
+  }
+
+private:
+  F f_;
+  bool active_;
+};
+
+/// Helper function to create a ScopeGuard
+template <typename F> auto make_scope_guard(F &&f) { return ScopeGuard<F>(std::forward<F>(f)); }
 
 } // namespace bmi270
 } // namespace espp

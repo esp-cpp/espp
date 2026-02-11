@@ -199,7 +199,7 @@ The CSV output can be imported into analysis tools like:
 - Reduce the burst write size in the configuration to limit stack usage.
   ```cpp
   espp::Bmi270::Config config;
-  config.burst_write_size = 128; // Use 128-byte chunks (default is 0/unlimited)
+  config.burst_write_size = 128; // Use 128-byte chunks (default 0 = one chunk of config_file_size bytes, e.g. 8192)
   espp::Bmi270 imu(config);
   ```
 
@@ -239,6 +239,8 @@ The CSV output can be imported into analysis tools like:
 The BMI270 can be configured to generate an interrupt when new data is available. This is more efficient than polling the sensor.
 
 ```cpp
+std::error_code ec;
+
 Imu::InterruptConfig int_config{
     .pin = Imu::InterruptPin::INT1,
     .output_type = Imu::InterruptOutput::PUSH_PULL,
