@@ -104,6 +104,18 @@ public:
    */
   esp_netif_t *get_netif() const { return netif_; }
 
+  /**
+   * @brief Check if WiFi subsystem has been initialized
+   * @return True if WiFi is initialized, false otherwise
+   * @note This is a static method that checks global WiFi state
+   */
+  static bool is_initialized() {
+    wifi_mode_t mode;
+    bool success = esp_wifi_get_mode(&mode) == ESP_OK;
+    bool valid = mode != WIFI_MODE_NULL;
+    return success && valid;
+  }
+
 protected:
   /**
    * @brief Constructor for WifiBase

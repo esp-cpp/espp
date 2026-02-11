@@ -39,6 +39,7 @@
 #include "led.hpp"
 #include "pi4ioe5v.hpp"
 #include "rx8130ce.hpp"
+#include "st7123.hpp"
 #include "touchpad_input.hpp"
 // #include "wifi_ap.hpp"
 // #include "wifi_sta.hpp"
@@ -75,8 +76,33 @@ public:
   /// Alias for the pixel type used by the Tab5 display
   using Pixel = lv_color16_t;
 
-  /// Alias for the display driver used by the Tab5
-  using DisplayDriver = espp::Ili9881;
+  /// Enum for display controller type
+  enum class DisplayController { UNKNOWN, ILI9881, ST7123 };
+
+  DisplayController detect_display_controller();
+
+  /// Get the detected display controller type
+  /// \return The display controller type
+  DisplayController get_display_controller() const { return display_controller_; }
+
+  /// Get a string name for the display controller
+  /// \return String name of the controller
+  const char *get_display_controller_name() const {
+    return get_display_controller_name(display_controller_);
+  }
+
+  /// Get a string name for the display controller
+  /// \return String name of the controller
+  const char *get_display_controller_name(DisplayController controller) const {
+    switch (controller) {
+    case DisplayController::ILI9881:
+      return "ILI9881";
+    case DisplayController::ST7123:
+      return "ST7123";
+    default:
+      return "Unknown";
+    }
+  }
 
   /// Alias for the GT911 touch controller used by the Tab5
   using TouchDriver = espp::Gt911;
@@ -709,6 +735,9 @@ protected:
     esp_lcd_panel_io_handle_t io{nullptr};          // io handle
     esp_lcd_panel_handle_t panel{nullptr};          // color handle
   } lcd_handles_{};
+
+  // Display controller detection
+  DisplayController display_controller_{DisplayController::UNKNOWN};
 
   // original function pointer for the panel del, init
   esp_err_t (*original_panel_del_)(esp_lcd_panel_t *panel){nullptr};

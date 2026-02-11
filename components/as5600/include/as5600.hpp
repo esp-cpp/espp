@@ -4,7 +4,10 @@
 #include <cmath>
 #include <functional>
 
+#include <sdkconfig.h>
+
 #include "base_peripheral.hpp"
+#include "high_resolution_timer.hpp"
 #include "task.hpp"
 
 namespace espp {
@@ -15,6 +18,14 @@ namespace espp {
  *        and filters / updates the velocity measurement. The datasheet for
  *        the AS5600 can be found here:
  *        https://ams.com/documents/20143/36005/AS5600_DS000365_5-00.pdf/649ee61c-8f9a-20df-9e10-43173a3eb323
+ *
+ * This component can be configured to automatically update within its own
+ * timer/task (timer is default, and can be changed via KConfig / menuconfig),
+ * or if you do not configure it to manage its own timer/task, then you can call
+ * update() within your own function to update the state of the encoder.
+ *
+ * @warning You should not call update() if you have configured the encoder to
+ *          use its own timer/task or if you have called start() yourself.
  *
  * @note There is an implicit assumption in this class regarding the maximum
  *       velocity it can measure (above which there will be aliasing). The
@@ -52,6 +63,9 @@ public:
   static constexpr float SECONDS_PER_MINUTE =
       60.0f; ///< Conversion factor to convert from seconds to minutes.
 
+  static constexpr int MIN_DIFF =
+      CONFIG_AS5600_MIN_DIFF; ///< Minimum difference for velocity calculation.
+
   /**
    * @brief Configuration information for the As5600.
    */
@@ -66,12 +80,15 @@ public:
                ///< task which will read the position, update the accumulator, and update/filter
                ///< velocity.
     bool auto_init{true}; ///< Whether to automatically initialize the accumulator to the current
-                          ///< position.
+                          ///< position on startup.
+    bool run_task{true};  ///< Whether to run the task on startup. If false, you must call update()
+                          ///< manually.
     Logger::Verbosity log_level{Logger::Verbosity::WARN};
   };
 
   /**
-   * @brief Construct the As5600 and start the update task.
+   * @brief Construct the As5600 and start the update task if auto_init and run_task are true.
+   * @param config Configuration for the As5600.
    */
   explicit As5600(const Config &config)
       : BasePeripheral(
@@ -79,29 +96,83 @@ public:
             config.log_level)
       , velocity_filter_(config.velocity_filter)
       , update_period_(config.update_period) {
+    if (config.auto_init) {
+      std::error_code ec;
+      initialize(config.run_task, ec);
+    }
+  }
+
+#if !defined(CONFIG_AS5600_USE_TIMER) || defined(_DOXYGEN_)
+  /**
+   * @brief Construct the As5600 and start the update task/timer if auto_init and run_task are true.
+   * @param config Configuration for the As5600.
+   * @param task_config Configuration for the internal task.
+   */
+  explicit As5600(const Config &config, const espp::Task::Config &task_config)
+      : BasePeripheral(
+            {.address = config.device_address, .write_then_read = config.write_then_read}, "As5600",
+            config.log_level)
+      , velocity_filter_(config.velocity_filter)
+      , update_period_(config.update_period)
+      , task_(espp::Task::make_unique(task_config)) {
+    if (config.auto_init) {
+      std::error_code ec;
+      initialize(config.run_task, ec);
+    }
+  }
+#endif
+
+  /**
+   * @brief Initialize the accumulator to the current position and start the
+   *        update task.
+   * @param ec Error code to set if there is an error.
+   * @note This version of initialize() starts the update task, so you do not
+   *       need to call update() manually.
+   */
+  void initialize(std::error_code &ec) { initialize(true, ec); }
+
+  /**
+   * @brief Initialize the accumulator to the current position and start the
+   *        update task, if desired.
+   * @param run_task Whether to start the update task.
+   * @param ec Error code to set if there is an error.
+   * @note If you do not start the task, you must call update() manually.
+   */
+  void initialize(bool run_task, std::error_code &ec) {
     logger_.info("Initializing. Fastest measurable velocity will be {:.3f} RPM",
                  // half a rotation in one update period is the fastest we can
                  // measure
                  0.5f / update_period_.count() * SECONDS_PER_MINUTE);
-    if (config.auto_init) {
-      std::error_code ec;
-      initialize(ec);
+    init(run_task, ec);
+    if (ec) {
+      logger_.error("Error initializing: {}", ec.message());
     }
   }
 
+#if !defined(CONFIG_AS5600_USE_TIMER) || defined(_DOXYGEN_)
   /**
-   * @brief Initialize the sensor.
+   * @brief Initialize the accumulator to the current position and start the
+   *        update task, if desired.
+   * @param run_task Whether to start the update task.
+   * @param task_config Configuration for the internal task.
    * @param ec Error code to set if there is an error.
+   * @note If you do not start the task, you must call update() manually.
    */
-  void initialize(std::error_code &ec) { init(ec); }
+  void initialize(bool run_task, const espp::Task::Config &task_config, std::error_code &ec) {
+    // create the task (discard any previous one)
+    task_.reset();
+    task_ = espp::Task::make_unique(task_config);
+    initialize(run_task, ec);
+  }
+#endif
 
   /**
-   * @brief Return whether the sensor has found absolute 0 yet.
+   * @brief Return whether the sensor needs to search for absolute 0 on startup.
    * @note The AS5600 (using I2C/SPI) does not need to search for absolute 0
    *       and will always know it on startup. Therefore this function always
    *       returns false.
-   * @return True because the magnetic sensor (using I2C/SPI) does not need to
-   *         sarch for 0.
+   * @return False because the magnetic sensor (using I2C/SPI) does not need to
+   *         search for 0.
    */
   bool needs_zero_search() const { return false; }
 
@@ -123,6 +194,11 @@ public:
    * @return Raw accumulator value.
    */
   int get_accumulator() const { return accumulator_.load(); }
+
+  /**
+   * @brief Reset the accumulator to zero.
+   */
+  void reset_accumulator() { accumulator_ = 0; }
 
   /**
    * @brief Return the mechanical / shaft angle of the encoder, in radians,
@@ -158,36 +234,31 @@ public:
    */
   float get_rpm() const { return velocity_rpm_.load(); }
 
-protected:
-  int read_count(std::error_code &ec) {
-    logger_.info("read_count");
-    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-    // read the angle count registers
-    uint8_t angle_h = read_u8_from_register((uint8_t)Registers::ANGLE_H, ec);
-    if (ec) {
-      return 0;
-    }
-    uint8_t angle_l = read_u8_from_register((uint8_t)Registers::ANGLE_L, ec) >> 2;
-    if (ec) {
-      return 0;
-    }
-    return (int)((angle_h << 6) | angle_l);
-  }
-
+  /**
+   * @brief Update the state of the encoder by reading the latest data from the
+   *       encoder and updating the associated state.
+   * @param ec Error code to set if there is an error.
+   * @note You should not call this function if you have started the encoder's
+   *       update task (e.g. run_task = true in the constructor, or you called
+   *       initialize(true)).
+   */
   void update(std::error_code &ec) {
-    logger_.info("update");
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    // measure update timing
+    uint64_t now_us = esp_timer_get_time();
+    auto dt = now_us - prev_time_us_;
+    float seconds = dt / 1e6f;
+    prev_time_us_ = now_us;
+    // store the previous count
+    int prev_count = count_;
     // update raw count
     auto count = read_count(ec);
     if (ec) {
       return;
     }
     count_.store(count);
-    static int prev_count = count_;
     // compute diff
     int diff = count_ - prev_count;
-    // update prev_count
-    prev_count = count_;
     // check for zero crossing
     if (diff > COUNTS_PER_REVOLUTION / 2) {
       // we crossed zero going clockwise (1 -> 359)
@@ -198,40 +269,109 @@ protected:
     }
     // update accumulator
     accumulator_ += diff;
-    logger_.debug("CDA: {}, {}, {}", count_, diff, accumulator_);
+    logger_.debug_rate_limited("CDA: {}, {}, {}", count_, diff, accumulator_);
     // update velocity (filtering it)
-    static auto prev_time = std::chrono::high_resolution_clock::now();
-    auto now = std::chrono::high_resolution_clock::now();
-    float elapsed = std::chrono::duration<float>(now - prev_time).count();
-    prev_time = now;
-    float seconds = elapsed ? elapsed : update_period_.count();
-    float raw_velocity = (float)(diff) / COUNTS_PER_REVOLUTION_F / seconds * SECONDS_PER_MINUTE;
+    float raw_velocity =
+        (dt > 0 && std::abs(diff) > MIN_DIFF)
+            ? (float)(diff) / COUNTS_PER_REVOLUTION_F / seconds * SECONDS_PER_MINUTE
+            : 0.0f;
     velocity_rpm_ = velocity_filter_ ? velocity_filter_(raw_velocity) : raw_velocity;
-    static float max_velocity = 0.5f / update_period_.count() * SECONDS_PER_MINUTE;
-    if (raw_velocity >= max_velocity) {
-      logger_.warn("Velocity nearing measurement limit ({:.3f} RPM), consider decreasing your "
-                   "update period!",
-                   max_velocity);
+    if (dt > 0) {
+      float max_velocity = 0.5f / seconds * SECONDS_PER_MINUTE;
+      if (raw_velocity >= max_velocity) {
+        logger_.warn_rate_limited(
+            "Velocity nearing measurement limit ({:.3f} RPM), consider decreasing your "
+            "update period!",
+            max_velocity);
+      }
     }
   }
 
-  bool update_task(std::mutex &m, std::condition_variable &cv, bool &task_notified) {
-    auto start = std::chrono::high_resolution_clock::now();
+  /**
+   * @brief Start the update task/timer.
+   * @note This will start the task/timer that calls update() at the update_period.
+   * @note This is only useful if you previously stopped the task/timer or if you
+   *       initialized with run_task = false.
+   * @return True if the task/timer was started successfully, false otherwise.
+   */
+  bool start() {
+    logger_.info("Starting task with update period of {:.3f} seconds", update_period_.count());
+    prev_time_us_ = esp_timer_get_time();
+#if defined(CONFIG_AS5600_USE_TIMER)
+    uint64_t period_us =
+        std::chrono::duration_cast<std::chrono::microseconds>(update_period_).count();
+    return timer_.periodic(period_us);
+#else
+    if (!task_) {
+      return false;
+    }
+    return task_->start();
+#endif
+  }
+
+  /**
+   * @brief Stop the update task/timer.
+   * @note This will stop the task/timer that calls update() at the update_period.
+   * @note After stopping, you can manually call update() or restart with start().
+   */
+  void stop() {
+    logger_.info("Stopping task");
+#if defined(CONFIG_AS5600_USE_TIMER)
+    timer_.stop();
+#else
+    if (task_) {
+      task_->stop();
+    }
+#endif
+  }
+
+protected:
+  int read_count(std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    // read the angle count registers
+    uint8_t angle_h = read_u8_from_register((uint8_t)Registers::ANGLE_H, ec);
+    if (ec) {
+      logger_.error_rate_limited("Error reading: {}", ec.message());
+      return 0;
+    }
+    uint8_t angle_l = read_u8_from_register((uint8_t)Registers::ANGLE_L, ec) >> 2;
+    if (ec) {
+      logger_.error_rate_limited("Error reading: {}", ec.message());
+      return 0;
+    }
+    return (int)((angle_h << 6) | angle_l);
+  }
+
+#if defined(CONFIG_AS5600_USE_TIMER)
+  bool update_task() {
     std::error_code ec;
     update(ec);
     if (ec) {
       logger_.error("Error updating: {}", ec.message());
     }
-    {
-      std::unique_lock<std::mutex> lk(m);
-      cv.wait_until(lk, start + update_period_, [&task_notified] { return task_notified; });
-      task_notified = false;
-    }
-    // don't want the task to stop
+    // don't want to stop the task
     return false;
   }
+#else
+  bool update_task(std::mutex &m, std::condition_variable &cv, bool &task_notified) {
+    auto start_time = std::chrono::high_resolution_clock::now();
+    std::error_code ec;
+    update(ec);
+    if (ec) {
+      logger_.error("Error updating: {}", ec.message());
+    }
+    // sleep until the next update period
+    {
+      std::unique_lock<std::mutex> lk(m);
+      cv.wait_until(lk, start_time + update_period_, [&task_notified] { return task_notified; });
+      task_notified = false;
+    }
+    // don't want to stop the task
+    return false;
+  }
+#endif
 
-  void init(std::error_code &ec) {
+  void init(bool run_task, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     // initialize the accumulator to have the current angle
     auto count = read_count(ec);
@@ -239,13 +379,15 @@ protected:
       return;
     }
     accumulator_ = count;
-    // start the task
-    using namespace std::placeholders;
-    task_ = Task::make_unique({
-        .callback = std::bind(&As5600::update_task, this, _1, _2, _3),
-        .task_config = {.name = "As5600"},
-    });
-    task_->start();
+    if (!run_task) {
+      logger_.info(
+          "Not starting task, run_task is false. Manually call update() to update the state.");
+      return;
+    }
+    if (!start()) {
+      logger_.error("Error starting task");
+      ec = make_error_code(std::errc::operation_not_permitted);
+    }
   }
 
   /**
@@ -293,10 +435,20 @@ protected:
   static constexpr int MAGNET_DETECTED = (1 << 5); ///< For use with the STATUS register
 
   velocity_filter_fn velocity_filter_{nullptr};
+  uint64_t prev_time_us_{0};
   std::chrono::duration<float> update_period_;
   std::atomic<int> count_{0};
   std::atomic<int> accumulator_{0};
   std::atomic<float> velocity_rpm_{0};
-  std::unique_ptr<Task> task_;
+#if defined(CONFIG_AS5600_USE_TIMER)
+  espp::HighResolutionTimer timer_{
+      {.name = "As5600",
+       .callback = std::bind(&As5600::update_task, this) }};
+#else
+  std::unique_ptr<Task> task_ = espp::Task::make_unique(Task::Config{
+      .callback = std::bind_front(&As5600::update_task, this),
+      .task_config = {.name = "As5600"},
+  });
+#endif
 };
 } // namespace espp

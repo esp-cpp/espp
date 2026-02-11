@@ -4,7 +4,9 @@ Network APIs
 .. toctree::
     :maxdepth: 1
 
+    dns_server
     ping
+    provisioning
     socket_example
     socket
     tcp_socket

@@ -2124,9 +2124,17 @@ void py_init_module_espp(py::module &m) {
       .def("is_running", &espp::Task::is_running,
            "*\n   * @brief Is the task running?\n   *\n   * @return True if the task is running, "
            "False otherwise.\n")
-      .def("get_id", &espp::Task::get_id,
-           "*\n   * @brief Get the ID for this Task's thread / task context.\n   * @return ID for "
-           "this Task's thread / task context.\n")
+      .def(
+          "get_id", [](espp::Task &self) { return self.get_id(); },
+          "*\n   * @brief Get the ID for this Task's thread / task context.\n   * @return ID for "
+          "this Task's thread / task context.\n   * @warning This will only return a valid id if "
+          "the task is started.\n")
+      .def_static("get_id", py::overload_cast<const espp::Task &>(&espp::Task::get_id),
+                  py::arg("task"),
+                  "*\n   * @brief Get the ID for the Task's thread / task context.\n   * @param "
+                  "task Reference to the task for which you want the ID.\n   * @return ID for this "
+                  "Task's thread / task context.\n   * @warning This will only return a valid id "
+                  "if the task is started.\n")
       .def_static("get_current_id", &espp::Task::get_current_id,
                   "*\n   * @brief Get the ID for the current thread / task context.\n   * @return "
                   "ID for the current thread / task context.\n");

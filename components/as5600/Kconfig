@@ -1,0 +1,21 @@
+menu "AS5600 Configuration"
+    config AS5600_MIN_DIFF
+        int "Minimum difference for velocity calculation"
+        default 2
+        range 0 100
+        help
+          Set the minimum difference in encoder counts required to update
+          the velocity calculation. If the absolute difference between the
+          current and previous count is less than or equal to this value,
+          the velocity will be set to 0. This helps filter out noise and
+          small jitter in the encoder readings.
+
+    config AS5600_USE_TIMER
+        bool "Use high resolution timer instead of task"
+        default y
+        help
+          Use the high resolution timer instead of a FreeRTOS task for
+          periodic updates. The timer is more precise and has lower overhead.
+          Disable this if you prefer to use a task-based implementation.
+
+endmenu

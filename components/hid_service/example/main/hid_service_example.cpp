@@ -7,6 +7,7 @@
 #include "hid_service.hpp"
 
 #include "hid-rp-playstation.hpp"
+#include "hid-rp-ps4.hpp"
 #include "hid-rp-switch-pro.hpp"
 #include "hid-rp-xbox.hpp"
 
@@ -155,9 +156,32 @@ extern "C" void app_main(void) {
   static constexpr size_t num_buttons = GamepadInput::button_count;
   static constexpr uint8_t input_report_id = GamepadInput::ID;
   auto raw_descriptor = espp::playstation_dualsense_ble_descriptor();
+#elif CONFIG_EXAMPLE_AS_PLAYSTATION_DUALSHOCK4_BLE
+  logger.info("Configuring as Playstation DualShock 4 BLE controller");
+
+  // Playstation DualShock 4 BLE controller
+  uint16_t vid = 0x054C; // Sony
+  uint16_t pid = 0x09CC; // DualShock 4 Wireless Controller (CUH-ZCT2 series)
+  uint16_t product_version = 0x0100;
+  std::string software_version = "1.0.0";
+  std::string firmware_version = "1.0.0";
+  std::string hardware_version = "1.0.0";
+  std::string device_name = "Wireless Controller";
+  std::string advertised_name = "Wireless Controller";
+  std::string manufacturer_name = "Sony";
+  std::string model_number = "CUH-ZCT2";
+  std::string serial_number = "1234567890";
+
+  using GamepadInput = espp::PS4DualShock4GamepadInputReport<>;
+  GamepadInput gamepad_input_report;
+  static constexpr size_t num_report_bytes = GamepadInput::num_data_bytes;
+  logger.info("Report size: {} bytes", num_report_bytes);
+  static constexpr size_t num_buttons = GamepadInput::button_count;
+  static constexpr uint8_t input_report_id = GamepadInput::ID;
+  auto raw_descriptor = espp::ps4_dualshock4_descriptor();
 #else
 #error                                                                                             \
-    "You must define one of CONFIG_EXAMPLE_AS_XBOX, CONFIG_EXAMPLE_AS_SWITCH_PRO, or CONFIG_EXAMPLE_AS_PLAYSTATION_DUALSENSE_BLE"
+    "You must define one of CONFIG_EXAMPLE_AS_XBOX, CONFIG_EXAMPLE_AS_SWITCH_PRO, CONFIG_EXAMPLE_AS_PLAYSTATION_DUALSHOCK4_BLE, or CONFIG_EXAMPLE_AS_PLAYSTATION_DUALSENSE_BLE"
 #endif
 
   // create the GATT server
@@ -239,7 +263,7 @@ extern "C" void app_main(void) {
   hid_service.set_report_map(descriptor);
 
   // Only configure the battery, led, or rumble reports if we are emulating an
-  // xbox controller
+  // xbox controller. For PS4, we need to set up feature and output reports.
 #if CONFIG_EXAMPLE_AS_XBOX
   // use the HID service to make an input report characteristic
   [[maybe_unused]] auto input_report = hid_service.input_report(input_report_id);
@@ -378,6 +402,90 @@ extern "C" void app_main(void) {
     ps_feature_report->setCallbacks(feature_callbacks.get());
     feature_callbacks.release(); // the hid service will now own the callbacks
   }
+#elif CONFIG_EXAMPLE_AS_PLAYSTATION_DUALSHOCK4_BLE
+  // use the HID service to make an input report characteristic
+  [[maybe_unused]] auto input_report = hid_service.input_report(input_report_id);
+
+  // PS4 uses report ID 0x05 for output (31 bytes)
+  auto ps4_output_report = hid_service.output_report(0x05);
+
+  // PS4 uses feature reports for device info and configuration
+  // Report IDs: 0x02 (37 bytes), 0x04 (41 bytes), 0xF1 (63 bytes), 0xF2 (63 bytes)
+  auto ps4_feature_02 = hid_service.feature_report(0x02);
+  auto ps4_feature_04 = hid_service.feature_report(0x04);
+  auto ps4_feature_f1 = hid_service.feature_report(0xF1);
+  auto ps4_feature_f2 = hid_service.feature_report(0xF2);
+
+  // Set up callbacks for output and feature reports
+  class PS4OutputCallbacks : public NimBLECharacteristicCallbacks {
+    uint8_t report_id;
+    espp::Logger logger =
+        espp::Logger({.tag = "PS4OutputCallbacks", .level = espp::Logger::Verbosity::INFO});
+
+  public:
+    explicit PS4OutputCallbacks(uint8_t id)
+        : report_id(id) {}
+    virtual void onWrite(NimBLECharacteristic *pCharacteristic, NimBLEConnInfo &connInfo) override {
+      auto data = pCharacteristic->getValue();
+      logger.info("PS4 Output report (id=0x{:02X})[len={}]: {::#02x}", report_id, data.size(),
+                  data);
+    }
+  };
+
+  class PS4FeatureCallbacks : public NimBLECharacteristicCallbacks {
+    uint8_t report_id;
+    espp::Logger logger =
+        espp::Logger({.tag = "PS4FeatureCallbacks", .level = espp::Logger::Verbosity::INFO});
+
+  public:
+    explicit PS4FeatureCallbacks(uint8_t id)
+        : report_id(id) {}
+    virtual void onWrite(NimBLECharacteristic *pCharacteristic, NimBLEConnInfo &connInfo) override {
+      auto data = pCharacteristic->getValue();
+      logger.info("PS4 Feature report (id=0x{:02X})[len={}]: {::#02x}", report_id, data.size(),
+                  data);
+    }
+    virtual void onRead(NimBLECharacteristic *pCharacteristic, NimBLEConnInfo &connInfo) override {
+      auto data = pCharacteristic->getValue();
+      logger.info("PS4 Feature report read (id=0x{:02X})[len={}]: {::#02x}", report_id, data.size(),
+                  data);
+    }
+  };
+
+  auto output_callbacks_05 = std::make_unique<PS4OutputCallbacks>(0x05);
+  ps4_output_report->setCallbacks(output_callbacks_05.get());
+  output_callbacks_05.release();
+
+  auto feature_callbacks_02 = std::make_unique<PS4FeatureCallbacks>(0x02);
+  ps4_feature_02->setCallbacks(feature_callbacks_02.get());
+  feature_callbacks_02.release();
+
+  auto feature_callbacks_04 = std::make_unique<PS4FeatureCallbacks>(0x04);
+  ps4_feature_04->setCallbacks(feature_callbacks_04.get());
+  feature_callbacks_04.release();
+
+  auto feature_callbacks_f1 = std::make_unique<PS4FeatureCallbacks>(0xF1);
+  ps4_feature_f1->setCallbacks(feature_callbacks_f1.get());
+  feature_callbacks_f1.release();
+
+  auto feature_callbacks_f2 = std::make_unique<PS4FeatureCallbacks>(0xF2);
+  ps4_feature_f2->setCallbacks(feature_callbacks_f2.get());
+  feature_callbacks_f2.release();
+
+  // Initialize feature reports with default data
+  // Feature 0xF1 contains device info (MAC address at offset 1-6)
+  std::vector<uint8_t> feature_f1_data(63, 0);
+  // Set some default MAC address (will be overwritten by real MAC)
+  auto ble_addr = NimBLEDevice::getAddress();
+  const uint8_t *mac = ble_addr.getVal();
+  for (int i = 0; i < 6; i++) {
+    feature_f1_data[1 + i] = mac[5 - i]; // MAC is in reverse order
+  }
+  ps4_feature_f1->setValue(feature_f1_data);
+
+  // Feature 0xF2 contains firmware version info
+  std::vector<uint8_t> feature_f2_data(63, 0);
+  ps4_feature_f2->setValue(feature_f2_data);
 #endif // CONFIG_EXAMPLE_AS_XBOX
 
   // now that we've made the input characteristic, we can start the service
@@ -504,6 +612,10 @@ extern "C" void app_main(void) {
     // switch pro doesn't have a battery input report
 #elif CONFIG_EXAMPLE_AS_PLAYSTATION_DUALSENSE_BLE
     gamepad_input_report.set_battery_level(battery_level);
+#elif CONFIG_EXAMPLE_AS_PLAYSTATION_DUALSHOCK4_BLE
+    // PS4 battery level is 0-10, map from 0-100
+    gamepad_input_report.set_battery_level(battery_level / 10);
+    gamepad_input_report.set_battery_charging(false);
 #endif // CONFIG_EXAMPLE_AS_XBOX
     battery_level = (battery_level % 100) + 1;
 
@@ -517,6 +629,13 @@ extern "C" void app_main(void) {
     gamepad_input_report.increment_counter();
     gamepad_input_report.increment_coarse_timestamp();
     gamepad_input_report.increment_fine_timestamps();
+#elif CONFIG_EXAMPLE_AS_PLAYSTATION_DUALSHOCK4_BLE
+    static uint16_t ps4_timestamp = 0;
+    static uint8_t ps4_counter = 0;
+    gamepad_input_report.set_timestamp(ps4_timestamp++);
+    gamepad_input_report.set_counter(ps4_counter++);
+    if (ps4_counter >= 64)
+      ps4_counter = 0; // counter is 6 bits
 #endif
 
     static uint8_t hat_value = 0;
@@ -528,6 +647,20 @@ extern "C" void app_main(void) {
     float angle = 2.0f * M_PI * button_index / num_buttons;
 
     gamepad_input_report.set_hat(hat);
+#if CONFIG_EXAMPLE_AS_PLAYSTATION_DUALSHOCK4_BLE
+    // PS4 has specific button setters and different joystick/trigger ranges
+    // Set a button based on button_index (cycle through face buttons)
+    gamepad_input_report.set_button_cross(button_index == 1);
+    gamepad_input_report.set_button_circle(button_index == 2);
+    gamepad_input_report.set_button_square(button_index == 3);
+    gamepad_input_report.set_button_triangle(button_index == 4);
+    // PS4 joystick range is 0-255 with 128 as center
+    gamepad_input_report.set_right_joystick(128 + 127 * cos(angle), 128 + 127 * sin(angle));
+    gamepad_input_report.set_left_joystick(128 + 127 * sin(angle), 128 + 127 * cos(angle));
+    // PS4 trigger range is 0-255
+    gamepad_input_report.set_r2_trigger(std::abs(sin(angle)) * 255);
+    gamepad_input_report.set_l2_trigger(std::abs(cos(angle)) * 255);
+#else
     gamepad_input_report.set_button(button_index, true);
     // joystick inputs are in the range [-1, 1] float
     gamepad_input_report.set_right_joystick(cos(angle), sin(angle));
@@ -535,6 +668,7 @@ extern "C" void app_main(void) {
     // trigger inputs are in the range [0, 1] float
     gamepad_input_report.set_right_trigger((float)std::abs(sin(angle)));
     gamepad_input_report.set_left_trigger((float)std::abs(cos(angle)));
+#endif
 
     logger.debug("Setting left joystick: ({:.1f}, {:.1f})", sin(angle), cos(angle));
     logger.debug("Setting right joystick: ({:.1f}, {:.1f})", cos(angle), sin(angle));
@@ -572,6 +706,8 @@ extern "C" void app_main(void) {
     report[report.size() - 2] = (crc >> 16) & 0xFF;
     report[report.size() - 1] = (crc >> 24) & 0xFF;
     logger.debug("Setting CRC32: 0x{:08x}", crc);
+#elif CONFIG_EXAMPLE_AS_PLAYSTATION_DUALSHOCK4_BLE
+    // PS4 DualShock 4 doesn't use CRC32 in BLE mode (only in USB mode)
 #endif // CONFIG_EXAMPLE_AS_PLAYSTATION_DUALSENSE_BLE
 
     logger.debug("Set input report {} to {}", gamepad_input_report.ID, gamepad_input_report);

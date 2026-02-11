@@ -10,6 +10,7 @@ The `espp::M5StackTab5` component provides a singleton hardware abstraction for 
 
 ### Display & Touch
 - 5″ 1280 × 720 IPS TFT screen via MIPI-DSI
+- **Automatic display controller detection** (supports ILI9881 or ST7123)
 - GT911 multi-touch controller (I²C) for smooth interaction
 - Adjustable backlight brightness control
 
@@ -64,6 +65,28 @@ The `espp::M5StackTab5` component provides a singleton hardware abstraction for 
 | IMU | BMI270 6-axis (accelerometer + gyroscope) |
 | Battery | NP-F550 2000mAh removable |
 | Expansion | Grove, M5-Bus, STAMP pads, GPIO headers |
+
+## Display Controller Auto-Detection
+
+The M5Stack Tab5 hardware can be manufactured with one of two different MIPI-DSI display controllers:
+- **ILI9881** (earlier hardware revisions)
+- **ST7123** (newer hardware revisions)
+
+The BSP automatically detects which display controller is present during initialization by:
+1. Attempting to initialize with the ILI9881 driver first
+2. If ILI9881 detection fails, falling back to ST7123 initialization
+3. Logging the detected controller type for debugging
+
+This means your application code works seamlessly across both hardware variants without any code changes. You can optionally query the detected controller type:
+
+```cpp
+auto& tab5 = espp::M5StackTab5::get();
+tab5.initialize_lcd();
+
+// Query the detected controller
+auto controller_type = tab5.get_display_controller();
+const char* controller_name = tab5.get_display_controller_name();
+```
 
 ## Example
 

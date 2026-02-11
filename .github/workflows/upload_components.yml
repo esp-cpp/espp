@@ -54,11 +54,13 @@ jobs:
             components/csv
             components/display
             components/display_drivers
+            components/dns_server
             components/drv2605
             components/encoder
             components/esp-box
             components/esp32-timer-cam
             components/event_manager
+            components/expressive_eyes
             components/file_system
             components/filters
             components/format
@@ -94,13 +96,15 @@ jobs:
             components/neopixel
             components/nvs
             components/odrive_ascii
+            components/pcf85063
             components/pi4ioe5v
             components/pid
             components/ping
-            components/pcf85063
+            components/provisioning
             components/qmi8658
             components/qtpy
             components/qwiicnes
+            components/remote_debug
             components/rmt
             components/rtsp
             components/runqueue

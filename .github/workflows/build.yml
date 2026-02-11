@@ -63,6 +63,8 @@ jobs:
           target: esp32
         - path: 'components/display_drivers/example'
           target: esp32
+        - path: 'components/dns_server/example'
+          target: esp32s3
         - path: 'components/drv2605/example'
           target: esp32
         - path: 'components/encoder/example'
@@ -73,6 +75,8 @@ jobs:
           target: esp32s3
         - path: 'components/event_manager/example'
           target: esp32
+        - path: 'components/expressive_eyes/example'
+          target: esp32s3
         - path: 'components/file_system/example'
           target: esp32
         - path: 'components/filters/example'
@@ -153,6 +157,8 @@ jobs:
           target: esp32
         - path: 'components/ping/example'
           target: esp32s3
+        - path: 'components/provisioning/example'
+          target: esp32s3
         - path: 'components/qmi8658/example'
           target: esp32s3
         - path: 'components/qtpy/example'
@@ -161,6 +167,8 @@ jobs:
           target: esp32s3
         - path: 'components/qwiicnes/example'
           target: esp32
+        - path: 'components/remote_debug/example'
+          target: esp32s3
         - path: 'components/rmt/example'
           target: esp32s3
         - path: 'components/rtsp/example'

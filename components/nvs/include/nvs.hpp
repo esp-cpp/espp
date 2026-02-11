@@ -2,12 +2,6 @@
 
 #include <string>
 
-#include <nvs.h>
-#include <nvs_flash.h>
-#include <nvs_handle.hpp>
-
-#include "base_component.hpp"
-#include "nvs_errc.hpp"
 #include "nvs_handle_espp.hpp"
 
 namespace espp {
@@ -60,7 +54,7 @@ public:
   /// @param[in] ns_name Namespace of the variable to erase
   /// @param[out] ec Saves a std::error_code representing success or failure
   bool erase(std::string_view ns_name, std::error_code &ec) {
-    NvsHandle handle(ns_name.data(), ec);
+    espp::NvsHandle handle(ns_name.data(), ec);
     if (ec)
       return false;
 
@@ -75,7 +69,7 @@ public:
   /// @param[in] key NVS Key of the variable to erase
   /// @param[out] ec Saves a std::error_code representing success or failure
   bool erase(std::string_view ns_name, std::string_view key, std::error_code &ec) {
-    NvsHandle handle(ns_name.data(), ec);
+    espp::NvsHandle handle(ns_name.data(), ec);
     if (ec)
       return false;
 
@@ -89,7 +83,7 @@ public:
   /// @param[in] ns_name Namespace of the variable to get a handle to
   /// @param[out] ec Saves a std::error_code representing success or failure
   /// @return NvsHandle for the given namespace
-  NvsHandle get_handle(std::string_view ns_name, std::error_code &ec) {
+  espp::NvsHandle get_handle(std::string_view ns_name, std::error_code &ec) {
     return NvsHandle(ns_name, ec);
   }
 
@@ -133,7 +127,7 @@ public:
   /// @details Saves the key/variable pair, and commits the NVS.
   template <typename T>
   void set_var(const char *ns_name, const char *key, T value, std::error_code &ec) {
-    NvsHandle handle(ns_name, ec);
+    espp::NvsHandle handle(ns_name, ec);
     if (ec)
       return;
 
@@ -152,7 +146,7 @@ public:
   /// @details Read the key/variable pair
   template <typename T>
   void get_var(const char *ns_name, const char *key, T &value, std::error_code &ec) {
-    NvsHandle handle(ns_name, ec);
+    espp::NvsHandle handle(ns_name, ec);
     if (ec)
       return;
 
@@ -170,7 +164,7 @@ public:
   template <typename T>
   void get_or_set_var(const char *ns_name, const char *key, T &value, T default_value,
                       std::error_code &ec) {
-    NvsHandle handle(ns_name, ec);
+    espp::NvsHandle handle(ns_name, ec);
     if (ec)
       return;
 

@@ -91,11 +91,13 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/cst816/example/main/cst816_example.cpp \
   $(PROJECT_PATH)/components/csv/example/main/csv_example.cpp \
   $(PROJECT_PATH)/components/display_drivers/example/main/display_drivers_example.cpp \
+  $(PROJECT_PATH)/components/dns_server/example/main/dns_server_example.cpp \
   $(PROJECT_PATH)/components/drv2605/example/main/drv2605_example.cpp \
   $(PROJECT_PATH)/components/encoder/example/main/encoder_example.cpp \
   $(PROJECT_PATH)/components/esp32-timer-cam/example/main/esp_timer_cam_example.cpp \
   $(PROJECT_PATH)/components/esp-box/example/main/esp_box_example.cpp \
   $(PROJECT_PATH)/components/event_manager/example/main/event_manager_example.cpp \
+  $(PROJECT_PATH)/components/expressive_eyes/example/main/expressive_eyes_example.cpp \
   $(PROJECT_PATH)/components/file_system/example/main/file_system_example.cpp \
   $(PROJECT_PATH)/components/filters/example/main/filters_example.cpp \
   $(PROJECT_PATH)/components/ftp/example/main/ftp_example.cpp \
@@ -130,9 +132,11 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/odrive_ascii/example/main/odrive_ascii_example.cpp \
   $(PROJECT_PATH)/components/pcf85063/example/main/pcf85063_example.cpp \
   $(PROJECT_PATH)/components/pid/example/main/pid_example.cpp \
+  $(PROJECT_PATH)/components/provisioning/example/main/provisioning_example.cpp \
   $(PROJECT_PATH)/components/qtpy/example/main/qtpy_example.cpp \
   $(PROJECT_PATH)/components/qmi8658/example/main/qmi8658_example.cpp \
   $(PROJECT_PATH)/components/qwiicnes/example/main/qwiicnes_example.cpp \
+  $(PROJECT_PATH)/components/remote_debug/example/main/remote_debug_example.cpp \
   $(PROJECT_PATH)/components/rmt/example/main/rmt_example.cpp \
   $(PROJECT_PATH)/components/rtsp/example/main/rtsp_example.cpp \
   $(PROJECT_PATH)/components/ping/example/main/ping_example.cpp \
@@ -212,6 +216,7 @@ INPUT = \
   $(PROJECT_PATH)/components/display_drivers/include/ssd1351.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/st7789.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/sh8601.hpp \
+  $(PROJECT_PATH)/components/dns_server/include/dns_server.hpp \
   $(PROJECT_PATH)/components/drv2605/include/drv2605.hpp \
   $(PROJECT_PATH)/components/drv2605/include/drv2605_menu.hpp \
   $(PROJECT_PATH)/components/encoder/include/abi_encoder.hpp \
@@ -219,6 +224,7 @@ INPUT = \
   $(PROJECT_PATH)/components/esp32-timer-cam/include/esp32-timer-cam.hpp \
   $(PROJECT_PATH)/components/esp-box/include/esp-box.hpp \
   $(PROJECT_PATH)/components/event_manager/include/event_manager.hpp \
+  $(PROJECT_PATH)/components/expressive_eyes/include/expressive_eyes.hpp \
   $(PROJECT_PATH)/components/file_system/include/file_system.hpp \
   $(PROJECT_PATH)/components/filters/include/biquad_filter.hpp \
   $(PROJECT_PATH)/components/filters/include/butterworth_filter.hpp \
@@ -241,6 +247,7 @@ INPUT = \
   $(PROJECT_PATH)/components/hid-rp/include/hid-rp.hpp \
   $(PROJECT_PATH)/components/hid-rp/include/hid-rp-gamepad.hpp \
   $(PROJECT_PATH)/components/hid-rp/include/hid-rp-playstation.hpp \
+  $(PROJECT_PATH)/components/hid-rp/include/hid-rp-ps4.hpp \
   $(PROJECT_PATH)/components/hid-rp/include/hid-rp-switch-pro.hpp \
   $(PROJECT_PATH)/components/hid-rp/include/hid-rp-xbox.hpp \
   $(PROJECT_PATH)/components/hid_service/include/hid_service.hpp \
@@ -292,10 +299,12 @@ INPUT = \
   $(PROJECT_PATH)/components/pcf85063/include/pcf85063.hpp \
   $(PROJECT_PATH)/components/pid/include/pid.hpp \
   $(PROJECT_PATH)/components/ping/include/ping.hpp \
+  $(PROJECT_PATH)/components/provisioning/include/provisioning.hpp \
   $(PROJECT_PATH)/components/qmi8658/include/qmi8658.hpp \
   $(PROJECT_PATH)/components/qmi8658/include/qmi8658_detail.hpp \
   $(PROJECT_PATH)/components/qtpy/include/qtpy.hpp \
   $(PROJECT_PATH)/components/qwiicnes/include/qwiicnes.hpp \
+  $(PROJECT_PATH)/components/remote_debug/include/remote_debug.hpp \
   $(PROJECT_PATH)/components/rmt/include/rmt.hpp \
   $(PROJECT_PATH)/components/rmt/include/rmt_encoder.hpp \
   $(PROJECT_PATH)/components/rtsp/include/rtsp_client.hpp \
