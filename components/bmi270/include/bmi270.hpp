@@ -784,7 +784,9 @@ public:
     return status == 0x00;
   }
 
-  /// Abort CRT or Gyro Self Test
+  /// Abort CRT or Gyro Self Test.
+  /// @param ec Error code to set if an error occurs.
+  /// @return True if the operation was successful, false otherwise.
   bool abort_crt_gyro_self_test(std::error_code &ec) {
       std::lock_guard<std::recursive_mutex> lock(base_mutex_);
       set_bits_in_register(static_cast<uint8_t>(Register::PWR_CONF), 0x02, ec);
@@ -943,15 +945,14 @@ public:
   }
 
   /// Set Gyroscope Offsets
-  /// @param x X-axis offset
-  /// @param y Y-axis offset
-  /// @param z Z-axis offset
+  /// @param x X-axis offset. Must be within 10-bit range [-512, 511].
+  /// @param y Y-axis offset. Must be within 10-bit range [-512, 511].
+  /// @param z Z-axis offset. Must be within 10-bit range [-512, 511].
   /// @param ec The error code to set if an error occurs
   /// @return True if successful
   bool set_gyro_offset(int16_t x, int16_t y, int16_t z, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
 
-    // Check for valid 10-bit range [-512, 511]
     if (x < -512 || x > 511 || y < -512 || y > 511 || z < -512 || z > 511) {
       logger_.error("Invalid gyroscope offset: must be within range [-512, 511]");
       ec = std::make_error_code(std::errc::invalid_argument);
