@@ -142,9 +142,9 @@ struct ImuConfig {
 
 /// Raw IMU data (16-bit signed)
 struct RawValue {
-  int16_t x; ///< Raw X-axis value
-  int16_t y; ///< Raw Y-axis value
-  int16_t z; ///< Raw Z-axis value
+  int16_t x = 0; ///< Raw X-axis value
+  int16_t y = 0; ///< Raw Y-axis value
+  int16_t z = 0; ///< Raw Z-axis value
 };
 
 /// Processed IMU data (floating point)
@@ -208,6 +208,63 @@ struct FifoConfig {
   bool enable_header = true;        ///< Include header in FIFO data
   uint16_t watermark_level = 1024;  ///< FIFO watermark level (bytes)
 };
+
+/// Structure to define accelerometer FOC target values
+struct AccelFocGValue {
+  uint8_t x = 0;    ///< Target value for x axis: '0' for 0g, '1' for 1g
+  uint8_t y = 0;    ///< Target value for y axis: '0' for 0g, '1' for 1g
+  uint8_t z = 0;    ///< Target value for z axis: '0' for 0g, '1' for 1g
+  uint8_t sign = 0; ///< Sign of 1g: '0' for positive (+), '1' for negative (-)
+};
+
+/// Structure to store the status of gyro self test result
+struct GyroSelfTestStatus {
+  bool gyr_st_axes_done = false; ///< gyro self test axes done
+  bool gyr_axis_x_ok = false;    ///< status of gyro X-axis self test
+  bool gyr_axis_y_ok = false;    ///< status of gyro Y-axis self test
+  bool gyr_axis_z_ok = false;    ///< status of gyro Z-axis self test
+};
+
+/// G trigger status
+enum class GTriggerStatus : uint8_t {
+  NO_ERROR = 0x00,     ///< No error
+  PRECON_ERROR = 0x01, ///< Pre-condition error
+  DL_ERROR = 0x02,     ///< Download error
+  ABORT_ERROR = 0x03,  ///< Abort error
+};
+
+/// Structure to define gyroscope saturation status of user gain
+struct GyrUserGainStatus {
+  uint8_t sat_x = 0;                 ///< Status in x-axis
+  uint8_t sat_y = 0;                 ///< Status in y-axis
+  uint8_t sat_z = 0;                 ///< Status in z-axis
+  GTriggerStatus g_trigger_status = GTriggerStatus::NO_ERROR; ///< G trigger status
+};
+
+/// ScopeGuard class for RAII-based cleanup
+template <typename F> class ScopeGuard {
+public:
+  explicit ScopeGuard(F &&f) : f_(std::forward<F>(f)), active_(true) {}
+  ~ScopeGuard() {
+    if (active_)
+      f_();
+  }
+  void dismiss() { active_ = false; }
+
+  ScopeGuard(const ScopeGuard &) = delete;
+  ScopeGuard &operator=(const ScopeGuard &) = delete;
+
+  ScopeGuard(ScopeGuard &&other) : f_(std::move(other.f_)), active_(other.active_) {
+    other.active_ = false;
+  }
+
+private:
+  F f_;
+  bool active_;
+};
+
+/// Helper function to create a ScopeGuard
+template <typename F> auto make_scope_guard(F &&f) { return ScopeGuard<F>(std::forward<F>(f)); }
 
 } // namespace bmi270
 } // namespace espp
@@ -279,5 +336,24 @@ template <> struct fmt::formatter<espp::bmi270::Value> {
   template <typename FormatContext>
   auto format(const espp::bmi270::Value &value, FormatContext &ctx) const {
     return format_to(ctx.out(), "{{ x: {:.2f}, y: {:.2f}, z: {:.2f} }}", value.x, value.y, value.z);
+  }
+};
+
+template <> struct fmt::formatter<espp::bmi270::GTriggerStatus> {
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
+  template <typename FormatContext>
+  auto format(espp::bmi270::GTriggerStatus status, FormatContext &ctx) const {
+    switch (status) {
+    case espp::bmi270::GTriggerStatus::NO_ERROR:
+      return format_to(ctx.out(), "No Error");
+    case espp::bmi270::GTriggerStatus::PRECON_ERROR:
+      return format_to(ctx.out(), "Pre-condition Error");
+    case espp::bmi270::GTriggerStatus::DL_ERROR:
+      return format_to(ctx.out(), "Download Error");
+    case espp::bmi270::GTriggerStatus::ABORT_ERROR:
+      return format_to(ctx.out(), "Abort Error");
+    default:
+      return format_to(ctx.out(), "Unknown ({})", static_cast<uint8_t>(status));
+    }
   }
 };

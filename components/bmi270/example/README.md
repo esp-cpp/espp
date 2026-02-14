@@ -21,6 +21,10 @@ This example shows how to use the `espp::Bmi270` component to initialize and com
     - [Debug Tips](#debug-tips)
   - [Performance Notes](#performance-notes)
   - [Advanced Features](#advanced-features)
+    - [Data Ready Interrupt](#data-ready-interrupt)
+    - [Fast Offset Compensation (FOC)](#fast-offset-compensation-foc)
+    - [Component Re-Trim (CRT)](#component-re-trim-crt)
+    - [Built-in Features](#built-in-features)
   - [References](#references)
 
 <!-- markdown-toc end -->
@@ -32,6 +36,8 @@ This example shows how to use the `espp::Bmi270` component to initialize and com
 - **Orientation Filtering**: Both Kalman and Madgwick filter implementations
 - **Real-time Data Logging**: CSV format output suitable for plotting
 - **Interrupt Configuration**: Data ready and motion detection interrupts
+- **Fast Offset Compensation (FOC)**: Calibrate accelerometer and gyroscope offsets
+- **Component Re-Trim (CRT)**: Compensate for gyroscope sensitivity changes
 - **Advanced Configuration**: Performance modes, bandwidth settings, power management
 
 ## How to use example
@@ -187,6 +193,16 @@ The CSV output can be imported into analysis tools like:
 - Consider magnetometer integration for yaw correction
 - Check for temperature effects
 
+**Stack Overflow during Initialization**:
+- Device crashes or resets while calling `bmi270.init()`.
+- Uploading the configuration file uses a large stack buffer by default.
+- Reduce the burst write size in the configuration to limit stack usage.
+  ```cpp
+  espp::Bmi270::Config config;
+  config.burst_write_size = 128; // Use 128-byte chunks (default 0 = one chunk of config_file_size bytes, e.g. 8192)
+  espp::Bmi270 imu(config);
+  ```
+
 ### Debug Tips
 
 1. **Enable verbose logging:**
@@ -218,7 +234,48 @@ The CSV output can be imported into analysis tools like:
 
 ## Advanced Features
 
-The example can be extended to demonstrate:
+### Data Ready Interrupt
+
+The BMI270 can be configured to generate an interrupt when new data is available. This is more efficient than polling the sensor.
+
+```cpp
+std::error_code ec;
+
+Imu::InterruptConfig int_config{
+    .pin = Imu::InterruptPin::INT1,
+    .output_type = Imu::InterruptOutput::PUSH_PULL,
+    .active_level = Imu::InterruptLevel::ACTIVE_HIGH,
+    .enable_data_ready = true
+};
+imu.configure_interrupts(int_config, ec);
+```
+
+### Fast Offset Compensation (FOC)
+
+FOC allows for quick calibration of the accelerometer and gyroscope offsets.
+
+```cpp
+// Accelerometer FOC (e.g., device flat on table, Z axis pointing up)
+Imu::AccelFocGValue accel_foc_target = {
+    .x = 0, .y = 0, .z = 1, .sign = 0 // 1g on Z axis
+};
+imu.perform_accel_foc(accel_foc_target, ec);
+
+// Gyroscope FOC (device must be stationary)
+imu.perform_gyro_foc(ec);
+```
+
+### Component Re-Trim (CRT)
+
+CRT is a feature to compensate for sensitivity changes in the gyroscope that may occur during assembly or over time.
+
+```cpp
+imu.perform_crt(ec);
+```
+
+### Built-in Features
+
+The BMI270 also supports several on-chip features that can be demonstrated by extending this example:
 
 - **Motion Detection**: Any motion, no motion, significant motion
 - **Step Counting**: Pedometer functionality

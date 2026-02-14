@@ -33,4 +33,11 @@ config EXAMPLE_I2C_CLOCK_SPEED_HZ
   help
     I2C clock speed in Hz.
 
+config EXAMPLE_RUN_CALIBRATION
+  bool "Run calibration"
+  default 1
+  help
+    Whether to run the sensor calibration (FOC & CRT) at startup.
+    Note: Device must be stationary on a flat surface.
+
 endmenu
