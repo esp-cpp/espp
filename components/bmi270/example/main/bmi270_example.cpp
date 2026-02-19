@@ -108,19 +108,19 @@ extern "C" void app_main(void) {
   // create the IMU
   Imu imu(config);
 
-  // ---------------------------------------------------------------------------
-  // [Optional] Sensor Calibration (FOC & CRT)
-  // WARNING: 
-  // 1. The device must be COMPLETELY STATIONARY on a flat surface.
-  // 2. Enable these lines only when you need calibration (e.g., once after assembly).
-  // ---------------------------------------------------------------------------
-  #if CONFIG_EXAMPLE_RUN_CALIBRATION
+// ---------------------------------------------------------------------------
+// [Optional] Sensor Calibration (FOC & CRT)
+// WARNING:
+// 1. The device must be COMPLETELY STATIONARY on a flat surface.
+// 2. Enable these lines only when you need calibration (e.g., once after assembly).
+// ---------------------------------------------------------------------------
+#if CONFIG_EXAMPLE_RUN_CALIBRATION
   // Perform FOC (Fast Offset Compensation)
   // Note: This assumes the device is flat on a table (Z-axis = 1g)
   // For a real application, you might want to trigger this based on a user action
   // or store the offsets in NVS.
   std::error_code ec;
-  
+
   logger.info("Performing Accelerometer FOC...");
   Imu::AccelFocGValue accel_foc_target = {.x = 0, .y = 0, .z = 1, .sign = 0}; // 1g on Z axis
   if (imu.perform_accel_foc(accel_foc_target, ec)) {
@@ -145,7 +145,7 @@ extern "C" void app_main(void) {
   } else {
     logger.error("CRT failed: {}", ec.message());
   }
-  #endif
+#endif
 
   // make a task to read out the IMU data and print it to console
   auto task_fn = [&](std::mutex &m, std::condition_variable &cv) -> bool {
@@ -198,7 +198,7 @@ extern "C" void app_main(void) {
     // print madgwick filter outputs
     text += fmt::format("{:03.3f},{:03.3f},{:03.3f},", roll, pitch, yaw);
     text += fmt::format("{:03.3f},{:03.3f},{:03.3f}", vx, vy, vz);
-    
+
     fmt::print("{}\n", text);
 
     return false;

@@ -1,9 +1,9 @@
 #pragma once
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <thread>
-#include <chrono>
 
 #include "base_peripheral.hpp"
 #include "bmi270_detail.hpp"
@@ -88,13 +88,14 @@ public:
     BasePeripheral<uint8_t, Interface == bmi270::Interface::I2C>::write_fn write =
         nullptr; ///< Write function
     BasePeripheral<uint8_t, Interface == bmi270::Interface::I2C>::read_fn read =
-        nullptr;                                          ///< Read function
-    ImuConfig imu_config;                                 ///< IMU configuration
-    filter_fn orientation_filter = nullptr;               ///< Filter function for orientation
+        nullptr;                            ///< Read function
+    ImuConfig imu_config;                   ///< IMU configuration
+    filter_fn orientation_filter = nullptr; ///< Filter function for orientation
     /**
-     * @brief Maximum number of bytes to write in a single burst during config upload. If 0 will use full config file size of 8192 bytes.
-     * Default is 0 (uses full config file size of 8192 bytes).
-     * Set this to a small non-zero value (e.g., 128) if you encounter stack overflow or want to decrease memory usage.
+     * @brief Maximum number of bytes to write in a single burst during config upload. If 0 will use
+     * full config file size of 8192 bytes. Default is 0 (uses full config file size of 8192 bytes).
+     * Set this to a small non-zero value (e.g., 128) if you encounter stack overflow or want to
+     * decrease memory usage.
      */
     uint16_t burst_write_size = 0;
     bool auto_init{true};                                 ///< Automatically initialize the BMI270
@@ -107,7 +108,8 @@ public:
       : BasePeripheral<uint8_t, Interface == bmi270::Interface::I2C>({}, "Bmi270", config.log_level)
       , orientation_filter_(config.orientation_filter)
       , imu_config_(config.imu_config)
-      , burst_write_size_(config.burst_write_size == 0 ? config_file_size : config.burst_write_size) {
+      , burst_write_size_(config.burst_write_size == 0 ? config_file_size
+                                                       : config.burst_write_size) {
     if constexpr (Interface == bmi270::Interface::I2C) {
       set_address(config.device_address);
     }
@@ -441,13 +443,14 @@ public:
   bool configure_interrupts(const InterruptConfig &config, std::error_code &ec) {
     // Configure interrupt pin electrical behavior (Output Enable | Output Type | Active Level)
     // Bit 3 is Output Enable, which must be set to 1 for the pin to drive the line.
-    uint8_t int_io_ctrl = (1 << 3) | 
-                          (static_cast<uint8_t>(config.output_type) << 2) |
+    uint8_t int_io_ctrl = (1 << 3) | (static_cast<uint8_t>(config.output_type) << 2) |
                           (static_cast<uint8_t>(config.active_level) << 1);
 
-    auto pin_reg = (config.pin == InterruptPin::INT1) ? Register::INT1_IO_CTRL : Register::INT2_IO_CTRL;
+    auto pin_reg =
+        (config.pin == InterruptPin::INT1) ? Register::INT1_IO_CTRL : Register::INT2_IO_CTRL;
     write_u8_to_register(static_cast<uint8_t>(pin_reg), int_io_ctrl, ec);
-    if (ec) return false;
+    if (ec)
+      return false;
 
     // Map interrupt features to pins
     uint8_t int_map_data = 0;
@@ -458,7 +461,8 @@ public:
     }
 
     write_u8_to_register(static_cast<uint8_t>(Register::INT_MAP_DATA), int_map_data, ec);
-    if (ec) return false;
+    if (ec)
+      return false;
 
     return true;
   }
@@ -481,16 +485,18 @@ public:
     // Perform simplified verification consistent with the C driver
     ImuConfig saved_config = imu_config_;
     uint8_t saved_pwr_ctrl = read_u8_from_register(static_cast<uint8_t>(Register::PWR_CTRL), ec);
-    if (ec) return false;
+    if (ec)
+      return false;
     uint8_t saved_pwr_conf = read_u8_from_register(static_cast<uint8_t>(Register::PWR_CONF), ec);
-    if (ec) return false;
+    if (ec)
+      return false;
 
     // Use ScopeGuard to ensure state is restored on all exit paths
     auto state_guard = make_scope_guard([&]() {
-        std::error_code internal_ec;
-        set_config(saved_config, internal_ec);
-        write_u8_to_register(static_cast<uint8_t>(Register::PWR_CTRL), saved_pwr_ctrl, internal_ec);
-        write_u8_to_register(static_cast<uint8_t>(Register::PWR_CONF), saved_pwr_conf, internal_ec);
+      std::error_code internal_ec;
+      set_config(saved_config, internal_ec);
+      write_u8_to_register(static_cast<uint8_t>(Register::PWR_CTRL), saved_pwr_ctrl, internal_ec);
+      write_u8_to_register(static_cast<uint8_t>(Register::PWR_CONF), saved_pwr_conf, internal_ec);
     });
 
     bool saved_acc_en = (saved_pwr_ctrl & ACC_ENABLE) != 0;
@@ -499,46 +505,52 @@ public:
     // Prepare for FOC
     if (saved_aps) {
       clear_bits_in_register(static_cast<uint8_t>(Register::PWR_CONF), 0x01, ec);
-      if (ec) return false;
+      if (ec)
+        return false;
     }
     if (!saved_acc_en) {
       set_bits_in_register(static_cast<uint8_t>(Register::PWR_CTRL), ACC_ENABLE, ec);
-      if (ec) return false;
+      if (ec)
+        return false;
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
-    write_u8_to_register(static_cast<uint8_t>(Register::ACC_CONF), 0xB7, ec); // 50Hz, CIC_AVG8, Perf Opt
-    if (ec) return false;
+    write_u8_to_register(static_cast<uint8_t>(Register::ACC_CONF), 0xB7,
+                         ec); // 50Hz, CIC_AVG8, Perf Opt
+    if (ec)
+      return false;
     write_u8_to_register(static_cast<uint8_t>(Register::ACC_RANGE), 0x00, ec); // 2G
-    if (ec) return false;
+    if (ec)
+      return false;
 
     // Read 128 samples
     int32_t x_sum = 0, y_sum = 0, z_sum = 0;
     for (int i = 0; i < 128; ++i) {
-        // Wait for data ready (20ms for 50Hz)
-        std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        auto raw = get_accelerometer_raw(ec);
-        if (ec) return false;
-        x_sum += raw.x;
-        y_sum += raw.y;
-        z_sum += raw.z;
+      // Wait for data ready (20ms for 50Hz)
+      std::this_thread::sleep_for(std::chrono::milliseconds(20));
+      auto raw = get_accelerometer_raw(ec);
+      if (ec)
+        return false;
+      x_sum += raw.x;
+      y_sum += raw.y;
+      z_sum += raw.z;
     }
 
     // Average
-    RawValue avg = {
-        static_cast<int16_t>(x_sum / 128),
-        static_cast<int16_t>(y_sum / 128),
-        static_cast<int16_t>(z_sum / 128)
-    };
+    RawValue avg = {static_cast<int16_t>(x_sum / 128), static_cast<int16_t>(y_sum / 128),
+                    static_cast<int16_t>(z_sum / 128)};
 
     // Calculate target
     int16_t target_x = 0, target_y = 0, target_z = 0;
     int16_t ref_1g = 16384;
     int16_t target_g = (accel_g_value.sign == 1) ? -ref_1g : ref_1g;
 
-    if (accel_g_value.x) target_x = target_g;
-    if (accel_g_value.y) target_y = target_g;
-    if (accel_g_value.z) target_z = target_g;
+    if (accel_g_value.x)
+      target_x = target_g;
+    if (accel_g_value.y)
+      target_y = target_g;
+    if (accel_g_value.z)
+      target_z = target_g;
 
     // Calculate delta (offset)
     // Offset = Average - Target
@@ -557,14 +569,17 @@ public:
     int8_t off_z = static_cast<int8_t>(std::clamp<int32_t>(-(delta_z / 64), -128, 127));
 
     // Write offset registers
-    uint8_t data[3] = {static_cast<uint8_t>(off_x), static_cast<uint8_t>(off_y), static_cast<uint8_t>(off_z)};
+    uint8_t data[3] = {static_cast<uint8_t>(off_x), static_cast<uint8_t>(off_y),
+                       static_cast<uint8_t>(off_z)};
     write_many_to_register(static_cast<uint8_t>(Register::ACC_OFF_COMP_0), data, 3, ec);
-    if (ec) return false;
+    if (ec)
+      return false;
 
     // Enable Accelerometer offset compensation
     // NV_CONF (0x70) bit 3 (BMI2_NV_ACC_OFFSET_MASK = 0x08)
     set_bits_in_register(static_cast<uint8_t>(Register::NV_CONF), 0x08, ec);
-    if (ec) return false;
+    if (ec)
+      return false;
 
     logger_.info("Accel FOC completed (offsets: X={}, Y={}, Z={})", off_x, off_y, off_z);
     return true;
@@ -580,16 +595,18 @@ public:
     // Save status
     ImuConfig saved_config = imu_config_;
     uint8_t saved_pwr_ctrl = read_u8_from_register(static_cast<uint8_t>(Register::PWR_CTRL), ec);
-    if (ec) return false;
+    if (ec)
+      return false;
     uint8_t saved_pwr_conf = read_u8_from_register(static_cast<uint8_t>(Register::PWR_CONF), ec);
-    if (ec) return false;
+    if (ec)
+      return false;
 
     // Use ScopeGuard to ensure state is restored on all exit paths
     auto state_guard = make_scope_guard([&]() {
-        std::error_code internal_ec;
-        set_config(saved_config, internal_ec);
-        write_u8_to_register(static_cast<uint8_t>(Register::PWR_CTRL), saved_pwr_ctrl, internal_ec);
-        write_u8_to_register(static_cast<uint8_t>(Register::PWR_CONF), saved_pwr_conf, internal_ec);
+      std::error_code internal_ec;
+      set_config(saved_config, internal_ec);
+      write_u8_to_register(static_cast<uint8_t>(Register::PWR_CTRL), saved_pwr_ctrl, internal_ec);
+      write_u8_to_register(static_cast<uint8_t>(Register::PWR_CONF), saved_pwr_conf, internal_ec);
     });
 
     bool saved_gyr_en = (saved_pwr_ctrl & GYR_ENABLE) != 0;
@@ -598,41 +615,45 @@ public:
     // Prepare for FOC
     if (saved_aps) {
       clear_bits_in_register(static_cast<uint8_t>(Register::PWR_CONF), 0x01, ec);
-      if (ec) return false;
+      if (ec)
+        return false;
     }
     if (!saved_gyr_en) {
       set_bits_in_register(static_cast<uint8_t>(Register::PWR_CTRL), GYR_ENABLE, ec);
-      if (ec) return false;
+      if (ec)
+        return false;
       std::this_thread::sleep_for(std::chrono::milliseconds(80));
     }
 
     // Configure FOC (25Hz, 2000dps)
     write_u8_to_register(static_cast<uint8_t>(Register::GYR_CONF), 0xB6, ec);
-    if (ec) return false;
+    if (ec)
+      return false;
     write_u8_to_register(static_cast<uint8_t>(Register::GYR_RANGE), 0x00, ec);
-    if (ec) return false;
+    if (ec)
+      return false;
 
     // Accumulate 128 samples
     int32_t x_sum = 0, y_sum = 0, z_sum = 0;
     for (int i = 0; i < 128; ++i) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(45));
-        auto raw = get_gyroscope_raw(ec);
-        if (ec) return false;
-        x_sum += raw.x;
-        y_sum += raw.y;
-        z_sum += raw.z;
+      std::this_thread::sleep_for(std::chrono::milliseconds(45));
+      auto raw = get_gyroscope_raw(ec);
+      if (ec)
+        return false;
+      x_sum += raw.x;
+      y_sum += raw.y;
+      z_sum += raw.z;
     }
 
     // Average and saturate (10-bit)
-    auto saturate = [](int16_t val) -> int16_t {
-        return std::clamp<int16_t>(val, -512, 511);
-    };
+    auto saturate = [](int16_t val) -> int16_t { return std::clamp<int16_t>(val, -512, 511); };
     int16_t off_x = saturate(-(x_sum / 128));
     int16_t off_y = saturate(-(y_sum / 128));
     int16_t off_z = saturate(-(z_sum / 128));
 
     uint8_t current_reg = read_u8_from_register(static_cast<uint8_t>(Register::GYR_OFF_COMP_6), ec);
-    if (ec) return false;
+    if (ec)
+      return false;
     bool gain_enabled = (current_reg & 0x80) != 0;
 
     // Write offset and enable compensation (Bit 6)
@@ -640,14 +661,17 @@ public:
     data[0] = static_cast<uint8_t>(off_x & 0xFF);
     data[1] = static_cast<uint8_t>(off_y & 0xFF);
     data[2] = static_cast<uint8_t>(off_z & 0xFF);
-    data[3] = static_cast<uint8_t>(((off_x >> 8) & 0x03) | ((off_y >> 6) & 0x0C) | ((off_z >> 4) & 0x30)) | 0x40;
+    data[3] = static_cast<uint8_t>(((off_x >> 8) & 0x03) | ((off_y >> 6) & 0x0C) |
+                                   ((off_z >> 4) & 0x30)) |
+              0x40;
 
     if (gain_enabled) {
-        data[3] |= 0x80;
+      data[3] |= 0x80;
     }
 
     write_many_to_register(static_cast<uint8_t>(Register::GYR_OFF_COMP_3), data, 4, ec);
-    if (ec) return false;
+    if (ec)
+      return false;
 
     logger_.info("Gyro FOC completed (offsets: X={}, Y={}, Z={})", off_x, off_y, off_z);
     return true;
@@ -662,122 +686,143 @@ public:
 
     // Save status and disable APS
     uint8_t saved_pwr_conf = read_u8_from_register(static_cast<uint8_t>(Register::PWR_CONF), ec);
-    if (ec) return false;
+    if (ec)
+      return false;
     uint8_t saved_pwr_ctrl = read_u8_from_register(static_cast<uint8_t>(Register::PWR_CTRL), ec);
-    if (ec) return false;
-    uint8_t saved_fifo_conf_1 = read_u8_from_register(static_cast<uint8_t>(Register::FIFO_CONFIG_1), ec);
-    if (ec) return false;
+    if (ec)
+      return false;
+    uint8_t saved_fifo_conf_1 =
+        read_u8_from_register(static_cast<uint8_t>(Register::FIFO_CONFIG_1), ec);
+    if (ec)
+      return false;
 
     // Use ScopeGuard to ensure state is restored on all exit paths
     auto state_guard = make_scope_guard([&]() {
-        std::error_code internal_ec;
-        set_config(imu_config_, internal_ec);
-        write_u8_to_register(static_cast<uint8_t>(Register::PWR_CTRL), saved_pwr_ctrl, internal_ec);
-        write_u8_to_register(static_cast<uint8_t>(Register::PWR_CONF), saved_pwr_conf, internal_ec);
-        write_u8_to_register(static_cast<uint8_t>(Register::FIFO_CONFIG_1), saved_fifo_conf_1, internal_ec);
+      std::error_code internal_ec;
+      set_config(imu_config_, internal_ec);
+      write_u8_to_register(static_cast<uint8_t>(Register::PWR_CTRL), saved_pwr_ctrl, internal_ec);
+      write_u8_to_register(static_cast<uint8_t>(Register::PWR_CONF), saved_pwr_conf, internal_ec);
+      write_u8_to_register(static_cast<uint8_t>(Register::FIFO_CONFIG_1), saved_fifo_conf_1,
+                           internal_ec);
     });
 
     bool saved_aps = (saved_pwr_conf & 0x01) != 0;
 
     if (saved_aps) {
       clear_bits_in_register(static_cast<uint8_t>(Register::PWR_CONF), 0x01, ec);
-      if (ec) return false;
+      if (ec)
+        return false;
     }
 
     // Setup: Disable Gyro/FIFO, Enable Accel
     enable_gyroscope(false, ec);
-    if (ec) return false;
+    if (ec)
+      return false;
     clear_bits_in_register(static_cast<uint8_t>(Register::FIFO_CONFIG_1), 0xE0, ec);
-    if (ec) return false;
+    if (ec)
+      return false;
     enable_accelerometer(true, ec);
-    if (ec) return false;
+    if (ec)
+      return false;
 
     // Initialize CRT: Clear running bit first, then set both CRT mode and running
     write_u8_to_register(static_cast<uint8_t>(Register::GYR_CRT_CONF), 0x00, ec);
-    if (ec) return false;
+    if (ec)
+      return false;
     std::this_thread::sleep_for(std::chrono::milliseconds(5));
 
     // Set CRT mode (bit 0)
     set_bits_in_register(static_cast<uint8_t>(Register::GYR_CRT_CONF), 0x01, ec);
-    if (ec) return false;
+    if (ec)
+      return false;
     std::this_thread::sleep_for(std::chrono::milliseconds(5));
 
     // Trigger CRT by setting running bit (bit 2)
     set_bits_in_register(static_cast<uint8_t>(Register::GYR_CRT_CONF), 0x04, ec);
-    if (ec) return false;
+    if (ec)
+      return false;
     std::this_thread::sleep_for(std::chrono::milliseconds(20));
 
     // Read initial state before CMD
     uint8_t gyr_crt_conf = read_u8_from_register(static_cast<uint8_t>(Register::GYR_CRT_CONF), ec);
-    if (ec) return false;
+    if (ec)
+      return false;
     bool rdy_for_dl_initial = (gyr_crt_conf & 0x08) != 0;
     logger_.debug("CRT: Setup complete, state: 0x{:02X}", gyr_crt_conf);
 
     // Send command to trigger test (bit 1 of CMD register)
     write_u8_to_register(static_cast<uint8_t>(Register::CMD), 0x02, ec);
-    if (ec) return false;
+    if (ec)
+      return false;
 
     // Wait for bit 3 to toggle/change
     bool rdy_toggled = false;
     for (int i = 0; i < 200; ++i) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        uint8_t reg = read_u8_from_register(static_cast<uint8_t>(Register::GYR_CRT_CONF), ec);
-        if (ec) return false;
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      uint8_t reg = read_u8_from_register(static_cast<uint8_t>(Register::GYR_CRT_CONF), ec);
+      if (ec)
+        return false;
 
-        bool rdy_for_dl_current = (reg & 0x08) != 0;
+      bool rdy_for_dl_current = (reg & 0x08) != 0;
 
-        // Check if bit 3 changed from initial state
-        if (rdy_for_dl_current != rdy_for_dl_initial) {
-            rdy_toggled = true;
-            logger_.debug("CRT: Ready bit transitioned at {}ms", i * 10);
-            break;
-        }
+      // Check if bit 3 changed from initial state
+      if (rdy_for_dl_current != rdy_for_dl_initial) {
+        rdy_toggled = true;
+        logger_.debug("CRT: Ready bit transitioned at {}ms", i * 10);
+        break;
+      }
     }
 
     if (!rdy_toggled) {
-        logger_.debug("CRT: Ready bit transition not detected (device variant)");
+      logger_.debug("CRT: Ready bit transition not detected (device variant)");
     }
 
     // Upload CRT configuration image
-    uint8_t addr_data[2] = {static_cast<uint8_t>((0x1800 / 2) & 0x0F), static_cast<uint8_t>((0x1800 / 2) >> 4)};
+    uint8_t addr_data[2] = {static_cast<uint8_t>((0x1800 / 2) & 0x0F),
+                            static_cast<uint8_t>((0x1800 / 2) >> 4)};
     write_many_to_register(static_cast<uint8_t>(Register::INIT_ADDR_0), addr_data, 2, ec);
-    if (ec) return false;
+    if (ec)
+      return false;
 
     if (config_file_size < 0x1800 + 2048) {
-        logger_.error("Config file too small for CRT");
-        return false;
+      logger_.error("Config file too small for CRT");
+      return false;
     }
-    const uint8_t* crt_data = config_file + 0x1800;
+    const uint8_t *crt_data = config_file + 0x1800;
     for (size_t offset = 0; offset < 2048; offset += burst_write_size_) {
-        size_t to_write = std::min(static_cast<size_t>(burst_write_size_), 2048 - offset);
-        write_many_to_register(static_cast<uint8_t>(Register::INIT_DATA), crt_data + offset, to_write, ec);
-        if (ec) return false;
+      size_t to_write = std::min(static_cast<size_t>(burst_write_size_), 2048 - offset);
+      write_many_to_register(static_cast<uint8_t>(Register::INIT_DATA), crt_data + offset, to_write,
+                             ec);
+      if (ec)
+        return false;
     }
 
     // Wait for completion: Running flag (bit 2) clears when CRT finishes
     bool completed = false;
     for (int i = 0; i < 250; ++i) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        uint8_t reg = read_u8_from_register(static_cast<uint8_t>(Register::GYR_CRT_CONF), ec);
-        if (ec) return false;
-        if ((reg & 0x04) == 0) {
-            completed = true;
-            break;
-        }
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      uint8_t reg = read_u8_from_register(static_cast<uint8_t>(Register::GYR_CRT_CONF), ec);
+      if (ec)
+        return false;
+      if ((reg & 0x04) == 0) {
+        completed = true;
+        break;
+      }
     }
     if (!completed) {
-        logger_.error("CRT: Timeout (2.5s)");
-        return false;
+      logger_.error("CRT: Timeout (2.5s)");
+      return false;
     }
 
     // Verify result
     uint8_t status_reg = read_u8_from_register(static_cast<uint8_t>(Register::GYR_USR_GAIN_0), ec);
-    if (ec) return false;
+    if (ec)
+      return false;
     uint8_t status = (status_reg & 0x38) >> 3;
 
     if (status != 0x00) {
-        logger_.error("CRT: Failed with status: {}", static_cast<bmi270::GTriggerStatus>(status));
-        return false;
+      logger_.error("CRT: Failed with status: {}", static_cast<bmi270::GTriggerStatus>(status));
+      return false;
     }
     logger_.info("CRT: Completed successfully");
 
@@ -788,9 +833,9 @@ public:
   /// @param ec Error code to set if an error occurs.
   /// @return True if the operation was successful, false otherwise.
   bool abort_crt_gyro_self_test(std::error_code &ec) {
-      std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-      set_bits_in_register(static_cast<uint8_t>(Register::PWR_CONF), 0x02, ec);
-      return !ec;
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    set_bits_in_register(static_cast<uint8_t>(Register::PWR_CONF), 0x02, ec);
+    return !ec;
   }
 
   /// Perform the gyroscope self-test procedure.
@@ -798,71 +843,90 @@ public:
   /// @return True if the self-test passed, false otherwise.
   /// @note This function blocks for at least 2 seconds.
   bool perform_gyro_self_test(std::error_code &ec) {
-      std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
 
-      uint8_t saved_pwr_conf = read_u8_from_register(static_cast<uint8_t>(Register::PWR_CONF), ec);
-      if (ec) return false;
-      uint8_t saved_pwr_ctrl = read_u8_from_register(static_cast<uint8_t>(Register::PWR_CTRL), ec);
-      if (ec) return false;
-      uint8_t saved_fifo_conf_1 = read_u8_from_register(static_cast<uint8_t>(Register::FIFO_CONFIG_1), ec);
-      if (ec) return false;
+    uint8_t saved_pwr_conf = read_u8_from_register(static_cast<uint8_t>(Register::PWR_CONF), ec);
+    if (ec)
+      return false;
+    uint8_t saved_pwr_ctrl = read_u8_from_register(static_cast<uint8_t>(Register::PWR_CTRL), ec);
+    if (ec)
+      return false;
+    uint8_t saved_fifo_conf_1 =
+        read_u8_from_register(static_cast<uint8_t>(Register::FIFO_CONFIG_1), ec);
+    if (ec)
+      return false;
 
-      // Use ScopeGuard to ensure state is restored on all exit paths
-      auto state_guard = make_scope_guard([&]() {
-          std::error_code internal_ec;
-          set_config(imu_config_, internal_ec);
-          write_u8_to_register(static_cast<uint8_t>(Register::PWR_CTRL), saved_pwr_ctrl, internal_ec);
-          write_u8_to_register(static_cast<uint8_t>(Register::PWR_CONF), saved_pwr_conf, internal_ec);
-          write_u8_to_register(static_cast<uint8_t>(Register::FIFO_CONFIG_1), saved_fifo_conf_1, internal_ec);
-      });
+    // Use ScopeGuard to ensure state is restored on all exit paths
+    auto state_guard = make_scope_guard([&]() {
+      std::error_code internal_ec;
+      set_config(imu_config_, internal_ec);
+      write_u8_to_register(static_cast<uint8_t>(Register::PWR_CTRL), saved_pwr_ctrl, internal_ec);
+      write_u8_to_register(static_cast<uint8_t>(Register::PWR_CONF), saved_pwr_conf, internal_ec);
+      write_u8_to_register(static_cast<uint8_t>(Register::FIFO_CONFIG_1), saved_fifo_conf_1,
+                           internal_ec);
+    });
 
-      bool saved_aps = (saved_pwr_conf & 0x01) != 0;
+    bool saved_aps = (saved_pwr_conf & 0x01) != 0;
 
-      if (saved_aps) {
-        clear_bits_in_register(static_cast<uint8_t>(Register::PWR_CONF), 0x01, ec);
-        if (ec) return false;
+    if (saved_aps) {
+      clear_bits_in_register(static_cast<uint8_t>(Register::PWR_CONF), 0x01, ec);
+      if (ec)
+        return false;
+    }
+
+    enable_gyroscope(false, ec);
+    if (ec)
+      return false;
+    clear_bits_in_register(static_cast<uint8_t>(Register::FIFO_CONFIG_1), 0xE0, ec);
+    if (ec)
+      return false;
+    enable_accelerometer(true, ec);
+    if (ec)
+      return false;
+
+    // Set Running (Bit 2), Clear Selection (Bit 0 for Self Test)
+    set_bits_in_register(static_cast<uint8_t>(Register::GYR_CRT_CONF), 0x04, ec);
+    if (ec)
+      return false;
+    clear_bits_in_register(static_cast<uint8_t>(Register::GYR_CRT_CONF), 0x01, ec);
+    if (ec)
+      return false;
+
+    write_u8_to_register(static_cast<uint8_t>(Register::CMD), 0x02, ec);
+    if (ec)
+      return false;
+
+    bool completed = false;
+    for (int i = 0; i < 200; ++i) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      uint8_t reg = read_u8_from_register(static_cast<uint8_t>(Register::GYR_CRT_CONF), ec);
+      if (ec)
+        return false;
+      if ((reg & 0x04) == 0) {
+        completed = true;
+        break;
       }
+    }
 
-      enable_gyroscope(false, ec);
-      if (ec) return false;
-      clear_bits_in_register(static_cast<uint8_t>(Register::FIFO_CONFIG_1), 0xE0, ec);
-      if (ec) return false;
-      enable_accelerometer(true, ec);
-      if (ec) return false;
+    if (!completed) {
+      logger_.error("Gyro Self Test timeout");
+      return false;
+    }
 
-      // Set Running (Bit 2), Clear Selection (Bit 0 for Self Test)
-      set_bits_in_register(static_cast<uint8_t>(Register::GYR_CRT_CONF), 0x04, ec);
-      if (ec) return false;
-      clear_bits_in_register(static_cast<uint8_t>(Register::GYR_CRT_CONF), 0x01, ec);
-      if (ec) return false;
+    uint8_t st_result =
+        read_u8_from_register(static_cast<uint8_t>(Register::GYR_SELF_TEST_AXES), ec);
+    if (ec)
+      return false;
 
-      write_u8_to_register(static_cast<uint8_t>(Register::CMD), 0x02, ec);
-      if (ec) return false;
+    bool success =
+        (st_result & 0x01) && (st_result & 0x02) && (st_result & 0x04) && (st_result & 0x08);
+    if (success) {
+      logger_.info("Gyro Self Test passed");
+    } else {
+      logger_.error("Gyro Self Test failed: 0x{:02X}", st_result);
+    }
 
-      bool completed = false;
-      for (int i = 0; i < 200; ++i) {
-          std::this_thread::sleep_for(std::chrono::milliseconds(10));
-          uint8_t reg = read_u8_from_register(static_cast<uint8_t>(Register::GYR_CRT_CONF), ec);
-          if (ec) return false;
-          if ((reg & 0x04) == 0) { completed = true; break; }
-      }
-
-      if (!completed) {
-          logger_.error("Gyro Self Test timeout");
-          return false;
-      }
-
-      uint8_t st_result = read_u8_from_register(static_cast<uint8_t>(Register::GYR_SELF_TEST_AXES), ec);
-      if (ec) return false;
-
-      bool success = (st_result & 0x01) && (st_result & 0x02) && (st_result & 0x04) && (st_result & 0x08);
-      if (success) {
-          logger_.info("Gyro Self Test passed");
-      } else {
-          logger_.error("Gyro Self Test failed: 0x{:02X}", st_result);
-      }
-
-      return success;
+    return success;
   }
 
   /// Get Accelerometer Offsets
@@ -876,7 +940,8 @@ public:
     uint8_t data[3];
     // ACC_OFF_COMP_0 is 0x71. Reads 0x71 (X), 0x72 (Y), 0x73 (Z)
     read_many_from_register(static_cast<uint8_t>(Register::ACC_OFF_COMP_0), data, 3, ec);
-    if (ec) return false;
+    if (ec)
+      return false;
 
     x = static_cast<int8_t>(data[0]);
     y = static_cast<int8_t>(data[1]);
@@ -902,15 +967,15 @@ public:
   /// @param ec The error code to set if an error occurs
   /// @return True if successful
   bool set_accel_offset_enable(bool enable, std::error_code &ec) {
-      std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-      // NV_CONF (0x70) Bit 3 controls Accel Offset Enable
-      static constexpr uint8_t ACC_OFFSET_EN_MASK = 0x08;
-      if (enable) {
-          set_bits_in_register(static_cast<uint8_t>(Register::NV_CONF), ACC_OFFSET_EN_MASK, ec);
-      } else {
-          clear_bits_in_register(static_cast<uint8_t>(Register::NV_CONF), ACC_OFFSET_EN_MASK, ec);
-      }
-      return !ec;
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    // NV_CONF (0x70) Bit 3 controls Accel Offset Enable
+    static constexpr uint8_t ACC_OFFSET_EN_MASK = 0x08;
+    if (enable) {
+      set_bits_in_register(static_cast<uint8_t>(Register::NV_CONF), ACC_OFFSET_EN_MASK, ec);
+    } else {
+      clear_bits_in_register(static_cast<uint8_t>(Register::NV_CONF), ACC_OFFSET_EN_MASK, ec);
+    }
+    return !ec;
   }
 
   /// Get Gyroscope Offsets
@@ -924,7 +989,8 @@ public:
     uint8_t data[4];
     // GYR_OFF_COMP_3 is 0x74. Reads 0x74...0x77
     read_many_from_register(static_cast<uint8_t>(Register::GYR_OFF_COMP_3), data, 4, ec);
-    if (ec) return false;
+    if (ec)
+      return false;
 
     // LSBs
     x = static_cast<int16_t>(data[0]);
@@ -937,9 +1003,12 @@ public:
     z |= static_cast<int16_t>((data[3] & 0x30) << 4);
 
     // Sign extension for 10-bit values
-    if (x & 0x0200) x |= 0xFC00;
-    if (y & 0x0200) y |= 0xFC00;
-    if (z & 0x0200) z |= 0xFC00;
+    if (x & 0x0200)
+      x |= 0xFC00;
+    if (y & 0x0200)
+      y |= 0xFC00;
+    if (z & 0x0200)
+      z |= 0xFC00;
 
     return true;
   }
@@ -962,7 +1031,8 @@ public:
     // Read current register to preserve enable bit (bit 6 of data[3] / register 0x77)
     uint8_t current_reg;
     current_reg = read_u8_from_register(static_cast<uint8_t>(Register::GYR_OFF_COMP_6), ec);
-    if (ec) return false;
+    if (ec)
+      return false;
     uint8_t preserved_bits = current_reg & 0xC0;
 
     uint8_t data[4];
@@ -970,7 +1040,7 @@ public:
     data[1] = static_cast<uint8_t>(y & 0xFF);
     data[2] = static_cast<uint8_t>(z & 0xFF);
     data[3] = static_cast<uint8_t>(((x >> 8) & 0x03) | ((y >> 6) & 0x0C) | ((z >> 4) & 0x30));
-    
+
     data[3] |= preserved_bits;
 
     write_many_to_register(static_cast<uint8_t>(Register::GYR_OFF_COMP_3), data, 4, ec);
@@ -982,15 +1052,16 @@ public:
   /// @param ec The error code to set if an error occurs
   /// @return True if successful
   bool set_gyro_offset_enable(bool enable, std::error_code &ec) {
-      std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-      // GYR_OFF_COMP_6 (0x77) Bit 6
-      static constexpr uint8_t GYR_OFFSET_EN_MASK = 0x40;
-      if (enable) {
-          set_bits_in_register(static_cast<uint8_t>(Register::GYR_OFF_COMP_6), GYR_OFFSET_EN_MASK, ec);
-      } else {
-          clear_bits_in_register(static_cast<uint8_t>(Register::GYR_OFF_COMP_6), GYR_OFFSET_EN_MASK, ec);
-      }
-      return !ec;
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    // GYR_OFF_COMP_6 (0x77) Bit 6
+    static constexpr uint8_t GYR_OFFSET_EN_MASK = 0x40;
+    if (enable) {
+      set_bits_in_register(static_cast<uint8_t>(Register::GYR_OFF_COMP_6), GYR_OFFSET_EN_MASK, ec);
+    } else {
+      clear_bits_in_register(static_cast<uint8_t>(Register::GYR_OFF_COMP_6), GYR_OFFSET_EN_MASK,
+                             ec);
+    }
+    return !ec;
   }
 
   /// Enable/Disable Gyroscope Gain Compensation
@@ -998,14 +1069,14 @@ public:
   /// @param ec The error code to set if an error occurs
   /// @return True if successful
   bool set_gyro_gain_enable(bool enable, std::error_code &ec) {
-      std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-      static constexpr uint8_t GYR_GAIN_EN_MASK = 0x80;
-      if (enable) {
-          set_bits_in_register(static_cast<uint8_t>(Register::GYR_OFF_COMP_6), GYR_GAIN_EN_MASK, ec);
-      } else {
-          clear_bits_in_register(static_cast<uint8_t>(Register::GYR_OFF_COMP_6), GYR_GAIN_EN_MASK, ec);
-      }
-      return !ec;
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    static constexpr uint8_t GYR_GAIN_EN_MASK = 0x80;
+    if (enable) {
+      set_bits_in_register(static_cast<uint8_t>(Register::GYR_OFF_COMP_6), GYR_GAIN_EN_MASK, ec);
+    } else {
+      clear_bits_in_register(static_cast<uint8_t>(Register::GYR_OFF_COMP_6), GYR_GAIN_EN_MASK, ec);
+    }
+    return !ec;
   }
 
 protected:
@@ -1106,7 +1177,7 @@ protected:
     GYR_SELF_TEST_AXES = 0x6E, ///< Gyroscope self-test axes
     IF_CONF = 0x6B,            ///< Interface configuration
     DRV = 0x6C,                ///< Drive register
-    NV_CONF = 0x70,     ///< Non-volatile memory configuration offset
+    NV_CONF = 0x70,            ///< Non-volatile memory configuration offset
     ACC_OFF_COMP_0 = 0x71,     ///< Accelerometer offset compensation 0
     GYR_OFF_COMP_3 = 0x74,     ///< Gyroscope offset compensation 3
     GYR_OFF_COMP_6 = 0x77,     ///< Gyroscope offset compensation 6

@@ -69,13 +69,15 @@ public:
     write_fn write;                       ///< Function to write data to the strip
     bool send_brightness{true};           ///< Whether to use the brightness value for the LEDs
     ByteOrder byte_order{ByteOrder::RGB}; ///< Byte order for the LEDs
-    std::span<const uint8_t> start_frame{}; ///< Start frame for the strip. Optional - will be sent
-                                            ///< before the first LED if not empty. Can be initialized
-                                            ///< with std::array<uint8_t, N>{0x00, 0x00, ...} for compatibility.
-    std::span<const uint8_t> end_frame{}; ///< End frame for the strip. Optional - will be sent after
-                                          ///< the last LED if not empty. Can be initialized
-                                          ///< with std::array<uint8_t, N>{0x00, 0x00, ...} for compatibility.
-    bool use_dma{false};              ///< Whether to use DMA-capable memory allocation
+    std::span<const uint8_t>
+        start_frame{}; ///< Start frame for the strip. Optional - will be sent
+                       ///< before the first LED if not empty. Can be initialized
+                       ///< with std::array<uint8_t, N>{0x00, 0x00, ...} for compatibility.
+    std::span<const uint8_t>
+        end_frame{};     ///< End frame for the strip. Optional - will be sent after
+                         ///< the last LED if not empty. Can be initialized
+                         ///< with std::array<uint8_t, N>{0x00, 0x00, ...} for compatibility.
+    bool use_dma{false}; ///< Whether to use DMA-capable memory allocation
     uint32_t dma_allocation_flags{
         MALLOC_CAP_DMA}; ///< DMA allocation flags (if use_dma is true). Defaults to MALLOC_CAP_DMA.
     Logger::Verbosity log_level; ///< Log level for this class
@@ -97,7 +99,8 @@ public:
 
     // set the color data size
     pixel_size_ = send_brightness_ ? 4 : 3;
-    size_t data_size = num_leds_ * pixel_size_ + config.start_frame.size() + config.end_frame.size();
+    size_t data_size =
+        num_leds_ * pixel_size_ + config.start_frame.size() + config.end_frame.size();
 
     // Allocate memory based on DMA preference
     uint8_t *raw_data = nullptr;
@@ -159,13 +162,13 @@ public:
   /// \brief Move constructor
   /// \param other The other LedStrip to move from
   LedStrip(LedStrip &&other) noexcept
-    // cppcheck-suppress-begin accessMoved
+      // cppcheck-suppress-begin accessMoved
       : BaseComponent(std::move(other))
       , num_leds_(other.num_leds_)
       , send_brightness_(other.send_brightness_)
       , byte_order_(other.byte_order_)
       , pixel_size_(other.pixel_size_)
-      , start_offset_(other.start_offset_) 
+      , start_offset_(other.start_offset_)
       , end_offset_(other.end_offset_)
       , data_(other.data_)
       , write_(std::move(other.write_))
@@ -188,7 +191,7 @@ public:
       BaseComponent::operator=(std::move(other));
 
       // cppcheck-suppress-begin accessMoved
-      
+
       // Move members from other
       num_leds_ = other.num_leds_;
       send_brightness_ = other.send_brightness_;

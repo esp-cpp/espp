@@ -235,16 +235,18 @@ enum class GTriggerStatus : uint8_t {
 
 /// Structure to define gyroscope saturation status of user gain
 struct GyrUserGainStatus {
-  uint8_t sat_x = 0;                 ///< Status in x-axis
-  uint8_t sat_y = 0;                 ///< Status in y-axis
-  uint8_t sat_z = 0;                 ///< Status in z-axis
+  uint8_t sat_x = 0;                                          ///< Status in x-axis
+  uint8_t sat_y = 0;                                          ///< Status in y-axis
+  uint8_t sat_z = 0;                                          ///< Status in z-axis
   GTriggerStatus g_trigger_status = GTriggerStatus::NO_ERROR; ///< G trigger status
 };
 
 /// ScopeGuard class for RAII-based cleanup
 template <typename F> class ScopeGuard {
 public:
-  explicit ScopeGuard(F &&f) : f_(std::forward<F>(f)), active_(true) {}
+  explicit ScopeGuard(F &&f)
+      : f_(std::forward<F>(f))
+      , active_(true) {}
   ~ScopeGuard() {
     if (active_)
       f_();
@@ -254,7 +256,9 @@ public:
   ScopeGuard(const ScopeGuard &) = delete;
   ScopeGuard &operator=(const ScopeGuard &) = delete;
 
-  ScopeGuard(ScopeGuard &&other) : f_(std::move(other.f_)), active_(other.active_) {
+  ScopeGuard(ScopeGuard &&other)
+      : f_(std::move(other.f_))
+      , active_(other.active_) {
     other.active_ = false;
   }
 
