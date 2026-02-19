@@ -138,7 +138,7 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
       , rate_limit_(std::move(other.rate_limit_))
       , last_print_(std::move(other.last_print_))
       , include_time_(other.include_time_.load())
-      , level_(other.level_.load()) { }
+      , level_(other.level_.load()) {}
 
   /**
    * @brief Copy assignment operator
