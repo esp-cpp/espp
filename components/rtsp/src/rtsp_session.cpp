@@ -152,7 +152,9 @@ bool RtspSession::handle_rtsp_setup(std::string_view request) {
   int client_rtp_port;
   int client_rtcp_port;
   if (!parse_rtsp_setup_request(request, rtsp_path, client_rtp_port, client_rtcp_port)) {
-    // the parse function will send the response, so we just need to return
+    // the parse function will send the response, so we just need to
+    // teardown the session since setup failed and streaming cannot proceed
+    teardown();
     return false;
   }
   // parse the sequence number from the request
@@ -378,8 +380,9 @@ bool RtspSession::parse_rtsp_setup_request(std::string_view request, std::string
   // we don't support TCP, so return an error if the transport is not RTP/AVP/UDP
   if (transport.find("RTP/AVP/TCP") != std::string::npos) {
     logger_.error("TCP transport is not supported");
-    // TODO: this doesn't send the sequence number back to the client
-    send_response(461, "Unsupported Transport");
+    int sequence_number = 0;
+    parse_rtsp_command_sequence(request, sequence_number);
+    send_response(461, "Unsupported Transport", sequence_number);
     return false;
   }
 
