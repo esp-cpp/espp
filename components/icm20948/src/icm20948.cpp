@@ -529,7 +529,7 @@ bool Icm20948<I>::set_gyroscope_dlpf_enabled(bool enable, std::error_code &ec) {
     return false;
   }
   uint8_t bitmask = 0x01; // enable DLPF is bit 0 in GYRO_CONFIG_1
-  set_bits_in_register_by_mask(static_cast<uint8_t>(RegisterBank2::GYRO_CONFIG_2), bitmask,
+  set_bits_in_register_by_mask(static_cast<uint8_t>(RegisterBank2::GYRO_CONFIG_1), bitmask,
                                enable ? bitmask : 0, ec);
   return !ec;
 }
