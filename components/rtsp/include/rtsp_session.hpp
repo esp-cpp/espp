@@ -169,6 +169,13 @@ protected:
   /// @return The RTSP path
   std::string_view parse_rtsp_path(std::string_view request);
 
+  /// Handle a bad RTSP setup request by sending an error response to the client
+  /// @param request The request to handle
+  /// @param code The response code to send (default: 400)
+  /// @param message The response message to send (default: "Bad Request")
+  void handle_bad_rtsp_setup_request(std::string_view request, int code = 400,
+                                     std::string_view message = "Bad Request");
+
   /// Parse a RTSP setup request
   /// Looks for the client RTP and RTCP port numbers in the request
   /// and returns them

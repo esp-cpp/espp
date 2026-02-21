@@ -354,35 +354,51 @@ std::string_view RtspSession::parse_rtsp_path(std::string_view request) {
   return rtsp_path;
 }
 
+void RtspSession::handle_bad_rtsp_setup_request(std::string_view request, int code,
+                                                std::string_view message) {
+  int sequence_number = 0;
+  if (!parse_rtsp_command_sequence(request, sequence_number)) {
+    send_response(code, message);
+    return;
+  }
+  send_response(code, message, sequence_number);
+}
+
 bool RtspSession::parse_rtsp_setup_request(std::string_view request, std::string_view &rtsp_path,
                                            int &client_rtp_port, int &client_rtcp_port) {
   // parse the rtsp path from the request
   rtsp_path = parse_rtsp_path(request);
   if (rtsp_path.empty()) {
+    logger_.error("Failed to parse RTSP path from request");
+    handle_bad_rtsp_setup_request(request);
     return false;
   }
   logger_.debug("Parsing setup request:\n{}", request);
   // parse the transport header from the request
   auto transport_index = request.find("Transport: ");
   if (transport_index == std::string::npos) {
+    logger_.error("Failed to parse Transport header (start) from request");
+    handle_bad_rtsp_setup_request(request);
     return false;
   }
   auto transport_end_index = request.find('\r', transport_index);
   if (transport_end_index == std::string::npos) {
+    logger_.error("Failed to parse Transport header (end) from request");
+    handle_bad_rtsp_setup_request(request);
     return false;
   }
   std::string_view transport =
       request.substr(transport_index + 11, transport_end_index - transport_index - 11);
   if (transport.empty()) {
+    logger_.error("Transport header is empty");
+    handle_bad_rtsp_setup_request(request);
     return false;
   }
   logger_.debug("Transport header: {}", transport);
   // we don't support TCP, so return an error if the transport is not RTP/AVP/UDP
   if (transport.find("RTP/AVP/TCP") != std::string::npos) {
     logger_.error("TCP transport is not supported");
-    int sequence_number = 0;
-    parse_rtsp_command_sequence(request, sequence_number);
-    send_response(461, "Unsupported Transport", sequence_number);
+    handle_bad_rtsp_setup_request(request, 461, "Unsupported Transport");
     return false;
   }
 
@@ -392,12 +408,16 @@ bool RtspSession::parse_rtsp_setup_request(std::string_view request, std::string
   std::string_view rtp_port =
       request.substr(client_port_index + 12, dash_index - client_port_index - 12);
   if (rtp_port.empty()) {
+    logger_.error("Failed to parse client RTP port from request");
+    handle_bad_rtsp_setup_request(request);
     return false;
   }
   // parse the rtcp port from the request
   std::string_view rtcp_port =
       request.substr(dash_index + 1, request.find('\r', client_port_index) - dash_index - 1);
   if (rtcp_port.empty()) {
+    logger_.error("Empty client RTCP port in request");
+    handle_bad_rtsp_setup_request(request);
     return false;
   }
   // convert the rtp and rtcp ports to integers
