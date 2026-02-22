@@ -186,7 +186,10 @@ bool RtspServer::accept_task_function(std::mutex &m, std::condition_variable &cv
 
   // add the session to the list of sessions
   auto session_id = session->get_session_id();
-  sessions_.emplace(session_id, std::move(session));
+  {
+    std::lock_guard<std::mutex> lk(session_mutex_);
+    sessions_.emplace(session_id, std::move(session));
+  }
 
   // start the session task if it is not already running
   using namespace std::placeholders;
