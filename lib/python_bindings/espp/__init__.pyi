@@ -759,6 +759,17 @@ class Logger:
             pass
 
 
+
+    def get_verbosity(self) -> Logger.Verbosity:
+        """*
+           * @brief Get the current verbosity for the logger.
+           * @return The current verbosity level.
+           * \sa Logger::Verbosity
+           *
+
+        """
+        pass
+
     def set_verbosity(self, level: Logger.Verbosity) -> None:
         """*
            * @brief Change the verbosity for the logger. \sa Logger::Verbosity
@@ -2146,7 +2157,6 @@ class Pid:
             ) -> None:
             """Auto-generated default constructor with named params"""
             pass
-
 
     def set_config(self, config: Pid.Config, reset_state: bool = True) -> None:
         """*
