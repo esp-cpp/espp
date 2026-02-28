@@ -76,6 +76,10 @@ To use the components in this repository, you have a few options:
 1. You can clone espp somewhere on your computer and then point your project to
    its `components` directory to use any of the components it contains, similar
    to the step above.
+   
+   Note: you should ensure that you clone recursively or run `git submodule
+   update --init --recursive` to ensure that you have the latest versions of all
+   the submodules which are required to build the components in this repository.
 
 ## Additional Information and Links
 
