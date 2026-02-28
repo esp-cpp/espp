@@ -2158,6 +2158,35 @@ class Pid:
             """Auto-generated default constructor with named params"""
             pass
 
+    def set_config(self, config: Pid.Config, reset_state: bool = True) -> None:
+        """*
+           * @brief Change the gains and other configuration for the PID controller.
+           * @param config Configuration struct with new gains and sampling time.
+           * @param reset_state Reset / clear the PID controller state.
+
+        """
+        pass
+
+    def clear(self) -> None:
+        """*
+           * @brief Clear the PID controller state.
+
+        """
+        pass
+
+    def update(self, error: float) -> float:
+        """*
+           * @brief Update the PID controller with the latest error measurement,
+           *        getting the output control signal in return.
+           *
+           * @note Tracks invocation timing to better compute time-accurate
+           *       integral/derivative signals.
+           *
+           * @param error Latest error signal.
+           * @return The output control signal based on the PID state and error.
+
+        """
+        pass
 
     def __call__(self, error: float) -> float:
         """*
