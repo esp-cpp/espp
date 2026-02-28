@@ -421,6 +421,9 @@ void py_init_module_espp(py::module &m) {
   } // end of inner classes & enums of Logger
 
   pyClassLogger.def(py::init<const espp::Logger::Config &>())
+      .def("get_verbosity", &espp::Logger::get_verbosity,
+           "*\n   * @brief Get the current verbosity for the logger.\n   * @return The current "
+           "verbosity level.\n   * \\sa Logger::Verbosity\n   *\n")
       .def("set_verbosity", &espp::Logger::set_verbosity, py::arg("level"),
            "*\n   * @brief Change the verbosity for the logger. \\sa Logger::Verbosity\n   * "
            "@param level new verbosity level\n")
@@ -2129,12 +2132,6 @@ void py_init_module_espp(py::module &m) {
           "*\n   * @brief Get the ID for this Task's thread / task context.\n   * @return ID for "
           "this Task's thread / task context.\n   * @warning This will only return a valid id if "
           "the task is started.\n")
-      .def_static("get_id", py::overload_cast<const espp::Task &>(&espp::Task::get_id),
-                  py::arg("task"),
-                  "*\n   * @brief Get the ID for the Task's thread / task context.\n   * @param "
-                  "task Reference to the task for which you want the ID.\n   * @return ID for this "
-                  "Task's thread / task context.\n   * @warning This will only return a valid id "
-                  "if the task is started.\n")
       .def_static("get_current_id", &espp::Task::get_current_id,
                   "*\n   * @brief Get the ID for the current thread / task context.\n   * @return "
                   "ID for the current thread / task context.\n");
