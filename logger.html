@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Logging APIs - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="_static/copybutton.js?v=ff8fa330"></script>
+    <script src="_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'logger';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Logger Example" href="logger_example.html" />
+    <link rel="prev" title="LED Strip Example" href="led_strip_example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            ESPP
+              <img src="_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_component.html">Base Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l1"><a class="reference internal" href="battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="byte90.html">ALXV Labs Byte90</a></li>
+<li class="toctree-l1"><a class="reference internal" href="controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cobs.html">COBS (Consistent Overhead Byte Stuffing)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="esp32_timer_cam.html">ESP32 TimerCam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="esp_box.html">ESP BOX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hid/index.html">HID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="interrupt.html">Interrupt APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="iperf_menu.html">Iperf Menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Logging APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#format">Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#logger">Logger</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="logger_example.html">Logger Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#macros">Macros</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#binary-log">Binary Log</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="binary_log_example.html">Binary Log Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#id1">API Reference</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id2">Header File</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="m5stack_tab5.html">M5Stack Tab5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="matouch_rotary_display.html">MaTouch Rotary Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="motorgo_mini.html">MotorGo Mini</a></li>
+<li class="toctree-l1"><a class="reference internal" href="neopixel.html">Neopixel APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nvs.html">NVS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="remote_debug.html">Remote Debug APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="runqueue.html">RunQueue APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="seeed_studio_round_display.html">Seeed Studio Round Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="t_deck.html">LilyGo T-Deck</a></li>
+<li class="toctree-l1"><a class="reference internal" href="t_dongle_s3.html">LilyGo T-Dongle S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wrover_kit.html">ESP32-WROVER-KIT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Logging APIs</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/32e8215e/docs/en/logger.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="logging-apis">
+<h1>Logging APIs<a class="headerlink" href="#logging-apis" title="Permalink to this heading"></a></h1>
+<section id="format">
+<h2>Format<a class="headerlink" href="#format" title="Permalink to this heading"></a></h2>
+<p>Format is a simple component which exposes <cite>libfmt</cite> for use within esp-idf as a
+single include.</p>
+</section>
+<section id="logger">
+<h2>Logger<a class="headerlink" href="#logger" title="Permalink to this heading"></a></h2>
+<p>The logger provides a cross-platform wrapper around <cite>libfmt</cite> for providing
+configurable log output with different levels that can be turned on / off at
+runtime.</p>
+<p>Code examples for the logging API are provided in the <cite>logger</cite> example folder.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="logger_example.html">Logger Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="logger_example.html#how-to-use-example">How to use example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="logger_example.html#build-and-flash">Build and Flash</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="logger_example.html#example-output">Example Output</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/32e8215e/components/logger/include/logger.hpp">components/logger/include/logger.hpp</a></p></li>
+</ul>
+</section>
+<section id="macros">
+<h3>Macros<a class="headerlink" href="#macros" title="Permalink to this heading"></a></h3>
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.ESPP_LOGGER_LOG_LEVEL_NONE">
+<span class="target" id="logger_8hpp_1a16b6014a4ce843627095187d755ef1a1"></span><span class="sig-name descname"><span class="n"><span class="pre">ESPP_LOGGER_LOG_LEVEL_NONE</span></span></span><a class="headerlink" href="#c.ESPP_LOGGER_LOG_LEVEL_NONE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.ESPP_LOGGER_LOG_LEVEL_ERROR">
+<span class="target" id="logger_8hpp_1a37173cb013d65acb9ea9ff5c464b6b94"></span><span class="sig-name descname"><span class="n"><span class="pre">ESPP_LOGGER_LOG_LEVEL_ERROR</span></span></span><a class="headerlink" href="#c.ESPP_LOGGER_LOG_LEVEL_ERROR" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.ESPP_LOGGER_LOG_LEVEL_WARN">
+<span class="target" id="logger_8hpp_1a570625507db92748c422ae5b2ef82e62"></span><span class="sig-name descname"><span class="n"><span class="pre">ESPP_LOGGER_LOG_LEVEL_WARN</span></span></span><a class="headerlink" href="#c.ESPP_LOGGER_LOG_LEVEL_WARN" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.ESPP_LOGGER_LOG_LEVEL_INFO">
+<span class="target" id="logger_8hpp_1a03cc63a1e986079c079b86369286c6e2"></span><span class="sig-name descname"><span class="n"><span class="pre">ESPP_LOGGER_LOG_LEVEL_INFO</span></span></span><a class="headerlink" href="#c.ESPP_LOGGER_LOG_LEVEL_INFO" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.ESPP_LOGGER_LOG_LEVEL_DEBUG">
+<span class="target" id="logger_8hpp_1a5a29b9b802233a89ef3efd530237e902"></span><span class="sig-name descname"><span class="n"><span class="pre">ESPP_LOGGER_LOG_LEVEL_DEBUG</span></span></span><a class="headerlink" href="#c.ESPP_LOGGER_LOG_LEVEL_DEBUG" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.CONFIG_ESPP_LOGGER_LOG_LEVEL">
+<span class="target" id="logger_8hpp_1ade7b22c68fad936c66e9700eb4a9f039"></span><span class="sig-name descname"><span class="n"><span class="pre">CONFIG_ESPP_LOGGER_LOG_LEVEL</span></span></span><a class="headerlink" href="#c.CONFIG_ESPP_LOGGER_LOG_LEVEL" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.ESPP_LOGGER_DEBUG_ENABLED">
+<span class="target" id="logger_8hpp_1ad8f0078a166fc09d249a1ec250a143c8"></span><span class="sig-name descname"><span class="n"><span class="pre">ESPP_LOGGER_DEBUG_ENABLED</span></span></span><a class="headerlink" href="#c.ESPP_LOGGER_DEBUG_ENABLED" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.ESPP_LOGGER_INFO_ENABLED">
+<span class="target" id="logger_8hpp_1a6ca41ed9d9371d0d4ddbd61e8bb3df65"></span><span class="sig-name descname"><span class="n"><span class="pre">ESPP_LOGGER_INFO_ENABLED</span></span></span><a class="headerlink" href="#c.ESPP_LOGGER_INFO_ENABLED" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.ESPP_LOGGER_WARN_ENABLED">
+<span class="target" id="logger_8hpp_1a108cdab776a54eaab9ca6370eb101893"></span><span class="sig-name descname"><span class="n"><span class="pre">ESPP_LOGGER_WARN_ENABLED</span></span></span><a class="headerlink" href="#c.ESPP_LOGGER_WARN_ENABLED" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.ESPP_LOGGER_ERROR_ENABLED">
+<span class="target" id="logger_8hpp_1a05f233c192dab093a5eb3480b38ac907"></span><span class="sig-name descname"><span class="n"><span class="pre">ESPP_LOGGER_ERROR_ENABLED</span></span></span><a class="headerlink" href="#c.ESPP_LOGGER_ERROR_ENABLED" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.ESPP_LOGGER_CURSOR_COMMANDS_ENABLED">
+<span class="target" id="logger_8hpp_1a262a7a3db467d6871e8b02c88e2b442e"></span><span class="sig-name descname"><span class="n"><span class="pre">ESPP_LOGGER_CURSOR_COMMANDS_ENABLED</span></span></span><a class="headerlink" href="#c.ESPP_LOGGER_CURSOR_COMMANDS_ENABLED" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6LoggerE">
+<span id="_CPPv3N4espp6LoggerE"></span><span id="_CPPv2N4espp6LoggerE"></span><span id="espp::Logger"></span><span class="target" id="classespp_1_1Logger"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Logger</span></span></span><a class="headerlink" href="#_CPPv4N4espp6LoggerE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="#classespp_1_1Logger"><span class="std std-ref">Logger</span></a> provides a wrapper around nicer / more robust formatting than standard ESP_LOG* macros with the ability to change the log level at run-time. <a class="reference internal" href="#classespp_1_1Logger"><span class="std std-ref">Logger</span></a> currently is a light wrapper around libfmt (future std::format). </p>
+<p>To save on code size, the logger has the ability to be compiled out based on the log level set in the sdkconfig. This means that if the log level is set to ERROR, all debug, info, and warn logs will be compiled out. This is done by checking the log level at compile time and only compiling in the functions that are needed.</p>
+<p>The logger can also be compiled with support for cursor commands. This allows the logger to move the cursor up, down, clear the line, clear the screen, and move the cursor to a specific position. This can be useful for creating various types of interactive output or to maintian context with long-running logs.</p>
+<section id="classespp_1_1Logger_1logger_ex1">
+<h4>Basic Example<a class="headerlink" href="#classespp_1_1Logger_1logger_ex1" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1Logger_1logger_ex1"><div class="highlight"><pre><span></span><span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">num_seconds_to_run</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">10.0f</span><span class="p">;</span>
+<span class="w">    </span><span class="c1">// create loggers</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">logger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="p">({.</span><span class="n">tag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Cool Logger&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">DEBUG</span><span class="p">});</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">elapsed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">).</span><span class="n">count</span><span class="p">();</span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">elapsed</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">num_seconds_to_run</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+<span class="w">      </span><span class="n">elapsed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">).</span><span class="n">count</span><span class="p">();</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">remaining</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">num_seconds_to_run</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">elapsed</span><span class="p">;</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;debug: {:%Y-%m-%d %H:%M:%S} - {:%Y-%m-%d %H:%M:%S} = {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">now</span><span class="p">,</span><span class="w"> </span><span class="n">start</span><span class="p">,</span><span class="w"> </span><span class="n">elapsed</span><span class="p">);</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;elapsed: {:.3f}s&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">elapsed</span><span class="p">);</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;remaining: {:.3f}s&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">remaining</span><span class="p">);</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">remaining</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;You overstayed your welcome by {:.03}s!&quot;</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="n">remaining</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">500</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="classespp_1_1Logger_1logger_ex2">
+<h4>Threaded Logging and Verbosity Example<a class="headerlink" href="#classespp_1_1Logger_1logger_ex2" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1Logger_1logger_ex2"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// create loggers</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">logger1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="p">(</span>
+<span class="w">        </span><span class="p">{.</span><span class="n">tag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Thread 1&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">rate_limit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">500</span><span class="n">ms</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">});</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">logger2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="p">(</span>
+<span class="w">        </span><span class="p">{.</span><span class="n">tag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Thread 2&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">rate_limit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="n">s</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">DEBUG</span><span class="p">});</span>
+<span class="w">    </span><span class="c1">// lambda for logging to those two loggers from multiple threads</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">logger_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="w"> </span><span class="o">*</span><span class="n">logger</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="kt">size_t</span><span class="w"> </span><span class="n">loop_iteration</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+<span class="w">      </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// log - note: debug shouldn&#39;t be shown!</span>
+<span class="w">        </span><span class="n">logger</span><span class="o">-&gt;</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;some debug info: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">loop_iteration</span><span class="p">);</span>
+<span class="w">        </span><span class="n">logger</span><span class="o">-&gt;</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;some info: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">loop_iteration</span><span class="p">);</span>
+<span class="w">        </span><span class="n">logger</span><span class="o">-&gt;</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;some warning: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">loop_iteration</span><span class="p">);</span>
+<span class="w">        </span><span class="n">logger</span><span class="o">-&gt;</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;some error: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">loop_iteration</span><span class="p">);</span>
+<span class="w">        </span><span class="n">logger</span><span class="o">-&gt;</span><span class="n">info_rate_limited</span><span class="p">(</span><span class="s">&quot;some rate limited info: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">loop_iteration</span><span class="p">);</span>
+<span class="w">        </span><span class="c1">// update loop variables</span>
+<span class="w">        </span><span class="n">loop_iteration</span><span class="o">++</span><span class="p">;</span>
+<span class="w">        </span><span class="c1">// sleep</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">300</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">};</span>
+<span class="w">    </span><span class="c1">// start two threads, binding the lambda to each logger</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">logger1_thread</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="kr">thread</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="n">logger_fn</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">logger1</span><span class="p">));</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">logger2_thread</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="kr">thread</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="n">logger_fn</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">logger2</span><span class="p">));</span>
+<span class="w">    </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">level</span><span class="p">{</span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">DEBUG</span><span class="p">)};</span>
+<span class="w">    </span><span class="c1">// every 1 second, change the loggers&#39; verbosity</span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="c1">// update the loggers&#39; verbosity</span>
+<span class="w">      </span><span class="n">level</span><span class="o">++</span><span class="p">;</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">level</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">NONE</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">DEBUG</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="w"> </span><span class="n">verbosity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">&gt;</span><span class="p">(</span><span class="n">level</span><span class="p">);</span>
+<span class="w">      </span><span class="n">logger1</span><span class="p">.</span><span class="n">set_verbosity</span><span class="p">(</span><span class="n">verbosity</span><span class="p">);</span>
+<span class="w">      </span><span class="n">logger2</span><span class="p">.</span><span class="n">set_verbosity</span><span class="p">(</span><span class="n">verbosity</span><span class="p">);</span>
+<span class="w">      </span><span class="c1">// sleep</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">1</span><span class="n">s</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="classespp_1_1Logger_1logger_ex3">
+<h4>Cursor Commands Example<a class="headerlink" href="#classespp_1_1Logger_1logger_ex3" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1Logger_1logger_ex3"><div class="highlight"><pre><span></span><span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">num_seconds_to_run</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">10.0f</span><span class="p">;</span>
+<span class="w">    </span><span class="c1">// create loggers</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">logger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="p">({.</span><span class="n">tag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Cursor Commands&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">DEBUG</span><span class="p">});</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">elapsed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">).</span><span class="n">count</span><span class="p">();</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Long running log... {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">elapsed</span><span class="p">);</span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">elapsed</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">num_seconds_to_run</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+<span class="w">      </span><span class="n">elapsed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">).</span><span class="n">count</span><span class="p">();</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">remaining</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">num_seconds_to_run</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">elapsed</span><span class="p">;</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">move_up</span><span class="p">();</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">clear_line</span><span class="p">();</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Long running log... {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">remaining</span><span class="p">);</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">100</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp6Logger9VerbosityE"></span><span class="target" id="classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Verbosity</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Verbosity levels for the logger, in order of increasing priority. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger9Verbosity5DEBUGE">
+<span id="_CPPv3N4espp6Logger9Verbosity5DEBUGE"></span><span id="_CPPv2N4espp6Logger9Verbosity5DEBUGE"></span><span class="target" id="classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cbadc30ec20708ef7b0f641ef78b7880a15"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DEBUG</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Logger9Verbosity5DEBUGE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Debug level verbosity. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger9Verbosity4INFOE">
+<span id="_CPPv3N4espp6Logger9Verbosity4INFOE"></span><span id="_CPPv2N4espp6Logger9Verbosity4INFOE"></span><span class="target" id="classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cba551b723eafd6a31d444fcb2f5920fbd3"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">INFO</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Logger9Verbosity4INFOE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Info level verbosity. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger9Verbosity4WARNE">
+<span id="_CPPv3N4espp6Logger9Verbosity4WARNE"></span><span id="_CPPv2N4espp6Logger9Verbosity4WARNE"></span><span class="target" id="classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cba32bd8a1db2275458673903bdb84cb277"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">WARN</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Logger9Verbosity4WARNE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Warn level verbosity. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger9Verbosity5ERRORE">
+<span id="_CPPv3N4espp6Logger9Verbosity5ERRORE"></span><span id="_CPPv2N4espp6Logger9Verbosity5ERRORE"></span><span class="target" id="classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cbabb1ca97ec761fc37101737ba0aa2e7c5"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ERROR</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Logger9Verbosity5ERRORE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Error level verbosity. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger9Verbosity4NONEE">
+<span id="_CPPv3N4espp6Logger9Verbosity4NONEE"></span><span id="_CPPv2N4espp6Logger9Verbosity4NONEE"></span><span class="target" id="classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cbab50339a10e1de285ac99d4c3990b8693"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NONE</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Logger9Verbosity4NONEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>No verbosity - logger will not print anything. </p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger6LoggerERK6Config">
+<span id="_CPPv3N4espp6Logger6LoggerERK6Config"></span><span id="_CPPv2N4espp6Logger6LoggerERK6Config"></span><span id="espp::Logger::Logger__ConfigCR"></span><span class="target" id="classespp_1_1Logger_1a4a6af2d85117fbfd9c166d7d9f951592"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Logger</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Logger6ConfigE" title="espp::Logger::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Logger6LoggerERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct a new <a class="reference internal" href="#classespp_1_1Logger"><span class="std std-ref">Logger</span></a> object. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – configuration for the logger. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger6LoggerERK6Logger">
+<span id="_CPPv3N4espp6Logger6LoggerERK6Logger"></span><span id="_CPPv2N4espp6Logger6LoggerERK6Logger"></span><span id="espp::Logger::Logger__LoggerCR"></span><span class="target" id="classespp_1_1Logger_1a881a857ccdd9d4a5dede075e5b3f1e9e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Logger</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Logger6LoggerERK6Logger" title="espp::Logger::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Logger6LoggerERK6Logger" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Copy constructor. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will NOT copy the last_print_ time, as this is not meaningful for the new logger. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>other</strong> – The other logger to copy from. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger6LoggerERR6Logger">
+<span id="_CPPv3N4espp6Logger6LoggerERR6Logger"></span><span id="_CPPv2N4espp6Logger6LoggerERR6Logger"></span><span id="espp::Logger::Logger__LoggerRR"></span><span class="target" id="classespp_1_1Logger_1a0468225897dec5179b2112550b12f7ee"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Logger</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Logger6LoggerERR6Logger" title="espp::Logger::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4N4espp6Logger6LoggerERR6Logger" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Move constructor. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>other</strong> – The other logger to move from. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6LoggeraSERK6Logger">
+<span id="_CPPv3N4espp6LoggeraSERK6Logger"></span><span id="_CPPv2N4espp6LoggeraSERK6Logger"></span><span id="espp::Logger::assign-operator__LoggerCR"></span><span class="target" id="classespp_1_1Logger_1adfa471908be5d75f0bd189421f9f3625"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6LoggeraSERK6Logger" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Copy assignment operator. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will NOT copy the last_print_ time, as this is not meaningful for the new logger. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>other</strong> – The other logger to copy from. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Reference to this logger. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6LoggeraSERR6Logger">
+<span id="_CPPv3N4espp6LoggeraSERR6Logger"></span><span id="_CPPv2N4espp6LoggeraSERR6Logger"></span><span id="espp::Logger::assign-operator__LoggerRR"></span><span class="target" id="classespp_1_1Logger_1a408b345c77756f6eb6f915150187294e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4N4espp6LoggeraSERR6Logger" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Move assignment operator. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>other</strong> – The other logger to move from. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Reference to this logger. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Logger13get_verbosityEv">
+<span id="_CPPv3NK4espp6Logger13get_verbosityEv"></span><span id="_CPPv2NK4espp6Logger13get_verbosityEv"></span><span id="espp::Logger::get_verbosityC"></span><span class="target" id="classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Logger13get_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the current verbosity for the logger. </p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The current verbosity level. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger13set_verbosityEKN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp6Logger13set_verbosityEKN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp6Logger13set_verbosityEKN4espp6Logger9VerbosityE"></span><span id="espp::Logger::set_verbosity__espp::Logger::VerbosityC"></span><span class="target" id="classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_verbosity</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Logger13set_verbosityEKN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Change the verbosity for the logger. </p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – new verbosity level </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger7set_tagEKNSt11string_viewE">
+<span id="_CPPv3N4espp6Logger7set_tagEKNSt11string_viewE"></span><span id="_CPPv2N4espp6Logger7set_tagEKNSt11string_viewE"></span><span id="espp::Logger::set_tag__std::string_viewC"></span><span class="target" id="classespp_1_1Logger_1a15e232a455e86125e6fb3b51b2024e3a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Logger7set_tagEKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Change the tag for the logger. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The new tag. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Logger7get_tagEv">
+<span id="_CPPv3NK4espp6Logger7get_tagEv"></span><span id="_CPPv2NK4espp6Logger7get_tagEv"></span><span id="espp::Logger::get_tagC"></span><span class="target" id="classespp_1_1Logger_1a9bde140d02a3c9464f0a899c38e22a36"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_tag</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Logger7get_tagEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the current tag for the logger. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the current tag. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger16set_include_timeEb">
+<span id="_CPPv3N4espp6Logger16set_include_timeEb"></span><span id="_CPPv2N4espp6Logger16set_include_timeEb"></span><span id="espp::Logger::set_include_time__b"></span><span class="target" id="classespp_1_1Logger_1a5eeb74bbe0f877034f71419ad6e25f34"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_include_time</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">include_time</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Logger16set_include_timeEb" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether to include the time in the log. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The time is in seconds since boot and is represented as a floating point number with precision to the millisecond. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>include_time</strong> – Whether to include the time in the log. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger14set_rate_limitEKNSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp6Logger14set_rate_limitEKNSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp6Logger14set_rate_limitEKNSt6chrono8durationIfEE"></span><span id="espp::Logger::set_rate_limit__std::chrono::duration:float:C"></span><span class="target" id="classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_rate_limit</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Logger14set_rate_limitEKNSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Change the rate limit for the logger. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls that have _rate_limited suffixed will be rate limited. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The new rate limit. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Logger14get_rate_limitEv">
+<span id="_CPPv3NK4espp6Logger14get_rate_limitEv"></span><span id="_CPPv2NK4espp6Logger14get_rate_limitEv"></span><span id="espp::Logger::get_rate_limitC"></span><span class="target" id="classespp_1_1Logger_1ae239a1a61502d83772e9405a88973c27"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_rate_limit</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Logger14get_rate_limitEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the current rate limit for the logger. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The current rate limit. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4IDpENK4espp6Logger6formatENSt6stringENSt11string_viewEDpRR4Args">
+<span id="_CPPv3IDpENK4espp6Logger6formatENSt11string_viewEDpRR4Args"></span><span id="_CPPv2IDpENK4espp6Logger6formatENSt11string_viewEDpRR4Args"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">Args</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1Logger_1a451e59a4afe7216a50b3d7e1b6fc6955"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">format</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rt_fmt_str</span></span>, <a class="reference internal" href="#_CPPv4IDpENK4espp6Logger6formatENSt6stringENSt11string_viewEDpRR4Args" title="espp::Logger::format::Args"><span class="n"><span class="pre">Args</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">args</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4IDpENK4espp6Logger6formatENSt6stringENSt11string_viewEDpRR4Args" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Format args into string according to format string. From: <a class="reference external" href="https://en.cppreference.com/w/cpp/utility/format/format">https://en.cppreference.com/w/cpp/utility/format/format</a>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rt_fmt_str</strong> – format string </p></li>
+<li><p><strong>args</strong> – optional arguments passed to be formatted. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>formatted std::string </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4IDpENK4espp6Logger5debugEvNSt11string_viewEDpRR4Args">
+<span id="_CPPv3IDpENK4espp6Logger5debugENSt11string_viewEDpRR4Args"></span><span id="_CPPv2IDpENK4espp6Logger5debugENSt11string_viewEDpRR4Args"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">Args</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1Logger_1ad9abeef650c05125872c7a5a67e06acb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">debug</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rt_fmt_str</span></span>, <a class="reference internal" href="#_CPPv4IDpENK4espp6Logger5debugEvNSt11string_viewEDpRR4Args" title="espp::Logger::debug::Args"><span class="n"><span class="pre">Args</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">args</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4IDpENK4espp6Logger5debugEvNSt11string_viewEDpRR4Args" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Print log in GRAY if level is <a class="reference internal" href="#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cbadc30ec20708ef7b0f641ef78b7880a15"><span class="std std-ref">Verbosity::DEBUG</span></a> or greater. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rt_fmt_str</strong> – format string </p></li>
+<li><p><strong>args</strong> – optional arguments passed to be formatted. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4IDpENK4espp6Logger4infoEvNSt11string_viewEDpRR4Args">
+<span id="_CPPv3IDpENK4espp6Logger4infoENSt11string_viewEDpRR4Args"></span><span id="_CPPv2IDpENK4espp6Logger4infoENSt11string_viewEDpRR4Args"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">Args</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1Logger_1a6c009f0873106d389a8145e202afc55a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">info</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rt_fmt_str</span></span>, <a class="reference internal" href="#_CPPv4IDpENK4espp6Logger4infoEvNSt11string_viewEDpRR4Args" title="espp::Logger::info::Args"><span class="n"><span class="pre">Args</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">args</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4IDpENK4espp6Logger4infoEvNSt11string_viewEDpRR4Args" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Print log in GREEN if level is <a class="reference internal" href="#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cba551b723eafd6a31d444fcb2f5920fbd3"><span class="std std-ref">Verbosity::INFO</span></a> or greater. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rt_fmt_str</strong> – format string </p></li>
+<li><p><strong>args</strong> – optional arguments passed to be formatted. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4IDpENK4espp6Logger4warnEvNSt11string_viewEDpRR4Args">
+<span id="_CPPv3IDpENK4espp6Logger4warnENSt11string_viewEDpRR4Args"></span><span id="_CPPv2IDpENK4espp6Logger4warnENSt11string_viewEDpRR4Args"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">Args</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1Logger_1a4d37e6f4bd9ec4cb71b69509945d8112"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">warn</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rt_fmt_str</span></span>, <a class="reference internal" href="#_CPPv4IDpENK4espp6Logger4warnEvNSt11string_viewEDpRR4Args" title="espp::Logger::warn::Args"><span class="n"><span class="pre">Args</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">args</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4IDpENK4espp6Logger4warnEvNSt11string_viewEDpRR4Args" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Print log in YELLOW if level is <a class="reference internal" href="#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cba32bd8a1db2275458673903bdb84cb277"><span class="std std-ref">Verbosity::WARN</span></a> or greater. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rt_fmt_str</strong> – format string </p></li>
+<li><p><strong>args</strong> – optional arguments passed to be formatted. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4IDpENK4espp6Logger5errorEvNSt11string_viewEDpRR4Args">
+<span id="_CPPv3IDpENK4espp6Logger5errorENSt11string_viewEDpRR4Args"></span><span id="_CPPv2IDpENK4espp6Logger5errorENSt11string_viewEDpRR4Args"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">Args</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1Logger_1a85a9b10a003969bd232423b44e904029"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">error</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rt_fmt_str</span></span>, <a class="reference internal" href="#_CPPv4IDpENK4espp6Logger5errorEvNSt11string_viewEDpRR4Args" title="espp::Logger::error::Args"><span class="n"><span class="pre">Args</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">args</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4IDpENK4espp6Logger5errorEvNSt11string_viewEDpRR4Args" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Print log in RED if level is <a class="reference internal" href="#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cbabb1ca97ec761fc37101737ba0aa2e7c5"><span class="std std-ref">Verbosity::ERROR</span></a> or greater. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rt_fmt_str</strong> – format string </p></li>
+<li><p><strong>args</strong> – optional arguments passed to be formatted. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4IDpEN4espp6Logger18debug_rate_limitedEvNSt11string_viewEDpRR4Args">
+<span id="_CPPv3IDpEN4espp6Logger18debug_rate_limitedENSt11string_viewEDpRR4Args"></span><span id="_CPPv2IDpEN4espp6Logger18debug_rate_limitedENSt11string_viewEDpRR4Args"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">Args</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1Logger_1ac4d622c88eb714405b4ec0289e4a4db9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">debug_rate_limited</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rt_fmt_str</span></span>, <a class="reference internal" href="#_CPPv4IDpEN4espp6Logger18debug_rate_limitedEvNSt11string_viewEDpRR4Args" title="espp::Logger::debug_rate_limited::Args"><span class="n"><span class="pre">Args</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">args</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4IDpEN4espp6Logger18debug_rate_limitedEvNSt11string_viewEDpRR4Args" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Print log in GRAY if level is <a class="reference internal" href="#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cbadc30ec20708ef7b0f641ef78b7880a15"><span class="std std-ref">Verbosity::DEBUG</span></a> or greater. This function is rate limited by the rate specified in the constructor. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rt_fmt_str</strong> – format string </p></li>
+<li><p><strong>args</strong> – optional arguments passed to be formatted. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4IDpEN4espp6Logger17info_rate_limitedEvNSt11string_viewEDpRR4Args">
+<span id="_CPPv3IDpEN4espp6Logger17info_rate_limitedENSt11string_viewEDpRR4Args"></span><span id="_CPPv2IDpEN4espp6Logger17info_rate_limitedENSt11string_viewEDpRR4Args"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">Args</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1Logger_1afd737fecf92eb68b85722e00cca0c67b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">info_rate_limited</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rt_fmt_str</span></span>, <a class="reference internal" href="#_CPPv4IDpEN4espp6Logger17info_rate_limitedEvNSt11string_viewEDpRR4Args" title="espp::Logger::info_rate_limited::Args"><span class="n"><span class="pre">Args</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">args</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4IDpEN4espp6Logger17info_rate_limitedEvNSt11string_viewEDpRR4Args" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Print log in GREEN if level is <a class="reference internal" href="#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cba551b723eafd6a31d444fcb2f5920fbd3"><span class="std std-ref">Verbosity::INFO</span></a> or greater This function is rate limited by the rate specified in the constructor. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rt_fmt_str</strong> – format string </p></li>
+<li><p><strong>args</strong> – optional arguments passed to be formatted. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4IDpEN4espp6Logger17warn_rate_limitedEvNSt11string_viewEDpRR4Args">
+<span id="_CPPv3IDpEN4espp6Logger17warn_rate_limitedENSt11string_viewEDpRR4Args"></span><span id="_CPPv2IDpEN4espp6Logger17warn_rate_limitedENSt11string_viewEDpRR4Args"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">Args</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1Logger_1a8fc13cfd969a31cb0329b5e276a55977"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">warn_rate_limited</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rt_fmt_str</span></span>, <a class="reference internal" href="#_CPPv4IDpEN4espp6Logger17warn_rate_limitedEvNSt11string_viewEDpRR4Args" title="espp::Logger::warn_rate_limited::Args"><span class="n"><span class="pre">Args</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">args</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4IDpEN4espp6Logger17warn_rate_limitedEvNSt11string_viewEDpRR4Args" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Print log in YELLOW if level is <a class="reference internal" href="#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cba32bd8a1db2275458673903bdb84cb277"><span class="std std-ref">Verbosity::WARN</span></a> or greater This function is rate limited by the rate specified in the constructor. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rt_fmt_str</strong> – format string </p></li>
+<li><p><strong>args</strong> – optional arguments passed to be formatted. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4IDpEN4espp6Logger18error_rate_limitedEvNSt11string_viewEDpRR4Args">
+<span id="_CPPv3IDpEN4espp6Logger18error_rate_limitedENSt11string_viewEDpRR4Args"></span><span id="_CPPv2IDpEN4espp6Logger18error_rate_limitedENSt11string_viewEDpRR4Args"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">Args</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1Logger_1a786ec1ac5e918351e29bcb96f5826893"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">error_rate_limited</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rt_fmt_str</span></span>, <a class="reference internal" href="#_CPPv4IDpEN4espp6Logger18error_rate_limitedEvNSt11string_viewEDpRR4Args" title="espp::Logger::error_rate_limited::Args"><span class="n"><span class="pre">Args</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">args</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4IDpEN4espp6Logger18error_rate_limitedEvNSt11string_viewEDpRR4Args" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Print log in RED if level is <a class="reference internal" href="#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cbabb1ca97ec761fc37101737ba0aa2e7c5"><span class="std std-ref">Verbosity::ERROR</span></a> or greater This function is rate limited by the rate specified in the constructor. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rt_fmt_str</strong> – format string </p></li>
+<li><p><strong>args</strong> – optional arguments passed to be formatted. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger7move_upEv">
+<span id="_CPPv3N4espp6Logger7move_upEv"></span><span id="_CPPv2N4espp6Logger7move_upEv"></span><span id="espp::Logger::move_up"></span><span class="target" id="classespp_1_1Logger_1a8a851c42731a2abe1afa7554c784cd22"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">move_up</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Logger7move_upEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Move the cursor up one line. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger7move_upEi">
+<span id="_CPPv3N4espp6Logger7move_upEi"></span><span id="_CPPv2N4espp6Logger7move_upEi"></span><span id="espp::Logger::move_up__i"></span><span class="target" id="classespp_1_1Logger_1a07cef654d6f6a19026b9e521a09caeed"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">move_up</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">lines</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Logger7move_upEi" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Move the cursor up a number of lines. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>lines</strong> – The number of lines to move up. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger9move_downEv">
+<span id="_CPPv3N4espp6Logger9move_downEv"></span><span id="_CPPv2N4espp6Logger9move_downEv"></span><span id="espp::Logger::move_down"></span><span class="target" id="classespp_1_1Logger_1a092c7a6c6245eeea6ca91a85810442ef"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">move_down</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Logger9move_downEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Move the cursor down one line. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger9move_downEi">
+<span id="_CPPv3N4espp6Logger9move_downEi"></span><span id="_CPPv2N4espp6Logger9move_downEi"></span><span id="espp::Logger::move_down__i"></span><span class="target" id="classespp_1_1Logger_1aefdf605d3c9199a18924e2209ef8a5f6"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">move_down</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">lines</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Logger9move_downEi" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Move the cursor down a number of lines. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>lines</strong> – The number of lines to move down. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger13move_to_startEv">
+<span id="_CPPv3N4espp6Logger13move_to_startEv"></span><span id="_CPPv2N4espp6Logger13move_to_startEv"></span><span id="espp::Logger::move_to_start"></span><span class="target" id="classespp_1_1Logger_1a3289e38b893fac69772c4d5b064822cd"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">move_to_start</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Logger13move_to_startEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Move the cursor to the beginning of the line. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger10clear_lineEv">
+<span id="_CPPv3N4espp6Logger10clear_lineEv"></span><span id="_CPPv2N4espp6Logger10clear_lineEv"></span><span id="espp::Logger::clear_line"></span><span class="target" id="classespp_1_1Logger_1a630e68d24e397bc9d41628dde87d5a74"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_line</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Logger10clear_lineEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear the line. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger12clear_screenEv">
+<span id="_CPPv3N4espp6Logger12clear_screenEv"></span><span id="_CPPv2N4espp6Logger12clear_screenEv"></span><span id="espp::Logger::clear_screen"></span><span class="target" id="classespp_1_1Logger_1a49a93e0aa62083061a1b469817249440"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_screen</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Logger12clear_screenEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear the screen and move the cursor to the top left. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger7move_toEii">
+<span id="_CPPv3N4espp6Logger7move_toEii"></span><span id="_CPPv2N4espp6Logger7move_toEii"></span><span id="espp::Logger::move_to__i.i"></span><span class="target" id="classespp_1_1Logger_1aaa089fac1f5b1af7da47a18562df030c"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">move_to</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">x</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">y</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Logger7move_toEii" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Move the cursor to a specific position. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – The x position to move to. </p></li>
+<li><p><strong>y</strong> – The y position to move to. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger8get_timeEv">
+<span id="_CPPv3N4espp6Logger8get_timeEv"></span><span id="_CPPv2N4espp6Logger8get_timeEv"></span><span id="espp::Logger::get_time"></span><span class="target" id="classespp_1_1Logger_1a6a6c5cc4ee423b59c45097b80214eb97"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_time</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Logger8get_timeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the current time in seconds since the start of the logging system. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>time in seconds since the start of the logging system. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger6ConfigE">
+<span id="_CPPv3N4espp6Logger6ConfigE"></span><span id="_CPPv2N4espp6Logger6ConfigE"></span><span id="espp::Logger::Config"></span><span class="target" id="structespp_1_1Logger_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Logger6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration struct for the logger. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger6Config3tagE">
+<span id="_CPPv3N4espp6Logger6Config3tagE"></span><span id="_CPPv2N4espp6Logger6Config3tagE"></span><span id="espp::Logger::Config::tag__std::string_view"></span><span class="target" id="structespp_1_1Logger_1_1Config_1a5ea367f04582d61ffef5c55dac18d962"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tag</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Logger6Config3tagE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The TAG that will be prepended to all logs. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger6Config12include_timeE">
+<span id="_CPPv3N4espp6Logger6Config12include_timeE"></span><span id="_CPPv2N4espp6Logger6Config12include_timeE"></span><span id="espp::Logger::Config::include_time__b"></span><span class="target" id="structespp_1_1Logger_1_1Config_1a3752650fe7f4b0db844792e4aeb6b972"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">include_time</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp6Logger6Config12include_timeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Include the time in the log. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger6Config10rate_limitE">
+<span id="_CPPv3N4espp6Logger6Config10rate_limitE"></span><span id="_CPPv2N4espp6Logger6Config10rate_limitE"></span><span id="espp::Logger::Config::rate_limit__std::chrono::duration:float:"></span><span class="target" id="structespp_1_1Logger_1_1Config_1a6159198004f218ed915dcaf48b93acc0"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">rate_limit</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">(</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N4espp6Logger6Config10rate_limitE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The rate limit for the logger. Optional, if &lt;= 0 no rate limit. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls that have _rate_limited suffixed will be rate limited. </p>
+</div>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger6Config5levelE">
+<span id="_CPPv3N4espp6Logger6Config5levelE"></span><span id="_CPPv2N4espp6Logger6Config5levelE"></span><span id="espp::Logger::Config::level__espp::Logger::Verbosity"></span><span class="target" id="structespp_1_1Logger_1_1Config_1a5c20c1c155f195ed46f07ae27951c0b4"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><a class="headerlink" href="#_CPPv4N4espp6Logger6Config5levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The verbosity level for the logger. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+<section id="binary-log">
+<h2>Binary Log<a class="headerlink" href="#binary-log" title="Permalink to this heading"></a></h2>
+<p>The binary log component provides a wrapper around
+<a class="reference external" href="https://github.com/p-ranav/binary_log">https://github.com/p-ranav/binary_log</a> for enabling compact binary logging of
+basic integer, floating point, and string data types.</p>
+<p>Code examples for the binary logging API are provided in the <cite>binary_log</cite>
+example folder.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="binary_log_example.html">Binary Log Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="binary_log_example.html#how-to-use-example">How to use example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="binary_log_example.html#unpacking-the-logs">Unpacking the logs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="binary_log_example.html#getting-the-log-data">Getting the log data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="binary_log_example.html#unpacking-the-log-data">Unpacking the log data</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="binary_log_example.html#build-and-flash">Build and Flash</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="binary_log_example.html#example-output">Example Output</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="id1">
+<h2>API Reference<a class="headerlink" href="#id1" title="Permalink to this heading"></a></h2>
+<section id="id2">
+<h3>Header File<a class="headerlink" href="#id2" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/32e8215e/components/binary-log/include/binary-log.hpp">components/binary-log/include/binary-log.hpp</a></p></li>
+</ul>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="led_strip_example.html" class="btn btn-neutral float-left" title="LED Strip Example" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="logger_example.html" class="btn btn-neutral float-right" title="Logger Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

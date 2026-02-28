@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Remote Debug Example - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="_static/copybutton.js?v=ff8fa330"></script>
+    <script src="_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'remote_debug_example';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Remote Control Transceiver (RMT)" href="rmt.html" />
+    <link rel="prev" title="Remote Debug APIs" href="remote_debug.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            ESPP
+              <img src="_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_component.html">Base Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l1"><a class="reference internal" href="battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="byte90.html">ALXV Labs Byte90</a></li>
+<li class="toctree-l1"><a class="reference internal" href="controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cobs.html">COBS (Consistent Overhead Byte Stuffing)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="esp32_timer_cam.html">ESP32 TimerCam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="esp_box.html">ESP BOX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hid/index.html">HID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="interrupt.html">Interrupt APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="iperf_menu.html">Iperf Menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="m5stack_tab5.html">M5Stack Tab5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="matouch_rotary_display.html">MaTouch Rotary Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="motorgo_mini.html">MotorGo Mini</a></li>
+<li class="toctree-l1"><a class="reference internal" href="neopixel.html">Neopixel APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nvs.html">NVS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="remote_debug.html">Remote Debug APIs</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Remote Debug Example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#how-to-use-example">How to use example</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#hardware-required">Hardware Required</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#configure-the-project">Configure the project</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#build-and-flash">Build and Flash</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#access-the-interface">Access the Interface</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#example-output">Example Output</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#web-interface-features">Web Interface Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#api-endpoints">API Endpoints</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="remote_debug.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="runqueue.html">RunQueue APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="seeed_studio_round_display.html">Seeed Studio Round Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="t_deck.html">LilyGo T-Deck</a></li>
+<li class="toctree-l1"><a class="reference internal" href="t_dongle_s3.html">LilyGo T-Dongle S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wrover_kit.html">ESP32-WROVER-KIT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="remote_debug.html">Remote Debug APIs</a></li>
+      <li class="breadcrumb-item active">Remote Debug Example</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/32e8215e/docs/en/remote_debug_example.md" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="remote-debug-example">
+<h1>Remote Debug Example<a class="headerlink" href="#remote-debug-example" title="Permalink to this heading"></a></h1>
+<p>This example demonstrates the <code class="docutils literal notranslate"><span class="pre">espp::RemoteDebug</span></code> component, providing a
+web-based interface for GPIO control, real-time ADC monitoring, and console log
+viewing.</p>
+<p>https://github.com/user-attachments/assets/ee806c6c-0f6b-4dd0-a5b0-82b80410b5bc</p>
+<img width="607" height="2048" alt="image" src="https://github.com/user-attachments/assets/5977033c-eee8-4be2-a9c4-634fd3100480" />
+<section id="how-to-use-example">
+<h2>How to use example<a class="headerlink" href="#how-to-use-example" title="Permalink to this heading"></a></h2>
+<section id="hardware-required">
+<h3>Hardware Required<a class="headerlink" href="#hardware-required" title="Permalink to this heading"></a></h3>
+<p>This example can run on any ESP32 development board. For testing:</p>
+<ul class="simple">
+<li><p>Connect LEDs or other peripherals / inputs to GPIO pins</p></li>
+<li><p>Connect analog sensors to ADC-capable pins</p></li>
+</ul>
+</section>
+<section id="configure-the-project">
+<h3>Configure the project<a class="headerlink" href="#configure-the-project" title="Permalink to this heading"></a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">idf</span><span class="o">.</span><span class="n">py</span> <span class="n">menuconfig</span>
+</pre></div>
+</div>
+<p>Navigate to <code class="docutils literal notranslate"><span class="pre">Remote</span> <span class="pre">Debug</span> <span class="pre">Example</span> <span class="pre">Configuration</span></code>:</p>
+<ul class="simple">
+<li><p>WiFi credentials (SSID and password)</p></li>
+<li><p>Server configuration (port, title)</p></li>
+<li><p>GPIO configuration (number of pins, pin numbers, labels)</p></li>
+<li><p>ADC configuration (channels, attenuation, labels, sample rate, buffer size)</p></li>
+<li><p>Console logging (enable/disable, buffer size)</p></li>
+</ul>
+<p><strong>Important</strong>: If enabling console logging, you must also set:</p>
+<ul class="simple">
+<li><p>Component config → LittleFS → <code class="docutils literal notranslate"><span class="pre">CONFIG_LITTLEFS_FLUSH_FILE_EVERY_WRITE=y</span></code></p></li>
+</ul>
+<p>This ensures real-time log updates on the web interface.</p>
+</section>
+<section id="build-and-flash">
+<h3>Build and Flash<a class="headerlink" href="#build-and-flash" title="Permalink to this heading"></a></h3>
+<p>Build the project and flash it to the board, then run monitor tool to view serial output:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">idf</span><span class="o">.</span><span class="n">py</span> <span class="o">-</span><span class="n">p</span> <span class="n">PORT</span> <span class="n">flash</span> <span class="n">monitor</span>
+</pre></div>
+</div>
+<p>(Replace PORT with the name of the serial port to use.)</p>
+<p>(To exit the serial monitor, type <code class="docutils literal notranslate"><span class="pre">Ctrl-]</span></code>.)</p>
+<p>See the Getting Started Guide for full steps to configure and use ESP-IDF to build projects.</p>
+</section>
+<section id="access-the-interface">
+<h3>Access the Interface<a class="headerlink" href="#access-the-interface" title="Permalink to this heading"></a></h3>
+<ol class="arabic simple">
+<li><p>Device connects to configured WiFi network</p></li>
+<li><p>Check serial monitor for assigned IP address</p></li>
+<li><p>Open web browser to <code class="docutils literal notranslate"><span class="pre">http://&lt;device-ip&gt;:&lt;port&gt;</span></code> (default port: 8080)</p></li>
+<li><p>Use the interface to control GPIOs, monitor ADCs, and view console logs</p></li>
+</ol>
+</section>
+</section>
+<section id="example-output">
+<h2>Example Output<a class="headerlink" href="#example-output" title="Permalink to this heading"></a></h2>
+<img width="1396" height="460" alt="CleanShot 2026-01-27 at 00 13 39@2x" src="https://github.com/user-attachments/assets/bc129b24-24c0-4ed0-9976-33035eef5630" />
+<p>Screenshots:
+<img width="1764" height="2274" alt="CleanShot 2026-01-27 at 00 12 32@2x" src="https://github.com/user-attachments/assets/5a22eb67-8cad-468e-b214-117ff70ed73e" />
+<img width="1764" height="2274" alt="CleanShot 2026-01-27 at 00 13 06@2x" src="https://github.com/user-attachments/assets/f893a8b2-35f6-4bc6-81ca-24e500e12232" /></p>
+</section>
+<section id="web-interface-features">
+<h2>Web Interface Features<a class="headerlink" href="#web-interface-features" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>GPIO Control</strong></p>
+<ul>
+<li><p>Configure pins as input or output</p></li>
+<li><p>Read current states in real-time</p></li>
+<li><p>Set output pins HIGH or LOW</p></li>
+<li><p>Visual state indicators</p></li>
+</ul>
+</li>
+<li><p><strong>ADC Monitoring</strong></p>
+<ul>
+<li><p>Real-time plotting with automatic updates</p></li>
+<li><p>Multiple channels displayed simultaneously</p></li>
+<li><p>Voltage display (converted from raw values)</p></li>
+<li><p>Configurable sample rate and buffer size</p></li>
+</ul>
+</li>
+<li><p><strong>Console Log Viewer</strong> (when enabled)</p>
+<ul>
+<li><p>Live stdout output</p></li>
+<li><p>ANSI color code support</p></li>
+<li><p>Auto-scrolling display</p></li>
+<li><p>Configurable buffer size</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="api-endpoints">
+<h2>API Endpoints<a class="headerlink" href="#api-endpoints" title="Permalink to this heading"></a></h2>
+<p>Programmatic access via JSON REST API:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">GET</span>  <span class="o">/</span><span class="n">api</span><span class="o">/</span><span class="n">gpio</span><span class="o">/</span><span class="n">get</span>      <span class="o">-</span> <span class="n">Get</span> <span class="nb">all</span> <span class="n">GPIO</span> <span class="n">states</span> <span class="ow">and</span> <span class="n">configurations</span>
+<span class="n">POST</span> <span class="o">/</span><span class="n">api</span><span class="o">/</span><span class="n">gpio</span><span class="o">/</span><span class="nb">set</span>      <span class="o">-</span> <span class="n">Set</span> <span class="n">GPIO</span> <span class="n">output</span> <span class="n">state</span> <span class="p">(</span><span class="n">JSON</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;pin&quot;</span><span class="p">:</span> <span class="n">N</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="o">|</span><span class="mi">1</span><span class="p">})</span>
+<span class="n">POST</span> <span class="o">/</span><span class="n">api</span><span class="o">/</span><span class="n">gpio</span><span class="o">/</span><span class="n">config</span>   <span class="o">-</span> <span class="n">Configure</span> <span class="n">GPIO</span> <span class="n">direction</span> <span class="p">(</span><span class="n">JSON</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;pin&quot;</span><span class="p">:</span> <span class="n">N</span><span class="p">,</span> <span class="s2">&quot;mode&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="o">|</span><span class="mi">3</span><span class="p">})</span>
+<span class="n">GET</span>  <span class="o">/</span><span class="n">api</span><span class="o">/</span><span class="n">adc</span><span class="o">/</span><span class="n">data</span>      <span class="o">-</span> <span class="n">Get</span> <span class="n">ADC</span> <span class="n">readings</span> <span class="ow">and</span> <span class="n">plot</span> <span class="n">data</span>
+<span class="n">POST</span> <span class="o">/</span><span class="n">api</span><span class="o">/</span><span class="n">logs</span><span class="o">/</span><span class="n">start</span>    <span class="o">-</span> <span class="n">Start</span> <span class="n">log</span> <span class="n">capture</span> <span class="p">(</span><span class="n">redirects</span> <span class="n">stdout</span> <span class="n">to</span> <span class="n">file</span><span class="p">)</span>
+<span class="n">POST</span> <span class="o">/</span><span class="n">api</span><span class="o">/</span><span class="n">logs</span><span class="o">/</span><span class="n">stop</span>     <span class="o">-</span> <span class="n">Stop</span> <span class="n">log</span> <span class="n">capture</span> <span class="p">(</span><span class="n">restores</span> <span class="n">stdout</span> <span class="n">to</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">console</span><span class="p">)</span>
+<span class="n">GET</span>  <span class="o">/</span><span class="n">api</span><span class="o">/</span><span class="n">logs</span>          <span class="o">-</span> <span class="n">Get</span> <span class="n">console</span> <span class="n">log</span> <span class="n">content</span> <span class="p">(</span><span class="n">text</span><span class="o">/</span><span class="n">plain</span> <span class="k">with</span> <span class="n">ANSI</span> <span class="n">colors</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Note: GPIO mode values are <code class="docutils literal notranslate"><span class="pre">1</span></code> for INPUT and <code class="docutils literal notranslate"><span class="pre">3</span></code> for INPUT_OUTPUT. OUTPUT mode (2) is automatically promoted to INPUT_OUTPUT for safety.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="remote_debug.html" class="btn btn-neutral float-left" title="Remote Debug APIs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="rmt.html" class="btn btn-neutral float-right" title="Remote Control Transceiver (RMT)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

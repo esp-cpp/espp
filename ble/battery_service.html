@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Battery Service - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'ble/battery_service';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="BLE GATT Server" href="ble_gatt_server.html" />
+    <link rel="prev" title="BLE APIs" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_component.html">Base Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">BLE APIs</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Battery Service</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ble_gatt_server.html">BLE GATT Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ble_gatt_server_example.html">BLE GATT Server Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="device_info_service.html">Device Info Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generic_access_service.html">Generic Access Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gfps_service.html">Google Fast Pair Service (GFPS) Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gfps_service_example.html">Google Fast Pair Service (GFPS) Service Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hid_service.html">HID Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hid_service_example.html">BLE HID Service Example</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../byte90.html">ALXV Labs Byte90</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cobs.html">COBS (Consistent Overhead Byte Stuffing)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp32_timer_cam.html">ESP32 TimerCam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp_box.html">ESP BOX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../interrupt.html">Interrupt APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../iperf_menu.html">Iperf Menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../m5stack_tab5.html">M5Stack Tab5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../matouch_rotary_display.html">MaTouch Rotary Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../motorgo_mini.html">MotorGo Mini</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../neopixel.html">Neopixel APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nvs.html">NVS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../remote_debug.html">Remote Debug APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../runqueue.html">RunQueue APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../seeed_studio_round_display.html">Seeed Studio Round Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_deck.html">LilyGo T-Deck</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_dongle_s3.html">LilyGo T-Dongle S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wrover_kit.html">ESP32-WROVER-KIT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">BLE APIs</a></li>
+      <li class="breadcrumb-item active">Battery Service</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/32e8215e/docs/en/ble/battery_service.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="battery-service">
+<h1>Battery Service<a class="headerlink" href="#battery-service" title="Permalink to this heading"></a></h1>
+<p>The <cite>BatteryService</cite> implements the standard BLE battery service, providing
+battery state information from a BLE peripheral to a BLE central.</p>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/32e8215e/components/ble_gatt_server/include/battery_service.hpp">components/ble_gatt_server/include/battery_service.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14BatteryServiceE">
+<span id="_CPPv3N4espp14BatteryServiceE"></span><span id="_CPPv2N4espp14BatteryServiceE"></span><span id="espp::BatteryService"></span><span class="target" id="classespp_1_1BatteryService"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BatteryService</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp14BatteryServiceE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Battery Service This class is responsible for creating and managing the Battery Service.</p>
+<p>The service is created with the following characteristics:<ul class="simple">
+<li><p>Battery Level (read, notify, unencrypted)</p></li>
+</ul>
+</p>
+<p>The Battery Level characteristic is a standard characteristic defined by the Bluetooth SIG. It is used to report the current battery level of the device. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14BatteryService14BatteryServiceEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp14BatteryService14BatteryServiceEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp14BatteryService14BatteryServiceEN4espp6Logger9VerbosityE"></span><span id="espp::BatteryService::BatteryService__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BatteryService_1a0b55f76258cb6cf1856a8c21aca40031"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BatteryService</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">log_level</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14BatteryService14BatteryServiceEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Constructor </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>log_level</strong> – The log level for the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14BatteryService4initEP12NimBLEServer">
+<span id="_CPPv3N4espp14BatteryService4initEP12NimBLEServer"></span><span id="_CPPv2N4espp14BatteryService4initEP12NimBLEServer"></span><span id="espp::BatteryService::init__NimBLEServerP"></span><span class="target" id="classespp_1_1BatteryService_1afb92af1e234e15c6c9a5a62eb097ecaf"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">init</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">NimBLEServer</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">server</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14BatteryService4initEP12NimBLEServer" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the Battery Service </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>server</strong> – The BLE server to add the service to </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14BatteryService6deinitEv">
+<span id="_CPPv3N4espp14BatteryService6deinitEv"></span><span id="_CPPv2N4espp14BatteryService6deinitEv"></span><span id="espp::BatteryService::deinit"></span><span class="target" id="classespp_1_1BatteryService_1aa6a928f7397dfb5c2bdb75b70a45f85c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">deinit</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14BatteryService6deinitEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Deinitialize the Battery Service </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should only be called after NimBLEDevice::deinit(true) has been called, since that will free the memory used by the service </p>
+</div>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14BatteryService5startEv">
+<span id="_CPPv3N4espp14BatteryService5startEv"></span><span id="_CPPv2N4espp14BatteryService5startEv"></span><span id="espp::BatteryService::start"></span><span class="target" id="classespp_1_1BatteryService_1a32f7aad9752870b3e2c4dfec0084c58b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">start</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14BatteryService5startEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Start the service </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This must be called after the service has been initialized </p>
+</div>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14BatteryService11get_serviceEv">
+<span id="_CPPv3N4espp14BatteryService11get_serviceEv"></span><span id="_CPPv2N4espp14BatteryService11get_serviceEv"></span><span id="espp::BatteryService::get_service"></span><span class="target" id="classespp_1_1BatteryService_1a9353260dbf2df7f32eae4e13aee017ad"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">NimBLEService</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_service</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14BatteryService11get_serviceEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the service </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The Battery Service </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14BatteryService4uuidEv">
+<span id="_CPPv3N4espp14BatteryService4uuidEv"></span><span id="_CPPv2N4espp14BatteryService4uuidEv"></span><span id="espp::BatteryService::uuid"></span><span class="target" id="classespp_1_1BatteryService_1aeac2fc9616cb94cd19cd77645ca17f34"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">NimBLEUUID</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">uuid</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14BatteryService4uuidEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the UUID of the service </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The UUID of the service </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14BatteryService17set_battery_levelE7uint8_t">
+<span id="_CPPv3N4espp14BatteryService17set_battery_levelE7uint8_t"></span><span id="_CPPv2N4espp14BatteryService17set_battery_levelE7uint8_t"></span><span id="espp::BatteryService::set_battery_level__uint8_t"></span><span class="target" id="classespp_1_1BatteryService_1ad312fff55b367eaf7af0e965e1a1ec9f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_battery_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14BatteryService17set_battery_levelE7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the battery level </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The level is clamped to the range [0, 100] </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This must be called after the service has been initialized </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The battery level </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14BatteryService17get_battery_levelEv">
+<span id="_CPPv3N4espp14BatteryService17get_battery_levelEv"></span><span id="_CPPv2N4espp14BatteryService17get_battery_levelEv"></span><span id="espp::BatteryService::get_battery_level"></span><span class="target" id="classespp_1_1BatteryService_1a096acbcd648c8263944b4754342d2c28"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_battery_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14BatteryService17get_battery_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the battery level </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The battery level </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp14BatteryService8get_nameEv">
+<span id="_CPPv3NK4espp14BatteryService8get_nameEv"></span><span id="_CPPv2NK4espp14BatteryService8get_nameEv"></span><span id="espp::BatteryService::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp14BatteryService8get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14BatteryService11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp14BatteryService11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp14BatteryService11set_log_tagERKNSt11string_viewE"></span><span id="espp::BatteryService::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14BatteryService11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp14BatteryService13get_log_levelEv">
+<span id="_CPPv3NK4espp14BatteryService13get_log_levelEv"></span><span id="_CPPv2NK4espp14BatteryService13get_log_levelEv"></span><span id="espp::BatteryService::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp14BatteryService13get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14BatteryService13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp14BatteryService13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp14BatteryService13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::BatteryService::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14BatteryService13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14BatteryService17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp14BatteryService17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp14BatteryService17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::BatteryService::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14BatteryService17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../ws_s3_touch.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp14BatteryService17get_log_verbosityEv">
+<span id="_CPPv3NK4espp14BatteryService17get_log_verbosityEv"></span><span id="_CPPv2NK4espp14BatteryService17get_log_verbosityEv"></span><span id="espp::BatteryService::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp14BatteryService17get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../ws_s3_touch.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14BatteryService18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp14BatteryService18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp14BatteryService18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::BatteryService::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14BatteryService18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14BatteryService17BATTERY_LEVEL_MAXE">
+<span id="_CPPv3N4espp14BatteryService17BATTERY_LEVEL_MAXE"></span><span id="_CPPv2N4espp14BatteryService17BATTERY_LEVEL_MAXE"></span><span id="espp::BatteryService::BATTERY_LEVEL_MAX__uint8_t"></span><span class="target" id="classespp_1_1BatteryService_1a5f0f2b72e9fc101860db897d2f99534a"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BATTERY_LEVEL_MAX</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">100</span></span><a class="headerlink" href="#_CPPv4N4espp14BatteryService17BATTERY_LEVEL_MAXE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Maximum battery level. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14BatteryService18BATTERY_LEVEL_UNITE">
+<span id="_CPPv3N4espp14BatteryService18BATTERY_LEVEL_UNITE"></span><span id="_CPPv2N4espp14BatteryService18BATTERY_LEVEL_UNITE"></span><span id="espp::BatteryService::BATTERY_LEVEL_UNIT__uint16_t"></span><span class="target" id="classespp_1_1BatteryService_1a95bc65a5ea47a433f0fe618678ebca06"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BATTERY_LEVEL_UNIT</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x27AD</span></span><a class="headerlink" href="#_CPPv4N4espp14BatteryService18BATTERY_LEVEL_UNITE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Unit is percentage. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14BatteryService20BATTERY_SERVICE_UUIDE">
+<span id="_CPPv3N4espp14BatteryService20BATTERY_SERVICE_UUIDE"></span><span id="_CPPv2N4espp14BatteryService20BATTERY_SERVICE_UUIDE"></span><span id="espp::BatteryService::BATTERY_SERVICE_UUID__uint16_t"></span><span class="target" id="classespp_1_1BatteryService_1ab2e31ce3f442b04ce35878411d8e12eb"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BATTERY_SERVICE_UUID</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x180F</span></span><a class="headerlink" href="#_CPPv4N4espp14BatteryService20BATTERY_SERVICE_UUIDE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Battery Service UUID. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14BatteryService23BATTERY_LEVEL_CHAR_UUIDE">
+<span id="_CPPv3N4espp14BatteryService23BATTERY_LEVEL_CHAR_UUIDE"></span><span id="_CPPv2N4espp14BatteryService23BATTERY_LEVEL_CHAR_UUIDE"></span><span id="espp::BatteryService::BATTERY_LEVEL_CHAR_UUID__uint16_t"></span><span class="target" id="classespp_1_1BatteryService_1a9147be04801231eef9d0e3b437bfcf7f"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BATTERY_LEVEL_CHAR_UUID</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x2A19</span></span><a class="headerlink" href="#_CPPv4N4espp14BatteryService23BATTERY_LEVEL_CHAR_UUIDE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Battery Level Characteristic UUID. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="BLE APIs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ble_gatt_server.html" class="btn btn-neutral float-right" title="BLE GATT Server" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

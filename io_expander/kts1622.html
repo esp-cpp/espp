@@ -1,0 +1,1648 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KTS1622 I/O Expander - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'io_expander/kts1622';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="KTS1622 Example" href="kts1622_example.html" />
+    <link rel="prev" title="PI4IOE5V Example" href="pi4ioe5v_example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_component.html">Base Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../byte90.html">ALXV Labs Byte90</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cobs.html">COBS (Consistent Overhead Byte Stuffing)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp32_timer_cam.html">ESP32 TimerCam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp_box.html">ESP BOX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../interrupt.html">Interrupt APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">IO Expander APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="aw9523.html">AW9523 I/O Expander</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pi4ioe5v.html">PI4IOE5V I/O Expander</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">KTS1622 I/O Expander</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="kts1622_example.html">KTS1622 Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="mcp23x17.html">MCP23x17 I/O Expander</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../iperf_menu.html">Iperf Menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../m5stack_tab5.html">M5Stack Tab5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../matouch_rotary_display.html">MaTouch Rotary Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../motorgo_mini.html">MotorGo Mini</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../neopixel.html">Neopixel APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nvs.html">NVS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../remote_debug.html">Remote Debug APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../runqueue.html">RunQueue APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../seeed_studio_round_display.html">Seeed Studio Round Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_deck.html">LilyGo T-Deck</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_dongle_s3.html">LilyGo T-Dongle S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wrover_kit.html">ESP32-WROVER-KIT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">IO Expander APIs</a></li>
+      <li class="breadcrumb-item active">KTS1622 I/O Expander</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/32e8215e/docs/en/io_expander/kts1622.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="kts1622-i-o-expander">
+<h1>KTS1622 I/O Expander<a class="headerlink" href="#kts1622-i-o-expander" title="Permalink to this heading"></a></h1>
+<p>The <cite>KTS1622</cite> I/O expander component allows the user to configure inputs,
+outputs, interrupts, etc. via a serial interface such as I2C.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="kts1622_example.html">KTS1622 Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="kts1622_example.html#how-to-use-example">How to use example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="kts1622_example.html#hardware-required">Hardware Required</a></li>
+<li class="toctree-l3"><a class="reference internal" href="kts1622_example.html#build-and-flash">Build and Flash</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="kts1622_example.html#example-output">Example Output</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/32e8215e/components/kts1622/include/kts1622.hpp">components/kts1622/include/kts1622.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts1622E">
+<span id="_CPPv3N4espp7Kts1622E"></span><span id="_CPPv2N4espp7Kts1622E"></span><span id="espp::Kts1622"></span><span class="target" id="classespp_1_1Kts1622"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Kts1622</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../base_peripheral.html#_CPPv4I_NSt8integralE_b_b_bEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp7Kts1622E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Class for communicating with and controlling a KTS1622 GPIO expander including interrupt configuration. It supports 16 GPIO pins, 8 on each port, and can support optional input debounce timing (only P0_1-P0_7 and P1_0-P1_7, with P0_0 as clock input) and interrupt memory with trigger/mask/clear/status features. It supports up to 1MHz Fast-mode Plus I2C and can operate [1.65, 5.5]V on the I2C bus and I/O pins (with separate power pins for each).</p>
+<section id="classespp_1_1Kts1622_1kts1622_ex1">
+<h4>KTS1622 Example<a class="headerlink" href="#classespp_1_1Kts1622_1kts1622_ex1" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1Kts1622_1kts1622_ex1"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1">// make the I2C that we&#39;ll use to communicate</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="w"> </span><span class="n">i2c</span><span class="p">({</span>
+<span class="w">      </span><span class="p">.</span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_NUM_1</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">sda_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">gpio_num_t</span><span class="p">)</span><span class="n">CONFIG_EXAMPLE_I2C_SDA_GPIO</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">scl_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">gpio_num_t</span><span class="p">)</span><span class="n">CONFIG_EXAMPLE_I2C_SCL_GPIO</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">sda_pullup_en</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_PULLUP_ENABLE</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">scl_pullup_en</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_PULLUP_ENABLE</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">clk_speed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1000</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span><span class="w"> </span><span class="c1">// 1MHz</span>
+<span class="w">  </span><span class="p">});</span>
+
+<span class="w">  </span><span class="c1">// now make the kts1622 which handles GPIO</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Kts1622</span><span class="w"> </span><span class="nf">kts1622</span><span class="p">(</span>
+<span class="w">      </span><span class="p">{.</span><span class="n">device_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Kts1622</span><span class="o">::</span><span class="n">DEFAULT_ADDRESS</span><span class="p">,</span>
+<span class="w">       </span><span class="c1">// set P0_0 - P0_7 to be inputs</span>
+<span class="w">       </span><span class="p">.</span><span class="n">port_0_direction_mask</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mb">0b11111111</span><span class="p">,</span>
+<span class="w">       </span><span class="c1">// set P1_0 - P1_7 to be inputs</span>
+<span class="w">       </span><span class="p">.</span><span class="n">port_1_direction_mask</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mb">0b11111111</span><span class="p">,</span>
+<span class="w">       </span><span class="p">.</span><span class="n">write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">write</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span>
+<span class="w">                          </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
+<span class="w">       </span><span class="p">.</span><span class="n">write_then_read</span><span class="w"> </span><span class="o">=</span>
+<span class="w">           </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">write_read</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span>
+<span class="w">                     </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_4</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_5</span><span class="p">),</span>
+<span class="w">       </span><span class="p">.</span><span class="n">auto_init</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span>
+<span class="w">       </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">});</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+<span class="w">  </span><span class="c1">// Initialized separately from the constructor since we set auto_init to false</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">kts1622</span><span class="p">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;kts1622 initialization failed: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// and finally, make the task to periodically poll the kts1622 and print</span>
+<span class="w">  </span><span class="c1">// the state. NOTE: the Kts1622 does not internally manage its own state</span>
+<span class="w">  </span><span class="c1">// update, so whatever rate we use here is the rate at which the state will</span>
+<span class="w">  </span><span class="c1">// update.</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="o">&amp;</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">seconds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">).</span><span class="n">count</span><span class="p">();</span>
+<span class="w">    </span><span class="c1">// returns the pins as P0_0 lsb, P1_7 msb</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">pins</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kts1622</span><span class="p">.</span><span class="n">get_pins</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;kts1622 get pins failed: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span><span class="w"> </span><span class="c1">// stop the task</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="c1">// equivalent to:</span>
+<span class="w">    </span><span class="c1">// auto pins = (kts1622.get_pins(espp::Kts1622::Port::PORT1, ec) &lt;&lt; 8) |</span>
+<span class="w">    </span><span class="c1">// kts1622.get_pins(espp::Kts1622::Port::PORT0, ec);</span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;{:.3f}, {:#x}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">seconds</span><span class="p">,</span><span class="w"> </span><span class="n">pins</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// NOTE: sleeping in this way allows the sleep to exit early when the</span>
+<span class="w">    </span><span class="c1">// task is being stopped / destroyed</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lk</span><span class="p">(</span><span class="n">m</span><span class="p">);</span>
+<span class="w">      </span><span class="n">cv</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">lk</span><span class="p">,</span><span class="w"> </span><span class="mi">50</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="c1">// don&#39;t want to stop the task</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">task</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="p">({.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">task_fn</span><span class="p">,</span>
+<span class="w">                          </span><span class="p">.</span><span class="n">task_config</span><span class="w"> </span><span class="o">=</span>
+<span class="w">                              </span><span class="p">{</span>
+<span class="w">                                  </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Kts1622 Task&quot;</span><span class="p">,</span>
+<span class="w">                                  </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="p">,</span>
+<span class="w">                              </span><span class="p">},</span>
+<span class="w">                          </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
+<span class="w">  </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;% time(s), pin values</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">task</span><span class="p">.</span><span class="n">start</span><span class="p">();</span>
+</pre></div>
+</div>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts16224PortE">
+<span id="_CPPv3N4espp7Kts16224PortE"></span><span id="_CPPv2N4espp7Kts16224PortE"></span><span class="target" id="classespp_1_1Kts1622_1a6227d17c64538d32f0483808667a83b0"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Port</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Kts16224PortE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The two GPIO ports the <a class="reference internal" href="#classespp_1_1Kts1622"><span class="std std-ref">Kts1622</span></a> has. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts16224Port5PORT0E">
+<span id="_CPPv3N4espp7Kts16224Port5PORT0E"></span><span id="_CPPv2N4espp7Kts16224Port5PORT0E"></span><span class="target" id="classespp_1_1Kts1622_1a6227d17c64538d32f0483808667a83b0a3836428cffdfe07b658080100c160e91"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PORT0</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Kts16224Port5PORT0E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Port 0. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts16224Port5PORT1E">
+<span id="_CPPv3N4espp7Kts16224Port5PORT1E"></span><span id="_CPPv2N4espp7Kts16224Port5PORT1E"></span><span class="target" id="classespp_1_1Kts1622_1a6227d17c64538d32f0483808667a83b0ac455d7a285f95e8dd4ea3327006d91b7"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PORT1</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Kts16224Port5PORT1E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Port 1. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162215OutputDriveModeE">
+<span id="_CPPv3N4espp7Kts162215OutputDriveModeE"></span><span id="_CPPv2N4espp7Kts162215OutputDriveModeE"></span><span class="target" id="classespp_1_1Kts1622_1ae986496388dcc3d224cb93604192e49c"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OutputDriveMode</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><a class="headerlink" href="#_CPPv4N4espp7Kts162215OutputDriveModeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The output drive mode configuration. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162215OutputDriveMode9PUSH_PULLE">
+<span id="_CPPv3N4espp7Kts162215OutputDriveMode9PUSH_PULLE"></span><span id="_CPPv2N4espp7Kts162215OutputDriveMode9PUSH_PULLE"></span><span class="target" id="classespp_1_1Kts1622_1ae986496388dcc3d224cb93604192e49ca4e6016b9110e871668e4a5fae6090b11"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PUSH_PULL</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Kts162215OutputDriveMode9PUSH_PULLE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>In this mode it needs no pull-up resistor. This is the default mode. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162215OutputDriveMode10OPEN_DRAINE">
+<span id="_CPPv3N4espp7Kts162215OutputDriveMode10OPEN_DRAINE"></span><span id="_CPPv2N4espp7Kts162215OutputDriveMode10OPEN_DRAINE"></span><span class="target" id="classespp_1_1Kts1622_1ae986496388dcc3d224cb93604192e49caf8eab64275fc0fab3d946c89bb143865"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OPEN_DRAIN</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Kts162215OutputDriveMode10OPEN_DRAINE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>In this mode it needs a pull-up reistor. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162219OutputDriveStrengthE">
+<span id="_CPPv3N4espp7Kts162219OutputDriveStrengthE"></span><span id="_CPPv2N4espp7Kts162219OutputDriveStrengthE"></span><span class="target" id="classespp_1_1Kts1622_1ad4351a428c9d0149c210dec772f27201"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OutputDriveStrength</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp7Kts162219OutputDriveStrengthE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The output drive mode configuration. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162219OutputDriveStrength6F_0_25E">
+<span id="_CPPv3N4espp7Kts162219OutputDriveStrength6F_0_25E"></span><span id="_CPPv2N4espp7Kts162219OutputDriveStrength6F_0_25E"></span><span class="target" id="classespp_1_1Kts1622_1ad4351a428c9d0149c210dec772f27201ab6f7b840739f0dbbdf85f5f1efaaa101"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">F_0_25</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Kts162219OutputDriveStrength6F_0_25E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>0.25x drive capability of the I/O pins </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162219OutputDriveStrength5F_0_5E">
+<span id="_CPPv3N4espp7Kts162219OutputDriveStrength5F_0_5E"></span><span id="_CPPv2N4espp7Kts162219OutputDriveStrength5F_0_5E"></span><span class="target" id="classespp_1_1Kts1622_1ad4351a428c9d0149c210dec772f27201acc11861294d0dc032d0282372adc077d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">F_0_5</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Kts162219OutputDriveStrength5F_0_5E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>0.5x drive capability of the I/O pins </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162219OutputDriveStrength6F_0_75E">
+<span id="_CPPv3N4espp7Kts162219OutputDriveStrength6F_0_75E"></span><span id="_CPPv2N4espp7Kts162219OutputDriveStrength6F_0_75E"></span><span class="target" id="classespp_1_1Kts1622_1ad4351a428c9d0149c210dec772f27201a84734e8e7913bd84a5591208ef7700ec"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">F_0_75</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Kts162219OutputDriveStrength6F_0_75E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>0.75x drive capability of the I/O pins </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162219OutputDriveStrength3F_1E">
+<span id="_CPPv3N4espp7Kts162219OutputDriveStrength3F_1E"></span><span id="_CPPv2N4espp7Kts162219OutputDriveStrength3F_1E"></span><span class="target" id="classespp_1_1Kts1622_1ad4351a428c9d0149c210dec772f27201abc6b0efd3bed4dfabe15757cf4089d87"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">F_1</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Kts162219OutputDriveStrength3F_1E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>1x drive capability of the I/O pins </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162212PullResistorE">
+<span id="_CPPv3N4espp7Kts162212PullResistorE"></span><span id="_CPPv2N4espp7Kts162212PullResistorE"></span><span class="target" id="classespp_1_1Kts1622_1af8cf45dcc59100c8e5751e52d3234637"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PullResistor</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp7Kts162212PullResistorE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The Pull Resistor configuration. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162212PullResistor7NO_PULLE">
+<span id="_CPPv3N4espp7Kts162212PullResistor7NO_PULLE"></span><span id="_CPPv2N4espp7Kts162212PullResistor7NO_PULLE"></span><span class="target" id="classespp_1_1Kts1622_1af8cf45dcc59100c8e5751e52d3234637a0e88ed9f0de72aa88a9865f9e979015b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NO_PULL</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Kts162212PullResistor7NO_PULLE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>No pull resistor enabled. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162212PullResistor7PULL_UPE">
+<span id="_CPPv3N4espp7Kts162212PullResistor7PULL_UPE"></span><span id="_CPPv2N4espp7Kts162212PullResistor7PULL_UPE"></span><span class="target" id="classespp_1_1Kts1622_1af8cf45dcc59100c8e5751e52d3234637a25cc44c940a293deb2871d44b743cf5f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PULL_UP</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Kts162212PullResistor7PULL_UPE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Pull-up resistor enabled. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162212PullResistor9PULL_DOWNE">
+<span id="_CPPv3N4espp7Kts162212PullResistor9PULL_DOWNE"></span><span id="_CPPv2N4espp7Kts162212PullResistor9PULL_DOWNE"></span><span class="target" id="classespp_1_1Kts1622_1af8cf45dcc59100c8e5751e52d3234637a2f1cbbc8e76207bba12a7df18a7efa4b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PULL_DOWN</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Kts162212PullResistor9PULL_DOWNE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Pull-down resistor enabled. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts16228probe_fnE">
+<span id="_CPPv3N4espp7Kts16228probe_fnE"></span><span id="_CPPv2N4espp7Kts16228probe_fnE"></span><span id="espp::Kts1622::probe_fn"></span><span class="target" id="classespp_1_1BasePeripheral_1ad12a713efc443157b7d6fd1ba4fdf88f"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">probe_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Kts16228probe_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to probe the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param address<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The address to probe </p>
+</dd>
+<dt class="field-even">Return<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the peripheral is found at the given address </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts16227Kts1622ERK6Config">
+<span id="_CPPv3N4espp7Kts16227Kts1622ERK6Config"></span><span id="_CPPv2N4espp7Kts16227Kts1622ERK6Config"></span><span id="espp::Kts1622::Kts1622__ConfigCR"></span><span class="target" id="classespp_1_1Kts1622_1abd543c819c27d795fb18b057b7cadf0e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Kts1622</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Kts16226ConfigE" title="espp::Kts1622::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts16227Kts1622ERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct the <a class="reference internal" href="#classespp_1_1Kts1622"><span class="std std-ref">Kts1622</span></a>. Will call <a class="reference internal" href="#classespp_1_1Kts1622_1a5c8afb648a32e3a83c948b5b5525449b"><span class="std std-ref">initialize()</span></a> if auto_init is true. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – <a class="reference internal" href="#structespp_1_1Kts1622_1_1Config"><span class="std std-ref">Config</span></a> structure for configuring the KTS1622 </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162210initializeERNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts162210initializeERNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts162210initializeERNSt10error_codeE"></span><span id="espp::Kts1622::initialize__std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1a5c8afb648a32e3a83c948b5b5525449b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162210initializeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the component class. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false if an error occurred. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts16228get_pinsE4PortRNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts16228get_pinsE4PortRNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts16228get_pinsE4PortRNSt10error_codeE"></span><span id="espp::Kts1622::get_pins__Port.std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1ab696eee37765985975204386403fea8d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_pins</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Kts16224PortE" title="espp::Kts1622::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts16228get_pinsE4PortRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read the pin values on the provided port. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>port</strong> – The Port for which to read the pins </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The pin values as an 8 bit mask. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts16228get_pinsERNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts16228get_pinsERNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts16228get_pinsERNSt10error_codeE"></span><span id="espp::Kts1622::get_pins__std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1a2363b76508b9fdf6ef39acabfa24ece6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_pins</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts16228get_pinsERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read the pin values on both Port 0 and Port 1. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The pin values as a 16 bit mask (P0_0 lsb, P1_7 msb). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts16226outputE4Port7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts16226outputE4Port7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts16226outputE4Port7uint8_tRNSt10error_codeE"></span><span id="espp::Kts1622::output__Port.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1a87ea75c2700de5d330c3c4ebe86308fb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">output</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Kts16224PortE" title="espp::Kts1622::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts16226outputE4Port7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Write the pin values on the provided port. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will overwrite any previous pin values on the port for all output pins on the port. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>port</strong> – The Port for which to write the pins </p></li>
+<li><p><strong>value</strong> – The pin values to apply. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false if an error occurred. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts16226outputE7uint8_t7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts16226outputE7uint8_t7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts16226outputE7uint8_t7uint8_tRNSt10error_codeE"></span><span id="espp::Kts1622::output__uint8_t.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1a7cae2ca394904249bc6d82dbb3ce3c6f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">output</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p0</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p1</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts16226outputE7uint8_t7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Write the pin values on both Port 0 and Port 1. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will overwrite any previous pin values on the port for all output pins on the ports. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p0</strong> – The pin values to apply to Port 0. </p></li>
+<li><p><strong>p1</strong> – The pin values to apply to Port 1. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false if an error occurred. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts16226outputE8uint16_tRNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts16226outputE8uint16_tRNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts16226outputE8uint16_tRNSt10error_codeE"></span><span id="espp::Kts1622::output__uint16_t.std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1aa6d0b8b22498ddf1a46b253bed38aa1e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">output</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts16226outputE8uint16_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Write the pin values on both Port 0 and Port 1. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will overwrite any previous pin values on the port for all output pins on the ports. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> – The pin values to apply as a 16 bit value (P0_0 lsb, P1_7 msb). </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false if an error occurred. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162210clear_pinsE4Port7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts162210clear_pinsE4Port7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts162210clear_pinsE4Port7uint8_tRNSt10error_codeE"></span><span id="espp::Kts1622::clear_pins__Port.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1a2ef01dfee7cd5597a55f1f606f7c5ba4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_pins</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Kts16224PortE" title="espp::Kts1622::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162210clear_pinsE4Port7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear the pin values on the provided port according to the provided mask. </p>
+<p>Reads the current pin values and clears any bits set in the mask. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>port</strong> – The Port for which to clear the pin outputs. </p></li>
+<li><p><strong>mask</strong> – The pin values as an 8 bit mask to clear. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false if an error occurred. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162210clear_pinsE7uint8_t7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts162210clear_pinsE7uint8_t7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts162210clear_pinsE7uint8_t7uint8_tRNSt10error_codeE"></span><span id="espp::Kts1622::clear_pins__uint8_t.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1a055790888e4a85a33c13426303234b69"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_pins</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p0</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p1</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162210clear_pinsE7uint8_t7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear the pin values for Port 0 and Port 1 according to the provided masks. </p>
+<p>Reads the current pin values and clears any bits set in the masks. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p0</strong> – The pin values as an 8 bit mask for Port 0 to clear. </p></li>
+<li><p><strong>p1</strong> – The pin values as an 8 bit mask for Port 1 to clear. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false if an error occurred. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162210clear_pinsE8uint16_tRNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts162210clear_pinsE8uint16_tRNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts162210clear_pinsE8uint16_tRNSt10error_codeE"></span><span id="espp::Kts1622::clear_pins__uint16_t.std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1a8eadc14f16ba51327572111da926aa97"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_pins</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162210clear_pinsE8uint16_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear the pin values for Port 0 and Port 1 according to the provided mask. </p>
+<p>Reads the current pin values and clears any bits set in the mask. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mask</strong> – The pin values as a 16 bit mask (P0_0 lsb, P1_7 msb) to clear. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false if an error occurred. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts16228set_pinsE4Port7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts16228set_pinsE4Port7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts16228set_pinsE4Port7uint8_tRNSt10error_codeE"></span><span id="espp::Kts1622::set_pins__Port.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1ad5ea54184f867da2fe481b618b075d9e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_pins</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Kts16224PortE" title="espp::Kts1622::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts16228set_pinsE4Port7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the pin values on the provided port according to the provided mask. </p>
+<p>Reads the current pin values and sets any bits set in the mask. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>port</strong> – The Port for which to set the pin outputs. </p></li>
+<li><p><strong>mask</strong> – The pin values as an 8 bit mask to set. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false if an error occurred. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts16228set_pinsE7uint8_t7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts16228set_pinsE7uint8_t7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts16228set_pinsE7uint8_t7uint8_tRNSt10error_codeE"></span><span id="espp::Kts1622::set_pins__uint8_t.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1a3a66a5f876a03ee56e1ea2b02b154cb4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_pins</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p0</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p1</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts16228set_pinsE7uint8_t7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the pin values for Port 0 and Port 1 according to the provided masks. </p>
+<p>Reads the current pin values and sets any bits set in the masks. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p0</strong> – The pin values for Port 0 as an 8 bit mask to set. </p></li>
+<li><p><strong>p1</strong> – The pin values for Port 1 as an 8 bit mask to set. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false if an error occurred. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts16228set_pinsE8uint16_tRNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts16228set_pinsE8uint16_tRNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts16228set_pinsE8uint16_tRNSt10error_codeE"></span><span id="espp::Kts1622::set_pins__uint16_t.std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1a1a6ac194e0861aa3acd8a6abcf84873f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_pins</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts16228set_pinsE8uint16_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the pin values for Port 0 and Port 1 according to the provided mask. </p>
+<p>Reads the current pin values and sets any bits set in the mask. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mask</strong> – The pin values as a 16 bit mask (P0_0 lsb, P1_7 msb) to set. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false if an error occurred. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162210get_outputE4PortRNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts162210get_outputE4PortRNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts162210get_outputE4PortRNSt10error_codeE"></span><span id="espp::Kts1622::get_output__Port.std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1adc4687cb5864cc1acc1edda373388436"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_output</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Kts16224PortE" title="espp::Kts1622::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162210get_outputE4PortRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read the output pin values on the provided port. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>port</strong> – The Port for which to read the pins </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The pin values as an 8 bit mask. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162210get_outputERNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts162210get_outputERNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts162210get_outputERNSt10error_codeE"></span><span id="espp::Kts1622::get_output__std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1a86a9739446fdf95db1a66d3d5e9014db"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_output</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162210get_outputERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read the output pin values on both Port 0 and Port 1. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The pin values as a 16 bit mask (P0_0 lsb, P1_7 msb). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162226set_port_output_drive_modeE4Port15OutputDriveModeRNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts162226set_port_output_drive_modeE4Port15OutputDriveModeRNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts162226set_port_output_drive_modeE4Port15OutputDriveModeRNSt10error_codeE"></span><span id="espp::Kts1622::set_port_output_drive_mode__Port.OutputDriveMode.std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1a0c447ea33bcea6c29109c9b2158cae47"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_port_output_drive_mode</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Kts16224PortE" title="espp::Kts1622::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span>, <a class="reference internal" href="#_CPPv4N4espp7Kts162215OutputDriveModeE" title="espp::Kts1622::OutputDriveMode"><span class="n"><span class="pre">OutputDriveMode</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">mode</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162226set_port_output_drive_modeE4Port15OutputDriveModeRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the output drive mode for the provided pins on the provided port. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>port</strong> – The port to set the output drive mode for. </p></li>
+<li><p><strong>mode</strong> – The output drive mode to set for the port. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false if an error occurred. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162216enable_interruptE4Port7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts162216enable_interruptE4Port7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts162216enable_interruptE4Port7uint8_tRNSt10error_codeE"></span><span id="espp::Kts1622::enable_interrupt__Port.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1aaf8363240a386a9fbea1ad0353c02576"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">enable_interrupt</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Kts16224PortE" title="espp::Kts1622::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162216enable_interruptE4Port7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configure the provided pins to interrupt. </p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#classespp_1_1Kts1622_1ad7bdbd8c81aeb6f7c2dccb11e56f15d2"><span class="std std-ref">configure_interrupt</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You should also call configure_interrupt to configure the interrupt type for the pins. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>port</strong> – The port associated with the provided pin mask. </p></li>
+<li><p><strong>mask</strong> – The pin mask to configure for interrupt (0=interrupt). </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false if an error occurred. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162216enable_interruptE7uint8_t7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts162216enable_interruptE7uint8_t7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts162216enable_interruptE7uint8_t7uint8_tRNSt10error_codeE"></span><span id="espp::Kts1622::enable_interrupt__uint8_t.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1a72428a11f5ff5f35c829db9caebfeedf"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">enable_interrupt</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p0</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p1</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162216enable_interruptE7uint8_t7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configure the provided pins to interrupt on change. </p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#classespp_1_1Kts1622_1ad7bdbd8c81aeb6f7c2dccb11e56f15d2"><span class="std std-ref">configure_interrupt</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You should also call configure_interrupt to configure the interrupt type for the pins. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p0</strong> – The pin mask for Port 0 to configure for interrupt (0=interrupt). </p></li>
+<li><p><strong>p1</strong> – The pin mask for Port 1 to configure for interrupt (0=interrupt). </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false if an error occurred. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162216enable_interruptE8uint16_tRNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts162216enable_interruptE8uint16_tRNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts162216enable_interruptE8uint16_tRNSt10error_codeE"></span><span id="espp::Kts1622::enable_interrupt__uint16_t.std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1ae73608f2aaf2434f7000b769075340a6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">enable_interrupt</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162216enable_interruptE8uint16_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configure the provided pins to interrupt on change. </p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#classespp_1_1Kts1622_1ad7bdbd8c81aeb6f7c2dccb11e56f15d2"><span class="std std-ref">configure_interrupt</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You should also call configure_interrupt to configure the interrupt type for the pins. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mask</strong> – The pin mask to configure for interrupt (0=interrupt). </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false if an error occurred. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162219configure_interruptE4Port7uint8_t13InterruptTypeRNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts162219configure_interruptE4Port7uint8_t13InterruptTypeRNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts162219configure_interruptE4Port7uint8_t13InterruptTypeRNSt10error_codeE"></span><span id="espp::Kts1622::configure_interrupt__Port.uint8_t.InterruptType.std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1ad7bdbd8c81aeb6f7c2dccb11e56f15d2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">configure_interrupt</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Kts16224PortE" title="espp::Kts1622::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span>, <span class="n"><span class="pre">InterruptType</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162219configure_interruptE4Port7uint8_t13InterruptTypeRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configure the provided pins to interrupt on the provided type. </p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#classespp_1_1Kts1622_1aaf8363240a386a9fbea1ad0353c02576"><span class="std std-ref">enable_interrupt</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You should also call enable_interrupt to enable the interrupt for the pins. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will overwrite any previous interrupt configuration on the port for all pins on the port. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>port</strong> – The port associated with the provided pin mask. </p></li>
+<li><p><strong>mask</strong> – The pin mask to configure for interrupt. </p></li>
+<li><p><strong>type</strong> – The type of interrupt to configure. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false if an error occurred. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162219configure_interruptE7uint8_t7uint8_t13InterruptTypeRNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts162219configure_interruptE7uint8_t7uint8_t13InterruptTypeRNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts162219configure_interruptE7uint8_t7uint8_t13InterruptTypeRNSt10error_codeE"></span><span id="espp::Kts1622::configure_interrupt__uint8_t.uint8_t.InterruptType.std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1a8a02481999b0607d94c8beea7f1c3007"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">configure_interrupt</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p0</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p1</span></span>, <span class="n"><span class="pre">InterruptType</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162219configure_interruptE7uint8_t7uint8_t13InterruptTypeRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configure the provided pins to interrupt on the provided type. </p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#classespp_1_1Kts1622_1aaf8363240a386a9fbea1ad0353c02576"><span class="std std-ref">enable_interrupt</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You should also call enable_interrupt to enable the interrupt for the pins. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will overwrite any previous interrupt configuration on the port for all pins on the port. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p0</strong> – The pin mask for Port 0 to configure for interrupt. </p></li>
+<li><p><strong>p1</strong> – The pin mask for Port 1 to configure for interrupt. </p></li>
+<li><p><strong>type</strong> – The type of interrupt to configure. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false if an error occurred. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162215clear_interruptE4Port7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts162215clear_interruptE4Port7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts162215clear_interruptE4Port7uint8_tRNSt10error_codeE"></span><span id="espp::Kts1622::clear_interrupt__Port.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1afef4647fe834a8445b8c488c6c33b207"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_interrupt</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Kts16224PortE" title="espp::Kts1622::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162215clear_interruptE4Port7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear the interrupt for the provided pins. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>port</strong> – The port associated with the provided pin mask. </p></li>
+<li><p><strong>mask</strong> – The pin mask to clear the interrupt for. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false if an error occurred. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162215clear_interruptE7uint8_t7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts162215clear_interruptE7uint8_t7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts162215clear_interruptE7uint8_t7uint8_tRNSt10error_codeE"></span><span id="espp::Kts1622::clear_interrupt__uint8_t.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1a48bad1b4ca29a4313b7bf7a1ecc7b366"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_interrupt</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p0</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p1</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162215clear_interruptE7uint8_t7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear the interrupt for the provided pins. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p0</strong> – The pin mask for Port 0 to clear the interrupt for. </p></li>
+<li><p><strong>p1</strong> – The pin mask for Port 1 to clear the interrupt for. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false if an error occurred. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162215clear_interruptE8uint16_tRNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts162215clear_interruptE8uint16_tRNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts162215clear_interruptE8uint16_tRNSt10error_codeE"></span><span id="espp::Kts1622::clear_interrupt__uint16_t.std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1ab5fc6962c8b963f17e551c796b33d2d2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_interrupt</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162215clear_interruptE8uint16_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear the interrupt for the provided pins. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mask</strong> – The pin mask to clear the interrupt for. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false if an error occurred. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162216clear_interruptsERNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts162216clear_interruptsERNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts162216clear_interruptsERNSt10error_codeE"></span><span id="espp::Kts1622::clear_interrupts__std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1a77b8f6867bfc4c5f10f7c01b3ff737a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_interrupts</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162216clear_interruptsERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear all interrupts. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false if an error occurred. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162213set_directionE4Port7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts162213set_directionE4Port7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts162213set_directionE4Port7uint8_tRNSt10error_codeE"></span><span id="espp::Kts1622::set_direction__Port.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1a32d241df7be2f7f46563ab110a0626a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_direction</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Kts16224PortE" title="espp::Kts1622::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162213set_directionE4Port7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the i/o direction for the pins according to mask. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>port</strong> – The port associated with the provided pin mask. </p></li>
+<li><p><strong>mask</strong> – The mask indicating direction (1 = input, 0 = output) </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false if an error occurred. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162213set_directionE7uint8_t7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts162213set_directionE7uint8_t7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts162213set_directionE7uint8_t7uint8_tRNSt10error_codeE"></span><span id="espp::Kts1622::set_direction__uint8_t.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1a19a3f1f45feab2db9e90eccb9eda8436"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_direction</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p0</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p1</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162213set_directionE7uint8_t7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the i/o direction for the pins on Port 0 and Port 1. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p0</strong> – The mask for Port 0 indicating direction (1 = input, 0 = output) </p></li>
+<li><p><strong>p1</strong> – The mask for Port 1 indicating direction (1 = input, 0 = output) </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false if an error occurred. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162213set_directionE8uint16_tRNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts162213set_directionE8uint16_tRNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts162213set_directionE8uint16_tRNSt10error_codeE"></span><span id="espp::Kts1622::set_direction__uint16_t.std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1a963889105a5f20fd07234c3bd0957e6e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_direction</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162213set_directionE8uint16_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the i/o direction for the pins according to mask. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mask</strong> – The mask indicating direction (1 = input, 0 = output) </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false if an error occurred. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162213set_directionE8uint16_tbRNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts162213set_directionE8uint16_tbRNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts162213set_directionE8uint16_tbRNSt10error_codeE"></span><span id="espp::Kts1622::set_direction__uint16_t.b.std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1a0e66de84072129fc00aba0329b2575ee"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_direction</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">direction</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162213set_directionE8uint16_tbRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the i/o direction for the pins according to mask. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mask</strong> – The mask indicating pin position </p></li>
+<li><p><strong>direction</strong> – The direction indicating direction (1 = input, 0 = output) </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false if an error occurred. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162222set_polarity_inversionE4Port7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts162222set_polarity_inversionE4Port7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts162222set_polarity_inversionE4Port7uint8_tRNSt10error_codeE"></span><span id="espp::Kts1622::set_polarity_inversion__Port.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1af1a5566dda6f1d1184e023ded05d6e71"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_polarity_inversion</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Kts16224PortE" title="espp::Kts1622::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162222set_polarity_inversionE4Port7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set polarity inversion for the pins according to mask. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will overwrite any previous polarity inversion on the port for all pins on the port. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will only affect pins configured as inputs. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>port</strong> – The port associated with the provided pin mask. </p></li>
+<li><p><strong>mask</strong> – The mask indicating polarity inversion (1 = inverted, 0 = normal) </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false if an error occurred. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162222set_polarity_inversionE7uint8_t7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts162222set_polarity_inversionE7uint8_t7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts162222set_polarity_inversionE7uint8_t7uint8_tRNSt10error_codeE"></span><span id="espp::Kts1622::set_polarity_inversion__uint8_t.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1ab2e293b1ca111f441b361047db50c289"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_polarity_inversion</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p0</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p1</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162222set_polarity_inversionE7uint8_t7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set polarity inversion for the pins on Port 0 and Port 1. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will overwrite any previous polarity inversion on the port for all pins on the port. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will only affect pins configured as inputs. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p0</strong> – The mask for Port 0 indicating polarity inversion (1 = inverted, 0 = normal) </p></li>
+<li><p><strong>p1</strong> – The mask for Port 1 indicating polarity inversion (1 = inverted, 0 = normal) </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false if an error occurred. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162222set_polarity_inversionE8uint16_tRNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts162222set_polarity_inversionE8uint16_tRNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts162222set_polarity_inversionE8uint16_tRNSt10error_codeE"></span><span id="espp::Kts1622::set_polarity_inversion__uint16_t.std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1a59c34c1dfe7e6ba88ee2ab5ad79d76a3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_polarity_inversion</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162222set_polarity_inversionE8uint16_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set polarity inversion for the pins according to mask. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will overwrite any previous polarity inversion on the port for all pins on the port. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will only affect pins configured as inputs. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mask</strong> – The mask indicating polarity inversion (1 = inverted, 0 = normal) </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false if an error occurred. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162215set_input_latchE4Port7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts162215set_input_latchE4Port7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts162215set_input_latchE4Port7uint8_tRNSt10error_codeE"></span><span id="espp::Kts1622::set_input_latch__Port.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1a84bb9af6d177ac58763b431d1ff2ca0b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_input_latch</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Kts16224PortE" title="espp::Kts1622::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">latch</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162215set_input_latchE4Port7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the input latch for the input pins according to latch. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>port</strong> – The port associated with the provided pin mask. </p></li>
+<li><p><strong>latch</strong> – The value to set the latch register to. A value of 0 for a bit indicates that the corresponding input is not latched, meaning that a pin configured as an interrupt input will clear the interrupt if it returns to its original state before the interrupt is read. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false if an error occurred. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162215set_input_latchE7uint8_t7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts162215set_input_latchE7uint8_t7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts162215set_input_latchE7uint8_t7uint8_tRNSt10error_codeE"></span><span id="espp::Kts1622::set_input_latch__uint8_t.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1a9a1fa35c029ac2e36900c7f2f5ac7424"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_input_latch</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p0</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p1</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162215set_input_latchE7uint8_t7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the input latch for the input pins on Port 0 and Port 1. </p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#classespp_1_1Kts1622_1a84bb9af6d177ac58763b431d1ff2ca0b"><span class="std std-ref">set_input_latch(Port, uint8_t, std::error_code&amp;)</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#classespp_1_1Kts1622_1aaf8363240a386a9fbea1ad0353c02576"><span class="std std-ref">enable_interrupt(Port, uint8_t, std::error_code&amp;)</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will overwrite any previous latch values on the port for all input pins on the port. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p0</strong> – The value to set the latch register to for Port 0. A value of 0 for a bit indicates that the corresponding input is not latched, meaning that a pin configured as an interrupt input will clear the interrupt if it returns to its original state before the interrupt is read. </p></li>
+<li><p><strong>p1</strong> – The value to set the latch register to for Port 1. A value of 0 for a bit indicates that the corresponding input is not latched, meaning that a pin configured as an interrupt input will clear the interrupt if it returns to its original state before the interrupt is read. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false if an error occurred. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162215set_input_latchE8uint16_tRNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts162215set_input_latchE8uint16_tRNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts162215set_input_latchE8uint16_tRNSt10error_codeE"></span><span id="espp::Kts1622::set_input_latch__uint16_t.std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1a38e40ec7fdd1b3fafce0cd65901cd8c1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_input_latch</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162215set_input_latchE8uint16_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the input latch for the input pins according to latch. </p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#classespp_1_1Kts1622_1a84bb9af6d177ac58763b431d1ff2ca0b"><span class="std std-ref">set_input_latch(Port, uint8_t, std::error_code&amp;)</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#classespp_1_1Kts1622_1aaf8363240a386a9fbea1ad0353c02576"><span class="std std-ref">enable_interrupt(Port, uint8_t, std::error_code&amp;)</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will overwrite any previous latch values on the port for all input pins on the port. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mask</strong> – The value to set the latch register to. A value of 0 for a bit indicates that the corresponding input is not latched, meaning that a pin configured as an interrupt input will clear the interrupt if it returns to its original state before the interrupt is read. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false if an error occurred. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162225set_pull_resistor_for_pinE4Port7uint8_t12PullResistorRNSt10error_codeE">
+<span id="_CPPv3N4espp7Kts162225set_pull_resistor_for_pinE4Port7uint8_t12PullResistorRNSt10error_codeE"></span><span id="_CPPv2N4espp7Kts162225set_pull_resistor_for_pinE4Port7uint8_t12PullResistorRNSt10error_codeE"></span><span id="espp::Kts1622::set_pull_resistor_for_pin__Port.uint8_t.PullResistor.std::error_codeR"></span><span class="target" id="classespp_1_1Kts1622_1a0b3da573a391669025164095add1d808"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_pull_resistor_for_pin</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Kts16224PortE" title="espp::Kts1622::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">pin_mask</span></span>, <a class="reference internal" href="#_CPPv4N4espp7Kts162212PullResistorE" title="espp::Kts1622::PullResistor"><span class="n"><span class="pre">PullResistor</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">pull</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162225set_pull_resistor_for_pinE4Port7uint8_t12PullResistorRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the pull resistor for the provided pins. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>port</strong> – The port associated with the provided pin mask. </p></li>
+<li><p><strong>pin_mask</strong> – The pin mask to configure for pull resistor. </p></li>
+<li><p><strong>pull</strong> – The pull resistor to configure. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if successful, false if an error occurred. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7Kts16225probeERNSt10error_codeE">
+<span id="_CPPv3NK4espp7Kts16225probeERNSt10error_codeE"></span><span id="_CPPv2NK4espp7Kts16225probeERNSt10error_codeE"></span><span id="espp::Kts1622::probe__std::error_codeRC"></span><span class="target" id="classespp_1_1BasePeripheral_1a05481a009a7302fff3b43d301de6b1eb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">probe</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7Kts16225probeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Probe the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the probe function is not set, this function will return false and set the error code to operation_not_supported </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is only available if UseAddress is true </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code to set if there is an error </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the peripheral is found </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162211set_addressE7uint8_t">
+<span id="_CPPv3N4espp7Kts162211set_addressE7uint8_t"></span><span id="_CPPv2N4espp7Kts162211set_addressE7uint8_t"></span><span id="espp::Kts1622::set_address__uint8_t"></span><span class="target" id="classespp_1_1BasePeripheral_1a31fb8ec471403bf9be06428dbc46277a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_address</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">address</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162211set_addressE7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the address of the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is only available if UseAddress is true </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>address</strong> – The address of the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts16229set_probeERK8probe_fn">
+<span id="_CPPv3N4espp7Kts16229set_probeERK8probe_fn"></span><span id="_CPPv2N4espp7Kts16229set_probeERK8probe_fn"></span><span id="espp::Kts1622::set_probe__probe_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a5b5d7753ea6ccf361e495fdc80c81f19"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_probe</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Kts16228probe_fnE" title="espp::Kts1622::probe_fn"><span class="n"><span class="pre">probe_fn</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">probe</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts16229set_probeERK8probe_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the probe function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the probe function is usually set in the constructor. If you need to change the probe function, consider using the set_config function instead. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is only available if UseAddress is true </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>probe</strong> – The probe function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts16229set_writeERK8write_fn">
+<span id="_CPPv3N4espp7Kts16229set_writeERK8write_fn"></span><span id="_CPPv2N4espp7Kts16229set_writeERK8write_fn"></span><span id="espp::Kts1622::set_write__write_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1ab5d5d18cd4e8893ed4f937dcfdaba5ba"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_write</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">write_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">write</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts16229set_writeERK8write_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the write function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the write function is usually set in the constructor. If you need to change the write function, consider using the set_config function instead. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>write</strong> – The write function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts16228set_readERK7read_fn">
+<span id="_CPPv3N4espp7Kts16228set_readERK7read_fn"></span><span id="_CPPv2N4espp7Kts16228set_readERK7read_fn"></span><span id="espp::Kts1622::set_read__read_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1aa6d8131a30233e8439628815db8b1843"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_read</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">read_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">read</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts16228set_readERK7read_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the read function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the read function is usually set in the constructor. If you need to change the read function, consider using the set_config function instead. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>read</strong> – The read function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162217set_read_registerERK16read_register_fn">
+<span id="_CPPv3N4espp7Kts162217set_read_registerERK16read_register_fn"></span><span id="_CPPv2N4espp7Kts162217set_read_registerERK16read_register_fn"></span><span id="espp::Kts1622::set_read_register__read_register_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a72e039592417cd32bc47c77120005d3f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_read_register</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">read_register_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">read_register</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162217set_read_registerERK16read_register_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the read register function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the read register function is usually set in the constructor. If you need to change the read register function, consider using the set_config function instead. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>read_register</strong> – The read register function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162219set_write_then_readERK18write_then_read_fn">
+<span id="_CPPv3N4espp7Kts162219set_write_then_readERK18write_then_read_fn"></span><span id="_CPPv2N4espp7Kts162219set_write_then_readERK18write_then_read_fn"></span><span id="espp::Kts1622::set_write_then_read__write_then_read_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a07b152dbfba43b5c82a498416f6887b2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_write_then_read</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">write_then_read_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">write_then_read</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162219set_write_then_readERK18write_then_read_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the write then read function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the write then read function is usually set in the constructor. If you need to change the write then </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>write_then_read</strong> – The write then read function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162234set_separate_write_then_read_delayERKNSt6chrono12millisecondsE">
+<span id="_CPPv3N4espp7Kts162234set_separate_write_then_read_delayERKNSt6chrono12millisecondsE"></span><span id="_CPPv2N4espp7Kts162234set_separate_write_then_read_delayERKNSt6chrono12millisecondsE"></span><span id="espp::Kts1622::set_separate_write_then_read_delay__std::chrono::millisecondsCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a8c70b96c37525f90cc85ddfe4a40b82a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_separate_write_then_read_delay</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">milliseconds</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">delay</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162234set_separate_write_then_read_delayERKNSt6chrono12millisecondsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the delay between the write and read operations in write_then_read </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the delay is usually set in the constructor. If you need to change the delay, consider using the set_config function instead. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This delay is only used if the write_then_read function is not set to a custom function and the write and read functions are separate functions. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>delay</strong> – The delay between the write and read operations in write_then_read </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162210set_configERK6Config">
+<span id="_CPPv3N4espp7Kts162210set_configERK6Config"></span><span id="_CPPv2N4espp7Kts162210set_configERK6Config"></span><span id="espp::Kts1622::set_config__ConfigCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a163b98a30940711b23a7e7dce81efe0c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_config</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Kts16226ConfigE" title="espp::Kts1622::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162210set_configERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the configuration for the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The configuration should normally be set in the constructor, but this function can be used to change the configuration after the peripheral has been created - for instance if the peripheral could be found on different communications buses. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – The configuration for the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162210set_configERR6Config">
+<span id="_CPPv3N4espp7Kts162210set_configERR6Config"></span><span id="_CPPv2N4espp7Kts162210set_configERR6Config"></span><span id="espp::Kts1622::set_config__ConfigRR"></span><span class="target" id="classespp_1_1BasePeripheral_1a704004cfda66bf3ce5ed725b3003c32b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_config</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Kts16226ConfigE" title="espp::Kts1622::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162210set_configERR6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the configuration for the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The configuration should normally be set in the constructor, but this function can be used to change the configuration after the peripheral has been created - for instance if the peripheral could be found on different communications buses. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – The configuration for the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7Kts16226configEv">
+<span id="_CPPv3NK4espp7Kts16226configEv"></span><span id="_CPPv2NK4espp7Kts16226configEv"></span><span id="espp::Kts1622::configC"></span><span class="target" id="classespp_1_1BasePeripheral_1ae66896cf25c9dde79522f354cdb23896"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Kts16226ConfigE" title="espp::Kts1622::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">config</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7Kts16226configEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the configuration for the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The configuration for the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7Kts16227addressEv">
+<span id="_CPPv3NK4espp7Kts16227addressEv"></span><span id="_CPPv2NK4espp7Kts16227addressEv"></span><span id="espp::Kts1622::addressC"></span><span class="target" id="classespp_1_1BasePeripheral_1add730fb3307dd52ed5f8905a576e7ecc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">address</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7Kts16227addressEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the address of the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The address of the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7Kts16228get_nameEv">
+<span id="_CPPv3NK4espp7Kts16228get_nameEv"></span><span id="_CPPv2NK4espp7Kts16228get_nameEv"></span><span id="espp::Kts1622::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7Kts16228get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162211set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp7Kts162211set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp7Kts162211set_log_tagERKNSt11string_viewE"></span><span id="espp::Kts1622::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162211set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7Kts162213get_log_levelEv">
+<span id="_CPPv3NK4espp7Kts162213get_log_levelEv"></span><span id="_CPPv2NK4espp7Kts162213get_log_levelEv"></span><span id="espp::Kts1622::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7Kts162213get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162213set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp7Kts162213set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp7Kts162213set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::Kts1622::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162213set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162217set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp7Kts162217set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp7Kts162217set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::Kts1622::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162217set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../ws_s3_touch.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7Kts162217get_log_verbosityEv">
+<span id="_CPPv3NK4espp7Kts162217get_log_verbosityEv"></span><span id="_CPPv2NK4espp7Kts162217get_log_verbosityEv"></span><span id="espp::Kts1622::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7Kts162217get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../ws_s3_touch.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162218set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp7Kts162218set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp7Kts162218set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::Kts1622::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Kts162218set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts162215DEFAULT_ADDRESSE">
+<span id="_CPPv3N4espp7Kts162215DEFAULT_ADDRESSE"></span><span id="_CPPv2N4espp7Kts162215DEFAULT_ADDRESSE"></span><span id="espp::Kts1622::DEFAULT_ADDRESS__uint8_t"></span><span class="target" id="classespp_1_1Kts1622_1a1d7b790da122d7198409dfb7b493b4df"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DEFAULT_ADDRESS</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x20</span></span><a class="headerlink" href="#_CPPv4N4espp7Kts162215DEFAULT_ADDRESSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Lower 2 bits are configurable via the ADDR pin (GND, VCC, SCL, SDA -&gt; 00, 01, 02, 03) </p>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts16226ConfigE">
+<span id="_CPPv3N4espp7Kts16226ConfigE"></span><span id="_CPPv2N4espp7Kts16226ConfigE"></span><span id="espp::Kts1622::Config"></span><span class="target" id="structespp_1_1Kts1622_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Kts16226ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration information for the <a class="reference internal" href="#classespp_1_1Kts1622"><span class="std std-ref">Kts1622</span></a>. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts16226Config14device_addressE">
+<span id="_CPPv3N4espp7Kts16226Config14device_addressE"></span><span id="_CPPv2N4espp7Kts16226Config14device_addressE"></span><span id="espp::Kts1622::Config::device_address__uint8_t"></span><span class="target" id="structespp_1_1Kts1622_1_1Config_1aa019012634b7d447152931a550fd6ec2"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">device_address</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Kts162215DEFAULT_ADDRESSE" title="espp::Kts1622::DEFAULT_ADDRESS"><span class="n"><span class="pre">DEFAULT_ADDRESS</span></span></a><a class="headerlink" href="#_CPPv4N4espp7Kts16226Config14device_addressE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>I2C address to use to talk to this KTS1622B. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts16226Config21port_0_direction_maskE">
+<span id="_CPPv3N4espp7Kts16226Config21port_0_direction_maskE"></span><span id="_CPPv2N4espp7Kts16226Config21port_0_direction_maskE"></span><span id="espp::Kts1622::Config::port_0_direction_mask__uint8_t"></span><span class="target" id="structespp_1_1Kts1622_1_1Config_1ab157959370ccee0783386434281ef3cf"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">port_0_direction_mask</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFF</span></span><a class="headerlink" href="#_CPPv4N4espp7Kts16226Config21port_0_direction_maskE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Direction mask (1 = input) for port 0. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts16226Config21port_0_interrupt_maskE">
+<span id="_CPPv3N4espp7Kts16226Config21port_0_interrupt_maskE"></span><span id="_CPPv2N4espp7Kts16226Config21port_0_interrupt_maskE"></span><span id="espp::Kts1622::Config::port_0_interrupt_mask__uint8_t"></span><span class="target" id="structespp_1_1Kts1622_1_1Config_1a5afc0a4bdb435d81aaecd843718d4572"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">port_0_interrupt_mask</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFF</span></span><a class="headerlink" href="#_CPPv4N4espp7Kts16226Config21port_0_interrupt_maskE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="../interrupt.html#classespp_1_1Interrupt"><span class="std std-ref">Interrupt</span></a> mask (1 = disable interrupt) for port 0. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts16226Config21port_1_direction_maskE">
+<span id="_CPPv3N4espp7Kts16226Config21port_1_direction_maskE"></span><span id="_CPPv2N4espp7Kts16226Config21port_1_direction_maskE"></span><span id="espp::Kts1622::Config::port_1_direction_mask__uint8_t"></span><span class="target" id="structespp_1_1Kts1622_1_1Config_1ac896359fdf4c3fb168dc25c37d2b6b4e"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">port_1_direction_mask</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFF</span></span><a class="headerlink" href="#_CPPv4N4espp7Kts16226Config21port_1_direction_maskE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Direction mask (1 = input) for port 1. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts16226Config21port_1_interrupt_maskE">
+<span id="_CPPv3N4espp7Kts16226Config21port_1_interrupt_maskE"></span><span id="_CPPv2N4espp7Kts16226Config21port_1_interrupt_maskE"></span><span id="espp::Kts1622::Config::port_1_interrupt_mask__uint8_t"></span><span class="target" id="structespp_1_1Kts1622_1_1Config_1a0c1e19a7c6a03e297a9c41a222fea9b1"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">port_1_interrupt_mask</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFF</span></span><a class="headerlink" href="#_CPPv4N4espp7Kts16226Config21port_1_interrupt_maskE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="../interrupt.html#classespp_1_1Interrupt"><span class="std std-ref">Interrupt</span></a> mask (1 = disable interrupt) for port 1. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts16226Config21port_0_initial_outputE">
+<span id="_CPPv3N4espp7Kts16226Config21port_0_initial_outputE"></span><span id="_CPPv2N4espp7Kts16226Config21port_0_initial_outputE"></span><span id="espp::Kts1622::Config::port_0_initial_output__std::optional:uint8_t:"></span><span class="target" id="structespp_1_1Kts1622_1_1Config_1a815838fb17f24a90b58dd72f0155a1f3"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">port_0_initial_output</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">nullopt</span></span><a class="headerlink" href="#_CPPv4N4espp7Kts16226Config21port_0_initial_outputE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initial output value for port 0 (only for pins set as outputs). If not set, outputs will be low. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts16226Config21port_1_initial_outputE">
+<span id="_CPPv3N4espp7Kts16226Config21port_1_initial_outputE"></span><span id="_CPPv2N4espp7Kts16226Config21port_1_initial_outputE"></span><span id="espp::Kts1622::Config::port_1_initial_output__std::optional:uint8_t:"></span><span class="target" id="structespp_1_1Kts1622_1_1Config_1a674df6bb56b7feb690ebf9c496c3688e"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">port_1_initial_output</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">nullopt</span></span><a class="headerlink" href="#_CPPv4N4espp7Kts16226Config21port_1_initial_outputE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initial output value for port 1 (only for pins set as outputs). If not set, outputs will be low. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts16226Config17output_drive_modeE">
+<span id="_CPPv3N4espp7Kts16226Config17output_drive_modeE"></span><span id="_CPPv2N4espp7Kts16226Config17output_drive_modeE"></span><span id="espp::Kts1622::Config::output_drive_mode__OutputDriveMode"></span><span class="target" id="structespp_1_1Kts1622_1_1Config_1aeb1de37a24fd1334489f823932233357"></span><a class="reference internal" href="#_CPPv4N4espp7Kts162215OutputDriveModeE" title="espp::Kts1622::OutputDriveMode"><span class="n"><span class="pre">OutputDriveMode</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">output_drive_mode</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Kts162215OutputDriveModeE" title="espp::Kts1622::OutputDriveMode"><span class="n"><span class="pre">OutputDriveMode</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp7Kts162215OutputDriveMode9PUSH_PULLE" title="espp::Kts1622::OutputDriveMode::PUSH_PULL"><span class="n"><span class="pre">PUSH_PULL</span></span></a><a class="headerlink" href="#_CPPv4N4espp7Kts16226Config17output_drive_modeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Output drive mode for the ports. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts16226Config5writeE">
+<span id="_CPPv3N4espp7Kts16226Config5writeE"></span><span id="_CPPv2N4espp7Kts16226Config5writeE"></span><span id="espp::Kts1622::Config::write__BasePeripheral::write_fn"></span><span class="target" id="structespp_1_1Kts1622_1_1Config_1abc7d54912469ed383ef80168827b731f"></span><a class="reference internal" href="../base_peripheral.html#_CPPv4I_NSt8integralE_b_b_bEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">write_fn</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Kts16226Config5writeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to write to the device. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts16226Config15write_then_readE">
+<span id="_CPPv3N4espp7Kts16226Config15write_then_readE"></span><span id="_CPPv2N4espp7Kts16226Config15write_then_readE"></span><span id="espp::Kts1622::Config::write_then_read__BasePeripheral::write_then_read_fn"></span><span class="target" id="structespp_1_1Kts1622_1_1Config_1a7931826f441ccbd3d126843837eb7302"></span><a class="reference internal" href="../base_peripheral.html#_CPPv4I_NSt8integralE_b_b_bEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">write_then_read_fn</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_then_read</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Kts16226Config15write_then_readE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to write then read from the device. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts16226Config9auto_initE">
+<span id="_CPPv3N4espp7Kts16226Config9auto_initE"></span><span id="_CPPv2N4espp7Kts16226Config9auto_initE"></span><span id="espp::Kts1622::Config::auto_init__b"></span><span class="target" id="structespp_1_1Kts1622_1_1Config_1a1628737efcf413c8c60f4e8de680ec6f"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">auto_init</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><a class="headerlink" href="#_CPPv4N4espp7Kts16226Config9auto_initE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Automatically initialize the device. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Kts16226Config9log_levelE">
+<span id="_CPPv3N4espp7Kts16226Config9log_levelE"></span><span id="_CPPv2N4espp7Kts16226Config9log_levelE"></span><span id="espp::Kts1622::Config::log_level__Logger::Verbosity"></span><span class="target" id="structespp_1_1Kts1622_1_1Config_1a9b32b9e51173d2dcf68a91287f3b3450"></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Kts16226Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Log verbosity for the component. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="pi4ioe5v_example.html" class="btn btn-neutral float-left" title="PI4IOE5V Example" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="kts1622_example.html" class="btn btn-neutral float-right" title="KTS1622 Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

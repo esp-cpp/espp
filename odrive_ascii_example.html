@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ODrive ASCII Example - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="_static/copybutton.js?v=ff8fa330"></script>
+    <script src="_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'odrive_ascii_example';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="PID APIs" href="pid.html" />
+    <link rel="prev" title="ODrive ASCII Protocol Component" href="odrive_ascii.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            ESPP
+              <img src="_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_component.html">Base Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l1"><a class="reference internal" href="battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="byte90.html">ALXV Labs Byte90</a></li>
+<li class="toctree-l1"><a class="reference internal" href="controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cobs.html">COBS (Consistent Overhead Byte Stuffing)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="esp32_timer_cam.html">ESP32 TimerCam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="esp_box.html">ESP BOX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hid/index.html">HID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="interrupt.html">Interrupt APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="iperf_menu.html">Iperf Menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="m5stack_tab5.html">M5Stack Tab5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="matouch_rotary_display.html">MaTouch Rotary Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="motorgo_mini.html">MotorGo Mini</a></li>
+<li class="toctree-l1"><a class="reference internal" href="neopixel.html">Neopixel APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nvs.html">NVS APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="odrive_ascii.html">ODrive ASCII Protocol Component</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="odrive_ascii.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="odrive_ascii.html#features">Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="odrive_ascii.html#basic-usage">Basic Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="odrive_ascii.html#commands">Commands</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="odrive_ascii.html#notes">Notes</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">ODrive ASCII Example</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#requirements">Requirements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#build">Build</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#flash-and-monitor">Flash and Monitor</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#example-output">Example Output</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#interactive-usage">Interactive Usage</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#notes">Notes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="odrive_ascii.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="remote_debug.html">Remote Debug APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="runqueue.html">RunQueue APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="seeed_studio_round_display.html">Seeed Studio Round Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="t_deck.html">LilyGo T-Deck</a></li>
+<li class="toctree-l1"><a class="reference internal" href="t_dongle_s3.html">LilyGo T-Dongle S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wrover_kit.html">ESP32-WROVER-KIT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+      <li class="breadcrumb-item active">ODrive ASCII Example</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/32e8215e/docs/en/odrive_ascii_example.md" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="odrive-ascii-example">
+<h1>ODrive ASCII Example<a class="headerlink" href="#odrive-ascii-example" title="Permalink to this heading"></a></h1>
+<p>This example demonstrates how to use the <code class="docutils literal notranslate"><span class="pre">espp::OdriveAscii</span></code> component to process ODrive-compatible ASCII commands. It first runs a scripted test, then enters an interactive console mode so you can send commands from a serial terminal or Python.</p>
+<!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
+<p><strong>Table of Contents</strong></p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#odrive-ascii-example"><span class="xref myst">ODrive ASCII Example</span></a></p>
+<ul>
+<li><p><a class="reference internal" href="#requirements"><span class="xref myst">Requirements</span></a></p></li>
+<li><p><a class="reference internal" href="#build"><span class="xref myst">Build</span></a></p></li>
+<li><p><a class="reference internal" href="#flash-and-monitor"><span class="xref myst">Flash and Monitor</span></a></p></li>
+<li><p><a class="reference internal" href="#example-output"><span class="xref myst">Example Output</span></a></p></li>
+<li><p><a class="reference internal" href="#interactive-usage"><span class="xref myst">Interactive Usage</span></a></p></li>
+<li><p><a class="reference internal" href="#notes"><span class="xref myst">Notes</span></a></p></li>
+</ul>
+</li>
+</ul>
+<!-- markdown-toc end -->
+<section id="requirements">
+<h2>Requirements<a class="headerlink" href="#requirements" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p>ESP-IDF installed and <code class="docutils literal notranslate"><span class="pre">get_idf</span></code> available in your shell</p></li>
+<li><p>A serial connection to the ESP target (USB Serial/JTAG or UART0)</p></li>
+</ul>
+</section>
+<section id="build">
+<h2>Build<a class="headerlink" href="#build" title="Permalink to this heading"></a></h2>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># From repo root</span>
+<span class="nb">cd</span><span class="w"> </span>components/odrive_ascii/example
+get_idf
+idf.py<span class="w"> </span>build
+</pre></div>
+</div>
+</section>
+<section id="flash-and-monitor">
+<h2>Flash and Monitor<a class="headerlink" href="#flash-and-monitor" title="Permalink to this heading"></a></h2>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>idf.py<span class="w"> </span>flash<span class="w"> </span>monitor
+</pre></div>
+</div>
+<p>The example will:</p>
+<ul class="simple">
+<li><p>Run a scripted test sequence</p></li>
+<li><p>Enter interactive mode reading from stdin and writing responses to stdout</p></li>
+</ul>
+</section>
+<section id="example-output">
+<h2>Example Output<a class="headerlink" href="#example-output" title="Permalink to this heading"></a></h2>
+<img width="719" height="204" alt="CleanShot 2025-09-15 at 09 37 01" src="https://github.com/user-attachments/assets/92bfaa85-7ac7-433e-8584-48c6f520d107" />
+</section>
+<section id="interactive-usage">
+<h2>Interactive Usage<a class="headerlink" href="#interactive-usage" title="Permalink to this heading"></a></h2>
+<p>Open a serial terminal or use Python to send commands:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">serial</span>
+<span class="n">ser</span> <span class="o">=</span> <span class="n">serial</span><span class="o">.</span><span class="n">Serial</span><span class="p">(</span><span class="s1">&#39;/dev/ttyUSB0&#39;</span><span class="p">,</span> <span class="mi">115200</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+
+<span class="c1"># Reads</span>
+<span class="n">ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;r axis0.encoder.pos_estimate</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">);</span> <span class="nb">print</span><span class="p">(</span><span class="n">ser</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span>
+<span class="n">ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;r axis0.encoder.vel_estimate</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">);</span> <span class="nb">print</span><span class="p">(</span><span class="n">ser</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span>
+
+<span class="c1"># Writes</span>
+<span class="n">ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;w axis0.controller.input_pos 12.34</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">);</span> <span class="nb">print</span><span class="p">(</span><span class="n">ser</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span>
+
+<span class="c1"># High-rate commands</span>
+<span class="n">ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;p 0 1.0 0.5 0.1</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">);</span> <span class="nb">print</span><span class="p">(</span><span class="n">ser</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span>    <span class="c1"># position with feedforward</span>
+<span class="n">ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;v 0 2.0 0.2</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">);</span> <span class="nb">print</span><span class="p">(</span><span class="n">ser</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span>        <span class="c1"># velocity with torque_ff</span>
+<span class="n">ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;c 0 0.25</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">);</span> <span class="nb">print</span><span class="p">(</span><span class="n">ser</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span>           <span class="c1"># torque (Nm)</span>
+<span class="n">ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;t 0 10.0</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">);</span> <span class="nb">print</span><span class="p">(</span><span class="n">ser</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span>           <span class="c1"># trajectory goal (turns)</span>
+<span class="n">ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;f 0</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">);</span> <span class="nb">print</span><span class="p">(</span><span class="n">ser</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span>                <span class="c1"># feedback: &quot;&lt;pos&gt; &lt;vel&gt;\n&quot;</span>
+<span class="n">ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;es 0 0.0</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">);</span> <span class="nb">print</span><span class="p">(</span><span class="n">ser</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span>           <span class="c1"># set encoder abs pos</span>
+</pre></div>
+</div>
+</section>
+<section id="notes">
+<h2>Notes<a class="headerlink" href="#notes" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p>For full odrivetool auto-discovery you would need to implement Fibre (not covered here).</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="odrive_ascii.html" class="btn btn-neutral float-left" title="ODrive ASCII Protocol Component" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="pid.html" class="btn btn-neutral float-right" title="PID APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

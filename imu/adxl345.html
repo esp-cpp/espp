@@ -1,0 +1,1457 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ADXL345 3-Axis Accelerometer - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'imu/adxl345';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="ADXL345 Example" href="adxl345_example.html" />
+    <link rel="prev" title="IMU APIs" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_component.html">Base Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../byte90.html">ALXV Labs Byte90</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cobs.html">COBS (Consistent Overhead Byte Stuffing)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp32_timer_cam.html">ESP32 TimerCam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp_box.html">ESP BOX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../i2c.html">I2C</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">IMU APIs</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">ADXL345 3-Axis Accelerometer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="adxl345_example.html">ADXL345 Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="bmi270.html">BMI270 6-Axis IMU</a></li>
+<li class="toctree-l2"><a class="reference internal" href="icm20948.html">ICM20948 9-Axis IMU</a></li>
+<li class="toctree-l2"><a class="reference internal" href="icm42607.html">ICM42607 6-Axis IMU</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lsm6dso.html">LSM6DSO 6-Axis IMU</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qmi8658.html">QMI8658 6-Axis IMU</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../interrupt.html">Interrupt APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../iperf_menu.html">Iperf Menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../m5stack_tab5.html">M5Stack Tab5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../matouch_rotary_display.html">MaTouch Rotary Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../motorgo_mini.html">MotorGo Mini</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../neopixel.html">Neopixel APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nvs.html">NVS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../remote_debug.html">Remote Debug APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../runqueue.html">RunQueue APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../seeed_studio_round_display.html">Seeed Studio Round Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_deck.html">LilyGo T-Deck</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_dongle_s3.html">LilyGo T-Dongle S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wrover_kit.html">ESP32-WROVER-KIT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">IMU APIs</a></li>
+      <li class="breadcrumb-item active">ADXL345 3-Axis Accelerometer</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/32e8215e/docs/en/imu/adxl345.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="adxl345-3-axis-accelerometer">
+<h1>ADXL345 3-Axis Accelerometer<a class="headerlink" href="#adxl345-3-axis-accelerometer" title="Permalink to this heading"></a></h1>
+<p>The <cite>Adxl345</cite> component provides an interface to the ADXL345 accelerometer,
+which is a small, thin, low-power, 3-axis accelerometer with high resolution
+(13-bit) measurement at up to ±16 g. It can be used in various applications such
+as motion detection, orientation sensing, and gesture recognition.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="adxl345_example.html">ADXL345 Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="adxl345_example.html#hardware-setup">Hardware Setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="adxl345_example.html#example-description">Example Description</a></li>
+<li class="toctree-l2"><a class="reference internal" href="adxl345_example.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="adxl345_example.html#building-and-flashing">Building and Flashing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="adxl345_example.html#customization">Customization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="adxl345_example.html#output">Output</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/32e8215e/components/adxl345/include/adxl345.hpp">components/adxl345/include/adxl345.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl345E">
+<span id="_CPPv3N4espp7Adxl345E"></span><span id="_CPPv2N4espp7Adxl345E"></span><span id="espp::Adxl345"></span><span class="target" id="classespp_1_1Adxl345"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Adxl345</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../base_peripheral.html#_CPPv4I_NSt8integralE_b_b_bEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl345E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Class for the ADXL345 I2C 3-axis accelerometer. </p>
+<p>The ADXL345 is a 3-axis accelerometer with 10-bit to 13-bit resolution measurement at up to ±16g. Digital output data is formatted as 16-bit twos complement and is accessible through either a SPI (3- or 4-wire) or I2C digital interface.</p>
+<p>The ADXL345 can support SPI up to 5 MHz and I2C up to 400 kHz. It has a programmable interrupt system that can be used to signal events such as data ready, free-fall, activity, inactivity, and tap detection.</p>
+<p>The datasheet can be found here: <a class="reference external" href="https://www.analog.com/media/en/technical-documentation/data-sheets/adxl345.pdf">https://www.analog.com/media/en/technical-documentation/data-sheets/adxl345.pdf</a></p>
+<section id="classespp_1_1Adxl345_1adxl345_ex_1">
+<h4>ADXL345 Example<a class="headerlink" href="#classespp_1_1Adxl345_1adxl345_ex_1" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1Adxl345_1adxl345_ex_1"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1">// I2C configuration</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="w"> </span><span class="nf">i2c</span><span class="p">({</span>
+<span class="w">      </span><span class="p">.</span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_NUM_0</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">sda_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">gpio_num_t</span><span class="p">)</span><span class="n">CONFIG_EXAMPLE_I2C_SDA_GPIO</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">scl_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">gpio_num_t</span><span class="p">)</span><span class="n">CONFIG_EXAMPLE_I2C_SCL_GPIO</span><span class="p">,</span>
+<span class="w">  </span><span class="p">});</span>
+
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+
+
+<span class="w">  </span><span class="c1">// Create the ADXL345 instance</span>
+<span class="w">  </span><span class="c1">// NOTE: auto_init defaults to true, so we don&#39;t have to call initialize ourselves.</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Adxl345</span><span class="w"> </span><span class="nf">accel</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Adxl345</span><span class="o">::</span><span class="n">Config</span><span class="p">{</span>
+<span class="w">      </span><span class="p">.</span><span class="n">device_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Adxl345</span><span class="o">::</span><span class="n">DEFAULT_ADDRESS</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">range</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Adxl345</span><span class="o">::</span><span class="n">RANGE_2G</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">data_rate</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Adxl345</span><span class="o">::</span><span class="n">RATE_100_HZ</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">write</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span>
+<span class="w">                         </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
+<span class="w">      </span><span class="p">.</span><span class="n">read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">read</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span>
+<span class="w">                        </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
+<span class="w">      </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">,</span>
+<span class="w">  </span><span class="p">});</span>
+
+<span class="w">  </span><span class="c1">// Disable measurement mode initially, so we can configure interrupts and such</span>
+<span class="w">  </span><span class="n">accel</span><span class="p">.</span><span class="n">set_measurement_mode</span><span class="p">(</span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Configure the ADXL345</span>
+<span class="w">  </span><span class="n">accel</span><span class="p">.</span><span class="n">set_fifo_mode</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Adxl345</span><span class="o">::</span><span class="n">FifoMode</span><span class="o">::</span><span class="n">STREAM</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span><span class="w"> </span><span class="c1">// discard old data when FIFO is full</span>
+<span class="w">  </span><span class="n">accel</span><span class="p">.</span><span class="n">set_fifo_num_samples</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span><span class="w"> </span><span class="c1">// set FIFO to trigger watermark interrupt on every sample</span>
+<span class="w">  </span><span class="n">accel</span><span class="p">.</span><span class="n">set_low_power</span><span class="p">(</span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span><span class="w">    </span><span class="c1">// disable low power mode</span>
+<span class="w">  </span><span class="n">accel</span><span class="p">.</span><span class="n">set_sleep_mode</span><span class="p">(</span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span><span class="w">   </span><span class="c1">// disable sleep mode</span>
+<span class="w">  </span><span class="n">accel</span><span class="p">.</span><span class="n">set_auto_sleep</span><span class="p">(</span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span><span class="w">   </span><span class="c1">// disable auto sleep mode</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">active_high</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="n">accel</span><span class="p">.</span><span class="n">set_interrupt_polarity</span><span class="p">(</span><span class="n">active_high</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span><span class="w"> </span><span class="c1">// set interrupt polarity to active high</span>
+<span class="w">  </span><span class="c1">// configure the interrupt to trigger on watermark on INT1 pin</span>
+<span class="w">  </span><span class="n">accel</span><span class="p">.</span><span class="n">set_interrupt_mapping</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Adxl345</span><span class="o">::</span><span class="n">InterruptType</span><span class="o">::</span><span class="n">WATERMARK</span><span class="p">,</span>
+<span class="w">                              </span><span class="n">espp</span><span class="o">::</span><span class="n">Adxl345</span><span class="o">::</span><span class="n">InterruptPin</span><span class="o">::</span><span class="n">INT1</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// enable the watermark interrupt</span>
+<span class="w">  </span><span class="n">accel</span><span class="p">.</span><span class="n">configure_interrupt</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Adxl345</span><span class="o">::</span><span class="n">InterruptType</span><span class="o">::</span><span class="n">WATERMARK</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span>
+
+
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="o">::</span><span class="n">Event</span><span class="w"> </span><span class="o">&amp;</span><span class="n">event</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+<span class="w">    </span><span class="c1">// clear the interrupt source</span>
+<span class="w">    </span><span class="p">[[</span><span class="n">maybe_unused</span><span class="p">]]</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">interrupt_status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">accel</span><span class="p">.</span><span class="n">get_interrupt_source</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Error getting interrupt source: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+<span class="w">    </span><span class="c1">// we got a data ready interrupt, read the data and print it</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">data_vec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">accel</span><span class="p">.</span><span class="n">read_all</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Error reading ADXL345: {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">      </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">data_vec</span><span class="p">.</span><span class="n">size</span><span class="p">();</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">data_vec</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+<span class="w">      </span><span class="c1">// get the offset in time from now that hte sample was taken</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">sample_time</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">10</span><span class="n">ms</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="n">data_vec</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span>
+<span class="w">      </span><span class="c1">// convert to seconds</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">elapsed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">sample_time</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">).</span><span class="n">count</span><span class="p">();</span>
+<span class="w">      </span><span class="c1">// Print the data in g&#39;s</span>
+<span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;{:.3f}, {:.4f}, {:.4f}, {:.4f}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">elapsed</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="p">.</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="p">.</span><span class="n">y</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="p">.</span><span class="n">z</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">};</span>
+
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="o">::</span><span class="n">PinConfig</span><span class="w"> </span><span class="n">accel_int</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="p">.</span><span class="n">gpio_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">gpio_num_t</span><span class="p">)</span><span class="n">CONFIG_EXAMPLE_ALERT_GPIO</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">callback</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">active_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="o">::</span><span class="n">ActiveLevel</span><span class="o">::</span><span class="n">LOW</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">interrupt_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="o">::</span><span class="n">Type</span><span class="o">::</span><span class="n">FALLING_EDGE</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">pullup_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">pulldown_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">filter_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="o">::</span><span class="n">FilterType</span><span class="o">::</span><span class="n">PIN_GLITCH_FILTER</span><span class="p">,</span>
+<span class="w">  </span><span class="p">};</span>
+
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="w"> </span><span class="n">interrupt</span><span class="p">({</span>
+<span class="w">      </span><span class="p">.</span><span class="n">isr_core_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">interrupts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="n">accel_int</span><span class="p">},</span>
+<span class="w">      </span><span class="p">.</span><span class="n">task_config</span><span class="w"> </span><span class="o">=</span>
+<span class="w">          </span><span class="p">{</span>
+<span class="w">              </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Interrupt task&quot;</span><span class="p">,</span>
+<span class="w">              </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">6192</span><span class="p">,</span>
+<span class="w">              </span><span class="p">.</span><span class="n">priority</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">          </span><span class="p">},</span>
+<span class="w">      </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">,</span>
+<span class="w">  </span><span class="p">});</span>
+
+
+<span class="w">  </span><span class="c1">// Print CSV header</span>
+<span class="w">  </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;%time (s), x (g), y (g), z (g)</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Enable measurement mode</span>
+<span class="w">  </span><span class="n">accel</span><span class="p">.</span><span class="n">set_measurement_mode</span><span class="p">(</span><span class="nb">true</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Keep the main function running to allow the example to run</span>
+<span class="w">  </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">start_time</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">active_states</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">interrupt</span><span class="p">.</span><span class="n">get_active_states</span><span class="p">();</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Instantaneous state of pins: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">active_states</span><span class="p">);</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">interrupt_status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">accel</span><span class="p">.</span><span class="n">get_interrupt_source</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Error getting interrupt source: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Interrupt source: 0x{:02X}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">interrupt_status</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">data_vec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">accel</span><span class="p">.</span><span class="n">read_all</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Error reading all data: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Read {} samples from ADXL345: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">data_vec</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span><span class="w"> </span><span class="n">data_vec</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">interrupt_status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">accel</span><span class="p">.</span><span class="n">get_interrupt_source</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Error getting interrupt source: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Interrupt source: 0x{:02X}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">interrupt_status</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_until</span><span class="p">(</span><span class="n">start_time</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">100</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3455RangeE">
+<span id="_CPPv3N4espp7Adxl3455RangeE"></span><span id="_CPPv2N4espp7Adxl3455RangeE"></span><span class="target" id="classespp_1_1Adxl345_1a6ce15ba692eeb62e3e740bf5a81eda03"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Range</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3455RangeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Range of the accelerometer. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3455Range8RANGE_2GE">
+<span id="_CPPv3N4espp7Adxl3455Range8RANGE_2GE"></span><span id="_CPPv2N4espp7Adxl3455Range8RANGE_2GE"></span><span class="target" id="classespp_1_1Adxl345_1a6ce15ba692eeb62e3e740bf5a81eda03abafc8cc0ed63d832b7e8499ea4407941"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RANGE_2G</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3455Range8RANGE_2GE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>±2g </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3455Range8RANGE_4GE">
+<span id="_CPPv3N4espp7Adxl3455Range8RANGE_4GE"></span><span id="_CPPv2N4espp7Adxl3455Range8RANGE_4GE"></span><span class="target" id="classespp_1_1Adxl345_1a6ce15ba692eeb62e3e740bf5a81eda03a2563a2081e0a148b72b4061e20cb60e4"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RANGE_4G</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3455Range8RANGE_4GE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>±4g </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3455Range8RANGE_8GE">
+<span id="_CPPv3N4espp7Adxl3455Range8RANGE_8GE"></span><span id="_CPPv2N4espp7Adxl3455Range8RANGE_8GE"></span><span class="target" id="classespp_1_1Adxl345_1a6ce15ba692eeb62e3e740bf5a81eda03a996a880570427f4634a1c811e82d8652"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RANGE_8G</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3455Range8RANGE_8GE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>±8g </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3455Range9RANGE_16GE">
+<span id="_CPPv3N4espp7Adxl3455Range9RANGE_16GE"></span><span id="_CPPv2N4espp7Adxl3455Range9RANGE_16GE"></span><span class="target" id="classespp_1_1Adxl345_1a6ce15ba692eeb62e3e740bf5a81eda03ae4671a7f878922985942d4abe43447c4"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RANGE_16G</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3455Range9RANGE_16GE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>±16g </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3458DataRateE">
+<span id="_CPPv3N4espp7Adxl3458DataRateE"></span><span id="_CPPv2N4espp7Adxl3458DataRateE"></span><span class="target" id="classespp_1_1Adxl345_1a036fb112034efcfcbecd93d758fc6e20"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DataRate</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3458DataRateE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Output data rate. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3458DataRate12RATE_0_10_HZE">
+<span id="_CPPv3N4espp7Adxl3458DataRate12RATE_0_10_HZE"></span><span id="_CPPv2N4espp7Adxl3458DataRate12RATE_0_10_HZE"></span><span class="target" id="classespp_1_1Adxl345_1a036fb112034efcfcbecd93d758fc6e20a22a9ca35a291b2251d9977697b8f3021"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RATE_0_10_HZ</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3458DataRate12RATE_0_10_HZE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>0.10 Hz </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3458DataRate12RATE_0_20_HZE">
+<span id="_CPPv3N4espp7Adxl3458DataRate12RATE_0_20_HZE"></span><span id="_CPPv2N4espp7Adxl3458DataRate12RATE_0_20_HZE"></span><span class="target" id="classespp_1_1Adxl345_1a036fb112034efcfcbecd93d758fc6e20ac3a97f45b43876d3958e798358480f21"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RATE_0_20_HZ</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3458DataRate12RATE_0_20_HZE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>0.20 Hz </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3458DataRate12RATE_0_39_HZE">
+<span id="_CPPv3N4espp7Adxl3458DataRate12RATE_0_39_HZE"></span><span id="_CPPv2N4espp7Adxl3458DataRate12RATE_0_39_HZE"></span><span class="target" id="classespp_1_1Adxl345_1a036fb112034efcfcbecd93d758fc6e20ab35148ac11881e51ef8e9f4301e3a0f0"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RATE_0_39_HZ</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3458DataRate12RATE_0_39_HZE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>0.39 Hz </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3458DataRate12RATE_0_78_HZE">
+<span id="_CPPv3N4espp7Adxl3458DataRate12RATE_0_78_HZE"></span><span id="_CPPv2N4espp7Adxl3458DataRate12RATE_0_78_HZE"></span><span class="target" id="classespp_1_1Adxl345_1a036fb112034efcfcbecd93d758fc6e20a7fa20a6ac3cd9603f56602f9ad842e38"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RATE_0_78_HZ</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3458DataRate12RATE_0_78_HZE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>0.78 Hz </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3458DataRate12RATE_1_56_HZE">
+<span id="_CPPv3N4espp7Adxl3458DataRate12RATE_1_56_HZE"></span><span id="_CPPv2N4espp7Adxl3458DataRate12RATE_1_56_HZE"></span><span class="target" id="classespp_1_1Adxl345_1a036fb112034efcfcbecd93d758fc6e20a9b031844139d1cf835725e3df341a9a4"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RATE_1_56_HZ</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3458DataRate12RATE_1_56_HZE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>1.56 Hz </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3458DataRate12RATE_3_13_HZE">
+<span id="_CPPv3N4espp7Adxl3458DataRate12RATE_3_13_HZE"></span><span id="_CPPv2N4espp7Adxl3458DataRate12RATE_3_13_HZE"></span><span class="target" id="classespp_1_1Adxl345_1a036fb112034efcfcbecd93d758fc6e20a5b048ce50765f321698ec0c0ae4d9964"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RATE_3_13_HZ</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3458DataRate12RATE_3_13_HZE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>3.13 Hz </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3458DataRate12RATE_6_25_HZE">
+<span id="_CPPv3N4espp7Adxl3458DataRate12RATE_6_25_HZE"></span><span id="_CPPv2N4espp7Adxl3458DataRate12RATE_6_25_HZE"></span><span class="target" id="classespp_1_1Adxl345_1a036fb112034efcfcbecd93d758fc6e20a6bd413ae6e7270b17abbfd23d80ad9dc"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RATE_6_25_HZ</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3458DataRate12RATE_6_25_HZE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>6.25 Hz </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3458DataRate12RATE_12_5_HZE">
+<span id="_CPPv3N4espp7Adxl3458DataRate12RATE_12_5_HZE"></span><span id="_CPPv2N4espp7Adxl3458DataRate12RATE_12_5_HZE"></span><span class="target" id="classespp_1_1Adxl345_1a036fb112034efcfcbecd93d758fc6e20a6feaa6588c99e136fd922322266ac18f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RATE_12_5_HZ</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3458DataRate12RATE_12_5_HZE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>12.5 Hz </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3458DataRate10RATE_25_HZE">
+<span id="_CPPv3N4espp7Adxl3458DataRate10RATE_25_HZE"></span><span id="_CPPv2N4espp7Adxl3458DataRate10RATE_25_HZE"></span><span class="target" id="classespp_1_1Adxl345_1a036fb112034efcfcbecd93d758fc6e20a76b7d624eca17c101102ecdecb53b02b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RATE_25_HZ</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3458DataRate10RATE_25_HZE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>25 Hz </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3458DataRate10RATE_50_HZE">
+<span id="_CPPv3N4espp7Adxl3458DataRate10RATE_50_HZE"></span><span id="_CPPv2N4espp7Adxl3458DataRate10RATE_50_HZE"></span><span class="target" id="classespp_1_1Adxl345_1a036fb112034efcfcbecd93d758fc6e20af4936435c8e167f5bd4c0bab958f0262"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RATE_50_HZ</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3458DataRate10RATE_50_HZE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>50 Hz </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3458DataRate11RATE_100_HZE">
+<span id="_CPPv3N4espp7Adxl3458DataRate11RATE_100_HZE"></span><span id="_CPPv2N4espp7Adxl3458DataRate11RATE_100_HZE"></span><span class="target" id="classespp_1_1Adxl345_1a036fb112034efcfcbecd93d758fc6e20acd39f9f34742dfa22cbacd6043f110fd"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RATE_100_HZ</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3458DataRate11RATE_100_HZE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>100 Hz </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3458DataRate11RATE_200_HZE">
+<span id="_CPPv3N4espp7Adxl3458DataRate11RATE_200_HZE"></span><span id="_CPPv2N4espp7Adxl3458DataRate11RATE_200_HZE"></span><span class="target" id="classespp_1_1Adxl345_1a036fb112034efcfcbecd93d758fc6e20a104984224f1217daf02b27247774f493"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RATE_200_HZ</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3458DataRate11RATE_200_HZE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>200 Hz </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3458DataRate11RATE_400_HZE">
+<span id="_CPPv3N4espp7Adxl3458DataRate11RATE_400_HZE"></span><span id="_CPPv2N4espp7Adxl3458DataRate11RATE_400_HZE"></span><span class="target" id="classespp_1_1Adxl345_1a036fb112034efcfcbecd93d758fc6e20a6654d9849b219a70b0fe6adb6f265448"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RATE_400_HZ</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3458DataRate11RATE_400_HZE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>400 Hz </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3458DataRate11RATE_800_HZE">
+<span id="_CPPv3N4espp7Adxl3458DataRate11RATE_800_HZE"></span><span id="_CPPv2N4espp7Adxl3458DataRate11RATE_800_HZE"></span><span class="target" id="classespp_1_1Adxl345_1a036fb112034efcfcbecd93d758fc6e20adc7a3c4b94d1434ca4604a4b456c7973"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RATE_800_HZ</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3458DataRate11RATE_800_HZE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>800 Hz </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3458DataRate12RATE_1600_HZE">
+<span id="_CPPv3N4espp7Adxl3458DataRate12RATE_1600_HZE"></span><span id="_CPPv2N4espp7Adxl3458DataRate12RATE_1600_HZE"></span><span class="target" id="classespp_1_1Adxl345_1a036fb112034efcfcbecd93d758fc6e20a8951298fe53d7bb3a36d3465edaccc4a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RATE_1600_HZ</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3458DataRate12RATE_1600_HZE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>1600 Hz </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3458DataRate12RATE_3200_HZE">
+<span id="_CPPv3N4espp7Adxl3458DataRate12RATE_3200_HZE"></span><span id="_CPPv2N4espp7Adxl3458DataRate12RATE_3200_HZE"></span><span class="target" id="classespp_1_1Adxl345_1a036fb112034efcfcbecd93d758fc6e20a6e5a54a2fca50200872aa993213175f7"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RATE_3200_HZ</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3458DataRate12RATE_3200_HZE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>3200 Hz </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34512InterruptPinE">
+<span id="_CPPv3N4espp7Adxl34512InterruptPinE"></span><span id="_CPPv2N4espp7Adxl34512InterruptPinE"></span><span class="target" id="classespp_1_1Adxl345_1a4ae8b9561df3e0ebf3f63190f438fafc"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">InterruptPin</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl34512InterruptPinE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="../interrupt.html#classespp_1_1Interrupt"><span class="std std-ref">Interrupt</span></a> Pin. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34512InterruptPin4INT1E">
+<span id="_CPPv3N4espp7Adxl34512InterruptPin4INT1E"></span><span id="_CPPv2N4espp7Adxl34512InterruptPin4INT1E"></span><span class="target" id="classespp_1_1Adxl345_1a4ae8b9561df3e0ebf3f63190f438fafcaff9f3b24afe3f63de0f90494563875cd"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">INT1</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl34512InterruptPin4INT1E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>INT1 pin. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34512InterruptPin4INT2E">
+<span id="_CPPv3N4espp7Adxl34512InterruptPin4INT2E"></span><span id="_CPPv2N4espp7Adxl34512InterruptPin4INT2E"></span><span class="target" id="classespp_1_1Adxl345_1a4ae8b9561df3e0ebf3f63190f438fafcafb01e808408b3cf4aa3912f3603658e2"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">INT2</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl34512InterruptPin4INT2E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>INT2 pin. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34513InterruptTypeE">
+<span id="_CPPv3N4espp7Adxl34513InterruptTypeE"></span><span id="_CPPv2N4espp7Adxl34513InterruptTypeE"></span><span class="target" id="classespp_1_1Adxl345_1ae15df0a05a22c9273adbbcc531363e3a"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">InterruptType</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl34513InterruptTypeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="../interrupt.html#classespp_1_1Interrupt"><span class="std std-ref">Interrupt</span></a> type. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34513InterruptType7OVERRUNE">
+<span id="_CPPv3N4espp7Adxl34513InterruptType7OVERRUNE"></span><span id="_CPPv2N4espp7Adxl34513InterruptType7OVERRUNE"></span><span class="target" id="classespp_1_1Adxl345_1ae15df0a05a22c9273adbbcc531363e3aae6c28da706242c817b2ff03fd7d794c9"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OVERRUN</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl34513InterruptType7OVERRUNE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>FIFO overrun interrupt. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34513InterruptType9WATERMARKE">
+<span id="_CPPv3N4espp7Adxl34513InterruptType9WATERMARKE"></span><span id="_CPPv2N4espp7Adxl34513InterruptType9WATERMARKE"></span><span class="target" id="classespp_1_1Adxl345_1ae15df0a05a22c9273adbbcc531363e3aa358c86bbd46be41d2a12392796fefd79"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">WATERMARK</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl34513InterruptType9WATERMARKE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>FIFO watermark interrupt. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34513InterruptType9FREE_FALLE">
+<span id="_CPPv3N4espp7Adxl34513InterruptType9FREE_FALLE"></span><span id="_CPPv2N4espp7Adxl34513InterruptType9FREE_FALLE"></span><span class="target" id="classespp_1_1Adxl345_1ae15df0a05a22c9273adbbcc531363e3aa72b9bca2fb559942eb1a2832b8598de4"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FREE_FALL</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl34513InterruptType9FREE_FALLE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Free fall interrupt. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34513InterruptType10INACTIVITYE">
+<span id="_CPPv3N4espp7Adxl34513InterruptType10INACTIVITYE"></span><span id="_CPPv2N4espp7Adxl34513InterruptType10INACTIVITYE"></span><span class="target" id="classespp_1_1Adxl345_1ae15df0a05a22c9273adbbcc531363e3aac80f3206000142c6caae1e67875ba663"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">INACTIVITY</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl34513InterruptType10INACTIVITYE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Inactivity interrupt. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34513InterruptType8ACTIVITYE">
+<span id="_CPPv3N4espp7Adxl34513InterruptType8ACTIVITYE"></span><span id="_CPPv2N4espp7Adxl34513InterruptType8ACTIVITYE"></span><span class="target" id="classespp_1_1Adxl345_1ae15df0a05a22c9273adbbcc531363e3aadb32d6fc8bf6c9a59c634c9d244b2679"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ACTIVITY</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl34513InterruptType8ACTIVITYE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Activity interrupt. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34513InterruptType10DOUBLE_TAPE">
+<span id="_CPPv3N4espp7Adxl34513InterruptType10DOUBLE_TAPE"></span><span id="_CPPv2N4espp7Adxl34513InterruptType10DOUBLE_TAPE"></span><span class="target" id="classespp_1_1Adxl345_1ae15df0a05a22c9273adbbcc531363e3aadbb9193f02252e70c859732727ea1c05"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DOUBLE_TAP</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl34513InterruptType10DOUBLE_TAPE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Double tap interrupt. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34513InterruptType10SINGLE_TAPE">
+<span id="_CPPv3N4espp7Adxl34513InterruptType10SINGLE_TAPE"></span><span id="_CPPv2N4espp7Adxl34513InterruptType10SINGLE_TAPE"></span><span class="target" id="classespp_1_1Adxl345_1ae15df0a05a22c9273adbbcc531363e3aa624459308770dc5d27005ebdec6385b9"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SINGLE_TAP</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl34513InterruptType10SINGLE_TAPE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Single tap interrupt. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34513InterruptType10DATA_READYE">
+<span id="_CPPv3N4espp7Adxl34513InterruptType10DATA_READYE"></span><span id="_CPPv2N4espp7Adxl34513InterruptType10DATA_READYE"></span><span class="target" id="classespp_1_1Adxl345_1ae15df0a05a22c9273adbbcc531363e3aa03f63405507f30e962f12026cbfbdb23"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DATA_READY</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl34513InterruptType10DATA_READYE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="#structespp_1_1Adxl345_1_1Data"><span class="std std-ref">Data</span></a> ready interrupt. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3458FifoModeE">
+<span id="_CPPv3N4espp7Adxl3458FifoModeE"></span><span id="_CPPv2N4espp7Adxl3458FifoModeE"></span><span class="target" id="classespp_1_1Adxl345_1a96d0041978731ddaeffe5c043a5a5fd2"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FifoMode</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3458FifoModeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>FIFO Mode. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3458FifoMode6BYPASSE">
+<span id="_CPPv3N4espp7Adxl3458FifoMode6BYPASSE"></span><span id="_CPPv2N4espp7Adxl3458FifoMode6BYPASSE"></span><span class="target" id="classespp_1_1Adxl345_1a96d0041978731ddaeffe5c043a5a5fd2a9eb9f378b4e4b7b1079ba068cfef75a8"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BYPASS</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3458FifoMode6BYPASSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Bypass mode. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3458FifoMode4FIFOE">
+<span id="_CPPv3N4espp7Adxl3458FifoMode4FIFOE"></span><span id="_CPPv2N4espp7Adxl3458FifoMode4FIFOE"></span><span class="target" id="classespp_1_1Adxl345_1a96d0041978731ddaeffe5c043a5a5fd2ac589858dbe1d06c46544266ae4cd2c6f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FIFO</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3458FifoMode4FIFOE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>FIFO mode. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3458FifoMode6STREAME">
+<span id="_CPPv3N4espp7Adxl3458FifoMode6STREAME"></span><span id="_CPPv2N4espp7Adxl3458FifoMode6STREAME"></span><span class="target" id="classespp_1_1Adxl345_1a96d0041978731ddaeffe5c043a5a5fd2a2f05998d2a71cdc19b7109549bbe2646"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">STREAM</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3458FifoMode6STREAME" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Stream mode. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3458FifoMode7TRIGGERE">
+<span id="_CPPv3N4espp7Adxl3458FifoMode7TRIGGERE"></span><span id="_CPPv2N4espp7Adxl3458FifoMode7TRIGGERE"></span><span class="target" id="classespp_1_1Adxl345_1a96d0041978731ddaeffe5c043a5a5fd2ab8cd801b107a9a8f62c5b61ea5646620"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TRIGGER</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3458FifoMode7TRIGGERE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Trigger mode. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3458probe_fnE">
+<span id="_CPPv3N4espp7Adxl3458probe_fnE"></span><span id="_CPPv2N4espp7Adxl3458probe_fnE"></span><span id="espp::Adxl345::probe_fn"></span><span class="target" id="classespp_1_1BasePeripheral_1ad12a713efc443157b7d6fd1ba4fdf88f"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">probe_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3458probe_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to probe the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param address<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The address to probe </p>
+</dd>
+<dt class="field-even">Return<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the peripheral is found at the given address </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3457Adxl345ERK6Config">
+<span id="_CPPv3N4espp7Adxl3457Adxl345ERK6Config"></span><span id="_CPPv2N4espp7Adxl3457Adxl345ERK6Config"></span><span id="espp::Adxl345::Adxl345__ConfigCR"></span><span class="target" id="classespp_1_1Adxl345_1a62b5bf80a1f5c591530561ed2baa520f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Adxl345</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Adxl3456ConfigE" title="espp::Adxl345::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl3457Adxl345ERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Constructor. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – Configuration for the ADXL345 </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34510initializeERNSt10error_codeE">
+<span id="_CPPv3N4espp7Adxl34510initializeERNSt10error_codeE"></span><span id="_CPPv2N4espp7Adxl34510initializeERNSt10error_codeE"></span><span id="espp::Adxl345::initialize__std::error_codeR"></span><span class="target" id="classespp_1_1Adxl345_1a99f8acb8b7b259713f5c830e0ee354e1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl34510initializeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the ADXL345. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if initialization was successful, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3459set_rangeE5RangeRNSt10error_codeE">
+<span id="_CPPv3N4espp7Adxl3459set_rangeE5RangeRNSt10error_codeE"></span><span id="_CPPv2N4espp7Adxl3459set_rangeE5RangeRNSt10error_codeE"></span><span id="espp::Adxl345::set_range__Range.std::error_codeR"></span><span class="target" id="classespp_1_1Adxl345_1af6d562f0ee7c4df1b1b3268d3f68d198"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_range</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Adxl3455RangeE" title="espp::Adxl345::Range"><span class="n"><span class="pre">Range</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">range</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl3459set_rangeE5RangeRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the range of the accelerometer. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>range</strong> – New range </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if setting range was successful, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34513set_data_rateE8DataRateRNSt10error_codeE">
+<span id="_CPPv3N4espp7Adxl34513set_data_rateE8DataRateRNSt10error_codeE"></span><span id="_CPPv2N4espp7Adxl34513set_data_rateE8DataRateRNSt10error_codeE"></span><span id="espp::Adxl345::set_data_rate__DataRate.std::error_codeR"></span><span class="target" id="classespp_1_1Adxl345_1ac0d9dcace340c62b9d4b84744b165cfe"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_data_rate</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Adxl3458DataRateE" title="espp::Adxl345::DataRate"><span class="n"><span class="pre">DataRate</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">rate</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl34513set_data_rateE8DataRateRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the output data rate. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rate</strong> – New data rate </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if setting data rate was successful, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34513set_low_powerEbRNSt10error_codeE">
+<span id="_CPPv3N4espp7Adxl34513set_low_powerEbRNSt10error_codeE"></span><span id="_CPPv2N4espp7Adxl34513set_low_powerEbRNSt10error_codeE"></span><span id="espp::Adxl345::set_low_power__b.std::error_codeR"></span><span class="target" id="classespp_1_1Adxl345_1ae57c2151801ff2a7a823687888ecac5d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_low_power</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">enable</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl34513set_low_powerEbRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Enable/Disable low power mode. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>enable</strong> – Whether to enable or disable low power mode </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if setting low power mode was successful, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34514set_auto_sleepEbRNSt10error_codeE">
+<span id="_CPPv3N4espp7Adxl34514set_auto_sleepEbRNSt10error_codeE"></span><span id="_CPPv2N4espp7Adxl34514set_auto_sleepEbRNSt10error_codeE"></span><span id="espp::Adxl345::set_auto_sleep__b.std::error_codeR"></span><span class="target" id="classespp_1_1Adxl345_1ac9b86b0db76552709248cc475d590e59"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_auto_sleep</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">enable</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl34514set_auto_sleepEbRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Enable/Disable the auto-sleep mode. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>enable</strong> – Whether to enable or disable auto-sleep </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if setting auto-sleep was successful, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34520set_measurement_modeEbRNSt10error_codeE">
+<span id="_CPPv3N4espp7Adxl34520set_measurement_modeEbRNSt10error_codeE"></span><span id="_CPPv2N4espp7Adxl34520set_measurement_modeEbRNSt10error_codeE"></span><span id="espp::Adxl345::set_measurement_mode__b.std::error_codeR"></span><span class="target" id="classespp_1_1Adxl345_1ab8757340362b004d4bc3ee3cf882c83d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_measurement_mode</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">enable</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl34520set_measurement_modeEbRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Enable/Disable the measurement mode. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>enable</strong> – Whether to enable or disable measurement mode </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if setting measurement mode was successful, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34514set_sleep_modeEbRNSt10error_codeE">
+<span id="_CPPv3N4espp7Adxl34514set_sleep_modeEbRNSt10error_codeE"></span><span id="_CPPv2N4espp7Adxl34514set_sleep_modeEbRNSt10error_codeE"></span><span id="espp::Adxl345::set_sleep_mode__b.std::error_codeR"></span><span class="target" id="classespp_1_1Adxl345_1af5bedd1f270a528328148099828ed30e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_sleep_mode</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">enable</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl34514set_sleep_modeEbRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Enable/Disable the Sleep mode. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>enable</strong> – Whether to enable or disable sleep mode </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if setting sleep mode was successful, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34513set_fifo_modeE8FifoModeRNSt10error_codeE">
+<span id="_CPPv3N4espp7Adxl34513set_fifo_modeE8FifoModeRNSt10error_codeE"></span><span id="_CPPv2N4espp7Adxl34513set_fifo_modeE8FifoModeRNSt10error_codeE"></span><span id="espp::Adxl345::set_fifo_mode__FifoMode.std::error_codeR"></span><span class="target" id="classespp_1_1Adxl345_1a1392ad4779ff76dc272d24f3718dc4ac"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_fifo_mode</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Adxl3458FifoModeE" title="espp::Adxl345::FifoMode"><span class="n"><span class="pre">FifoMode</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">mode</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl34513set_fifo_modeE8FifoModeRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the FIFO mode. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mode</strong> – New FIFO mode </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if setting FIFO mode was successful, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34513get_fifo_modeERNSt10error_codeE">
+<span id="_CPPv3N4espp7Adxl34513get_fifo_modeERNSt10error_codeE"></span><span id="_CPPv2N4espp7Adxl34513get_fifo_modeERNSt10error_codeE"></span><span id="espp::Adxl345::get_fifo_mode__std::error_codeR"></span><span class="target" id="classespp_1_1Adxl345_1afb0c3c5a582e438541df0af16e78331e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Adxl3458FifoModeE" title="espp::Adxl345::FifoMode"><span class="n"><span class="pre">FifoMode</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_fifo_mode</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl34513get_fifo_modeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the current FIFO mode. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Current FIFO mode </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34520set_fifo_num_samplesENSt7uint8_tERNSt10error_codeE">
+<span id="_CPPv3N4espp7Adxl34520set_fifo_num_samplesENSt7uint8_tERNSt10error_codeE"></span><span id="_CPPv2N4espp7Adxl34520set_fifo_num_samplesENSt7uint8_tERNSt10error_codeE"></span><span id="espp::Adxl345::set_fifo_num_samples__std::uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1Adxl345_1a4992f2a4198f5075d6a0141bc837a857"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_fifo_num_samples</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">num_samples</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl34520set_fifo_num_samplesENSt7uint8_tERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the FIFO Num Samples. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Num Samples is meaningless for <a class="reference internal" href="#classespp_1_1Adxl345_1a96d0041978731ddaeffe5c043a5a5fd2a9eb9f378b4e4b7b1079ba068cfef75a8"><span class="std std-ref">FifoMode::BYPASS</span></a>. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The FIFO can store up to 32 samples. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Num Samples specifies how many FIFO entries are needed to trigger a <a class="reference internal" href="#classespp_1_1Adxl345_1ae15df0a05a22c9273adbbcc531363e3aa358c86bbd46be41d2a12392796fefd79"><span class="std std-ref">InterruptType::WATERMARK</span></a> interrupt in <a class="reference internal" href="#classespp_1_1Adxl345_1a96d0041978731ddaeffe5c043a5a5fd2ac589858dbe1d06c46544266ae4cd2c6f"><span class="std std-ref">FifoMode::FIFO</span></a>, and <a class="reference internal" href="#classespp_1_1Adxl345_1a96d0041978731ddaeffe5c043a5a5fd2a2f05998d2a71cdc19b7109549bbe2646"><span class="std std-ref">FifoMode::STREAM</span></a>. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Num Samples specifies how many FIFO entries are retained in the FIFO before an InterruptType::TRIGGER interrupt is triggered. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>num_samples</strong> – Number of samples to store in FIFO </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if setting FIFO num samples was successful, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34530get_fifo_num_samples_availableERNSt10error_codeE">
+<span id="_CPPv3N4espp7Adxl34530get_fifo_num_samples_availableERNSt10error_codeE"></span><span id="_CPPv2N4espp7Adxl34530get_fifo_num_samples_availableERNSt10error_codeE"></span><span id="espp::Adxl345::get_fifo_num_samples_available__std::error_codeR"></span><span class="target" id="classespp_1_1Adxl345_1aad2fc2fbab8451526aea9c9a95da58f3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_fifo_num_samples_available</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl34530get_fifo_num_samples_availableERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the number of samples available in the FIFO. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Number of samples available in the FIFO (0-32) </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34515get_fifo_statusERNSt10error_codeE">
+<span id="_CPPv3N4espp7Adxl34515get_fifo_statusERNSt10error_codeE"></span><span id="_CPPv2N4espp7Adxl34515get_fifo_statusERNSt10error_codeE"></span><span id="espp::Adxl345::get_fifo_status__std::error_codeR"></span><span class="target" id="classespp_1_1Adxl345_1a52aa5bd00e6f50ec8f682c9b1bee5fad"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_fifo_status</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl34515get_fifo_statusERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the current FIFO status. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The FIFO status byte contains the following bits:<ul class="simple">
+<li><p>Bit 7: FIFO trigger</p></li>
+<li><p>Bit 6: unused (always 0)</p></li>
+<li><p>Bits 5-0: Number of entries in FIFO (0-32) </p></li>
+</ul>
+</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Current FIFO status as a byte </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3454readERNSt10error_codeE">
+<span id="_CPPv3N4espp7Adxl3454readERNSt10error_codeE"></span><span id="_CPPv2N4espp7Adxl3454readERNSt10error_codeE"></span><span id="espp::Adxl345::read__std::error_codeR"></span><span class="target" id="classespp_1_1Adxl345_1ac3a345ac548cf7944affc8502a6f975d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Adxl3454DataE" title="espp::Adxl345::Data"><span class="n"><span class="pre">Data</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl3454readERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read the accelerometer data. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Accelerometer data in g </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3458read_allERNSt10error_codeE">
+<span id="_CPPv3N4espp7Adxl3458read_allERNSt10error_codeE"></span><span id="_CPPv2N4espp7Adxl3458read_allERNSt10error_codeE"></span><span id="espp::Adxl345::read_all__std::error_codeR"></span><span class="target" id="classespp_1_1Adxl345_1a6b95f6b13263e7bf062aadf07c192aaa"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp7Adxl3454DataE" title="espp::Adxl345::Data"><span class="n"><span class="pre">Data</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_all</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl3458read_allERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read all accelerometer data from the FIFO. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function reads all available data from the FIFO. The data is returned as a vector of <a class="reference internal" href="#structespp_1_1Adxl345_1_1Data"><span class="std std-ref">Data</span></a> structures. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the FIFO is empty, an empty vector is returned. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Vector of accelerometer data in g </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34522set_interrupt_polarityEbRNSt10error_codeE">
+<span id="_CPPv3N4espp7Adxl34522set_interrupt_polarityEbRNSt10error_codeE"></span><span id="_CPPv2N4espp7Adxl34522set_interrupt_polarityEbRNSt10error_codeE"></span><span id="espp::Adxl345::set_interrupt_polarity__b.std::error_codeR"></span><span class="target" id="classespp_1_1Adxl345_1a6865d9970917fec20da58a521d97372f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_interrupt_polarity</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">active_high</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl34522set_interrupt_polarityEbRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the interrupt polarity. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>active_high</strong> – Whether the interrupt should be active high (true) or active low (false) </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if setting interrupt polarity was successful, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34522disable_all_interruptsERNSt10error_codeE">
+<span id="_CPPv3N4espp7Adxl34522disable_all_interruptsERNSt10error_codeE"></span><span id="_CPPv2N4espp7Adxl34522disable_all_interruptsERNSt10error_codeE"></span><span id="espp::Adxl345::disable_all_interrupts__std::error_codeR"></span><span class="target" id="classespp_1_1Adxl345_1abd1a0b4dc450a120e8771b08f2b31588"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">disable_all_interrupts</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl34522disable_all_interruptsERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Disable all interrupts. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if disabling all interrupts was successful, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34519configure_interruptE13InterruptTypebRNSt10error_codeE">
+<span id="_CPPv3N4espp7Adxl34519configure_interruptE13InterruptTypebRNSt10error_codeE"></span><span id="_CPPv2N4espp7Adxl34519configure_interruptE13InterruptTypebRNSt10error_codeE"></span><span id="espp::Adxl345::configure_interrupt__InterruptType.b.std::error_codeR"></span><span class="target" id="classespp_1_1Adxl345_1ac58cd7e4f74be86fee9983c4b0b947f1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">configure_interrupt</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Adxl34513InterruptTypeE" title="espp::Adxl345::InterruptType"><span class="n"><span class="pre">InterruptType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">enable</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl34519configure_interruptE13InterruptTypebRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configure an interrupt. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>type</strong> – Type of interrupt to configure </p></li>
+<li><p><strong>enable</strong> – Whether to enable or disable the interrupt </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if configuring interrupt was successful, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34520get_interrupt_sourceERNSt10error_codeE">
+<span id="_CPPv3N4espp7Adxl34520get_interrupt_sourceERNSt10error_codeE"></span><span id="_CPPv2N4espp7Adxl34520get_interrupt_sourceERNSt10error_codeE"></span><span id="espp::Adxl345::get_interrupt_source__std::error_codeR"></span><span class="target" id="classespp_1_1Adxl345_1a35cc67c1f8fa80eda638283ec918c251"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_interrupt_source</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl34520get_interrupt_sourceERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the interrupt source. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Bitmap of active interrupts </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34521set_interrupt_mappingE13InterruptType12InterruptPinRNSt10error_codeE">
+<span id="_CPPv3N4espp7Adxl34521set_interrupt_mappingE13InterruptType12InterruptPinRNSt10error_codeE"></span><span id="_CPPv2N4espp7Adxl34521set_interrupt_mappingE13InterruptType12InterruptPinRNSt10error_codeE"></span><span id="espp::Adxl345::set_interrupt_mapping__InterruptType.InterruptPin.std::error_codeR"></span><span class="target" id="classespp_1_1Adxl345_1a88af28002ae5e5dbbbff535cc15aec32"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_interrupt_mapping</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Adxl34513InterruptTypeE" title="espp::Adxl345::InterruptType"><span class="n"><span class="pre">InterruptType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <a class="reference internal" href="#_CPPv4N4espp7Adxl34512InterruptPinE" title="espp::Adxl345::InterruptPin"><span class="n"><span class="pre">InterruptPin</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">pin</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl34521set_interrupt_mappingE13InterruptType12InterruptPinRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the interrupt mapping. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>type</strong> – Type of interrupt to map </p></li>
+<li><p><strong>pin</strong> – <a class="reference internal" href="../interrupt.html#classespp_1_1Interrupt"><span class="std std-ref">Interrupt</span></a> pin to map to </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if setting interrupt mapping was successful, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7Adxl3455probeERNSt10error_codeE">
+<span id="_CPPv3NK4espp7Adxl3455probeERNSt10error_codeE"></span><span id="_CPPv2NK4espp7Adxl3455probeERNSt10error_codeE"></span><span id="espp::Adxl345::probe__std::error_codeRC"></span><span class="target" id="classespp_1_1BasePeripheral_1a05481a009a7302fff3b43d301de6b1eb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">probe</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7Adxl3455probeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Probe the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the probe function is not set, this function will return false and set the error code to operation_not_supported </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is only available if UseAddress is true </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code to set if there is an error </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the peripheral is found </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34511set_addressE7uint8_t">
+<span id="_CPPv3N4espp7Adxl34511set_addressE7uint8_t"></span><span id="_CPPv2N4espp7Adxl34511set_addressE7uint8_t"></span><span id="espp::Adxl345::set_address__uint8_t"></span><span class="target" id="classespp_1_1BasePeripheral_1a31fb8ec471403bf9be06428dbc46277a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_address</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">address</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl34511set_addressE7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the address of the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is only available if UseAddress is true </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>address</strong> – The address of the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3459set_probeERK8probe_fn">
+<span id="_CPPv3N4espp7Adxl3459set_probeERK8probe_fn"></span><span id="_CPPv2N4espp7Adxl3459set_probeERK8probe_fn"></span><span id="espp::Adxl345::set_probe__probe_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a5b5d7753ea6ccf361e495fdc80c81f19"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_probe</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Adxl3458probe_fnE" title="espp::Adxl345::probe_fn"><span class="n"><span class="pre">probe_fn</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">probe</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl3459set_probeERK8probe_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the probe function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the probe function is usually set in the constructor. If you need to change the probe function, consider using the set_config function instead. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is only available if UseAddress is true </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>probe</strong> – The probe function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3459set_writeERK8write_fn">
+<span id="_CPPv3N4espp7Adxl3459set_writeERK8write_fn"></span><span id="_CPPv2N4espp7Adxl3459set_writeERK8write_fn"></span><span id="espp::Adxl345::set_write__write_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1ab5d5d18cd4e8893ed4f937dcfdaba5ba"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_write</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">write_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">write</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl3459set_writeERK8write_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the write function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the write function is usually set in the constructor. If you need to change the write function, consider using the set_config function instead. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>write</strong> – The write function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3458set_readERK7read_fn">
+<span id="_CPPv3N4espp7Adxl3458set_readERK7read_fn"></span><span id="_CPPv2N4espp7Adxl3458set_readERK7read_fn"></span><span id="espp::Adxl345::set_read__read_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1aa6d8131a30233e8439628815db8b1843"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_read</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">read_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">read</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl3458set_readERK7read_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the read function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the read function is usually set in the constructor. If you need to change the read function, consider using the set_config function instead. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>read</strong> – The read function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34517set_read_registerERK16read_register_fn">
+<span id="_CPPv3N4espp7Adxl34517set_read_registerERK16read_register_fn"></span><span id="_CPPv2N4espp7Adxl34517set_read_registerERK16read_register_fn"></span><span id="espp::Adxl345::set_read_register__read_register_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a72e039592417cd32bc47c77120005d3f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_read_register</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">read_register_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">read_register</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl34517set_read_registerERK16read_register_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the read register function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the read register function is usually set in the constructor. If you need to change the read register function, consider using the set_config function instead. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>read_register</strong> – The read register function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34519set_write_then_readERK18write_then_read_fn">
+<span id="_CPPv3N4espp7Adxl34519set_write_then_readERK18write_then_read_fn"></span><span id="_CPPv2N4espp7Adxl34519set_write_then_readERK18write_then_read_fn"></span><span id="espp::Adxl345::set_write_then_read__write_then_read_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a07b152dbfba43b5c82a498416f6887b2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_write_then_read</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">write_then_read_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">write_then_read</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl34519set_write_then_readERK18write_then_read_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the write then read function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the write then read function is usually set in the constructor. If you need to change the write then </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>write_then_read</strong> – The write then read function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34534set_separate_write_then_read_delayERKNSt6chrono12millisecondsE">
+<span id="_CPPv3N4espp7Adxl34534set_separate_write_then_read_delayERKNSt6chrono12millisecondsE"></span><span id="_CPPv2N4espp7Adxl34534set_separate_write_then_read_delayERKNSt6chrono12millisecondsE"></span><span id="espp::Adxl345::set_separate_write_then_read_delay__std::chrono::millisecondsCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a8c70b96c37525f90cc85ddfe4a40b82a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_separate_write_then_read_delay</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">milliseconds</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">delay</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl34534set_separate_write_then_read_delayERKNSt6chrono12millisecondsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the delay between the write and read operations in write_then_read </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the delay is usually set in the constructor. If you need to change the delay, consider using the set_config function instead. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This delay is only used if the write_then_read function is not set to a custom function and the write and read functions are separate functions. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>delay</strong> – The delay between the write and read operations in write_then_read </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34510set_configERK6Config">
+<span id="_CPPv3N4espp7Adxl34510set_configERK6Config"></span><span id="_CPPv2N4espp7Adxl34510set_configERK6Config"></span><span id="espp::Adxl345::set_config__ConfigCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a163b98a30940711b23a7e7dce81efe0c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_config</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Adxl3456ConfigE" title="espp::Adxl345::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl34510set_configERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the configuration for the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The configuration should normally be set in the constructor, but this function can be used to change the configuration after the peripheral has been created - for instance if the peripheral could be found on different communications buses. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – The configuration for the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34510set_configERR6Config">
+<span id="_CPPv3N4espp7Adxl34510set_configERR6Config"></span><span id="_CPPv2N4espp7Adxl34510set_configERR6Config"></span><span id="espp::Adxl345::set_config__ConfigRR"></span><span class="target" id="classespp_1_1BasePeripheral_1a704004cfda66bf3ce5ed725b3003c32b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_config</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Adxl3456ConfigE" title="espp::Adxl345::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl34510set_configERR6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the configuration for the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The configuration should normally be set in the constructor, but this function can be used to change the configuration after the peripheral has been created - for instance if the peripheral could be found on different communications buses. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – The configuration for the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7Adxl3456configEv">
+<span id="_CPPv3NK4espp7Adxl3456configEv"></span><span id="_CPPv2NK4espp7Adxl3456configEv"></span><span id="espp::Adxl345::configC"></span><span class="target" id="classespp_1_1BasePeripheral_1ae66896cf25c9dde79522f354cdb23896"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Adxl3456ConfigE" title="espp::Adxl345::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">config</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7Adxl3456configEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the configuration for the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The configuration for the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7Adxl3457addressEv">
+<span id="_CPPv3NK4espp7Adxl3457addressEv"></span><span id="_CPPv2NK4espp7Adxl3457addressEv"></span><span id="espp::Adxl345::addressC"></span><span class="target" id="classespp_1_1BasePeripheral_1add730fb3307dd52ed5f8905a576e7ecc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">address</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7Adxl3457addressEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the address of the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The address of the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7Adxl3458get_nameEv">
+<span id="_CPPv3NK4espp7Adxl3458get_nameEv"></span><span id="_CPPv2NK4espp7Adxl3458get_nameEv"></span><span id="espp::Adxl345::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7Adxl3458get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34511set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp7Adxl34511set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp7Adxl34511set_log_tagERKNSt11string_viewE"></span><span id="espp::Adxl345::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl34511set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7Adxl34513get_log_levelEv">
+<span id="_CPPv3NK4espp7Adxl34513get_log_levelEv"></span><span id="_CPPv2NK4espp7Adxl34513get_log_levelEv"></span><span id="espp::Adxl345::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7Adxl34513get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34513set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp7Adxl34513set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp7Adxl34513set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::Adxl345::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl34513set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34517set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp7Adxl34517set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp7Adxl34517set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::Adxl345::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl34517set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../ws_s3_touch.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7Adxl34517get_log_verbosityEv">
+<span id="_CPPv3NK4espp7Adxl34517get_log_verbosityEv"></span><span id="_CPPv2NK4espp7Adxl34517get_log_verbosityEv"></span><span id="espp::Adxl345::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7Adxl34517get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../ws_s3_touch.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34518set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp7Adxl34518set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp7Adxl34518set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::Adxl345::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Adxl34518set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl34515DEFAULT_ADDRESSE">
+<span id="_CPPv3N4espp7Adxl34515DEFAULT_ADDRESSE"></span><span id="_CPPv2N4espp7Adxl34515DEFAULT_ADDRESSE"></span><span id="espp::Adxl345::DEFAULT_ADDRESS__std::uint8_t"></span><span class="target" id="classespp_1_1Adxl345_1a09725fc7187fbef471f4d412d7fbc869"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DEFAULT_ADDRESS</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x53</span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl34515DEFAULT_ADDRESSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Default I2C address of the ADXL345. </p>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3456ConfigE">
+<span id="_CPPv3N4espp7Adxl3456ConfigE"></span><span id="_CPPv2N4espp7Adxl3456ConfigE"></span><span id="espp::Adxl345::Config"></span><span class="target" id="structespp_1_1Adxl345_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3456ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration for the ADXL345. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3456Config14device_addressE">
+<span id="_CPPv3N4espp7Adxl3456Config14device_addressE"></span><span id="_CPPv2N4espp7Adxl3456Config14device_addressE"></span><span id="espp::Adxl345::Config::device_address__std::uint8_t"></span><span class="target" id="structespp_1_1Adxl345_1_1Config_1a8213b9e3e9bc26b1f35368a5fa97c674"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">device_address</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Adxl34515DEFAULT_ADDRESSE" title="espp::Adxl345::DEFAULT_ADDRESS"><span class="n"><span class="pre">DEFAULT_ADDRESS</span></span></a><a class="headerlink" href="#_CPPv4N4espp7Adxl3456Config14device_addressE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>I2C address of the device. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3456Config5rangeE">
+<span id="_CPPv3N4espp7Adxl3456Config5rangeE"></span><span id="_CPPv2N4espp7Adxl3456Config5rangeE"></span><span id="espp::Adxl345::Config::range__Range"></span><span class="target" id="structespp_1_1Adxl345_1_1Config_1a73065674fdcb43333a21ac3639b1c33a"></span><a class="reference internal" href="#_CPPv4N4espp7Adxl3455RangeE" title="espp::Adxl345::Range"><span class="n"><span class="pre">Range</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">range</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Adxl3455Range8RANGE_2GE" title="espp::Adxl345::RANGE_2G"><span class="n"><span class="pre">RANGE_2G</span></span></a><a class="headerlink" href="#_CPPv4N4espp7Adxl3456Config5rangeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Range of the accelerometer. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3456Config9data_rateE">
+<span id="_CPPv3N4espp7Adxl3456Config9data_rateE"></span><span id="_CPPv2N4espp7Adxl3456Config9data_rateE"></span><span id="espp::Adxl345::Config::data_rate__DataRate"></span><span class="target" id="structespp_1_1Adxl345_1_1Config_1a2bafd86f6e0bee93d0b2f6fda8a168b0"></span><a class="reference internal" href="#_CPPv4N4espp7Adxl3458DataRateE" title="espp::Adxl345::DataRate"><span class="n"><span class="pre">DataRate</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">data_rate</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Adxl3458DataRate11RATE_100_HZE" title="espp::Adxl345::RATE_100_HZ"><span class="n"><span class="pre">RATE_100_HZ</span></span></a><a class="headerlink" href="#_CPPv4N4espp7Adxl3456Config9data_rateE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Output data rate. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3456Config9auto_initE">
+<span id="_CPPv3N4espp7Adxl3456Config9auto_initE"></span><span id="_CPPv2N4espp7Adxl3456Config9auto_initE"></span><span id="espp::Adxl345::Config::auto_init__b"></span><span class="target" id="structespp_1_1Adxl345_1_1Config_1a4ebf20df12faba6c29d89faac5f7289c"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">auto_init</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3456Config9auto_initE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Automatically initialize the device on construction. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3456Config5writeE">
+<span id="_CPPv3N4espp7Adxl3456Config5writeE"></span><span id="_CPPv2N4espp7Adxl3456Config5writeE"></span><span id="espp::Adxl345::Config::write__BasePeripheral:std::uint8_t.true:::write_fn"></span><span class="target" id="structespp_1_1Adxl345_1_1Config_1a38637da5797ddacc56a15af12f6ed0a8"></span><a class="reference internal" href="../base_peripheral.html#_CPPv4I_NSt8integralE_b_b_bEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">write_fn</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3456Config5writeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to write to the device. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3456Config4readE">
+<span id="_CPPv3N4espp7Adxl3456Config4readE"></span><span id="_CPPv2N4espp7Adxl3456Config4readE"></span><span id="espp::Adxl345::Config::read__BasePeripheral:std::uint8_t.true:::read_fn"></span><span class="target" id="structespp_1_1Adxl345_1_1Config_1a3d6debbc941d9eff1b73041839e18df3"></span><a class="reference internal" href="../base_peripheral.html#_CPPv4I_NSt8integralE_b_b_bEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">read_fn</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3456Config4readE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to read from the device. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3456Config9log_levelE">
+<span id="_CPPv3N4espp7Adxl3456Config9log_levelE"></span><span id="_CPPv2N4espp7Adxl3456Config9log_levelE"></span><span id="espp::Adxl345::Config::log_level__espp::Logger::Verbosity"></span><span class="target" id="structespp_1_1Adxl345_1_1Config_1a198f0cfe8d7de3c371dfd52004efdbaf"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3456Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Verbosity for the logger. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3454DataE">
+<span id="_CPPv3N4espp7Adxl3454DataE"></span><span id="_CPPv2N4espp7Adxl3454DataE"></span><span id="espp::Adxl345::Data"></span><span class="target" id="structespp_1_1Adxl345_1_1Data"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Data</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3454DataE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="#structespp_1_1Adxl345_1_1Data"><span class="std std-ref">Data</span></a> structure for accelerometer readings. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3454Data1xE">
+<span id="_CPPv3N4espp7Adxl3454Data1xE"></span><span id="_CPPv2N4espp7Adxl3454Data1xE"></span><span id="espp::Adxl345::Data::x__float"></span><span class="target" id="structespp_1_1Adxl345_1_1Data_1a0f25c0e02b726e38f9554048287b8b39"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">x</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3454Data1xE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>X-axis acceleration in g. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3454Data1yE">
+<span id="_CPPv3N4espp7Adxl3454Data1yE"></span><span id="_CPPv2N4espp7Adxl3454Data1yE"></span><span id="espp::Adxl345::Data::y__float"></span><span class="target" id="structespp_1_1Adxl345_1_1Data_1ae10ea2817f4e5135cb9f52ac8f034205"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">y</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3454Data1yE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Y-axis acceleration in g. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Adxl3454Data1zE">
+<span id="_CPPv3N4espp7Adxl3454Data1zE"></span><span id="_CPPv2N4espp7Adxl3454Data1zE"></span><span id="espp::Adxl345::Data::z__float"></span><span class="target" id="structespp_1_1Adxl345_1_1Data_1a1d7ec97deb6e2a91fb74f0e320d7d1db"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">z</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Adxl3454Data1zE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Z-axis acceleration in g. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="IMU APIs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="adxl345_example.html" class="btn btn-neutral float-right" title="ADXL345 Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

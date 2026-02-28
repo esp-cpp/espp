@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>COBS Example - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="_static/copybutton.js?v=ff8fa330"></script>
+    <script src="_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'cobs_example';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Color APIs" href="color.html" />
+    <link rel="prev" title="COBS (Consistent Overhead Byte Stuffing)" href="cobs.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            ESPP
+              <img src="_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_component.html">Base Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l1"><a class="reference internal" href="battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="byte90.html">ALXV Labs Byte90</a></li>
+<li class="toctree-l1"><a class="reference internal" href="controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="cobs.html">COBS (Consistent Overhead Byte Stuffing)</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">COBS Example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#what-this-example-tests">What This Example Tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detailed-test-coverage">Detailed Test Coverage</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#single-packet-test-tests-1-12">Single Packet Test (Tests 1-12)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#streaming-encoder-test-tests-1-5">Streaming Encoder Test (Tests 1-5)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#streaming-decoder-test-tests-1-6">Streaming Decoder Test (Tests 1-6)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#edge-cases-test-tests-1-4">Edge Cases Test (Tests 1-4)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#test-scenario-48-byte-packets">Test Scenario: 48-byte Packets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#build-and-flash">Build and Flash</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#monitor-commands">Monitor Commands</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#expected-output">Expected Output</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#key-features-demonstrated">Key Features Demonstrated</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cobs.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="esp32_timer_cam.html">ESP32 TimerCam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="esp_box.html">ESP BOX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hid/index.html">HID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="interrupt.html">Interrupt APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="iperf_menu.html">Iperf Menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="m5stack_tab5.html">M5Stack Tab5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="matouch_rotary_display.html">MaTouch Rotary Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="motorgo_mini.html">MotorGo Mini</a></li>
+<li class="toctree-l1"><a class="reference internal" href="neopixel.html">Neopixel APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nvs.html">NVS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="remote_debug.html">Remote Debug APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="runqueue.html">RunQueue APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="seeed_studio_round_display.html">Seeed Studio Round Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="t_deck.html">LilyGo T-Deck</a></li>
+<li class="toctree-l1"><a class="reference internal" href="t_dongle_s3.html">LilyGo T-Dongle S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wrover_kit.html">ESP32-WROVER-KIT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="cobs.html">COBS (Consistent Overhead Byte Stuffing)</a></li>
+      <li class="breadcrumb-item active">COBS Example</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/32e8215e/docs/en/cobs_example.md" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="cobs-example">
+<h1>COBS Example<a class="headerlink" href="#cobs-example" title="Permalink to this heading"></a></h1>
+<p>This example demonstrates the COBS (Consistent Overhead Byte Stuffing) component with comprehensive tests and real-world usage scenarios.</p>
+<section id="what-this-example-tests">
+<h2>What This Example Tests<a class="headerlink" href="#what-this-example-tests" title="Permalink to this heading"></a></h2>
+<p>The example runs four main test suites:</p>
+<ol class="arabic simple">
+<li><p><strong>Single Packet Test</strong>: Basic encoding/decoding of individual packets with span-based API</p></li>
+<li><p><strong>Streaming Encoder Test</strong>: Batching multiple packets for transmission with buffer management</p></li>
+<li><p><strong>Streaming Decoder Test</strong>: Processing fragmented incoming data streams with debugging support</p></li>
+<li><p><strong>Edge Cases Test</strong>: Empty packets, all zeros, no zeros, and maximum block size</p></li>
+</ol>
+</section>
+<section id="detailed-test-coverage">
+<h2>Detailed Test Coverage<a class="headerlink" href="#detailed-test-coverage" title="Permalink to this heading"></a></h2>
+<section id="single-packet-test-tests-1-12">
+<h3>Single Packet Test (Tests 1-12)<a class="headerlink" href="#single-packet-test-tests-1-12" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Tests 1-6</strong>: Basic encoding/decoding with various data patterns (zeros at different positions, no zeros, all zeros, empty packets, single bytes)</p></li>
+<li><p><strong>Tests 7-8</strong>: Buffer-based encoding/decoding using <code class="docutils literal notranslate"><span class="pre">std::span</span></code> API for embedded systems</p></li>
+<li><p><strong>Tests 9-10</strong>: Buffer size validation - ensures functions return 0 when buffers are too small</p></li>
+<li><p><strong>Tests 11-12</strong>: Static API usage - demonstrates <code class="docutils literal notranslate"><span class="pre">max_encoded_size()</span></code> and <code class="docutils literal notranslate"><span class="pre">max_decoded_size()</span></code> for buffer allocation</p></li>
+</ul>
+</section>
+<section id="streaming-encoder-test-tests-1-5">
+<h3>Streaming Encoder Test (Tests 1-5)<a class="headerlink" href="#streaming-encoder-test-tests-1-5" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Test 1</strong>: Multiple packets with move semantics for efficient memory usage</p></li>
+<li><p><strong>Test 2</strong>: Empty encoder behavior</p></li>
+<li><p><strong>Test 3</strong>: Buffer-based <code class="docutils literal notranslate"><span class="pre">extract_data()</span></code> for direct buffer output</p></li>
+<li><p><strong>Test 4</strong>: Single packet encoding</p></li>
+<li><p><strong>Test 5</strong>: <code class="docutils literal notranslate"><span class="pre">clear()</span></code> method for buffer management</p></li>
+</ul>
+</section>
+<section id="streaming-decoder-test-tests-1-6">
+<h3>Streaming Decoder Test (Tests 1-6)<a class="headerlink" href="#streaming-decoder-test-tests-1-6" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Test 1</strong>: Multiple packets with move semantics for efficient processing</p></li>
+<li><p><strong>Test 2</strong>: Empty decoder behavior</p></li>
+<li><p><strong>Test 3</strong>: Single packet decoding</p></li>
+<li><p><strong>Test 4</strong>: Incomplete packet handling (fragmented data)</p></li>
+<li><p><strong>Test 5</strong>: <code class="docutils literal notranslate"><span class="pre">remaining_data()</span></code> access for debugging and buffer inspection</p></li>
+<li><p><strong>Test 6</strong>: <code class="docutils literal notranslate"><span class="pre">clear()</span></code> method for buffer management</p></li>
+</ul>
+</section>
+<section id="edge-cases-test-tests-1-4">
+<h3>Edge Cases Test (Tests 1-4)<a class="headerlink" href="#edge-cases-test-tests-1-4" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Test 1</strong>: Maximum block size (254 non-zero bytes) - tests COBS overhead limits</p></li>
+<li><p><strong>Test 2</strong>: Alternating zeros and non-zeros - tests complex encoding patterns</p></li>
+<li><p><strong>Test 3</strong>: Consecutive zeros - tests zero handling edge cases</p></li>
+<li><p><strong>Test 4</strong>: Large packet (1000 bytes) - tests performance with realistic packet sizes</p></li>
+</ul>
+</section>
+</section>
+<section id="test-scenario-48-byte-packets">
+<h2>Test Scenario: 48-byte Packets<a class="headerlink" href="#test-scenario-48-byte-packets" title="Permalink to this heading"></a></h2>
+<p>The example uses 48-byte packets to simulate a realistic communication protocol:</p>
+<ul class="simple">
+<li><p><strong>Packet size</strong>: 48 bytes (includes zeros to test COBS encoding)</p></li>
+<li><p><strong>Chunk size</strong>: 100 bytes for encoder, 80 bytes for decoder (simulates bus limitations)</p></li>
+<li><p><strong>Multiple packets</strong>: Tests batching and fragmentation handling</p></li>
+</ul>
+</section>
+<section id="build-and-flash">
+<h2>Build and Flash<a class="headerlink" href="#build-and-flash" title="Permalink to this heading"></a></h2>
+<p>Build the project and flash it to the board, then run monitor tool to view serial output:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>idf.py<span class="w"> </span>-p<span class="w"> </span>PORT<span class="w"> </span>flash<span class="w"> </span>monitor
+</pre></div>
+</div>
+<p>(Replace PORT with the name of the serial port to use.)</p>
+</section>
+<section id="monitor-commands">
+<h2>Monitor Commands<a class="headerlink" href="#monitor-commands" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Exit monitor</strong>: Type <code class="docutils literal notranslate"><span class="pre">Ctrl-]</span></code></p></li>
+<li><p><strong>Reset board</strong>: Type <code class="docutils literal notranslate"><span class="pre">Ctrl+R</span></code></p></li>
+</ul>
+</section>
+<section id="expected-output">
+<h2>Expected Output<a class="headerlink" href="#expected-output" title="Permalink to this heading"></a></h2>
+<p>The example will output:</p>
+<ul class="simple">
+<li><p>Verification results (PASS/FAIL) for all 27 test cases</p></li>
+<li><p>Buffer size information and validation results</p></li>
+<li><p>Static API usage demonstrations with size calculations</p></li>
+<li><p>Buffer-based encoding/decoding test results</p></li>
+<li><p>Streaming encoder/decoder functionality tests</p></li>
+<li><p>Edge case handling verification</p></li>
+<li><p>Summary of all test results</p></li>
+</ul>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>I (305) main_task: Calling app_main()
+[COBS Example/I][0.042]: Starting COBS example!
+[COBS Example/I][0.042]: COBS Encoder/Decoder Example
+[COBS Example/I][0.048]: ============================
+[COBS Example/I][0.053]:
+=== Single Packet Test ===
+[COBS Example/I][0.059]: Test 1: Packet with zeros at positions 0, 28, 43
+[COBS Example/I][0.066]: Test 1: PASS - Zeros at various positions
+[COBS Example/I][0.073]: Test 2: Packet with no zeros (1-48)
+[COBS Example/I][0.079]: Test 2: PASS - No zeros
+[COBS Example/I][0.084]: Test 3: Packet with all zeros
+[COBS Example/I][0.090]: Test 3: PASS - All zeros
+[COBS Example/I][0.095]: Test 4: Empty packet
+[COBS Example/I][0.100]: Test 4: PASS - Empty packet
+[COBS Example/I][0.105]: Test 5: Single byte packet (0x42)
+[COBS Example/I][0.111]: Test 5: PASS - Single byte
+[COBS Example/I][0.117]: Test 6: Single zero byte
+[COBS Example/I][0.122]: Test 6: PASS - Single zero byte
+[COBS Example/I][0.128]: Test 7: Buffer-based encoding
+[COBS Example/I][0.133]: Test 7: PASS - Buffer-based encoding
+[COBS Example/I][0.140]: Test 8: Buffer-based decoding
+[COBS Example/I][0.145]: Test 8: PASS - Buffer-based decoding
+[COBS Example/I][0.151]: Test 9: Buffer size validation - encoding with too small buffer
+[COBS Example/I][0.160]: Test 9: PASS - Buffer size validation (encoding)
+[COBS Example/I][0.167]: Test 10: Buffer size validation - decoding with too small buffer
+[COBS Example/I][0.176]: Test 10: PASS - Buffer size validation (decoding)
+[COBS Example/I][0.183]: Test 11: Static API usage - max_encoded_size
+[COBS Example/I][0.190]: Test 11: PASS - Static API max_encoded_size (required: 9, written: 9)
+[COBS Example/I][0.199]: Test 12: Static API usage - max_decoded_size
+[COBS Example/I][0.207]: Test 12: PASS - Static API max_decoded_size (required: 8, written: 7, original: 7)
+[COBS Example/I][0.217]:
+=== Streaming Encoder Test ===
+[COBS Example/I][0.223]: Test 1: PASS - Multiple packets with move semantics
+[COBS Example/I][0.230]: Test 2: PASS - Empty encoder
+[COBS Example/I][0.236]: Test 3: PASS - Buffer-based extract_data
+[COBS Example/I][0.242]: Test 3: PASS - Single packet
+[COBS Example/I][0.248]: Test 5: clear() method
+[COBS Example/I][0.253]: Test 5: PASS - clear() method
+[COBS Example/I][0.259]:
+=== Streaming Decoder Test ===
+[COBS Example/I][0.265]: Test 1: PASS - Multiple packets with move semantics
+[COBS Example/I][0.272]: Test 2: PASS - Empty decoder
+[COBS Example/I][0.278]: Test 3: PASS - Single packet
+[COBS Example/I][0.283]: Test 4: PASS - Incomplete packet
+[COBS Example/I][0.289]: Test 5: remaining_data() access
+[COBS Example/I][0.295]: Test 5: PASS - remaining_data() access
+[COBS Example/I][0.301]: Test 6: clear() method
+[COBS Example/I][0.306]: Test 6: PASS - clear() method
+[COBS Example/I][0.312]:
+=== Edge Cases Test ===
+[COBS Example/I][0.317]: Test 1: PASS - Maximum block size (254 bytes)
+[COBS Example/I][0.324]: Test 2: PASS - Alternating zeros and non-zeros
+[COBS Example/I][0.331]: Test 3: PASS - Consecutive zeros
+[COBS Example/I][0.338]: Test 4: PASS - Large packet (1000 bytes)
+[COBS Example/I][0.344]: ============================
+[COBS Example/I][0.349]: COBS example complete!
+[COBS Example/I][0.354]: All tests completed successfully!
+</pre></div>
+</div>
+</section>
+<section id="key-features-demonstrated">
+<h2>Key Features Demonstrated<a class="headerlink" href="#key-features-demonstrated" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Span-based API</strong>: Zero-copy operations using <code class="docutils literal notranslate"><span class="pre">std::span</span></code> for efficient data handling</p></li>
+<li><p><strong>Buffer-based encoding/decoding</strong>: Direct buffer operations for embedded systems with limited memory</p></li>
+<li><p><strong>Buffer size calculation</strong>: Static API methods for compile-time buffer size estimation</p></li>
+<li><p><strong>Buffer validation</strong>: Comprehensive buffer size checking and overflow protection</p></li>
+<li><p><strong>Efficient batching</strong>: Multiple packets combined into transmission chunks with move semantics</p></li>
+<li><p><strong>Fragmentation handling</strong>: Incoming data processed in arbitrary chunks with debugging support</p></li>
+<li><p><strong>Error handling</strong>: Invalid packets are skipped gracefully with proper error reporting</p></li>
+<li><p><strong>Edge case robustness</strong>: Handles empty packets, all zeros, large packets, and complex patterns</p></li>
+<li><p><strong>Thread-safe streaming</strong>: Streaming classes with internal locking for multi-threaded environments</p></li>
+<li><p><strong>Memory management</strong>: RAII-based memory management with clear() methods for buffer control</p></li>
+</ul>
+</section>
+<section id="see-also">
+<h2>See Also<a class="headerlink" href="#see-also" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p><span class="xref myst">COBS Component Documentation</span> - Complete API reference</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="cobs.html" class="btn btn-neutral float-left" title="COBS (Consistent Overhead Byte Stuffing)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="color.html" class="btn btn-neutral float-right" title="Color APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

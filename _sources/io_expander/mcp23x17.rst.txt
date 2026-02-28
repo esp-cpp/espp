@@ -1,0 +1,18 @@
+MCP23x17 I/O Expander
+*********************
+
+The `MCP23x17` I/O expander component allows the user to configure inputs,
+outputs, interrupts, etc. via a serial interface such as SPI or I2C.
+
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   mcp23x17_example
+
+.. ---------------------------- API Reference ----------------------------------
+
+API Reference
+-------------
+
+.. include-build-file:: inc/mcp23x17.inc

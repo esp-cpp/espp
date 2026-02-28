@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ODrive ASCII Protocol Component - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="_static/copybutton.js?v=ff8fa330"></script>
+    <script src="_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'odrive_ascii';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="ODrive ASCII Example" href="odrive_ascii_example.html" />
+    <link rel="prev" title="NVS Example" href="nvs_example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            ESPP
+              <img src="_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_component.html">Base Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l1"><a class="reference internal" href="battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="byte90.html">ALXV Labs Byte90</a></li>
+<li class="toctree-l1"><a class="reference internal" href="controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cobs.html">COBS (Consistent Overhead Byte Stuffing)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="esp32_timer_cam.html">ESP32 TimerCam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="esp_box.html">ESP BOX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hid/index.html">HID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="interrupt.html">Interrupt APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="iperf_menu.html">Iperf Menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="m5stack_tab5.html">M5Stack Tab5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="matouch_rotary_display.html">MaTouch Rotary Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="motorgo_mini.html">MotorGo Mini</a></li>
+<li class="toctree-l1"><a class="reference internal" href="neopixel.html">Neopixel APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nvs.html">NVS APIs</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">ODrive ASCII Protocol Component</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#features">Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#basic-usage">Basic Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#commands">Commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#notes">Notes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="odrive_ascii_example.html">ODrive ASCII Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="remote_debug.html">Remote Debug APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="runqueue.html">RunQueue APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="seeed_studio_round_display.html">Seeed Studio Round Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="t_deck.html">LilyGo T-Deck</a></li>
+<li class="toctree-l1"><a class="reference internal" href="t_dongle_s3.html">LilyGo T-Dongle S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wrover_kit.html">ESP32-WROVER-KIT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">ODrive ASCII Protocol Component</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/32e8215e/docs/en/odrive_ascii.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="odrive-ascii-protocol-component">
+<h1>ODrive ASCII Protocol Component<a class="headerlink" href="#odrive-ascii-protocol-component" title="Permalink to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">espp::OdriveAscii</span></code> implements a minimal, dependency-free server for the
+ODrive-compatible ASCII protocol. It parses incoming bytes into commands and
+produces response bytes for transmission by the caller. It does not perform any
+I/O itself and is transport-agnostic (UART, USB CDC, socket, etc.).</p>
+</section>
+<section id="features">
+<h2>Features<a class="headerlink" href="#features" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p>Register string-addressable properties with read/write callbacks (no exceptions; uses std::error_code)</p></li>
+<li><p>High-rate commands: <code class="docutils literal notranslate"><span class="pre">p</span></code> (position), <code class="docutils literal notranslate"><span class="pre">v</span></code> (velocity), <code class="docutils literal notranslate"><span class="pre">t</span></code>/<code class="docutils literal notranslate"><span class="pre">c</span></code> (torque/current)</p></li>
+<li><p>Property access commands: <code class="docutils literal notranslate"><span class="pre">r</span> <span class="pre">&lt;path&gt;</span></code>, <code class="docutils literal notranslate"><span class="pre">w</span> <span class="pre">&lt;path&gt;</span> <span class="pre">&lt;value&gt;</span></code></p></li>
+<li><p>Re-entrant, thread-safe; minimal allocations</p></li>
+<li><p>No direct hardware dependencies; uses <code class="docutils literal notranslate"><span class="pre">std::function</span></code> for DI</p></li>
+</ul>
+</section>
+<section id="basic-usage">
+<h2>Basic Usage<a class="headerlink" href="#basic-usage" title="Permalink to this heading"></a></h2>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">espp</span><span class="o">::</span><span class="n">OdriveAscii</span><span class="w"> </span><span class="nf">proto</span><span class="p">({.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">});</span>
+<span class="kt">float</span><span class="w"> </span><span class="n">position</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">;</span>
+<span class="n">proto</span><span class="p">.</span><span class="n">register_float_property</span><span class="p">(</span><span class="s">&quot;axis0.encoder.pos_estimate&quot;</span><span class="p">,</span>
+<span class="w">                              </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">position</span><span class="p">;</span><span class="w"> </span><span class="p">},</span>
+<span class="w">                              </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="kt">float</span><span class="w"> </span><span class="n">v</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="o">&amp;</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">position</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">v</span><span class="p">;</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span><span class="w"> </span><span class="p">});</span>
+<span class="n">proto</span><span class="p">.</span><span class="n">on_position_command</span><span class="p">([</span><span class="o">&amp;</span><span class="p">](</span><span class="kt">int</span><span class="w"> </span><span class="n">axis</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">pos</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">vel_ff</span><span class="p">,</span>
+<span class="w">                              </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">torque_ff</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="o">&amp;</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">axis</span><span class="p">;</span><span class="w"> </span><span class="n">position</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pos</span><span class="p">;</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="p">});</span>
+
+<span class="c1">// Feed incoming data (from UART, etc.)</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">resp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">proto</span><span class="p">.</span><span class="n">process_bytes</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">span</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">rx_buf</span><span class="p">,</span><span class="w"> </span><span class="n">rx_len</span><span class="p">));</span>
+<span class="c1">// Transmit resp back over the same transport</span>
+</pre></div>
+</div>
+</section>
+<section id="commands">
+<h2>Commands<a class="headerlink" href="#commands" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">help</span></code>: prints brief usage</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">r</span> <span class="pre">&lt;path&gt;</span></code>: reads a registered property, returns <code class="docutils literal notranslate"><span class="pre">&lt;value&gt;\n</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">w</span> <span class="pre">&lt;path&gt;</span> <span class="pre">&lt;value&gt;</span></code>: writes a registered property, returns <code class="docutils literal notranslate"><span class="pre">OK\n</span></code> or <code class="docutils literal notranslate"><span class="pre">ERR\n</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">p</span> <span class="pre">&lt;axis&gt;</span> <span class="pre">&lt;pos&gt;</span> <span class="pre">[vel_ff</span> <span class="pre">[torque_ff]]</span></code>: position setpoint; returns <code class="docutils literal notranslate"><span class="pre">OK\n</span></code> or <code class="docutils literal notranslate"><span class="pre">ERR\n</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">v</span> <span class="pre">&lt;axis&gt;</span> <span class="pre">&lt;vel&gt;</span> <span class="pre">[torque_ff]</span></code>: velocity setpoint</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">c</span> <span class="pre">&lt;axis&gt;</span> <span class="pre">&lt;torque_nm&gt;</span></code>: torque (Nm) setpoint</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">t</span> <span class="pre">&lt;axis&gt;</span> <span class="pre">&lt;goal_pos_turns&gt;</span></code>: trajectory goal position (turns)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">f</span> <span class="pre">&lt;axis&gt;</span></code>: feedback (returns “&lt;pos&gt; &lt;vel&gt;n”)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">es</span> <span class="pre">&lt;axis&gt;</span> <span class="pre">&lt;abs_pos_turns&gt;</span></code>: set encoder absolute position (turns)</p></li>
+</ul>
+</section>
+<section id="notes">
+<h2>Notes<a class="headerlink" href="#notes" title="Permalink to this heading"></a></h2>
+<p>This is a pragmatic subset designed for easy integration with the Python
+<code class="docutils literal notranslate"><span class="pre">odrive</span></code> package’s ASCII endpoint. Extend by registering additional properties
+that mirror your controller’s configuration/state. The component never touches
+hardware or transport layers.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="odrive_ascii_example.html">ODrive ASCII Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="odrive_ascii_example.html#requirements">Requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="odrive_ascii_example.html#build">Build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="odrive_ascii_example.html#flash-and-monitor">Flash and Monitor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="odrive_ascii_example.html#example-output">Example Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="odrive_ascii_example.html#interactive-usage">Interactive Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="odrive_ascii_example.html#notes">Notes</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/32e8215e/components/odrive_ascii/include/odrive_ascii.hpp">components/odrive_ascii/include/odrive_ascii.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11OdriveAsciiE">
+<span id="_CPPv3N4espp11OdriveAsciiE"></span><span id="_CPPv2N4espp11OdriveAsciiE"></span><span id="espp::OdriveAscii"></span><span class="target" id="classespp_1_1OdriveAscii"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OdriveAscii</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp11OdriveAsciiE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Minimal ODrive-compatible ASCII protocol server. </p>
+<p>Parses ODrive-style ASCII commands from an input byte stream and generates ASCII responses for the caller to transmit. This component does not perform any I/O itself; applications must feed incoming bytes via <a class="reference internal" href="#classespp_1_1OdriveAscii_1a698500d463e4bfa190498455c963ec7e"><span class="std std-ref">process_bytes()</span></a> and send the returned response bytes over their transport (UART/USB/etc.).</p>
+<p>Supported commands (subset of ODrive ASCII):<ul class="simple">
+<li><p>r &lt;path&gt;</p></li>
+<li><p>w &lt;path&gt; &lt;value&gt;</p></li>
+<li><p>p &lt;axis&gt; &lt;pos&gt; [vel_ff [torque_ff]]</p></li>
+<li><p>v &lt;axis&gt; &lt;vel&gt; [torque_ff]</p></li>
+<li><p>c &lt;axis&gt; &lt;torque_nm&gt;</p></li>
+<li><p>t &lt;axis&gt; &lt;goal_pos_turns&gt;</p></li>
+<li><p>f &lt;axis&gt;</p></li>
+<li><p>es &lt;axis&gt; &lt;abs_pos_turns&gt;</p></li>
+<li><p>help</p></li>
+</ul>
+</p>
+<p>Applications integrate by registering properties and command callbacks via std::function dependency injection. The component is thread-safe.</p>
+<p>For more information about this protocol see the odrive documentation: <a class="reference external" href="https://docs.odriverobotics.com/v/latest/manual/ascii-protocol.html">https://docs.odriverobotics.com/v/latest/manual/ascii-protocol.html</a></p>
+<section id="classespp_1_1OdriveAscii_1odrive_ascii_ex1">
+<h4>Basic Example<a class="headerlink" href="#classespp_1_1OdriveAscii_1odrive_ascii_ex1" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1OdriveAscii_1odrive_ascii_ex1"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1">// Simulated motor state</span>
+<span class="w">  </span><span class="k">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">position</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">velocity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">torque</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="n">state</span><span class="p">;</span>
+
+<span class="w">  </span><span class="n">OdriveAscii</span><span class="o">::</span><span class="n">Config</span><span class="w"> </span><span class="n">cfg</span><span class="p">;</span>
+<span class="w">  </span><span class="n">cfg</span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">;</span>
+<span class="w">  </span><span class="n">OdriveAscii</span><span class="w"> </span><span class="nf">proto</span><span class="p">(</span><span class="n">cfg</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Register some read/write properties matching ODrive-style paths</span>
+<span class="w">  </span><span class="n">proto</span><span class="p">.</span><span class="n">register_float_property</span><span class="p">(</span>
+<span class="w">      </span><span class="s">&quot;axis0.encoder.pos_estimate&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">state</span><span class="p">.</span><span class="n">position</span><span class="p">;</span><span class="w"> </span><span class="p">},</span>
+<span class="w">      </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="kt">float</span><span class="w"> </span><span class="n">v</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="o">&amp;</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">ec</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+<span class="w">        </span><span class="n">state</span><span class="p">.</span><span class="n">position</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">v</span><span class="p">;</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">      </span><span class="p">});</span>
+<span class="w">  </span><span class="n">proto</span><span class="p">.</span><span class="n">register_float_property</span><span class="p">(</span><span class="s">&quot;axis0.encoder.vel_estimate&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">state</span><span class="p">.</span><span class="n">velocity</span><span class="p">;</span><span class="w"> </span><span class="p">});</span>
+<span class="w">  </span><span class="n">proto</span><span class="p">.</span><span class="n">register_float_property</span><span class="p">(</span>
+<span class="w">      </span><span class="s">&quot;axis0.controller.input_pos&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">state</span><span class="p">.</span><span class="n">position</span><span class="p">;</span><span class="w"> </span><span class="p">},</span>
+<span class="w">      </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="kt">float</span><span class="w"> </span><span class="n">v</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="o">&amp;</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">ec</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+<span class="w">        </span><span class="n">state</span><span class="p">.</span><span class="n">position</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">v</span><span class="p">;</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">      </span><span class="p">});</span>
+
+<span class="w">  </span><span class="c1">// High-rate command callbacks</span>
+<span class="w">  </span><span class="n">proto</span><span class="p">.</span><span class="n">on_position_command</span><span class="p">([</span><span class="o">&amp;</span><span class="p">](</span><span class="kt">int</span><span class="w"> </span><span class="n">axis</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">pos</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">vel_ff</span><span class="p">,</span>
+<span class="w">                                </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">torque_ff</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="o">&amp;</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">axis</span><span class="p">;</span>
+<span class="w">    </span><span class="n">ec</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+<span class="w">    </span><span class="n">state</span><span class="p">.</span><span class="n">position</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pos</span><span class="p">;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">vel_ff</span><span class="p">.</span><span class="n">has_value</span><span class="p">())</span>
+<span class="w">      </span><span class="n">state</span><span class="p">.</span><span class="n">velocity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">*</span><span class="n">vel_ff</span><span class="p">;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">torque_ff</span><span class="p">.</span><span class="n">has_value</span><span class="p">())</span>
+<span class="w">      </span><span class="n">state</span><span class="p">.</span><span class="n">torque</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">*</span><span class="n">torque_ff</span><span class="p">;</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">  </span><span class="p">});</span>
+<span class="w">  </span><span class="n">proto</span><span class="p">.</span><span class="n">on_velocity_command</span><span class="p">(</span>
+<span class="w">      </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="kt">int</span><span class="w"> </span><span class="n">axis</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">vel</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">torque_ff</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="o">&amp;</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">axis</span><span class="p">;</span>
+<span class="w">        </span><span class="n">ec</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+<span class="w">        </span><span class="n">state</span><span class="p">.</span><span class="n">velocity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">vel</span><span class="p">;</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">torque_ff</span><span class="p">.</span><span class="n">has_value</span><span class="p">())</span>
+<span class="w">          </span><span class="n">state</span><span class="p">.</span><span class="n">torque</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">*</span><span class="n">torque_ff</span><span class="p">;</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">      </span><span class="p">});</span>
+<span class="w">  </span><span class="n">proto</span><span class="p">.</span><span class="n">on_torque_command</span><span class="p">([</span><span class="o">&amp;</span><span class="p">](</span><span class="kt">int</span><span class="w"> </span><span class="n">axis</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">tq</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="o">&amp;</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">axis</span><span class="p">;</span>
+<span class="w">    </span><span class="n">ec</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+<span class="w">    </span><span class="n">state</span><span class="p">.</span><span class="n">torque</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tq</span><span class="p">;</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">  </span><span class="p">});</span>
+<span class="w">  </span><span class="c1">// Trajectory: t &lt;axis&gt; &lt;goal_pos_turns&gt;</span>
+<span class="w">  </span><span class="n">proto</span><span class="p">.</span><span class="n">on_trajectory_command</span><span class="p">([</span><span class="o">&amp;</span><span class="p">](</span><span class="kt">int</span><span class="w"> </span><span class="n">axis</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">goal</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="o">&amp;</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">axis</span><span class="p">;</span>
+<span class="w">    </span><span class="n">ec</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+<span class="w">    </span><span class="n">state</span><span class="p">.</span><span class="n">position</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">goal</span><span class="p">;</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">  </span><span class="p">});</span>
+<span class="w">  </span><span class="c1">// Feedback: f &lt;axis&gt; -&gt; &quot;pos vel\n&quot;</span>
+<span class="w">  </span><span class="n">proto</span><span class="p">.</span><span class="n">on_feedback_request</span><span class="p">([</span><span class="o">&amp;</span><span class="p">](</span><span class="kt">int</span><span class="w"> </span><span class="n">axis</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="o">&amp;</span><span class="n">pos_out</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="o">&amp;</span><span class="n">vel_out</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="o">&amp;</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">axis</span><span class="p">;</span>
+<span class="w">    </span><span class="n">ec</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+<span class="w">    </span><span class="n">pos_out</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">state</span><span class="p">.</span><span class="n">position</span><span class="p">;</span>
+<span class="w">    </span><span class="n">vel_out</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">state</span><span class="p">.</span><span class="n">velocity</span><span class="p">;</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">  </span><span class="p">});</span>
+<span class="w">  </span><span class="c1">// Encoder set absolute: es &lt;axis&gt; &lt;abs_pos_turns&gt;</span>
+<span class="w">  </span><span class="n">proto</span><span class="p">.</span><span class="n">on_encoder_set_absolute</span><span class="p">([</span><span class="o">&amp;</span><span class="p">](</span><span class="kt">int</span><span class="w"> </span><span class="n">axis</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">abs_pos</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="o">&amp;</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">axis</span><span class="p">;</span>
+<span class="w">    </span><span class="n">ec</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+<span class="w">    </span><span class="n">state</span><span class="p">.</span><span class="n">position</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">abs_pos</span><span class="p">;</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">  </span><span class="p">});</span>
+
+<span class="w">  </span><span class="c1">// ------------------------ Basic scripted self-test ------------------------</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">script</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;r axis0.encoder.pos_estimate</span><span class="se">\r\n</span><span class="s">&quot;</span>
+<span class="w">                         </span><span class="s">&quot;w axis0.controller.input_pos 12.34</span><span class="se">\n</span><span class="s">&quot;</span>
+<span class="w">                         </span><span class="s">&quot;r axis0.encoder.pos_estimate</span><span class="se">\n</span><span class="s">&quot;</span>
+<span class="w">                         </span><span class="s">&quot;p 0 1.0 0.5 0.1</span><span class="se">\r\n</span><span class="s">&quot;</span>
+<span class="w">                         </span><span class="s">&quot;v 0 2.0 0.2</span><span class="se">\r\n</span><span class="s">&quot;</span>
+<span class="w">                         </span><span class="s">&quot;t 0 0.3</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">span</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">bytes</span><span class="p">(</span><span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="o">*&gt;</span><span class="p">(</span><span class="n">script</span><span class="p">),</span><span class="w"> </span><span class="n">strlen</span><span class="p">(</span><span class="n">script</span><span class="p">));</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">response</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">proto</span><span class="p">.</span><span class="n">process_bytes</span><span class="p">(</span><span class="n">bytes</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="nf">out</span><span class="p">(</span><span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*&gt;</span><span class="p">(</span><span class="n">response</span><span class="p">.</span><span class="n">data</span><span class="p">()),</span><span class="w"> </span><span class="n">response</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Scripted responses:</span><span class="se">\n</span><span class="s">{}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">out</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="classespp_1_1OdriveAscii_1odrive_ascii_ex2">
+<h4>Console Example<a class="headerlink" href="#classespp_1_1OdriveAscii_1odrive_ascii_ex2" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1OdriveAscii_1odrive_ascii_ex2"><div class="highlight"><pre><span></span><span class="cp">#if defined(ESP_PLATFORM)</span>
+<span class="w">  </span><span class="n">configure_blocking_console</span><span class="p">();</span>
+<span class="cp">#endif</span>
+
+<span class="w">  </span><span class="c1">// Read from stdin and feed the protocol; print any responses to stdout</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">rx</span><span class="p">;</span>
+<span class="w">  </span><span class="n">rx</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span><span class="mi">128</span><span class="p">);</span>
+
+<span class="w">  </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">ch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">getc</span><span class="p">(</span><span class="n">stdin</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ch</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">EOF</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="c1">// Brief yield; on ESP this shouldn&#39;t happen under normal console use</span>
+<span class="w">      </span><span class="k">continue</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">ch</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="mh">0xFF</span><span class="p">);</span>
+<span class="w">    </span><span class="n">rx</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">b</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// Process in small chunks or on line endings for responsiveness</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">b</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="sc">&#39;\n&#39;</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="sc">&#39;\r&#39;</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">rx</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">64</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">resp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">proto</span><span class="p">.</span><span class="n">process_bytes</span><span class="p">(</span><span class="n">rx</span><span class="p">);</span>
+<span class="w">      </span><span class="n">rx</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">resp</span><span class="p">.</span><span class="n">empty</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Write raw bytes out</span>
+<span class="w">        </span><span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">fwrite</span><span class="p">(</span><span class="n">resp</span><span class="p">.</span><span class="n">data</span><span class="p">(),</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">resp</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span><span class="w"> </span><span class="n">stdout</span><span class="p">);</span>
+<span class="w">        </span><span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11OdriveAscii7read_fnE">
+<span id="_CPPv3N4espp11OdriveAscii7read_fnE"></span><span id="_CPPv2N4espp11OdriveAscii7read_fnE"></span><span class="target" id="classespp_1_1OdriveAscii_1aeb67735bdb7d23c259acb5895f0d6749"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_fn</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">ec</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp11OdriveAscii7read_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read-only property accessor. Returns textual value, sets ec on error. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11OdriveAscii8write_fnE">
+<span id="_CPPv3N4espp11OdriveAscii8write_fnE"></span><span id="_CPPv2N4espp11OdriveAscii8write_fnE"></span><span class="target" id="classespp_1_1OdriveAscii_1af90ef351c1d8227bb9ee62d115e0341f"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_fn</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">ec</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp11OdriveAscii8write_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Write property accessor. Receives textual value; return true on success; set ec on error. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11OdriveAscii19position_command_fnE">
+<span id="_CPPv3N4espp11OdriveAscii19position_command_fnE"></span><span id="_CPPv2N4espp11OdriveAscii19position_command_fnE"></span><span class="target" id="classespp_1_1OdriveAscii_1a5b0d2d6be4f79d36459bf6f7e46c303d"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">position_command_fn</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n"><span class="pre">axis</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n"><span class="pre">pos</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">vel_ff</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">torque_ff</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">ec</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp11OdriveAscii19position_command_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback for high-rate position command ‘p’. Signature: (axis, pos, vel_ff, torque_ff) -&gt; bool. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11OdriveAscii19velocity_command_fnE">
+<span id="_CPPv3N4espp11OdriveAscii19velocity_command_fnE"></span><span id="_CPPv2N4espp11OdriveAscii19velocity_command_fnE"></span><span class="target" id="classespp_1_1OdriveAscii_1ad498ad8dd4691213c3902592f70ccb6d"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">velocity_command_fn</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n"><span class="pre">axis</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n"><span class="pre">vel</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">torque_ff</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">ec</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp11OdriveAscii19velocity_command_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback for high-rate velocity command ‘v’. Signature: (axis, vel, torque_ff) -&gt; bool. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11OdriveAscii17torque_command_fnE">
+<span id="_CPPv3N4espp11OdriveAscii17torque_command_fnE"></span><span id="_CPPv2N4espp11OdriveAscii17torque_command_fnE"></span><span class="target" id="classespp_1_1OdriveAscii_1a18edfc40221004271649028bdea4e0c1"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">torque_command_fn</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n"><span class="pre">axis</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n"><span class="pre">torque_nm</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">ec</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp11OdriveAscii17torque_command_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback for high-rate torque/current command ‘c’. Signature: (axis, torque) -&gt; bool. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11OdriveAscii21trajectory_command_fnE">
+<span id="_CPPv3N4espp11OdriveAscii21trajectory_command_fnE"></span><span id="_CPPv2N4espp11OdriveAscii21trajectory_command_fnE"></span><span class="target" id="classespp_1_1OdriveAscii_1aa2da3c47690962a750771b190a942c69"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">trajectory_command_fn</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n"><span class="pre">axis</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n"><span class="pre">goal_pos_turns</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">ec</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp11OdriveAscii21trajectory_command_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback for trajectory command ‘t’. Signature: (axis, goal_pos_turns) -&gt; bool. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11OdriveAscii19feedback_command_fnE">
+<span id="_CPPv3N4espp11OdriveAscii19feedback_command_fnE"></span><span id="_CPPv2N4espp11OdriveAscii19feedback_command_fnE"></span><span class="target" id="classespp_1_1OdriveAscii_1addd26f30601497fbfd45c32b596673f5"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">feedback_command_fn</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n"><span class="pre">axis</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">pos_out</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">vel_out</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">ec</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp11OdriveAscii19feedback_command_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback for feedback request ‘f’. Signature: (axis, out_pos_turns, out_vel_turns_per_s) -&gt; bool. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11OdriveAscii27encoder_set_abs_position_fnE">
+<span id="_CPPv3N4espp11OdriveAscii27encoder_set_abs_position_fnE"></span><span id="_CPPv2N4espp11OdriveAscii27encoder_set_abs_position_fnE"></span><span class="target" id="classespp_1_1OdriveAscii_1a650b36a8eef6c924161f960ccdd80cd7"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">encoder_set_abs_position_fn</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n"><span class="pre">axis</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n"><span class="pre">abs_pos_turns</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">ec</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp11OdriveAscii27encoder_set_abs_position_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback for encoder set absolute position ‘es’. Signature: (axis, abs_pos_turns) -&gt; bool. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11OdriveAscii11OdriveAsciiERK6Config">
+<span id="_CPPv3N4espp11OdriveAscii11OdriveAsciiERK6Config"></span><span id="_CPPv2N4espp11OdriveAscii11OdriveAsciiERK6Config"></span><span id="espp::OdriveAscii::OdriveAscii__ConfigCR"></span><span class="target" id="classespp_1_1OdriveAscii_1a339789923bb0d1799063d3f2df33c2a7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OdriveAscii</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp11OdriveAscii6ConfigE" title="espp::OdriveAscii::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11OdriveAscii11OdriveAsciiERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Create an <a class="reference internal" href="#classespp_1_1OdriveAscii"><span class="std std-ref">OdriveAscii</span></a> protocol server. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – Configuration parameters. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11OdriveAscii17register_propertyERKNSt6stringERK7read_fnRK8write_fn">
+<span id="_CPPv3N4espp11OdriveAscii17register_propertyERKNSt6stringERK7read_fnRK8write_fn"></span><span id="_CPPv2N4espp11OdriveAscii17register_propertyERKNSt6stringERK7read_fnRK8write_fn"></span><span id="espp::OdriveAscii::register_property__ssCR.read_fnCR.write_fnCR"></span><span class="target" id="classespp_1_1OdriveAscii_1aaac9990c05b578ad7139a44a91773989"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">register_property</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">path</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp11OdriveAscii7read_fnE" title="espp::OdriveAscii::read_fn"><span class="n"><span class="pre">read_fn</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">read</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp11OdriveAscii8write_fnE" title="espp::OdriveAscii::write_fn"><span class="n"><span class="pre">write_fn</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">write</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11OdriveAscii17register_propertyERKNSt6stringERK7read_fnRK8write_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Register a property accessible via r/w path. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> – Canonical ODrive-style path (e.g., “axis0.encoder.pos_estimate”). </p></li>
+<li><p><strong>read</strong> – Optional read function; if omitted, property is write-only. </p></li>
+<li><p><strong>write</strong> – Optional write function; if omitted, property is read-only. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11OdriveAscii23register_float_propertyERKNSt6stringERKNSt8functionIFfvEEERKNSt8functionIFbfRNSt10error_codeEEEE">
+<span id="_CPPv3N4espp11OdriveAscii23register_float_propertyERKNSt6stringERKNSt8functionIFfvEEERKNSt8functionIFbfRNSt10error_codeEEEE"></span><span id="_CPPv2N4espp11OdriveAscii23register_float_propertyERKNSt6stringERKNSt8functionIFfvEEERKNSt8functionIFbfRNSt10error_codeEEEE"></span><span class="target" id="classespp_1_1OdriveAscii_1a0503eced910850c0aea63badc481afba"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">register_float_property</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">path</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">getter</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">setter</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11OdriveAscii23register_float_propertyERKNSt6stringERKNSt8functionIFfvEEERKNSt8functionIFbfRNSt10error_codeEEEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Helper to register a numeric property using typed getter/setter. Converts to/from string using std::to_string / std::strtod. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The float is formatted using “{:0.6g}”. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> – Property path. </p></li>
+<li><p><strong>getter</strong> – Getter function; if null, property is write-only. </p></li>
+<li><p><strong>setter</strong> – Setter function; if null, property is read-only. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11OdriveAscii21register_int_propertyERKNSt6stringERKNSt8functionIF7int32_tvEEERKNSt8functionIFb7int32_tRNSt10error_codeEEEE">
+<span id="_CPPv3N4espp11OdriveAscii21register_int_propertyERKNSt6stringERKNSt8functionIF7int32_tvEEERKNSt8functionIFb7int32_tRNSt10error_codeEEEE"></span><span id="_CPPv2N4espp11OdriveAscii21register_int_propertyERKNSt6stringERKNSt8functionIF7int32_tvEEERKNSt8functionIFb7int32_tRNSt10error_codeEEEE"></span><span class="target" id="classespp_1_1OdriveAscii_1ac1c766e895ef197da8aa905ea796b7b5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">register_int_property</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">path</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">int32_t</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">getter</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">int32_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">setter</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11OdriveAscii21register_int_propertyERKNSt6stringERKNSt8functionIF7int32_tvEEERKNSt8functionIFb7int32_tRNSt10error_codeEEEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Helper to register an integer property using typed getter/setter. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The integer is formatted using std::to_string. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> – Property path. </p></li>
+<li><p><strong>getter</strong> – Getter function; if null, property is write-only. </p></li>
+<li><p><strong>setter</strong> – Setter function; if null, property is read-only. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11OdriveAscii22register_bool_propertyERKNSt6stringERKNSt8functionIFbvEEERKNSt8functionIFbbRNSt10error_codeEEEE">
+<span id="_CPPv3N4espp11OdriveAscii22register_bool_propertyERKNSt6stringERKNSt8functionIFbvEEERKNSt8functionIFbbRNSt10error_codeEEEE"></span><span id="_CPPv2N4espp11OdriveAscii22register_bool_propertyERKNSt6stringERKNSt8functionIFbvEEERKNSt8functionIFbbRNSt10error_codeEEEE"></span><span class="target" id="classespp_1_1OdriveAscii_1a32373850da92db4da0384be717fcd057"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">register_bool_property</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">path</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">getter</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">setter</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11OdriveAscii22register_bool_propertyERKNSt6stringERKNSt8functionIFbvEEERKNSt8functionIFbbRNSt10error_codeEEEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Helper to register a boolean property using typed getter/setter. Accepts “0/1”, “true/false” (case-insensitive) when writing. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The boolean is formatted as “0” or “1”. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> – Property path. </p></li>
+<li><p><strong>getter</strong> – Getter function; if null, property is write-only. </p></li>
+<li><p><strong>setter</strong> – Setter function; if null, property is read-only. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11OdriveAscii19on_position_commandERK19position_command_fn">
+<span id="_CPPv3N4espp11OdriveAscii19on_position_commandERK19position_command_fn"></span><span id="_CPPv2N4espp11OdriveAscii19on_position_commandERK19position_command_fn"></span><span id="espp::OdriveAscii::on_position_command__position_command_fnCR"></span><span class="target" id="classespp_1_1OdriveAscii_1a37506f72c767ad8f3f5bbcb38b750116"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_position_command</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp11OdriveAscii19position_command_fnE" title="espp::OdriveAscii::position_command_fn"><span class="n"><span class="pre">position_command_fn</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">fn</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11OdriveAscii19on_position_commandERK19position_command_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the position command callback. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a high-rate command; the callback should be efficient and avoid blocking. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>fn</strong> – Callback function. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11OdriveAscii19on_velocity_commandERK19velocity_command_fn">
+<span id="_CPPv3N4espp11OdriveAscii19on_velocity_commandERK19velocity_command_fn"></span><span id="_CPPv2N4espp11OdriveAscii19on_velocity_commandERK19velocity_command_fn"></span><span id="espp::OdriveAscii::on_velocity_command__velocity_command_fnCR"></span><span class="target" id="classespp_1_1OdriveAscii_1aafc3487f63a43379e23727853dec66db"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_velocity_command</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp11OdriveAscii19velocity_command_fnE" title="espp::OdriveAscii::velocity_command_fn"><span class="n"><span class="pre">velocity_command_fn</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">fn</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11OdriveAscii19on_velocity_commandERK19velocity_command_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the velocity command callback. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a high-rate command; the callback should be efficient and avoid blocking. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>fn</strong> – Callback function. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11OdriveAscii17on_torque_commandERK17torque_command_fn">
+<span id="_CPPv3N4espp11OdriveAscii17on_torque_commandERK17torque_command_fn"></span><span id="_CPPv2N4espp11OdriveAscii17on_torque_commandERK17torque_command_fn"></span><span id="espp::OdriveAscii::on_torque_command__torque_command_fnCR"></span><span class="target" id="classespp_1_1OdriveAscii_1a97880009cb794f09f5d17d28de777d43"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_torque_command</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp11OdriveAscii17torque_command_fnE" title="espp::OdriveAscii::torque_command_fn"><span class="n"><span class="pre">torque_command_fn</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">fn</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11OdriveAscii17on_torque_commandERK17torque_command_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the torque/current command callback. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a high-rate command; the callback should be efficient and avoid blocking. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>fn</strong> – Callback function. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11OdriveAscii21on_trajectory_commandERK21trajectory_command_fn">
+<span id="_CPPv3N4espp11OdriveAscii21on_trajectory_commandERK21trajectory_command_fn"></span><span id="_CPPv2N4espp11OdriveAscii21on_trajectory_commandERK21trajectory_command_fn"></span><span id="espp::OdriveAscii::on_trajectory_command__trajectory_command_fnCR"></span><span class="target" id="classespp_1_1OdriveAscii_1a45372406f78a13c6fef75fa25530784c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_trajectory_command</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp11OdriveAscii21trajectory_command_fnE" title="espp::OdriveAscii::trajectory_command_fn"><span class="n"><span class="pre">trajectory_command_fn</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">fn</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11OdriveAscii21on_trajectory_commandERK21trajectory_command_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the trajectory command callback. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a high-rate command; the callback should be efficient and avoid blocking. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>fn</strong> – Callback function. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11OdriveAscii19on_feedback_requestERK19feedback_command_fn">
+<span id="_CPPv3N4espp11OdriveAscii19on_feedback_requestERK19feedback_command_fn"></span><span id="_CPPv2N4espp11OdriveAscii19on_feedback_requestERK19feedback_command_fn"></span><span id="espp::OdriveAscii::on_feedback_request__feedback_command_fnCR"></span><span class="target" id="classespp_1_1OdriveAscii_1a86d3f626e1b0f1284c85a2a359036cc8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_feedback_request</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp11OdriveAscii19feedback_command_fnE" title="espp::OdriveAscii::feedback_command_fn"><span class="n"><span class="pre">feedback_command_fn</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">fn</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11OdriveAscii19on_feedback_requestERK19feedback_command_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the feedback request callback. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a high-rate command; the callback should be efficient and avoid blocking. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>fn</strong> – Callback function. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11OdriveAscii23on_encoder_set_absoluteERK27encoder_set_abs_position_fn">
+<span id="_CPPv3N4espp11OdriveAscii23on_encoder_set_absoluteERK27encoder_set_abs_position_fn"></span><span id="_CPPv2N4espp11OdriveAscii23on_encoder_set_absoluteERK27encoder_set_abs_position_fn"></span><span id="espp::OdriveAscii::on_encoder_set_absolute__encoder_set_abs_position_fnCR"></span><span class="target" id="classespp_1_1OdriveAscii_1a7dc356505e9c90059eff122b76c745dc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_encoder_set_absolute</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp11OdriveAscii27encoder_set_abs_position_fnE" title="espp::OdriveAscii::encoder_set_abs_position_fn"><span class="n"><span class="pre">encoder_set_abs_position_fn</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">fn</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11OdriveAscii23on_encoder_set_absoluteERK27encoder_set_abs_position_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the encoder set absolute position callback. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a high-rate command; the callback should be efficient and avoid blocking. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>fn</strong> – Callback function. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11OdriveAscii13process_bytesENSt4spanIK7uint8_tEE">
+<span id="_CPPv3N4espp11OdriveAscii13process_bytesENSt4spanIK7uint8_tEE"></span><span id="_CPPv2N4espp11OdriveAscii13process_bytesENSt4spanIK7uint8_tEE"></span><span id="espp::OdriveAscii::process_bytes__std::span:uint8_tC:"></span><span class="target" id="classespp_1_1OdriveAscii_1a698500d463e4bfa190498455c963ec7e"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">process_bytes</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11OdriveAscii13process_bytesENSt4spanIK7uint8_tEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Process a chunk of input bytes; returns response bytes to transmit (if any). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> – Incoming bytes (may contain partial or multiple lines) using CR/LF line endings. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Response bytes (possibly empty). May contain multiple response lines. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11OdriveAscii12clear_bufferEv">
+<span id="_CPPv3N4espp11OdriveAscii12clear_bufferEv"></span><span id="_CPPv2N4espp11OdriveAscii12clear_bufferEv"></span><span id="espp::OdriveAscii::clear_buffer"></span><span class="target" id="classespp_1_1OdriveAscii_1a7ba15b21500fb253a9cb7d2715e532cc"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_buffer</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11OdriveAscii12clear_bufferEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear any buffered input state. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp11OdriveAscii8get_nameEv">
+<span id="_CPPv3NK4espp11OdriveAscii8get_nameEv"></span><span id="_CPPv2NK4espp11OdriveAscii8get_nameEv"></span><span id="espp::OdriveAscii::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp11OdriveAscii8get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11OdriveAscii11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp11OdriveAscii11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp11OdriveAscii11set_log_tagERKNSt11string_viewE"></span><span id="espp::OdriveAscii::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11OdriveAscii11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp11OdriveAscii13get_log_levelEv">
+<span id="_CPPv3NK4espp11OdriveAscii13get_log_levelEv"></span><span id="_CPPv2NK4espp11OdriveAscii13get_log_levelEv"></span><span id="espp::OdriveAscii::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp11OdriveAscii13get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11OdriveAscii13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp11OdriveAscii13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp11OdriveAscii13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::OdriveAscii::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11OdriveAscii13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11OdriveAscii17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp11OdriveAscii17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp11OdriveAscii17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::OdriveAscii::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11OdriveAscii17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="ws_s3_touch.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp11OdriveAscii17get_log_verbosityEv">
+<span id="_CPPv3NK4espp11OdriveAscii17get_log_verbosityEv"></span><span id="_CPPv2NK4espp11OdriveAscii17get_log_verbosityEv"></span><span id="espp::OdriveAscii::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp11OdriveAscii17get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="ws_s3_touch.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11OdriveAscii18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp11OdriveAscii18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp11OdriveAscii18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::OdriveAscii::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11OdriveAscii18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11OdriveAscii6ConfigE">
+<span id="_CPPv3N4espp11OdriveAscii6ConfigE"></span><span id="_CPPv2N4espp11OdriveAscii6ConfigE"></span><span id="espp::OdriveAscii::Config"></span><span class="target" id="structespp_1_1OdriveAscii_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp11OdriveAscii6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration for the <a class="reference internal" href="#classespp_1_1OdriveAscii"><span class="std std-ref">OdriveAscii</span></a> server. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11OdriveAscii6Config15max_line_lengthE">
+<span id="_CPPv3N4espp11OdriveAscii6Config15max_line_lengthE"></span><span id="_CPPv2N4espp11OdriveAscii6Config15max_line_lengthE"></span><span id="espp::OdriveAscii::Config::max_line_length__s"></span><span class="target" id="structespp_1_1OdriveAscii_1_1Config_1adeebaad8ecd60b7b8df9349293978224"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">max_line_length</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">256</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp11OdriveAscii6Config15max_line_lengthE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Maximum accepted ASCII line length. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11OdriveAscii6Config9log_levelE">
+<span id="_CPPv3N4espp11OdriveAscii6Config9log_levelE"></span><span id="_CPPv2N4espp11OdriveAscii6Config9log_levelE"></span><span id="espp::OdriveAscii::Config::log_level__espp::Logger::Verbosity"></span><span class="target" id="structespp_1_1OdriveAscii_1_1Config_1aae9e786ba1d5f9b895a988b5e32e824d"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp11OdriveAscii6Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="logger.html#classespp_1_1Logger"><span class="std std-ref">Logger</span></a> verbosity. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="nvs_example.html" class="btn btn-neutral float-left" title="NVS Example" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="odrive_ascii_example.html" class="btn btn-neutral float-right" title="ODrive ASCII Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

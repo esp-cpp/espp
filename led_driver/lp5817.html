@@ -1,0 +1,1687 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LP5817 RGB LED Driver - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'led_driver/lp5817';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="LP5817 Example" href="lp5817_example.html" />
+    <link rel="prev" title="LED Driver Components" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_component.html">Base Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../byte90.html">ALXV Labs Byte90</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cobs.html">COBS (Consistent Overhead Byte Stuffing)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp32_timer_cam.html">ESP32 TimerCam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp_box.html">ESP BOX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../interrupt.html">Interrupt APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../iperf_menu.html">Iperf Menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led.html">LED APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">LED Driver Components</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">LP5817 RGB LED Driver</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lp5817_example.html">LP5817 Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../m5stack_tab5.html">M5Stack Tab5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../matouch_rotary_display.html">MaTouch Rotary Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../motorgo_mini.html">MotorGo Mini</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../neopixel.html">Neopixel APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nvs.html">NVS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../remote_debug.html">Remote Debug APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../runqueue.html">RunQueue APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../seeed_studio_round_display.html">Seeed Studio Round Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_deck.html">LilyGo T-Deck</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_dongle_s3.html">LilyGo T-Dongle S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wrover_kit.html">ESP32-WROVER-KIT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">LED Driver Components</a></li>
+      <li class="breadcrumb-item active">LP5817 RGB LED Driver</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/32e8215e/docs/en/led_driver/lp5817.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="lp5817-rgb-led-driver">
+<h1>LP5817 RGB LED Driver<a class="headerlink" href="#lp5817-rgb-led-driver" title="Permalink to this heading"></a></h1>
+<p>The <cite>LP5817</cite> RGB LED driver component allows control of 3 LED channels via I2C
+with 8-bit brightness and programmable fade (ramp) timing.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="lp5817_example.html">LP5817 Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="lp5817_example.html#how-to-use-example">How to use example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lp5817_example.html#hardware-required">Hardware Required</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lp5817_example.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lp5817_example.html#build-and-flash">Build and Flash</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lp5817_example.html#example-output">Example Output</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/32e8215e/components/lp5817/include/lp5817.hpp">components/lp5817/include/lp5817.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp5817E">
+<span id="_CPPv3N4espp6Lp5817E"></span><span id="_CPPv2N4espp6Lp5817E"></span><span id="espp::Lp5817"></span><span class="target" id="classespp_1_1Lp5817"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Lp5817</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../base_peripheral.html#_CPPv4I_NSt8integralE_b_b_bEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp6Lp5817E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>LP5817 RGB LED Driver (I2C)</p>
+<p>Implements a minimal functional interface to control RGB brightness and fades following the register map of the LP5817 datasheet.</p>
+<p>
+For more information see the datasheet here: <a class="reference external" href="https://www.ti.com/lit/gpn/LP5817">https://www.ti.com/lit/gpn/LP5817</a></p>
+<section id="classespp_1_1Lp5817_1lp5817_ex1">
+<h4>LP5817 Example<a class="headerlink" href="#classespp_1_1Lp5817_1lp5817_ex1" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1Lp5817_1lp5817_ex1"><div class="highlight"><pre><span></span><span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="w"> </span><span class="nf">i2c</span><span class="p">({</span>
+<span class="w">      </span><span class="p">.</span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_NUM_0</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">sda_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">gpio_num_t</span><span class="p">)</span><span class="n">CONFIG_EXAMPLE_I2C_SDA_GPIO</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">scl_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">gpio_num_t</span><span class="p">)</span><span class="n">CONFIG_EXAMPLE_I2C_SCL_GPIO</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">sda_pullup_en</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_PULLUP_ENABLE</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">scl_pullup_en</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_PULLUP_ENABLE</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">clk_speed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_EXAMPLE_I2C_CLOCK_SPEED_HZ</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">,</span>
+<span class="w">  </span><span class="p">});</span>
+
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Lp5817</span><span class="w"> </span><span class="nf">lp</span><span class="p">({.</span><span class="n">device_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Lp5817</span><span class="o">::</span><span class="n">DEFAULT_ADDRESS</span><span class="p">,</span>
+<span class="w">                   </span><span class="p">.</span><span class="n">write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind_front</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">write</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">),</span>
+<span class="w">                   </span><span class="p">.</span><span class="n">write_then_read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind_front</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">write_read</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">),</span>
+<span class="w">                   </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">lp</span><span class="p">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Failed to initialize LP5817: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// configure the max current per channel</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">max_current</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Lp5817</span><span class="o">::</span><span class="n">GlobalMaxCurrent</span><span class="o">::</span><span class="n">MA_51</span><span class="p">;</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Setting max current to {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">max_current</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">lp</span><span class="p">.</span><span class="n">set_max_current</span><span class="p">(</span><span class="n">max_current</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Failed to set max current: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// configure the fade time</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">fade_time</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Lp5817</span><span class="o">::</span><span class="n">FadeTime</span><span class="o">::</span><span class="n">TIME_300MS</span><span class="p">;</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Setting fade time to {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">fade_time</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">lp</span><span class="p">.</span><span class="n">set_fade_time</span><span class="p">(</span><span class="n">fade_time</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Failed to set fade time: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// enable fading and exponential dimming on all channels</span>
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">Ch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Lp5817</span><span class="o">::</span><span class="n">Channel</span><span class="p">;</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="n">ch</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="n">Ch</span><span class="o">::</span><span class="n">OUT0</span><span class="p">,</span><span class="w"> </span><span class="n">Ch</span><span class="o">::</span><span class="n">OUT1</span><span class="p">,</span><span class="w"> </span><span class="n">Ch</span><span class="o">::</span><span class="n">OUT2</span><span class="p">})</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// enable output on the channel</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">lp</span><span class="p">.</span><span class="n">set_output_enable</span><span class="p">(</span><span class="n">ch</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Failed to enable output on channel {}: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ch</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">      </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="c1">// set the dot current (DC) according to how much current you want to drive</span>
+<span class="w">    </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">dc_value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x50</span><span class="p">;</span><span class="w"> </span><span class="c1">// about 80/255 of max current</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">lp</span><span class="p">.</span><span class="n">set_dot_current</span><span class="p">(</span><span class="n">ch</span><span class="p">,</span><span class="w"> </span><span class="n">dc_value</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Failed to set dot-current on channel {}: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ch</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">      </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="c1">// enable fading on the channel</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">lp</span><span class="p">.</span><span class="n">set_fade_enable</span><span class="p">(</span><span class="n">ch</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Failed to enable fading on channel {}: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ch</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">      </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="c1">// enable exponential dimming on the channel</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">lp</span><span class="p">.</span><span class="n">set_exponential_dimming_enable</span><span class="p">(</span><span class="n">ch</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Failed to enable exponential dimming on channel {}: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ch</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">      </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// Latch the settings (update)</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">lp</span><span class="p">.</span><span class="n">update</span><span class="p">(</span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Failed to latch settings: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// Simple breathing RGB demo</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="o">&amp;</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">brightness</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">;</span>
+<span class="w">    </span><span class="n">brightness</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">brightness</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">)</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="mf">1.0f</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">;</span>
+<span class="w">    </span><span class="c1">// for now we&#39;ll just to white and fade it in and out</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">brightness</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">g</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">brightness</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">brightness</span><span class="p">;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">lp</span><span class="p">.</span><span class="n">set_rgb_pwm</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="w"> </span><span class="n">g</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;LP5817 set_rgb failed: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">().</span><span class="n">c_str</span><span class="p">());</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lk</span><span class="p">(</span><span class="n">m</span><span class="p">);</span>
+<span class="w">      </span><span class="c1">// waiting for 300ms since that is our fade time</span>
+<span class="w">      </span><span class="n">cv</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">lk</span><span class="p">,</span><span class="w"> </span><span class="mi">300</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="p">};</span>
+
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">task</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="p">({.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">task_fn</span><span class="p">,</span>
+<span class="w">                          </span><span class="p">.</span><span class="n">task_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;LP5817 Task&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="p">},</span>
+<span class="w">                          </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
+<span class="w">  </span><span class="n">task</span><span class="p">.</span><span class="n">start</span><span class="p">();</span>
+</pre></div>
+</div>
+</section>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Dot-current (brightness) is controlled on a per-channel basis using the DC registers. It represents the maximum current that can be driven through the LED channel, and is an 8-bit value (0-255). The actual brightness output is then controlled using the PWM registers, which can be changed on-the-fly to adjust brightness.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In this driver, brightness is equivalent to the dot-current (DC) setting in the datasheet, which is an 8-bit value (0-255).</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>When initializing, you should set the global max current and the dot-current (brightness) for each channel to appropriate values for your application. Then you can use the pwm registers to adjust brightness on-the-fly, which will also take into account any fading that is enabled.</p>
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58177ChannelE">
+<span id="_CPPv3N4espp6Lp58177ChannelE"></span><span id="_CPPv2N4espp6Lp58177ChannelE"></span><span class="target" id="classespp_1_1Lp5817_1a8acd77530dd8e8bc5153a7bc33b829ec"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Channel</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp6Lp58177ChannelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>LED channels. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58177Channel4OUT0E">
+<span id="_CPPv3N4espp6Lp58177Channel4OUT0E"></span><span id="_CPPv2N4espp6Lp58177Channel4OUT0E"></span><span class="target" id="classespp_1_1Lp5817_1a8acd77530dd8e8bc5153a7bc33b829ecada9947add0de4368b1eb22a187c530ca"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OUT0</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Lp58177Channel4OUT0E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58177Channel4OUT1E">
+<span id="_CPPv3N4espp6Lp58177Channel4OUT1E"></span><span id="_CPPv2N4espp6Lp58177Channel4OUT1E"></span><span class="target" id="classespp_1_1Lp5817_1a8acd77530dd8e8bc5153a7bc33b829ecaaef6d159db0f3abd16d71bbcfca52f62"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OUT1</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Lp58177Channel4OUT1E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58177Channel4OUT2E">
+<span id="_CPPv3N4espp6Lp58177Channel4OUT2E"></span><span id="_CPPv2N4espp6Lp58177Channel4OUT2E"></span><span class="target" id="classespp_1_1Lp5817_1a8acd77530dd8e8bc5153a7bc33b829eca55a450a82433b918f14060339de5138d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OUT2</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Lp58177Channel4OUT2E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581716GlobalMaxCurrentE">
+<span id="_CPPv3N4espp6Lp581716GlobalMaxCurrentE"></span><span id="_CPPv2N4espp6Lp581716GlobalMaxCurrentE"></span><span class="target" id="classespp_1_1Lp5817_1a63b794fdcab5c473fa3d4dce4d57518c"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GlobalMaxCurrent</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp6Lp581716GlobalMaxCurrentE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Global max current settings. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581716GlobalMaxCurrent7MA_25_5E">
+<span id="_CPPv3N4espp6Lp581716GlobalMaxCurrent7MA_25_5E"></span><span id="_CPPv2N4espp6Lp581716GlobalMaxCurrent7MA_25_5E"></span><span class="target" id="classespp_1_1Lp5817_1a63b794fdcab5c473fa3d4dce4d57518ca010feedad30a4c942d7f59a0f1dcb97e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MA_25_5</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Lp581716GlobalMaxCurrent7MA_25_5E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>25.5mA </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581716GlobalMaxCurrent5MA_51E">
+<span id="_CPPv3N4espp6Lp581716GlobalMaxCurrent5MA_51E"></span><span id="_CPPv2N4espp6Lp581716GlobalMaxCurrent5MA_51E"></span><span class="target" id="classespp_1_1Lp5817_1a63b794fdcab5c473fa3d4dce4d57518ca627e3a72f89d514c1e944614a7f04bbe"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MA_51</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Lp581716GlobalMaxCurrent5MA_51E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>51mA </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58178FadeTimeE">
+<span id="_CPPv3N4espp6Lp58178FadeTimeE"></span><span id="_CPPv2N4espp6Lp58178FadeTimeE"></span><span class="target" id="classespp_1_1Lp5817_1a83c690629e0e74428f9c27cc6cef2979"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FadeTime</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp6Lp58178FadeTimeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Fade time codes (datasheet-defined) </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58178FadeTime6TIME_0E">
+<span id="_CPPv3N4espp6Lp58178FadeTime6TIME_0E"></span><span id="_CPPv2N4espp6Lp58178FadeTime6TIME_0E"></span><span class="target" id="classespp_1_1Lp5817_1a83c690629e0e74428f9c27cc6cef2979ab17adcfa36010d36e6f0c98340870577"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TIME_0</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Lp58178FadeTime6TIME_0E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>No fade (instant) </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58178FadeTime9TIME_50MSE">
+<span id="_CPPv3N4espp6Lp58178FadeTime9TIME_50MSE"></span><span id="_CPPv2N4espp6Lp58178FadeTime9TIME_50MSE"></span><span class="target" id="classespp_1_1Lp5817_1a83c690629e0e74428f9c27cc6cef2979a11a545d3f89e496e108025b8c789bc6a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TIME_50MS</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Lp58178FadeTime9TIME_50MSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>50ms </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58178FadeTime10TIME_100MSE">
+<span id="_CPPv3N4espp6Lp58178FadeTime10TIME_100MSE"></span><span id="_CPPv2N4espp6Lp58178FadeTime10TIME_100MSE"></span><span class="target" id="classespp_1_1Lp5817_1a83c690629e0e74428f9c27cc6cef2979a0e2ecc6f92be66e57d8eee35b367c3db"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TIME_100MS</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Lp58178FadeTime10TIME_100MSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>100ms </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58178FadeTime10TIME_150MSE">
+<span id="_CPPv3N4espp6Lp58178FadeTime10TIME_150MSE"></span><span id="_CPPv2N4espp6Lp58178FadeTime10TIME_150MSE"></span><span class="target" id="classespp_1_1Lp5817_1a83c690629e0e74428f9c27cc6cef2979ac474f9a9a5f9fe36c99cd6bd11e4d227"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TIME_150MS</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Lp58178FadeTime10TIME_150MSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>150ms </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58178FadeTime10TIME_200MSE">
+<span id="_CPPv3N4espp6Lp58178FadeTime10TIME_200MSE"></span><span id="_CPPv2N4espp6Lp58178FadeTime10TIME_200MSE"></span><span class="target" id="classespp_1_1Lp5817_1a83c690629e0e74428f9c27cc6cef2979ae0769932c5569f07e2c76194ac393b23"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TIME_200MS</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Lp58178FadeTime10TIME_200MSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>200ms </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58178FadeTime10TIME_250MSE">
+<span id="_CPPv3N4espp6Lp58178FadeTime10TIME_250MSE"></span><span id="_CPPv2N4espp6Lp58178FadeTime10TIME_250MSE"></span><span class="target" id="classespp_1_1Lp5817_1a83c690629e0e74428f9c27cc6cef2979af580634b25a6ccbf0877f1246edfd3c1"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TIME_250MS</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Lp58178FadeTime10TIME_250MSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>250ms </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58178FadeTime10TIME_300MSE">
+<span id="_CPPv3N4espp6Lp58178FadeTime10TIME_300MSE"></span><span id="_CPPv2N4espp6Lp58178FadeTime10TIME_300MSE"></span><span class="target" id="classespp_1_1Lp5817_1a83c690629e0e74428f9c27cc6cef2979a2e2056247e50506d0e8db2b03de37d1a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TIME_300MS</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Lp58178FadeTime10TIME_300MSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>300ms </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58178FadeTime10TIME_350MSE">
+<span id="_CPPv3N4espp6Lp58178FadeTime10TIME_350MSE"></span><span id="_CPPv2N4espp6Lp58178FadeTime10TIME_350MSE"></span><span class="target" id="classespp_1_1Lp5817_1a83c690629e0e74428f9c27cc6cef2979a1e2e5d731e5c6cde0635bccb98b41010"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TIME_350MS</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Lp58178FadeTime10TIME_350MSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>350ms </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58178FadeTime10TIME_400MSE">
+<span id="_CPPv3N4espp6Lp58178FadeTime10TIME_400MSE"></span><span id="_CPPv2N4espp6Lp58178FadeTime10TIME_400MSE"></span><span class="target" id="classespp_1_1Lp5817_1a83c690629e0e74428f9c27cc6cef2979aed5dfacd008e1b1d4fd89829cb167c17"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TIME_400MS</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Lp58178FadeTime10TIME_400MSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>400ms </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58178FadeTime10TIME_450MSE">
+<span id="_CPPv3N4espp6Lp58178FadeTime10TIME_450MSE"></span><span id="_CPPv2N4espp6Lp58178FadeTime10TIME_450MSE"></span><span class="target" id="classespp_1_1Lp5817_1a83c690629e0e74428f9c27cc6cef2979a3bbb49535587ff7a8c675e9a147c8c3d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TIME_450MS</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Lp58178FadeTime10TIME_450MSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>450ms </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58178FadeTime10TIME_500MSE">
+<span id="_CPPv3N4espp6Lp58178FadeTime10TIME_500MSE"></span><span id="_CPPv2N4espp6Lp58178FadeTime10TIME_500MSE"></span><span class="target" id="classespp_1_1Lp5817_1a83c690629e0e74428f9c27cc6cef2979a4053f696849613e249104d0f6513b04a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TIME_500MS</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Lp58178FadeTime10TIME_500MSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>500ms </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58178FadeTime7TIME_1SE">
+<span id="_CPPv3N4espp6Lp58178FadeTime7TIME_1SE"></span><span id="_CPPv2N4espp6Lp58178FadeTime7TIME_1SE"></span><span class="target" id="classespp_1_1Lp5817_1a83c690629e0e74428f9c27cc6cef2979a24ec2fb586e90370419cad37a80bbb4c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TIME_1S</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Lp58178FadeTime7TIME_1SE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>1 second </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58178FadeTime7TIME_2SE">
+<span id="_CPPv3N4espp6Lp58178FadeTime7TIME_2SE"></span><span id="_CPPv2N4espp6Lp58178FadeTime7TIME_2SE"></span><span class="target" id="classespp_1_1Lp5817_1a83c690629e0e74428f9c27cc6cef2979a384f14beec7f06c987ab6c2f95b97f7c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TIME_2S</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Lp58178FadeTime7TIME_2SE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>2 seconds </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58178FadeTime7TIME_4SE">
+<span id="_CPPv3N4espp6Lp58178FadeTime7TIME_4SE"></span><span id="_CPPv2N4espp6Lp58178FadeTime7TIME_4SE"></span><span class="target" id="classespp_1_1Lp5817_1a83c690629e0e74428f9c27cc6cef2979a36179a11522746d0e47dfdc161dc754e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TIME_4S</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Lp58178FadeTime7TIME_4SE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>4 seconds </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58178FadeTime7TIME_6SE">
+<span id="_CPPv3N4espp6Lp58178FadeTime7TIME_6SE"></span><span id="_CPPv2N4espp6Lp58178FadeTime7TIME_6SE"></span><span class="target" id="classespp_1_1Lp5817_1a83c690629e0e74428f9c27cc6cef2979a2a84d46bbd519e14d7869ab67d80cab2"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TIME_6S</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Lp58178FadeTime7TIME_6SE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>6 seconds </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58178FadeTime7TIME_8SE">
+<span id="_CPPv3N4espp6Lp58178FadeTime7TIME_8SE"></span><span id="_CPPv2N4espp6Lp58178FadeTime7TIME_8SE"></span><span class="target" id="classespp_1_1Lp5817_1a83c690629e0e74428f9c27cc6cef2979aca4411fd14a862c0c17ab33c4b137775"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TIME_8S</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Lp58178FadeTime7TIME_8SE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>8 seconds </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58178probe_fnE">
+<span id="_CPPv3N4espp6Lp58178probe_fnE"></span><span id="_CPPv2N4espp6Lp58178probe_fnE"></span><span id="espp::Lp5817::probe_fn"></span><span class="target" id="classespp_1_1BasePeripheral_1ad12a713efc443157b7d6fd1ba4fdf88f"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">probe_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Lp58178probe_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to probe the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param address<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The address to probe </p>
+</dd>
+<dt class="field-even">Return<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the peripheral is found at the given address </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58176Lp5817ERK6Config">
+<span id="_CPPv3N4espp6Lp58176Lp5817ERK6Config"></span><span id="_CPPv2N4espp6Lp58176Lp5817ERK6Config"></span><span id="espp::Lp5817::Lp5817__ConfigCR"></span><span class="target" id="classespp_1_1Lp5817_1a7260611af293c7e8de9ecabab358203c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Lp5817</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Lp58176ConfigE" title="espp::Lp5817::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp58176Lp5817ERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct a new <a class="reference internal" href="#classespp_1_1Lp5817"><span class="std std-ref">Lp5817</span></a> object. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – Configuration structure </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581710initializeERNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp581710initializeERNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp581710initializeERNSt10error_codeE"></span><span id="espp::Lp5817::initialize__std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1a93d35dbd4b28f116e34701bb050c75a9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581710initializeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the device. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code set on failure. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success, false on failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58176enableEbRNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp58176enableEbRNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp58176enableEbRNSt10error_codeE"></span><span id="espp::Lp5817::enable__b.std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1a9dac51c8e8f527067d7eaf5387df7b11"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">enable</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">on</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp58176enableEbRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Enable or disable the device. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>on</strong> – True to enable outputs, false to disable. </p></li>
+<li><p><strong>ec</strong> – Error code set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success, false on failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581710is_enabledERNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp581710is_enabledERNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp581710is_enabledERNSt10error_codeE"></span><span id="espp::Lp5817::is_enabled__std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1a11209dc671d18addb22764a456aa41ba"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_enabled</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581710is_enabledERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Check if device is enabled. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code set on failure. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if device is enabled, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581715set_dot_currentE7Channel7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp581715set_dot_currentE7Channel7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp581715set_dot_currentE7Channel7uint8_tRNSt10error_codeE"></span><span id="espp::Lp5817::set_dot_current__Channel.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1a6702cf0816001d0d3be338bcf0534e23"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_dot_current</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Lp58177ChannelE" title="espp::Lp5817::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">ch</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581715set_dot_currentE7Channel7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set per-channel 8-bit dot-current (DC). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ch</strong> – Channel to update. </p></li>
+<li><p><strong>value</strong> – Dot-current [0,255]. </p></li>
+<li><p><strong>ec</strong> – Error code set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success, false on failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581715set_dot_currentE7ChannelfRNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp581715set_dot_currentE7ChannelfRNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp581715set_dot_currentE7ChannelfRNSt10error_codeE"></span><span id="espp::Lp5817::set_dot_current__Channel.float.std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1a1f3be4a8121d67a8d0e56cd82bd0b07a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_dot_current</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Lp58177ChannelE" title="espp::Lp5817::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">ch</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581715set_dot_currentE7ChannelfRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set per-channel dot-current (DC) using a float value. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Value is clamped to [0.0, 1.0] range. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ch</strong> – Channel to update. </p></li>
+<li><p><strong>value</strong> – Dot-current [0.0, 1.0]. </p></li>
+<li><p><strong>ec</strong> – Error code set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success, false on failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581714set_brightnessE7Channel7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp581714set_brightnessE7Channel7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp581714set_brightnessE7Channel7uint8_tRNSt10error_codeE"></span><span id="espp::Lp5817::set_brightness__Channel.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1af83f7efc2f409f8efcd28ad2527d56a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_brightness</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Lp58177ChannelE" title="espp::Lp5817::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">ch</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581714set_brightnessE7Channel7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set per-channel 8-bit brightness (dot-current). </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is an alias for <a class="reference internal" href="#classespp_1_1Lp5817_1a6702cf0816001d0d3be338bcf0534e23"><span class="std std-ref">set_dot_current()</span></a>. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ch</strong> – Channel to update. </p></li>
+<li><p><strong>value</strong> – Dot-Current Brightness [0,255]. </p></li>
+<li><p><strong>ec</strong> – Error code set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success, false on failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581714set_brightnessE7ChannelfRNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp581714set_brightnessE7ChannelfRNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp581714set_brightnessE7ChannelfRNSt10error_codeE"></span><span id="espp::Lp5817::set_brightness__Channel.float.std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1ab2d97b7e9fd77387f20308492108510f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_brightness</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Lp58177ChannelE" title="espp::Lp5817::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">ch</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581714set_brightnessE7ChannelfRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set per-channel brightness (dot-current) using a float value. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Value is clamped to [0.0, 1.0] range. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ch</strong> – Channel to update. </p></li>
+<li><p><strong>value</strong> – Dot-Current Brightness [0.0, 1.0]. </p></li>
+<li><p><strong>ec</strong> – Error code set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success, false on failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581715get_dot_currentE7ChannelRNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp581715get_dot_currentE7ChannelRNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp581715get_dot_currentE7ChannelRNSt10error_codeE"></span><span id="espp::Lp5817::get_dot_current__Channel.std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1a43464e3bfde6e798fca5bec00b204b3d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_dot_current</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Lp58177ChannelE" title="espp::Lp5817::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">ch</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581715get_dot_currentE7ChannelRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the current dot-current (DC) of a channel. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ch</strong> – Channel to read. </p></li>
+<li><p><strong>ec</strong> – Error code set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dot-current [0,255]. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581714get_brightnessE7ChannelRNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp581714get_brightnessE7ChannelRNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp581714get_brightnessE7ChannelRNSt10error_codeE"></span><span id="espp::Lp5817::get_brightness__Channel.std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1ab83316846bfa4e5437f5dbae7ed329a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_brightness</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Lp58177ChannelE" title="espp::Lp5817::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">ch</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581714get_brightnessE7ChannelRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the brightness (dot-current) of a channel. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ch</strong> – Channel to read. </p></li>
+<li><p><strong>ec</strong> – Error code set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dot Current Brightness [0,255]. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581715set_dot_currentERKNSt5arrayI7uint8_tXL3EEEERNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp581715set_dot_currentERKNSt5arrayI7uint8_tXL3EEEERNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp581715set_dot_currentERKNSt5arrayI7uint8_tX3EEERNSt10error_codeE"></span><span id="espp::Lp5817::set_dot_current__std::array:uint8_t.3:CR.std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1a8266591e8d061af26b1807b50f7ba7b6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_dot_current</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">3</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581715set_dot_currentERKNSt5arrayI7uint8_tXL3EEEERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set all three channel dot-current (DC) values. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – Array of three dot-current values [0,255]. </p></li>
+<li><p><strong>ec</strong> – Error code set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success, false on failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581719set_rgb_dot_currentE7uint8_t7uint8_t7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp581719set_rgb_dot_currentE7uint8_t7uint8_t7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp581719set_rgb_dot_currentE7uint8_t7uint8_t7uint8_tRNSt10error_codeE"></span><span id="espp::Lp5817::set_rgb_dot_current__uint8_t.uint8_t.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1a0c911ed1b3356a738c7e5df47e3a9b88"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_rgb_dot_current</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">r</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">g</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">b</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581719set_rgb_dot_currentE7uint8_t7uint8_t7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set all three channel dot-current (DC) values. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This assumes RGB are mapped to channels 0, 1, 2 respectively. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>r</strong> – Red dot-current [0,255]. </p></li>
+<li><p><strong>g</strong> – Green dot-current [0,255]. </p></li>
+<li><p><strong>b</strong> – Blue dot-current [0,255]. </p></li>
+<li><p><strong>ec</strong> – Error code set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success, false on failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58177set_rgbE7uint8_t7uint8_t7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp58177set_rgbE7uint8_t7uint8_t7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp58177set_rgbE7uint8_t7uint8_t7uint8_tRNSt10error_codeE"></span><span id="espp::Lp5817::set_rgb__uint8_t.uint8_t.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1a69654846f5e12d8728ab5e9141dd415a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_rgb</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">r</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">g</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">b</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp58177set_rgbE7uint8_t7uint8_t7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set all three channel brightness (dot-current) values. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This assumes RGB are mapped to channels 0, 1, 2 respectively. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is an alias for <a class="reference internal" href="#classespp_1_1Lp5817_1a0c911ed1b3356a738c7e5df47e3a9b88"><span class="std std-ref">set_rgb_dot_current()</span></a>. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>r</strong> – Red Dot-Current brightness [0,255]. </p></li>
+<li><p><strong>g</strong> – Green Dot-Current brightness [0,255]. </p></li>
+<li><p><strong>b</strong> – Blue Dot-Current brightness [0,255]. </p></li>
+<li><p><strong>ec</strong> – Error code set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success, false on failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58177set_rgbEfffRNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp58177set_rgbEfffRNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp58177set_rgbEfffRNSt10error_codeE"></span><span id="espp::Lp5817::set_rgb__float.float.float.std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1ab4cacb3fa63d43d4085d4423c85ccc18"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_rgb</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">r</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">g</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">b</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp58177set_rgbEfffRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set all three channel brightness (dot-current) values using float values. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Values are clamped to [0.0, 1.0] range. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This assumes RGB are mapped to channels 0, 1, 2 respectively. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is an alias for <a class="reference internal" href="#classespp_1_1Lp5817_1a0c911ed1b3356a738c7e5df47e3a9b88"><span class="std std-ref">set_rgb_dot_current()</span></a>. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>r</strong> – Red Dot-Current brightness [0.0, 1.0]. </p></li>
+<li><p><strong>g</strong> – Green Dot-Current brightness [0.0, 1.0]. </p></li>
+<li><p><strong>b</strong> – Blue Dot-Current brightness [0.0, 1.0]. </p></li>
+<li><p><strong>ec</strong> – Error code set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success, false on failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58177set_pwmERKNSt5arrayI7uint8_tXL3EEEERNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp58177set_pwmERKNSt5arrayI7uint8_tXL3EEEERNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp58177set_pwmERKNSt5arrayI7uint8_tX3EEERNSt10error_codeE"></span><span id="espp::Lp5817::set_pwm__std::array:uint8_t.3:CR.std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1aa1d0af131d37048763fe2d1a4a5d008c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_pwm</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">3</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp58177set_pwmERKNSt5arrayI7uint8_tXL3EEEERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set all three channel manual PWM values (manual mode). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – Array of three manual PWM values [0,255]. </p></li>
+<li><p><strong>ec</strong> – Error code set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success, false on failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581711set_rgb_pwmE7uint8_t7uint8_t7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp581711set_rgb_pwmE7uint8_t7uint8_t7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp581711set_rgb_pwmE7uint8_t7uint8_t7uint8_tRNSt10error_codeE"></span><span id="espp::Lp5817::set_rgb_pwm__uint8_t.uint8_t.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1adbe832d2cf8bc414fc3a4be6fa4efb55"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_rgb_pwm</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">r</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">g</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">b</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581711set_rgb_pwmE7uint8_t7uint8_t7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set all three channel manual PWM values (manual mode). </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This assumes RGB are mapped to channels 0, 1, 2 respectively. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is best used when fading is enabled on all channels and there is a non-zero fade time, to avoid visible stepping. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>r</strong> – Red manual PWM value [0,255]. </p></li>
+<li><p><strong>g</strong> – Green manual PWM value [0,255]. </p></li>
+<li><p><strong>b</strong> – Blue manual PWM value [0,255]. </p></li>
+<li><p><strong>ec</strong> – Error code set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success, false on failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581711set_rgb_pwmEfffRNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp581711set_rgb_pwmEfffRNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp581711set_rgb_pwmEfffRNSt10error_codeE"></span><span id="espp::Lp5817::set_rgb_pwm__float.float.float.std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1a992a28a64816a205da7f25b2d9f81556"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_rgb_pwm</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">r</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">g</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">b</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581711set_rgb_pwmEfffRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set all three channel manual PWM values using float values (manual mode). </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Values are clamped to [0.0, 1.0] range. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This assumes RGB are mapped to channels 0, 1, 2 respectively. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is best used when fading is enabled on all channels and there is a non-zero fade time configured. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>r</strong> – Red manual PWM value [0.0, 1.0]. </p></li>
+<li><p><strong>g</strong> – Green manual PWM value [0.0, 1.0]. </p></li>
+<li><p><strong>b</strong> – Blue manual PWM value [0.0, 1.0]. </p></li>
+<li><p><strong>ec</strong> – Error code set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success, false on failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581714set_manual_pwmE7Channel7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp581714set_manual_pwmE7Channel7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp581714set_manual_pwmE7Channel7uint8_tRNSt10error_codeE"></span><span id="espp::Lp5817::set_manual_pwm__Channel.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1a7c10727ef3a8d052872e35f493b12edf"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_manual_pwm</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Lp58177ChannelE" title="espp::Lp5817::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">ch</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581714set_manual_pwmE7Channel7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set manual PWM value for a channel (manual mode). </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is best used when fading is enabled on the channel and there is a non-zero fade time configured. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ch</strong> – Channel to update. </p></li>
+<li><p><strong>value</strong> – Manual PWM value [0,255]. </p></li>
+<li><p><strong>ec</strong> – Error code set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success, false on failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581714set_manual_pwmE7ChannelfRNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp581714set_manual_pwmE7ChannelfRNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp581714set_manual_pwmE7ChannelfRNSt10error_codeE"></span><span id="espp::Lp5817::set_manual_pwm__Channel.float.std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1af9538fc324d2e082e7a21c44330d3131"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_manual_pwm</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Lp58177ChannelE" title="espp::Lp5817::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">ch</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581714set_manual_pwmE7ChannelfRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set manual PWM value for a channel using a float value (manual mode). </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Value is clamped to [0.0, 1.0] range. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ch</strong> – Channel to update. </p></li>
+<li><p><strong>value</strong> – Manual PWM value [0.0, 1.0]. </p></li>
+<li><p><strong>ec</strong> – Error code set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success, false on failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581714get_manual_pwmE7ChannelRNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp581714get_manual_pwmE7ChannelRNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp581714get_manual_pwmE7ChannelRNSt10error_codeE"></span><span id="espp::Lp5817::get_manual_pwm__Channel.std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1a0dcadef6737aa01d1ccacf42fe4dd50f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_manual_pwm</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Lp58177ChannelE" title="espp::Lp5817::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">ch</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581714get_manual_pwmE7ChannelRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the current manual PWM value of a channel (manual mode). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ch</strong> – Channel to read. </p></li>
+<li><p><strong>ec</strong> – Error code set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Manual PWM value [0,255]. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581713set_fade_timeE8FadeTimeRNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp581713set_fade_timeE8FadeTimeRNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp581713set_fade_timeE8FadeTimeRNSt10error_codeE"></span><span id="espp::Lp5817::set_fade_time__FadeTime.std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1aec58a310319aa949adc55d280506801c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_fade_time</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Lp58178FadeTimeE" title="espp::Lp5817::FadeTime"><span class="n"><span class="pre">FadeTime</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">time</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581713set_fade_timeE8FadeTimeRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set global fade time (datasheet-defined). </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This sets the fade time for all channels. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You must call <a class="reference internal" href="#classespp_1_1Lp5817_1afa3fb7fc1cfa3ba5a810670ac5b501c1"><span class="std std-ref">update()</span></a> after changing this setting for it to take effect. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>time</strong> – Fade time. </p></li>
+<li><p><strong>ec</strong> – Error code set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success, false on failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581713get_fade_timeERNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp581713get_fade_timeERNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp581713get_fade_timeERNSt10error_codeE"></span><span id="espp::Lp5817::get_fade_time__std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1a3b96df1ff35881a5d3f69b118b6434e1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Lp58178FadeTimeE" title="espp::Lp5817::FadeTime"><span class="n"><span class="pre">FadeTime</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_fade_time</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581713get_fade_timeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the current global fade time setting. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code set on failure. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Current global fade time setting. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581715set_fade_enableE7ChannelbRNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp581715set_fade_enableE7ChannelbRNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp581715set_fade_enableE7ChannelbRNSt10error_codeE"></span><span id="espp::Lp5817::set_fade_enable__Channel.b.std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1ac0d627f45489fc6b89c9750e45d9d6f4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_fade_enable</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Lp58177ChannelE" title="espp::Lp5817::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">ch</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">enable</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581715set_fade_enableE7ChannelbRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Enable/disable fade engine for a channel. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Fading must be enabled for exponential dimming to have any effect. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You must call <a class="reference internal" href="#classespp_1_1Lp5817_1afa3fb7fc1cfa3ba5a810670ac5b501c1"><span class="std std-ref">update()</span></a> after changing this setting for it to take effect. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ch</strong> – Channel to configure. </p></li>
+<li><p><strong>enable</strong> – True to enable fading, false to disable. </p></li>
+<li><p><strong>ec</strong> – Error code set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success, false on failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581715is_fade_enabledE7ChannelRNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp581715is_fade_enabledE7ChannelRNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp581715is_fade_enabledE7ChannelRNSt10error_codeE"></span><span id="espp::Lp5817::is_fade_enabled__Channel.std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1a2a0911a0273066d83340a5247098ffb0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_fade_enabled</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Lp58177ChannelE" title="espp::Lp5817::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">ch</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581715is_fade_enabledE7ChannelRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Is fading enabled for a channel? </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ch</strong> – Channel to check. </p></li>
+<li><p><strong>ec</strong> – Error code set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if fading is enabled, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581730set_exponential_dimming_enableE7ChannelbRNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp581730set_exponential_dimming_enableE7ChannelbRNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp581730set_exponential_dimming_enableE7ChannelbRNSt10error_codeE"></span><span id="espp::Lp5817::set_exponential_dimming_enable__Channel.b.std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1ab0bf40454b3d6c69840cf9fbe8fcecc6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_exponential_dimming_enable</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Lp58177ChannelE" title="espp::Lp5817::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">ch</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">enable</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581730set_exponential_dimming_enableE7ChannelbRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Enable/disable exponential dimming for a channel. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Exponential dimming is only effective if fading is also enabled. See datasheet for details. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You must call <a class="reference internal" href="#classespp_1_1Lp5817_1afa3fb7fc1cfa3ba5a810670ac5b501c1"><span class="std std-ref">update()</span></a> after changing this setting for it to take effect. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ch</strong> – Channel to configure. </p></li>
+<li><p><strong>enable</strong> – True to enable exponential dimming, false for linear. </p></li>
+<li><p><strong>ec</strong> – Error code set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success, false on failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581730is_exponential_dimming_enabledE7ChannelRNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp581730is_exponential_dimming_enabledE7ChannelRNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp581730is_exponential_dimming_enabledE7ChannelRNSt10error_codeE"></span><span id="espp::Lp5817::is_exponential_dimming_enabled__Channel.std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1a49636e192d8c6a8f08d320a884fe7109"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_exponential_dimming_enabled</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Lp58177ChannelE" title="espp::Lp5817::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">ch</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581730is_exponential_dimming_enabledE7ChannelRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Is exponential dimming enabled for a channel? </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ch</strong> – Channel to check. </p></li>
+<li><p><strong>ec</strong> – Error code set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if exponential dimming is enabled, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581717set_output_enableE7ChannelbRNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp581717set_output_enableE7ChannelbRNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp581717set_output_enableE7ChannelbRNSt10error_codeE"></span><span id="espp::Lp5817::set_output_enable__Channel.b.std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1a295287a868606212e20863731102b4a4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_output_enable</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Lp58177ChannelE" title="espp::Lp5817::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">ch</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">enable</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581717set_output_enableE7ChannelbRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Enable/disable output stage for a channel. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You must call <a class="reference internal" href="#classespp_1_1Lp5817_1afa3fb7fc1cfa3ba5a810670ac5b501c1"><span class="std std-ref">update()</span></a> after changing this setting for it to take effect. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ch</strong> – Channel to configure. </p></li>
+<li><p><strong>enable</strong> – True to enable output, false to disable. </p></li>
+<li><p><strong>ec</strong> – Error code set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success, false on failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581717is_output_enabledE7ChannelRNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp581717is_output_enabledE7ChannelRNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp581717is_output_enabledE7ChannelRNSt10error_codeE"></span><span id="espp::Lp5817::is_output_enabled__Channel.std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1a136f46ed7e2184ef580b777b7c06bb72"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_output_enabled</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Lp58177ChannelE" title="espp::Lp5817::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">ch</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581717is_output_enabledE7ChannelRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Check if output stage is enabled for a channel. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ch</strong> – Channel to check. </p></li>
+<li><p><strong>ec</strong> – Error code set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if output stage is enabled, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581715set_max_currentE16GlobalMaxCurrentRNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp581715set_max_currentE16GlobalMaxCurrentRNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp581715set_max_currentE16GlobalMaxCurrentRNSt10error_codeE"></span><span id="espp::Lp5817::set_max_current__GlobalMaxCurrent.std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1a4d1cb763e60c40ceefc6466e0ee10407"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_max_current</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Lp581716GlobalMaxCurrentE" title="espp::Lp5817::GlobalMaxCurrent"><span class="n"><span class="pre">GlobalMaxCurrent</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">current</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581715set_max_currentE16GlobalMaxCurrentRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set global max current. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This sets the max current for all channels. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You must call <a class="reference internal" href="#classespp_1_1Lp5817_1afa3fb7fc1cfa3ba5a810670ac5b501c1"><span class="std std-ref">update()</span></a> after changing this setting for it to take effect. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>current</strong> – Global max current setting. </p></li>
+<li><p><strong>ec</strong> – Error code set on failure. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success, false on failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581715get_max_currentERNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp581715get_max_currentERNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp581715get_max_currentERNSt10error_codeE"></span><span id="espp::Lp5817::get_max_current__std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1af4da177a296d5dce1281baf73d3c6512"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Lp581716GlobalMaxCurrentE" title="espp::Lp5817::GlobalMaxCurrent"><span class="n"><span class="pre">GlobalMaxCurrent</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_max_current</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581715get_max_currentERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the current global max current setting. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code set on failure. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Current global max current setting. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58176updateERNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp58176updateERNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp58176updateERNSt10error_codeE"></span><span id="espp::Lp5817::update__std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1afa3fb7fc1cfa3ba5a810670ac5b501c1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">update</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp58176updateERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Issue update command (latch new settings). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code set on failure. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success, false on failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58175resetERNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp58175resetERNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp58175resetERNSt10error_codeE"></span><span id="espp::Lp5817::reset__std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1ad896c4d59a9d433c03139f11c0857a7c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp58175resetERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Issue reset command. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code set on failure. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success, false on failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58178shutdownERNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp58178shutdownERNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp58178shutdownERNSt10error_codeE"></span><span id="espp::Lp5817::shutdown__std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1a863935d40a5da7af1451ad0c718c26a4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">shutdown</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp58178shutdownERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Issue shutdown command. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code set on failure. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success, false on failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581710read_flagsERNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp581710read_flagsERNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp581710read_flagsERNSt10error_codeE"></span><span id="espp::Lp5817::read_flags__std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1afa812d625645d75c1dc48b40b631e349"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_flags</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581710read_flagsERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read flag register (POR/TSD). </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Bit0 = POR (Power-On Reset), Bit1 = TSD (Thermal Shutdown) </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code set on failure. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Flag register value. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581715is_por_flag_setERNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp581715is_por_flag_setERNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp581715is_por_flag_setERNSt10error_codeE"></span><span id="espp::Lp5817::is_por_flag_set__std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1acf03e26dd2bf89577ef3cd6bd984b624"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_por_flag_set</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581715is_por_flag_setERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Check if POR (Power-On Reset) flag is set. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code set on failure. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if POR flag is set, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581715is_tsd_flag_setERNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp581715is_tsd_flag_setERNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp581715is_tsd_flag_setERNSt10error_codeE"></span><span id="espp::Lp5817::is_tsd_flag_set__std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1aa99f93b36e1fe307030f935bd6c23fea"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_tsd_flag_set</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581715is_tsd_flag_setERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Check if TSD (Thermal Shutdown) flag is set. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code set on failure. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if TSD flag is set, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581711clear_flagsERNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp581711clear_flagsERNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp581711clear_flagsERNSt10error_codeE"></span><span id="espp::Lp5817::clear_flags__std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1ab63b8af1dea65646482c5c6416aed6b0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_flags</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581711clear_flagsERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear both POR (Power-On Reset) and TSD (Thermal Shutdown) flags. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code set on failure. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success, false on failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581714clear_por_flagERNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp581714clear_por_flagERNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp581714clear_por_flagERNSt10error_codeE"></span><span id="espp::Lp5817::clear_por_flag__std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1a0a8aa4c6e83226e68cfdb07f4e41c4bb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_por_flag</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581714clear_por_flagERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear POR (Power-On Reset) flag. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code set on failure. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success, false on failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581714clear_tsd_flagERNSt10error_codeE">
+<span id="_CPPv3N4espp6Lp581714clear_tsd_flagERNSt10error_codeE"></span><span id="_CPPv2N4espp6Lp581714clear_tsd_flagERNSt10error_codeE"></span><span id="espp::Lp5817::clear_tsd_flag__std::error_codeR"></span><span class="target" id="classespp_1_1Lp5817_1a77138e3bc7470cad9735cbe8fea129ea"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_tsd_flag</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581714clear_tsd_flagERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear TSD (Thermal Shutdown) flag. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code set on failure. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success, false on failure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Lp58175probeERNSt10error_codeE">
+<span id="_CPPv3NK4espp6Lp58175probeERNSt10error_codeE"></span><span id="_CPPv2NK4espp6Lp58175probeERNSt10error_codeE"></span><span id="espp::Lp5817::probe__std::error_codeRC"></span><span class="target" id="classespp_1_1BasePeripheral_1a05481a009a7302fff3b43d301de6b1eb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">probe</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Lp58175probeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Probe the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the probe function is not set, this function will return false and set the error code to operation_not_supported </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is only available if UseAddress is true </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code to set if there is an error </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the peripheral is found </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581711set_addressE7uint8_t">
+<span id="_CPPv3N4espp6Lp581711set_addressE7uint8_t"></span><span id="_CPPv2N4espp6Lp581711set_addressE7uint8_t"></span><span id="espp::Lp5817::set_address__uint8_t"></span><span class="target" id="classespp_1_1BasePeripheral_1a31fb8ec471403bf9be06428dbc46277a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_address</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">address</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581711set_addressE7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the address of the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is only available if UseAddress is true </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>address</strong> – The address of the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58179set_probeERK8probe_fn">
+<span id="_CPPv3N4espp6Lp58179set_probeERK8probe_fn"></span><span id="_CPPv2N4espp6Lp58179set_probeERK8probe_fn"></span><span id="espp::Lp5817::set_probe__probe_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a5b5d7753ea6ccf361e495fdc80c81f19"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_probe</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Lp58178probe_fnE" title="espp::Lp5817::probe_fn"><span class="n"><span class="pre">probe_fn</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">probe</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp58179set_probeERK8probe_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the probe function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the probe function is usually set in the constructor. If you need to change the probe function, consider using the set_config function instead. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is only available if UseAddress is true </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>probe</strong> – The probe function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58179set_writeERK8write_fn">
+<span id="_CPPv3N4espp6Lp58179set_writeERK8write_fn"></span><span id="_CPPv2N4espp6Lp58179set_writeERK8write_fn"></span><span id="espp::Lp5817::set_write__write_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1ab5d5d18cd4e8893ed4f937dcfdaba5ba"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_write</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">write_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">write</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp58179set_writeERK8write_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the write function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the write function is usually set in the constructor. If you need to change the write function, consider using the set_config function instead. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>write</strong> – The write function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58178set_readERK7read_fn">
+<span id="_CPPv3N4espp6Lp58178set_readERK7read_fn"></span><span id="_CPPv2N4espp6Lp58178set_readERK7read_fn"></span><span id="espp::Lp5817::set_read__read_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1aa6d8131a30233e8439628815db8b1843"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_read</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">read_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">read</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp58178set_readERK7read_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the read function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the read function is usually set in the constructor. If you need to change the read function, consider using the set_config function instead. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>read</strong> – The read function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581717set_read_registerERK16read_register_fn">
+<span id="_CPPv3N4espp6Lp581717set_read_registerERK16read_register_fn"></span><span id="_CPPv2N4espp6Lp581717set_read_registerERK16read_register_fn"></span><span id="espp::Lp5817::set_read_register__read_register_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a72e039592417cd32bc47c77120005d3f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_read_register</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">read_register_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">read_register</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581717set_read_registerERK16read_register_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the read register function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the read register function is usually set in the constructor. If you need to change the read register function, consider using the set_config function instead. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>read_register</strong> – The read register function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581719set_write_then_readERK18write_then_read_fn">
+<span id="_CPPv3N4espp6Lp581719set_write_then_readERK18write_then_read_fn"></span><span id="_CPPv2N4espp6Lp581719set_write_then_readERK18write_then_read_fn"></span><span id="espp::Lp5817::set_write_then_read__write_then_read_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a07b152dbfba43b5c82a498416f6887b2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_write_then_read</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">write_then_read_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">write_then_read</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581719set_write_then_readERK18write_then_read_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the write then read function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the write then read function is usually set in the constructor. If you need to change the write then </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>write_then_read</strong> – The write then read function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581734set_separate_write_then_read_delayERKNSt6chrono12millisecondsE">
+<span id="_CPPv3N4espp6Lp581734set_separate_write_then_read_delayERKNSt6chrono12millisecondsE"></span><span id="_CPPv2N4espp6Lp581734set_separate_write_then_read_delayERKNSt6chrono12millisecondsE"></span><span id="espp::Lp5817::set_separate_write_then_read_delay__std::chrono::millisecondsCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a8c70b96c37525f90cc85ddfe4a40b82a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_separate_write_then_read_delay</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">milliseconds</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">delay</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581734set_separate_write_then_read_delayERKNSt6chrono12millisecondsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the delay between the write and read operations in write_then_read </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the delay is usually set in the constructor. If you need to change the delay, consider using the set_config function instead. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This delay is only used if the write_then_read function is not set to a custom function and the write and read functions are separate functions. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>delay</strong> – The delay between the write and read operations in write_then_read </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581710set_configERK6Config">
+<span id="_CPPv3N4espp6Lp581710set_configERK6Config"></span><span id="_CPPv2N4espp6Lp581710set_configERK6Config"></span><span id="espp::Lp5817::set_config__ConfigCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a163b98a30940711b23a7e7dce81efe0c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_config</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Lp58176ConfigE" title="espp::Lp5817::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581710set_configERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the configuration for the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The configuration should normally be set in the constructor, but this function can be used to change the configuration after the peripheral has been created - for instance if the peripheral could be found on different communications buses. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – The configuration for the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581710set_configERR6Config">
+<span id="_CPPv3N4espp6Lp581710set_configERR6Config"></span><span id="_CPPv2N4espp6Lp581710set_configERR6Config"></span><span id="espp::Lp5817::set_config__ConfigRR"></span><span class="target" id="classespp_1_1BasePeripheral_1a704004cfda66bf3ce5ed725b3003c32b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_config</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Lp58176ConfigE" title="espp::Lp5817::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581710set_configERR6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the configuration for the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The configuration should normally be set in the constructor, but this function can be used to change the configuration after the peripheral has been created - for instance if the peripheral could be found on different communications buses. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – The configuration for the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Lp58176configEv">
+<span id="_CPPv3NK4espp6Lp58176configEv"></span><span id="_CPPv2NK4espp6Lp58176configEv"></span><span id="espp::Lp5817::configC"></span><span class="target" id="classespp_1_1BasePeripheral_1ae66896cf25c9dde79522f354cdb23896"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Lp58176ConfigE" title="espp::Lp5817::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">config</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Lp58176configEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the configuration for the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The configuration for the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Lp58177addressEv">
+<span id="_CPPv3NK4espp6Lp58177addressEv"></span><span id="_CPPv2NK4espp6Lp58177addressEv"></span><span id="espp::Lp5817::addressC"></span><span class="target" id="classespp_1_1BasePeripheral_1add730fb3307dd52ed5f8905a576e7ecc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">address</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Lp58177addressEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the address of the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The address of the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Lp58178get_nameEv">
+<span id="_CPPv3NK4espp6Lp58178get_nameEv"></span><span id="_CPPv2NK4espp6Lp58178get_nameEv"></span><span id="espp::Lp5817::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Lp58178get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581711set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp6Lp581711set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp6Lp581711set_log_tagERKNSt11string_viewE"></span><span id="espp::Lp5817::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581711set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Lp581713get_log_levelEv">
+<span id="_CPPv3NK4espp6Lp581713get_log_levelEv"></span><span id="_CPPv2NK4espp6Lp581713get_log_levelEv"></span><span id="espp::Lp5817::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Lp581713get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581713set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp6Lp581713set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp6Lp581713set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::Lp5817::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581713set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581717set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp6Lp581717set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp6Lp581717set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::Lp5817::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581717set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../ws_s3_touch.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Lp581717get_log_verbosityEv">
+<span id="_CPPv3NK4espp6Lp581717get_log_verbosityEv"></span><span id="_CPPv2NK4espp6Lp581717get_log_verbosityEv"></span><span id="espp::Lp5817::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Lp581717get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../ws_s3_touch.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp581718set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp6Lp581718set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp6Lp581718set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::Lp5817::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Lp581718set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58176ConfigE">
+<span id="_CPPv3N4espp6Lp58176ConfigE"></span><span id="_CPPv2N4espp6Lp58176ConfigE"></span><span id="espp::Lp5817::Config"></span><span class="target" id="structespp_1_1Lp5817_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Lp58176ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration structure. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58176Config14device_addressE">
+<span id="_CPPv3N4espp6Lp58176Config14device_addressE"></span><span id="_CPPv2N4espp6Lp58176Config14device_addressE"></span><span id="espp::Lp5817::Config::device_address__uint8_t"></span><span class="target" id="structespp_1_1Lp5817_1_1Config_1a57a78b4619ab4c6d94cca145220dcde8"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">device_address</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">DEFAULT_ADDRESS</span></span><a class="headerlink" href="#_CPPv4N4espp6Lp58176Config14device_addressE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>I2C address of the device. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58176Config5writeE">
+<span id="_CPPv3N4espp6Lp58176Config5writeE"></span><span id="_CPPv2N4espp6Lp58176Config5writeE"></span><span id="espp::Lp5817::Config::write__BasePeripheral::write_fn"></span><span class="target" id="structespp_1_1Lp5817_1_1Config_1a4504cd40de9bc2d2328748300d672708"></span><a class="reference internal" href="../base_peripheral.html#_CPPv4I_NSt8integralE_b_b_bEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">write_fn</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Lp58176Config5writeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Write function. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58176Config15write_then_readE">
+<span id="_CPPv3N4espp6Lp58176Config15write_then_readE"></span><span id="_CPPv2N4espp6Lp58176Config15write_then_readE"></span><span id="espp::Lp5817::Config::write_then_read__BasePeripheral::write_then_read_fn"></span><span class="target" id="structespp_1_1Lp5817_1_1Config_1a9c5a7638834975274c5cce47a2f07d23"></span><a class="reference internal" href="../base_peripheral.html#_CPPv4I_NSt8integralE_b_b_bEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">write_then_read_fn</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_then_read</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Lp58176Config15write_then_readE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Write-then-read function. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58176Config9auto_initE">
+<span id="_CPPv3N4espp6Lp58176Config9auto_initE"></span><span id="_CPPv2N4espp6Lp58176Config9auto_initE"></span><span id="espp::Lp5817::Config::auto_init__b"></span><span class="target" id="structespp_1_1Lp5817_1_1Config_1ae6fafd19f866eeb97b640e5e9a6f4c69"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">auto_init</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><a class="headerlink" href="#_CPPv4N4espp6Lp58176Config9auto_initE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>If true, <a class="reference internal" href="#classespp_1_1Lp5817_1a93d35dbd4b28f116e34701bb050c75a9"><span class="std std-ref">initialize()</span></a> is called in constructor. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Lp58176Config9log_levelE">
+<span id="_CPPv3N4espp6Lp58176Config9log_levelE"></span><span id="_CPPv2N4espp6Lp58176Config9log_levelE"></span><span id="espp::Lp5817::Config::log_level__Logger::Verbosity"></span><span class="target" id="structespp_1_1Lp5817_1_1Config_1a6dcf5f0204731d52d6c70f98f691a489"></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp6Lp58176Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Log level. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="LED Driver Components" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="lp5817_example.html" class="btn btn-neutral float-right" title="LP5817 Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

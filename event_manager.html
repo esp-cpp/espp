@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Event Manager APIs - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="_static/copybutton.js?v=ff8fa330"></script>
+    <script src="_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'event_manager';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Event Manager Example" href="event_manager_example.html" />
+    <link rel="prev" title="ESP-BOX Example" href="esp_box_example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            ESPP
+              <img src="_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_component.html">Base Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l1"><a class="reference internal" href="battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="byte90.html">ALXV Labs Byte90</a></li>
+<li class="toctree-l1"><a class="reference internal" href="controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cobs.html">COBS (Consistent Overhead Byte Stuffing)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="esp32_timer_cam.html">ESP32 TimerCam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="esp_box.html">ESP BOX</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Event Manager APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="event_manager_example.html">Event Manager Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hid/index.html">HID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="interrupt.html">Interrupt APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="iperf_menu.html">Iperf Menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="m5stack_tab5.html">M5Stack Tab5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="matouch_rotary_display.html">MaTouch Rotary Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="motorgo_mini.html">MotorGo Mini</a></li>
+<li class="toctree-l1"><a class="reference internal" href="neopixel.html">Neopixel APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nvs.html">NVS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="remote_debug.html">Remote Debug APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="runqueue.html">RunQueue APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="seeed_studio_round_display.html">Seeed Studio Round Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="t_deck.html">LilyGo T-Deck</a></li>
+<li class="toctree-l1"><a class="reference internal" href="t_dongle_s3.html">LilyGo T-Dongle S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wrover_kit.html">ESP32-WROVER-KIT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Event Manager APIs</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/32e8215e/docs/en/event_manager.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="event-manager-apis">
+<h1>Event Manager APIs<a class="headerlink" href="#event-manager-apis" title="Permalink to this heading"></a></h1>
+<p>The <cite>EventManager</cite> class enables anonymous publish/subscribe interactions
+between different software components and contexts in the system. It provides a
+singleton class which manages the registry of publishers and subscribers in the
+system and provides loose coupling between them. To subscribe to events/data, a
+component must register itself with the manager by calling <cite>add_subscriber()</cite> -
+which will register a callback function associated with that component for the
+event/topic provided. All callback functions for a given topic/event are called
+from the same thread/context - a thread that is started and managed by the
+EventManager. As noted in a few places, it is recommended to use a
+(de-)serialization library such as espp::serialization / alpaca for transforming
+data structures to/from <cite>std::vector&lt;uint8_t&gt;</cite> for publishing/subscribing.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="event_manager_example.html">Event Manager Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="event_manager_example.html#how-to-use-example">How to use example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="event_manager_example.html#build-and-flash">Build and Flash</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="event_manager_example.html#example-output">Example Output</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/32e8215e/components/event_manager/include/event_manager.hpp">components/event_manager/include/event_manager.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12EventManagerE">
+<span id="_CPPv3N4espp12EventManagerE"></span><span id="_CPPv2N4espp12EventManagerE"></span><span id="espp::EventManager"></span><span class="target" id="classespp_1_1EventManager"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EventManager</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp12EventManagerE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Singleton class for managing events. Provides mechanisms for anonymous publish / subscribe interactions - enabling one to one, one to many, many to one, and many to many data distribution with loose coupling and low overhead. Each topic runs a thread for that topic’s subscribers, executing all the callbacks in sequence and then going to sleep again until new data is published. </p>
+<section id="classespp_1_1EventManager_1event_manager_ex1">
+<h4>Event Manager Example<a class="headerlink" href="#classespp_1_1EventManager_1event_manager_ex1" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1EventManager_1event_manager_ex1"><div class="highlight"><pre><span></span><span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">EventManager</span><span class="o">::</span><span class="n">get</span><span class="p">().</span><span class="n">set_log_level</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// NOTE: we&#39;ll use a simple string for publishing on drive/control, but</span>
+<span class="w">  </span><span class="c1">// normally you&#39;d use a struct and a serialization library like alpaca, so</span>
+<span class="w">  </span><span class="c1">// that&#39;s what we&#39;ll do for battery/state</span>
+
+<span class="w">  </span><span class="c1">// let&#39;s define a struct to contain data for an event</span>
+<span class="w">  </span><span class="k">struct</span><span class="w"> </span><span class="nc">BatteryState</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">voltage</span><span class="p">{</span><span class="mf">48.0f</span><span class="p">};</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">current</span><span class="p">{</span><span class="mf">0.0f</span><span class="p">};</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">is_charging</span><span class="p">{</span><span class="nb">false</span><span class="p">};</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">temperature_celsius</span><span class="p">{</span><span class="mf">25.0f</span><span class="p">};</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">state_of_charge</span><span class="p">{</span><span class="mf">100.0f</span><span class="p">};</span>
+<span class="w">  </span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// let&#39;s make some event names that we&#39;ll use for this example</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">event1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;battery/state&quot;</span><span class="p">;</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">event2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;drive/control&quot;</span><span class="p">;</span>
+
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">num_published</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">num_received</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// Make a task which has a pub/sub in it. NOTE: in real code, this would</span>
+<span class="w">  </span><span class="c1">// likely be within a custom class and the registration would happen in the</span>
+<span class="w">  </span><span class="c1">// constructor, with the remove_publisher / remove_subscriber calls in its</span>
+<span class="w">  </span><span class="c1">// destructor. Also NOTE: you would likely use a serialization library like</span>
+<span class="w">  </span><span class="c1">// alpaca (wrapped in espp serialization component) for serializing and</span>
+<span class="w">  </span><span class="c1">// deserializing the data structures being passed to string data.</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">task_1_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="c1">// Just for fun, we&#39;ll only define the subscriber callback within the</span>
+<span class="w">      </span><span class="c1">// context of this task function</span>
+<span class="w">      </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">event2_cb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&amp;</span><span class="n">data</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// we know this is a string, so just convert it to a string and</span>
+<span class="w">        </span><span class="c1">// print it</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="nf">data_str</span><span class="p">(</span><span class="n">data</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span><span class="w"> </span><span class="n">data</span><span class="p">.</span><span class="n">end</span><span class="p">());</span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Task 1 cb got data: &#39;{}&#39;&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">data_str</span><span class="p">);</span>
+<span class="w">        </span><span class="n">num_received</span><span class="o">++</span><span class="p">;</span>
+<span class="w">        </span><span class="c1">// block here like we&#39;re doing work</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">10</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">      </span><span class="p">};</span>
+<span class="w">      </span><span class="c1">// we only want to register once, so ust the std::call_once /</span>
+<span class="w">      </span><span class="c1">// std::once_flag functionality to only register the first time the</span>
+<span class="w">      </span><span class="c1">// task is run</span>
+<span class="w">      </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">once_flag</span><span class="w"> </span><span class="n">flag</span><span class="p">;</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">call_once</span><span class="p">(</span><span class="n">flag</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">em</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">EventManager</span><span class="o">::</span><span class="n">get</span><span class="p">();</span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Task 1 registering!&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">did_pub</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">em</span><span class="p">.</span><span class="n">add_publisher</span><span class="p">(</span><span class="n">event1</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;task 1&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">did_sub</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">em</span><span class="p">.</span><span class="n">add_subscriber</span><span class="p">(</span><span class="n">event2</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;task 1&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">event2_cb</span><span class="p">);</span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Task 1 publishing:  {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">did_pub</span><span class="p">);</span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Task 1 subscribing: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">did_sub</span><span class="p">);</span>
+<span class="w">        </span><span class="c1">// sleep for a little bit to let the other task register its</span>
+<span class="w">        </span><span class="c1">// subscribers/publishers before we start publishing ensuring that the</span>
+<span class="w">        </span><span class="c1">// subscriber callback is registered before the publisher publishes</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">10</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">      </span><span class="p">});</span>
+<span class="w">      </span><span class="c1">// periodically publish on event1</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Task 1 publishing on {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">event1</span><span class="p">);</span>
+<span class="w">      </span><span class="k">static</span><span class="w"> </span><span class="n">BatteryState</span><span class="w"> </span><span class="n">bs</span><span class="p">;</span>
+<span class="w">      </span><span class="n">bs</span><span class="p">.</span><span class="n">current</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">;</span>
+<span class="w">      </span><span class="n">bs</span><span class="p">.</span><span class="n">voltage</span><span class="w"> </span><span class="o">-=</span><span class="w"> </span><span class="mf">0.1f</span><span class="p">;</span>
+<span class="w">      </span><span class="n">bs</span><span class="p">.</span><span class="n">state_of_charge</span><span class="w"> </span><span class="o">-=</span><span class="w"> </span><span class="mf">5.0f</span><span class="p">;</span>
+<span class="w">      </span><span class="n">bs</span><span class="p">.</span><span class="n">temperature_celsius</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="mf">0.2f</span><span class="p">;</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">buffer</span><span class="p">;</span>
+<span class="w">      </span><span class="n">espp</span><span class="o">::</span><span class="n">serialize</span><span class="p">(</span><span class="n">bs</span><span class="p">,</span><span class="w"> </span><span class="n">buffer</span><span class="p">);</span>
+<span class="w">      </span><span class="n">espp</span><span class="o">::</span><span class="n">EventManager</span><span class="o">::</span><span class="n">get</span><span class="p">().</span><span class="n">publish</span><span class="p">(</span><span class="n">event1</span><span class="p">,</span><span class="w"> </span><span class="n">buffer</span><span class="p">);</span>
+<span class="w">      </span><span class="n">num_published</span><span class="o">++</span><span class="p">;</span>
+<span class="w">      </span><span class="n">buffer</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+<span class="w">      </span><span class="n">bs</span><span class="p">.</span><span class="n">current</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">-1.0f</span><span class="p">;</span>
+<span class="w">      </span><span class="n">espp</span><span class="o">::</span><span class="n">serialize</span><span class="p">(</span><span class="n">bs</span><span class="p">,</span><span class="w"> </span><span class="n">buffer</span><span class="p">);</span>
+<span class="w">      </span><span class="n">espp</span><span class="o">::</span><span class="n">EventManager</span><span class="o">::</span><span class="n">get</span><span class="p">().</span><span class="n">publish</span><span class="p">(</span><span class="n">event1</span><span class="p">,</span><span class="w"> </span><span class="n">buffer</span><span class="p">);</span>
+<span class="w">      </span><span class="n">num_published</span><span class="o">++</span><span class="p">;</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lk</span><span class="p">(</span><span class="n">m</span><span class="p">);</span>
+<span class="w">      </span><span class="n">cv</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">lk</span><span class="p">,</span><span class="w"> </span><span class="mi">500</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="c1">// we don&#39;t want to stop, so return false</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">task1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="p">({.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">task_1_fn</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">task_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Task 1&quot;</span><span class="p">}});</span>
+
+<span class="w">  </span><span class="c1">// Now let&#39;s make another task which will have pub/sub as well</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">task_2_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="c1">// Just for fun, we&#39;ll only define the subscriber callback within the</span>
+<span class="w">      </span><span class="c1">// context of this task function</span>
+<span class="w">      </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">event1_cb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&amp;</span><span class="n">data</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// we know the data is a BatteryState struct, so deserialize it and</span>
+<span class="w">        </span><span class="c1">// print it</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">bs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">deserialize</span><span class="o">&lt;</span><span class="n">BatteryState</span><span class="o">&gt;</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Couldn&#39;t deserialize BatteryState: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">          </span><span class="k">return</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Task 2 got battery state data:</span><span class="se">\n</span><span class="s">&quot;</span>
+<span class="w">                     </span><span class="s">&quot;  voltage:             {:.2f}</span><span class="se">\n</span><span class="s">&quot;</span>
+<span class="w">                     </span><span class="s">&quot;  current:             {:.2f}</span><span class="se">\n</span><span class="s">&quot;</span>
+<span class="w">                     </span><span class="s">&quot;  is_charging:         {}</span><span class="se">\n</span><span class="s">&quot;</span>
+<span class="w">                     </span><span class="s">&quot;  temperature_celsius: {:.2f}</span><span class="se">\n</span><span class="s">&quot;</span>
+<span class="w">                     </span><span class="s">&quot;  state_of_charge:     {:.2f}&quot;</span><span class="p">,</span>
+<span class="w">                     </span><span class="n">bs</span><span class="p">.</span><span class="n">voltage</span><span class="p">,</span><span class="w"> </span><span class="n">bs</span><span class="p">.</span><span class="n">current</span><span class="p">,</span><span class="w"> </span><span class="n">bs</span><span class="p">.</span><span class="n">is_charging</span><span class="p">,</span><span class="w"> </span><span class="n">bs</span><span class="p">.</span><span class="n">temperature_celsius</span><span class="p">,</span>
+<span class="w">                     </span><span class="n">bs</span><span class="p">.</span><span class="n">state_of_charge</span><span class="p">);</span>
+<span class="w">        </span><span class="n">num_received</span><span class="o">++</span><span class="p">;</span>
+<span class="w">        </span><span class="c1">// block here like we&#39;re doing work</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">10</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">      </span><span class="p">};</span>
+<span class="w">      </span><span class="c1">// we only want to register once, so ust the std::call_once /</span>
+<span class="w">      </span><span class="c1">// std::once_flag functionality to only register the first time the</span>
+<span class="w">      </span><span class="c1">// task is run</span>
+<span class="w">      </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">once_flag</span><span class="w"> </span><span class="n">flag</span><span class="p">;</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">call_once</span><span class="p">(</span><span class="n">flag</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">em</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">EventManager</span><span class="o">::</span><span class="n">get</span><span class="p">();</span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Task 2 registering!&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">did_pub</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">em</span><span class="p">.</span><span class="n">add_publisher</span><span class="p">(</span><span class="n">event2</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;task 2&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="c1">// NOTE: we&#39;re using a custom task config here to show how you can</span>
+<span class="w">        </span><span class="c1">// configure the task that the subscriber callback will run in</span>
+<span class="w">        </span><span class="c1">// (priority, stack size, etc.). Only the first subscription on a topic</span>
+<span class="w">        </span><span class="c1">// will use the task config, any subsequent subscriptions will use the</span>
+<span class="w">        </span><span class="c1">// same task as the first subscription.</span>
+<span class="w">        </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="o">::</span><span class="n">BaseConfig</span><span class="w"> </span><span class="n">task_config</span><span class="p">{</span>
+<span class="w">            </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Task 2 subscriber task&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">8192</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">priority</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="c1">// 5 is default, 10 is higher</span>
+<span class="w">        </span><span class="p">};</span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">did_sub</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">em</span><span class="p">.</span><span class="n">add_subscriber</span><span class="p">(</span><span class="n">event1</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;task 2&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">event1_cb</span><span class="p">,</span><span class="w"> </span><span class="n">task_config</span><span class="p">);</span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Task 2 publishing:  {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">did_pub</span><span class="p">);</span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Task 2 subscribing: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">did_sub</span><span class="p">);</span>
+<span class="w">        </span><span class="c1">// sleep for a little bit to let the other task register its</span>
+<span class="w">        </span><span class="c1">// subscribers/publishers, ensuring that the subscriber callback is</span>
+<span class="w">        </span><span class="c1">// registered before the publisher publishes</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">10</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">      </span><span class="p">});</span>
+<span class="w">      </span><span class="c1">// periodically publish on event2</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Task 2 publishing on {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">event2</span><span class="p">);</span>
+<span class="w">      </span><span class="k">static</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">iteration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fmt</span><span class="o">::</span><span class="n">format</span><span class="p">(</span><span class="s">&quot;Task 2 data {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">iteration</span><span class="o">++</span><span class="p">);</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">buffer</span><span class="p">(</span><span class="n">data</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span><span class="w"> </span><span class="n">data</span><span class="p">.</span><span class="n">end</span><span class="p">());</span>
+<span class="w">      </span><span class="n">espp</span><span class="o">::</span><span class="n">EventManager</span><span class="o">::</span><span class="n">get</span><span class="p">().</span><span class="n">publish</span><span class="p">(</span><span class="n">event2</span><span class="p">,</span><span class="w"> </span><span class="n">buffer</span><span class="p">);</span>
+<span class="w">      </span><span class="n">num_published</span><span class="o">++</span><span class="p">;</span>
+<span class="w">      </span><span class="n">espp</span><span class="o">::</span><span class="n">EventManager</span><span class="o">::</span><span class="n">get</span><span class="p">().</span><span class="n">publish</span><span class="p">(</span><span class="n">event2</span><span class="p">,</span><span class="w"> </span><span class="n">buffer</span><span class="p">);</span>
+<span class="w">      </span><span class="n">num_published</span><span class="o">++</span><span class="p">;</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lk</span><span class="p">(</span><span class="n">m</span><span class="p">);</span>
+<span class="w">      </span><span class="n">cv</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">lk</span><span class="p">,</span><span class="w"> </span><span class="mi">500</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="c1">// we don&#39;t want to stop, so return false</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">task2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="p">({.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">task_2_fn</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">task_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Task 2&quot;</span><span class="p">}});</span>
+
+<span class="w">  </span><span class="c1">// now start the tasks</span>
+<span class="w">  </span><span class="n">task1</span><span class="p">.</span><span class="n">start</span><span class="p">();</span>
+<span class="w">  </span><span class="n">task2</span><span class="p">.</span><span class="n">start</span><span class="p">();</span>
+
+<span class="w">  </span><span class="c1">// Now let&#39;s just wait for a little while for those tasks to run, showcasing</span>
+<span class="w">  </span><span class="c1">// the pub/sub interactions in the log output.</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Sleeping for 5s...&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">5</span><span class="n">s</span><span class="p">);</span>
+
+<span class="w">  </span><span class="n">task1</span><span class="p">.</span><span class="n">stop</span><span class="p">();</span>
+<span class="w">  </span><span class="n">task2</span><span class="p">.</span><span class="n">stop</span><span class="p">();</span>
+
+<span class="w">  </span><span class="c1">// since the tasks are done, let&#39;s remove their publishers/subscibers here</span>
+<span class="w">  </span><span class="c1">// (though as noted above, this would normally be done in a class</span>
+<span class="w">  </span><span class="c1">// destructor)</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">em</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">EventManager</span><span class="o">::</span><span class="n">get</span><span class="p">();</span>
+<span class="w">  </span><span class="n">em</span><span class="p">.</span><span class="n">remove_publisher</span><span class="p">(</span><span class="n">event1</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;task 1&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">em</span><span class="p">.</span><span class="n">remove_subscriber</span><span class="p">(</span><span class="n">event2</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;task 1&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">em</span><span class="p">.</span><span class="n">remove_publisher</span><span class="p">(</span><span class="n">event2</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;task 2&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">em</span><span class="p">.</span><span class="n">remove_subscriber</span><span class="p">(</span><span class="n">event1</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;task 2&quot;</span><span class="p">);</span>
+</pre></div>
+</div>
+</section>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In c++ objects, it’s recommended to call the add_publisher/add_subscriber functions in the class constructor and then to call the remove_publisher/remove_subscriber functions in the class destructor.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>It is recommended (unless you are only interested in events and not data or are only needing to transmit actual strings) to use a serialization library (such as espp::serialization - which wraps alpaca) to serialize your data structures to string when publishing and then deserialize your data from string in the subscriber callbacks.</p>
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12EventManager17event_callback_fnE">
+<span id="_CPPv3N4espp12EventManager17event_callback_fnE"></span><span id="_CPPv2N4espp12EventManager17event_callback_fnE"></span><span id="espp::EventManager::event_callback_fn"></span><span class="target" id="classespp_1_1EventManager_1a35cb89feb87d6de200d9872e3f366613"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">event_callback_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp12EventManager17event_callback_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function definition for function prototypes to be called when subscription/event data is available. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param std::vector&lt;uint8_t&gt;&amp;<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The data associated with the event </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12EventManager13add_publisherERKNSt6stringERKNSt6stringE">
+<span id="_CPPv3N4espp12EventManager13add_publisherERKNSt6stringERKNSt6stringE"></span><span id="_CPPv2N4espp12EventManager13add_publisherERKNSt6stringERKNSt6stringE"></span><span id="espp::EventManager::add_publisher__ssCR.ssCR"></span><span class="target" id="classespp_1_1EventManager_1a6828562d39e66818f0eccd7236ed0ff3"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_publisher</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">topic</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">component</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12EventManager13add_publisherERKNSt6stringERKNSt6stringE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Register a publisher for <code class="docutils literal notranslate"><span class="pre">component</span></code> on <code class="docutils literal notranslate"><span class="pre">topic</span></code>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>topic</strong> – Topic name for the data being published. </p></li>
+<li><p><strong>component</strong> – Name of the component publishing data. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the publisher was added, false if it was already registered for that component. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12EventManager14add_subscriberERKNSt6stringERKNSt6stringERKN4espp12EventManager17event_callback_fnEK6size_t">
+<span id="_CPPv3N4espp12EventManager14add_subscriberERKNSt6stringERKNSt6stringERKN4espp12EventManager17event_callback_fnEK6size_t"></span><span id="_CPPv2N4espp12EventManager14add_subscriberERKNSt6stringERKNSt6stringERKN4espp12EventManager17event_callback_fnEK6size_t"></span><span id="espp::EventManager::add_subscriber__ssCR.ssCR.espp::EventManager::event_callback_fnCR.sC"></span><span class="target" id="classespp_1_1EventManager_1a7595ea370920de6675d9e2c9246ea2cb"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_subscriber</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">topic</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">component</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp12EventManagerE" title="espp::EventManager"><span class="n"><span class="pre">EventManager</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp12EventManager17event_callback_fnE" title="espp::EventManager::event_callback_fn"><span class="n"><span class="pre">event_callback_fn</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">callback</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">stack_size_bytes</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">8192</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12EventManager14add_subscriberERKNSt6stringERKNSt6stringERKN4espp12EventManager17event_callback_fnEK6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Register a subscriber for <code class="docutils literal notranslate"><span class="pre">component</span></code> on <code class="docutils literal notranslate"><span class="pre">topic</span></code>. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The stack size is only used if a subscriber is not already registered for that topic. If a subscriber is already registered for that topic, the stack size is ignored. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>topic</strong> – Topic name for the data being subscribed to. </p></li>
+<li><p><strong>component</strong> – Name of the component publishing data. </p></li>
+<li><p><strong>callback</strong> – The event_callback_fn to be called when receicing data on <code class="docutils literal notranslate"><span class="pre">topic</span></code>. </p></li>
+<li><p><strong>stack_size_bytes</strong> – The stack size in bytes to use for the subscriber </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the subscriber was added, false if it was already registered for that component. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12EventManager14add_subscriberERKNSt6stringERKNSt6stringERKN4espp12EventManager17event_callback_fnERKN4espp4Task10BaseConfigE">
+<span id="_CPPv3N4espp12EventManager14add_subscriberERKNSt6stringERKNSt6stringERKN4espp12EventManager17event_callback_fnERKN4espp4Task10BaseConfigE"></span><span id="_CPPv2N4espp12EventManager14add_subscriberERKNSt6stringERKNSt6stringERKN4espp12EventManager17event_callback_fnERKN4espp4Task10BaseConfigE"></span><span id="espp::EventManager::add_subscriber__ssCR.ssCR.espp::EventManager::event_callback_fnCR.espp::Task::BaseConfigCR"></span><span class="target" id="classespp_1_1EventManager_1a4a5b2e272c5c8af7f81b0b9ae2ce8d29"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_subscriber</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">topic</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">component</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp12EventManagerE" title="espp::EventManager"><span class="n"><span class="pre">EventManager</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp12EventManager17event_callback_fnE" title="espp::EventManager::event_callback_fn"><span class="n"><span class="pre">event_callback_fn</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">callback</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="task.html#_CPPv4N4espp4TaskE" title="espp::Task"><span class="n"><span class="pre">Task</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="task.html#_CPPv4N4espp4Task10BaseConfigE" title="espp::Task::BaseConfig"><span class="n"><span class="pre">BaseConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">task_config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12EventManager14add_subscriberERKNSt6stringERKNSt6stringERKN4espp12EventManager17event_callback_fnERKN4espp4Task10BaseConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Register a subscriber for <code class="docutils literal notranslate"><span class="pre">component</span></code> on <code class="docutils literal notranslate"><span class="pre">topic</span></code>. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The task_config is only used if a subscriber is not already registered for that topic. If a subscriber is already registered for that topic, the task_config is ignored. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>topic</strong> – Topic name for the data being subscribed to. </p></li>
+<li><p><strong>component</strong> – Name of the component publishing data. </p></li>
+<li><p><strong>callback</strong> – The event_callback_fn to be called when receicing data on <code class="docutils literal notranslate"><span class="pre">topic</span></code>. </p></li>
+<li><p><strong>task_config</strong> – The task configuration to use for the subscriber. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the subscriber was added, false if it was already registered for that component. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12EventManager7publishERKNSt6stringERKNSt6vectorI7uint8_tEE">
+<span id="_CPPv3N4espp12EventManager7publishERKNSt6stringERKNSt6vectorI7uint8_tEE"></span><span id="_CPPv2N4espp12EventManager7publishERKNSt6stringERKNSt6vectorI7uint8_tEE"></span><span id="espp::EventManager::publish__ssCR.std::vector:uint8_t:CR"></span><span class="target" id="classespp_1_1EventManager_1a4118c15ea13a71c6ba900f768dc90b6d"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">publish</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">topic</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12EventManager7publishERKNSt6stringERKNSt6vectorI7uint8_tEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Publish <code class="docutils literal notranslate"><span class="pre">data</span></code> on <code class="docutils literal notranslate"><span class="pre">topic</span></code>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>topic</strong> – Topic to publish data on. </p></li>
+<li><p><strong>data</strong> – Data to publish, within a vector container. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if <code class="docutils literal notranslate"><span class="pre">data</span></code> was successfully published to <code class="docutils literal notranslate"><span class="pre">topic</span></code>, false otherwise. Publish will not occur (and will return false) if there are no subscribers for this topic. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12EventManager16remove_publisherERKNSt6stringERKNSt6stringE">
+<span id="_CPPv3N4espp12EventManager16remove_publisherERKNSt6stringERKNSt6stringE"></span><span id="_CPPv2N4espp12EventManager16remove_publisherERKNSt6stringERKNSt6stringE"></span><span id="espp::EventManager::remove_publisher__ssCR.ssCR"></span><span class="target" id="classespp_1_1EventManager_1a1147c5420421909bca4e0d6208f3dcc2"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">remove_publisher</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">topic</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">component</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12EventManager16remove_publisherERKNSt6stringERKNSt6stringE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Remove <code class="docutils literal notranslate"><span class="pre">component's</span></code> publisher for <code class="docutils literal notranslate"><span class="pre">topic</span></code>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>topic</strong> – The topic that <code class="docutils literal notranslate"><span class="pre">component</span></code> was publishing on. </p></li>
+<li><p><strong>component</strong> – The component for which the publisher was registered. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the publisher was removed, false if it was not registered. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12EventManager17remove_subscriberERKNSt6stringERKNSt6stringE">
+<span id="_CPPv3N4espp12EventManager17remove_subscriberERKNSt6stringERKNSt6stringE"></span><span id="_CPPv2N4espp12EventManager17remove_subscriberERKNSt6stringERKNSt6stringE"></span><span id="espp::EventManager::remove_subscriber__ssCR.ssCR"></span><span class="target" id="classespp_1_1EventManager_1a9b26851102e941670c46d1a5e65556b2"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">remove_subscriber</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">topic</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">component</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12EventManager17remove_subscriberERKNSt6stringERKNSt6stringE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Remove <code class="docutils literal notranslate"><span class="pre">component's</span></code> subscriber for <code class="docutils literal notranslate"><span class="pre">topic</span></code>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>topic</strong> – The topic that <code class="docutils literal notranslate"><span class="pre">component</span></code> was subscribing to. </p></li>
+<li><p><strong>component</strong> – The component for which the subscriber was registered. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the subscriber was removed, false if it was not registered. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp12EventManager8get_nameEv">
+<span id="_CPPv3NK4espp12EventManager8get_nameEv"></span><span id="_CPPv2NK4espp12EventManager8get_nameEv"></span><span id="espp::EventManager::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp12EventManager8get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12EventManager11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp12EventManager11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp12EventManager11set_log_tagERKNSt11string_viewE"></span><span id="espp::EventManager::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12EventManager11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp12EventManager13get_log_levelEv">
+<span id="_CPPv3NK4espp12EventManager13get_log_levelEv"></span><span id="_CPPv2NK4espp12EventManager13get_log_levelEv"></span><span id="espp::EventManager::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp12EventManager13get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12EventManager13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp12EventManager13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp12EventManager13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::EventManager::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12EventManager13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12EventManager17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp12EventManager17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp12EventManager17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::EventManager::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12EventManager17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="ws_s3_touch.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp12EventManager17get_log_verbosityEv">
+<span id="_CPPv3NK4espp12EventManager17get_log_verbosityEv"></span><span id="_CPPv2NK4espp12EventManager17get_log_verbosityEv"></span><span id="espp::EventManager::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp12EventManager17get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="ws_s3_touch.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12EventManager18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp12EventManager18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp12EventManager18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::EventManager::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12EventManager18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12EventManager3getEv">
+<span id="_CPPv3N4espp12EventManager3getEv"></span><span id="_CPPv2N4espp12EventManager3getEv"></span><span id="espp::EventManager::get"></span><span class="target" id="classespp_1_1EventManager_1a35a1cb05c83169a6d422e466c6e9c99b"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp12EventManagerE" title="espp::EventManager"><span class="n"><span class="pre">EventManager</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12EventManager3getEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the singleton instance of the <a class="reference internal" href="#classespp_1_1EventManager"><span class="std std-ref">EventManager</span></a>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A reference to the <a class="reference internal" href="#classespp_1_1EventManager"><span class="std std-ref">EventManager</span></a> singleton. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="esp_box_example.html" class="btn btn-neutral float-left" title="ESP-BOX Example" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="event_manager_example.html" class="btn btn-neutral float-right" title="Event Manager Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

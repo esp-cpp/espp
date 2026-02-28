@@ -1,0 +1,17 @@
+FT5x06 Touch Controller
+***********************
+
+The FT5x06 is a capacitive touch controller that supports up to 5 touch points.
+
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   ft5x06_example
+
+.. ---------------------------- API Reference ----------------------------------
+
+API Reference
+-------------
+
+.. include-build-file:: inc/ft5x06.inc

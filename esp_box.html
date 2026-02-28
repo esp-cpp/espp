@@ -1,0 +1,1476 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ESP BOX - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="_static/copybutton.js?v=ff8fa330"></script>
+    <script src="_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'esp_box';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="ESP-BOX Example" href="esp_box_example.html" />
+    <link rel="prev" title="ESP32-TIMER-CAM Example" href="esp32_timer_cam_example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            ESPP
+              <img src="_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_component.html">Base Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l1"><a class="reference internal" href="battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="byte90.html">ALXV Labs Byte90</a></li>
+<li class="toctree-l1"><a class="reference internal" href="controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cobs.html">COBS (Consistent Overhead Byte Stuffing)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="esp32_timer_cam.html">ESP32 TimerCam</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">ESP BOX</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id1">Esp-Box</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="esp_box_example.html">ESP-BOX Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hid/index.html">HID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="interrupt.html">Interrupt APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="iperf_menu.html">Iperf Menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="m5stack_tab5.html">M5Stack Tab5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="matouch_rotary_display.html">MaTouch Rotary Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="motorgo_mini.html">MotorGo Mini</a></li>
+<li class="toctree-l1"><a class="reference internal" href="neopixel.html">Neopixel APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nvs.html">NVS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="remote_debug.html">Remote Debug APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="runqueue.html">RunQueue APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="seeed_studio_round_display.html">Seeed Studio Round Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="t_deck.html">LilyGo T-Deck</a></li>
+<li class="toctree-l1"><a class="reference internal" href="t_dongle_s3.html">LilyGo T-Dongle S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wrover_kit.html">ESP32-WROVER-KIT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">ESP BOX</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/32e8215e/docs/en/esp_box.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="esp-box">
+<h1>ESP BOX<a class="headerlink" href="#esp-box" title="Permalink to this heading"></a></h1>
+<section id="id1">
+<h2>Esp-Box<a class="headerlink" href="#id1" title="Permalink to this heading"></a></h2>
+<p>The ESP32-S3-BOX and ESP32-S3-BOX-3 are development boards for the ESP32-S3
+module. They feature a nice touchscreen display, a speaker, microphones, and
+expansion headers.</p>
+<p>The <cite>espp::EspBox</cite> component provides a singleton hardware abstraction for
+initializing the touch, display, and audio subsystems, as well as automatically
+determining which version of the Box it’s running on.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="esp_box_example.html">ESP-BOX Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="esp_box_example.html#how-to-use-example">How to use example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="esp_box_example.html#hardware-required">Hardware Required</a></li>
+<li class="toctree-l3"><a class="reference internal" href="esp_box_example.html#build-and-flash">Build and Flash</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="esp_box_example.html#example-output">Example Output</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/32e8215e/components/esp-box/include/esp-box.hpp">components/esp-box/include/esp-box.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBoxE">
+<span id="_CPPv3N4espp6EspBoxE"></span><span id="_CPPv2N4espp6EspBoxE"></span><span id="espp::EspBox"></span><span class="target" id="classespp_1_1EspBox"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EspBox</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp6EspBoxE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The <a class="reference internal" href="#classespp_1_1EspBox"><span class="std std-ref">EspBox</span></a> class provides an interface to the ESP32-S3-BOX and ESP32-S3-BOX-3 development boards.</p>
+<p>The class provides access to the following features:<ul class="simple">
+<li><p>Touchpad</p></li>
+<li><p><a class="reference internal" href="display/display.html#classespp_1_1Display"><span class="std std-ref">Display</span></a></p></li>
+<li><p>Audio</p></li>
+<li><p>Interrupts</p></li>
+<li><p>Buttons (boot and mute)</p></li>
+<li><p>I2C</p></li>
+<li><p>IMU (Inertial Measurement Unit), 6-axis ICM42607</p></li>
+</ul>
+</p>
+<p>The class is a singleton and can be accessed using the <a class="reference internal" href="#classespp_1_1EspBox_1ab2d3b3a2e9d39e55541edaf70e4e529e"><span class="std std-ref">get()</span></a> method.</p>
+<section id="classespp_1_1EspBox_1esp_box_example">
+<h4>Example<a class="headerlink" href="#classespp_1_1EspBox_1esp_box_example" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1EspBox_1esp_box_example"><div class="highlight"><pre><span></span><span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">EspBox</span><span class="w"> </span><span class="o">&amp;</span><span class="n">box</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">EspBox</span><span class="o">::</span><span class="n">get</span><span class="p">();</span>
+<span class="w">  </span><span class="n">box</span><span class="p">.</span><span class="n">set_log_level</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">);</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Running on {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">box</span><span class="p">.</span><span class="n">box_type</span><span class="p">());</span>
+
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">touch_callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">touch</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// NOTE: since we&#39;re directly using the touchpad data, and not using the</span>
+<span class="w">    </span><span class="c1">// TouchpadInput + LVGL, we&#39;ll need to ensure the touchpad data is</span>
+<span class="w">    </span><span class="c1">// converted into proper screen coordinates instead of simply using the</span>
+<span class="w">    </span><span class="c1">// raw values.</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">previous_touchpad_data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">box</span><span class="p">.</span><span class="n">touchpad_convert</span><span class="p">(</span><span class="n">touch</span><span class="p">);</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">touchpad_data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">box</span><span class="p">.</span><span class="n">touchpad_convert</span><span class="p">(</span><span class="n">touch</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">touchpad_data</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">previous_touchpad_data</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Touch: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">touchpad_data</span><span class="p">);</span>
+<span class="w">      </span><span class="n">previous_touchpad_data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">touchpad_data</span><span class="p">;</span>
+<span class="w">      </span><span class="c1">// if the button is pressed, clear the circles</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">touchpad_data</span><span class="p">.</span><span class="n">btn_state</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">recursive_mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lock</span><span class="p">(</span><span class="n">lvgl_mutex</span><span class="p">);</span>
+<span class="w">        </span><span class="n">clear_circles</span><span class="p">();</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="c1">// if there is a touch point, draw a circle and play a click sound</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">touchpad_data</span><span class="p">.</span><span class="n">num_touch_points</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">play_click</span><span class="p">(</span><span class="n">box</span><span class="p">);</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">recursive_mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lock</span><span class="p">(</span><span class="n">lvgl_mutex</span><span class="p">);</span>
+<span class="w">        </span><span class="n">draw_circle</span><span class="p">(</span><span class="n">touchpad_data</span><span class="p">.</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">touchpad_data</span><span class="p">.</span><span class="n">y</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// initialize the sound</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">box</span><span class="p">.</span><span class="n">initialize_sound</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Failed to initialize sound!&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="c1">// initialize the LCD</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">box</span><span class="p">.</span><span class="n">initialize_lcd</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Failed to initialize LCD!&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="c1">// set the pixel buffer to be 50 lines high</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">pixel_buffer_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">box</span><span class="p">.</span><span class="n">lcd_width</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">50</span><span class="p">;</span>
+<span class="w">  </span><span class="c1">// initialize the LVGL display for the esp-box</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">box</span><span class="p">.</span><span class="n">initialize_display</span><span class="p">(</span><span class="n">pixel_buffer_size</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Failed to initialize display!&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="c1">// initialize the touchpad</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">box</span><span class="p">.</span><span class="n">initialize_touch</span><span class="p">(</span><span class="n">touch_callback</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Failed to initialize touchpad!&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// make the filter we&#39;ll use for the IMU to compute the orientation</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">angle_noise</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.001f</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">rate_noise</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.1f</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">KalmanFilter</span><span class="o">&lt;</span><span class="mi">2</span><span class="o">&gt;</span><span class="w"> </span><span class="n">kf</span><span class="p">;</span>
+<span class="w">  </span><span class="n">kf</span><span class="p">.</span><span class="n">set_process_noise</span><span class="p">(</span><span class="n">rate_noise</span><span class="p">);</span>
+<span class="w">  </span><span class="n">kf</span><span class="p">.</span><span class="n">set_measurement_noise</span><span class="p">(</span><span class="n">angle_noise</span><span class="p">);</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">beta</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.1f</span><span class="p">;</span><span class="w"> </span><span class="c1">// higher = more accelerometer, lower = more gyro</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">MadgwickFilter</span><span class="w"> </span><span class="nf">f</span><span class="p">(</span><span class="n">beta</span><span class="p">);</span>
+
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">Imu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">EspBox</span><span class="o">::</span><span class="n">Imu</span><span class="p">;</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">kalman_filter_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">float</span><span class="w"> </span><span class="n">dt</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">Imu</span><span class="o">::</span><span class="n">Value</span><span class="w"> </span><span class="o">&amp;</span><span class="n">accel</span><span class="p">,</span>
+<span class="w">                             </span><span class="k">const</span><span class="w"> </span><span class="n">Imu</span><span class="o">::</span><span class="n">Value</span><span class="w"> </span><span class="o">&amp;</span><span class="n">gyro</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">Imu</span><span class="o">::</span><span class="n">Value</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Apply Kalman filter</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">accelRoll</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">atan2</span><span class="p">(</span><span class="n">accel</span><span class="p">.</span><span class="n">y</span><span class="p">,</span><span class="w"> </span><span class="n">accel</span><span class="p">.</span><span class="n">z</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">accelPitch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">atan2</span><span class="p">(</span><span class="o">-</span><span class="n">accel</span><span class="p">.</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">sqrt</span><span class="p">(</span><span class="n">accel</span><span class="p">.</span><span class="n">y</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">accel</span><span class="p">.</span><span class="n">y</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">accel</span><span class="p">.</span><span class="n">z</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">accel</span><span class="p">.</span><span class="n">z</span><span class="p">));</span>
+<span class="w">    </span><span class="n">kf</span><span class="p">.</span><span class="n">predict</span><span class="p">({</span><span class="n">espp</span><span class="o">::</span><span class="n">deg_to_rad</span><span class="p">(</span><span class="n">gyro</span><span class="p">.</span><span class="n">x</span><span class="p">),</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">deg_to_rad</span><span class="p">(</span><span class="n">gyro</span><span class="p">.</span><span class="n">y</span><span class="p">)},</span><span class="w"> </span><span class="n">dt</span><span class="p">);</span>
+<span class="w">    </span><span class="n">kf</span><span class="p">.</span><span class="n">update</span><span class="p">({</span><span class="n">accelRoll</span><span class="p">,</span><span class="w"> </span><span class="n">accelPitch</span><span class="p">});</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">roll</span><span class="p">,</span><span class="w"> </span><span class="n">pitch</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">tie</span><span class="p">(</span><span class="n">roll</span><span class="p">,</span><span class="w"> </span><span class="n">pitch</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="p">.</span><span class="n">get_state</span><span class="p">();</span>
+<span class="w">    </span><span class="c1">// return the computed orientation</span>
+<span class="w">    </span><span class="n">Imu</span><span class="o">::</span><span class="n">Value</span><span class="w"> </span><span class="n">orientation</span><span class="p">{};</span>
+<span class="w">    </span><span class="n">orientation</span><span class="p">.</span><span class="n">roll</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">roll</span><span class="p">;</span>
+<span class="w">    </span><span class="n">orientation</span><span class="p">.</span><span class="n">pitch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pitch</span><span class="p">;</span>
+<span class="w">    </span><span class="n">orientation</span><span class="p">.</span><span class="n">yaw</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">;</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">orientation</span><span class="p">;</span>
+<span class="w">  </span><span class="p">};</span>
+
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">madgwick_filter_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">float</span><span class="w"> </span><span class="n">dt</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">Imu</span><span class="o">::</span><span class="n">Value</span><span class="w"> </span><span class="o">&amp;</span><span class="n">accel</span><span class="p">,</span>
+<span class="w">                               </span><span class="k">const</span><span class="w"> </span><span class="n">Imu</span><span class="o">::</span><span class="n">Value</span><span class="w"> </span><span class="o">&amp;</span><span class="n">gyro</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">Imu</span><span class="o">::</span><span class="n">Value</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Apply Madgwick filter</span>
+<span class="w">    </span><span class="n">f</span><span class="p">.</span><span class="n">update</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span><span class="w"> </span><span class="n">accel</span><span class="p">.</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">accel</span><span class="p">.</span><span class="n">y</span><span class="p">,</span><span class="w"> </span><span class="n">accel</span><span class="p">.</span><span class="n">z</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">deg_to_rad</span><span class="p">(</span><span class="n">gyro</span><span class="p">.</span><span class="n">x</span><span class="p">),</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">deg_to_rad</span><span class="p">(</span><span class="n">gyro</span><span class="p">.</span><span class="n">y</span><span class="p">),</span>
+<span class="w">             </span><span class="n">espp</span><span class="o">::</span><span class="n">deg_to_rad</span><span class="p">(</span><span class="n">gyro</span><span class="p">.</span><span class="n">z</span><span class="p">));</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">roll</span><span class="p">,</span><span class="w"> </span><span class="n">pitch</span><span class="p">,</span><span class="w"> </span><span class="n">yaw</span><span class="p">;</span>
+<span class="w">    </span><span class="n">f</span><span class="p">.</span><span class="n">get_euler</span><span class="p">(</span><span class="n">roll</span><span class="p">,</span><span class="w"> </span><span class="n">pitch</span><span class="p">,</span><span class="w"> </span><span class="n">yaw</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// return the computed orientation</span>
+<span class="w">    </span><span class="n">Imu</span><span class="o">::</span><span class="n">Value</span><span class="w"> </span><span class="n">orientation</span><span class="p">{};</span>
+<span class="w">    </span><span class="n">orientation</span><span class="p">.</span><span class="n">roll</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">deg_to_rad</span><span class="p">(</span><span class="n">roll</span><span class="p">);</span>
+<span class="w">    </span><span class="n">orientation</span><span class="p">.</span><span class="n">pitch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">deg_to_rad</span><span class="p">(</span><span class="n">pitch</span><span class="p">);</span>
+<span class="w">    </span><span class="n">orientation</span><span class="p">.</span><span class="n">yaw</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">deg_to_rad</span><span class="p">(</span><span class="n">yaw</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">orientation</span><span class="p">;</span>
+<span class="w">  </span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// initialize the IMU</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">box</span><span class="p">.</span><span class="n">initialize_imu</span><span class="p">(</span><span class="n">kalman_filter_fn</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Failed to initialize IMU!&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// set the background color to black</span>
+<span class="w">  </span><span class="n">lv_obj_t</span><span class="w"> </span><span class="o">*</span><span class="n">bg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lv_obj_create</span><span class="p">(</span><span class="n">lv_screen_active</span><span class="p">());</span>
+<span class="w">  </span><span class="n">lv_obj_set_size</span><span class="p">(</span><span class="n">bg</span><span class="p">,</span><span class="w"> </span><span class="n">box</span><span class="p">.</span><span class="n">lcd_width</span><span class="p">(),</span><span class="w"> </span><span class="n">box</span><span class="p">.</span><span class="n">lcd_height</span><span class="p">());</span>
+<span class="w">  </span><span class="n">lv_obj_set_style_bg_color</span><span class="p">(</span><span class="n">bg</span><span class="p">,</span><span class="w"> </span><span class="n">lv_color_make</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">),</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// add text in the center of the screen</span>
+<span class="w">  </span><span class="n">lv_obj_t</span><span class="w"> </span><span class="o">*</span><span class="n">label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lv_label_create</span><span class="p">(</span><span class="n">lv_screen_active</span><span class="p">());</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">label_text</span><span class="w"> </span><span class="o">=</span>
+<span class="w">      </span><span class="s">&quot;</span><span class="se">\n\n\n\n</span><span class="s">Touch the screen!</span><span class="se">\n</span><span class="s">Press the home button to clear circles.&quot;</span><span class="p">;</span>
+<span class="w">  </span><span class="n">lv_label_set_text</span><span class="p">(</span><span class="n">label</span><span class="p">,</span><span class="w"> </span><span class="n">label_text</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>
+<span class="w">  </span><span class="n">lv_obj_align</span><span class="p">(</span><span class="n">label</span><span class="p">,</span><span class="w"> </span><span class="n">LV_ALIGN_TOP_LEFT</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+<span class="w">  </span><span class="n">lv_obj_set_style_text_align</span><span class="p">(</span><span class="n">label</span><span class="p">,</span><span class="w"> </span><span class="n">LV_TEXT_ALIGN_LEFT</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+
+<span class="w">  </span><span class="cm">/*Create style*/</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="n">lv_style_t</span><span class="w"> </span><span class="n">style_line0</span><span class="p">;</span>
+<span class="w">  </span><span class="n">lv_style_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">style_line0</span><span class="p">);</span>
+<span class="w">  </span><span class="n">lv_style_set_line_width</span><span class="p">(</span><span class="o">&amp;</span><span class="n">style_line0</span><span class="p">,</span><span class="w"> </span><span class="mi">8</span><span class="p">);</span>
+<span class="w">  </span><span class="n">lv_style_set_line_color</span><span class="p">(</span><span class="o">&amp;</span><span class="n">style_line0</span><span class="p">,</span><span class="w"> </span><span class="n">lv_palette_main</span><span class="p">(</span><span class="n">LV_PALETTE_BLUE</span><span class="p">));</span>
+<span class="w">  </span><span class="n">lv_style_set_line_rounded</span><span class="p">(</span><span class="o">&amp;</span><span class="n">style_line0</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// make a line for showing the direction of &quot;down&quot;</span>
+<span class="w">  </span><span class="n">lv_obj_t</span><span class="w"> </span><span class="o">*</span><span class="n">line0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lv_line_create</span><span class="p">(</span><span class="n">lv_screen_active</span><span class="p">());</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="n">lv_point_precise_t</span><span class="w"> </span><span class="n">line_points0</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{{</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="n">box</span><span class="p">.</span><span class="n">lcd_width</span><span class="p">(),</span><span class="w"> </span><span class="n">box</span><span class="p">.</span><span class="n">lcd_height</span><span class="p">()}};</span>
+<span class="w">  </span><span class="n">lv_line_set_points</span><span class="p">(</span><span class="n">line0</span><span class="p">,</span><span class="w"> </span><span class="n">line_points0</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">);</span>
+<span class="w">  </span><span class="n">lv_obj_add_style</span><span class="p">(</span><span class="n">line0</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">style_line0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+
+<span class="w">  </span><span class="cm">/*Create style*/</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="n">lv_style_t</span><span class="w"> </span><span class="n">style_line1</span><span class="p">;</span>
+<span class="w">  </span><span class="n">lv_style_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">style_line1</span><span class="p">);</span>
+<span class="w">  </span><span class="n">lv_style_set_line_width</span><span class="p">(</span><span class="o">&amp;</span><span class="n">style_line1</span><span class="p">,</span><span class="w"> </span><span class="mi">8</span><span class="p">);</span>
+<span class="w">  </span><span class="n">lv_style_set_line_color</span><span class="p">(</span><span class="o">&amp;</span><span class="n">style_line1</span><span class="p">,</span><span class="w"> </span><span class="n">lv_palette_main</span><span class="p">(</span><span class="n">LV_PALETTE_RED</span><span class="p">));</span>
+<span class="w">  </span><span class="n">lv_style_set_line_rounded</span><span class="p">(</span><span class="o">&amp;</span><span class="n">style_line1</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// make a line for showing the direction of &quot;down&quot;</span>
+<span class="w">  </span><span class="n">lv_obj_t</span><span class="w"> </span><span class="o">*</span><span class="n">line1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lv_line_create</span><span class="p">(</span><span class="n">lv_screen_active</span><span class="p">());</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="n">lv_point_precise_t</span><span class="w"> </span><span class="n">line_points1</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{{</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="n">box</span><span class="p">.</span><span class="n">lcd_width</span><span class="p">(),</span><span class="w"> </span><span class="n">box</span><span class="p">.</span><span class="n">lcd_height</span><span class="p">()}};</span>
+<span class="w">  </span><span class="n">lv_line_set_points</span><span class="p">(</span><span class="n">line1</span><span class="p">,</span><span class="w"> </span><span class="n">line_points1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">);</span>
+<span class="w">  </span><span class="n">lv_obj_add_style</span><span class="p">(</span><span class="n">line1</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">style_line1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">rotate_display</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">recursive_mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lock</span><span class="p">(</span><span class="n">lvgl_mutex</span><span class="p">);</span>
+<span class="w">    </span><span class="n">clear_circles</span><span class="p">();</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">rotation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LV_DISPLAY_ROTATION_0</span><span class="p">;</span>
+<span class="w">    </span><span class="n">rotation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="n">lv_display_rotation_t</span><span class="o">&gt;</span><span class="p">((</span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">rotation</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">4</span><span class="p">);</span>
+<span class="w">    </span><span class="n">lv_display_t</span><span class="w"> </span><span class="o">*</span><span class="n">disp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lv_display_get_default</span><span class="p">();</span>
+<span class="w">    </span><span class="n">lv_disp_set_rotation</span><span class="p">(</span><span class="n">disp</span><span class="p">,</span><span class="w"> </span><span class="n">rotation</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// update the size of the screen</span>
+<span class="w">    </span><span class="n">lv_obj_set_size</span><span class="p">(</span><span class="n">bg</span><span class="p">,</span><span class="w"> </span><span class="n">box</span><span class="p">.</span><span class="n">rotated_display_width</span><span class="p">(),</span><span class="w"> </span><span class="n">box</span><span class="p">.</span><span class="n">rotated_display_height</span><span class="p">());</span>
+<span class="w">  </span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// add a button in the top left which (when pressed) will rotate the display</span>
+<span class="w">  </span><span class="c1">// through 0, 90, 180, 270 degrees</span>
+<span class="w">  </span><span class="n">lv_obj_t</span><span class="w"> </span><span class="o">*</span><span class="n">btn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lv_btn_create</span><span class="p">(</span><span class="n">lv_screen_active</span><span class="p">());</span>
+<span class="w">  </span><span class="n">lv_obj_set_size</span><span class="p">(</span><span class="n">btn</span><span class="p">,</span><span class="w"> </span><span class="mi">50</span><span class="p">,</span><span class="w"> </span><span class="mi">50</span><span class="p">);</span>
+<span class="w">  </span><span class="n">lv_obj_align</span><span class="p">(</span><span class="n">btn</span><span class="p">,</span><span class="w"> </span><span class="n">LV_ALIGN_TOP_LEFT</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+<span class="w">  </span><span class="n">lv_obj_t</span><span class="w"> </span><span class="o">*</span><span class="n">label_btn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lv_label_create</span><span class="p">(</span><span class="n">btn</span><span class="p">);</span>
+<span class="w">  </span><span class="n">lv_label_set_text</span><span class="p">(</span><span class="n">label_btn</span><span class="p">,</span><span class="w"> </span><span class="n">LV_SYMBOL_REFRESH</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// center the text in the button</span>
+<span class="w">  </span><span class="n">lv_obj_align</span><span class="p">(</span><span class="n">label_btn</span><span class="p">,</span><span class="w"> </span><span class="n">LV_ALIGN_CENTER</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+<span class="w">  </span><span class="n">lv_obj_add_event_cb</span><span class="p">(</span>
+<span class="w">      </span><span class="n">btn</span><span class="p">,</span><span class="w"> </span><span class="p">[](</span><span class="k">auto</span><span class="w"> </span><span class="n">event</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">rotate_display</span><span class="p">();</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="n">LV_EVENT_PRESSED</span><span class="p">,</span><span class="w"> </span><span class="k">nullptr</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// disable scrolling on the screen (so that it doesn&#39;t behave weirdly when</span>
+<span class="w">  </span><span class="c1">// rotated and drawing with your finger)</span>
+<span class="w">  </span><span class="n">lv_obj_set_scrollbar_mode</span><span class="p">(</span><span class="n">lv_screen_active</span><span class="p">(),</span><span class="w"> </span><span class="n">LV_SCROLLBAR_MODE_OFF</span><span class="p">);</span>
+<span class="w">  </span><span class="n">lv_obj_clear_flag</span><span class="p">(</span><span class="n">lv_screen_active</span><span class="p">(),</span><span class="w"> </span><span class="n">LV_OBJ_FLAG_SCROLLABLE</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// start a simple thread to do the lv_task_handler every 16ms</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="w"> </span><span class="nf">lv_task</span><span class="p">({.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="o">&amp;</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                        </span><span class="p">{</span>
+<span class="w">                          </span><span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">recursive_mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lock</span><span class="p">(</span><span class="n">lvgl_mutex</span><span class="p">);</span>
+<span class="w">                          </span><span class="n">lv_task_handler</span><span class="p">();</span>
+<span class="w">                        </span><span class="p">}</span>
+<span class="w">                        </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lock</span><span class="p">(</span><span class="n">m</span><span class="p">);</span>
+<span class="w">                        </span><span class="n">cv</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">lock</span><span class="p">,</span><span class="w"> </span><span class="mi">16</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">                        </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">                      </span><span class="p">},</span>
+<span class="w">                      </span><span class="p">.</span><span class="n">task_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                          </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;lv_task&quot;</span><span class="p">,</span>
+<span class="w">                          </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">6</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="p">,</span>
+<span class="w">                      </span><span class="p">}});</span>
+<span class="w">  </span><span class="n">lv_task</span><span class="p">.</span><span class="n">start</span><span class="p">();</span>
+
+<span class="w">  </span><span class="c1">// load the audio file (wav file bundled in memory)</span>
+<span class="w">  </span><span class="kt">size_t</span><span class="w"> </span><span class="n">wav_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">size_t</span><span class="w"> </span><span class="n">wav_sample_rate</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">load_audio</span><span class="p">(</span><span class="n">wav_size</span><span class="p">,</span><span class="w"> </span><span class="n">wav_sample_rate</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Failed to load audio file!&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Loaded {} bytes of audio&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">wav_size</span><span class="p">);</span>
+
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Setting audio sample rate to {} Hz&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">wav_sample_rate</span><span class="p">);</span>
+<span class="w">  </span><span class="n">box</span><span class="p">.</span><span class="n">audio_sample_rate</span><span class="p">(</span><span class="n">wav_sample_rate</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// unmute the audio and set the volume to 60%</span>
+<span class="w">  </span><span class="n">box</span><span class="p">.</span><span class="n">mute</span><span class="p">(</span><span class="nb">false</span><span class="p">);</span>
+<span class="w">  </span><span class="n">box</span><span class="p">.</span><span class="n">volume</span><span class="p">(</span><span class="mf">60.0f</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// set the display brightness to be 75%</span>
+<span class="w">  </span><span class="n">box</span><span class="p">.</span><span class="n">brightness</span><span class="p">(</span><span class="mf">75.0f</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// make a task to read out the IMU data and print it to console</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="w"> </span><span class="nf">imu_task</span><span class="p">(</span>
+<span class="w">      </span><span class="p">{.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="o">&amp;</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="p">{</span>
+<span class="w">         </span><span class="c1">// sleep first in case we don&#39;t get IMU data and need to exit early</span>
+<span class="w">         </span><span class="p">{</span>
+<span class="w">           </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lock</span><span class="p">(</span><span class="n">m</span><span class="p">);</span>
+<span class="w">           </span><span class="n">cv</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">lock</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">         </span><span class="p">}</span>
+<span class="w">         </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">box</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">EspBox</span><span class="o">::</span><span class="n">get</span><span class="p">();</span>
+<span class="w">         </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">imu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">box</span><span class="p">.</span><span class="n">imu</span><span class="p">();</span>
+
+<span class="w">         </span><span class="k">auto</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">esp_timer_get_time</span><span class="p">();</span><span class="w"> </span><span class="c1">// time in microseconds</span>
+<span class="w">         </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">t0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">now</span><span class="p">;</span>
+<span class="w">         </span><span class="k">auto</span><span class="w"> </span><span class="n">t1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">now</span><span class="p">;</span>
+<span class="w">         </span><span class="kt">float</span><span class="w"> </span><span class="n">dt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">t1</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">t0</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">1&#39;000&#39;000.0f</span><span class="p">;</span><span class="w"> </span><span class="c1">// convert us to s</span>
+<span class="w">         </span><span class="n">t0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">t1</span><span class="p">;</span>
+
+<span class="w">         </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+<span class="w">         </span><span class="c1">// update the imu data</span>
+<span class="w">         </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">imu</span><span class="o">-&gt;</span><span class="n">update</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">           </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">         </span><span class="p">}</span>
+<span class="w">         </span><span class="c1">// get accel</span>
+<span class="w">         </span><span class="k">auto</span><span class="w"> </span><span class="n">accel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">imu</span><span class="o">-&gt;</span><span class="n">get_accelerometer</span><span class="p">();</span>
+<span class="w">         </span><span class="k">auto</span><span class="w"> </span><span class="n">gyro</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">imu</span><span class="o">-&gt;</span><span class="n">get_gyroscope</span><span class="p">();</span>
+<span class="w">         </span><span class="k">auto</span><span class="w"> </span><span class="n">temp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">imu</span><span class="o">-&gt;</span><span class="n">get_temperature</span><span class="p">();</span>
+<span class="w">         </span><span class="k">auto</span><span class="w"> </span><span class="n">orientation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">imu</span><span class="o">-&gt;</span><span class="n">get_orientation</span><span class="p">();</span>
+<span class="w">         </span><span class="k">auto</span><span class="w"> </span><span class="n">gravity_vector</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">imu</span><span class="o">-&gt;</span><span class="n">get_gravity_vector</span><span class="p">();</span>
+
+<span class="w">         </span><span class="k">auto</span><span class="w"> </span><span class="n">box_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">box</span><span class="p">.</span><span class="n">box_type</span><span class="p">();</span>
+<span class="w">         </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">box_type</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">EspBox</span><span class="o">::</span><span class="n">BoxType</span><span class="o">::</span><span class="n">BOX</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">           </span><span class="n">std</span><span class="o">::</span><span class="n">swap</span><span class="p">(</span><span class="n">gravity_vector</span><span class="p">.</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">gravity_vector</span><span class="p">.</span><span class="n">y</span><span class="p">);</span>
+<span class="w">           </span><span class="n">gravity_vector</span><span class="p">.</span><span class="n">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="n">gravity_vector</span><span class="p">.</span><span class="n">y</span><span class="p">;</span>
+<span class="w">         </span><span class="p">}</span>
+
+<span class="w">         </span><span class="c1">// now update the gravity vector line to show the direction of &quot;down&quot;</span>
+<span class="w">         </span><span class="c1">// taking into account the configured rotation of the display</span>
+<span class="w">         </span><span class="k">auto</span><span class="w"> </span><span class="n">rotation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lv_display_get_rotation</span><span class="p">(</span><span class="n">lv_display_get_default</span><span class="p">());</span>
+<span class="w">         </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">rotation</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">LV_DISPLAY_ROTATION_90</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">           </span><span class="n">std</span><span class="o">::</span><span class="n">swap</span><span class="p">(</span><span class="n">gravity_vector</span><span class="p">.</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">gravity_vector</span><span class="p">.</span><span class="n">y</span><span class="p">);</span>
+<span class="w">           </span><span class="n">gravity_vector</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="n">gravity_vector</span><span class="p">.</span><span class="n">x</span><span class="p">;</span>
+<span class="w">         </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">rotation</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">LV_DISPLAY_ROTATION_180</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">           </span><span class="n">gravity_vector</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="n">gravity_vector</span><span class="p">.</span><span class="n">x</span><span class="p">;</span>
+<span class="w">           </span><span class="n">gravity_vector</span><span class="p">.</span><span class="n">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="n">gravity_vector</span><span class="p">.</span><span class="n">y</span><span class="p">;</span>
+<span class="w">         </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">rotation</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">LV_DISPLAY_ROTATION_270</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">           </span><span class="n">std</span><span class="o">::</span><span class="n">swap</span><span class="p">(</span><span class="n">gravity_vector</span><span class="p">.</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">gravity_vector</span><span class="p">.</span><span class="n">y</span><span class="p">);</span>
+<span class="w">           </span><span class="n">gravity_vector</span><span class="p">.</span><span class="n">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="n">gravity_vector</span><span class="p">.</span><span class="n">y</span><span class="p">;</span>
+<span class="w">         </span><span class="p">}</span>
+
+<span class="w">         </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">text</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fmt</span><span class="o">::</span><span class="n">format</span><span class="p">(</span><span class="s">&quot;{}</span><span class="se">\n\n\n\n\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">label_text</span><span class="p">);</span>
+<span class="w">         </span><span class="n">text</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">fmt</span><span class="o">::</span><span class="n">format</span><span class="p">(</span><span class="s">&quot;Accel: {:02.2f} {:02.2f} {:02.2f}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">accel</span><span class="p">.</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">accel</span><span class="p">.</span><span class="n">y</span><span class="p">,</span><span class="w"> </span><span class="n">accel</span><span class="p">.</span><span class="n">z</span><span class="p">);</span>
+<span class="w">         </span><span class="n">text</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">fmt</span><span class="o">::</span><span class="n">format</span><span class="p">(</span><span class="s">&quot;Gyro: {:03.2f} {:03.2f} {:03.2f}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">deg_to_rad</span><span class="p">(</span><span class="n">gyro</span><span class="p">.</span><span class="n">x</span><span class="p">),</span>
+<span class="w">                             </span><span class="n">espp</span><span class="o">::</span><span class="n">deg_to_rad</span><span class="p">(</span><span class="n">gyro</span><span class="p">.</span><span class="n">y</span><span class="p">),</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">deg_to_rad</span><span class="p">(</span><span class="n">gyro</span><span class="p">.</span><span class="n">z</span><span class="p">));</span>
+<span class="w">         </span><span class="n">text</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">fmt</span><span class="o">::</span><span class="n">format</span><span class="p">(</span><span class="s">&quot;Angle: {:03.2f} {:03.2f}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">rad_to_deg</span><span class="p">(</span><span class="n">orientation</span><span class="p">.</span><span class="n">roll</span><span class="p">),</span>
+<span class="w">                             </span><span class="n">espp</span><span class="o">::</span><span class="n">rad_to_deg</span><span class="p">(</span><span class="n">orientation</span><span class="p">.</span><span class="n">pitch</span><span class="p">));</span>
+<span class="w">         </span><span class="n">text</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">fmt</span><span class="o">::</span><span class="n">format</span><span class="p">(</span><span class="s">&quot;Temp: {:02.1f} C</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">temp</span><span class="p">);</span>
+
+<span class="w">         </span><span class="c1">// use the pitch to to draw a line on the screen indiating the</span>
+<span class="w">         </span><span class="c1">// direction from the center of the screen to &quot;down&quot;</span>
+<span class="w">         </span><span class="kt">int</span><span class="w"> </span><span class="n">x0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">box</span><span class="p">.</span><span class="n">rotated_display_width</span><span class="p">()</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="w">         </span><span class="kt">int</span><span class="w"> </span><span class="n">y0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">box</span><span class="p">.</span><span class="n">rotated_display_height</span><span class="p">()</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+
+<span class="w">         </span><span class="kt">int</span><span class="w"> </span><span class="n">x1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">x0</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">50</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">gravity_vector</span><span class="p">.</span><span class="n">x</span><span class="p">;</span>
+<span class="w">         </span><span class="kt">int</span><span class="w"> </span><span class="n">y1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">y0</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">50</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">gravity_vector</span><span class="p">.</span><span class="n">y</span><span class="p">;</span>
+
+<span class="w">         </span><span class="k">static</span><span class="w"> </span><span class="n">lv_point_precise_t</span><span class="w"> </span><span class="n">line_points0</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{{</span><span class="n">x0</span><span class="p">,</span><span class="w"> </span><span class="n">y0</span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="n">x1</span><span class="p">,</span><span class="w"> </span><span class="n">y1</span><span class="p">}};</span>
+<span class="w">         </span><span class="n">line_points0</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">x0</span><span class="p">;</span>
+<span class="w">         </span><span class="n">line_points0</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">y0</span><span class="p">;</span>
+<span class="w">         </span><span class="n">line_points0</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">x1</span><span class="p">;</span>
+<span class="w">         </span><span class="n">line_points0</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">y1</span><span class="p">;</span>
+
+<span class="w">         </span><span class="c1">// Now show the madgwick filter</span>
+<span class="w">         </span><span class="k">auto</span><span class="w"> </span><span class="n">madgwick_orientation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">madgwick_filter_fn</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span><span class="w"> </span><span class="n">accel</span><span class="p">,</span><span class="w"> </span><span class="n">gyro</span><span class="p">);</span>
+<span class="w">         </span><span class="kt">float</span><span class="w"> </span><span class="n">roll</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">madgwick_orientation</span><span class="p">.</span><span class="n">roll</span><span class="p">;</span>
+<span class="w">         </span><span class="kt">float</span><span class="w"> </span><span class="n">pitch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">madgwick_orientation</span><span class="p">.</span><span class="n">pitch</span><span class="p">;</span>
+<span class="w">         </span><span class="p">[[</span><span class="n">maybe_unused</span><span class="p">]]</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">yaw</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">madgwick_orientation</span><span class="p">.</span><span class="n">yaw</span><span class="p">;</span>
+<span class="w">         </span><span class="kt">float</span><span class="w"> </span><span class="n">vx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sin</span><span class="p">(</span><span class="n">pitch</span><span class="p">);</span>
+<span class="w">         </span><span class="kt">float</span><span class="w"> </span><span class="n">vy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="n">cos</span><span class="p">(</span><span class="n">pitch</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">sin</span><span class="p">(</span><span class="n">roll</span><span class="p">);</span>
+<span class="w">         </span><span class="p">[[</span><span class="n">maybe_unused</span><span class="p">]]</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">vz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="n">cos</span><span class="p">(</span><span class="n">pitch</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">cos</span><span class="p">(</span><span class="n">roll</span><span class="p">);</span>
+
+<span class="w">         </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">box_type</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">EspBox</span><span class="o">::</span><span class="n">BoxType</span><span class="o">::</span><span class="n">BOX</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">           </span><span class="n">std</span><span class="o">::</span><span class="n">swap</span><span class="p">(</span><span class="n">vx</span><span class="p">,</span><span class="w"> </span><span class="n">vy</span><span class="p">);</span>
+<span class="w">           </span><span class="n">vy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="n">vy</span><span class="p">;</span>
+<span class="w">         </span><span class="p">}</span>
+
+<span class="w">         </span><span class="c1">// now update the line to show the direction of &quot;down&quot; based on the</span>
+<span class="w">         </span><span class="c1">// configured rotation of the display</span>
+<span class="w">         </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">rotation</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">LV_DISPLAY_ROTATION_90</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">           </span><span class="n">std</span><span class="o">::</span><span class="n">swap</span><span class="p">(</span><span class="n">vx</span><span class="p">,</span><span class="w"> </span><span class="n">vy</span><span class="p">);</span>
+<span class="w">           </span><span class="n">vx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="n">vx</span><span class="p">;</span>
+<span class="w">         </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">rotation</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">LV_DISPLAY_ROTATION_180</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">           </span><span class="n">vx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="n">vx</span><span class="p">;</span>
+<span class="w">           </span><span class="n">vy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="n">vy</span><span class="p">;</span>
+<span class="w">         </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">rotation</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">LV_DISPLAY_ROTATION_270</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">           </span><span class="n">std</span><span class="o">::</span><span class="n">swap</span><span class="p">(</span><span class="n">vx</span><span class="p">,</span><span class="w"> </span><span class="n">vy</span><span class="p">);</span>
+<span class="w">           </span><span class="n">vy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="n">vy</span><span class="p">;</span>
+<span class="w">         </span><span class="p">}</span>
+
+<span class="w">         </span><span class="n">x1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">x0</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">50</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">vx</span><span class="p">;</span>
+<span class="w">         </span><span class="n">y1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">y0</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">50</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">vy</span><span class="p">;</span>
+
+<span class="w">         </span><span class="k">static</span><span class="w"> </span><span class="n">lv_point_precise_t</span><span class="w"> </span><span class="n">line_points1</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{{</span><span class="n">x0</span><span class="p">,</span><span class="w"> </span><span class="n">y0</span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="n">x1</span><span class="p">,</span><span class="w"> </span><span class="n">y1</span><span class="p">}};</span>
+<span class="w">         </span><span class="n">line_points1</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">x0</span><span class="p">;</span>
+<span class="w">         </span><span class="n">line_points1</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">y0</span><span class="p">;</span>
+<span class="w">         </span><span class="n">line_points1</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">x1</span><span class="p">;</span>
+<span class="w">         </span><span class="n">line_points1</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">y1</span><span class="p">;</span>
+
+<span class="w">         </span><span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">recursive_mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lock</span><span class="p">(</span><span class="n">lvgl_mutex</span><span class="p">);</span>
+<span class="w">         </span><span class="n">lv_label_set_text</span><span class="p">(</span><span class="n">label</span><span class="p">,</span><span class="w"> </span><span class="n">text</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>
+<span class="w">         </span><span class="n">lv_line_set_points</span><span class="p">(</span><span class="n">line0</span><span class="p">,</span><span class="w"> </span><span class="n">line_points0</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">);</span>
+<span class="w">         </span><span class="n">lv_line_set_points</span><span class="p">(</span><span class="n">line1</span><span class="p">,</span><span class="w"> </span><span class="n">line_points1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">);</span>
+
+<span class="w">         </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">       </span><span class="p">},</span>
+<span class="w">       </span><span class="p">.</span><span class="n">task_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">           </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;IMU&quot;</span><span class="p">,</span>
+<span class="w">           </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">6</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="p">,</span>
+<span class="w">           </span><span class="p">.</span><span class="n">priority</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span>
+<span class="w">           </span><span class="p">.</span><span class="n">core_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">       </span><span class="p">}});</span>
+<span class="w">  </span><span class="n">imu_task</span><span class="p">.</span><span class="n">start</span><span class="p">();</span>
+
+<span class="w">  </span><span class="c1">// loop forever</span>
+<span class="w">  </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">1</span><span class="n">s</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox7BoxTypeE">
+<span id="_CPPv3N4espp6EspBox7BoxTypeE"></span><span id="_CPPv2N4espp6EspBox7BoxTypeE"></span><span class="target" id="classespp_1_1EspBox_1a24a970f91796c98a6b11b4aa1c2638bf"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BoxType</span></span></span><a class="headerlink" href="#_CPPv4N4espp6EspBox7BoxTypeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The type of the box. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox7BoxType7UNKNOWNE">
+<span id="_CPPv3N4espp6EspBox7BoxType7UNKNOWNE"></span><span id="_CPPv2N4espp6EspBox7BoxType7UNKNOWNE"></span><span class="target" id="classespp_1_1EspBox_1a24a970f91796c98a6b11b4aa1c2638bfa696b031073e74bf2cb98e5ef201d4aa3"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UNKNOWN</span></span></span><a class="headerlink" href="#_CPPv4N4espp6EspBox7BoxType7UNKNOWNE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>unknown box </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox7BoxType3BOXE">
+<span id="_CPPv3N4espp6EspBox7BoxType3BOXE"></span><span id="_CPPv2N4espp6EspBox7BoxType3BOXE"></span><span class="target" id="classespp_1_1EspBox_1a24a970f91796c98a6b11b4aa1c2638bfae657cce1913c857166b0475f18668ef5"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BOX</span></span></span><a class="headerlink" href="#_CPPv4N4espp6EspBox7BoxType3BOXE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>ESP32-S3-BOX. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox7BoxType4BOX3E">
+<span id="_CPPv3N4espp6EspBox7BoxType4BOX3E"></span><span id="_CPPv2N4espp6EspBox7BoxType4BOX3E"></span><span class="target" id="classespp_1_1EspBox_1a24a970f91796c98a6b11b4aa1c2638bfabb0cd0b6b0a5e5f236836866a4887417"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BOX3</span></span></span><a class="headerlink" href="#_CPPv4N4espp6EspBox7BoxType4BOX3E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>ESP32-S3-BOX-3. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox17button_callback_tE">
+<span id="_CPPv3N4espp6EspBox17button_callback_tE"></span><span id="_CPPv2N4espp6EspBox17button_callback_tE"></span><span class="target" id="classespp_1_1EspBox_1a1784dc9bb1f4990947d9ab263d22f0cd"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">button_callback_t</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="interrupt.html#_CPPv4N4espp9InterruptE" title="espp::Interrupt"><span class="n"><span class="pre">Interrupt</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="interrupt.html#_CPPv4N4espp9Interrupt17event_callback_fnE" title="espp::Interrupt::event_callback_fn"><span class="n"><span class="pre">event_callback_fn</span></span></a><a class="headerlink" href="#_CPPv4N4espp6EspBox17button_callback_tE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Alias for the button callback function. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox5PixelE">
+<span id="_CPPv3N4espp6EspBox5PixelE"></span><span id="_CPPv2N4espp6EspBox5PixelE"></span><span class="target" id="classespp_1_1EspBox_1ad6dbabf19d5213ed0856ea393194e1bc"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Pixel</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">lv_color16_t</span></span><a class="headerlink" href="#_CPPv4N4espp6EspBox5PixelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Alias for the pixel type used by the ESP-Box display. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox13DisplayDriverE">
+<span id="_CPPv3N4espp6EspBox13DisplayDriverE"></span><span id="_CPPv2N4espp6EspBox13DisplayDriverE"></span><span class="target" id="classespp_1_1EspBox_1a95d19932a656de99ae46bc6e8f776eb7"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DisplayDriver</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="display/display_drivers.html#_CPPv4N4espp6St7789E" title="espp::St7789"><span class="n"><span class="pre">St7789</span></span></a><a class="headerlink" href="#_CPPv4N4espp6EspBox13DisplayDriverE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Alias for the display driver used by the ESP-Box display. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox12TouchpadDataE">
+<span id="_CPPv3N4espp6EspBox12TouchpadDataE"></span><span id="_CPPv2N4espp6EspBox12TouchpadDataE"></span><span class="target" id="classespp_1_1EspBox_1a387bd859a960238f24ab6c32722efd70"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TouchpadData</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">TouchpadData</span></span><a class="headerlink" href="#_CPPv4N4espp6EspBox12TouchpadDataE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Alias for the touchpad data used by the ESP-Box touchpad. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox3ImuE">
+<span id="_CPPv3N4espp6EspBox3ImuE"></span><span id="_CPPv2N4espp6EspBox3ImuE"></span><span class="target" id="classespp_1_1EspBox_1af98091b35c520351a058e701a6a7ca03"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Imu</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="imu/icm42607.html#_CPPv4I_N8icm426079InterfaceEEN4espp8Icm42607E" title="espp::Icm42607"><span class="n"><span class="pre">Icm42607</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">icm42607</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Interface</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">I2C</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp6EspBox3ImuE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Alias the IMU used by the ESP-Box. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox16touch_callback_tE">
+<span id="_CPPv3N4espp6EspBox16touch_callback_tE"></span><span id="_CPPv2N4espp6EspBox16touch_callback_tE"></span><span class="target" id="classespp_1_1EspBox_1a8a41e9176240baa3dc36eb0454b9eefb"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">touch_callback_t</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6EspBox12TouchpadDataE" title="espp::EspBox::TouchpadData"><span class="n"><span class="pre">TouchpadData</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp6EspBox16touch_callback_tE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Alias for the touch callback when touch events are received. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6EspBox8box_typeEv">
+<span id="_CPPv3NK4espp6EspBox8box_typeEv"></span><span id="_CPPv2NK4espp6EspBox8box_typeEv"></span><span id="espp::EspBox::box_typeC"></span><span class="target" id="classespp_1_1EspBox_1a509f56b719a3f769504106dc8254f62b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6EspBox7BoxTypeE" title="espp::EspBox::BoxType"><span class="n"><span class="pre">BoxType</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">box_type</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6EspBox8box_typeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the type of the box <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#classespp_1_1EspBox_1a24a970f91796c98a6b11b4aa1c2638bf"><span class="std std-ref">BoxType</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The type of the box that was detected </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox12internal_i2cEv">
+<span id="_CPPv3N4espp6EspBox12internal_i2cEv"></span><span id="_CPPv2N4espp6EspBox12internal_i2cEv"></span><span id="espp::EspBox::internal_i2c"></span><span class="target" id="classespp_1_1EspBox_1ab92bac576276dceb014dc54c6851b64b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="i2c.html#_CPPv4N4espp3I2cE" title="espp::I2c"><span class="n"><span class="pre">I2c</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">internal_i2c</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6EspBox12internal_i2cEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get a reference to the internal I2C bus </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The internal I2C bus is used for the touchscreen and audio codec </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A reference to the internal I2C bus </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox10interruptsEv">
+<span id="_CPPv3N4espp6EspBox10interruptsEv"></span><span id="_CPPv2N4espp6EspBox10interruptsEv"></span><span id="espp::EspBox::interrupts"></span><span class="target" id="classespp_1_1EspBox_1a287607685a496af9243bedb551aba967"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="interrupt.html#_CPPv4N4espp9InterruptE" title="espp::Interrupt"><span class="n"><span class="pre">Interrupt</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">interrupts</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6EspBox10interruptsEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get a reference to the interrupts </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A reference to the interrupts </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox16initialize_touchERK16touch_callback_t">
+<span id="_CPPv3N4espp6EspBox16initialize_touchERK16touch_callback_t"></span><span id="_CPPv2N4espp6EspBox16initialize_touchERK16touch_callback_t"></span><span id="espp::EspBox::initialize_touch__touch_callback_tCR"></span><span class="target" id="classespp_1_1EspBox_1a07d43b25c3ee933b4fdb46f8cceae07a"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize_touch</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6EspBox16touch_callback_tE" title="espp::EspBox::touch_callback_t"><span class="n"><span class="pre">touch_callback_t</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">callback</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6EspBox16initialize_touchERK16touch_callback_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the touchpad </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will configure the touchpad interrupt pin which will automatically call the touch callback function when the touchpad is touched </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This can be called even if you have not initialized the display or the LCD. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>callback</strong> – The touchpad callback </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the touchpad was successfully initialized, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6EspBox14touchpad_inputEv">
+<span id="_CPPv3NK4espp6EspBox14touchpad_inputEv"></span><span id="_CPPv2NK4espp6EspBox14touchpad_inputEv"></span><span id="espp::EspBox::touchpad_inputC"></span><span class="target" id="classespp_1_1EspBox_1a569f4b45b8092b5b7a7518af9e0bdbb1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="input/touchpad_input.html#_CPPv4N4espp13TouchpadInputE" title="espp::TouchpadInput"><span class="n"><span class="pre">TouchpadInput</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">touchpad_input</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6EspBox14touchpad_inputEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the touchpad input </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A shared pointer to the touchpad input </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6EspBox13touchpad_dataEv">
+<span id="_CPPv3NK4espp6EspBox13touchpad_dataEv"></span><span id="_CPPv2NK4espp6EspBox13touchpad_dataEv"></span><span id="espp::EspBox::touchpad_dataC"></span><span class="target" id="classespp_1_1EspBox_1ad16f0037128c628c778ae8d50aa64d0f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6EspBox12TouchpadDataE" title="espp::EspBox::TouchpadData"><span class="n"><span class="pre">TouchpadData</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">touchpad_data</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6EspBox13touchpad_dataEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the most recent touchpad data </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The touchpad data </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox13touchpad_readEP7uint8_tP8uint16_tP8uint16_tP7uint8_t">
+<span id="_CPPv3N4espp6EspBox13touchpad_readEP7uint8_tP8uint16_tP8uint16_tP7uint8_t"></span><span id="_CPPv2N4espp6EspBox13touchpad_readEP7uint8_tP8uint16_tP8uint16_tP7uint8_t"></span><span id="espp::EspBox::touchpad_read__uint8_tP.uint16_tP.uint16_tP.uint8_tP"></span><span class="target" id="classespp_1_1EspBox_1af94ab817d7f919adc462937522c8e474"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">touchpad_read</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">num_touch_points</span></span>, <span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">y</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">btn_state</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6EspBox13touchpad_readEP7uint8_tP8uint16_tP8uint16_tP7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the most recent touchpad data <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#classespp_1_1EspBox_1ad16f0037128c628c778ae8d50aa64d0f"><span class="std std-ref">touchpad_data()</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This method is a convenience method for integrating with LVGL, the data it returns is identical to the data returned by the <a class="reference internal" href="#classespp_1_1EspBox_1ad16f0037128c628c778ae8d50aa64d0f"><span class="std std-ref">touchpad_data()</span></a> method </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>num_touch_points</strong> – The number of touch points </p></li>
+<li><p><strong>x</strong> – The x coordinate </p></li>
+<li><p><strong>y</strong> – The y coordinate </p></li>
+<li><p><strong>btn_state</strong> – The button state (0 = button released, 1 = button pressed) </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6EspBox16touchpad_convertERK12TouchpadData">
+<span id="_CPPv3NK4espp6EspBox16touchpad_convertERK12TouchpadData"></span><span id="_CPPv2NK4espp6EspBox16touchpad_convertERK12TouchpadData"></span><span id="espp::EspBox::touchpad_convert__TouchpadDataCRC"></span><span class="target" id="classespp_1_1EspBox_1a076ce7f1e84fcfaf204b40cfa37c497f"></span><a class="reference internal" href="#_CPPv4N4espp6EspBox12TouchpadDataE" title="espp::EspBox::TouchpadData"><span class="n"><span class="pre">TouchpadData</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">touchpad_convert</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6EspBox12TouchpadDataE" title="espp::EspBox::TouchpadData"><span class="n"><span class="pre">TouchpadData</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">data</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6EspBox16touchpad_convertERK12TouchpadData" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Convert touchpad data from raw reading to display coordinates </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Uses the touch_invert_x and touch_invert_y settings to determine if the x and y coordinates should be inverted </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> – The touchpad data to convert </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The converted touchpad data </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox14initialize_lcdEv">
+<span id="_CPPv3N4espp6EspBox14initialize_lcdEv"></span><span id="_CPPv2N4espp6EspBox14initialize_lcdEv"></span><span id="espp::EspBox::initialize_lcd"></span><span class="target" id="classespp_1_1EspBox_1a706e257f0c31f93a80996566c47fd8d5"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize_lcd</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6EspBox14initialize_lcdEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the LCD (low level display driver) </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true if the LCD was successfully initialized, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox18initialize_displayE6size_t">
+<span id="_CPPv3N4espp6EspBox18initialize_displayE6size_t"></span><span id="_CPPv2N4espp6EspBox18initialize_displayE6size_t"></span><span id="espp::EspBox::initialize_display__s"></span><span class="target" id="classespp_1_1EspBox_1a6dd586c3ecd27c403c5829bf7437559b"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize_display</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">pixel_buffer_size</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6EspBox18initialize_displayE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the display (lvgl display driver) </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will also allocate two full frame buffers in the SPIRAM </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pixel_buffer_size</strong> – The size of the pixel buffer </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the display was successfully initialized, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6EspBox21rotated_display_widthEv">
+<span id="_CPPv3NK4espp6EspBox21rotated_display_widthEv"></span><span id="_CPPv2NK4espp6EspBox21rotated_display_widthEv"></span><span id="espp::EspBox::rotated_display_widthC"></span><span class="target" id="classespp_1_1EspBox_1a36c03248dd8e89c81dbdf666307acc54"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">rotated_display_width</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6EspBox21rotated_display_widthEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the display width in pixels, according to the current orientation </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The display width in pixels, according to the current orientation </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6EspBox22rotated_display_heightEv">
+<span id="_CPPv3NK4espp6EspBox22rotated_display_heightEv"></span><span id="_CPPv2NK4espp6EspBox22rotated_display_heightEv"></span><span id="espp::EspBox::rotated_display_heightC"></span><span class="target" id="classespp_1_1EspBox_1a811836d2edb5443ec411fae4fc65f36d"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">rotated_display_height</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6EspBox22rotated_display_heightEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the display height in pixels, according to the current orientation </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The display height in pixels, according to the current orientation </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6EspBox7displayEv">
+<span id="_CPPv3NK4espp6EspBox7displayEv"></span><span id="_CPPv2NK4espp6EspBox7displayEv"></span><span id="espp::EspBox::displayC"></span><span class="target" id="classespp_1_1EspBox_1af1e5e7e819552f5b952eb7e9604f35c9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="display/display.html#_CPPv4I0EN4espp7DisplayE" title="espp::Display"><span class="n"><span class="pre">Display</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp6EspBox5PixelE" title="espp::EspBox::Pixel"><span class="n"><span class="pre">Pixel</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">display</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6EspBox7displayEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get a shared pointer to the display </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A shared pointer to the display </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox10brightnessEf">
+<span id="_CPPv3N4espp6EspBox10brightnessEf"></span><span id="_CPPv2N4espp6EspBox10brightnessEf"></span><span id="espp::EspBox::brightness__float"></span><span class="target" id="classespp_1_1EspBox_1a5584f29a6e72d02d2e900cd743e85ad7"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">brightness</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">brightness</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6EspBox10brightnessEf" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the brightness of the backlight </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function will only work after <a class="reference internal" href="#classespp_1_1EspBox_1a706e257f0c31f93a80996566c47fd8d5"><span class="std std-ref">initialize_lcd()</span></a> has been called </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>brightness</strong> – The brightness of the backlight as a percentage (0 - 100) </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6EspBox10brightnessEv">
+<span id="_CPPv3NK4espp6EspBox10brightnessEv"></span><span id="_CPPv2NK4espp6EspBox10brightnessEv"></span><span id="espp::EspBox::brightnessC"></span><span class="target" id="classespp_1_1EspBox_1aede5ea5badbd059f8c2ee0d88f33e5f4"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">brightness</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6EspBox10brightnessEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the brightness of the backlight </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function will only work after <a class="reference internal" href="#classespp_1_1EspBox_1a706e257f0c31f93a80996566c47fd8d5"><span class="std std-ref">initialize_lcd()</span></a> has been called </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The brightness of the backlight as a percentage (0 - 100) </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6EspBox5vram0Ev">
+<span id="_CPPv3NK4espp6EspBox5vram0Ev"></span><span id="_CPPv2NK4espp6EspBox5vram0Ev"></span><span id="espp::EspBox::vram0C"></span><span class="target" id="classespp_1_1EspBox_1aafb6feb4b23bc49a97ce17f0cfe77e01"></span><a class="reference internal" href="#_CPPv4N4espp6EspBox5PixelE" title="espp::EspBox::Pixel"><span class="n"><span class="pre">Pixel</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">vram0</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6EspBox5vram0Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the VRAM 0 pointer (DMA memory used by LVGL) </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the memory used by LVGL for rendering </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is null unless <a class="reference internal" href="#classespp_1_1EspBox_1a6dd586c3ecd27c403c5829bf7437559b"><span class="std std-ref">initialize_display()</span></a> has been called </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The VRAM 0 pointer </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6EspBox5vram1Ev">
+<span id="_CPPv3NK4espp6EspBox5vram1Ev"></span><span id="_CPPv2NK4espp6EspBox5vram1Ev"></span><span id="espp::EspBox::vram1C"></span><span class="target" id="classespp_1_1EspBox_1acbf1002f443514a33b7cecd2b0749bcb"></span><a class="reference internal" href="#_CPPv4N4espp6EspBox5PixelE" title="espp::EspBox::Pixel"><span class="n"><span class="pre">Pixel</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">vram1</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6EspBox5vram1Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the VRAM 1 pointer (DMA memory used by LVGL) </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the memory used by LVGL for rendering </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is null unless <a class="reference internal" href="#classespp_1_1EspBox_1a6dd586c3ecd27c403c5829bf7437559b"><span class="std std-ref">initialize_display()</span></a> has been called </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The VRAM 1 pointer </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6EspBox13frame_buffer0Ev">
+<span id="_CPPv3NK4espp6EspBox13frame_buffer0Ev"></span><span id="_CPPv2NK4espp6EspBox13frame_buffer0Ev"></span><span id="espp::EspBox::frame_buffer0C"></span><span class="target" id="classespp_1_1EspBox_1a25bcf31ef53b959e21edb630da0f7225"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">frame_buffer0</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6EspBox13frame_buffer0Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the frame buffer 0 pointer </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This memory is designed to be used by the application developer and is provided as a convenience. It is not used by the display driver. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is null unless <a class="reference internal" href="#classespp_1_1EspBox_1a6dd586c3ecd27c403c5829bf7437559b"><span class="std std-ref">initialize_display()</span></a> has been called </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The frame buffer 0 pointer </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6EspBox13frame_buffer1Ev">
+<span id="_CPPv3NK4espp6EspBox13frame_buffer1Ev"></span><span id="_CPPv2NK4espp6EspBox13frame_buffer1Ev"></span><span id="espp::EspBox::frame_buffer1C"></span><span class="target" id="classespp_1_1EspBox_1aa0f69af2c34a23e7c10d4ff392a2d4d6"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">frame_buffer1</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6EspBox13frame_buffer1Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the frame buffer 1 pointer </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This memory is designed to be used by the application developer and is provided as a convenience. It is not used by the display driver. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is null unless <a class="reference internal" href="#classespp_1_1EspBox_1a6dd586c3ecd27c403c5829bf7437559b"><span class="std std-ref">initialize_display()</span></a> has been called </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The frame buffer 1 pointer </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox13write_commandE7uint8_tNSt4spanIK7uint8_tEE8uint32_t">
+<span id="_CPPv3N4espp6EspBox13write_commandE7uint8_tNSt4spanIK7uint8_tEE8uint32_t"></span><span id="_CPPv2N4espp6EspBox13write_commandE7uint8_tNSt4spanIK7uint8_tEE8uint32_t"></span><span id="espp::EspBox::write_command__uint8_t.std::span:uint8_tC:.uint32_t"></span><span class="target" id="classespp_1_1EspBox_1ae7752e5d0578c39558305a3a83d7ab9c"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_command</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">command</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">parameters</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">user_data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6EspBox13write_commandE7uint8_tNSt4spanIK7uint8_tEE8uint32_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Write command and optional parameters to the LCD </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This method is designed to be used by the display driver </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This method queues the data to be written to the LCD, only blocking if there is an ongoing SPI transaction </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>command</strong> – The command to write </p></li>
+<li><p><strong>parameters</strong> – The command parameters to write </p></li>
+<li><p><strong>user_data</strong> – User data to pass to the spi transaction callback </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox15write_lcd_frameEK8uint16_tK8uint16_tK8uint16_tK8uint16_tP7uint8_t">
+<span id="_CPPv3N4espp6EspBox15write_lcd_frameEK8uint16_tK8uint16_tK8uint16_tK8uint16_tP7uint8_t"></span><span id="_CPPv2N4espp6EspBox15write_lcd_frameEK8uint16_tK8uint16_tK8uint16_tK8uint16_tP7uint8_t"></span><span id="espp::EspBox::write_lcd_frame__uint16_tC.uint16_tC.uint16_tC.uint16_tC.uint8_tP"></span><span class="target" id="classespp_1_1EspBox_1a0ddafd8badc608f9392ae3dc54dc2316"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_lcd_frame</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">x</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">y</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">width</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">height</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6EspBox15write_lcd_frameEK8uint16_tK8uint16_tK8uint16_tK8uint16_tP7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Write a frame to the LCD </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This method queues the data to be written to the LCD, only blocking if there is an ongoing SPI transaction </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – The x coordinate </p></li>
+<li><p><strong>y</strong> – The y coordinate </p></li>
+<li><p><strong>width</strong> – The width of the frame, in pixels </p></li>
+<li><p><strong>height</strong> – The height of the frame, in pixels </p></li>
+<li><p><strong>data</strong> – The data to write </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox15write_lcd_linesEiiiiPK7uint8_t8uint32_t">
+<span id="_CPPv3N4espp6EspBox15write_lcd_linesEiiiiPK7uint8_t8uint32_t"></span><span id="_CPPv2N4espp6EspBox15write_lcd_linesEiiiiPK7uint8_t8uint32_t"></span><span id="espp::EspBox::write_lcd_lines__i.i.i.i.uint8_tCP.uint32_t"></span><span class="target" id="classespp_1_1EspBox_1a73eec76837849982e19606a77f5fe92e"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_lcd_lines</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">xs</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ys</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">xe</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ye</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">user_data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6EspBox15write_lcd_linesEiiiiPK7uint8_t8uint32_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Write lines to the LCD </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This method queues the data to be written to the LCD, only blocking if there is an ongoing SPI transaction </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xs</strong> – The x start coordinate </p></li>
+<li><p><strong>ys</strong> – The y start coordinate </p></li>
+<li><p><strong>xe</strong> – The x end coordinate </p></li>
+<li><p><strong>ye</strong> – The y end coordinate </p></li>
+<li><p><strong>data</strong> – The data to write </p></li>
+<li><p><strong>user_data</strong> – User data to pass to the spi transaction callback </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox22initialize_boot_buttonERK17button_callback_t">
+<span id="_CPPv3N4espp6EspBox22initialize_boot_buttonERK17button_callback_t"></span><span id="_CPPv2N4espp6EspBox22initialize_boot_buttonERK17button_callback_t"></span><span id="espp::EspBox::initialize_boot_button__button_callback_tCR"></span><span class="target" id="classespp_1_1EspBox_1a0cdc4ff3283fc8bd0b2a5e00cfedde0b"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize_boot_button</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6EspBox17button_callback_tE" title="espp::EspBox::button_callback_t"><span class="n"><span class="pre">button_callback_t</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">callback</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6EspBox22initialize_boot_buttonERK17button_callback_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the boot button (side of the box) </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>callback</strong> – The callback function to call when the button is pressed </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the button was successfully initialized, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6EspBox17boot_button_stateEv">
+<span id="_CPPv3NK4espp6EspBox17boot_button_stateEv"></span><span id="_CPPv2NK4espp6EspBox17boot_button_stateEv"></span><span id="espp::EspBox::boot_button_stateC"></span><span class="target" id="classespp_1_1EspBox_1a4a8e6bf1fc61f479405f62d725cda4be"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">boot_button_state</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6EspBox17boot_button_stateEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the boot button state </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The button state (true = button pressed, false = button released) </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox22initialize_mute_buttonERK17button_callback_t">
+<span id="_CPPv3N4espp6EspBox22initialize_mute_buttonERK17button_callback_t"></span><span id="_CPPv2N4espp6EspBox22initialize_mute_buttonERK17button_callback_t"></span><span id="espp::EspBox::initialize_mute_button__button_callback_tCR"></span><span class="target" id="classespp_1_1EspBox_1ab1870fe69359bb6b8df100e5a4cd9e09"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize_mute_button</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6EspBox17button_callback_tE" title="espp::EspBox::button_callback_t"><span class="n"><span class="pre">button_callback_t</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">callback</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6EspBox22initialize_mute_buttonERK17button_callback_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the mute button (top of the box) </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>callback</strong> – The callback function to call when the button is pressed </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the button was successfully initialized, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6EspBox17mute_button_stateEv">
+<span id="_CPPv3NK4espp6EspBox17mute_button_stateEv"></span><span id="_CPPv2NK4espp6EspBox17mute_button_stateEv"></span><span id="espp::EspBox::mute_button_stateC"></span><span class="target" id="classespp_1_1EspBox_1af3698e7020eac944d058d0e07dcf1e1c"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mute_button_state</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6EspBox17mute_button_stateEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the mute button state </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The button state (true = button pressed, false = button released) </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="classespp_1_1EspBox_1a3b8ed286d620ad6c0c3707e936a21268"></span><span class="sig-name descname"><span class="pre">bool</span> <span class="pre">initialize_sound</span> <span class="pre">(uint32_t</span> <span class="pre">default_audio_rate=48000,</span> <span class="pre">const</span> <span class="pre">espp::Task::BaseConfig</span> <span class="pre">&amp;task_config={</span> <span class="pre">.name=&quot;audio&quot;,.stack_size_bytes=4096,.priority=19,.core_id=1})</span></span></dt>
+<dd><p>Initialize the sound subsystem </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>default_audio_rate</strong> – The default audio rate </p></li>
+<li><p><strong>task_config</strong> – The task configuration for the audio task </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the sound subsystem was successfully initialized, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox12enable_soundEb">
+<span id="_CPPv3N4espp6EspBox12enable_soundEb"></span><span id="_CPPv2N4espp6EspBox12enable_soundEb"></span><span id="espp::EspBox::enable_sound__b"></span><span class="target" id="classespp_1_1EspBox_1ab1fa96ae1ef9a21764546db7cfde1769"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">enable_sound</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">enable</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6EspBox12enable_soundEb" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Enable or disable sound </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This method sets the power pin to the appropriate value </p>
+</div>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6EspBox17audio_sample_rateEv">
+<span id="_CPPv3NK4espp6EspBox17audio_sample_rateEv"></span><span id="_CPPv2NK4espp6EspBox17audio_sample_rateEv"></span><span id="espp::EspBox::audio_sample_rateC"></span><span class="target" id="classespp_1_1EspBox_1a2f197c895258f4fb0e076bd84ffc3128"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">audio_sample_rate</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6EspBox17audio_sample_rateEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the audio sample rate </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The audio sample rate, in Hz </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox17audio_sample_rateE8uint32_t">
+<span id="_CPPv3N4espp6EspBox17audio_sample_rateE8uint32_t"></span><span id="_CPPv2N4espp6EspBox17audio_sample_rateE8uint32_t"></span><span id="espp::EspBox::audio_sample_rate__uint32_t"></span><span class="target" id="classespp_1_1EspBox_1a4fae4bedb3309a5b722365339f92f83f"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">audio_sample_rate</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">sample_rate</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6EspBox17audio_sample_rateE8uint32_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the audio sample rate </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>sample_rate</strong> – The audio sample rate, in Hz </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6EspBox17audio_buffer_sizeEv">
+<span id="_CPPv3NK4espp6EspBox17audio_buffer_sizeEv"></span><span id="_CPPv2NK4espp6EspBox17audio_buffer_sizeEv"></span><span id="espp::EspBox::audio_buffer_sizeC"></span><span class="target" id="classespp_1_1EspBox_1a768849db21ff1bd1e52f2b23361e6c80"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">audio_buffer_size</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6EspBox17audio_buffer_sizeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the audio buffer size </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The audio buffer size, in bytes </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox4muteEb">
+<span id="_CPPv3N4espp6EspBox4muteEb"></span><span id="_CPPv2N4espp6EspBox4muteEb"></span><span id="espp::EspBox::mute__b"></span><span class="target" id="classespp_1_1EspBox_1a079623f4a27e1b2aad307c34f71e596c"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mute</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mute</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6EspBox4muteEb" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Mute or unmute the audio </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>mute</strong> – true to mute the audio, false to unmute the audio </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6EspBox8is_mutedEv">
+<span id="_CPPv3NK4espp6EspBox8is_mutedEv"></span><span id="_CPPv2NK4espp6EspBox8is_mutedEv"></span><span id="espp::EspBox::is_mutedC"></span><span class="target" id="classespp_1_1EspBox_1a24ec80fb37f50af22b5044442b1c275f"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_muted</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6EspBox8is_mutedEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Check if the audio is muted </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true if the audio is muted, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox6volumeEf">
+<span id="_CPPv3N4espp6EspBox6volumeEf"></span><span id="_CPPv2N4espp6EspBox6volumeEf"></span><span id="espp::EspBox::volume__float"></span><span class="target" id="classespp_1_1EspBox_1a26925541b1e4ac5222a8c203392ffd57"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">volume</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">volume</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6EspBox6volumeEf" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the volume </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>volume</strong> – The volume in percent (0 - 100) </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6EspBox6volumeEv">
+<span id="_CPPv3NK4espp6EspBox6volumeEv"></span><span id="_CPPv2NK4espp6EspBox6volumeEv"></span><span id="espp::EspBox::volumeC"></span><span class="target" id="classespp_1_1EspBox_1ad84171c1f015aa744c9f9488c5a0707d"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">volume</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6EspBox6volumeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the volume </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The volume in percent (0 - 100) </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox10play_audioERKNSt6vectorI7uint8_tEE">
+<span id="_CPPv3N4espp6EspBox10play_audioERKNSt6vectorI7uint8_tEE"></span><span id="_CPPv2N4espp6EspBox10play_audioERKNSt6vectorI7uint8_tEE"></span><span id="espp::EspBox::play_audio__std::vector:uint8_t:CR"></span><span class="target" id="classespp_1_1EspBox_1a5e7e8cb5209487ce8010d5c7825cb8a6"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">play_audio</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6EspBox10play_audioERKNSt6vectorI7uint8_tEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Play audio </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> – The audio data to play </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox10play_audioEPK7uint8_t8uint32_t">
+<span id="_CPPv3N4espp6EspBox10play_audioEPK7uint8_t8uint32_t"></span><span id="_CPPv2N4espp6EspBox10play_audioEPK7uint8_t8uint32_t"></span><span id="espp::EspBox::play_audio__uint8_tCP.uint32_t"></span><span class="target" id="classespp_1_1EspBox_1af1410bcd146caada0d3d522671ce883a"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">play_audio</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">num_bytes</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6EspBox10play_audioEPK7uint8_t8uint32_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Play audio </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – The audio data to play </p></li>
+<li><p><strong>num_bytes</strong> – The number of bytes to play </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="classespp_1_1EspBox_1a2c6412a5cbd59af9f9262f2b260b9b12"></span><span class="sig-name descname"><span class="pre">bool</span> <span class="pre">initialize_imu</span> <span class="pre">(const</span> <span class="pre">Imu::filter_fn</span> <span class="pre">&amp;orientation_filter=nullptr,</span> <span class="pre">const</span> <span class="pre">Imu::ImuConfig</span> <span class="pre">&amp;imu_config={</span> <span class="pre">.accelerometer_range=Imu::AccelerometerRange::RANGE_2G,.accelerometer_odr=Imu::AccelerometerODR::ODR_400_HZ,.gyroscope_range=Imu::GyroscopeRange::RANGE_2000DPS,.gyroscope_odr=Imu::GyroscopeODR::ODR_400_HZ})</span></span></dt>
+<dd><p>Initialize the IMU </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>orientation_filter</strong> – The orientation filter, if provided </p></li>
+<li><p><strong>imu_config</strong> – The IMU configuration </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the IMU was successfully initialized, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6EspBox3imuEv">
+<span id="_CPPv3NK4espp6EspBox3imuEv"></span><span id="_CPPv2NK4espp6EspBox3imuEv"></span><span id="espp::EspBox::imuC"></span><span class="target" id="classespp_1_1EspBox_1a1771ccb4ff8050b34a691f4114a71fc2"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp6EspBox3ImuE" title="espp::EspBox::Imu"><span class="n"><span class="pre">Imu</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">imu</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6EspBox3imuEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the IMU </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A shared pointer to the IMU </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6EspBox8get_nameEv">
+<span id="_CPPv3NK4espp6EspBox8get_nameEv"></span><span id="_CPPv2NK4espp6EspBox8get_nameEv"></span><span id="espp::EspBox::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6EspBox8get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp6EspBox11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp6EspBox11set_log_tagERKNSt11string_viewE"></span><span id="espp::EspBox::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6EspBox11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6EspBox13get_log_levelEv">
+<span id="_CPPv3NK4espp6EspBox13get_log_levelEv"></span><span id="_CPPv2NK4espp6EspBox13get_log_levelEv"></span><span id="espp::EspBox::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6EspBox13get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp6EspBox13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp6EspBox13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::EspBox::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6EspBox13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp6EspBox17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp6EspBox17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::EspBox::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6EspBox17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="ws_s3_touch.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6EspBox17get_log_verbosityEv">
+<span id="_CPPv3NK4espp6EspBox17get_log_verbosityEv"></span><span id="_CPPv2NK4espp6EspBox17get_log_verbosityEv"></span><span id="espp::EspBox::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6EspBox17get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="ws_s3_touch.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp6EspBox18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp6EspBox18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::EspBox::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6EspBox18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox3getEv">
+<span id="_CPPv3N4espp6EspBox3getEv"></span><span id="_CPPv2N4espp6EspBox3getEv"></span><span id="espp::EspBox::get"></span><span class="target" id="classespp_1_1EspBox_1ab2d3b3a2e9d39e55541edaf70e4e529e"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6EspBoxE" title="espp::EspBox"><span class="n"><span class="pre">EspBox</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6EspBox3getEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Access the singleton instance of the <a class="reference internal" href="#classespp_1_1EspBox"><span class="std std-ref">EspBox</span></a> class. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Reference to the singleton instance of the <a class="reference internal" href="#classespp_1_1EspBox"><span class="std std-ref">EspBox</span></a> class </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox9lcd_widthEv">
+<span id="_CPPv3N4espp6EspBox9lcd_widthEv"></span><span id="_CPPv2N4espp6EspBox9lcd_widthEv"></span><span id="espp::EspBox::lcd_widthCE"></span><span class="target" id="classespp_1_1EspBox_1a71541d49c10a1af733c594f769fcfcaa"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lcd_width</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6EspBox9lcd_widthEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the width of the LCD in pixels </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The width of the LCD in pixels </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox10lcd_heightEv">
+<span id="_CPPv3N4espp6EspBox10lcd_heightEv"></span><span id="_CPPv2N4espp6EspBox10lcd_heightEv"></span><span id="espp::EspBox::lcd_heightCE"></span><span class="target" id="classespp_1_1EspBox_1a9216b3804bee63d9be6ad216a650f494"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lcd_height</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6EspBox10lcd_heightEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the height of the LCD in pixels </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The height of the LCD in pixels </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox15get_lcd_dc_gpioEv">
+<span id="_CPPv3N4espp6EspBox15get_lcd_dc_gpioEv"></span><span id="_CPPv2N4espp6EspBox15get_lcd_dc_gpioEv"></span><span id="espp::EspBox::get_lcd_dc_gpioCE"></span><span class="target" id="classespp_1_1EspBox_1ae17fe391615615f9eadd1bbaa8d34e02"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_lcd_dc_gpio</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6EspBox15get_lcd_dc_gpioEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the GPIO pin for the LCD data/command signal </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The GPIO pin for the LCD data/command signal </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox13display_widthEv">
+<span id="_CPPv3N4espp6EspBox13display_widthEv"></span><span id="_CPPv2N4espp6EspBox13display_widthEv"></span><span id="espp::EspBox::display_widthCE"></span><span class="target" id="classespp_1_1EspBox_1a41e12a8edcfeb43010d4a1d3617a310a"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">display_width</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6EspBox13display_widthEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the display width in pixels </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The display width in pixels </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox14display_heightEv">
+<span id="_CPPv3N4espp6EspBox14display_heightEv"></span><span id="_CPPv2N4espp6EspBox14display_heightEv"></span><span id="espp::EspBox::display_heightCE"></span><span class="target" id="classespp_1_1EspBox_1a7e5189ba14bc9914c82df1aaf7eda37b"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">display_height</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6EspBox14display_heightEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the display height in pixels </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The display height in pixels </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox12get_mute_pinEv">
+<span id="_CPPv3N4espp6EspBox12get_mute_pinEv"></span><span id="_CPPv2N4espp6EspBox12get_mute_pinEv"></span><span id="espp::EspBox::get_mute_pinCE"></span><span class="target" id="classespp_1_1EspBox_1ad491cffc7eb97e669ad69ee1c767c4a5"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_mute_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6EspBox12get_mute_pinEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the GPIO pin for the mute button (top of the box) </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The GPIO pin for the mute button </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6EspBox22SPI_MAX_TRANSFER_BYTESE">
+<span id="_CPPv3N4espp6EspBox22SPI_MAX_TRANSFER_BYTESE"></span><span id="_CPPv2N4espp6EspBox22SPI_MAX_TRANSFER_BYTESE"></span><span id="espp::EspBox::SPI_MAX_TRANSFER_BYTES__s"></span><span class="target" id="classespp_1_1EspBox_1a9aed50118d5491ded470c4d0a3e42ab5"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SPI_MAX_TRANSFER_BYTES</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">SPI_LL_DMA_MAX_BIT_LEN</span></span><span class="w"> </span><span class="o"><span class="pre">/</span></span><span class="w"> </span><span class="m"><span class="pre">8</span></span><a class="headerlink" href="#_CPPv4N4espp6EspBox22SPI_MAX_TRANSFER_BYTESE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Maximum number of bytes that can be transferred in a single SPI transaction to the <a class="reference internal" href="display/display.html#classespp_1_1Display"><span class="std std-ref">Display</span></a>. 32k on the ESP32-S3. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="esp32_timer_cam_example.html" class="btn btn-neutral float-left" title="ESP32-TIMER-CAM Example" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="esp_box_example.html" class="btn btn-neutral float-right" title="ESP-BOX Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

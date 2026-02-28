@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WiFi - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'wifi/wifi';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="WiFi Example" href="wifi_example.html" />
+    <link rel="prev" title="WiFi APIs" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_component.html">Base Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../byte90.html">ALXV Labs Byte90</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cobs.html">COBS (Consistent Overhead Byte Stuffing)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp32_timer_cam.html">ESP32 TimerCam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp_box.html">ESP BOX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../interrupt.html">Interrupt APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../iperf_menu.html">Iperf Menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../m5stack_tab5.html">M5Stack Tab5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../matouch_rotary_display.html">MaTouch Rotary Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../motorgo_mini.html">MotorGo Mini</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../neopixel.html">Neopixel APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nvs.html">NVS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../remote_debug.html">Remote Debug APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../runqueue.html">RunQueue APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../seeed_studio_round_display.html">Seeed Studio Round Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_deck.html">LilyGo T-Deck</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_dongle_s3.html">LilyGo T-Dongle S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../timer.html">Timer APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">WiFi APIs</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">WiFi</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="wifi_example.html">WiFi Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="wifi_ap.html">WiFi Access Point (AP)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="wifi_sta.html">WiFi Station (STA)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="wifi_example.html">WiFi Example</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../wrover_kit.html">ESP32-WROVER-KIT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">WiFi APIs</a></li>
+      <li class="breadcrumb-item active">WiFi</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/32e8215e/docs/en/wifi/wifi.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="wifi">
+<h1>WiFi<a class="headerlink" href="#wifi" title="Permalink to this heading"></a></h1>
+<p>The WiFi APIs enable the ESP to connect to wireless networks in both
+station and access point modes.</p>
+<p>The <cite>espp::Wifi</cite> is a singleton class which provides methods to configure and
+manage WiFi connections. You are able to register multiple different station and
+access point configurations with unique names and switch between them at
+runtime.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="wifi_example.html">WiFi Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="wifi_example.html#how-to-use-example">How to use example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="wifi_example.html#configure-the-project">Configure the project</a></li>
+<li class="toctree-l3"><a class="reference internal" href="wifi_example.html#build-and-flash">Build and Flash</a></li>
+<li class="toctree-l3"><a class="reference internal" href="wifi_example.html#example-output">Example Output</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/32e8215e/components/wifi/include/wifi.hpp">components/wifi/include/wifi.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4WifiE">
+<span id="_CPPv3N4espp4WifiE"></span><span id="_CPPv2N4espp4WifiE"></span><span id="espp::Wifi"></span><span class="target" id="classespp_1_1Wifi"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Wifi</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp4WifiE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The <a class="reference internal" href="#classespp_1_1Wifi"><span class="std std-ref">Wifi</span></a> class provides access to the ESP32 <a class="reference internal" href="#classespp_1_1Wifi"><span class="std std-ref">Wifi</span></a> functionality. </p>
+<p>The <a class="reference internal" href="#classespp_1_1Wifi"><span class="std std-ref">Wifi</span></a> class is a singleton class that provides access to the ESP32 <a class="reference internal" href="#classespp_1_1Wifi"><span class="std std-ref">Wifi</span></a> functionality. The <a class="reference internal" href="#classespp_1_1Wifi"><span class="std std-ref">Wifi</span></a> class is a wrapper around the ESP32 <a class="reference internal" href="#classespp_1_1Wifi"><span class="std std-ref">Wifi</span></a> API. The <a class="reference internal" href="#classespp_1_1Wifi"><span class="std std-ref">Wifi</span></a> class provides access to the <a class="reference internal" href="#classespp_1_1Wifi"><span class="std std-ref">Wifi</span></a> AP and <a class="reference internal" href="#classespp_1_1Wifi"><span class="std std-ref">Wifi</span></a> STA functionality, allowing registration and switching between multiple access points and stations.</p>
+<section id="classespp_1_1Wifi_1wifi_ex1">
+<h4>WiFi Example<a class="headerlink" href="#classespp_1_1Wifi_1wifi_ex1" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1Wifi_1wifi_ex1"><div class="highlight"><pre><span></span><span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">wifi</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Wifi</span><span class="o">::</span><span class="n">get</span><span class="p">();</span>
+<span class="w">    </span><span class="n">wifi</span><span class="p">.</span><span class="n">set_log_level</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">DEBUG</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// Initialize the WiFi stack</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">wifi</span><span class="p">.</span><span class="n">init</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Failed to initialize WiFi stack&quot;</span><span class="p">);</span>
+<span class="w">      </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// Register multiple station configurations</span>
+<span class="w">    </span><span class="n">wifi</span><span class="p">.</span><span class="n">register_sta</span><span class="p">(</span>
+<span class="w">        </span><span class="s">&quot;home&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="p">{.</span><span class="n">ssid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="p">,</span><span class="w">     </span><span class="c1">// use whatever was saved to NVS (if any)</span>
+<span class="w">         </span><span class="p">.</span><span class="n">password</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="p">,</span><span class="w"> </span><span class="c1">// use whatever was saved to NVS (if any)</span>
+<span class="w">         </span><span class="p">.</span><span class="n">num_connect_retries</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_ESP_MAXIMUM_RETRY</span><span class="p">,</span>
+<span class="w">         </span><span class="p">.</span><span class="n">auto_connect</span><span class="w"> </span><span class="o">=</span>
+<span class="w">             </span><span class="o">!</span><span class="n">CONFIG_TEST_SCAN_BEFORE_STA</span><span class="p">,</span><span class="w"> </span><span class="c1">// Don&#39;t auto-connect if we&#39;re going to scan first</span>
+<span class="w">         </span><span class="p">.</span><span class="n">on_got_ip</span><span class="w"> </span><span class="o">=</span>
+<span class="w">             </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">ip_event_got_ip_t</span><span class="w"> </span><span class="o">*</span><span class="n">eventdata</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">               </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Home network - got IP: {}.{}.{}.{}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">IP2STR</span><span class="p">(</span><span class="o">&amp;</span><span class="n">eventdata</span><span class="o">-&gt;</span><span class="n">ip_info</span><span class="p">.</span><span class="n">ip</span><span class="p">));</span>
+<span class="w">             </span><span class="p">},</span>
+<span class="w">         </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">});</span>
+
+<span class="w">    </span><span class="c1">// set the &#39;home&#39; network to be active and ensure that the backup</span>
+<span class="w">    </span><span class="c1">// registration (when added) doesn&#39;t override it</span>
+<span class="w">    </span><span class="n">wifi</span><span class="p">.</span><span class="n">switch_to_sta</span><span class="p">(</span><span class="s">&quot;home&quot;</span><span class="p">);</span>
+
+<span class="cp">#if CONFIG_TEST_WIFI_SCAN &amp;&amp; CONFIG_TEST_SCAN_BEFORE_STA</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;</span><span class="se">\n</span><span class="s">=== Testing scan before STA connection ===&quot;</span><span class="p">);</span>
+
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">test_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">test_details</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1">// STA was created with auto_connect=false, so it won&#39;t connect automatically</span>
+<span class="w">    </span><span class="c1">// Scan for networks first</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Scanning for networks before connecting...&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">scan_results</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">wifi</span><span class="p">.</span><span class="n">scan</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Found {} networks:&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">scan_results</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">ap</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">scan_results</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;  SSID: {}, RSSI: {}, Channel: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">ap</span><span class="p">.</span><span class="n">ssid</span><span class="p">,</span><span class="w"> </span><span class="n">ap</span><span class="p">.</span><span class="n">rssi</span><span class="p">,</span><span class="w"> </span><span class="n">ap</span><span class="p">.</span><span class="n">primary</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// Now manually initiate the connection</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Attempting to connect to STA after scan...&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="o">*</span><span class="n">sta</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">wifi</span><span class="p">.</span><span class="n">get_sta</span><span class="p">();</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">sta</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">sta</span><span class="o">-&gt;</span><span class="n">connect</span><span class="p">();</span><span class="w"> </span><span class="c1">// Manually trigger connection</span>
+
+<span class="w">      </span><span class="kt">int</span><span class="w"> </span><span class="n">wait_count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">      </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">sta</span><span class="o">-&gt;</span><span class="n">is_connected</span><span class="p">()</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">wait_count</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">150</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="c1">// 15 second timeout</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">100</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">        </span><span class="n">wait_count</span><span class="o">++</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">sta</span><span class="o">-&gt;</span><span class="n">is_connected</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;STA connected successfully after scan!&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">ip</span><span class="p">;</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">wifi</span><span class="p">.</span><span class="n">get_ip_address</span><span class="p">(</span><span class="n">ip</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;IP address: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ip</span><span class="p">);</span>
+<span class="w">          </span><span class="n">test_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">          </span><span class="n">test_details</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fmt</span><span class="o">::</span><span class="n">format</span><span class="p">(</span><span class="s">&quot;Connected, IP: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ip</span><span class="p">);</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;STA failed to connect after scan within timeout&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="n">test_details</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Connection timeout&quot;</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">test_details</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;No STA instance&quot;</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="n">test_results</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span>
+<span class="w">        </span><span class="p">{.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Scan before STA connect&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">test_passed</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">details</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">test_details</span><span class="p">});</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">2</span><span class="n">s</span><span class="p">);</span>
+<span class="cp">#endif</span>
+
+<span class="w">    </span><span class="n">wifi</span><span class="p">.</span><span class="n">register_sta</span><span class="p">(</span><span class="s">&quot;backup&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{.</span><span class="n">ssid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;BackupNetwork&quot;</span><span class="p">,</span>
+<span class="w">                                 </span><span class="p">.</span><span class="n">password</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;backuppassword&quot;</span><span class="p">,</span>
+<span class="w">                                 </span><span class="p">.</span><span class="n">num_connect_retries</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_ESP_MAXIMUM_RETRY</span><span class="p">,</span>
+<span class="w">                                 </span><span class="p">.</span><span class="n">on_got_ip</span><span class="w"> </span><span class="o">=</span>
+<span class="w">                                     </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">ip_event_got_ip_t</span><span class="w"> </span><span class="o">*</span><span class="n">eventdata</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                                       </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Backup network - got IP: {}.{}.{}.{}&quot;</span><span class="p">,</span>
+<span class="w">                                                   </span><span class="n">IP2STR</span><span class="p">(</span><span class="o">&amp;</span><span class="n">eventdata</span><span class="o">-&gt;</span><span class="n">ip_info</span><span class="p">.</span><span class="n">ip</span><span class="p">));</span>
+<span class="w">                                     </span><span class="p">},</span>
+<span class="w">                                 </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">});</span>
+
+<span class="w">    </span><span class="c1">// ensure that the active interface is still &#39;home&#39;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">wifi</span><span class="p">.</span><span class="n">get_active_name</span><span class="p">()</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s">&quot;home&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Active interface changed unexpectedly after registering backup STA&quot;</span><span class="p">);</span>
+<span class="w">      </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// Register an AP configuration</span>
+<span class="w">    </span><span class="n">wifi</span><span class="p">.</span><span class="n">register_ap</span><span class="p">(</span><span class="s">&quot;device_ap&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{.</span><span class="n">ssid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;MyESP32-AP&quot;</span><span class="p">,</span>
+<span class="w">                                   </span><span class="p">.</span><span class="n">password</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;esp32password&quot;</span><span class="p">,</span>
+<span class="w">                                   </span><span class="p">.</span><span class="n">channel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">6</span><span class="p">,</span>
+<span class="w">                                   </span><span class="p">.</span><span class="n">max_number_of_stations</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">                                   </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">});</span>
+
+<span class="w">    </span><span class="c1">// ensure that the active interface is still &#39;home&#39; (STA)</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">wifi</span><span class="p">.</span><span class="n">get_active_name</span><span class="p">()</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s">&quot;home&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Active interface changed unexpectedly after registering AP&quot;</span><span class="p">);</span>
+<span class="w">      </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Registered STA configurations: &quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">sta_names</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">wifi</span><span class="p">.</span><span class="n">get_registered_sta_names</span><span class="p">();</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">name</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">sta_names</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot; - &#39;{}&#39;&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">name</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Registered AP configurations: &quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ap_names</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">wifi</span><span class="p">.</span><span class="n">get_registered_ap_names</span><span class="p">();</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">name</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">ap_names</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot; - &#39;{}&#39;&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">name</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// now switch to AP</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;</span><span class="se">\n</span><span class="s">=== Testing switch to AP ===&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">wifi</span><span class="p">.</span><span class="n">switch_to_ap</span><span class="p">(</span><span class="s">&quot;device_ap&quot;</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// Check what&#39;s currently active</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">active_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">wifi</span><span class="p">.</span><span class="n">get_active_name</span><span class="p">();</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">ap_test_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">active_name</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">&quot;device_ap&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">ap_test_details</span><span class="p">;</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">ap_test_passed</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Active interface is not &#39;device_ap&#39; after switch_to_ap&quot;</span><span class="p">);</span>
+<span class="w">      </span><span class="n">ap_test_details</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fmt</span><span class="o">::</span><span class="n">format</span><span class="p">(</span><span class="s">&quot;Wrong active: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">active_name</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Active interface: &#39;{}&#39; (is_ap={}, is_sta={})&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">active_name</span><span class="p">,</span><span class="w"> </span><span class="n">wifi</span><span class="p">.</span><span class="n">is_active_ap</span><span class="p">(),</span>
+<span class="w">                  </span><span class="n">wifi</span><span class="p">.</span><span class="n">is_active_sta</span><span class="p">());</span>
+
+<span class="w">      </span><span class="c1">// Wait for the active interface to be ready/connected</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="o">*</span><span class="n">active</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">wifi</span><span class="p">.</span><span class="n">get_active</span><span class="p">();</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">active</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Waiting for &#39;{}&#39; to be connected...&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">active_name</span><span class="p">);</span>
+<span class="w">        </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">active</span><span class="o">-&gt;</span><span class="n">is_connected</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">100</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;&#39;{}&#39; is now connected!&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">active_name</span><span class="p">);</span>
+
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Checking IP address...&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="c1">// Get and display IP</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">ip</span><span class="p">;</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">wifi</span><span class="p">.</span><span class="n">get_ip_address</span><span class="p">(</span><span class="n">ip</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;IP address: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ip</span><span class="p">);</span>
+<span class="w">          </span><span class="n">ap_test_details</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fmt</span><span class="o">::</span><span class="n">format</span><span class="p">(</span><span class="s">&quot;AP ready, IP: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ip</span><span class="p">);</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="n">test_results</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span>
+<span class="w">        </span><span class="p">{.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Switch to AP&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ap_test_passed</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">details</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ap_test_details</span><span class="p">});</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="n">num_seconds_to_run</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1</span><span class="n">s</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// Access STA instance (single instance, manages all configs)</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="o">*</span><span class="n">home_sta</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">wifi</span><span class="p">.</span><span class="n">get_sta</span><span class="p">();</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">home_sta</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;STA is connected: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">home_sta</span><span class="o">-&gt;</span><span class="n">is_connected</span><span class="p">());</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// Get AP and check connected stations</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="o">*</span><span class="n">device_ap</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">wifi</span><span class="p">.</span><span class="n">get_ap</span><span class="p">();</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">device_ap</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">stations</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">device_ap</span><span class="o">-&gt;</span><span class="n">get_connected_stations</span><span class="p">();</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;AP has {} connected stations&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">stations</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// Demonstrate switching to STA</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;</span><span class="se">\n</span><span class="s">=== Testing switch to STA ===&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">wifi</span><span class="p">.</span><span class="n">switch_to_sta</span><span class="p">(</span><span class="s">&quot;home&quot;</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// If auto_connect was disabled (e.g., from scan test), manually connect</span>
+<span class="w">    </span><span class="n">sta</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">wifi</span><span class="p">.</span><span class="n">get_sta</span><span class="p">();</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">sta</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!</span><span class="n">sta</span><span class="o">-&gt;</span><span class="n">is_connected</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;STA not auto-connected, manually connecting...&quot;</span><span class="p">);</span>
+<span class="w">      </span><span class="n">sta</span><span class="o">-&gt;</span><span class="n">connect</span><span class="p">();</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="n">active_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">wifi</span><span class="p">.</span><span class="n">get_active_name</span><span class="p">();</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Active interface: &#39;{}&#39; (is_ap={}, is_sta={})&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">active_name</span><span class="p">,</span><span class="w"> </span><span class="n">wifi</span><span class="p">.</span><span class="n">is_active_ap</span><span class="p">(),</span>
+<span class="w">                </span><span class="n">wifi</span><span class="p">.</span><span class="n">is_active_sta</span><span class="p">());</span>
+
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">sta_test_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">sta_test_details</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1">// Wait for STA to connect</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">active</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">wifi</span><span class="p">.</span><span class="n">get_active</span><span class="p">();</span>
+<span class="w">    </span><span class="n">active_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">wifi</span><span class="p">.</span><span class="n">get_active_name</span><span class="p">();</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">active</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Waiting for &#39;{}&#39; to be connected...&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">active_name</span><span class="p">);</span>
+<span class="w">      </span><span class="kt">int</span><span class="w"> </span><span class="n">wait_count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">      </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">active</span><span class="o">-&gt;</span><span class="n">is_connected</span><span class="p">()</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">wait_count</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">100</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">100</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">        </span><span class="n">wait_count</span><span class="o">++</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">active</span><span class="o">-&gt;</span><span class="n">is_connected</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;&#39;{}&#39; is now connected!&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">active_name</span><span class="p">);</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">ip</span><span class="p">;</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">wifi</span><span class="p">.</span><span class="n">get_ip_address</span><span class="p">(</span><span class="n">ip</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;IP address: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ip</span><span class="p">);</span>
+<span class="w">          </span><span class="n">sta_test_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">          </span><span class="n">sta_test_details</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fmt</span><span class="o">::</span><span class="n">format</span><span class="p">(</span><span class="s">&quot;Connected, IP: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ip</span><span class="p">);</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;&#39;{}&#39; failed to connect within timeout&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">active_name</span><span class="p">);</span>
+<span class="w">        </span><span class="n">sta_test_details</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Connection timeout&quot;</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">sta_test_details</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;No active interface&quot;</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="n">test_results</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span>
+<span class="w">        </span><span class="p">{.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Switch to STA&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sta_test_passed</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">details</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sta_test_details</span><span class="p">});</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">2</span><span class="n">s</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// Demonstrate switching back to AP</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;</span><span class="se">\n</span><span class="s">=== Testing switch back to AP ===&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">wifi</span><span class="p">.</span><span class="n">switch_to_ap</span><span class="p">(</span><span class="s">&quot;device_ap&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">active_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">wifi</span><span class="p">.</span><span class="n">get_active_name</span><span class="p">();</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Active interface: &#39;{}&#39; (is_ap={}, is_sta={})&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">active_name</span><span class="p">,</span><span class="w"> </span><span class="n">wifi</span><span class="p">.</span><span class="n">is_active_ap</span><span class="p">(),</span>
+<span class="w">                </span><span class="n">wifi</span><span class="p">.</span><span class="n">is_active_sta</span><span class="p">());</span>
+
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">ap_switch_back_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">active_name</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">&quot;device_ap&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">ap_switch_back_details</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1">// Wait for AP to be ready</span>
+<span class="w">    </span><span class="n">active</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">wifi</span><span class="p">.</span><span class="n">get_active</span><span class="p">();</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">active</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Waiting for &#39;{}&#39; to be ready...&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">active_name</span><span class="p">);</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">1</span><span class="n">s</span><span class="p">);</span><span class="w"> </span><span class="c1">// AP starts quickly</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">active</span><span class="o">-&gt;</span><span class="n">is_connected</span><span class="p">())</span><span class="w"> </span><span class="p">{</span><span class="w">    </span><span class="c1">// For AP, this checks if stations are connected</span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;&#39;{}&#39; has stations connected&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">active_name</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;&#39;{}&#39; is ready (no stations connected yet)&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">active_name</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span>
+
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">ip</span><span class="p">;</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">wifi</span><span class="p">.</span><span class="n">get_ip_address</span><span class="p">(</span><span class="n">ip</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;IP address: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ip</span><span class="p">);</span>
+<span class="w">        </span><span class="n">ap_switch_back_details</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fmt</span><span class="o">::</span><span class="n">format</span><span class="p">(</span><span class="s">&quot;AP ready, IP: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ip</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">ap_switch_back_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">      </span><span class="n">ap_switch_back_details</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;No active interface&quot;</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="n">test_results</span><span class="p">.</span><span class="n">push_back</span><span class="p">({.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Switch back to AP&quot;</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ap_switch_back_passed</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">details</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ap_switch_back_details</span><span class="p">});</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">2</span><span class="n">s</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// Demonstrate stop</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;</span><span class="se">\n</span><span class="s">=== Testing stop ===&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">wifi</span><span class="p">.</span><span class="n">stop</span><span class="p">();</span>
+<span class="w">    </span><span class="n">active_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">wifi</span><span class="p">.</span><span class="n">get_active_name</span><span class="p">();</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Active interface after stop: &#39;{}&#39; (empty=stopped)&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">active_name</span><span class="p">);</span>
+
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">stop_test_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">active_name</span><span class="p">.</span><span class="n">empty</span><span class="p">();</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">stop_test_details</span><span class="w"> </span><span class="o">=</span>
+<span class="w">        </span><span class="n">stop_test_passed</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="s">&quot;WiFi stopped successfully&quot;</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="s">&quot;WiFi still active&quot;</span><span class="p">;</span>
+<span class="w">    </span><span class="n">test_results</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span>
+<span class="w">        </span><span class="p">{.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Stop WiFi&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">stop_test_passed</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">details</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">stop_test_details</span><span class="p">});</span>
+</pre></div>
+</div>
+</section>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This class manages the WiFi stack initialization. Call <a class="reference internal" href="#classespp_1_1Wifi_1aca35e685e6d0858a6fff1acf96ca64bf"><span class="std std-ref">init()</span></a> before registering any interfaces, and <a class="reference internal" href="#classespp_1_1Wifi_1abfe31d3a15ccd622a1346412286584ae"><span class="std std-ref">deinit()</span></a> when done.</p>
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi4initEv">
+<span id="_CPPv3N4espp4Wifi4initEv"></span><span id="_CPPv2N4espp4Wifi4initEv"></span><span id="espp::Wifi::init"></span><span class="target" id="classespp_1_1Wifi_1aca35e685e6d0858a6fff1acf96ca64bf"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">init</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi4initEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the WiFi stack. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This must be called before registering any WiFi interfaces. It’s safe to call multiple times - subsequent calls are no-ops. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if initialization was successful, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi6deinitEv">
+<span id="_CPPv3N4espp4Wifi6deinitEv"></span><span id="_CPPv2N4espp4Wifi6deinitEv"></span><span id="espp::Wifi::deinit"></span><span class="target" id="classespp_1_1Wifi_1abfe31d3a15ccd622a1346412286584ae"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">deinit</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi6deinitEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Deinitialize the WiFi stack. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will stop all interfaces and clear all configurations. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if deinitialization was successful, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp4Wifi14is_initializedEv">
+<span id="_CPPv3NK4espp4Wifi14is_initializedEv"></span><span id="_CPPv2NK4espp4Wifi14is_initializedEv"></span><span id="espp::Wifi::is_initializedC"></span><span class="target" id="classespp_1_1Wifi_1a5d7ecb31daae2fa40f5ad4fd20c8b5da"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_initialized</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp4Wifi14is_initializedEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Check if the WiFi stack is initialized. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if initialized, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi13get_sta_netifEv">
+<span id="_CPPv3N4espp4Wifi13get_sta_netifEv"></span><span id="_CPPv2N4espp4Wifi13get_sta_netifEv"></span><span id="espp::Wifi::get_sta_netif"></span><span class="target" id="classespp_1_1Wifi_1ad60d076799ee3da1d3ad8ddf4392f2e3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">esp_netif_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_sta_netif</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi13get_sta_netifEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get or create the STA network interface. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the WiFi subsystem is not initialized, logs an error and returns nullptr. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Pointer to the STA netif, or nullptr on error. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi12get_ap_netifEv">
+<span id="_CPPv3N4espp4Wifi12get_ap_netifEv"></span><span id="_CPPv2N4espp4Wifi12get_ap_netifEv"></span><span id="espp::Wifi::get_ap_netif"></span><span class="target" id="classespp_1_1Wifi_1a382ea712820eb570518e2d0c8b1d27be"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">esp_netif_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_ap_netif</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi12get_ap_netifEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get or create the AP network interface. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the WiFi subsystem is not initialized, logs an error and returns nullptr. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Pointer to the AP netif, or nullptr on error. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi16get_active_netifEv">
+<span id="_CPPv3N4espp4Wifi16get_active_netifEv"></span><span id="_CPPv2N4espp4Wifi16get_active_netifEv"></span><span id="espp::Wifi::get_active_netif"></span><span class="target" id="classespp_1_1Wifi_1a3bc1a41fe742945bffc7a9bdda5027c2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">esp_netif_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_active_netif</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi16get_active_netifEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the esp_netif_t of the currently active interface. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Pointer to the esp_netif_t of the active interface, or nullptr if no interface is active. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi8get_modeER11wifi_mode_t">
+<span id="_CPPv3N4espp4Wifi8get_modeER11wifi_mode_t"></span><span id="_CPPv2N4espp4Wifi8get_modeER11wifi_mode_t"></span><span id="espp::Wifi::get_mode__wifi_mode_tR"></span><span class="target" id="classespp_1_1Wifi_1aa80c99fa8e14bbbb64d343bbc9c351e2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_mode</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">wifi_mode_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">mode</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi8get_modeER11wifi_mode_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the current WiFi mode. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>WiFi stack must be initialized via <a class="reference internal" href="#classespp_1_1Wifi_1aca35e685e6d0858a6fff1acf96ca64bf"><span class="std std-ref">init()</span></a> before calling this. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>mode</strong> – Reference to a wifi_mode_t variable to store the result. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if retrieval was successful, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi11set_storageE14wifi_storage_t">
+<span id="_CPPv3N4espp4Wifi11set_storageE14wifi_storage_t"></span><span id="_CPPv2N4espp4Wifi11set_storageE14wifi_storage_t"></span><span id="espp::Wifi::set_storage__wifi_storage_t"></span><span class="target" id="classespp_1_1Wifi_1a8849b97174124b7fec4a9c4837876bd2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_storage</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">wifi_storage_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">storage</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi11set_storageE14wifi_storage_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the WiFi storage type. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>WiFi stack must be initialized via <a class="reference internal" href="#classespp_1_1Wifi_1aca35e685e6d0858a6fff1acf96ca64bf"><span class="std std-ref">init()</span></a> before calling this. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>storage</strong> – The wifi_storage_t value to set. Can be WIFI_STORAGE_RAM or WIFI_STORAGE_FLASH. The default value is WIFI_STORAGE_FLASH. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if setting was successful, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi14get_power_saveER14wifi_ps_type_t">
+<span id="_CPPv3N4espp4Wifi14get_power_saveER14wifi_ps_type_t"></span><span id="_CPPv2N4espp4Wifi14get_power_saveER14wifi_ps_type_t"></span><span id="espp::Wifi::get_power_save__wifi_ps_type_tR"></span><span class="target" id="classespp_1_1Wifi_1a9adee584f19a657688fbf61d8bce1f82"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_power_save</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">wifi_ps_type_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ps_type</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi14get_power_saveER14wifi_ps_type_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the current WiFi power save type. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ps_type</strong> – Reference to a wifi_ps_type_t variable to store the result. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if retrieval was successful, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi14set_power_saveE14wifi_ps_type_t">
+<span id="_CPPv3N4espp4Wifi14set_power_saveE14wifi_ps_type_t"></span><span id="_CPPv2N4espp4Wifi14set_power_saveE14wifi_ps_type_t"></span><span id="espp::Wifi::set_power_save__wifi_ps_type_t"></span><span class="target" id="classespp_1_1Wifi_1a14e53939cbf64dbeb38ae32a67c98b8e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_power_save</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">wifi_ps_type_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ps_type</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi14set_power_saveE14wifi_ps_type_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the WiFi power save type. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ps_type</strong> – The wifi_ps_type_t value to set. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if setting was successful, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi20get_max_tx_power_rawER6int8_t">
+<span id="_CPPv3N4espp4Wifi20get_max_tx_power_rawER6int8_t"></span><span id="_CPPv2N4espp4Wifi20get_max_tx_power_rawER6int8_t"></span><span id="espp::Wifi::get_max_tx_power_raw__int8_tR"></span><span class="target" id="classespp_1_1Wifi_1a1dfd5068c125d20c685fa23e3e7cc939"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_max_tx_power_raw</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">int8_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">power_raw</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi20get_max_tx_power_rawER6int8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the maximum WiFi transmit power. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>WiFi stack must be initialized via <a class="reference internal" href="#classespp_1_1Wifi_1aca35e685e6d0858a6fff1acf96ca64bf"><span class="std std-ref">init()</span></a> before calling this. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Returned value is a range [8, 84] representing power in 0.25 dBm units, i.e., 8 = 2 dBm, 84 = 21 dBm. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>power_raw</strong> – Reference to an int8_t variable to store the result. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if retrieval was successful, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi20get_max_tx_power_dbmERf">
+<span id="_CPPv3N4espp4Wifi20get_max_tx_power_dbmERf"></span><span id="_CPPv2N4espp4Wifi20get_max_tx_power_dbmERf"></span><span id="espp::Wifi::get_max_tx_power_dbm__floatR"></span><span class="target" id="classespp_1_1Wifi_1ab53a088bff74cb4e705620493f90bb82"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_max_tx_power_dbm</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">power_dbm</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi20get_max_tx_power_dbmERf" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the maximum WiFi transmit power in dBm. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>WiFi stack must be initialized via <a class="reference internal" href="#classespp_1_1Wifi_1aca35e685e6d0858a6fff1acf96ca64bf"><span class="std std-ref">init()</span></a> before calling this. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>power_dbm</strong> – Reference to a float variable to store the result. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if retrieval was successful, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi20set_max_tx_power_rawE6int8_t">
+<span id="_CPPv3N4espp4Wifi20set_max_tx_power_rawE6int8_t"></span><span id="_CPPv2N4espp4Wifi20set_max_tx_power_rawE6int8_t"></span><span id="espp::Wifi::set_max_tx_power_raw__int8_t"></span><span class="target" id="classespp_1_1Wifi_1ac1da9e29ca5bd2bf59781fb75aca0536"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_max_tx_power_raw</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">int8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">power_raw</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi20set_max_tx_power_rawE6int8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the maximum WiFi transmit power. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>WiFi stack must be initialized via <a class="reference internal" href="#classespp_1_1Wifi_1aca35e685e6d0858a6fff1acf96ca64bf"><span class="std std-ref">init()</span></a> before calling this. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>power_raw</strong> – The maximum transmit power in 0.25 dBm units. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if setting was successful, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi20set_max_tx_power_dbmEf">
+<span id="_CPPv3N4espp4Wifi20set_max_tx_power_dbmEf"></span><span id="_CPPv2N4espp4Wifi20set_max_tx_power_dbmEf"></span><span id="espp::Wifi::set_max_tx_power_dbm__float"></span><span class="target" id="classespp_1_1Wifi_1aa5e1801fba86bc52b346ba40ae587624"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_max_tx_power_dbm</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">power_dbm</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi20set_max_tx_power_dbmEf" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the maximum WiFi transmit power in dBm. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>WiFi stack must be initialized via <a class="reference internal" href="#classespp_1_1Wifi_1aca35e685e6d0858a6fff1acf96ca64bf"><span class="std std-ref">init()</span></a> before calling this. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>power_dbm</strong> – The maximum transmit power in dBm. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if setting was successful, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi4scanE8uint16_tb">
+<span id="_CPPv3N4espp4Wifi4scanE8uint16_tb"></span><span id="_CPPv2N4espp4Wifi4scanE8uint16_tb"></span><span id="espp::Wifi::scan__uint16_t.b"></span><span class="target" id="classespp_1_1Wifi_1a7704edf13f98a1549c22e3912c071c81"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">wifi_ap_record_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">scan</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">max_aps</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">20</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">show_hidden</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi4scanE8uint16_tb" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Scan for available WiFi networks. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This creates a temporary <a class="reference internal" href="wifi_sta.html#classespp_1_1WifiSta"><span class="std std-ref">WifiSta</span></a> instance to perform the scan. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The scan will temporarily put WiFi in APSTA mode if in AP mode. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>max_aps</strong> – Maximum number of APs to return (default 20). </p></li>
+<li><p><strong>show_hidden</strong> – Whether to show hidden SSIDs (default false). </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Vector of wifi_ap_record_t structures, empty on error. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi11register_apERKNSt6stringERKN6WifiAp6ConfigEb">
+<span id="_CPPv3N4espp4Wifi11register_apERKNSt6stringERKN6WifiAp6ConfigEb"></span><span id="_CPPv2N4espp4Wifi11register_apERKNSt6stringERKN6WifiAp6ConfigEb"></span><span id="espp::Wifi::register_ap__ssCR.WifiAp::ConfigCR.b"></span><span class="target" id="classespp_1_1Wifi_1afb63a925766d22c683fcd91c84bdcb92"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">register_ap</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">name</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="wifi_ap.html#_CPPv4N4espp6WifiApE" title="espp::WifiAp"><span class="n"><span class="pre">WifiAp</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="wifi_ap.html#_CPPv4N4espp6WifiAp6ConfigE" title="espp::WifiAp::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">set_active</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi11register_apERKNSt6stringERKN6WifiAp6ConfigEb" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Register a new WiFi Access Point configuration. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>WiFi stack must be initialized via <a class="reference internal" href="#classespp_1_1Wifi_1aca35e685e6d0858a6fff1acf96ca64bf"><span class="std std-ref">init()</span></a> before calling this. Only one interface (AP or STA) can be active at a time. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – Unique identifier for this AP configuration. </p></li>
+<li><p><strong>config</strong> – <a class="reference internal" href="wifi_ap.html#structespp_1_1WifiAp_1_1Config"><span class="std std-ref">WifiAp::Config</span></a> structure with AP configuration. </p></li>
+<li><p><strong>set_active</strong> – If true, immediately activate this AP configuration. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if registration was successful, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi12register_staERKNSt6stringERKN7WifiSta6ConfigEb">
+<span id="_CPPv3N4espp4Wifi12register_staERKNSt6stringERKN7WifiSta6ConfigEb"></span><span id="_CPPv2N4espp4Wifi12register_staERKNSt6stringERKN7WifiSta6ConfigEb"></span><span id="espp::Wifi::register_sta__ssCR.WifiSta::ConfigCR.b"></span><span class="target" id="classespp_1_1Wifi_1a1325415e9cfafc0b122c0d255ad6b3f1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">register_sta</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">name</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="wifi_sta.html#_CPPv4N4espp7WifiStaE" title="espp::WifiSta"><span class="n"><span class="pre">WifiSta</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="wifi_sta.html#_CPPv4N4espp7WifiSta6ConfigE" title="espp::WifiSta::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">set_active</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi12register_staERKNSt6stringERKN7WifiSta6ConfigEb" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Register a new WiFi Station configuration. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>WiFi stack must be initialized via <a class="reference internal" href="#classespp_1_1Wifi_1aca35e685e6d0858a6fff1acf96ca64bf"><span class="std std-ref">init()</span></a> before calling this. Only one interface (AP or STA) can be active at a time. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – Unique identifier for this STA configuration. </p></li>
+<li><p><strong>config</strong> – <a class="reference internal" href="wifi_sta.html#structespp_1_1WifiSta_1_1Config"><span class="std std-ref">WifiSta::Config</span></a> structure with STA configuration. </p></li>
+<li><p><strong>set_active</strong> – If true, immediately activate this STA configuration. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if registration was successful, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi24get_registered_sta_namesEv">
+<span id="_CPPv3N4espp4Wifi24get_registered_sta_namesEv"></span><span id="_CPPv2N4espp4Wifi24get_registered_sta_namesEv"></span><span id="espp::Wifi::get_registered_sta_names"></span><span class="target" id="classespp_1_1Wifi_1af4584b7a48e8a8d01afd1b4be715c069"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_registered_sta_names</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi24get_registered_sta_namesEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get all registered STA configuration names. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Vector of registered STA configuration names. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi23get_registered_ap_namesEv">
+<span id="_CPPv3N4espp4Wifi23get_registered_ap_namesEv"></span><span id="_CPPv2N4espp4Wifi23get_registered_ap_namesEv"></span><span id="espp::Wifi::get_registered_ap_names"></span><span class="target" id="classespp_1_1Wifi_1a3d2b28a0f436f093345437c2c5da6277"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_registered_ap_names</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi23get_registered_ap_namesEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get all registered AP configuration names. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Vector of registered AP configuration names. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi26get_registered_sta_configsEv">
+<span id="_CPPv3N4espp4Wifi26get_registered_sta_configsEv"></span><span id="_CPPv2N4espp4Wifi26get_registered_sta_configsEv"></span><span id="espp::Wifi::get_registered_sta_configs"></span><span class="target" id="classespp_1_1Wifi_1a53576983cfabaaf3b19fa075dd719fd8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unordered_map</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="wifi_sta.html#_CPPv4N4espp7WifiStaE" title="espp::WifiSta"><span class="n"><span class="pre">WifiSta</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="wifi_sta.html#_CPPv4N4espp7WifiSta6ConfigE" title="espp::WifiSta::Config"><span class="n"><span class="pre">Config</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_registered_sta_configs</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi26get_registered_sta_configsEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get all registered STA configurations. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Unordered map of registered STA configurations. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi25get_registered_ap_configsEv">
+<span id="_CPPv3N4espp4Wifi25get_registered_ap_configsEv"></span><span id="_CPPv2N4espp4Wifi25get_registered_ap_configsEv"></span><span id="espp::Wifi::get_registered_ap_configs"></span><span class="target" id="classespp_1_1Wifi_1adfb3b1d5cfb8e840fe448f762bf220c1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unordered_map</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="wifi_ap.html#_CPPv4N4espp6WifiApE" title="espp::WifiAp"><span class="n"><span class="pre">WifiAp</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="wifi_ap.html#_CPPv4N4espp6WifiAp6ConfigE" title="espp::WifiAp::Config"><span class="n"><span class="pre">Config</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_registered_ap_configs</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi25get_registered_ap_configsEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get all registered AP configurations. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Unordered map of registered AP configurations. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi12switch_to_apERKNSt6stringE">
+<span id="_CPPv3N4espp4Wifi12switch_to_apERKNSt6stringE"></span><span id="_CPPv2N4espp4Wifi12switch_to_apERKNSt6stringE"></span><span id="espp::Wifi::switch_to_ap__ssCR"></span><span class="target" id="classespp_1_1Wifi_1a5ccca8d52d3483c3951928fd195daf7c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">switch_to_ap</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi12switch_to_apERKNSt6stringE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Switch to a different registered AP configuration. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will stop any active STA interface. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> – The name of the AP configuration to switch to. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the switch was successful, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi13switch_to_staERKNSt6stringE">
+<span id="_CPPv3N4espp4Wifi13switch_to_staERKNSt6stringE"></span><span id="_CPPv2N4espp4Wifi13switch_to_staERKNSt6stringE"></span><span id="espp::Wifi::switch_to_sta__ssCR"></span><span class="target" id="classespp_1_1Wifi_1a12d7fd09165b636c8ddaa22347ba946c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">switch_to_sta</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi13switch_to_staERKNSt6stringE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Switch to a different registered STA configuration. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will stop any active AP interface. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> – The name of the STA configuration to switch to. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the switch was successful, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi6get_apEv">
+<span id="_CPPv3N4espp4Wifi6get_apEv"></span><span id="_CPPv2N4espp4Wifi6get_apEv"></span><span id="espp::Wifi::get_ap"></span><span class="target" id="classespp_1_1Wifi_1a2c63c174aee17c1b101d5b3ef83bc912"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="wifi_ap.html#_CPPv4N4espp6WifiApE" title="espp::WifiAp"><span class="n"><span class="pre">WifiAp</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_ap</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi6get_apEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get pointer to the WiFi AP instance. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Pointer to the <a class="reference internal" href="wifi_ap.html#classespp_1_1WifiAp"><span class="std std-ref">WifiAp</span></a> instance, or nullptr if not created. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi7get_staEv">
+<span id="_CPPv3N4espp4Wifi7get_staEv"></span><span id="_CPPv2N4espp4Wifi7get_staEv"></span><span id="espp::Wifi::get_sta"></span><span class="target" id="classespp_1_1Wifi_1ac46c5f19ebe1488d0d22acacbd0accf3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="wifi_sta.html#_CPPv4N4espp7WifiStaE" title="espp::WifiSta"><span class="n"><span class="pre">WifiSta</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_sta</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi7get_staEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get pointer to the WiFi STA instance. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Pointer to the <a class="reference internal" href="wifi_sta.html#classespp_1_1WifiSta"><span class="std std-ref">WifiSta</span></a> instance, or nullptr if not created. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi10get_activeEv">
+<span id="_CPPv3N4espp4Wifi10get_activeEv"></span><span id="_CPPv2N4espp4Wifi10get_activeEv"></span><span id="espp::Wifi::get_active"></span><span class="target" id="classespp_1_1Wifi_1a786289d54018e7bb53f9dc8506bf5ae5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">WifiBase</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_active</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi10get_activeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get pointer to the currently active interface. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Pointer to the active WifiBase instance, or nullptr if none active. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp4Wifi15get_active_nameEv">
+<span id="_CPPv3NK4espp4Wifi15get_active_nameEv"></span><span id="_CPPv2NK4espp4Wifi15get_active_nameEv"></span><span id="espp::Wifi::get_active_nameC"></span><span class="target" id="classespp_1_1Wifi_1a442a326bf425a1c85c87b38568ec2da4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_active_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp4Wifi15get_active_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the currently active interface (AP or STA). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Name of the active interface, or empty string if none active. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp4Wifi12is_active_apEv">
+<span id="_CPPv3NK4espp4Wifi12is_active_apEv"></span><span id="_CPPv2NK4espp4Wifi12is_active_apEv"></span><span id="espp::Wifi::is_active_apC"></span><span class="target" id="classespp_1_1Wifi_1ad3bb5d660968d44bc665ba85a9fb8e80"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_active_ap</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp4Wifi12is_active_apEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Check if the active interface is an AP. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if active interface is AP, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp4Wifi13is_active_staEv">
+<span id="_CPPv3NK4espp4Wifi13is_active_staEv"></span><span id="_CPPv2NK4espp4Wifi13is_active_staEv"></span><span id="espp::Wifi::is_active_staC"></span><span class="target" id="classespp_1_1Wifi_1aa962a254e3b9f4971bce14a31af27822"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_active_sta</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp4Wifi13is_active_staEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Check if the active interface is a STA. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if active interface is STA, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp4Wifi18get_active_ap_nameEv">
+<span id="_CPPv3NK4espp4Wifi18get_active_ap_nameEv"></span><span id="_CPPv2NK4espp4Wifi18get_active_ap_nameEv"></span><span id="espp::Wifi::get_active_ap_nameC"></span><span class="target" id="classespp_1_1Wifi_1ac2aa0218416502eeb4582228f8da62d0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_active_ap_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp4Wifi18get_active_ap_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the currently active AP configuration. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Name of the active AP config, or empty string if none active. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp4Wifi19get_active_sta_nameEv">
+<span id="_CPPv3NK4espp4Wifi19get_active_sta_nameEv"></span><span id="_CPPv2NK4espp4Wifi19get_active_sta_nameEv"></span><span id="espp::Wifi::get_active_sta_nameC"></span><span class="target" id="classespp_1_1Wifi_1a267f0bcba6e1fb7ee0a01f9a55fca71c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_active_sta_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp4Wifi19get_active_sta_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the currently active STA configuration. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Name of the active STA config, or empty string if none active. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi9remove_apERKNSt6stringE">
+<span id="_CPPv3N4espp4Wifi9remove_apERKNSt6stringE"></span><span id="_CPPv2N4espp4Wifi9remove_apERKNSt6stringE"></span><span id="espp::Wifi::remove_ap__ssCR"></span><span class="target" id="classespp_1_1Wifi_1affcfc85bde0a261a95dc631a3159743c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">remove_ap</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi9remove_apERKNSt6stringE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Remove a registered AP configuration. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> – The name of the AP config to remove. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the config was removed, false if not found. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi10remove_staERKNSt6stringE">
+<span id="_CPPv3N4espp4Wifi10remove_staERKNSt6stringE"></span><span id="_CPPv2N4espp4Wifi10remove_staERKNSt6stringE"></span><span id="espp::Wifi::remove_sta__ssCR"></span><span class="target" id="classespp_1_1Wifi_1afd55f923722020a7d7cfb6ee693caf1b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">remove_sta</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi10remove_staERKNSt6stringE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Remove a registered STA configuration. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> – The name of the STA config to remove. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the config was removed, false if not found. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi4stopEv">
+<span id="_CPPv3N4espp4Wifi4stopEv"></span><span id="_CPPv2N4espp4Wifi4stopEv"></span><span id="espp::Wifi::stop"></span><span class="target" id="classespp_1_1Wifi_1a9f6e03da120a51a20c559d503514752f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stop</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi4stopEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Stop the currently active interface (AP or STA). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if an interface was stopped, false if none was active. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi14get_ip_addressERNSt6stringE">
+<span id="_CPPv3N4espp4Wifi14get_ip_addressERNSt6stringE"></span><span id="_CPPv2N4espp4Wifi14get_ip_addressERNSt6stringE"></span><span id="espp::Wifi::get_ip_address__ssR"></span><span class="target" id="classespp_1_1Wifi_1a4c66bd1c3241f20ba95a0168f14e8ff6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_ip_address</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ip_address</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi14get_ip_addressERNSt6stringE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the IP address of the active WiFi interface. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ip_address</strong> – The IP address of the active WiFi interface. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the IP address was retrieved, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp4Wifi8get_nameEv">
+<span id="_CPPv3NK4espp4Wifi8get_nameEv"></span><span id="_CPPv2NK4espp4Wifi8get_nameEv"></span><span id="espp::Wifi::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp4Wifi8get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp4Wifi11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp4Wifi11set_log_tagERKNSt11string_viewE"></span><span id="espp::Wifi::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp4Wifi13get_log_levelEv">
+<span id="_CPPv3NK4espp4Wifi13get_log_levelEv"></span><span id="_CPPv2NK4espp4Wifi13get_log_levelEv"></span><span id="espp::Wifi::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp4Wifi13get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp4Wifi13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp4Wifi13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::Wifi::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp4Wifi17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp4Wifi17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::Wifi::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../ws_s3_touch.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp4Wifi17get_log_verbosityEv">
+<span id="_CPPv3NK4espp4Wifi17get_log_verbosityEv"></span><span id="_CPPv2NK4espp4Wifi17get_log_verbosityEv"></span><span id="espp::Wifi::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp4Wifi17get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../ws_s3_touch.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp4Wifi18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp4Wifi18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::Wifi::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Wifi3getEv">
+<span id="_CPPv3N4espp4Wifi3getEv"></span><span id="_CPPv2N4espp4Wifi3getEv"></span><span id="espp::Wifi::get"></span><span class="target" id="classespp_1_1Wifi_1a77f3cda82cb400aa3e79ebb9f9fdfccc"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4WifiE" title="espp::Wifi"><span class="n"><span class="pre">Wifi</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Wifi3getEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Access the singleton instance of the <a class="reference internal" href="#classespp_1_1Wifi"><span class="std std-ref">Wifi</span></a> class. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The singleton instance of the <a class="reference internal" href="#classespp_1_1Wifi"><span class="std std-ref">Wifi</span></a> class. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="WiFi APIs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="wifi_example.html" class="btn btn-neutral float-right" title="WiFi Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

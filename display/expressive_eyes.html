@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Expressive Eyes APIs - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'display/expressive_eyes';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Expressive Eyes Example" href="expressive_eyes_example.html" />
+    <link rel="prev" title="Display Drivers Example" href="display_drivers_example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_component.html">Base Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../byte90.html">ALXV Labs Byte90</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cobs.html">COBS (Consistent Overhead Byte Stuffing)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../csv.html">CSV APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Display APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="display.html">Display</a></li>
+<li class="toctree-l2"><a class="reference internal" href="display_drivers.html">Display Drivers</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Expressive Eyes APIs</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="expressive_eyes_example.html">Expressive Eyes Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp32_timer_cam.html">ESP32 TimerCam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp_box.html">ESP BOX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../interrupt.html">Interrupt APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../iperf_menu.html">Iperf Menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../m5stack_tab5.html">M5Stack Tab5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../matouch_rotary_display.html">MaTouch Rotary Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../motorgo_mini.html">MotorGo Mini</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../neopixel.html">Neopixel APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nvs.html">NVS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../remote_debug.html">Remote Debug APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../runqueue.html">RunQueue APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../seeed_studio_round_display.html">Seeed Studio Round Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_deck.html">LilyGo T-Deck</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_dongle_s3.html">LilyGo T-Dongle S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wrover_kit.html">ESP32-WROVER-KIT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Display APIs</a></li>
+      <li class="breadcrumb-item active">Expressive Eyes APIs</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/32e8215e/docs/en/display/expressive_eyes.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="expressive-eyes-apis">
+<h1>Expressive Eyes APIs<a class="headerlink" href="#expressive-eyes-apis" title="Permalink to this heading"></a></h1>
+<p>The <cite>ExpressiveEyes</cite> class provides an animated expressive eyes system for
+displays using simple blob shapes. It supports multiple expressions, smooth
+eye movement, blinking, and optional physics-based pupil movement.</p>
+<p>The component uses a callback-based drawing system, allowing you to implement
+custom renderers for different display types and visual styles. Example drawer
+implementations are provided showing both realistic eyes with pupils and
+minimalist monochrome designs.</p>
+<p>Features include:</p>
+<ul class="simple">
+<li><p>Multiple expressions (happy, sad, angry, surprised, neutral, sleepy, bored, wink_left, wink_right)</p></li>
+<li><p>Smooth eye movement with look_at positioning</p></li>
+<li><p>Automatic blinking with configurable intervals</p></li>
+<li><p>Optional pupils with physics-based movement</p></li>
+<li><p>Eyebrows and cheeks for enhanced expressions</p></li>
+<li><p>Smooth expression transitions with blending</p></li>
+<li><p>Customizable colors and sizes</p></li>
+<li><p>Frame-based animation system</p></li>
+</ul>
+<p>The drawing callback receives complete eye state information including
+position, size, expression parameters, pupil position, eyebrow configuration,
+and more, giving you full control over the rendering.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="expressive_eyes_example.html">Expressive Eyes Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="expressive_eyes_example.html#how-to-use-example">How to use example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="expressive_eyes_example.html#hardware-required">Hardware Required</a></li>
+<li class="toctree-l3"><a class="reference internal" href="expressive_eyes_example.html#configure-the-project">Configure the project</a></li>
+<li class="toctree-l3"><a class="reference internal" href="expressive_eyes_example.html#build-and-flash">Build and Flash</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="expressive_eyes_example.html#example-breakdown">Example Breakdown</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="expressive_eyes_example.html#expression-showcase">1. Expression Showcase</a></li>
+<li class="toctree-l3"><a class="reference internal" href="expressive_eyes_example.html#look-direction-demo">2. Look Direction Demo</a></li>
+<li class="toctree-l3"><a class="reference internal" href="expressive_eyes_example.html#random-demo-mode">3. Random Demo Mode</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="expressive_eyes_example.html#drawer-implementations">Drawer Implementations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="expressive_eyes_example.html#full-featured-drawer">Full Featured Drawer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="expressive_eyes_example.html#monochrome-blue-drawer">Monochrome Blue Drawer</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="expressive_eyes_example.html#example-output">Example Output</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/32e8215e/components/expressive_eyes/include/expressive_eyes.hpp">components/expressive_eyes/include/expressive_eyes.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyesE">
+<span id="_CPPv3N4espp14ExpressiveEyesE"></span><span id="_CPPv2N4espp14ExpressiveEyesE"></span><span id="espp::ExpressiveEyes"></span><span class="target" id="classespp_1_1ExpressiveEyes"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ExpressiveEyes</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyesE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Expressive Eyes Animation Component. </p>
+<p>Renders animated expressive eyes using simple blob shapes. Eyes can blink, look around, change expression, and display various emotions.</p>
+<p>Features:<ul class="simple">
+<li><p>Smooth eye movement and blinking</p></li>
+<li><p>Multiple expressions (happy, sad, angry, surprised, etc.)</p></li>
+<li><p>Optional pupils with physics-based movement</p></li>
+<li><p>Eyebrows and cheeks for enhanced expressions</p></li>
+<li><p>Customizable colors and sizes</p></li>
+<li><p>Frame-based animation system</p></li>
+</ul>
+</p>
+<section id="classespp_1_1ExpressiveEyes_1eyes_ex1">
+<h4>Expressive Eyes Example<a class="headerlink" href="#classespp_1_1ExpressiveEyes_1eyes_ex1" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1ExpressiveEyes_1eyes_ex1"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1">// Initialize the board</span>
+<span class="w">  </span><span class="n">Board</span><span class="w"> </span><span class="o">&amp;</span><span class="n">board</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Board</span><span class="o">::</span><span class="n">get</span><span class="p">();</span>
+<span class="w">  </span><span class="n">board</span><span class="p">.</span><span class="n">set_log_level</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Initialize the LCD</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">board</span><span class="p">.</span><span class="n">initialize_lcd</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Failed to initialize LCD!&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// Set up pixel buffer (50 lines)</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">pixel_buffer_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">board</span><span class="p">.</span><span class="n">lcd_width</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">50</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// Initialize the display</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">board</span><span class="p">.</span><span class="n">initialize_display</span><span class="p">(</span><span class="n">pixel_buffer_size</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Failed to initialize display!&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// Get screen dimensions</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">screen_width</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">board</span><span class="p">.</span><span class="n">lcd_width</span><span class="p">();</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">screen_height</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">board</span><span class="p">.</span><span class="n">lcd_height</span><span class="p">();</span>
+
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Display size: {}x{}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">screen_width</span><span class="p">,</span><span class="w"> </span><span class="n">screen_height</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Disable scrollbars on screen</span>
+<span class="w">  </span><span class="n">lv_obj_clear_flag</span><span class="p">(</span><span class="n">lv_screen_active</span><span class="p">(),</span><span class="w"> </span><span class="n">LV_OBJ_FLAG_SCROLLABLE</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Create main canvas for drawing everything</span>
+<span class="w">  </span><span class="n">lv_obj_t</span><span class="w"> </span><span class="o">*</span><span class="n">canvas</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lv_canvas_create</span><span class="p">(</span><span class="n">lv_screen_active</span><span class="p">());</span>
+
+<span class="w">  </span><span class="c1">// Allocate buffer for main canvas (RGB565 = 2 bytes per pixel)</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="n">lv_color_t</span><span class="w"> </span><span class="o">*</span><span class="n">canvas_buffer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">;</span>
+<span class="w">  </span><span class="n">canvas_buffer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">lv_color_t</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">heap_caps_malloc</span><span class="p">(</span><span class="n">screen_width</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">screen_height</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">lv_color_t</span><span class="p">),</span>
+<span class="w">                                                 </span><span class="n">MALLOC_CAP_SPIRAM</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">MALLOC_CAP_8BIT</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">canvas_buffer</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Failed to allocate canvas buffer!&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="n">lv_canvas_set_buffer</span><span class="p">(</span><span class="n">canvas</span><span class="p">,</span><span class="w"> </span><span class="n">canvas_buffer</span><span class="p">,</span><span class="w"> </span><span class="n">screen_width</span><span class="p">,</span><span class="w"> </span><span class="n">screen_height</span><span class="p">,</span><span class="w"> </span><span class="n">LV_COLOR_FORMAT_RGB565</span><span class="p">);</span>
+<span class="w">  </span><span class="n">lv_obj_center</span><span class="p">(</span><span class="n">canvas</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Create the drawer based on menuconfig selection</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">eye_drawer</span><span class="o">::</span><span class="n">EyeDrawer</span><span class="o">&gt;</span><span class="w"> </span><span class="n">drawer</span><span class="p">;</span>
+
+<span class="cp">#if CONFIG_EXPRESSIVE_EYES_FULL_FEATURED</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Using Full Featured drawer&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">drawer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="n">eye_drawer</span><span class="o">::</span><span class="n">FullFeaturedDrawer</span><span class="o">&gt;</span><span class="p">(</span>
+<span class="w">      </span><span class="n">eye_drawer</span><span class="o">::</span><span class="n">FullFeaturedDrawer</span><span class="o">::</span><span class="n">Config</span><span class="p">{.</span><span class="n">screen_width</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">screen_width</span><span class="p">,</span>
+<span class="w">                                             </span><span class="p">.</span><span class="n">screen_height</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">screen_height</span><span class="p">,</span>
+<span class="w">                                             </span><span class="p">.</span><span class="n">canvas</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">canvas</span><span class="p">,</span>
+<span class="w">                                             </span><span class="p">.</span><span class="n">canvas_buffer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">canvas_buffer</span><span class="p">,</span>
+<span class="w">                                             </span><span class="p">.</span><span class="n">lvgl_mutex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lvgl_mutex</span><span class="p">});</span>
+<span class="cp">#elif CONFIG_EXPRESSIVE_EYES_MONOCHROME_BLUE</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Using Monochrome Blue drawer&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">drawer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="n">eye_drawer</span><span class="o">::</span><span class="n">MonochromeBlueDrawer</span><span class="o">&gt;</span><span class="p">(</span>
+<span class="w">      </span><span class="n">eye_drawer</span><span class="o">::</span><span class="n">MonochromeBlueDrawer</span><span class="o">::</span><span class="n">Config</span><span class="p">{.</span><span class="n">screen_width</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">screen_width</span><span class="p">,</span>
+<span class="w">                                               </span><span class="p">.</span><span class="n">screen_height</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">screen_height</span><span class="p">,</span>
+<span class="w">                                               </span><span class="p">.</span><span class="n">canvas</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">canvas</span><span class="p">,</span>
+<span class="w">                                               </span><span class="p">.</span><span class="n">canvas_buffer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">canvas_buffer</span><span class="p">,</span>
+<span class="w">                                               </span><span class="p">.</span><span class="n">lvgl_mutex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lvgl_mutex</span><span class="p">});</span>
+<span class="cp">#else</span>
+<span class="cp">#error &quot;No drawing method selected in menuconfig!&quot;</span>
+<span class="cp">#endif</span>
+
+<span class="w">  </span><span class="c1">// Get the draw callback from the drawer</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">draw_eyes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">drawer</span><span class="o">-&gt;</span><span class="n">get_draw_callback</span><span class="p">();</span>
+
+<span class="w">  </span><span class="c1">// Configure expressive eyes with adaptive sizing - make eyes larger</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">large_eye_width</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">screen_width</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">0.35f</span><span class="p">;</span><span class="w">   </span><span class="c1">// 35% of screen width each</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">large_eye_height</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">screen_height</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">0.55f</span><span class="p">;</span><span class="w"> </span><span class="c1">// 55% of screen height</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">large_spacing</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">screen_width</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">0.55f</span><span class="p">;</span><span class="w">     </span><span class="c1">// Space between eye centers</span>
+
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">ExpressiveEyes</span><span class="o">::</span><span class="n">Config</span><span class="w"> </span><span class="n">config</span><span class="p">{.</span><span class="n">screen_width</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">screen_width</span><span class="p">,</span>
+<span class="w">                                      </span><span class="p">.</span><span class="n">screen_height</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">screen_height</span><span class="p">,</span>
+<span class="w">                                      </span><span class="p">.</span><span class="n">eye_spacing</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">large_spacing</span><span class="p">,</span>
+<span class="w">                                      </span><span class="p">.</span><span class="n">eye_width</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">large_eye_width</span><span class="p">,</span>
+<span class="w">                                      </span><span class="p">.</span><span class="n">eye_height</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">large_eye_height</span><span class="p">,</span>
+<span class="w">                                      </span><span class="p">.</span><span class="n">blink_duration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.12f</span><span class="p">,</span>
+<span class="w">                                      </span><span class="p">.</span><span class="n">blink_interval</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">4.0f</span><span class="p">,</span>
+<span class="w">                                      </span><span class="p">.</span><span class="n">enable_auto_blink</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span>
+<span class="w">                                      </span><span class="p">.</span><span class="n">enable_pupil_physics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span>
+<span class="w">                                      </span><span class="p">.</span><span class="n">on_draw</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">draw_eyes</span><span class="p">,</span>
+<span class="w">                                      </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">};</span>
+
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">ExpressiveEyes</span><span class="w"> </span><span class="nf">eyes</span><span class="p">(</span><span class="n">config</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// start a simple thread to do the lv_task_handler every 16ms</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="w"> </span><span class="nf">lv_task</span><span class="p">({.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="o">&amp;</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                        </span><span class="p">{</span>
+<span class="w">                          </span><span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">recursive_mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lock</span><span class="p">(</span><span class="n">lvgl_mutex</span><span class="p">);</span>
+<span class="w">                          </span><span class="n">lv_task_handler</span><span class="p">();</span>
+<span class="w">                        </span><span class="p">}</span>
+<span class="w">                        </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lock</span><span class="p">(</span><span class="n">m</span><span class="p">);</span>
+<span class="w">                        </span><span class="n">cv</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">lock</span><span class="p">,</span><span class="w"> </span><span class="mi">16</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">                        </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">                      </span><span class="p">},</span>
+<span class="w">                      </span><span class="p">.</span><span class="n">task_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                          </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;lv_task&quot;</span><span class="p">,</span>
+<span class="w">                          </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">16</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="p">,</span>
+<span class="w">                      </span><span class="p">}});</span>
+<span class="w">  </span><span class="n">lv_task</span><span class="p">.</span><span class="n">start</span><span class="p">();</span>
+
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Expressive eyes initialized&quot;</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Test different expressions using array iteration</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Testing different expressions...&quot;</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Cycle through each expression preset to demonstrate different emotional states</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">ExpressiveEyes</span><span class="o">::</span><span class="n">Expression</span><span class="w"> </span><span class="n">expressions</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">espp</span><span class="o">::</span><span class="n">ExpressiveEyes</span><span class="o">::</span><span class="n">Expression</span><span class="o">::</span><span class="n">NEUTRAL</span><span class="p">,</span><span class="w">   </span><span class="n">espp</span><span class="o">::</span><span class="n">ExpressiveEyes</span><span class="o">::</span><span class="n">Expression</span><span class="o">::</span><span class="n">HAPPY</span><span class="p">,</span>
+<span class="w">      </span><span class="n">espp</span><span class="o">::</span><span class="n">ExpressiveEyes</span><span class="o">::</span><span class="n">Expression</span><span class="o">::</span><span class="n">SAD</span><span class="p">,</span><span class="w">       </span><span class="n">espp</span><span class="o">::</span><span class="n">ExpressiveEyes</span><span class="o">::</span><span class="n">Expression</span><span class="o">::</span><span class="n">ANGRY</span><span class="p">,</span>
+<span class="w">      </span><span class="n">espp</span><span class="o">::</span><span class="n">ExpressiveEyes</span><span class="o">::</span><span class="n">Expression</span><span class="o">::</span><span class="n">SURPRISED</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">ExpressiveEyes</span><span class="o">::</span><span class="n">Expression</span><span class="o">::</span><span class="n">SLEEPY</span><span class="p">,</span>
+<span class="w">      </span><span class="n">espp</span><span class="o">::</span><span class="n">ExpressiveEyes</span><span class="o">::</span><span class="n">Expression</span><span class="o">::</span><span class="n">BORED</span><span class="p">,</span><span class="w">     </span><span class="n">espp</span><span class="o">::</span><span class="n">ExpressiveEyes</span><span class="o">::</span><span class="n">Expression</span><span class="o">::</span><span class="n">WINK_LEFT</span><span class="p">,</span>
+<span class="w">      </span><span class="n">espp</span><span class="o">::</span><span class="n">ExpressiveEyes</span><span class="o">::</span><span class="n">Expression</span><span class="o">::</span><span class="n">WINK_RIGHT</span><span class="p">};</span>
+
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">expr</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">expressions</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Expression: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">expr</span><span class="p">);</span>
+<span class="w">    </span><span class="n">eyes</span><span class="p">.</span><span class="n">set_expression</span><span class="p">(</span><span class="n">expr</span><span class="p">);</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">steady_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">steady_clock</span><span class="o">::</span><span class="n">now</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">).</span><span class="n">count</span><span class="p">()</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mf">3.0f</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">eyes</span><span class="p">.</span><span class="n">update</span><span class="p">(</span><span class="mf">0.016f</span><span class="p">);</span><span class="w"> </span><span class="c1">// 16ms update at ~60fps</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">16</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// Test look_at functionality using array iteration</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Testing look_at functionality&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">eyes</span><span class="p">.</span><span class="n">set_expression</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">ExpressiveEyes</span><span class="o">::</span><span class="n">Expression</span><span class="o">::</span><span class="n">NEUTRAL</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Demonstrate directional looking in the 4 cardinal directions plus center</span>
+<span class="w">  </span><span class="k">struct</span><span class="w"> </span><span class="nc">LookDirection</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">name</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">x</span><span class="p">;</span><span class="w"> </span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">y</span><span class="p">;</span><span class="w"> </span>
+<span class="w">  </span><span class="p">};</span>
+
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">LookDirection</span><span class="w"> </span><span class="n">look_directions</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{{</span><span class="s">&quot;left&quot;</span><span class="p">,</span><span class="w"> </span><span class="mf">-1.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">},</span>
+<span class="w">                                           </span><span class="p">{</span><span class="s">&quot;right&quot;</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">},</span>
+<span class="w">                                           </span><span class="p">{</span><span class="s">&quot;up&quot;</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">-1.0f</span><span class="p">},</span>
+<span class="w">                                           </span><span class="p">{</span><span class="s">&quot;down&quot;</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">},</span>
+<span class="w">                                           </span><span class="p">{</span><span class="s">&quot;center&quot;</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">}};</span>
+
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">dir</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">look_directions</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Looking {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">dir</span><span class="p">.</span><span class="n">name</span><span class="p">);</span>
+<span class="w">    </span><span class="n">eyes</span><span class="p">.</span><span class="n">look_at</span><span class="p">(</span><span class="n">dir</span><span class="p">.</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">dir</span><span class="p">.</span><span class="n">y</span><span class="p">);</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">steady_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">steady_clock</span><span class="o">::</span><span class="n">now</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">).</span><span class="n">count</span><span class="p">()</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mf">1.5f</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">eyes</span><span class="p">.</span><span class="n">update</span><span class="p">(</span><span class="mf">0.016f</span><span class="p">);</span><span class="w"> </span><span class="c1">// 16ms update at ~60fps</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">16</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// Random demo mode - continuously looks around and changes expressions</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Starting random demo mode - will run continuously&quot;</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Seed random number generator with current time</span>
+<span class="w">  </span><span class="n">srand</span><span class="p">(</span><span class="n">time</span><span class="p">(</span><span class="k">nullptr</span><span class="p">));</span>
+
+<span class="w">  </span><span class="c1">// Reset to neutral expression and center gaze</span>
+<span class="w">  </span><span class="n">eyes</span><span class="p">.</span><span class="n">set_expression</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">ExpressiveEyes</span><span class="o">::</span><span class="n">Expression</span><span class="o">::</span><span class="n">NEUTRAL</span><span class="p">);</span>
+<span class="w">  </span><span class="n">eyes</span><span class="p">.</span><span class="n">look_at</span><span class="p">(</span><span class="mf">0.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Random mode state - tracks when to trigger next action</span>
+<span class="w">  </span><span class="kt">float</span><span class="w"> </span><span class="n">time_until_next_look</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">2.0f</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">rand</span><span class="p">()</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">4000</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">1000.0f</span><span class="p">;</span><span class="w">        </span><span class="c1">// 2-6 seconds</span>
+<span class="w">  </span><span class="kt">float</span><span class="w"> </span><span class="n">time_until_next_expression</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">5.0f</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">rand</span><span class="p">()</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">10000</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">1000.0f</span><span class="p">;</span><span class="w"> </span><span class="c1">// 5-15 seconds</span>
+<span class="w">  </span><span class="kt">float</span><span class="w"> </span><span class="n">look_timer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">float</span><span class="w"> </span><span class="n">expression_timer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// Animation loop - runs indefinitely for continuous desk display</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">last_time</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">steady_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+<span class="w">  </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">steady_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">dt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">last_time</span><span class="p">).</span><span class="n">count</span><span class="p">();</span>
+<span class="w">    </span><span class="n">last_time</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">now</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1">// Update timers</span>
+<span class="w">    </span><span class="n">look_timer</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">dt</span><span class="p">;</span>
+<span class="w">    </span><span class="n">expression_timer</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">dt</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1">// Randomly look around - gives eyes natural movement</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">look_timer</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">time_until_next_look</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="kt">float</span><span class="w"> </span><span class="n">look_x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">((</span><span class="n">rand</span><span class="p">()</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">2000</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1000</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">1000.0f</span><span class="p">;</span><span class="w"> </span><span class="c1">// -1.0 to 1.0</span>
+<span class="w">      </span><span class="kt">float</span><span class="w"> </span><span class="n">look_y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">((</span><span class="n">rand</span><span class="p">()</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">2000</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1000</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">1000.0f</span><span class="p">;</span><span class="w"> </span><span class="c1">// -1.0 to 1.0</span>
+<span class="w">      </span><span class="n">eyes</span><span class="p">.</span><span class="n">look_at</span><span class="p">(</span><span class="n">look_x</span><span class="p">,</span><span class="w"> </span><span class="n">look_y</span><span class="p">);</span>
+<span class="w">      </span><span class="n">look_timer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">;</span>
+<span class="w">      </span><span class="n">time_until_next_look</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">2.0f</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">rand</span><span class="p">()</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">4000</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">1000.0f</span><span class="p">;</span><span class="w"> </span><span class="c1">// 2-6 seconds</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// Randomly change expression (weighted toward neutral for natural behavior)</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">expression_timer</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">time_until_next_expression</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="kt">int</span><span class="w"> </span><span class="n">expr_choice</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rand</span><span class="p">()</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">expr_choice</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">5</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// 50% chance: stay neutral</span>
+<span class="w">        </span><span class="n">eyes</span><span class="p">.</span><span class="n">set_expression</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">ExpressiveEyes</span><span class="o">::</span><span class="n">Expression</span><span class="o">::</span><span class="n">NEUTRAL</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">expr_choice</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">7</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// 20% chance: happy</span>
+<span class="w">        </span><span class="n">eyes</span><span class="p">.</span><span class="n">set_expression</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">ExpressiveEyes</span><span class="o">::</span><span class="n">Expression</span><span class="o">::</span><span class="n">HAPPY</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">expr_choice</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">8</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// 10% chance: surprised</span>
+<span class="w">        </span><span class="n">eyes</span><span class="p">.</span><span class="n">set_expression</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">ExpressiveEyes</span><span class="o">::</span><span class="n">Expression</span><span class="o">::</span><span class="n">SURPRISED</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">expr_choice</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">9</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// 10% chance: sad</span>
+<span class="w">        </span><span class="n">eyes</span><span class="p">.</span><span class="n">set_expression</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">ExpressiveEyes</span><span class="o">::</span><span class="n">Expression</span><span class="o">::</span><span class="n">SAD</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// 10% chance: angry</span>
+<span class="w">        </span><span class="n">eyes</span><span class="p">.</span><span class="n">set_expression</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">ExpressiveEyes</span><span class="o">::</span><span class="n">Expression</span><span class="o">::</span><span class="n">ANGRY</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="n">expression_timer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">;</span>
+<span class="w">      </span><span class="n">time_until_next_expression</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">5.0f</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">rand</span><span class="p">()</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">10000</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">1000.0f</span><span class="p">;</span><span class="w"> </span><span class="c1">// 5-15 seconds</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// Update and render eyes (calls draw callback)</span>
+<span class="w">    </span><span class="n">eyes</span><span class="p">.</span><span class="n">update</span><span class="p">(</span><span class="n">dt</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">16</span><span class="n">ms</span><span class="p">);</span><span class="w"> </span><span class="c1">// ~60 FPS</span>
+<span class="w">  </span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes10ExpressionE">
+<span id="_CPPv3N4espp14ExpressiveEyes10ExpressionE"></span><span id="_CPPv2N4espp14ExpressiveEyes10ExpressionE"></span><span class="target" id="classespp_1_1ExpressiveEyes_1acb6a0fb01a4053b8568b1fa82235781b"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Expression</span></span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes10ExpressionE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Eye expression presets. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes10Expression7NEUTRALE">
+<span id="_CPPv3N4espp14ExpressiveEyes10Expression7NEUTRALE"></span><span id="_CPPv2N4espp14ExpressiveEyes10Expression7NEUTRALE"></span><span class="target" id="classespp_1_1ExpressiveEyes_1acb6a0fb01a4053b8568b1fa82235781ba31ba17aa58cdb681423f07ca21a6efc7"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NEUTRAL</span></span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes10Expression7NEUTRALE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Normal open eyes. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes10Expression5HAPPYE">
+<span id="_CPPv3N4espp14ExpressiveEyes10Expression5HAPPYE"></span><span id="_CPPv2N4espp14ExpressiveEyes10Expression5HAPPYE"></span><span class="target" id="classespp_1_1ExpressiveEyes_1acb6a0fb01a4053b8568b1fa82235781ba5895a8d98247c42e883a30666911c186"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">HAPPY</span></span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes10Expression5HAPPYE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Squinted happy eyes with raised cheeks. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes10Expression3SADE">
+<span id="_CPPv3N4espp14ExpressiveEyes10Expression3SADE"></span><span id="_CPPv2N4espp14ExpressiveEyes10Expression3SADE"></span><span class="target" id="classespp_1_1ExpressiveEyes_1acb6a0fb01a4053b8568b1fa82235781bab9f50ca01f59b01d4aaa9cc3c0bad9f1"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SAD</span></span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes10Expression3SADE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Droopy sad eyes with angled eyebrows. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes10Expression5ANGRYE">
+<span id="_CPPv3N4espp14ExpressiveEyes10Expression5ANGRYE"></span><span id="_CPPv2N4espp14ExpressiveEyes10Expression5ANGRYE"></span><span class="target" id="classespp_1_1ExpressiveEyes_1acb6a0fb01a4053b8568b1fa82235781ba01ea88d643afda5305eabd30ca4c33fc"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ANGRY</span></span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes10Expression5ANGRYE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Angled angry eyes with furrowed eyebrows. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes10Expression9SURPRISEDE">
+<span id="_CPPv3N4espp14ExpressiveEyes10Expression9SURPRISEDE"></span><span id="_CPPv2N4espp14ExpressiveEyes10Expression9SURPRISEDE"></span><span class="target" id="classespp_1_1ExpressiveEyes_1acb6a0fb01a4053b8568b1fa82235781ba613c308215e0730e073cd1557689683f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SURPRISED</span></span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes10Expression9SURPRISEDE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Wide open eyes with raised eyebrows. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes10Expression6SLEEPYE">
+<span id="_CPPv3N4espp14ExpressiveEyes10Expression6SLEEPYE"></span><span id="_CPPv2N4espp14ExpressiveEyes10Expression6SLEEPYE"></span><span class="target" id="classespp_1_1ExpressiveEyes_1acb6a0fb01a4053b8568b1fa82235781ba2da6c866dc5d2eaf501cac50c18fd7de"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SLEEPY</span></span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes10Expression6SLEEPYE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Droopy half-closed eyes with low eyebrows. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes10Expression5BOREDE">
+<span id="_CPPv3N4espp14ExpressiveEyes10Expression5BOREDE"></span><span id="_CPPv2N4espp14ExpressiveEyes10Expression5BOREDE"></span><span class="target" id="classespp_1_1ExpressiveEyes_1acb6a0fb01a4053b8568b1fa82235781bac914eccfcbc3a2361a6d2a1bc6ad4988"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BORED</span></span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes10Expression5BOREDE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Half-closed eyes with neutral expression. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes10Expression9WINK_LEFTE">
+<span id="_CPPv3N4espp14ExpressiveEyes10Expression9WINK_LEFTE"></span><span id="_CPPv2N4espp14ExpressiveEyes10Expression9WINK_LEFTE"></span><span class="target" id="classespp_1_1ExpressiveEyes_1acb6a0fb01a4053b8568b1fa82235781ba26447815efdcba423e5b090a82b2d939"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">WINK_LEFT</span></span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes10Expression9WINK_LEFTE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Left eye closed. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes10Expression10WINK_RIGHTE">
+<span id="_CPPv3N4espp14ExpressiveEyes10Expression10WINK_RIGHTE"></span><span id="_CPPv2N4espp14ExpressiveEyes10Expression10WINK_RIGHTE"></span><span class="target" id="classespp_1_1ExpressiveEyes_1acb6a0fb01a4053b8568b1fa82235781babf108d13ae110fec07c227e55ea5b796"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">WINK_RIGHT</span></span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes10Expression10WINK_RIGHTE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Right eye closed. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes13draw_callbackE">
+<span id="_CPPv3N4espp14ExpressiveEyes13draw_callbackE"></span><span id="_CPPv2N4espp14ExpressiveEyes13draw_callbackE"></span><span id="espp::ExpressiveEyes::draw_callback"></span><span class="target" id="classespp_1_1ExpressiveEyes_1abd227506373d5788960aa2e4325fa71e"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp14ExpressiveEyes8EyeStateE" title="espp::ExpressiveEyes::EyeState"><span class="n"><span class="pre">EyeState</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">left_eye</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp14ExpressiveEyes8EyeStateE" title="espp::ExpressiveEyes::EyeState"><span class="n"><span class="pre">EyeState</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">right_eye</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">draw_callback</span></span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes13draw_callbackE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Draw callback function. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param left_eye<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Left eye render data </p>
+</dd>
+<dt class="field-even">Param right_eye<span class="colon">:</span></dt>
+<dd class="field-even"><p>Right eye render data </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes14ExpressiveEyesERK6Config">
+<span id="_CPPv3N4espp14ExpressiveEyes14ExpressiveEyesERK6Config"></span><span id="_CPPv2N4espp14ExpressiveEyes14ExpressiveEyesERK6Config"></span><span id="espp::ExpressiveEyes::ExpressiveEyes__ConfigCR"></span><span class="target" id="classespp_1_1ExpressiveEyes_1a3c7cde48e7fc0b7e770cc9176dcd26ea"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ExpressiveEyes</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp14ExpressiveEyes6ConfigE" title="espp::ExpressiveEyes::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes14ExpressiveEyesERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct expressive eyes. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – Configuration structure </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes6updateEf">
+<span id="_CPPv3N4espp14ExpressiveEyes6updateEf"></span><span id="_CPPv2N4espp14ExpressiveEyes6updateEf"></span><span id="espp::ExpressiveEyes::update__float"></span><span class="target" id="classespp_1_1ExpressiveEyes_1a7135add32f34653752b769c606fe77c7"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">update</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dt</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes6updateEf" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Update animation (call this every frame) </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dt</strong> – Delta time since last update in seconds </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes7look_atEff">
+<span id="_CPPv3N4espp14ExpressiveEyes7look_atEff"></span><span id="_CPPv2N4espp14ExpressiveEyes7look_atEff"></span><span id="espp::ExpressiveEyes::look_at__float.float"></span><span class="target" id="classespp_1_1ExpressiveEyes_1a51ee639f8ae8b110c9f1e046c2066331"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">look_at</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">x</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">y</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes7look_atEff" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set target look direction. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – Horizontal look direction (-1.0 to 1.0, 0=center) </p></li>
+<li><p><strong>y</strong> – Vertical look direction (-1.0 to 1.0, 0=center) </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes14set_expressionE10Expression">
+<span id="_CPPv3N4espp14ExpressiveEyes14set_expressionE10Expression"></span><span id="_CPPv2N4espp14ExpressiveEyes14set_expressionE10Expression"></span><span id="espp::ExpressiveEyes::set_expression__Expression"></span><span class="target" id="classespp_1_1ExpressiveEyes_1a01e1cbb4e906e30f482b6b5c396a965f"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_expression</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp14ExpressiveEyes10ExpressionE" title="espp::ExpressiveEyes::Expression"><span class="n"><span class="pre">Expression</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">expr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes14set_expressionE10Expression" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set expression. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>expr</strong> – Expression to display </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes5blinkEv">
+<span id="_CPPv3N4espp14ExpressiveEyes5blinkEv"></span><span id="_CPPv2N4espp14ExpressiveEyes5blinkEv"></span><span id="espp::ExpressiveEyes::blink"></span><span class="target" id="classespp_1_1ExpressiveEyes_1a8e16c77a40a88e353584508334a8da40"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">blink</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes5blinkEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Trigger a blink. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp14ExpressiveEyes14get_expressionEv">
+<span id="_CPPv3NK4espp14ExpressiveEyes14get_expressionEv"></span><span id="_CPPv2NK4espp14ExpressiveEyes14get_expressionEv"></span><span id="espp::ExpressiveEyes::get_expressionC"></span><span class="target" id="classespp_1_1ExpressiveEyes_1a6197b7c04e602589f959694515d865cf"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp14ExpressiveEyes10ExpressionE" title="espp::ExpressiveEyes::Expression"><span class="n"><span class="pre">Expression</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_expression</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp14ExpressiveEyes14get_expressionEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get current expression. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Current expression </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp14ExpressiveEyes8get_nameEv">
+<span id="_CPPv3NK4espp14ExpressiveEyes8get_nameEv"></span><span id="_CPPv2NK4espp14ExpressiveEyes8get_nameEv"></span><span id="espp::ExpressiveEyes::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp14ExpressiveEyes8get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp14ExpressiveEyes11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp14ExpressiveEyes11set_log_tagERKNSt11string_viewE"></span><span id="espp::ExpressiveEyes::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp14ExpressiveEyes13get_log_levelEv">
+<span id="_CPPv3NK4espp14ExpressiveEyes13get_log_levelEv"></span><span id="_CPPv2NK4espp14ExpressiveEyes13get_log_levelEv"></span><span id="espp::ExpressiveEyes::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp14ExpressiveEyes13get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp14ExpressiveEyes13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp14ExpressiveEyes13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::ExpressiveEyes::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp14ExpressiveEyes17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp14ExpressiveEyes17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::ExpressiveEyes::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../ws_s3_touch.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp14ExpressiveEyes17get_log_verbosityEv">
+<span id="_CPPv3NK4espp14ExpressiveEyes17get_log_verbosityEv"></span><span id="_CPPv2NK4espp14ExpressiveEyes17get_log_verbosityEv"></span><span id="espp::ExpressiveEyes::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp14ExpressiveEyes17get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../ws_s3_touch.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp14ExpressiveEyes18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp14ExpressiveEyes18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::ExpressiveEyes::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes21get_preset_expressionE10Expression">
+<span id="_CPPv3N4espp14ExpressiveEyes21get_preset_expressionE10Expression"></span><span id="_CPPv2N4espp14ExpressiveEyes21get_preset_expressionE10Expression"></span><span id="espp::ExpressiveEyes::get_preset_expression__Expression"></span><span class="target" id="classespp_1_1ExpressiveEyes_1aed3c7432b68f5102272021f2de0d1e85"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp14ExpressiveEyes15ExpressionStateE" title="espp::ExpressiveEyes::ExpressionState"><span class="n"><span class="pre">ExpressionState</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_preset_expression</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp14ExpressiveEyes10ExpressionE" title="espp::ExpressiveEyes::Expression"><span class="n"><span class="pre">Expression</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">expr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes21get_preset_expressionE10Expression" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get preset expression state. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>expr</strong> – Expression preset </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Expression state configuration </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes5CheekE">
+<span id="_CPPv3N4espp14ExpressiveEyes5CheekE"></span><span id="_CPPv2N4espp14ExpressiveEyes5CheekE"></span><span id="espp::ExpressiveEyes::Cheek"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1Cheek"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Cheek</span></span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes5CheekE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="#structespp_1_1ExpressiveEyes_1_1Cheek"><span class="std std-ref">Cheek</span></a> configuration (for shaping eye bottom) </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes5Cheek7enabledE">
+<span id="_CPPv3N4espp14ExpressiveEyes5Cheek7enabledE"></span><span id="_CPPv2N4espp14ExpressiveEyes5Cheek7enabledE"></span><span id="espp::ExpressiveEyes::Cheek::enabled__b"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1Cheek_1a25f9c528492b3b02c0dfa53718969393"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">enabled</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">false</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes5Cheek7enabledE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether to draw cheeks. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes5Cheek4sizeE">
+<span id="_CPPv3N4espp14ExpressiveEyes5Cheek4sizeE"></span><span id="_CPPv2N4espp14ExpressiveEyes5Cheek4sizeE"></span><span id="espp::ExpressiveEyes::Cheek::size__float"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1Cheek_1ad0a2b0483ccebfbada458a0d80a6c518"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">size</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0.3f</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes5Cheek4sizeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="#structespp_1_1ExpressiveEyes_1_1Cheek"><span class="std std-ref">Cheek</span></a> size relative to eye. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes6ConfigE">
+<span id="_CPPv3N4espp14ExpressiveEyes6ConfigE"></span><span id="_CPPv2N4espp14ExpressiveEyes6ConfigE"></span><span id="espp::ExpressiveEyes::Config"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration for expressive eyes. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes6Config12screen_widthE">
+<span id="_CPPv3N4espp14ExpressiveEyes6Config12screen_widthE"></span><span id="_CPPv2N4espp14ExpressiveEyes6Config12screen_widthE"></span><span id="espp::ExpressiveEyes::Config::screen_width__i"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1Config_1a51b677cc876ea0c1b31ac4abe294da6b"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">screen_width</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">320</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes6Config12screen_widthE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Screen width in pixels. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes6Config13screen_heightE">
+<span id="_CPPv3N4espp14ExpressiveEyes6Config13screen_heightE"></span><span id="_CPPv2N4espp14ExpressiveEyes6Config13screen_heightE"></span><span id="espp::ExpressiveEyes::Config::screen_height__i"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1Config_1a89d31b5453c73739d26ada06790660cf"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">screen_height</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">240</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes6Config13screen_heightE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Screen height in pixels. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes6Config11eye_spacingE">
+<span id="_CPPv3N4espp14ExpressiveEyes6Config11eye_spacingE"></span><span id="_CPPv2N4espp14ExpressiveEyes6Config11eye_spacingE"></span><span id="espp::ExpressiveEyes::Config::eye_spacing__i"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1Config_1aa028c3a91b92cf0ffc0ad0654e591266"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">eye_spacing</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">100</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes6Config11eye_spacingE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Distance between eye centers. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes6Config9eye_widthE">
+<span id="_CPPv3N4espp14ExpressiveEyes6Config9eye_widthE"></span><span id="_CPPv2N4espp14ExpressiveEyes6Config9eye_widthE"></span><span id="espp::ExpressiveEyes::Config::eye_width__i"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1Config_1a2d35d3cca721057d20007b08dd8b4b58"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">eye_width</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">60</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes6Config9eye_widthE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Base eye width. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes6Config10eye_heightE">
+<span id="_CPPv3N4espp14ExpressiveEyes6Config10eye_heightE"></span><span id="_CPPv2N4espp14ExpressiveEyes6Config10eye_heightE"></span><span id="espp::ExpressiveEyes::Config::eye_height__i"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1Config_1a6255f108e6d56a26587ecca81b099ef1"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">eye_height</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">80</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes6Config10eye_heightE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Base eye height. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes6Config14blink_durationE">
+<span id="_CPPv3N4espp14ExpressiveEyes6Config14blink_durationE"></span><span id="_CPPv2N4espp14ExpressiveEyes6Config14blink_durationE"></span><span id="espp::ExpressiveEyes::Config::blink_duration__float"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1Config_1a5feb5476362877ab1bd6971631162ca2"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">blink_duration</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0.12f</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes6Config14blink_durationE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Blink duration in seconds. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes6Config14blink_intervalE">
+<span id="_CPPv3N4espp14ExpressiveEyes6Config14blink_intervalE"></span><span id="_CPPv2N4espp14ExpressiveEyes6Config14blink_intervalE"></span><span id="espp::ExpressiveEyes::Config::blink_interval__float"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1Config_1ac9ac0bfc48e1672f3b59e2ed446d80ff"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">blink_interval</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">4.0f</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes6Config14blink_intervalE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Average time between blinks. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes6Config17enable_auto_blinkE">
+<span id="_CPPv3N4espp14ExpressiveEyes6Config17enable_auto_blinkE"></span><span id="_CPPv2N4espp14ExpressiveEyes6Config17enable_auto_blinkE"></span><span id="espp::ExpressiveEyes::Config::enable_auto_blink__b"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1Config_1a813f0510db6799793a3b36a4b5b2d48c"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">enable_auto_blink</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes6Config17enable_auto_blinkE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Automatic random blinking. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes6Config20enable_pupil_physicsE">
+<span id="_CPPv3N4espp14ExpressiveEyes6Config20enable_pupil_physicsE"></span><span id="_CPPv2N4espp14ExpressiveEyes6Config20enable_pupil_physicsE"></span><span id="espp::ExpressiveEyes::Config::enable_pupil_physics__b"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1Config_1a231b92c041163c5d03b09f8434c2e1b1"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">enable_pupil_physics</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes6Config20enable_pupil_physicsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Smooth pupil movement. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes6Config7on_drawE">
+<span id="_CPPv3N4espp14ExpressiveEyes6Config7on_drawE"></span><span id="_CPPv2N4espp14ExpressiveEyes6Config7on_drawE"></span><span id="espp::ExpressiveEyes::Config::on_draw__draw_callback"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1Config_1a0c3f4479576e01befadb4595f5e09b08"></span><a class="reference internal" href="#_CPPv4N4espp14ExpressiveEyes13draw_callbackE" title="espp::ExpressiveEyes::draw_callback"><span class="n"><span class="pre">draw_callback</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_draw</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes6Config7on_drawE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Drawing callback. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes6Config9log_levelE">
+<span id="_CPPv3N4espp14ExpressiveEyes6Config9log_levelE"></span><span id="_CPPv2N4espp14ExpressiveEyes6Config9log_levelE"></span><span id="espp::ExpressiveEyes::Config::log_level__Logger::Verbosity"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1Config_1a84864898c558af53c771a334220deefb"></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes6Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Log verbosity. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes15ExpressionStateE">
+<span id="_CPPv3N4espp14ExpressiveEyes15ExpressionStateE"></span><span id="_CPPv2N4espp14ExpressiveEyes15ExpressionStateE"></span><span id="espp::ExpressiveEyes::ExpressionState"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1ExpressionState"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ExpressionState</span></span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes15ExpressionStateE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Complete expression state. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes15ExpressionState15eye_width_scaleE">
+<span id="_CPPv3N4espp14ExpressiveEyes15ExpressionState15eye_width_scaleE"></span><span id="_CPPv2N4espp14ExpressiveEyes15ExpressionState15eye_width_scaleE"></span><span id="espp::ExpressiveEyes::ExpressionState::eye_width_scale__float"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1ExpressionState_1ae5d94aa0267fc720b62b1c439a601bf9"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">eye_width_scale</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">1.0f</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes15ExpressionState15eye_width_scaleE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Eye width multiplier. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes15ExpressionState16eye_height_scaleE">
+<span id="_CPPv3N4espp14ExpressiveEyes15ExpressionState16eye_height_scaleE"></span><span id="_CPPv2N4espp14ExpressiveEyes15ExpressionState16eye_height_scaleE"></span><span id="espp::ExpressiveEyes::ExpressionState::eye_height_scale__float"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1ExpressionState_1ad86d30f60c072d4d3f846f2cfb7b1c3d"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">eye_height_scale</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">1.0f</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes15ExpressionState16eye_height_scaleE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Eye height multiplier. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes15ExpressionState12eye_rotationE">
+<span id="_CPPv3N4espp14ExpressiveEyes15ExpressionState12eye_rotationE"></span><span id="_CPPv2N4espp14ExpressiveEyes15ExpressionState12eye_rotationE"></span><span id="espp::ExpressiveEyes::ExpressionState::eye_rotation__float"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1ExpressionState_1ad76d1fba0784b1d7b1faa37fd9403675"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">eye_rotation</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0.0f</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes15ExpressionState12eye_rotationE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Eye rotation in radians. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes15ExpressionState9top_curveE">
+<span id="_CPPv3N4espp14ExpressiveEyes15ExpressionState9top_curveE"></span><span id="_CPPv2N4espp14ExpressiveEyes15ExpressionState9top_curveE"></span><span id="espp::ExpressiveEyes::ExpressionState::top_curve__float"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1ExpressionState_1a51bc2109182cf3d8d6687e7fe62508fd"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">top_curve</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0.5f</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes15ExpressionState9top_curveE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Top eyelid curve (0=flat, 1=round) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes15ExpressionState12bottom_curveE">
+<span id="_CPPv3N4espp14ExpressiveEyes15ExpressionState12bottom_curveE"></span><span id="_CPPv2N4espp14ExpressiveEyes15ExpressionState12bottom_curveE"></span><span id="espp::ExpressiveEyes::ExpressionState::bottom_curve__float"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1ExpressionState_1a2ab68d050f5967750a0f6fa18439ed65"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">bottom_curve</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0.5f</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes15ExpressionState12bottom_curveE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Bottom eyelid curve (0=flat, 1=round) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes15ExpressionState12eye_offset_yE">
+<span id="_CPPv3N4espp14ExpressiveEyes15ExpressionState12eye_offset_yE"></span><span id="_CPPv2N4espp14ExpressiveEyes15ExpressionState12eye_offset_yE"></span><span id="espp::ExpressiveEyes::ExpressionState::eye_offset_y__float"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1ExpressionState_1ae6f1bf41441fbfc17523525b75acbf66"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">eye_offset_y</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0.0f</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes15ExpressionState12eye_offset_yE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Vertical offset for eye position. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes15ExpressionState14cheek_offset_yE">
+<span id="_CPPv3N4espp14ExpressiveEyes15ExpressionState14cheek_offset_yE"></span><span id="_CPPv2N4espp14ExpressiveEyes15ExpressionState14cheek_offset_yE"></span><span id="espp::ExpressiveEyes::ExpressionState::cheek_offset_y__float"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1ExpressionState_1a7cf6c95ea2d31dd391a74d3c4f5c2334"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">cheek_offset_y</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0.0f</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes15ExpressionState14cheek_offset_yE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Vertical offset for cheek position. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes15ExpressionState5pupilE">
+<span id="_CPPv3N4espp14ExpressiveEyes15ExpressionState5pupilE"></span><span id="_CPPv2N4espp14ExpressiveEyes15ExpressionState5pupilE"></span><span id="espp::ExpressiveEyes::ExpressionState::pupil__Pupil"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1ExpressionState_1ab862153842cbc521f3d64063f6aa8ead"></span><a class="reference internal" href="#_CPPv4N4espp14ExpressiveEyes5PupilE" title="espp::ExpressiveEyes::Pupil"><span class="n"><span class="pre">Pupil</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pupil</span></span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes15ExpressionState5pupilE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="#structespp_1_1ExpressiveEyes_1_1Pupil"><span class="std std-ref">Pupil</span></a> configuration. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes15ExpressionState7eyebrowE">
+<span id="_CPPv3N4espp14ExpressiveEyes15ExpressionState7eyebrowE"></span><span id="_CPPv2N4espp14ExpressiveEyes15ExpressionState7eyebrowE"></span><span id="espp::ExpressiveEyes::ExpressionState::eyebrow__Eyebrow"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1ExpressionState_1a00628aa1985439f380d79e6237f6d403"></span><a class="reference internal" href="#_CPPv4N4espp14ExpressiveEyes7EyebrowE" title="espp::ExpressiveEyes::Eyebrow"><span class="n"><span class="pre">Eyebrow</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">eyebrow</span></span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes15ExpressionState7eyebrowE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="#structespp_1_1ExpressiveEyes_1_1Eyebrow"><span class="std std-ref">Eyebrow</span></a> configuration. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes15ExpressionState5cheekE">
+<span id="_CPPv3N4espp14ExpressiveEyes15ExpressionState5cheekE"></span><span id="_CPPv2N4espp14ExpressiveEyes15ExpressionState5cheekE"></span><span id="espp::ExpressiveEyes::ExpressionState::cheek__Cheek"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1ExpressionState_1af20b27a3f181f549f4cb5b0c1589b062"></span><a class="reference internal" href="#_CPPv4N4espp14ExpressiveEyes5CheekE" title="espp::ExpressiveEyes::Cheek"><span class="n"><span class="pre">Cheek</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">cheek</span></span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes15ExpressionState5cheekE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="#structespp_1_1ExpressiveEyes_1_1Cheek"><span class="std std-ref">Cheek</span></a> configuration. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes7EyebrowE">
+<span id="_CPPv3N4espp14ExpressiveEyes7EyebrowE"></span><span id="_CPPv2N4espp14ExpressiveEyes7EyebrowE"></span><span id="espp::ExpressiveEyes::Eyebrow"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1Eyebrow"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Eyebrow</span></span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes7EyebrowE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="#structespp_1_1ExpressiveEyes_1_1Eyebrow"><span class="std std-ref">Eyebrow</span></a> configuration. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes7Eyebrow7enabledE">
+<span id="_CPPv3N4espp14ExpressiveEyes7Eyebrow7enabledE"></span><span id="_CPPv2N4espp14ExpressiveEyes7Eyebrow7enabledE"></span><span id="espp::ExpressiveEyes::Eyebrow::enabled__b"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1Eyebrow_1a19f29c663509dd87f1ad850888f18161"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">enabled</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">false</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes7Eyebrow7enabledE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether to draw eyebrows. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes7Eyebrow5angleE">
+<span id="_CPPv3N4espp14ExpressiveEyes7Eyebrow5angleE"></span><span id="_CPPv2N4espp14ExpressiveEyes7Eyebrow5angleE"></span><span id="espp::ExpressiveEyes::Eyebrow::angle__float"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1Eyebrow_1a167dd2a4c5d150b7f428adaa42585f69"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">angle</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0.0f</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes7Eyebrow5angleE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="#structespp_1_1ExpressiveEyes_1_1Eyebrow"><span class="std std-ref">Eyebrow</span></a> angle in degrees. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes7Eyebrow6heightE">
+<span id="_CPPv3N4espp14ExpressiveEyes7Eyebrow6heightE"></span><span id="_CPPv2N4espp14ExpressiveEyes7Eyebrow6heightE"></span><span id="espp::ExpressiveEyes::Eyebrow::height__float"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1Eyebrow_1a41dacff05edd13ad2ec9e852f35a4232"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">height</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0.0f</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes7Eyebrow6heightE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Vertical offset relative to eye (-1.0 to 1.0) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes7Eyebrow9thicknessE">
+<span id="_CPPv3N4espp14ExpressiveEyes7Eyebrow9thicknessE"></span><span id="_CPPv2N4espp14ExpressiveEyes7Eyebrow9thicknessE"></span><span id="espp::ExpressiveEyes::Eyebrow::thickness__float"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1Eyebrow_1a609a8b8a0d88f2061c114c61c9576540"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">thickness</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0.1f</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes7Eyebrow9thicknessE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="#structespp_1_1ExpressiveEyes_1_1Eyebrow"><span class="std std-ref">Eyebrow</span></a> thickness relative to eye. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes7Eyebrow5widthE">
+<span id="_CPPv3N4espp14ExpressiveEyes7Eyebrow5widthE"></span><span id="_CPPv2N4espp14ExpressiveEyes7Eyebrow5widthE"></span><span id="espp::ExpressiveEyes::Eyebrow::width__float"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1Eyebrow_1a7787dd6cd9e99d69fa2f960281372f79"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">width</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">1.0f</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes7Eyebrow5widthE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="#structespp_1_1ExpressiveEyes_1_1Eyebrow"><span class="std std-ref">Eyebrow</span></a> width relative to eye. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes7Eyebrow5colorE">
+<span id="_CPPv3N4espp14ExpressiveEyes7Eyebrow5colorE"></span><span id="_CPPv2N4espp14ExpressiveEyes7Eyebrow5colorE"></span><span id="espp::ExpressiveEyes::Eyebrow::color__uint16_t"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1Eyebrow_1a7d99dca79917a4509764d03c94a61af3"></span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">color</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0x0000</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes7Eyebrow5colorE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="#structespp_1_1ExpressiveEyes_1_1Eyebrow"><span class="std std-ref">Eyebrow</span></a> color (black) </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes8EyeStateE">
+<span id="_CPPv3N4espp14ExpressiveEyes8EyeStateE"></span><span id="_CPPv2N4espp14ExpressiveEyes8EyeStateE"></span><span id="espp::ExpressiveEyes::EyeState"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1EyeState"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EyeState</span></span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes8EyeStateE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Single eye render data. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes8EyeState1xE">
+<span id="_CPPv3N4espp14ExpressiveEyes8EyeState1xE"></span><span id="_CPPv2N4espp14ExpressiveEyes8EyeState1xE"></span><span id="espp::ExpressiveEyes::EyeState::x__i"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1EyeState_1acbdf19b7020a0a99b8bdf7084d5d08be"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">x</span></span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes8EyeState1xE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>X coordinate of eye center. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes8EyeState1yE">
+<span id="_CPPv3N4espp14ExpressiveEyes8EyeState1yE"></span><span id="_CPPv2N4espp14ExpressiveEyes8EyeState1yE"></span><span id="espp::ExpressiveEyes::EyeState::y__i"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1EyeState_1af6b9256dc275e50390d05e30656436c9"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">y</span></span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes8EyeState1yE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Y coordinate of eye center. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes8EyeState5widthE">
+<span id="_CPPv3N4espp14ExpressiveEyes8EyeState5widthE"></span><span id="_CPPv2N4espp14ExpressiveEyes8EyeState5widthE"></span><span id="espp::ExpressiveEyes::EyeState::width__i"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1EyeState_1ac440f5297836caaa5ad4958afb1b12ed"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">width</span></span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes8EyeState5widthE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Current eye width. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes8EyeState6heightE">
+<span id="_CPPv3N4espp14ExpressiveEyes8EyeState6heightE"></span><span id="_CPPv2N4espp14ExpressiveEyes8EyeState6heightE"></span><span id="espp::ExpressiveEyes::EyeState::height__i"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1EyeState_1a65a261b13df23bf673452e9daad346ed"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">height</span></span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes8EyeState6heightE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Current eye height. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes8EyeState10expressionE">
+<span id="_CPPv3N4espp14ExpressiveEyes8EyeState10expressionE"></span><span id="_CPPv2N4espp14ExpressiveEyes8EyeState10expressionE"></span><span id="espp::ExpressiveEyes::EyeState::expression__ExpressionState"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1EyeState_1a834e8d7f3167dc2d45bf5c58703602c8"></span><a class="reference internal" href="#_CPPv4N4espp14ExpressiveEyes15ExpressionStateE" title="espp::ExpressiveEyes::ExpressionState"><span class="n"><span class="pre">ExpressionState</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">expression</span></span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes8EyeState10expressionE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Expression state for this eye. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes5PupilE">
+<span id="_CPPv3N4espp14ExpressiveEyes5PupilE"></span><span id="_CPPv2N4espp14ExpressiveEyes5PupilE"></span><span id="espp::ExpressiveEyes::Pupil"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1Pupil"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Pupil</span></span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes5PupilE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="#structespp_1_1ExpressiveEyes_1_1Pupil"><span class="std std-ref">Pupil</span></a> configuration. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes5Pupil7enabledE">
+<span id="_CPPv3N4espp14ExpressiveEyes5Pupil7enabledE"></span><span id="_CPPv2N4espp14ExpressiveEyes5Pupil7enabledE"></span><span id="espp::ExpressiveEyes::Pupil::enabled__b"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1Pupil_1a4d55d8b5614bdacfc6d4f3cf7a4fc260"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">enabled</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes5Pupil7enabledE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether to draw pupils. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes5Pupil4sizeE">
+<span id="_CPPv3N4espp14ExpressiveEyes5Pupil4sizeE"></span><span id="_CPPv2N4espp14ExpressiveEyes5Pupil4sizeE"></span><span id="espp::ExpressiveEyes::Pupil::size__float"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1Pupil_1add86e8690e891910bc33b03795a8bd8f"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">size</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0.3f</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes5Pupil4sizeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="#structespp_1_1ExpressiveEyes_1_1Pupil"><span class="std std-ref">Pupil</span></a> size relative to eye (0.0-1.0) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes5Pupil5colorE">
+<span id="_CPPv3N4espp14ExpressiveEyes5Pupil5colorE"></span><span id="_CPPv2N4espp14ExpressiveEyes5Pupil5colorE"></span><span id="espp::ExpressiveEyes::Pupil::color__uint16_t"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1Pupil_1a9d29ce5e8f2ed25e2782ab012e9ef9f7"></span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">color</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0x0000</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes5Pupil5colorE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="#structespp_1_1ExpressiveEyes_1_1Pupil"><span class="std std-ref">Pupil</span></a> color (black) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes5Pupil1xE">
+<span id="_CPPv3N4espp14ExpressiveEyes5Pupil1xE"></span><span id="_CPPv2N4espp14ExpressiveEyes5Pupil1xE"></span><span id="espp::ExpressiveEyes::Pupil::x__float"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1Pupil_1a9dc6f022ca110ab8ba6c6b173597e83a"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">x</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0.0f</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes5Pupil1xE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="#structespp_1_1ExpressiveEyes_1_1Pupil"><span class="std std-ref">Pupil</span></a> X position (-1.0 to 1.0) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14ExpressiveEyes5Pupil1yE">
+<span id="_CPPv3N4espp14ExpressiveEyes5Pupil1yE"></span><span id="_CPPv2N4espp14ExpressiveEyes5Pupil1yE"></span><span id="espp::ExpressiveEyes::Pupil::y__float"></span><span class="target" id="structespp_1_1ExpressiveEyes_1_1Pupil_1a605ad8a59228e88c35195d0589489874"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">y</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0.0f</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14ExpressiveEyes5Pupil1yE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="#structespp_1_1ExpressiveEyes_1_1Pupil"><span class="std std-ref">Pupil</span></a> Y position (-1.0 to 1.0) </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="display_drivers_example.html" class="btn btn-neutral float-left" title="Display Drivers Example" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="expressive_eyes_example.html" class="btn btn-neutral float-right" title="Expressive Eyes Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

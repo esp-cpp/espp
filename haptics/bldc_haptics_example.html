@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BLDC Haptics Example - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'haptics/bldc_haptics_example';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="DRV2605 Haptic Motor Driver" href="drv2605.html" />
+    <link rel="prev" title="BLDC Haptics" href="bldc_haptics.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_component.html">Base Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../byte90.html">ALXV Labs Byte90</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cobs.html">COBS (Consistent Overhead Byte Stuffing)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp32_timer_cam.html">ESP32 TimerCam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp_box.html">ESP BOX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Haptics APIs</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="bldc_haptics.html">BLDC Haptics</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">BLDC Haptics Example</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#how-to-use-example">How to use example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#example-output">Example Output</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#troubleshooting">Troubleshooting</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#example-breakdown">Example Breakdown</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="bldc_haptics.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="drv2605.html">DRV2605 Haptic Motor Driver</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../interrupt.html">Interrupt APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../iperf_menu.html">Iperf Menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../m5stack_tab5.html">M5Stack Tab5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../matouch_rotary_display.html">MaTouch Rotary Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../motorgo_mini.html">MotorGo Mini</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../neopixel.html">Neopixel APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nvs.html">NVS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../remote_debug.html">Remote Debug APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../runqueue.html">RunQueue APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../seeed_studio_round_display.html">Seeed Studio Round Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_deck.html">LilyGo T-Deck</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_dongle_s3.html">LilyGo T-Dongle S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wrover_kit.html">ESP32-WROVER-KIT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Haptics APIs</a></li>
+          <li class="breadcrumb-item"><a href="bldc_haptics.html">BLDC Haptics</a></li>
+      <li class="breadcrumb-item active">BLDC Haptics Example</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/32e8215e/docs/en/haptics/bldc_haptics_example.md" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="bldc-haptics-example">
+<h1>BLDC Haptics Example<a class="headerlink" href="#bldc-haptics-example" title="Permalink to this heading"></a></h1>
+<p>This example shows the use of the <code class="docutils literal notranslate"><span class="pre">BldcHaptics</span></code> component to drive a BLDC motor
+(such as a tiny gimbal motor) as a user input / output device that provides
+haptic feedback (such as might be used as a rotary encoder input).</p>
+<section id="how-to-use-example">
+<h2>How to use example<a class="headerlink" href="#how-to-use-example" title="Permalink to this heading"></a></h2>
+<section id="hardware-required">
+<h3>Hardware Required<a class="headerlink" href="#hardware-required" title="Permalink to this heading"></a></h3>
+<p>This example requires a lot of hardware such as:</p>
+<ul class="simple">
+<li><p>Magnetic encoder chip (this example uses <code class="docutils literal notranslate"><span class="pre">Mt6701</span></code>)</p></li>
+<li><p>BLDC Motor Driver chip (this example was tested with the <code class="docutils literal notranslate"><span class="pre">TMC6300</span> <span class="pre">BOB</span></code> dev board)</p></li>
+<li><p>Some mounting hardware to mount the motor, magnet, encoder, etc.</p></li>
+</ul>
+<p>:warning:</p>
+<blockquote>
+<div><p>NOTE: you MUST make sure that you run the example with the
+<code class="docutils literal notranslate"><span class="pre">zero_electrical_offset</span></code> value set to 0 (or not provided) at least once
+otherwise the sample will not work and could potentially damage your motor.</p>
+</div></blockquote>
+<p>Currently, this is designed to be run on a <code class="docutils literal notranslate"><span class="pre">TinyS3</span></code> connected to the motor
+driver and encoder via breadboard with the motor powered via a benchtop power
+supply at 5V.</p>
+</section>
+<section id="build-and-flash">
+<h3>Build and Flash<a class="headerlink" href="#build-and-flash" title="Permalink to this heading"></a></h3>
+<p>Build the project and flash it to the board, then run monitor tool to view serial output:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">idf</span><span class="o">.</span><span class="n">py</span> <span class="o">-</span><span class="n">p</span> <span class="n">PORT</span> <span class="n">flash</span> <span class="n">monitor</span>
+</pre></div>
+</div>
+<p>(Replace PORT with the name of the serial port to use.)</p>
+<p>(To exit the serial monitor, type <code class="docutils literal notranslate"><span class="pre">Ctrl-]</span></code>.)</p>
+<p>See the Getting Started Guide for full steps to configure and use ESP-IDF to build projects.</p>
+</section>
+</section>
+<section id="example-output">
+<h2>Example Output<a class="headerlink" href="#example-output" title="Permalink to this heading"></a></h2>
+<p>This example can be re-run (by modifying the code to change the selected
+<code class="docutils literal notranslate"><span class="pre">DetentConfig</span></code> from one of the predefined configurations or by making your own)
+to produce various behaviors. Additionally, at the end of each demo, it will
+play a haptic buzz / click using the motor.</p>
+<p>For more information, see the documentation or the original PR:
+https://github.com/esp-cpp/espp/pull/60</p>
+<p>Some examples:</p>
+<section id="coarse-values-strong-detents-best-with-sound">
+<h3>coarse values strong detents (best with sound)<a class="headerlink" href="#coarse-values-strong-detents-best-with-sound" title="Permalink to this heading"></a></h3>
+<p>https://github.com/esp-cpp/espp/assets/213467/a256b401-6e45-4284-89c7-2dec9a49daa7</p>
+</section>
+<section id="magnetic-detents-best-with-sound">
+<h3>magnetic detents (best with sound)<a class="headerlink" href="#magnetic-detents-best-with-sound" title="Permalink to this heading"></a></h3>
+<p>https://github.com/esp-cpp/espp/assets/213467/ab1ace5c-f967-4cfc-b304-7736fdb35bcb</p>
+</section>
+<section id="on-off-strong-detents-best-with-sound">
+<h3>On / Off Strong Detents (best with sound)<a class="headerlink" href="#on-off-strong-detents-best-with-sound" title="Permalink to this heading"></a></h3>
+<p>https://github.com/esp-cpp/espp/assets/213467/038d79b1-7cd9-4af9-b7e8-1b4daf6a363a</p>
+</section>
+<section id="multi-rev-no-detents">
+<h3>Multi-rev no detents<a class="headerlink" href="#multi-rev-no-detents" title="Permalink to this heading"></a></h3>
+<p>https://github.com/esp-cpp/espp/assets/213467/2af81edb-67b8-488b-ae7a-3549be36b8cc</p>
+</section>
+</section>
+<section id="troubleshooting">
+<h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permalink to this heading"></a></h2>
+<p>Make sure to run the example once with <code class="docutils literal notranslate"><span class="pre">zero_electrical_offset</span></code> set to 0 so that
+the motor will go through a calibration / zero offset routine. At the end of
+this startup routine it will print the measured zero electrical offset that you
+can then provide within the code, at which point it will not need to run the
+calibration routine.</p>
+<p>You must run this calibration any time you change your hardware configuration
+(such as by remounting your motor, magnet, encoder chip).</p>
+</section>
+<section id="example-breakdown">
+<h2>Example Breakdown<a class="headerlink" href="#example-breakdown" title="Permalink to this heading"></a></h2>
+<p>This example is relatively complex, but builds complex haptic behavior using the
+following components:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">espp::Mt6701</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">espp::BldcDriver</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">espp::BldcMotor</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">espp::BldcHaptics</span></code></p></li>
+<li><p>ESP-IDF’s <code class="docutils literal notranslate"><span class="pre">i2c</span></code> peripheral driver</p></li>
+</ul>
+<p>You combine the <code class="docutils literal notranslate"><span class="pre">Mt6701</span></code> and <code class="docutils literal notranslate"><span class="pre">BldcDriver</span></code> together when creating the <code class="docutils literal notranslate"><span class="pre">BldcMotor</span></code>
+and then simply pass the <code class="docutils literal notranslate"><span class="pre">BldcMotor</span></code> to the <code class="docutils literal notranslate"><span class="pre">BldcHaptics</span></code> component. At that
+point, you only have to interface to the <code class="docutils literal notranslate"><span class="pre">BldcHaptics</span></code> to read the input
+position or reconfigure the haptics.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="bldc_haptics.html" class="btn btn-neutral float-left" title="BLDC Haptics" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="drv2605.html" class="btn btn-neutral float-right" title="DRV2605 Haptic Motor Driver" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

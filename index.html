@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ESPP Documentation - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="_static/copybutton.js?v=ff8fa330"></script>
+    <script src="_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'index';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="ADC APIs" href="adc/index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="#" class="icon icon-home">
+            ESPP
+              <img src="_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_component.html">Base Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l1"><a class="reference internal" href="battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="byte90.html">ALXV Labs Byte90</a></li>
+<li class="toctree-l1"><a class="reference internal" href="controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cobs.html">COBS (Consistent Overhead Byte Stuffing)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="esp32_timer_cam.html">ESP32 TimerCam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="esp_box.html">ESP BOX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hid/index.html">HID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="interrupt.html">Interrupt APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="iperf_menu.html">Iperf Menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="m5stack_tab5.html">M5Stack Tab5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="matouch_rotary_display.html">MaTouch Rotary Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="motorgo_mini.html">MotorGo Mini</a></li>
+<li class="toctree-l1"><a class="reference internal" href="neopixel.html">Neopixel APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nvs.html">NVS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="remote_debug.html">Remote Debug APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="runqueue.html">RunQueue APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="seeed_studio_round_display.html">Seeed Studio Round Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="t_deck.html">LilyGo T-Deck</a></li>
+<li class="toctree-l1"><a class="reference internal" href="t_dongle_s3.html">LilyGo T-Dongle S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wrover_kit.html">ESP32-WROVER-KIT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">ESPP Documentation</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/32e8215e/docs/en/index.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="espp-documentation">
+<h1>ESPP Documentation<a class="headerlink" href="#espp-documentation" title="Permalink to this heading"></a></h1>
+<p>This is the documentation for the ESP-IDF C++ library esp-cpp/espp.</p>
+<p>This is the documentation for esp-idf c++ components, ESPP (<a class="reference external" href="https://github.com/esp-cpp/espp">espp</a>). ESPP provides additional c++ components and abstractions for building applications from reusable components.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="adc/index.html">ADC APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="adc/ads1x15.html">ADS1x15 I2C ADC</a></li>
+<li class="toctree-l2"><a class="reference internal" href="adc/ads7138.html">ADS7138 I2C ADC</a></li>
+<li class="toctree-l2"><a class="reference internal" href="adc/oneshot_adc.html">Oneshot ADC</a></li>
+<li class="toctree-l2"><a class="reference internal" href="adc/continuous_adc.html">Continuous ADC</a></li>
+<li class="toctree-l2"><a class="reference internal" href="adc/tla2528.html">TLA2528 I2C ADC</a></li>
+<li class="toctree-l2"><a class="reference internal" href="adc/adc_types.html">ADC Types</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="base_component.html">Base Component</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="base_component.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="base_peripheral.html">Base Peripheral</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="base_peripheral.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="battery/index.html">Battery APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="battery/max1704x.html">MAX1704X</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="bldc/index.html">BLDC APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="bldc/bldc_driver.html">BLDC Driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bldc/bldc_motor.html">BLDC Motor</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ble/index.html">BLE APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ble/battery_service.html">Battery Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ble/ble_gatt_server.html">BLE GATT Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ble/ble_gatt_server_example.html">BLE GATT Server Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ble/device_info_service.html">Device Info Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ble/generic_access_service.html">Generic Access Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ble/gfps_service.html">Google Fast Pair Service (GFPS) Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ble/gfps_service_example.html">Google Fast Pair Service (GFPS) Service Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ble/hid_service.html">HID Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ble/hid_service_example.html">BLE HID Service Example</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="button.html">Button APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="button_example.html">Button Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="button.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="byte90.html">ALXV Labs Byte90</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="byte90.html#byte90">Byte90</a></li>
+<li class="toctree-l2"><a class="reference internal" href="byte90.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="controller.html">Controller APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="controller_example.html">Controller Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="controller.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">Command Line Interface (CLI) APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cli_example.html">Cli Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cobs.html">COBS (Consistent Overhead Byte Stuffing)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cobs_example.html">COBS Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cobs.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="color.html">Color APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="color_example.html">Color Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="color.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="csv.html">CSV APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="csv_example.html">CSV Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="csv.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="display/index.html">Display APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="display/display.html">Display</a></li>
+<li class="toctree-l2"><a class="reference internal" href="display/display_drivers.html">Display Drivers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="display/expressive_eyes.html">Expressive Eyes APIs</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="distance_sensors/index.html">Distance Sensor APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="distance_sensors/vl53l.html">VL53LXX ToF Distance Sensor</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="encoder/index.html">Encoder APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="encoder/abi_encoder.html">ABI Encoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="encoder/encoder_types.html">Encoder Types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="encoder/as5600.html">AS5600 Magnetic Encoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="encoder/mt6701.html">MT6701 Magnetic Encoder</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="esp32_timer_cam.html">ESP32 TimerCam</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="esp32_timer_cam.html#esp32-timer-cam">Esp32-Timer-Cam</a></li>
+<li class="toctree-l2"><a class="reference internal" href="esp32_timer_cam.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="esp_box.html">ESP BOX</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="esp_box.html#id1">Esp-Box</a></li>
+<li class="toctree-l2"><a class="reference internal" href="esp_box.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="event_manager.html">Event Manager APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="event_manager_example.html">Event Manager Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="event_manager.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="file_system.html">File System APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="file_system_example.html">File System Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="file_system.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="filters/index.html">Filter APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="filters/filters_example.html">Filters Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="filters/biquad.html">Biquad Filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="filters/butterworth.html">Butterworth Filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="filters/complementary.html">Complementary Filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="filters/kalman.html">Kalman Filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="filters/lowpass.html">Lowpass Filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="filters/madgwick.html">Madgwick Filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="filters/simple_lowpass.html">Simple Lowpass Filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="filters/sos.html">Second Order Sections (SoS) Filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="filters/transfer_function.html">Transfer Function API</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ftp/index.html">FTP APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ftp/ftp_server.html">FTP Server</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="haptics/index.html">Haptics APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="haptics/bldc_haptics.html">BLDC Haptics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="haptics/drv2605.html">DRV2605 Haptic Motor Driver</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="hid/index.html">HID APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="hid/hid-rp.html">HID-RP</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="i2c.html">I2C</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="i2c.html#legacy-api">Legacy API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="i2c.html#new-api">New API</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="imu/index.html">IMU APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="imu/adxl345.html">ADXL345 3-Axis Accelerometer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="imu/bmi270.html">BMI270 6-Axis IMU</a></li>
+<li class="toctree-l2"><a class="reference internal" href="imu/icm20948.html">ICM20948 9-Axis IMU</a></li>
+<li class="toctree-l2"><a class="reference internal" href="imu/icm42607.html">ICM42607 6-Axis IMU</a></li>
+<li class="toctree-l2"><a class="reference internal" href="imu/lsm6dso.html">LSM6DSO 6-Axis IMU</a></li>
+<li class="toctree-l2"><a class="reference internal" href="imu/qmi8658.html">QMI8658 6-Axis IMU</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="interrupt.html">Interrupt APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="interrupt_example.html">Interrupt Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="interrupt.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="input/index.html">Input APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="input/chsc6x.html">CHSC6X Touch Controller</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input/cst816.html">CST816 Touch Controller</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input/ft5x06.html">FT5x06 Touch Controller</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input/gt911.html">GT911 Touch Controller</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input/tt21100.html">TT21100 Touch Controller</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input/t_keyboard.html">LilyGo T-Keyboard</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input/encoder_input.html">Encoder Input</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input/keypad_input.html">Keypad Input</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input/pointer_input.html">Pointer Input</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input/touchpad_input.html">Touchpad Input</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="io_expander/index.html">IO Expander APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="io_expander/aw9523.html">AW9523 I/O Expander</a></li>
+<li class="toctree-l2"><a class="reference internal" href="io_expander/pi4ioe5v.html">PI4IOE5V I/O Expander</a></li>
+<li class="toctree-l2"><a class="reference internal" href="io_expander/kts1622.html">KTS1622 I/O Expander</a></li>
+<li class="toctree-l2"><a class="reference internal" href="io_expander/mcp23x17.html">MCP23x17 I/O Expander</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="iperf_menu.html">Iperf Menu</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="iperf_menu_example.html">Iperf Menu Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="iperf_menu.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="joystick.html">Joystick APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="joystick.html#joystick">Joystick</a></li>
+<li class="toctree-l2"><a class="reference internal" href="joystick.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="led.html">LED APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="led.html#led">LED</a></li>
+<li class="toctree-l2"><a class="reference internal" href="led.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="led_driver/index.html">LED Driver Components</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="led_driver/lp5817.html">LP5817 RGB LED Driver</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="led_strip.html">LED Strip APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="led_strip_example.html">LED Strip Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="led_strip.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="logger.html">Logging APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="logger.html#format">Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logger.html#logger">Logger</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logger.html#api-reference">API Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logger.html#binary-log">Binary Log</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logger.html#id1">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="m5stack_tab5.html">M5Stack Tab5</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="m5stack_tab5.html#id1">M5Stack-Tab5</a></li>
+<li class="toctree-l2"><a class="reference internal" href="m5stack_tab5.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="math/index.html">Math APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="math/math_example.html">Math Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="math/bezier.html">Bezier</a></li>
+<li class="toctree-l2"><a class="reference internal" href="math/fast_math.html">Fast Math</a></li>
+<li class="toctree-l2"><a class="reference internal" href="math/gaussian.html">Gaussian</a></li>
+<li class="toctree-l2"><a class="reference internal" href="math/range_mapper.html">Range Mapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="math/vector2d.html">Vector2d</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="matouch_rotary_display.html">MaTouch Rotary Display</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="matouch_rotary_display.html#id1">Matouch-Rotary-Display</a></li>
+<li class="toctree-l2"><a class="reference internal" href="matouch_rotary_display.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="monitor.html">Monitoring APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="monitor.html#heap-monitor">Heap Monitor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="monitor.html#heap-monitor-api-reference">Heap Monitor API Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="monitor.html#task-monitor">Task Monitor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="monitor.html#task-monitor-api-reference">Task Monitor API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="motorgo_mini.html">MotorGo Mini</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="motorgo_mini.html#id1">MotorGo Mini</a></li>
+<li class="toctree-l2"><a class="reference internal" href="motorgo_mini.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="neopixel.html">Neopixel APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="neopixel_example.html">Neopixel Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="neopixel.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="network/dns_server.html">DNS Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="network/ping.html">Ping</a></li>
+<li class="toctree-l2"><a class="reference internal" href="network/provisioning.html">Provisioning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="network/socket_example.html">Socket Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="network/socket.html">Sockets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="network/tcp_socket.html">TCP Sockets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="network/udp_socket.html">UDP Sockets</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="nfc/index.html">NFC APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="nfc/ndef.html">NDEF</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nfc/st25dv.html">ST25DV</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="nvs.html">NVS APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="nvs.html#nvs">NVS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nvs.html#nvshandle">NVSHandle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nvs.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="odrive_ascii.html">ODrive ASCII Protocol Component</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="odrive_ascii.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="odrive_ascii.html#features">Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="odrive_ascii.html#basic-usage">Basic Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="odrive_ascii.html#commands">Commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="odrive_ascii.html#notes">Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="odrive_ascii.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pid.html">PID APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pid.html#pid">PID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pid.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="power/index.html">Power Monitoring APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="power/ina226.html">INA226 I2C Current/Power Monitor</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="qtpy.html#qtpy">QtPy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qtpy.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="qwiicnes.html">QwiicNES</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="qwiicnes_example.html">QwiicNES Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qwiicnes.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="remote_debug.html">Remote Debug APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="remote_debug_example.html">Remote Debug Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="remote_debug.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="rmt.html">Remote Control Transceiver (RMT)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="rmt_example.html">RMT Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rmt.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="rtc/index.html">RTC APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="rtc/bm8563.html">BM8563</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rtc/pcf85063.html">PCF85063</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rtc/rx8130ce.html">RX8130CE</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="rtsp.html">RTSP APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="rtsp.html#rtsp-client">RTSP Client</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rtsp.html#rtsp-server">RTSP Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rtsp.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="runqueue.html">RunQueue APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="runqueue.html#runqueue">RunQueue</a></li>
+<li class="toctree-l2"><a class="reference internal" href="runqueue.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="seeed_studio_round_display.html">Seeed Studio Round Display</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="seeed_studio_round_display.html#ssrounddisplay">SsRoundDisplay</a></li>
+<li class="toctree-l2"><a class="reference internal" href="seeed_studio_round_display.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="serialization.html">Serialization APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="serialization.html#alpaca">Alpaca</a></li>
+<li class="toctree-l2"><a class="reference internal" href="serialization.html#serialization">Serialization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="serialization.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="state_machine.html">State Machine APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="state_machine_example.html">Hierarchichal Finite State Machine (HFSM) Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="state_machine.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="t_deck.html">LilyGo T-Deck</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="t_deck.html#t-deck">T-Deck</a></li>
+<li class="toctree-l2"><a class="reference internal" href="t_deck.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="t_dongle_s3.html">LilyGo T-Dongle S3</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="t_dongle_s3.html#t-dongle-s3">T-Dongle S3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="t_dongle_s3.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tabulate.html">Tabulate APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tabulate_example.html">Tabulate Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tabulate.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="task.html">Task APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="task.html#task">Task</a></li>
+<li class="toctree-l2"><a class="reference internal" href="task.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="thermistor.html">Thermistor APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="thermistor_example.html">Thermistor Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="thermistor.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="timer.html">Timer APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="timer.html#timer">Timer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="timer.html#api-reference">API Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="timer.html#high-resolution-timer">High Resolution Timer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="timer.html#id1">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="wifi/index.html">WiFi APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="wifi/wifi.html">WiFi</a></li>
+<li class="toctree-l2"><a class="reference internal" href="wifi/wifi_ap.html">WiFi Access Point (AP)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="wifi/wifi_sta.html">WiFi Station (STA)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="wifi/wifi_example.html">WiFi Example</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="wrover_kit.html">ESP32-WROVER-KIT</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="wrover_kit.html#wrover-kit">Wrover-Kit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="wrover_kit.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ws_s3_geek.html#ws-s3-geek">WS-S3-Geek</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ws_s3_geek.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ws_s3_lcd_1_47.html#ws-s3-lcd-1-47">WS-S3-LCD-1.47</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ws_s3_lcd_1_47.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ws_s3_touch.html#ws-s3-touch">WS-S3-Touch</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ws_s3_touch.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="adc/index.html" class="btn btn-neutral float-right" title="ADC APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

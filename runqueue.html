@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RunQueue APIs - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="_static/copybutton.js?v=ff8fa330"></script>
+    <script src="_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'runqueue';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="RunQueue Example" href="runqueue_example.html" />
+    <link rel="prev" title="RTSP Example" href="rtsp_example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            ESPP
+              <img src="_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_component.html">Base Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l1"><a class="reference internal" href="battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="byte90.html">ALXV Labs Byte90</a></li>
+<li class="toctree-l1"><a class="reference internal" href="controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cobs.html">COBS (Consistent Overhead Byte Stuffing)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="esp32_timer_cam.html">ESP32 TimerCam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="esp_box.html">ESP BOX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hid/index.html">HID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="interrupt.html">Interrupt APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="iperf_menu.html">Iperf Menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="m5stack_tab5.html">M5Stack Tab5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="matouch_rotary_display.html">MaTouch Rotary Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="motorgo_mini.html">MotorGo Mini</a></li>
+<li class="toctree-l1"><a class="reference internal" href="neopixel.html">Neopixel APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nvs.html">NVS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="remote_debug.html">Remote Debug APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">RunQueue APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#runqueue">RunQueue</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="runqueue_example.html">RunQueue Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="seeed_studio_round_display.html">Seeed Studio Round Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="t_deck.html">LilyGo T-Deck</a></li>
+<li class="toctree-l1"><a class="reference internal" href="t_dongle_s3.html">LilyGo T-Dongle S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wrover_kit.html">ESP32-WROVER-KIT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">RunQueue APIs</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/32e8215e/docs/en/runqueue.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="runqueue-apis">
+<h1>RunQueue APIs<a class="headerlink" href="#runqueue-apis" title="Permalink to this heading"></a></h1>
+<section id="runqueue">
+<h2>RunQueue<a class="headerlink" href="#runqueue" title="Permalink to this heading"></a></h2>
+<p>The <cite>RunQueue</cite> component provides an implementation of a task runqueue which can
+be used to run functions asynchronously and with optional relative priorities.
+The runqueue itself is implemented as a priority queue of functions that is
+handled within its own task. This task is just a standard <cite>espp::Task</cite>, so it
+can be configured with custom task priority and core id (as well as stack size
+and other parameters).</p>
+<p>Code examples for the runqueue API are provided in the <cite>runqueue</cite> example folder.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="runqueue_example.html">RunQueue Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="runqueue_example.html#how-to-use-example">How to use example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="runqueue_example.html#build-and-flash">Build and Flash</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="runqueue_example.html#example-output">Example Output</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/32e8215e/components/runqueue/include/runqueue.hpp">components/runqueue/include/runqueue.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8RunQueueE">
+<span id="_CPPv3N4espp8RunQueueE"></span><span id="_CPPv2N4espp8RunQueueE"></span><span id="espp::RunQueue"></span><span class="target" id="classespp_1_1RunQueue"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RunQueue</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp8RunQueueE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>This class implements a run queue for generic functions.</p>
+<p>The functions can be added to the queue with a priority. The functions are executed in the order of their priority, but the currently executing function will run to completion before the next function is executed.</p>
+<p>The <a class="reference internal" href="#classespp_1_1RunQueue"><span class="std std-ref">RunQueue</span></a> is implemented as a <a class="reference internal" href="task.html#classespp_1_1Task"><span class="std std-ref">Task</span></a> that runs the functions in the queue. The <a class="reference internal" href="task.html#classespp_1_1Task"><span class="std std-ref">Task</span></a> will run the highest priority function in the queue (if any) and will block indefinitely until either either a new function is added to the queue or the <a class="reference internal" href="#classespp_1_1RunQueue"><span class="std std-ref">RunQueue</span></a> is stopped.</p>
+<p>
+Because the <a class="reference internal" href="#classespp_1_1RunQueue"><span class="std std-ref">RunQueue</span></a> is implemented as an <a class="reference internal" href="task.html#classespp_1_1Task"><span class="std std-ref">espp::Task</span></a>, you can customize its task configuration, such as priority, stack size, core id, etc.</p>
+<p>
+The <a class="reference internal" href="#classespp_1_1RunQueue"><span class="std std-ref">RunQueue</span></a> can be configured to start automatically or manually. If the <a class="reference internal" href="#classespp_1_1RunQueue"><span class="std std-ref">RunQueue</span></a> is configured to start automatically, it will start when it is constructed. If it is configured to start manually, it will not start until the <a class="reference internal" href="#classespp_1_1RunQueue_1a3cb559b1c4b5dd343ce527ab37f68edf"><span class="std std-ref">start()</span></a> method is called.</p>
+<p>The <a class="reference internal" href="#classespp_1_1RunQueue"><span class="std std-ref">RunQueue</span></a> is thread-safe and can be used from multiple threads.</p>
+<section id="classespp_1_1RunQueue_1runq_ex0">
+<h4>RunQueue Example<a class="headerlink" href="#classespp_1_1RunQueue_1runq_ex0" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1RunQueue_1runq_ex0"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">RunQueue</span><span class="w"> </span><span class="nf">runqueue</span><span class="p">({.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">DEBUG</span><span class="p">});</span>
+
+<span class="w">    </span><span class="c1">// make some functions to run and schedule them with different priorities to</span>
+<span class="w">    </span><span class="c1">// show the priority queue works</span>
+
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="n">done_mutex</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="n">done_cv</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">done</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">logger</span><span class="p">](</span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">core</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">xPortGetCoreID</span><span class="p">();</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Task {} running on core {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">core</span><span class="p">);</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">1</span><span class="n">s</span><span class="p">);</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Task {} done on core {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">core</span><span class="p">);</span>
+<span class="w">    </span><span class="p">};</span>
+
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">stop_task</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;stop task running!&quot;</span><span class="p">);</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">1</span><span class="n">s</span><span class="p">);</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Stop task done!&quot;</span><span class="p">);</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="w"> </span><span class="nf">lock</span><span class="p">(</span><span class="n">done_mutex</span><span class="p">);</span>
+<span class="w">      </span><span class="n">done</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">      </span><span class="n">done_cv</span><span class="p">.</span><span class="n">notify_one</span><span class="p">();</span>
+<span class="w">    </span><span class="p">};</span>
+
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Scheduling tasks...&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="n">task</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="n">task</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="n">task</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">);</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task3</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="n">task</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">);</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task0_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">runqueue</span><span class="p">.</span><span class="n">add_function</span><span class="p">(</span>
+<span class="w">        </span><span class="n">task0</span><span class="p">,</span>
+<span class="w">        </span><span class="n">espp</span><span class="o">::</span><span class="n">RunQueue</span><span class="o">::</span><span class="n">MIN_PRIORITY</span><span class="p">);</span><span class="w"> </span><span class="c1">// this will run first because it was first to be added</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task1_id</span><span class="w"> </span><span class="o">=</span>
+<span class="w">        </span><span class="n">runqueue</span><span class="p">.</span><span class="n">add_function</span><span class="p">(</span><span class="n">task1</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">RunQueue</span><span class="o">::</span><span class="n">MIN_PRIORITY</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span><span class="w"> </span><span class="c1">// this will run fourth</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task3_id</span><span class="w"> </span><span class="o">=</span>
+<span class="w">        </span><span class="n">runqueue</span><span class="p">.</span><span class="n">add_function</span><span class="p">(</span><span class="n">task3</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">RunQueue</span><span class="o">::</span><span class="n">MAX_PRIORITY</span><span class="p">);</span><span class="w"> </span><span class="c1">// this will run second</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task2_id</span><span class="w"> </span><span class="o">=</span>
+<span class="w">        </span><span class="n">runqueue</span><span class="p">.</span><span class="n">add_function</span><span class="p">(</span><span class="n">task2</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">RunQueue</span><span class="o">::</span><span class="n">MIN_PRIORITY</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">2</span><span class="p">);</span><span class="w"> </span><span class="c1">// this will run third</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">stop_task_id</span><span class="w"> </span><span class="o">=</span>
+<span class="w">        </span><span class="n">runqueue</span><span class="p">.</span><span class="n">add_function</span><span class="p">(</span><span class="n">stop_task</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">RunQueue</span><span class="o">::</span><span class="n">MIN_PRIORITY</span><span class="p">);</span><span class="w"> </span><span class="c1">// this will run last</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;All tasks scheduled!&quot;</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// print our the task ids</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Task 0 id: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">task0_id</span><span class="p">);</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Task 1 id: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">task1_id</span><span class="p">);</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Task 2 id: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">task2_id</span><span class="p">);</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Task 3 id: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">task3_id</span><span class="p">);</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Stop task id: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">stop_task_id</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// check the API for queue_size</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Queue size: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">runqueue</span><span class="p">.</span><span class="n">queue_size</span><span class="p">());</span>
+
+<span class="w">    </span><span class="c1">// check the API for is_running</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;RunQueue is running: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">runqueue</span><span class="p">.</span><span class="n">is_running</span><span class="p">());</span>
+
+<span class="w">    </span><span class="c1">// check the API for is_function_queued</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Task 0 is queued: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">runqueue</span><span class="p">.</span><span class="n">is_function_queued</span><span class="p">(</span><span class="n">task0_id</span><span class="p">));</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Task 1 is queued: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">runqueue</span><span class="p">.</span><span class="n">is_function_queued</span><span class="p">(</span><span class="n">task1_id</span><span class="p">));</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Task 2 is queued: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">runqueue</span><span class="p">.</span><span class="n">is_function_queued</span><span class="p">(</span><span class="n">task2_id</span><span class="p">));</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Task 3 is queued: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">runqueue</span><span class="p">.</span><span class="n">is_function_queued</span><span class="p">(</span><span class="n">task3_id</span><span class="p">));</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Stop task is queued: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">runqueue</span><span class="p">.</span><span class="n">is_function_queued</span><span class="p">(</span><span class="n">stop_task_id</span><span class="p">));</span>
+
+<span class="w">    </span><span class="c1">// check the API for removing an invalid id</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">runqueue</span><span class="p">.</span><span class="n">remove_function</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">RunQueue</span><span class="o">::</span><span class="n">INVALID_ID</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Incorrectly Removed invalid id!&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Correctly failed to remove invalid id!&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// check the api for removing a valid but non-existent id</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">runqueue</span><span class="p">.</span><span class="n">remove_function</span><span class="p">(</span><span class="mi">999</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Incorrectly Removed non-existent id!&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Correctly failed to remove non-existent id!&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// check the api for removing the currently running id (which should fail)</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">runqueue</span><span class="p">.</span><span class="n">remove_function</span><span class="p">(</span><span class="n">runqueue</span><span class="p">.</span><span class="n">get_running_id</span><span class="p">().</span><span class="n">value</span><span class="p">()))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Incorrectly Removed currently running id!&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Correctly failed to remove currently running id!&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// NOTE: in the next example (below) we&#39;ll check removing a valid ID</span>
+
+<span class="w">    </span><span class="c1">// check the API for get_queued_ids(bool include_running)</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">queued_ids</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">runqueue</span><span class="p">.</span><span class="n">get_queued_ids</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Queued ids (including running): {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">queued_ids</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// check the API for get_running_id</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">running_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">runqueue</span><span class="p">.</span><span class="n">get_running_id</span><span class="p">();</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Running id: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">running_id</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Waiting for stop task to complete...&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="w"> </span><span class="nf">lock</span><span class="p">(</span><span class="n">done_mutex</span><span class="p">);</span>
+<span class="w">    </span><span class="n">done_cv</span><span class="p">.</span><span class="n">wait</span><span class="p">(</span><span class="n">lock</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">done</span><span class="p">]</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">done</span><span class="p">;</span><span class="w"> </span><span class="p">});</span>
+
+<span class="w">    </span><span class="c1">// check the API for get_running_id again (should return nullopt)</span>
+<span class="w">    </span><span class="n">running_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">runqueue</span><span class="p">.</span><span class="n">get_running_id</span><span class="p">();</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Running id: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">running_id</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// check the api for get_queued_ids again</span>
+<span class="w">    </span><span class="n">queued_ids</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">runqueue</span><span class="p">.</span><span class="n">get_queued_ids</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Queued ids (including running): {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">queued_ids</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// check the api for is_function_queued again</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Task 0 is queued: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">runqueue</span><span class="p">.</span><span class="n">is_function_queued</span><span class="p">(</span><span class="n">task0_id</span><span class="p">));</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Task 1 is queued: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">runqueue</span><span class="p">.</span><span class="n">is_function_queued</span><span class="p">(</span><span class="n">task1_id</span><span class="p">));</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Task 2 is queued: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">runqueue</span><span class="p">.</span><span class="n">is_function_queued</span><span class="p">(</span><span class="n">task2_id</span><span class="p">));</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Task 3 is queued: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">runqueue</span><span class="p">.</span><span class="n">is_function_queued</span><span class="p">(</span><span class="n">task3_id</span><span class="p">));</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Stop task is queued: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">runqueue</span><span class="p">.</span><span class="n">is_function_queued</span><span class="p">(</span><span class="n">stop_task_id</span><span class="p">));</span>
+
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;All tasks done!&quot;</span><span class="p">);</span>
+</pre></div>
+</div>
+</section>
+<section id="classespp_1_1RunQueue_1runq_ex1">
+<h4>Multiple RunQueues Example<a class="headerlink" href="#classespp_1_1RunQueue_1runq_ex1" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1RunQueue_1runq_ex1"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="n">done_mutex</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="n">done_cv</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">done</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">logger</span><span class="p">](</span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">core</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">xPortGetCoreID</span><span class="p">();</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Task {} running on core {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">core</span><span class="p">);</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">1</span><span class="n">s</span><span class="p">);</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Task {} done on core {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">core</span><span class="p">);</span>
+<span class="w">    </span><span class="p">};</span>
+
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">stop_task</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">core</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">xPortGetCoreID</span><span class="p">();</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;stop task running on core {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">core</span><span class="p">);</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">1</span><span class="n">s</span><span class="p">);</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Stop task done on core {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">core</span><span class="p">);</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="w"> </span><span class="nf">lock</span><span class="p">(</span><span class="n">done_mutex</span><span class="p">);</span>
+<span class="w">      </span><span class="n">done</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">      </span><span class="n">done_cv</span><span class="p">.</span><span class="n">notify_one</span><span class="p">();</span>
+<span class="w">    </span><span class="p">};</span>
+
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">RunQueue</span><span class="w"> </span><span class="n">runqueue0</span><span class="p">({.</span><span class="n">task_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;core0 runq&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">core_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">}});</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">RunQueue</span><span class="w"> </span><span class="n">runqueue1</span><span class="p">({.</span><span class="n">task_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;core1 runq&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">core_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">}});</span>
+
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Scheduling tasks...&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="n">task</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="n">task</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="n">task</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">);</span>
+<span class="w">    </span><span class="n">runqueue0</span><span class="p">.</span><span class="n">add_function</span><span class="p">(</span>
+<span class="w">        </span><span class="n">task0</span><span class="p">,</span>
+<span class="w">        </span><span class="n">espp</span><span class="o">::</span><span class="n">RunQueue</span><span class="o">::</span><span class="n">MIN_PRIORITY</span><span class="p">);</span><span class="w"> </span><span class="c1">// this will run first because it was first to be added</span>
+<span class="w">    </span><span class="n">runqueue0</span><span class="p">.</span><span class="n">add_function</span><span class="p">(</span><span class="n">task1</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">RunQueue</span><span class="o">::</span><span class="n">MIN_PRIORITY</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span><span class="w"> </span><span class="c1">// this will run third</span>
+<span class="w">    </span><span class="n">runqueue0</span><span class="p">.</span><span class="n">add_function</span><span class="p">(</span><span class="n">task2</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">RunQueue</span><span class="o">::</span><span class="n">MIN_PRIORITY</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">2</span><span class="p">);</span><span class="w"> </span><span class="c1">// this will run second</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">id_to_remove</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">runqueue0</span><span class="p">.</span><span class="n">add_function</span><span class="p">(</span><span class="n">stop_task</span><span class="p">,</span>
+<span class="w">                                               </span><span class="n">espp</span><span class="o">::</span><span class="n">RunQueue</span><span class="o">::</span><span class="n">MIN_PRIORITY</span><span class="p">);</span><span class="w"> </span><span class="c1">// this will run last</span>
+
+<span class="w">    </span><span class="n">runqueue1</span><span class="p">.</span><span class="n">add_function</span><span class="p">(</span>
+<span class="w">        </span><span class="n">task0</span><span class="p">,</span>
+<span class="w">        </span><span class="n">espp</span><span class="o">::</span><span class="n">RunQueue</span><span class="o">::</span><span class="n">MIN_PRIORITY</span><span class="p">);</span><span class="w"> </span><span class="c1">// this will run first because it was first to be added</span>
+<span class="w">    </span><span class="n">runqueue1</span><span class="p">.</span><span class="n">add_function</span><span class="p">(</span><span class="n">task1</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">RunQueue</span><span class="o">::</span><span class="n">MIN_PRIORITY</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span><span class="w"> </span><span class="c1">// this will run third</span>
+<span class="w">    </span><span class="n">runqueue1</span><span class="p">.</span><span class="n">add_function</span><span class="p">(</span><span class="n">task2</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">RunQueue</span><span class="o">::</span><span class="n">MIN_PRIORITY</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">2</span><span class="p">);</span><span class="w"> </span><span class="c1">// this will run second</span>
+<span class="w">    </span><span class="n">runqueue1</span><span class="p">.</span><span class="n">add_function</span><span class="p">(</span><span class="n">stop_task</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">RunQueue</span><span class="o">::</span><span class="n">MIN_PRIORITY</span><span class="p">);</span><span class="w"> </span><span class="c1">// this will run last</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;All tasks scheduled!&quot;</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// now remove the stop task from runqueue0</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">runqueue0</span><span class="p">.</span><span class="n">remove_function</span><span class="p">(</span><span class="n">id_to_remove</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Failed to remove task from runqueue0!&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Removed task from runqueue0!&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Waiting for stop task to complete...&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="w"> </span><span class="nf">lock</span><span class="p">(</span><span class="n">done_mutex</span><span class="p">);</span>
+<span class="w">    </span><span class="n">done_cv</span><span class="p">.</span><span class="n">wait</span><span class="p">(</span><span class="n">lock</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">done</span><span class="p">]</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">done</span><span class="p">;</span><span class="w"> </span><span class="p">});</span>
+</pre></div>
+</div>
+</section>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Function priorities are relative to each other and are only compared to other tasks in the specific <a class="reference internal" href="#classespp_1_1RunQueue"><span class="std std-ref">RunQueue</span></a> object. Different <a class="reference internal" href="#classespp_1_1RunQueue"><span class="std std-ref">RunQueue</span></a> objects may be active at the same time and the priorities of functions in one <a class="reference internal" href="#classespp_1_1RunQueue"><span class="std std-ref">RunQueue</span></a> are not compared to the priorities of functions in another. Similarly, the priorities of functions is not taken into account in the FreeRTOS scheduler - all functions in a given <a class="reference internal" href="#classespp_1_1RunQueue"><span class="std std-ref">RunQueue</span></a> will run with the same task priority as the <a class="reference internal" href="#classespp_1_1RunQueue"><span class="std std-ref">RunQueue</span></a>’s task.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>All functions within a <a class="reference internal" href="#classespp_1_1RunQueue"><span class="std std-ref">RunQueue</span></a> share the same task context, so you should set the stack size for the <a class="reference internal" href="#classespp_1_1RunQueue"><span class="std std-ref">RunQueue</span></a> accordingly.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Care should be taken to ensure that no functions in the queue are blocking on each other, and all functions in the queue must return (they cannot be infinite loops).</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Functions take a long time to run may delay or prevent the execution of other functions in the queue. For this reason it’s recommended to try to keep the functions as short-lived as possible, and to minimize the priorities of any functions which take longer to execute.</p>
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8RunQueue8PriorityE">
+<span id="_CPPv3N4espp8RunQueue8PriorityE"></span><span id="_CPPv2N4espp8RunQueue8PriorityE"></span><span class="target" id="classespp_1_1RunQueue_1a06cd83f730151a6d67a5e12975e27641"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Priority</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp8RunQueue8PriorityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The type used to represent the priority of a function. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8RunQueue2IdE">
+<span id="_CPPv3N4espp8RunQueue2IdE"></span><span id="_CPPv2N4espp8RunQueue2IdE"></span><span class="target" id="classespp_1_1RunQueue_1a41b002d4b4594b393022fe84b3b41907"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Id</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">uint32_t</span></span><a class="headerlink" href="#_CPPv4N4espp8RunQueue2IdE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The type used to represent the id of a function. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8RunQueue8FunctionE">
+<span id="_CPPv3N4espp8RunQueue8FunctionE"></span><span id="_CPPv2N4espp8RunQueue8FunctionE"></span><span class="target" id="classespp_1_1RunQueue_1abda93a9ce79b050d316589ddc7fd8ef1"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Function</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp8RunQueue8FunctionE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>A function that takes no arguments and returns void. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8RunQueue8RunQueueERK6Config">
+<span id="_CPPv3N4espp8RunQueue8RunQueueERK6Config"></span><span id="_CPPv2N4espp8RunQueue8RunQueueERK6Config"></span><span id="espp::RunQueue::RunQueue__ConfigCR"></span><span class="target" id="classespp_1_1RunQueue_1aacd436cc764543b19bee233769c88daf"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RunQueue</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp8RunQueue6ConfigE" title="espp::RunQueue::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8RunQueue8RunQueueERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct a <a class="reference internal" href="#classespp_1_1RunQueue"><span class="std std-ref">RunQueue</span></a>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – The configuration for the <a class="reference internal" href="#classespp_1_1RunQueue"><span class="std std-ref">RunQueue</span></a>. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8RunQueueD0Ev">
+<span id="_CPPv3N4espp8RunQueueD0Ev"></span><span id="_CPPv2N4espp8RunQueueD0Ev"></span><span id="espp::RunQueue::~RunQueue"></span><span class="target" id="classespp_1_1RunQueue_1afe73280b0e8129f28545c9951d0283d0"></span><span class="sig-name descname"><span class="n"><span class="pre">~RunQueue</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8RunQueueD0Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Destroy the <a class="reference internal" href="#classespp_1_1RunQueue"><span class="std std-ref">RunQueue</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8RunQueue10queue_sizeEv">
+<span id="_CPPv3NK4espp8RunQueue10queue_sizeEv"></span><span id="_CPPv2NK4espp8RunQueue10queue_sizeEv"></span><span id="espp::RunQueue::queue_sizeC"></span><span class="target" id="classespp_1_1RunQueue_1a052de6187f086999789f969c93ff8403"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">queue_size</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8RunQueue10queue_sizeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the number of functions in the queue. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The number of functions in the queue. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8RunQueue10is_runningEv">
+<span id="_CPPv3NK4espp8RunQueue10is_runningEv"></span><span id="_CPPv2NK4espp8RunQueue10is_runningEv"></span><span id="espp::RunQueue::is_runningC"></span><span class="target" id="classespp_1_1RunQueue_1af1caa6fb57815c018493ff7cf8bf2768"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_running</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8RunQueue10is_runningEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get whether the run queue is running. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if the run queue is running. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8RunQueue5startEv">
+<span id="_CPPv3N4espp8RunQueue5startEv"></span><span id="_CPPv2N4espp8RunQueue5startEv"></span><span id="espp::RunQueue::start"></span><span class="target" id="classespp_1_1RunQueue_1a3cb559b1c4b5dd343ce527ab37f68edf"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">start</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8RunQueue5startEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Start the run queue. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8RunQueue4stopEv">
+<span id="_CPPv3N4espp8RunQueue4stopEv"></span><span id="_CPPv2N4espp8RunQueue4stopEv"></span><span id="espp::RunQueue::stop"></span><span class="target" id="classespp_1_1RunQueue_1a8fad8e90f9d02c641f63bb283031c4bf"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stop</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8RunQueue4stopEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Stop the run queue. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This must wait until the currently running function (if any) has completed before stopping the run queue. </p>
+</div>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8RunQueue12add_functionERK8Function8Priority">
+<span id="_CPPv3N4espp8RunQueue12add_functionERK8Function8Priority"></span><span id="_CPPv2N4espp8RunQueue12add_functionERK8Function8Priority"></span><span id="espp::RunQueue::add_function__FunctionCR.Priority"></span><span class="target" id="classespp_1_1RunQueue_1ab10f6f9b36b5425818cf9a15d72e3c62"></span><a class="reference internal" href="#_CPPv4N4espp8RunQueue2IdE" title="espp::RunQueue::Id"><span class="n"><span class="pre">Id</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_function</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp8RunQueue8FunctionE" title="espp::RunQueue::Function"><span class="n"><span class="pre">Function</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">function</span></span>, <a class="reference internal" href="#_CPPv4N4espp8RunQueue8PriorityE" title="espp::RunQueue::Priority"><span class="n"><span class="pre">Priority</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">priority</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp8RunQueue12MIN_PRIORITYE" title="espp::RunQueue::MIN_PRIORITY"><span class="n"><span class="pre">MIN_PRIORITY</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8RunQueue12add_functionERK8Function8Priority" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Add a function to the queue. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>function</strong> – The function to add. </p></li>
+<li><p><strong>priority</strong> – The priority of the function. Defaults to MIN_PRIORITY. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The id of the function. This will be auto-generated and can be used to query or remove the function from the queue. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8RunQueue15remove_functionE2Id">
+<span id="_CPPv3N4espp8RunQueue15remove_functionE2Id"></span><span id="_CPPv2N4espp8RunQueue15remove_functionE2Id"></span><span id="espp::RunQueue::remove_function__Id"></span><span class="target" id="classespp_1_1RunQueue_1ab7c5018ab11f40a6072a1f5132b63ed2"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">remove_function</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp8RunQueue2IdE" title="espp::RunQueue::Id"><span class="n"><span class="pre">Id</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8RunQueue15remove_functionE2Id" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Remove a function from the queue. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will not remove or stop the currently running function (if any). </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will return false if the id is INVALID_ID. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will return false if the id is the id of the currently running function. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> – The id of the function to remove. Cannot be INVALID_ID. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the function was removed. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8RunQueue18is_function_queuedE2Id">
+<span id="_CPPv3N4espp8RunQueue18is_function_queuedE2Id"></span><span id="_CPPv2N4espp8RunQueue18is_function_queuedE2Id"></span><span id="espp::RunQueue::is_function_queued__Id"></span><span class="target" id="classespp_1_1RunQueue_1ada42048f3456976d1ef412a0e70f8e51"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_function_queued</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp8RunQueue2IdE" title="espp::RunQueue::Id"><span class="n"><span class="pre">Id</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8RunQueue18is_function_queuedE2Id" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Check if a function is queued or running. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will return false if the the id is INVALID_ID. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> – The id of the function to check. Cannot be INVALID_ID. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the function is queued or is currently running. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8RunQueue11clear_queueEv">
+<span id="_CPPv3N4espp8RunQueue11clear_queueEv"></span><span id="_CPPv2N4espp8RunQueue11clear_queueEv"></span><span id="espp::RunQueue::clear_queue"></span><span class="target" id="classespp_1_1RunQueue_1ac4ff76ed3f276cf79945cdd41fef168b"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_queue</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8RunQueue11clear_queueEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Remove all functions from the queue. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will not remove or stop the currently running function (if any). </p>
+</div>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8RunQueue14get_queued_idsEb">
+<span id="_CPPv3N4espp8RunQueue14get_queued_idsEb"></span><span id="_CPPv2N4espp8RunQueue14get_queued_idsEb"></span><span id="espp::RunQueue::get_queued_ids__b"></span><span class="target" id="classespp_1_1RunQueue_1aed49542f4b37af9d1d61df4527818363"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp8RunQueue2IdE" title="espp::RunQueue::Id"><span class="n"><span class="pre">Id</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_queued_ids</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">include_running</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8RunQueue14get_queued_idsEb" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the ids of all functions in the queue in order of priority. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The vector will be in order of priority, with the highest priority function at the end of the vector. This means that if include_running is true, the id of the currently running function will be the last element in the vector. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>include_running</strong> – Whether to include the id of the currently running function (if any) in the returned vector. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A vector of the ids of all functions in the queue, optionally including the id of the currently running function. Maybe empty if there are no functions queued or running. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8RunQueue14get_running_idEv">
+<span id="_CPPv3N4espp8RunQueue14get_running_idEv"></span><span id="_CPPv2N4espp8RunQueue14get_running_idEv"></span><span id="espp::RunQueue::get_running_id"></span><span class="target" id="classespp_1_1RunQueue_1a039f8d47af5b28117ad441a63dfd687a"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp8RunQueue2IdE" title="espp::RunQueue::Id"><span class="n"><span class="pre">Id</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_running_id</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8RunQueue14get_running_idEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the id of the currently running function. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This may return nullopt if the currently running function has completed but the runner task has not yet fetched the next function from the queue. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The id of the currently running function, or std::nullopt if no function is currently running. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8RunQueue8get_nameEv">
+<span id="_CPPv3NK4espp8RunQueue8get_nameEv"></span><span id="_CPPv2NK4espp8RunQueue8get_nameEv"></span><span id="espp::RunQueue::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8RunQueue8get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8RunQueue11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp8RunQueue11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp8RunQueue11set_log_tagERKNSt11string_viewE"></span><span id="espp::RunQueue::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8RunQueue11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8RunQueue13get_log_levelEv">
+<span id="_CPPv3NK4espp8RunQueue13get_log_levelEv"></span><span id="_CPPv2NK4espp8RunQueue13get_log_levelEv"></span><span id="espp::RunQueue::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8RunQueue13get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8RunQueue13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp8RunQueue13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp8RunQueue13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::RunQueue::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8RunQueue13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8RunQueue17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp8RunQueue17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp8RunQueue17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::RunQueue::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8RunQueue17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="ws_s3_touch.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8RunQueue17get_log_verbosityEv">
+<span id="_CPPv3NK4espp8RunQueue17get_log_verbosityEv"></span><span id="_CPPv2NK4espp8RunQueue17get_log_verbosityEv"></span><span id="espp::RunQueue::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8RunQueue17get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="ws_s3_touch.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8RunQueue18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp8RunQueue18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp8RunQueue18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::RunQueue::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8RunQueue18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8RunQueue12MIN_PRIORITYE">
+<span id="_CPPv3N4espp8RunQueue12MIN_PRIORITYE"></span><span id="_CPPv2N4espp8RunQueue12MIN_PRIORITYE"></span><span id="espp::RunQueue::MIN_PRIORITY__Priority"></span><span class="target" id="classespp_1_1RunQueue_1a686500a943a92387c7cbaf3a534859a1"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp8RunQueue8PriorityE" title="espp::RunQueue::Priority"><span class="n"><span class="pre">Priority</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MIN_PRIORITY</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">numeric_limits</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp8RunQueue8PriorityE" title="espp::RunQueue::Priority"><span class="n"><span class="pre">Priority</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">min</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N4espp8RunQueue12MIN_PRIORITYE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The minimum priority a function can have. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8RunQueue12MAX_PRIORITYE">
+<span id="_CPPv3N4espp8RunQueue12MAX_PRIORITYE"></span><span id="_CPPv2N4espp8RunQueue12MAX_PRIORITYE"></span><span id="espp::RunQueue::MAX_PRIORITY__Priority"></span><span class="target" id="classespp_1_1RunQueue_1a0b50b54e60cab586995edb0c336670e3"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp8RunQueue8PriorityE" title="espp::RunQueue::Priority"><span class="n"><span class="pre">Priority</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MAX_PRIORITY</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">numeric_limits</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp8RunQueue8PriorityE" title="espp::RunQueue::Priority"><span class="n"><span class="pre">Priority</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">max</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N4espp8RunQueue12MAX_PRIORITYE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The maximum priority a function can have. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8RunQueue10INVALID_IDE">
+<span id="_CPPv3N4espp8RunQueue10INVALID_IDE"></span><span id="_CPPv2N4espp8RunQueue10INVALID_IDE"></span><span id="espp::RunQueue::INVALID_ID__Id"></span><span class="target" id="classespp_1_1RunQueue_1a703f5f9ca9a15c015fa4b87475bc5a82"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp8RunQueue2IdE" title="espp::RunQueue::Id"><span class="n"><span class="pre">Id</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">INVALID_ID</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">numeric_limits</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp8RunQueue2IdE" title="espp::RunQueue::Id"><span class="n"><span class="pre">Id</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">min</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N4espp8RunQueue10INVALID_IDE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The invalid id value. This is used to know if an id is valid or not. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-friends">Friends</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8RunQueueltERK16PriorityFunctionRK16PriorityFunction">
+<span id="_CPPv3N4espp8RunQueueltERK16PriorityFunctionRK16PriorityFunction"></span><span id="_CPPv2N4espp8RunQueueltERK16PriorityFunctionRK16PriorityFunction"></span><span id="espp::RunQueue::lt-operator__PriorityFunctionCR.PriorityFunctionCR"></span><span class="target" id="classespp_1_1RunQueue_1afdb78f6656e54dbb506299537be9d853"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">&lt;</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp8RunQueue16PriorityFunctionE" title="espp::RunQueue::PriorityFunction"><span class="n"><span class="pre">PriorityFunction</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">lhs</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp8RunQueue16PriorityFunctionE" title="espp::RunQueue::PriorityFunction"><span class="n"><span class="pre">PriorityFunction</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8RunQueueltERK16PriorityFunctionRK16PriorityFunction" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Less than operator for <a class="reference internal" href="#structespp_1_1RunQueue_1_1PriorityFunction"><span class="std std-ref">PriorityFunction</span></a>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lhs</strong> – The left hand side of the comparison. </p></li>
+<li><p><strong>rhs</strong> – The right hand side of the comparison. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the right hand side has a greater priority. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8RunQueuegtERK16PriorityFunctionRK16PriorityFunction">
+<span id="_CPPv3N4espp8RunQueuegtERK16PriorityFunctionRK16PriorityFunction"></span><span id="_CPPv2N4espp8RunQueuegtERK16PriorityFunctionRK16PriorityFunction"></span><span id="espp::RunQueue::gt-operator__PriorityFunctionCR.PriorityFunctionCR"></span><span class="target" id="classespp_1_1RunQueue_1a453a446cb8185412935ead49fc63530e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">&gt;</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp8RunQueue16PriorityFunctionE" title="espp::RunQueue::PriorityFunction"><span class="n"><span class="pre">PriorityFunction</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">lhs</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp8RunQueue16PriorityFunctionE" title="espp::RunQueue::PriorityFunction"><span class="n"><span class="pre">PriorityFunction</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8RunQueuegtERK16PriorityFunctionRK16PriorityFunction" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Greater than operator for <a class="reference internal" href="#structespp_1_1RunQueue_1_1PriorityFunction"><span class="std std-ref">PriorityFunction</span></a>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lhs</strong> – The left hand side of the comparison. </p></li>
+<li><p><strong>rhs</strong> – The right hand side of the comparison. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the left hand side has a greater priority. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8RunQueueeqERK16PriorityFunctionRK16PriorityFunction">
+<span id="_CPPv3N4espp8RunQueueeqERK16PriorityFunctionRK16PriorityFunction"></span><span id="_CPPv2N4espp8RunQueueeqERK16PriorityFunctionRK16PriorityFunction"></span><span id="espp::RunQueue::eq-operator__PriorityFunctionCR.PriorityFunctionCR"></span><span class="target" id="classespp_1_1RunQueue_1a65de0356da4d8d04c0f04117a0bedb31"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">==</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp8RunQueue16PriorityFunctionE" title="espp::RunQueue::PriorityFunction"><span class="n"><span class="pre">PriorityFunction</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">lhs</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp8RunQueue16PriorityFunctionE" title="espp::RunQueue::PriorityFunction"><span class="n"><span class="pre">PriorityFunction</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8RunQueueeqERK16PriorityFunctionRK16PriorityFunction" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Equality operator for <a class="reference internal" href="#structespp_1_1RunQueue_1_1PriorityFunction"><span class="std std-ref">PriorityFunction</span></a>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lhs</strong> – The left hand side of the comparison. </p></li>
+<li><p><strong>rhs</strong> – The right hand side of the comparison. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the left and right hand side have the same priority and id. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8RunQueue6ConfigE">
+<span id="_CPPv3N4espp8RunQueue6ConfigE"></span><span id="_CPPv2N4espp8RunQueue6ConfigE"></span><span id="espp::RunQueue::Config"></span><span class="target" id="structespp_1_1RunQueue_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp8RunQueue6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration struct for the <a class="reference internal" href="#classespp_1_1RunQueue"><span class="std std-ref">RunQueue</span></a>. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8RunQueue6Config10auto_startE">
+<span id="_CPPv3N4espp8RunQueue6Config10auto_startE"></span><span id="_CPPv2N4espp8RunQueue6Config10auto_startE"></span><span id="espp::RunQueue::Config::auto_start__b"></span><span class="target" id="structespp_1_1RunQueue_1_1Config_1a33a98413e5d24635bfa132504aa86caf"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">auto_start</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><a class="headerlink" href="#_CPPv4N4espp8RunQueue6Config10auto_startE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether the <a class="reference internal" href="#classespp_1_1RunQueue"><span class="std std-ref">RunQueue</span></a> should start automatically. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8RunQueue6Config11task_configE">
+<span id="_CPPv3N4espp8RunQueue6Config11task_configE"></span><span id="_CPPv2N4espp8RunQueue6Config11task_configE"></span><span id="espp::RunQueue::Config::task_config__espp::Task::BaseConfig"></span><span class="target" id="structespp_1_1RunQueue_1_1Config_1a572d12d5a7bf50ab9cdcd077f8c68824"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="task.html#_CPPv4N4espp4TaskE" title="espp::Task"><span class="n"><span class="pre">Task</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="task.html#_CPPv4N4espp4Task10BaseConfigE" title="espp::Task::BaseConfig"><span class="n"><span class="pre">BaseConfig</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">task_config</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8RunQueue6Config11task_configE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The configuration for the runner task. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8RunQueue6Config9log_levelE">
+<span id="_CPPv3N4espp8RunQueue6Config9log_levelE"></span><span id="_CPPv2N4espp8RunQueue6Config9log_levelE"></span><span id="espp::RunQueue::Config::log_level__espp::Logger::Verbosity"></span><span class="target" id="structespp_1_1RunQueue_1_1Config_1aa2184d7f0ae0134f437ff3280ae49fda"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><a class="headerlink" href="#_CPPv4N4espp8RunQueue6Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The log level for the <a class="reference internal" href="#classespp_1_1RunQueue"><span class="std std-ref">RunQueue</span></a>. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8RunQueue16PriorityFunctionE">
+<span id="_CPPv3N4espp8RunQueue16PriorityFunctionE"></span><span id="_CPPv2N4espp8RunQueue16PriorityFunctionE"></span><span id="espp::RunQueue::PriorityFunction"></span><span class="target" id="structespp_1_1RunQueue_1_1PriorityFunction"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PriorityFunction</span></span></span><a class="headerlink" href="#_CPPv4N4espp8RunQueue16PriorityFunctionE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>A pair of a priority and a function. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8RunQueue16PriorityFunction8priorityE">
+<span id="_CPPv3N4espp8RunQueue16PriorityFunction8priorityE"></span><span id="_CPPv2N4espp8RunQueue16PriorityFunction8priorityE"></span><span id="espp::RunQueue::PriorityFunction::priority__Priority"></span><span class="target" id="structespp_1_1RunQueue_1_1PriorityFunction_1a630a4612ffae191f1047a85fbb00be37"></span><a class="reference internal" href="#_CPPv4N4espp8RunQueue8PriorityE" title="espp::RunQueue::Priority"><span class="n"><span class="pre">Priority</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">priority</span></span></span><a class="headerlink" href="#_CPPv4N4espp8RunQueue16PriorityFunction8priorityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The priority of the function. Lower values have lower priority. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8RunQueue16PriorityFunction2idE">
+<span id="_CPPv3N4espp8RunQueue16PriorityFunction2idE"></span><span id="_CPPv2N4espp8RunQueue16PriorityFunction2idE"></span><span id="espp::RunQueue::PriorityFunction::id__Id"></span><span class="target" id="structespp_1_1RunQueue_1_1PriorityFunction_1a466480ad826076fc3ff9fd78049566aa"></span><a class="reference internal" href="#_CPPv4N4espp8RunQueue2IdE" title="espp::RunQueue::Id"><span class="n"><span class="pre">Id</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">id</span></span></span><a class="headerlink" href="#_CPPv4N4espp8RunQueue16PriorityFunction2idE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The id of the function. Can be provided or auto-generated. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8RunQueue16PriorityFunction8functionE">
+<span id="_CPPv3N4espp8RunQueue16PriorityFunction8functionE"></span><span id="_CPPv2N4espp8RunQueue16PriorityFunction8functionE"></span><span id="espp::RunQueue::PriorityFunction::function__Function"></span><span class="target" id="structespp_1_1RunQueue_1_1PriorityFunction_1ae3ddb3caf866c6466118465f790fb04d"></span><a class="reference internal" href="#_CPPv4N4espp8RunQueue8FunctionE" title="espp::RunQueue::Function"><span class="n"><span class="pre">Function</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">function</span></span></span><a class="headerlink" href="#_CPPv4N4espp8RunQueue16PriorityFunction8functionE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The function. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="rtsp_example.html" class="btn btn-neutral float-left" title="RTSP Example" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="runqueue_example.html" class="btn btn-neutral float-right" title="RunQueue Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

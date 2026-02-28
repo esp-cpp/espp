@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>COBS (Consistent Overhead Byte Stuffing) - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="_static/copybutton.js?v=ff8fa330"></script>
+    <script src="_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'cobs';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="COBS Example" href="cobs_example.html" />
+    <link rel="prev" title="Cli Example" href="cli_example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            ESPP
+              <img src="_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_component.html">Base Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l1"><a class="reference internal" href="battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="byte90.html">ALXV Labs Byte90</a></li>
+<li class="toctree-l1"><a class="reference internal" href="controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">COBS (Consistent Overhead Byte Stuffing)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cobs_example.html">COBS Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#classes">Classes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id1">Header File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="esp32_timer_cam.html">ESP32 TimerCam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="esp_box.html">ESP BOX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hid/index.html">HID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="interrupt.html">Interrupt APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="iperf_menu.html">Iperf Menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="m5stack_tab5.html">M5Stack Tab5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="matouch_rotary_display.html">MaTouch Rotary Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="motorgo_mini.html">MotorGo Mini</a></li>
+<li class="toctree-l1"><a class="reference internal" href="neopixel.html">Neopixel APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nvs.html">NVS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="remote_debug.html">Remote Debug APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="runqueue.html">RunQueue APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="seeed_studio_round_display.html">Seeed Studio Round Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="t_deck.html">LilyGo T-Deck</a></li>
+<li class="toctree-l1"><a class="reference internal" href="t_dongle_s3.html">LilyGo T-Dongle S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wrover_kit.html">ESP32-WROVER-KIT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">COBS (Consistent Overhead Byte Stuffing)</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/32e8215e/docs/en/cobs.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="cobs-consistent-overhead-byte-stuffing">
+<h1>COBS (Consistent Overhead Byte Stuffing)<a class="headerlink" href="#cobs-consistent-overhead-byte-stuffing" title="Permalink to this heading"></a></h1>
+<p>The <cite>COBS</cite> component provides efficient encoding and decoding for the Consistent
+Overhead Byte Stuffing algorithm, a packet framing protocol that ensures reliable
+packet boundaries in communication streams.</p>
+<p>Key features:
+* Zero-byte elimination with consistent overhead (max ⌈n/254⌉ + 1 bytes)
+* Single packet API for basic encoding/decoding
+* Streaming API with thread-safe encoder/decoder classes
+* Support for fragmented data streams and packet batching</p>
+<p>The component is designed for embedded communication protocols where reliable
+packet framing is essential, such as UART, SPI, or other serial interfaces.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="cobs_example.html">COBS Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cobs_example.html#what-this-example-tests">What This Example Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cobs_example.html#detailed-test-coverage">Detailed Test Coverage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cobs_example.html#single-packet-test-tests-1-12">Single Packet Test (Tests 1-12)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cobs_example.html#streaming-encoder-test-tests-1-5">Streaming Encoder Test (Tests 1-5)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cobs_example.html#streaming-decoder-test-tests-1-6">Streaming Decoder Test (Tests 1-6)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cobs_example.html#edge-cases-test-tests-1-4">Edge Cases Test (Tests 1-4)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cobs_example.html#test-scenario-48-byte-packets">Test Scenario: 48-byte Packets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cobs_example.html#build-and-flash">Build and Flash</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cobs_example.html#monitor-commands">Monitor Commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cobs_example.html#expected-output">Expected Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cobs_example.html#key-features-demonstrated">Key Features Demonstrated</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cobs_example.html#see-also">See Also</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/32e8215e/components/cobs/include/cobs.hpp">components/cobs/include/cobs.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4CobsE">
+<span id="_CPPv3N4espp4CobsE"></span><span id="_CPPv2N4espp4CobsE"></span><span id="espp::Cobs"></span><span class="target" id="classespp_1_1Cobs"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Cobs</span></span></span><a class="headerlink" href="#_CPPv4N4espp4CobsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>COBS (Consistent Overhead Byte Stuffing) encoder/decoder. </p>
+<p>Provides single-packet encoding and decoding using the COBS algorithm with 0 as the delimiter. COBS encoding can add at most ⌈n/254⌉ + 1 bytes overhead. Plus 1 byte for the delimiter COBS changes the size of the packet by at least 1 byte, so it’s not possible to encode in place. MAX_BLOCK_SIZE = 254 is the maximum number of non-zero bytes in an encoded block.</p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference external" href="https://en.wikipedia.org/wiki/Consistent_Overhead_Byte_Stuffing">https://en.wikipedia.org/wiki/Consistent_Overhead_Byte_Stuffing</a></p>
+</div>
+</p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Cobs16max_encoded_sizeE6size_t">
+<span id="_CPPv3N4espp4Cobs16max_encoded_sizeE6size_t"></span><span id="_CPPv2N4espp4Cobs16max_encoded_sizeE6size_t"></span><span id="espp::Cobs::max_encoded_size__sCE"></span><span class="target" id="classespp_1_1Cobs_1a8603e5a10371c5641975f655f54b9f8a"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">max_encoded_size</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">payload_len</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Cobs16max_encoded_sizeE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Calculate maximum encoded size for a given payload length. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>payload_len</strong> – Length of input data </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Maximum number of bytes needed for encoding (including delimiter) </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Cobs13encode_packetENSt4spanIK7uint8_tEE">
+<span id="_CPPv3N4espp4Cobs13encode_packetENSt4spanIK7uint8_tEE"></span><span id="_CPPv2N4espp4Cobs13encode_packetENSt4spanIK7uint8_tEE"></span><span id="espp::Cobs::encode_packet__std::span:uint8_tC:"></span><span class="target" id="classespp_1_1Cobs_1aeb3f8472a9feb3f8548dd68d8989bc45"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">encode_packet</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Cobs13encode_packetENSt4spanIK7uint8_tEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Encode a single packet. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> – Input data to encode </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Encoded data with COBS encoding and delimiter </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Cobs13encode_packetENSt4spanIK7uint8_tEENSt4spanI7uint8_tEE">
+<span id="_CPPv3N4espp4Cobs13encode_packetENSt4spanIK7uint8_tEENSt4spanI7uint8_tEE"></span><span id="_CPPv2N4espp4Cobs13encode_packetENSt4spanIK7uint8_tEENSt4spanI7uint8_tEE"></span><span id="espp::Cobs::encode_packet__std::span:uint8_tC:.std::span:uint8_t:"></span><span class="target" id="classespp_1_1Cobs_1a2970e8aef03f0d9026f2131a5c9cf0e8"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">encode_packet</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">output</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Cobs13encode_packetENSt4spanIK7uint8_tEENSt4spanI7uint8_tEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Encode a single packet to existing buffer. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – Input data to encode </p></li>
+<li><p><strong>output</strong> – Output buffer span (must be at least max_encoded_size) </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Number of bytes written to output </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Cobs16max_decoded_sizeE6size_t">
+<span id="_CPPv3N4espp4Cobs16max_decoded_sizeE6size_t"></span><span id="_CPPv2N4espp4Cobs16max_decoded_sizeE6size_t"></span><span id="espp::Cobs::max_decoded_size__sCE"></span><span class="target" id="classespp_1_1Cobs_1abf96f258c421659bf0f2d5c6834d3af6"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">max_decoded_size</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">encoded_len</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Cobs16max_decoded_sizeE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Calculate maximum decoded size for a given encoded length. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>encoded_len</strong> – Length of COBS-encoded data </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Maximum number of bytes needed for decoding (accounts for delimiter) </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Cobs13decode_packetENSt4spanIK7uint8_tEE">
+<span id="_CPPv3N4espp4Cobs13decode_packetENSt4spanIK7uint8_tEE"></span><span id="_CPPv2N4espp4Cobs13decode_packetENSt4spanIK7uint8_tEE"></span><span id="espp::Cobs::decode_packet__std::span:uint8_tC:"></span><span class="target" id="classespp_1_1Cobs_1ad2e7678fa4497e7caa5b0810a334fa0a"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">decode_packet</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">encoded_data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Cobs13decode_packetENSt4spanIK7uint8_tEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Decode a single packet from COBS-encoded data. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>encoded_data</strong> – COBS-encoded data </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Decoded packet data, or empty if invalid </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Cobs13decode_packetENSt4spanIK7uint8_tEENSt4spanI7uint8_tEE">
+<span id="_CPPv3N4espp4Cobs13decode_packetENSt4spanIK7uint8_tEENSt4spanI7uint8_tEE"></span><span id="_CPPv2N4espp4Cobs13decode_packetENSt4spanIK7uint8_tEENSt4spanI7uint8_tEE"></span><span id="espp::Cobs::decode_packet__std::span:uint8_tC:.std::span:uint8_t:"></span><span class="target" id="classespp_1_1Cobs_1ad63432eedbec20a6345dfb64e2cbae8d"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">decode_packet</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">encoded_data</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">output</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Cobs13decode_packetENSt4spanIK7uint8_tEENSt4spanI7uint8_tEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Decode a single packet to existing buffer. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>encoded_data</strong> – COBS-encoded data </p></li>
+<li><p><strong>output</strong> – Output buffer span (must be at least max_decoded_size) </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Number of bytes written to output, or 0 if decoding failed </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+<section id="id1">
+<h3>Header File<a class="headerlink" href="#id1" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/32e8215e/components/cobs/include/cobs_stream.hpp">components/cobs/include/cobs_stream.hpp</a></p></li>
+</ul>
+</section>
+<section id="id2">
+<h3>Classes<a class="headerlink" href="#id2" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17CobsStreamDecoderE">
+<span id="_CPPv3N4espp17CobsStreamDecoderE"></span><span id="_CPPv2N4espp17CobsStreamDecoderE"></span><span id="espp::CobsStreamDecoder"></span><span class="target" id="classespp_1_1CobsStreamDecoder"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CobsStreamDecoder</span></span></span><a class="headerlink" href="#_CPPv4N4espp17CobsStreamDecoderE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Streaming decoder for multiple COBS-encoded packets. </p>
+<p>Useful for processing incoming data streams where packets may arrive in fragments or multiple packets may arrive together. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17CobsStreamDecoder8add_dataENSt4spanIK7uint8_tEE">
+<span id="_CPPv3N4espp17CobsStreamDecoder8add_dataENSt4spanIK7uint8_tEE"></span><span id="_CPPv2N4espp17CobsStreamDecoder8add_dataENSt4spanIK7uint8_tEE"></span><span id="espp::CobsStreamDecoder::add_data__std::span:uint8_tC:"></span><span class="target" id="classespp_1_1CobsStreamDecoder_1a6973d0a3e8e22a1c6b051deb7e60de47"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_data</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp17CobsStreamDecoder8add_dataENSt4spanIK7uint8_tEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Add encoded data to the decoder buffer. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> – New encoded data span </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17CobsStreamDecoder8add_dataERRNSt6vectorI7uint8_tEE">
+<span id="_CPPv3N4espp17CobsStreamDecoder8add_dataERRNSt6vectorI7uint8_tEE"></span><span id="_CPPv2N4espp17CobsStreamDecoder8add_dataERRNSt6vectorI7uint8_tEE"></span><span id="espp::CobsStreamDecoder::add_data__std::vector:uint8_t:RR"></span><span class="target" id="classespp_1_1CobsStreamDecoder_1ac085427bb9641b853dbe787ff6d2f361"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_data</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp17CobsStreamDecoder8add_dataERRNSt6vectorI7uint8_tEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Add encoded data to the decoder buffer (move semantics) </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> – New encoded data vector (will be moved) </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17CobsStreamDecoder14extract_packetEv">
+<span id="_CPPv3N4espp17CobsStreamDecoder14extract_packetEv"></span><span id="_CPPv2N4espp17CobsStreamDecoder14extract_packetEv"></span><span id="espp::CobsStreamDecoder::extract_packet"></span><span class="target" id="classespp_1_1CobsStreamDecoder_1acc6af8cdb3aa581c9d5a3a55e7b2179b"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">extract_packet</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp17CobsStreamDecoder14extract_packetEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Try to extract the next complete packet. Removes the extracted data from the buffer. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Decoded packet data, or empty if no complete packet found </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp17CobsStreamDecoder14remaining_dataEv">
+<span id="_CPPv3NK4espp17CobsStreamDecoder14remaining_dataEv"></span><span id="_CPPv2NK4espp17CobsStreamDecoder14remaining_dataEv"></span><span id="espp::CobsStreamDecoder::remaining_dataC"></span><span class="target" id="classespp_1_1CobsStreamDecoder_1ae0aa16b15a435870f8ee8b8c5b07c5ac"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">remaining_data</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp17CobsStreamDecoder14remaining_dataEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Access remaining unprocessed data for debug purposes. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Const reference to buffered data that hasn’t been processed yet </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp17CobsStreamDecoder11buffer_sizeEv">
+<span id="_CPPv3NK4espp17CobsStreamDecoder11buffer_sizeEv"></span><span id="_CPPv2NK4espp17CobsStreamDecoder11buffer_sizeEv"></span><span id="espp::CobsStreamDecoder::buffer_sizeC"></span><span class="target" id="classespp_1_1CobsStreamDecoder_1a2ece03f2d684841ad8d422652380a0b9"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">buffer_size</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp17CobsStreamDecoder11buffer_sizeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the size of buffered data. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Number of bytes currently buffered </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17CobsStreamDecoder5clearEv">
+<span id="_CPPv3N4espp17CobsStreamDecoder5clearEv"></span><span id="_CPPv2N4espp17CobsStreamDecoder5clearEv"></span><span id="espp::CobsStreamDecoder::clear"></span><span class="target" id="classespp_1_1CobsStreamDecoder_1a5aaa9c0a5fa08a904c9834c32bbd2ed0"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp17CobsStreamDecoder5clearEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear all buffered data. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17CobsStreamEncoderE">
+<span id="_CPPv3N4espp17CobsStreamEncoderE"></span><span id="_CPPv2N4espp17CobsStreamEncoderE"></span><span id="espp::CobsStreamEncoder"></span><span class="target" id="classespp_1_1CobsStreamEncoder"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CobsStreamEncoder</span></span></span><a class="headerlink" href="#_CPPv4N4espp17CobsStreamEncoderE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Streaming encoder for multiple packets. </p>
+<p>Useful for batching multiple packets together for transmission or for building up data to send in chunks. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17CobsStreamEncoder10add_packetENSt4spanIK7uint8_tEE">
+<span id="_CPPv3N4espp17CobsStreamEncoder10add_packetENSt4spanIK7uint8_tEE"></span><span id="_CPPv2N4espp17CobsStreamEncoder10add_packetENSt4spanIK7uint8_tEE"></span><span id="espp::CobsStreamEncoder::add_packet__std::span:uint8_tC:"></span><span class="target" id="classespp_1_1CobsStreamEncoder_1ab72da95e8848f55af880a55aec9e467f"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_packet</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp17CobsStreamEncoder10add_packetENSt4spanIK7uint8_tEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Add a packet to be encoded. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> – Packet data span </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17CobsStreamEncoder10add_packetERRNSt6vectorI7uint8_tEE">
+<span id="_CPPv3N4espp17CobsStreamEncoder10add_packetERRNSt6vectorI7uint8_tEE"></span><span id="_CPPv2N4espp17CobsStreamEncoder10add_packetERRNSt6vectorI7uint8_tEE"></span><span id="espp::CobsStreamEncoder::add_packet__std::vector:uint8_t:RR"></span><span class="target" id="classespp_1_1CobsStreamEncoder_1ad310149ecde85d5f1ebe87a4b62579d1"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_packet</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp17CobsStreamEncoder10add_packetERRNSt6vectorI7uint8_tEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Add a packet to be encoded (move semantics) </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> – Packet data vector (will be moved) </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp17CobsStreamEncoder16get_encoded_dataEv">
+<span id="_CPPv3NK4espp17CobsStreamEncoder16get_encoded_dataEv"></span><span id="_CPPv2NK4espp17CobsStreamEncoder16get_encoded_dataEv"></span><span id="espp::CobsStreamEncoder::get_encoded_dataC"></span><span class="target" id="classespp_1_1CobsStreamEncoder_1abe75d3511fbef2e9597f66058b361850"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_encoded_data</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp17CobsStreamEncoder16get_encoded_dataEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get all encoded data as a single buffer for debug purposes. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>All encoded packets concatenated, const reference </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17CobsStreamEncoder12extract_dataE6size_t">
+<span id="_CPPv3N4espp17CobsStreamEncoder12extract_dataE6size_t"></span><span id="_CPPv2N4espp17CobsStreamEncoder12extract_dataE6size_t"></span><span id="espp::CobsStreamEncoder::extract_data__s"></span><span class="target" id="classespp_1_1CobsStreamEncoder_1ab2eb3d4b9ecf1beff2559925c6f4b17d"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">extract_data</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">max_size</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp17CobsStreamEncoder12extract_dataE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Extract encoded data up to a maximum size. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>max_size</strong> – Maximum number of bytes to extract </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Encoded data up to max_size bytes </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17CobsStreamEncoder12extract_dataEP7uint8_t6size_t">
+<span id="_CPPv3N4espp17CobsStreamEncoder12extract_dataEP7uint8_t6size_t"></span><span id="_CPPv2N4espp17CobsStreamEncoder12extract_dataEP7uint8_t6size_t"></span><span id="espp::CobsStreamEncoder::extract_data__uint8_tP.s"></span><span class="target" id="classespp_1_1CobsStreamEncoder_1a8010c80f91220f3db8d045bf0884a714"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">extract_data</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">output</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">max_size</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp17CobsStreamEncoder12extract_dataEP7uint8_t6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Extract encoded data directly to a buffer. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>output</strong> – Output buffer to write data to </p></li>
+<li><p><strong>max_size</strong> – Maximum number of bytes to extract </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Number of bytes actually written to output </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp17CobsStreamEncoder11buffer_sizeEv">
+<span id="_CPPv3NK4espp17CobsStreamEncoder11buffer_sizeEv"></span><span id="_CPPv2NK4espp17CobsStreamEncoder11buffer_sizeEv"></span><span id="espp::CobsStreamEncoder::buffer_sizeC"></span><span class="target" id="classespp_1_1CobsStreamEncoder_1afcede14e4e640c2fe818276d5e0c7416"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">buffer_size</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp17CobsStreamEncoder11buffer_sizeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the current buffer size. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Number of bytes currently buffered </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17CobsStreamEncoder5clearEv">
+<span id="_CPPv3N4espp17CobsStreamEncoder5clearEv"></span><span id="_CPPv2N4espp17CobsStreamEncoder5clearEv"></span><span id="espp::CobsStreamEncoder::clear"></span><span class="target" id="classespp_1_1CobsStreamEncoder_1a6a02d52ccca19f9c1ca7e0f750e84321"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp17CobsStreamEncoder5clearEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear all buffered data. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="cli_example.html" class="btn btn-neutral float-left" title="Cli Example" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="cobs_example.html" class="btn btn-neutral float-right" title="COBS Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

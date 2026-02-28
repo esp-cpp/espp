@@ -1,0 +1,1603 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BMI270 6-Axis IMU - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'imu/bmi270';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="BMI270 Example" href="bmi270_example.html" />
+    <link rel="prev" title="ADXL345 Example" href="adxl345_example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_component.html">Base Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../byte90.html">ALXV Labs Byte90</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cobs.html">COBS (Consistent Overhead Byte Stuffing)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp32_timer_cam.html">ESP32 TimerCam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp_box.html">ESP BOX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../i2c.html">I2C</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">IMU APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="adxl345.html">ADXL345 3-Axis Accelerometer</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">BMI270 6-Axis IMU</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="bmi270_example.html">BMI270 Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id1">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#unions">Unions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id2">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="icm20948.html">ICM20948 9-Axis IMU</a></li>
+<li class="toctree-l2"><a class="reference internal" href="icm42607.html">ICM42607 6-Axis IMU</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lsm6dso.html">LSM6DSO 6-Axis IMU</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qmi8658.html">QMI8658 6-Axis IMU</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../interrupt.html">Interrupt APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../iperf_menu.html">Iperf Menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../m5stack_tab5.html">M5Stack Tab5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../matouch_rotary_display.html">MaTouch Rotary Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../motorgo_mini.html">MotorGo Mini</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../neopixel.html">Neopixel APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nvs.html">NVS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../remote_debug.html">Remote Debug APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../runqueue.html">RunQueue APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../seeed_studio_round_display.html">Seeed Studio Round Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_deck.html">LilyGo T-Deck</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_dongle_s3.html">LilyGo T-Dongle S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wrover_kit.html">ESP32-WROVER-KIT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">IMU APIs</a></li>
+      <li class="breadcrumb-item active">BMI270 6-Axis IMU</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/32e8215e/docs/en/imu/bmi270.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="bmi270-6-axis-imu">
+<h1>BMI270 6-Axis IMU<a class="headerlink" href="#bmi270-6-axis-imu" title="Permalink to this heading"></a></h1>
+<p>The <cite>Bmi270</cite> component provides an interface to the BMI270 6-axis IMU sensor. It
+supports both SPI and I2C communication protocols and can be used to read
+accelerometer and gyroscope data. It also includes features for sensor
+configuration and data processing.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="bmi270_example.html">BMI270 Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="bmi270_example.html#features-demonstrated">Features Demonstrated</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bmi270_example.html#how-to-use-example">How to use example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="bmi270_example.html#hardware-required">Hardware Required</a></li>
+<li class="toctree-l3"><a class="reference internal" href="bmi270_example.html#configuration">Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="bmi270_example.html#build-and-flash">Build and Flash</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="bmi270_example.html#example-output">Example Output</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="bmi270_example.html#sample-output">Sample Output</a></li>
+<li class="toctree-l3"><a class="reference internal" href="bmi270_example.html#data-analysis">Data Analysis</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="bmi270_example.html#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="bmi270_example.html#common-issues">Common Issues</a></li>
+<li class="toctree-l3"><a class="reference internal" href="bmi270_example.html#debug-tips">Debug Tips</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="bmi270_example.html#performance-notes">Performance Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bmi270_example.html#advanced-features">Advanced Features</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="bmi270_example.html#data-ready-interrupt">Data Ready Interrupt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="bmi270_example.html#fast-offset-compensation-foc">Fast Offset Compensation (FOC)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="bmi270_example.html#component-re-trim-crt">Component Re-Trim (CRT)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="bmi270_example.html#built-in-features">Built-in Features</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="bmi270_example.html#references">References</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/32e8215e/components/bmi270/include/bmi270.hpp">components/bmi270/include/bmi270.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4I_N6bmi2709InterfaceEEN4espp6Bmi270E">
+<span id="_CPPv3I_N6bmi2709InterfaceEEN4espp6Bmi270E"></span><span id="_CPPv2I_N6bmi2709InterfaceEEN4espp6Bmi270E"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">bmi270</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Interface</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Interface</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">bmi270</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Interface</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">I2C</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1Bmi270"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Bmi270</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../base_peripheral.html#_CPPv4I_NSt8integralE_b_b_bEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">bmi270</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Interface</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">I2C</span></span><span class="w"> </span><span class="o"><span class="pre">==</span></span><span class="w"> </span><span class="n"><span class="pre">bmi270</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Interface</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">I2C</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4I_N6bmi2709InterfaceEEN4espp6Bmi270E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Class for the BMI270 6-axis motion sensor. </p>
+<p>
+Key features from the datasheet:<ul class="simple">
+<li><p>16-bit digital, triaxial accelerometer with ±2g/±4g/±8g/±16g range</p></li>
+<li><p>16-bit digital, triaxial gyroscope with ±125°/s to ±2000°/s range</p></li>
+<li><p>Output data rates: 0.78Hz to 1.6kHz (accelerometer), 25Hz to 6.4kHz (gyroscope)</p></li>
+<li><p>Low current consumption: typ. 685µA in full operation</p></li>
+<li><p>Built-in power management unit (PMU) for advanced power management</p></li>
+<li><p>2KB on-chip FIFO buffer</p></li>
+<li><p>Advanced features: step counter, activity recognition, wrist gestures, etc.</p></li>
+<li><p>Temperature sensor with 0.5°C resolution</p></li>
+</ul>
+</p>
+<p>For more information, see the datasheet: <a class="reference external" href="https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bmi270-ds000.pdf">https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bmi270-ds000.pdf</a></p>
+<section id="classespp_1_1Bmi270_1bmi270_example">
+<h4>Example<a class="headerlink" href="#classespp_1_1Bmi270_1bmi270_example" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1Bmi270_1bmi270_example"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">Imu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Bmi270</span><span class="o">&lt;</span><span class="n">espp</span><span class="o">::</span><span class="n">bmi270</span><span class="o">::</span><span class="n">Interface</span><span class="o">::</span><span class="n">I2C</span><span class="o">&gt;</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// make the i2c we&#39;ll use to communicate</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">i2c_port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_NUM_0</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">i2c_clock_speed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_EXAMPLE_I2C_CLOCK_SPEED_HZ</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="n">gpio_num_t</span><span class="w"> </span><span class="n">i2c_sda</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">gpio_num_t</span><span class="p">)</span><span class="n">CONFIG_EXAMPLE_I2C_SDA_GPIO</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="n">gpio_num_t</span><span class="w"> </span><span class="n">i2c_scl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">gpio_num_t</span><span class="p">)</span><span class="n">CONFIG_EXAMPLE_I2C_SCL_GPIO</span><span class="p">;</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="w"> </span><span class="nf">i2c</span><span class="p">({.</span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_port</span><span class="p">,</span>
+<span class="w">                 </span><span class="p">.</span><span class="n">sda_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_sda</span><span class="p">,</span>
+<span class="w">                 </span><span class="p">.</span><span class="n">scl_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_scl</span><span class="p">,</span>
+<span class="w">                 </span><span class="p">.</span><span class="n">sda_pullup_en</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_PULLUP_ENABLE</span><span class="p">,</span>
+<span class="w">                 </span><span class="p">.</span><span class="n">scl_pullup_en</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_PULLUP_ENABLE</span><span class="p">,</span>
+<span class="w">                 </span><span class="p">.</span><span class="n">timeout_ms</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span><span class="w"> </span><span class="o">//</span><span class="w"> </span><span class="n">need</span><span class="w"> </span><span class="n">to</span><span class="w"> </span><span class="n">be</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">enough</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">writing</span><span class="w"> </span><span class="n">config</span><span class="w"> </span><span class="n">file</span><span class="w"> </span><span class="p">(</span><span class="mi">8</span><span class="n">kb</span><span class="p">)</span>
+<span class="w">                 </span><span class="p">.</span><span class="n">clk_speed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_clock_speed</span><span class="p">});</span>
+
+<span class="w">  </span><span class="c1">// make the orientation filter to compute orientation from accel + gyro</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">angle_noise</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.001f</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">rate_noise</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.1f</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">KalmanFilter</span><span class="o">&lt;</span><span class="mi">2</span><span class="o">&gt;</span><span class="w"> </span><span class="n">kf</span><span class="p">;</span>
+<span class="w">  </span><span class="n">kf</span><span class="p">.</span><span class="n">set_process_noise</span><span class="p">(</span><span class="n">rate_noise</span><span class="p">);</span>
+<span class="w">  </span><span class="n">kf</span><span class="p">.</span><span class="n">set_measurement_noise</span><span class="p">(</span><span class="n">angle_noise</span><span class="p">);</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">kalman_filter_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">float</span><span class="w"> </span><span class="n">dt</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">Imu</span><span class="o">::</span><span class="n">Value</span><span class="w"> </span><span class="o">&amp;</span><span class="n">accel</span><span class="p">,</span>
+<span class="w">                             </span><span class="k">const</span><span class="w"> </span><span class="n">Imu</span><span class="o">::</span><span class="n">Value</span><span class="w"> </span><span class="o">&amp;</span><span class="n">gyro</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">Imu</span><span class="o">::</span><span class="n">Value</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Apply Kalman filter</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">accelRoll</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">atan2</span><span class="p">(</span><span class="n">accel</span><span class="p">.</span><span class="n">y</span><span class="p">,</span><span class="w"> </span><span class="n">accel</span><span class="p">.</span><span class="n">z</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">accelPitch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">atan2</span><span class="p">(</span><span class="o">-</span><span class="n">accel</span><span class="p">.</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">sqrt</span><span class="p">(</span><span class="n">accel</span><span class="p">.</span><span class="n">y</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">accel</span><span class="p">.</span><span class="n">y</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">accel</span><span class="p">.</span><span class="n">z</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">accel</span><span class="p">.</span><span class="n">z</span><span class="p">));</span>
+<span class="w">    </span><span class="n">kf</span><span class="p">.</span><span class="n">predict</span><span class="p">({</span><span class="n">espp</span><span class="o">::</span><span class="n">deg_to_rad</span><span class="p">(</span><span class="n">gyro</span><span class="p">.</span><span class="n">x</span><span class="p">),</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">deg_to_rad</span><span class="p">(</span><span class="n">gyro</span><span class="p">.</span><span class="n">y</span><span class="p">)},</span><span class="w"> </span><span class="n">dt</span><span class="p">);</span>
+<span class="w">    </span><span class="n">kf</span><span class="p">.</span><span class="n">update</span><span class="p">({</span><span class="n">accelRoll</span><span class="p">,</span><span class="w"> </span><span class="n">accelPitch</span><span class="p">});</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">roll</span><span class="p">,</span><span class="w"> </span><span class="n">pitch</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">tie</span><span class="p">(</span><span class="n">roll</span><span class="p">,</span><span class="w"> </span><span class="n">pitch</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="p">.</span><span class="n">get_state</span><span class="p">();</span>
+<span class="w">    </span><span class="c1">// return the computed orientation</span>
+<span class="w">    </span><span class="n">Imu</span><span class="o">::</span><span class="n">Value</span><span class="w"> </span><span class="n">orientation</span><span class="p">{};</span>
+<span class="w">    </span><span class="n">orientation</span><span class="p">.</span><span class="n">roll</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">roll</span><span class="p">;</span>
+<span class="w">    </span><span class="n">orientation</span><span class="p">.</span><span class="n">pitch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pitch</span><span class="p">;</span>
+<span class="w">    </span><span class="n">orientation</span><span class="p">.</span><span class="n">yaw</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">;</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">orientation</span><span class="p">;</span>
+<span class="w">  </span><span class="p">};</span>
+
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">beta</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.1f</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">MadgwickFilter</span><span class="w"> </span><span class="nf">madgwick</span><span class="p">(</span><span class="n">beta</span><span class="p">);</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">madgwick_filter_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">float</span><span class="w"> </span><span class="n">dt</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">Imu</span><span class="o">::</span><span class="n">Value</span><span class="w"> </span><span class="o">&amp;</span><span class="n">accel</span><span class="p">,</span>
+<span class="w">                               </span><span class="k">const</span><span class="w"> </span><span class="n">Imu</span><span class="o">::</span><span class="n">Value</span><span class="w"> </span><span class="o">&amp;</span><span class="n">gyro</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">Imu</span><span class="o">::</span><span class="n">Value</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Apply Madgwick filter</span>
+<span class="w">    </span><span class="n">madgwick</span><span class="p">.</span><span class="n">update</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span><span class="w"> </span><span class="n">accel</span><span class="p">.</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">accel</span><span class="p">.</span><span class="n">y</span><span class="p">,</span><span class="w"> </span><span class="n">accel</span><span class="p">.</span><span class="n">z</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">deg_to_rad</span><span class="p">(</span><span class="n">gyro</span><span class="p">.</span><span class="n">x</span><span class="p">),</span>
+<span class="w">                    </span><span class="n">espp</span><span class="o">::</span><span class="n">deg_to_rad</span><span class="p">(</span><span class="n">gyro</span><span class="p">.</span><span class="n">y</span><span class="p">),</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">deg_to_rad</span><span class="p">(</span><span class="n">gyro</span><span class="p">.</span><span class="n">z</span><span class="p">));</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">roll</span><span class="p">,</span><span class="w"> </span><span class="n">pitch</span><span class="p">,</span><span class="w"> </span><span class="n">yaw</span><span class="p">;</span>
+<span class="w">    </span><span class="n">madgwick</span><span class="p">.</span><span class="n">get_euler</span><span class="p">(</span><span class="n">roll</span><span class="p">,</span><span class="w"> </span><span class="n">pitch</span><span class="p">,</span><span class="w"> </span><span class="n">yaw</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// return the computed orientation</span>
+<span class="w">    </span><span class="n">Imu</span><span class="o">::</span><span class="n">Value</span><span class="w"> </span><span class="n">orientation</span><span class="p">{};</span>
+<span class="w">    </span><span class="n">orientation</span><span class="p">.</span><span class="n">pitch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">deg_to_rad</span><span class="p">(</span><span class="n">pitch</span><span class="p">);</span>
+<span class="w">    </span><span class="n">orientation</span><span class="p">.</span><span class="n">roll</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">deg_to_rad</span><span class="p">(</span><span class="n">roll</span><span class="p">);</span>
+<span class="w">    </span><span class="n">orientation</span><span class="p">.</span><span class="n">yaw</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">deg_to_rad</span><span class="p">(</span><span class="n">yaw</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">orientation</span><span class="p">;</span>
+<span class="w">  </span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// use the i2c to ping both of the possible BMI270 addresses and use the one that responds</span>
+<span class="w">  </span><span class="c1">// This is necessary because the BMI270 can be configured to use either address</span>
+<span class="w">  </span><span class="c1">// SDO pulled high or low.</span>
+<span class="w">  </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">bmi270_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Imu</span><span class="o">::</span><span class="n">DEFAULT_ADDRESS</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">addresses</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="n">Imu</span><span class="o">::</span><span class="n">DEFAULT_ADDRESS</span><span class="p">,</span><span class="w"> </span><span class="n">Imu</span><span class="o">::</span><span class="n">DEFAULT_ADDRESS_SDO_HIGH</span><span class="p">};</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="n">address</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">addresses</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">i2c</span><span class="p">.</span><span class="n">probe_device</span><span class="p">(</span><span class="n">address</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Found BMI270 at address: 0x{:02X}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">address</span><span class="p">);</span>
+<span class="w">      </span><span class="n">bmi270_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">address</span><span class="p">;</span>
+<span class="w">      </span><span class="k">break</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;No BMI270 found at address: 0x{:02X}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">address</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// make the IMU config</span>
+<span class="w">  </span><span class="n">Imu</span><span class="o">::</span><span class="n">Config</span><span class="w"> </span><span class="n">config</span><span class="p">{</span>
+<span class="w">      </span><span class="p">.</span><span class="n">device_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bmi270_address</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">write</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span>
+<span class="w">                         </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
+<span class="w">      </span><span class="p">.</span><span class="n">read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">read</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span>
+<span class="w">                        </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
+<span class="w">      </span><span class="p">.</span><span class="n">imu_config</span><span class="w"> </span><span class="o">=</span>
+<span class="w">          </span><span class="p">{</span>
+<span class="w">              </span><span class="p">.</span><span class="n">accelerometer_range</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Imu</span><span class="o">::</span><span class="n">AccelerometerRange</span><span class="o">::</span><span class="n">RANGE_4G</span><span class="p">,</span>
+<span class="w">              </span><span class="p">.</span><span class="n">accelerometer_odr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Imu</span><span class="o">::</span><span class="n">AccelerometerODR</span><span class="o">::</span><span class="n">ODR_100_HZ</span><span class="p">,</span>
+<span class="w">              </span><span class="p">.</span><span class="n">accelerometer_bandwidth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Imu</span><span class="o">::</span><span class="n">AccelerometerBandwidth</span><span class="o">::</span><span class="n">NORMAL_AVG4</span><span class="p">,</span>
+<span class="w">              </span><span class="p">.</span><span class="n">gyroscope_range</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Imu</span><span class="o">::</span><span class="n">GyroscopeRange</span><span class="o">::</span><span class="n">RANGE_1000DPS</span><span class="p">,</span>
+<span class="w">              </span><span class="p">.</span><span class="n">gyroscope_odr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Imu</span><span class="o">::</span><span class="n">GyroscopeODR</span><span class="o">::</span><span class="n">ODR_100_HZ</span><span class="p">,</span>
+<span class="w">              </span><span class="p">.</span><span class="n">gyroscope_bandwidth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Imu</span><span class="o">::</span><span class="n">GyroscopeBandwidth</span><span class="o">::</span><span class="n">NORMAL_MODE</span><span class="p">,</span>
+<span class="w">              </span><span class="p">.</span><span class="n">gyroscope_performance_mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Imu</span><span class="o">::</span><span class="n">GyroscopePerformanceMode</span><span class="o">::</span><span class="n">PERFORMANCE_OPTIMIZED</span><span class="p">,</span>
+<span class="w">          </span><span class="p">},</span>
+<span class="w">      </span><span class="p">.</span><span class="n">orientation_filter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kalman_filter_fn</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">auto_init</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">,</span>
+<span class="w">  </span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// create the IMU</span>
+<span class="w">  </span><span class="n">Imu</span><span class="w"> </span><span class="nf">imu</span><span class="p">(</span><span class="n">config</span><span class="p">);</span>
+
+<span class="c1">// ---------------------------------------------------------------------------</span>
+<span class="c1">// [Optional] Sensor Calibration (FOC &amp; CRT)</span>
+<span class="c1">// WARNING:</span>
+<span class="c1">// 1. The device must be COMPLETELY STATIONARY on a flat surface.</span>
+<span class="c1">// 2. Enable these lines only when you need calibration (e.g., once after assembly).</span>
+<span class="c1">// ---------------------------------------------------------------------------</span>
+<span class="cp">#if CONFIG_EXAMPLE_RUN_CALIBRATION</span>
+<span class="w">  </span><span class="c1">// Perform FOC (Fast Offset Compensation)</span>
+<span class="w">  </span><span class="c1">// Note: This assumes the device is flat on a table (Z-axis = 1g)</span>
+<span class="w">  </span><span class="c1">// For a real application, you might want to trigger this based on a user action</span>
+<span class="w">  </span><span class="c1">// or store the offsets in NVS.</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Performing Accelerometer FOC...&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">Imu</span><span class="o">::</span><span class="n">AccelFocGValue</span><span class="w"> </span><span class="n">accel_foc_target</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{.</span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">z</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">sign</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">};</span><span class="w"> </span><span class="c1">// 1g on Z axis</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">imu</span><span class="p">.</span><span class="n">perform_accel_foc</span><span class="p">(</span><span class="n">accel_foc_target</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Accelerometer FOC completed successfully&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Accelerometer FOC failed: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Performing Gyroscope FOC...&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// Note: Device must be stationary for Gyro FOC</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">imu</span><span class="p">.</span><span class="n">perform_gyro_foc</span><span class="p">(</span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Gyroscope FOC completed successfully&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Gyroscope FOC failed: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// Perform CRT (Component Re-Trim)</span>
+<span class="w">  </span><span class="c1">// This feature compensates for sensitivity changes in the gyroscope.</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Performing CRT...&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">imu</span><span class="p">.</span><span class="n">perform_crt</span><span class="p">(</span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;CRT completed successfully&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;CRT failed: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="cp">#endif</span>
+
+<span class="w">  </span><span class="c1">// make a task to read out the IMU data and print it to console</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="o">&amp;</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// sleep first in case we don&#39;t get IMU data and need to exit early</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lock</span><span class="p">(</span><span class="n">m</span><span class="p">);</span>
+<span class="w">      </span><span class="n">cv</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">lock</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">esp_timer_get_time</span><span class="p">();</span><span class="w"> </span><span class="c1">// time in microseconds</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">t0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">now</span><span class="p">;</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">t1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">now</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">dt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">t1</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">t0</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">1&#39;000&#39;000.0f</span><span class="p">;</span><span class="w"> </span><span class="c1">// convert us to s</span>
+<span class="w">    </span><span class="n">t0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">t1</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+<span class="w">    </span><span class="c1">// update the imu data</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">imu</span><span class="p">.</span><span class="n">update</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// get accel</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">accel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">imu</span><span class="p">.</span><span class="n">get_accelerometer</span><span class="p">();</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">gyro</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">imu</span><span class="p">.</span><span class="n">get_gyroscope</span><span class="p">();</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">temp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">imu</span><span class="p">.</span><span class="n">get_temperature</span><span class="p">();</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">orientation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">imu</span><span class="p">.</span><span class="n">get_orientation</span><span class="p">();</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">gravity_vector</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">imu</span><span class="p">.</span><span class="n">get_gravity_vector</span><span class="p">();</span>
+
+<span class="w">    </span><span class="c1">// print time and raw IMU data</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">text</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="p">;</span>
+<span class="w">    </span><span class="n">text</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">fmt</span><span class="o">::</span><span class="n">format</span><span class="p">(</span><span class="s">&quot;{:.3f},&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">1&#39;000&#39;000.0f</span><span class="p">);</span>
+<span class="w">    </span><span class="n">text</span><span class="w"> </span><span class="o">+=</span>
+<span class="w">        </span><span class="n">fmt</span><span class="o">::</span><span class="n">format</span><span class="p">(</span><span class="s">&quot;{:02.3f},{:02.3f},{:02.3f},&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">accel</span><span class="p">.</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">accel</span><span class="p">.</span><span class="n">y</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">accel</span><span class="p">.</span><span class="n">z</span><span class="p">);</span>
+<span class="w">    </span><span class="n">text</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">fmt</span><span class="o">::</span><span class="n">format</span><span class="p">(</span><span class="s">&quot;{:03.3f},{:03.3f},{:03.3f},&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">gyro</span><span class="p">.</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">gyro</span><span class="p">.</span><span class="n">y</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">gyro</span><span class="p">.</span><span class="n">z</span><span class="p">);</span>
+<span class="w">    </span><span class="n">text</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">fmt</span><span class="o">::</span><span class="n">format</span><span class="p">(</span><span class="s">&quot;{:02.1f},&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">temp</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// print kalman filter outputs</span>
+<span class="w">    </span><span class="n">text</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">fmt</span><span class="o">::</span><span class="n">format</span><span class="p">(</span><span class="s">&quot;{:03.3f},{:03.3f},{:03.3f},&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">orientation</span><span class="p">.</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">orientation</span><span class="p">.</span><span class="n">y</span><span class="p">,</span>
+<span class="w">                        </span><span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">orientation</span><span class="p">.</span><span class="n">z</span><span class="p">);</span>
+<span class="w">    </span><span class="n">text</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">fmt</span><span class="o">::</span><span class="n">format</span><span class="p">(</span><span class="s">&quot;{:03.3f},{:03.3f},{:03.3f},&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">gravity_vector</span><span class="p">.</span><span class="n">x</span><span class="p">,</span>
+<span class="w">                        </span><span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">gravity_vector</span><span class="p">.</span><span class="n">y</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">gravity_vector</span><span class="p">.</span><span class="n">z</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">madgwick_orientation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">madgwick_filter_fn</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span><span class="w"> </span><span class="n">accel</span><span class="p">,</span><span class="w"> </span><span class="n">gyro</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">roll</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">madgwick_orientation</span><span class="p">.</span><span class="n">roll</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">pitch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">madgwick_orientation</span><span class="p">.</span><span class="n">pitch</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">yaw</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">madgwick_orientation</span><span class="p">.</span><span class="n">yaw</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">vx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sin</span><span class="p">(</span><span class="n">pitch</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">vy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="n">cos</span><span class="p">(</span><span class="n">pitch</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">sin</span><span class="p">(</span><span class="n">roll</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">vz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="n">cos</span><span class="p">(</span><span class="n">pitch</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">cos</span><span class="p">(</span><span class="n">roll</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// print madgwick filter outputs</span>
+<span class="w">    </span><span class="n">text</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">fmt</span><span class="o">::</span><span class="n">format</span><span class="p">(</span><span class="s">&quot;{:03.3f},{:03.3f},{:03.3f},&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">roll</span><span class="p">,</span><span class="w"> </span><span class="n">pitch</span><span class="p">,</span><span class="w"> </span><span class="n">yaw</span><span class="p">);</span>
+<span class="w">    </span><span class="n">text</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">fmt</span><span class="o">::</span><span class="n">format</span><span class="p">(</span><span class="s">&quot;{:03.3f},{:03.3f},{:03.3f}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">vx</span><span class="p">,</span><span class="w"> </span><span class="n">vy</span><span class="p">,</span><span class="w"> </span><span class="n">vz</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;{}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">text</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="p">};</span>
+
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="w"> </span><span class="n">task</span><span class="p">({.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">task_fn</span><span class="p">,</span>
+<span class="w">                   </span><span class="p">.</span><span class="n">task_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                       </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;BMI270&quot;</span><span class="p">,</span>
+<span class="w">                       </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">6</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="p">,</span>
+<span class="w">                       </span><span class="p">.</span><span class="n">priority</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span>
+<span class="w">                       </span><span class="p">.</span><span class="n">core_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">                   </span><span class="p">}});</span>
+
+<span class="w">  </span><span class="c1">// print the header for the IMU data (for plotting)</span>
+<span class="w">  </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;% Time (s), &quot;</span>
+<span class="w">             </span><span class="c1">// raw IMU data (accel, gyro, temp)</span>
+<span class="w">             </span><span class="s">&quot;Accel X (g), Accel Y (g), Accel Z (g), &quot;</span>
+<span class="w">             </span><span class="s">&quot;Gyro X (°/s), Gyro Y (°/s), Gyro Z (°/s), &quot;</span>
+<span class="w">             </span><span class="s">&quot;Temp (°C), &quot;</span>
+<span class="w">             </span><span class="c1">// kalman filter outputs</span>
+<span class="w">             </span><span class="s">&quot;Kalman Roll (rad), Kalman Pitch (rad), Kalman Yaw (rad), &quot;</span>
+<span class="w">             </span><span class="s">&quot;Kalman Gravity X, Kalman Gravity Y, Kalman Gravity Z, &quot;</span>
+<span class="w">             </span><span class="c1">// madgwick filter outputs</span>
+<span class="w">             </span><span class="s">&quot;Madgwick Roll (rad), Madgwick Pitch (rad), Madgwick Yaw (rad), &quot;</span>
+<span class="w">             </span><span class="s">&quot;Madgwick Gravity X, Madgwick Gravity Y, Madgwick Gravity Z</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Starting task...&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">task</span><span class="p">.</span><span class="n">start</span><span class="p">();</span>
+
+<span class="w">  </span><span class="c1">// loop forever</span>
+<span class="w">  </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">1</span><span class="n">s</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The BMI270 is a highly integrated, low power inertial measurement unit (IMU) that combines precise acceleration and angular rate measurement with intelligent on-chip motion-triggered interrupt features.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>Interface</strong> – The interface type of the BMI270 (I2C or SPI)</p>
+</dd>
+</dl>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi2709filter_fnE">
+<span id="_CPPv3N4espp6Bmi2709filter_fnE"></span><span id="_CPPv2N4espp6Bmi2709filter_fnE"></span><span id="espp::Bmi270::filter_fn"></span><span class="target" id="classespp_1_1Bmi270_1aafd44a32c44b1c5b75368ffcc5f89cd1"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">Value</span></span><span class="p"><span class="pre">(</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Value</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Value</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">filter_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Bmi2709filter_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Filter function for filtering 6-axis data into 3-axis orientation data </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param dt<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The time step in seconds </p>
+</dd>
+<dt class="field-even">Param accel<span class="colon">:</span></dt>
+<dd class="field-even"><p>The accelerometer data </p>
+</dd>
+<dt class="field-odd">Param gyro<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The gyroscope data </p>
+</dd>
+<dt class="field-even">Return<span class="colon">:</span></dt>
+<dd class="field-even"><p>The filtered orientation data in radians </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi2708probe_fnE">
+<span id="_CPPv3N4espp6Bmi2708probe_fnE"></span><span id="_CPPv2N4espp6Bmi2708probe_fnE"></span><span id="espp::Bmi270::probe_fn"></span><span class="target" id="classespp_1_1BasePeripheral_1ad12a713efc443157b7d6fd1ba4fdf88f"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">probe_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Bmi2708probe_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to probe the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param address<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The address to probe </p>
+</dd>
+<dt class="field-even">Return<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the peripheral is found at the given address </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi2706Bmi270ERK6Config">
+<span id="_CPPv3N4espp6Bmi2706Bmi270ERK6Config"></span><span id="_CPPv2N4espp6Bmi2706Bmi270ERK6Config"></span><span id="espp::Bmi270::Bmi270__ConfigCR"></span><span class="target" id="classespp_1_1Bmi270_1a0dcce95a1ddc9dd4bd9e6d84d55e4d7e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Bmi270</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Bmi2706ConfigE" title="espp::Bmi270::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi2706Bmi270ERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Constructor </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – The configuration </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi2704initERNSt10error_codeE">
+<span id="_CPPv3N4espp6Bmi2704initERNSt10error_codeE"></span><span id="_CPPv2N4espp6Bmi2704initERNSt10error_codeE"></span><span id="espp::Bmi270::init__std::error_codeR"></span><span class="target" id="classespp_1_1Bmi270_1a39e9b014eef427fc196d7d42ff3db991"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">init</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi2704initERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the BMI270 </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code to set if an error occurs </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the BMI270 was initialized successfully, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27013get_device_idERNSt10error_codeE">
+<span id="_CPPv3N4espp6Bmi27013get_device_idERNSt10error_codeE"></span><span id="_CPPv2N4espp6Bmi27013get_device_idERNSt10error_codeE"></span><span id="espp::Bmi270::get_device_id__std::error_codeR"></span><span class="target" id="classespp_1_1Bmi270_1af27b0c5dca47016eb7e656e2d474dd20"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_device_id</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27013get_device_idERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the device ID </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code to set if an error occurs </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The device ID </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27010soft_resetERNSt10error_codeE">
+<span id="_CPPv3N4espp6Bmi27010soft_resetERNSt10error_codeE"></span><span id="_CPPv2N4espp6Bmi27010soft_resetERNSt10error_codeE"></span><span id="espp::Bmi270::soft_reset__std::error_codeR"></span><span class="target" id="classespp_1_1Bmi270_1a671bf0447b8ac15fa1e5dcfe07939798"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">soft_reset</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27010soft_resetERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Perform soft reset </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code to set if an error occurs </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if reset was successful, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27018set_low_power_modeEbRNSt10error_codeE">
+<span id="_CPPv3N4espp6Bmi27018set_low_power_modeEbRNSt10error_codeE"></span><span id="_CPPv2N4espp6Bmi27018set_low_power_modeEbRNSt10error_codeE"></span><span id="espp::Bmi270::set_low_power_mode__b.std::error_codeR"></span><span class="target" id="classespp_1_1Bmi270_1a8418a1c017fafecff1d1770aaf36f1dc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_low_power_mode</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">enabled</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27018set_low_power_modeEbRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set whether to enable or disable low power mode </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>enabled</strong> – True to enable low power mode, false to disable </p></li>
+<li><p><strong>ec</strong> – The error code to set if an error occurs </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if power mode was set successfully, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27025enable_temperature_sensorEbRNSt10error_codeE">
+<span id="_CPPv3N4espp6Bmi27025enable_temperature_sensorEbRNSt10error_codeE"></span><span id="_CPPv2N4espp6Bmi27025enable_temperature_sensorEbRNSt10error_codeE"></span><span id="espp::Bmi270::enable_temperature_sensor__b.std::error_codeR"></span><span class="target" id="classespp_1_1Bmi270_1a21a2eb7556dbd913c966b11a489fce91"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">enable_temperature_sensor</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">enable</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27025enable_temperature_sensorEbRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Enable/disable temperature sensor </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>enable</strong> – True to enable, false to disable </p></li>
+<li><p><strong>ec</strong> – The error code to set if an error occurs </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if successful, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27020enable_accelerometerEbRNSt10error_codeE">
+<span id="_CPPv3N4espp6Bmi27020enable_accelerometerEbRNSt10error_codeE"></span><span id="_CPPv2N4espp6Bmi27020enable_accelerometerEbRNSt10error_codeE"></span><span id="espp::Bmi270::enable_accelerometer__b.std::error_codeR"></span><span class="target" id="classespp_1_1Bmi270_1ab0b50526dfab5ea345dff91d269fad6f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">enable_accelerometer</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">enable</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27020enable_accelerometerEbRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Enable/disable accelerometer </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>enable</strong> – True to enable, false to disable </p></li>
+<li><p><strong>ec</strong> – The error code to set if an error occurs </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if successful, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27016enable_gyroscopeEbRNSt10error_codeE">
+<span id="_CPPv3N4espp6Bmi27016enable_gyroscopeEbRNSt10error_codeE"></span><span id="_CPPv2N4espp6Bmi27016enable_gyroscopeEbRNSt10error_codeE"></span><span id="espp::Bmi270::enable_gyroscope__b.std::error_codeR"></span><span class="target" id="classespp_1_1Bmi270_1a22cbf23d96f201a32c7be4fd20f2d521"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">enable_gyroscope</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">enable</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27016enable_gyroscopeEbRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Enable/disable gyroscope </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>enable</strong> – True to enable, false to disable </p></li>
+<li><p><strong>ec</strong> – The error code to set if an error occurs </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if successful, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27010set_configERK9ImuConfigRNSt10error_codeE">
+<span id="_CPPv3N4espp6Bmi27010set_configERK9ImuConfigRNSt10error_codeE"></span><span id="_CPPv2N4espp6Bmi27010set_configERK9ImuConfigRNSt10error_codeE"></span><span id="espp::Bmi270::set_config__ImuConfigCR.std::error_codeR"></span><span class="target" id="classespp_1_1Bmi270_1a5d1c44294ce2550784b4cd00fe6ecc07"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_config</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">ImuConfig</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">imu_config</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27010set_configERK9ImuConfigRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the IMU configuration </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>imu_config</strong> – The IMU configuration </p></li>
+<li><p><strong>ec</strong> – The error code to set if an error occurs </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the configuration was set successfully, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Bmi27010get_configEv">
+<span id="_CPPv3NK4espp6Bmi27010get_configEv"></span><span id="_CPPv2NK4espp6Bmi27010get_configEv"></span><span id="espp::Bmi270::get_configC"></span><span class="target" id="classespp_1_1Bmi270_1aeac1bc93e23ea4eff7d470ad3086eb8f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">ImuConfig</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_config</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Bmi27010get_configEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the IMU configuration </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The IMU configuration </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27012has_new_dataERNSt10error_codeE">
+<span id="_CPPv3N4espp6Bmi27012has_new_dataERNSt10error_codeE"></span><span id="_CPPv2N4espp6Bmi27012has_new_dataERNSt10error_codeE"></span><span id="espp::Bmi270::has_new_data__std::error_codeR"></span><span class="target" id="classespp_1_1Bmi270_1a1da7554786554cb1998cbb8dcded1d48"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">has_new_data</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27012has_new_dataERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Check if new data is available </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code to set if an error occurs </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if new data is available, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Bmi27012has_new_dataEv">
+<span id="_CPPv3NK4espp6Bmi27012has_new_dataEv"></span><span id="_CPPv2NK4espp6Bmi27012has_new_dataEv"></span><span id="espp::Bmi270::has_new_dataC"></span><span class="target" id="classespp_1_1Bmi270_1ab20b66aba429c963de8e07e9a075a77d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">has_new_data</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Bmi27012has_new_dataEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Check if new data is available (cached version) </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if new data is available, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi2706updateEfRNSt10error_codeE">
+<span id="_CPPv3N4espp6Bmi2706updateEfRNSt10error_codeE"></span><span id="_CPPv2N4espp6Bmi2706updateEfRNSt10error_codeE"></span><span id="espp::Bmi270::update__float.std::error_codeR"></span><span class="target" id="classespp_1_1Bmi270_1a7ee24db9fea6f6598e61db3bb93870e9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">update</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dt</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi2706updateEfRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Update all sensor data </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dt</strong> – The time step in seconds </p></li>
+<li><p><strong>ec</strong> – The error code to set if an error occurs </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if data was updated successfully, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Bmi27017get_accelerometerEv">
+<span id="_CPPv3NK4espp6Bmi27017get_accelerometerEv"></span><span id="_CPPv2NK4espp6Bmi27017get_accelerometerEv"></span><span id="espp::Bmi270::get_accelerometerC"></span><span class="target" id="classespp_1_1Bmi270_1a31b54284435fcf2242452e47885df013"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">Value</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_accelerometer</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Bmi27017get_accelerometerEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get accelerometer data </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The accelerometer data in g </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27018read_accelerometerERNSt10error_codeE">
+<span id="_CPPv3N4espp6Bmi27018read_accelerometerERNSt10error_codeE"></span><span id="_CPPv2N4espp6Bmi27018read_accelerometerERNSt10error_codeE"></span><span id="espp::Bmi270::read_accelerometer__std::error_codeR"></span><span class="target" id="classespp_1_1Bmi270_1abd58d42e2634a424b58af760b6ce3a8a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">Value</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_accelerometer</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27018read_accelerometerERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read accelerometer data </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code to set if an error occurs </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The accelerometer data in g </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Bmi27013get_gyroscopeEv">
+<span id="_CPPv3NK4espp6Bmi27013get_gyroscopeEv"></span><span id="_CPPv2NK4espp6Bmi27013get_gyroscopeEv"></span><span id="espp::Bmi270::get_gyroscopeC"></span><span class="target" id="classespp_1_1Bmi270_1a4b033e4d7295dc8816f7ba11d21929a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">Value</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_gyroscope</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Bmi27013get_gyroscopeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get gyroscope data </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The gyroscope data in °/s </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27014read_gyroscopeERNSt10error_codeE">
+<span id="_CPPv3N4espp6Bmi27014read_gyroscopeERNSt10error_codeE"></span><span id="_CPPv2N4espp6Bmi27014read_gyroscopeERNSt10error_codeE"></span><span id="espp::Bmi270::read_gyroscope__std::error_codeR"></span><span class="target" id="classespp_1_1Bmi270_1a88c39917692a55ccc043f49826828d3f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">Value</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_gyroscope</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27014read_gyroscopeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read gyroscope data </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code to set if an error occurs </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The gyroscope data in °/s </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Bmi27015get_temperatureEv">
+<span id="_CPPv3NK4espp6Bmi27015get_temperatureEv"></span><span id="_CPPv2NK4espp6Bmi27015get_temperatureEv"></span><span id="espp::Bmi270::get_temperatureC"></span><span class="target" id="classespp_1_1Bmi270_1a0f7d0800a9b21134214365093ed27c0d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_temperature</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Bmi27015get_temperatureEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get temperature </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The temperature in °C </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27016read_temperatureERNSt10error_codeE">
+<span id="_CPPv3N4espp6Bmi27016read_temperatureERNSt10error_codeE"></span><span id="_CPPv2N4espp6Bmi27016read_temperatureERNSt10error_codeE"></span><span id="espp::Bmi270::read_temperature__std::error_codeR"></span><span class="target" id="classespp_1_1Bmi270_1a37dd958190fdc479bdaea564d2beab26"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_temperature</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27016read_temperatureERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read temperature </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code to set if an error occurs </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The temperature in °C </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Bmi27015get_orientationEv">
+<span id="_CPPv3NK4espp6Bmi27015get_orientationEv"></span><span id="_CPPv2NK4espp6Bmi27015get_orientationEv"></span><span id="espp::Bmi270::get_orientationC"></span><span class="target" id="classespp_1_1Bmi270_1a327a5f6d5f4baa72ae66849ef18e8e56"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">Value</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_orientation</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Bmi27015get_orientationEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get orientation data </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The orientation data in radians </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Bmi27018get_gravity_vectorEv">
+<span id="_CPPv3NK4espp6Bmi27018get_gravity_vectorEv"></span><span id="_CPPv2NK4espp6Bmi27018get_gravity_vectorEv"></span><span id="espp::Bmi270::get_gravity_vectorC"></span><span class="target" id="classespp_1_1Bmi270_1afd8c6ae124106d8bfa9fc52479cda2f8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">Value</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_gravity_vector</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Bmi27018get_gravity_vectorEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get gravity vector </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The gravity vector </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Bmi27029get_accelerometer_sensitivityEv">
+<span id="_CPPv3NK4espp6Bmi27029get_accelerometer_sensitivityEv"></span><span id="_CPPv2NK4espp6Bmi27029get_accelerometer_sensitivityEv"></span><span id="espp::Bmi270::get_accelerometer_sensitivityC"></span><span class="target" id="classespp_1_1Bmi270_1a290eebbc86e7294b85c62408da9df412"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_accelerometer_sensitivity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Bmi27029get_accelerometer_sensitivityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get accelerometer sensitivity </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The accelerometer sensitivity in LSB/g </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Bmi27025get_gyroscope_sensitivityEv">
+<span id="_CPPv3NK4espp6Bmi27025get_gyroscope_sensitivityEv"></span><span id="_CPPv2NK4espp6Bmi27025get_gyroscope_sensitivityEv"></span><span id="espp::Bmi270::get_gyroscope_sensitivityC"></span><span class="target" id="classespp_1_1Bmi270_1ae376086beed0b4a45aae85bb474460db"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_gyroscope_sensitivity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Bmi27025get_gyroscope_sensitivityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get gyroscope sensitivity </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The gyroscope sensitivity in LSB/(°/s) </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27020configure_interruptsERK15InterruptConfigRNSt10error_codeE">
+<span id="_CPPv3N4espp6Bmi27020configure_interruptsERK15InterruptConfigRNSt10error_codeE"></span><span id="_CPPv2N4espp6Bmi27020configure_interruptsERK15InterruptConfigRNSt10error_codeE"></span><span id="espp::Bmi270::configure_interrupts__InterruptConfigCR.std::error_codeR"></span><span class="target" id="classespp_1_1Bmi270_1ae72cadc47a02b68adf4aa580292dda22"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">configure_interrupts</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">InterruptConfig</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27020configure_interruptsERK15InterruptConfigRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configure interrupts </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>config</strong> – The interrupt configuration </p></li>
+<li><p><strong>ec</strong> – The error code to set if an error occurs </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if interrupts were configured successfully, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27017perform_accel_focERK14AccelFocGValueRNSt10error_codeE">
+<span id="_CPPv3N4espp6Bmi27017perform_accel_focERK14AccelFocGValueRNSt10error_codeE"></span><span id="_CPPv2N4espp6Bmi27017perform_accel_focERK14AccelFocGValueRNSt10error_codeE"></span><span id="espp::Bmi270::perform_accel_foc__AccelFocGValueCR.std::error_codeR"></span><span class="target" id="classespp_1_1Bmi270_1a1ddeea83f9072e0f16fea251931d00ad"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">perform_accel_foc</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">AccelFocGValue</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">accel_g_value</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27017perform_accel_focERK14AccelFocGValueRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Perform the accelerometer Fast Offset Compensation (FOC). </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function blocks for at least 2.5 seconds. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>accel_g_value</strong> – The g-value to use for FOC (must have exactly one axis set to 1 or -1). </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the FOC completed successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27016perform_gyro_focERNSt10error_codeE">
+<span id="_CPPv3N4espp6Bmi27016perform_gyro_focERNSt10error_codeE"></span><span id="_CPPv2N4espp6Bmi27016perform_gyro_focERNSt10error_codeE"></span><span id="espp::Bmi270::perform_gyro_foc__std::error_codeR"></span><span class="target" id="classespp_1_1Bmi270_1a5645aeb57344441b8e94f09d11f89038"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">perform_gyro_foc</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27016perform_gyro_focERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Perform the gyroscope Fast Offset Compensation (FOC). </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function blocks for more than 5.5 seconds. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the FOC completed successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27011perform_crtERNSt10error_codeE">
+<span id="_CPPv3N4espp6Bmi27011perform_crtERNSt10error_codeE"></span><span id="_CPPv2N4espp6Bmi27011perform_crtERNSt10error_codeE"></span><span id="espp::Bmi270::perform_crt__std::error_codeR"></span><span class="target" id="classespp_1_1Bmi270_1a4b1c5667686c9944c7a229cd13856636"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">perform_crt</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27011perform_crtERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Perform the Component Re-Trimming (CRT) for the gyroscope. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function blocks for up to 2.5 seconds. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the CRT completed successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27024abort_crt_gyro_self_testERNSt10error_codeE">
+<span id="_CPPv3N4espp6Bmi27024abort_crt_gyro_self_testERNSt10error_codeE"></span><span id="_CPPv2N4espp6Bmi27024abort_crt_gyro_self_testERNSt10error_codeE"></span><span id="espp::Bmi270::abort_crt_gyro_self_test__std::error_codeR"></span><span class="target" id="classespp_1_1Bmi270_1a724ae98adb8389a34b3f35f7d0d900c1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">abort_crt_gyro_self_test</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27024abort_crt_gyro_self_testERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Abort CRT or Gyro Self Test. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the operation was successful, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27022perform_gyro_self_testERNSt10error_codeE">
+<span id="_CPPv3N4espp6Bmi27022perform_gyro_self_testERNSt10error_codeE"></span><span id="_CPPv2N4espp6Bmi27022perform_gyro_self_testERNSt10error_codeE"></span><span id="espp::Bmi270::perform_gyro_self_test__std::error_codeR"></span><span class="target" id="classespp_1_1Bmi270_1aa1ebc11fba9571ab122ed98c04a3d1f9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">perform_gyro_self_test</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27022perform_gyro_self_testERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Perform the gyroscope self-test procedure. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function blocks for at least 2 seconds. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the self-test passed, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27016get_accel_offsetER6int8_tR6int8_tR6int8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Bmi27016get_accel_offsetER6int8_tR6int8_tR6int8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Bmi27016get_accel_offsetER6int8_tR6int8_tR6int8_tRNSt10error_codeE"></span><span id="espp::Bmi270::get_accel_offset__int8_tR.int8_tR.int8_tR.std::error_codeR"></span><span class="target" id="classespp_1_1Bmi270_1a48cab19abc8b9f0b3ad519ab7b7b9635"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_accel_offset</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">int8_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="n"><span class="pre">int8_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">y</span></span>, <span class="n"><span class="pre">int8_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">z</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27016get_accel_offsetER6int8_tR6int8_tR6int8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get Accelerometer Offsets </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – [out] X-axis offset (8-bit signed) </p></li>
+<li><p><strong>y</strong> – [out] Y-axis offset (8-bit signed) </p></li>
+<li><p><strong>z</strong> – [out] Z-axis offset (8-bit signed) </p></li>
+<li><p><strong>ec</strong> – The error code to set if an error occurs </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if successful </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27016set_accel_offsetE6int8_t6int8_t6int8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Bmi27016set_accel_offsetE6int8_t6int8_t6int8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Bmi27016set_accel_offsetE6int8_t6int8_t6int8_tRNSt10error_codeE"></span><span id="espp::Bmi270::set_accel_offset__int8_t.int8_t.int8_t.std::error_codeR"></span><span class="target" id="classespp_1_1Bmi270_1a153b65875b3d60b553b224c78e4c2ab1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_accel_offset</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">int8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">x</span></span>, <span class="n"><span class="pre">int8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">y</span></span>, <span class="n"><span class="pre">int8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">z</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27016set_accel_offsetE6int8_t6int8_t6int8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set Accelerometer Offsets </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – X-axis offset (8-bit signed) </p></li>
+<li><p><strong>y</strong> – Y-axis offset (8-bit signed) </p></li>
+<li><p><strong>z</strong> – Z-axis offset (8-bit signed) </p></li>
+<li><p><strong>ec</strong> – The error code to set if an error occurs </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if successful </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27023set_accel_offset_enableEbRNSt10error_codeE">
+<span id="_CPPv3N4espp6Bmi27023set_accel_offset_enableEbRNSt10error_codeE"></span><span id="_CPPv2N4espp6Bmi27023set_accel_offset_enableEbRNSt10error_codeE"></span><span id="espp::Bmi270::set_accel_offset_enable__b.std::error_codeR"></span><span class="target" id="classespp_1_1Bmi270_1aa9cf0021171024d2a9f527d12b79e1bd"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_accel_offset_enable</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">enable</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27023set_accel_offset_enableEbRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Enable/Disable Accelerometer Offset Compensation </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>enable</strong> – True to enable, false to disable </p></li>
+<li><p><strong>ec</strong> – The error code to set if an error occurs </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if successful </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27015get_gyro_offsetER7int16_tR7int16_tR7int16_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Bmi27015get_gyro_offsetER7int16_tR7int16_tR7int16_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Bmi27015get_gyro_offsetER7int16_tR7int16_tR7int16_tRNSt10error_codeE"></span><span id="espp::Bmi270::get_gyro_offset__int16_tR.int16_tR.int16_tR.std::error_codeR"></span><span class="target" id="classespp_1_1Bmi270_1a862924d6699ba139857b7cb4274e0ff8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_gyro_offset</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">int16_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="n"><span class="pre">int16_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">y</span></span>, <span class="n"><span class="pre">int16_t</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">z</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27015get_gyro_offsetER7int16_tR7int16_tR7int16_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get Gyroscope Offsets </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – [out] X-axis offset </p></li>
+<li><p><strong>y</strong> – [out] Y-axis offset </p></li>
+<li><p><strong>z</strong> – [out] Z-axis offset </p></li>
+<li><p><strong>ec</strong> – The error code to set if an error occurs </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if successful </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27015set_gyro_offsetE7int16_t7int16_t7int16_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Bmi27015set_gyro_offsetE7int16_t7int16_t7int16_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Bmi27015set_gyro_offsetE7int16_t7int16_t7int16_tRNSt10error_codeE"></span><span id="espp::Bmi270::set_gyro_offset__int16_t.int16_t.int16_t.std::error_codeR"></span><span class="target" id="classespp_1_1Bmi270_1abe67687845dd958394a2284eded0f57a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_gyro_offset</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">int16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">x</span></span>, <span class="n"><span class="pre">int16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">y</span></span>, <span class="n"><span class="pre">int16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">z</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27015set_gyro_offsetE7int16_t7int16_t7int16_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set Gyroscope Offsets </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – X-axis offset. Must be within 10-bit range [-512, 511]. </p></li>
+<li><p><strong>y</strong> – Y-axis offset. Must be within 10-bit range [-512, 511]. </p></li>
+<li><p><strong>z</strong> – Z-axis offset. Must be within 10-bit range [-512, 511]. </p></li>
+<li><p><strong>ec</strong> – The error code to set if an error occurs </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if successful </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27022set_gyro_offset_enableEbRNSt10error_codeE">
+<span id="_CPPv3N4espp6Bmi27022set_gyro_offset_enableEbRNSt10error_codeE"></span><span id="_CPPv2N4espp6Bmi27022set_gyro_offset_enableEbRNSt10error_codeE"></span><span id="espp::Bmi270::set_gyro_offset_enable__b.std::error_codeR"></span><span class="target" id="classespp_1_1Bmi270_1ac3ed76b965cbfb7c435cacc85354f381"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_gyro_offset_enable</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">enable</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27022set_gyro_offset_enableEbRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Enable/Disable Gyroscope Offset Compensation </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>enable</strong> – True to enable, false to disable </p></li>
+<li><p><strong>ec</strong> – The error code to set if an error occurs </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if successful </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27020set_gyro_gain_enableEbRNSt10error_codeE">
+<span id="_CPPv3N4espp6Bmi27020set_gyro_gain_enableEbRNSt10error_codeE"></span><span id="_CPPv2N4espp6Bmi27020set_gyro_gain_enableEbRNSt10error_codeE"></span><span id="espp::Bmi270::set_gyro_gain_enable__b.std::error_codeR"></span><span class="target" id="classespp_1_1Bmi270_1a8db3e7d0698473ab5d0a2e9a5e313d0e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_gyro_gain_enable</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">enable</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27020set_gyro_gain_enableEbRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Enable/Disable Gyroscope Gain Compensation </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>enable</strong> – True to enable, false to disable </p></li>
+<li><p><strong>ec</strong> – The error code to set if an error occurs </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if successful </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Bmi2705probeERNSt10error_codeE">
+<span id="_CPPv3NK4espp6Bmi2705probeERNSt10error_codeE"></span><span id="_CPPv2NK4espp6Bmi2705probeERNSt10error_codeE"></span><span id="espp::Bmi270::probe__std::error_codeRC"></span><span class="target" id="classespp_1_1BasePeripheral_1a05481a009a7302fff3b43d301de6b1eb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">probe</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Bmi2705probeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Probe the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the probe function is not set, this function will return false and set the error code to operation_not_supported </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is only available if UseAddress is true </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code to set if there is an error </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the peripheral is found </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27011set_addressE7uint8_t">
+<span id="_CPPv3N4espp6Bmi27011set_addressE7uint8_t"></span><span id="_CPPv2N4espp6Bmi27011set_addressE7uint8_t"></span><span id="espp::Bmi270::set_address__uint8_t"></span><span class="target" id="classespp_1_1BasePeripheral_1a31fb8ec471403bf9be06428dbc46277a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_address</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">address</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27011set_addressE7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the address of the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is only available if UseAddress is true </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>address</strong> – The address of the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi2709set_probeERK8probe_fn">
+<span id="_CPPv3N4espp6Bmi2709set_probeERK8probe_fn"></span><span id="_CPPv2N4espp6Bmi2709set_probeERK8probe_fn"></span><span id="espp::Bmi270::set_probe__probe_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a5b5d7753ea6ccf361e495fdc80c81f19"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_probe</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Bmi2708probe_fnE" title="espp::Bmi270::probe_fn"><span class="n"><span class="pre">probe_fn</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">probe</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi2709set_probeERK8probe_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the probe function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the probe function is usually set in the constructor. If you need to change the probe function, consider using the set_config function instead. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is only available if UseAddress is true </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>probe</strong> – The probe function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi2709set_writeERK8write_fn">
+<span id="_CPPv3N4espp6Bmi2709set_writeERK8write_fn"></span><span id="_CPPv2N4espp6Bmi2709set_writeERK8write_fn"></span><span id="espp::Bmi270::set_write__write_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1ab5d5d18cd4e8893ed4f937dcfdaba5ba"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_write</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">write_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">write</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi2709set_writeERK8write_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the write function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the write function is usually set in the constructor. If you need to change the write function, consider using the set_config function instead. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>write</strong> – The write function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi2708set_readERK7read_fn">
+<span id="_CPPv3N4espp6Bmi2708set_readERK7read_fn"></span><span id="_CPPv2N4espp6Bmi2708set_readERK7read_fn"></span><span id="espp::Bmi270::set_read__read_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1aa6d8131a30233e8439628815db8b1843"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_read</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">read_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">read</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi2708set_readERK7read_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the read function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the read function is usually set in the constructor. If you need to change the read function, consider using the set_config function instead. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>read</strong> – The read function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27017set_read_registerERK16read_register_fn">
+<span id="_CPPv3N4espp6Bmi27017set_read_registerERK16read_register_fn"></span><span id="_CPPv2N4espp6Bmi27017set_read_registerERK16read_register_fn"></span><span id="espp::Bmi270::set_read_register__read_register_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a72e039592417cd32bc47c77120005d3f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_read_register</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">read_register_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">read_register</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27017set_read_registerERK16read_register_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the read register function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the read register function is usually set in the constructor. If you need to change the read register function, consider using the set_config function instead. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>read_register</strong> – The read register function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27019set_write_then_readERK18write_then_read_fn">
+<span id="_CPPv3N4espp6Bmi27019set_write_then_readERK18write_then_read_fn"></span><span id="_CPPv2N4espp6Bmi27019set_write_then_readERK18write_then_read_fn"></span><span id="espp::Bmi270::set_write_then_read__write_then_read_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a07b152dbfba43b5c82a498416f6887b2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_write_then_read</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">write_then_read_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">write_then_read</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27019set_write_then_readERK18write_then_read_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the write then read function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the write then read function is usually set in the constructor. If you need to change the write then </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>write_then_read</strong> – The write then read function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27034set_separate_write_then_read_delayERKNSt6chrono12millisecondsE">
+<span id="_CPPv3N4espp6Bmi27034set_separate_write_then_read_delayERKNSt6chrono12millisecondsE"></span><span id="_CPPv2N4espp6Bmi27034set_separate_write_then_read_delayERKNSt6chrono12millisecondsE"></span><span id="espp::Bmi270::set_separate_write_then_read_delay__std::chrono::millisecondsCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a8c70b96c37525f90cc85ddfe4a40b82a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_separate_write_then_read_delay</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">milliseconds</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">delay</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27034set_separate_write_then_read_delayERKNSt6chrono12millisecondsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the delay between the write and read operations in write_then_read </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the delay is usually set in the constructor. If you need to change the delay, consider using the set_config function instead. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This delay is only used if the write_then_read function is not set to a custom function and the write and read functions are separate functions. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>delay</strong> – The delay between the write and read operations in write_then_read </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27010set_configERK6Config">
+<span id="_CPPv3N4espp6Bmi27010set_configERK6Config"></span><span id="_CPPv2N4espp6Bmi27010set_configERK6Config"></span><span id="espp::Bmi270::set_config__ConfigCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a163b98a30940711b23a7e7dce81efe0c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_config</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Bmi2706ConfigE" title="espp::Bmi270::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27010set_configERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the configuration for the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The configuration should normally be set in the constructor, but this function can be used to change the configuration after the peripheral has been created - for instance if the peripheral could be found on different communications buses. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – The configuration for the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27010set_configERR6Config">
+<span id="_CPPv3N4espp6Bmi27010set_configERR6Config"></span><span id="_CPPv2N4espp6Bmi27010set_configERR6Config"></span><span id="espp::Bmi270::set_config__ConfigRR"></span><span class="target" id="classespp_1_1BasePeripheral_1a704004cfda66bf3ce5ed725b3003c32b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_config</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Bmi2706ConfigE" title="espp::Bmi270::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27010set_configERR6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the configuration for the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The configuration should normally be set in the constructor, but this function can be used to change the configuration after the peripheral has been created - for instance if the peripheral could be found on different communications buses. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – The configuration for the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Bmi2706configEv">
+<span id="_CPPv3NK4espp6Bmi2706configEv"></span><span id="_CPPv2NK4espp6Bmi2706configEv"></span><span id="espp::Bmi270::configC"></span><span class="target" id="classespp_1_1BasePeripheral_1ae66896cf25c9dde79522f354cdb23896"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Bmi2706ConfigE" title="espp::Bmi270::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">config</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Bmi2706configEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the configuration for the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The configuration for the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Bmi2707addressEv">
+<span id="_CPPv3NK4espp6Bmi2707addressEv"></span><span id="_CPPv2NK4espp6Bmi2707addressEv"></span><span id="espp::Bmi270::addressC"></span><span class="target" id="classespp_1_1BasePeripheral_1add730fb3307dd52ed5f8905a576e7ecc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">address</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Bmi2707addressEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the address of the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The address of the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Bmi2708get_nameEv">
+<span id="_CPPv3NK4espp6Bmi2708get_nameEv"></span><span id="_CPPv2NK4espp6Bmi2708get_nameEv"></span><span id="espp::Bmi270::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Bmi2708get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27011set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp6Bmi27011set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp6Bmi27011set_log_tagERKNSt11string_viewE"></span><span id="espp::Bmi270::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27011set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Bmi27013get_log_levelEv">
+<span id="_CPPv3NK4espp6Bmi27013get_log_levelEv"></span><span id="_CPPv2NK4espp6Bmi27013get_log_levelEv"></span><span id="espp::Bmi270::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Bmi27013get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27013set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp6Bmi27013set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp6Bmi27013set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::Bmi270::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27013set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27017set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp6Bmi27017set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp6Bmi27017set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::Bmi270::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27017set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../ws_s3_touch.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Bmi27017get_log_verbosityEv">
+<span id="_CPPv3NK4espp6Bmi27017get_log_verbosityEv"></span><span id="_CPPv2NK4espp6Bmi27017get_log_verbosityEv"></span><span id="espp::Bmi270::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Bmi27017get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../ws_s3_touch.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27018set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp6Bmi27018set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp6Bmi27018set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::Bmi270::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bmi27018set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27015DEFAULT_ADDRESSE">
+<span id="_CPPv3N4espp6Bmi27015DEFAULT_ADDRESSE"></span><span id="_CPPv2N4espp6Bmi27015DEFAULT_ADDRESSE"></span><span id="espp::Bmi270::DEFAULT_ADDRESS__uint8_t"></span><span class="target" id="classespp_1_1Bmi270_1af55548d1ccffc319f4646deb62723fc8"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DEFAULT_ADDRESS</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x68</span></span><a class="headerlink" href="#_CPPv4N4espp6Bmi27015DEFAULT_ADDRESSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Default I2C address with SDO low. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi27024DEFAULT_ADDRESS_SDO_HIGHE">
+<span id="_CPPv3N4espp6Bmi27024DEFAULT_ADDRESS_SDO_HIGHE"></span><span id="_CPPv2N4espp6Bmi27024DEFAULT_ADDRESS_SDO_HIGHE"></span><span id="espp::Bmi270::DEFAULT_ADDRESS_SDO_HIGH__uint8_t"></span><span class="target" id="classespp_1_1Bmi270_1a66174e08dc8522440a5169d5dd1bbe82"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DEFAULT_ADDRESS_SDO_HIGH</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x69</span></span><a class="headerlink" href="#_CPPv4N4espp6Bmi27024DEFAULT_ADDRESS_SDO_HIGHE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>I2C address with SDO high. </p>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi2706ConfigE">
+<span id="_CPPv3N4espp6Bmi2706ConfigE"></span><span id="_CPPv2N4espp6Bmi2706ConfigE"></span><span id="espp::Bmi270::Config"></span><span class="target" id="structespp_1_1Bmi270_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Bmi2706ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration struct for the BMI270. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi2706Config14device_addressE">
+<span id="_CPPv3N4espp6Bmi2706Config14device_addressE"></span><span id="_CPPv2N4espp6Bmi2706Config14device_addressE"></span><span id="espp::Bmi270::Config::device_address__uint8_t"></span><span class="target" id="structespp_1_1Bmi270_1_1Config_1aa3ff542f58ec9f61dcca00492151efca"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">device_address</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Bmi27015DEFAULT_ADDRESSE" title="espp::Bmi270::DEFAULT_ADDRESS"><span class="n"><span class="pre">DEFAULT_ADDRESS</span></span></a><a class="headerlink" href="#_CPPv4N4espp6Bmi2706Config14device_addressE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>I2C address of the BMI270. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi2706Config5writeE">
+<span id="_CPPv3N4espp6Bmi2706Config5writeE"></span><span id="_CPPv2N4espp6Bmi2706Config5writeE"></span><span id="espp::Bmi270::Config::write__BasePeripheral:uint8_t.Interface-==-bmi270::Interface::I2C:::write_fn"></span><span class="target" id="structespp_1_1Bmi270_1_1Config_1ab57388f4a84b166f822772a854db27b7"></span><a class="reference internal" href="../base_peripheral.html#_CPPv4I_NSt8integralE_b_b_bEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I_N6bmi2709InterfaceEEN4espp6Bmi270E" title="espp::Bmi270::Interface"><span class="n"><span class="pre">Interface</span></span></a><span class="w"> </span><span class="o"><span class="pre">==</span></span><span class="w"> </span><span class="n"><span class="pre">bmi270</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Interface</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">I2C</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">write_fn</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N4espp6Bmi2706Config5writeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Write function. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi2706Config4readE">
+<span id="_CPPv3N4espp6Bmi2706Config4readE"></span><span id="_CPPv2N4espp6Bmi2706Config4readE"></span><span id="espp::Bmi270::Config::read__BasePeripheral:uint8_t.Interface-==-bmi270::Interface::I2C:::read_fn"></span><span class="target" id="structespp_1_1Bmi270_1_1Config_1ae50dc769332e64ead7eba109c2dff73a"></span><a class="reference internal" href="../base_peripheral.html#_CPPv4I_NSt8integralE_b_b_bEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I_N6bmi2709InterfaceEEN4espp6Bmi270E" title="espp::Bmi270::Interface"><span class="n"><span class="pre">Interface</span></span></a><span class="w"> </span><span class="o"><span class="pre">==</span></span><span class="w"> </span><span class="n"><span class="pre">bmi270</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Interface</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">I2C</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">read_fn</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N4espp6Bmi2706Config4readE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read function. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi2706Config10imu_configE">
+<span id="_CPPv3N4espp6Bmi2706Config10imu_configE"></span><span id="_CPPv2N4espp6Bmi2706Config10imu_configE"></span><span id="espp::Bmi270::Config::imu_config__ImuConfig"></span><span class="target" id="structespp_1_1Bmi270_1_1Config_1a9cd92f68784d403bc4aa1418c73d4e38"></span><span class="n"><span class="pre">ImuConfig</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">imu_config</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Bmi2706Config10imu_configE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>IMU configuration. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi2706Config18orientation_filterE">
+<span id="_CPPv3N4espp6Bmi2706Config18orientation_filterE"></span><span id="_CPPv2N4espp6Bmi2706Config18orientation_filterE"></span><span id="espp::Bmi270::Config::orientation_filter__filter_fn"></span><span class="target" id="structespp_1_1Bmi270_1_1Config_1a5cb3d8dac9f54decfcd9a09d13bcbca2"></span><a class="reference internal" href="#_CPPv4N4espp6Bmi2709filter_fnE" title="espp::Bmi270::filter_fn"><span class="n"><span class="pre">filter_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">orientation_filter</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N4espp6Bmi2706Config18orientation_filterE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Filter function for orientation. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi2706Config16burst_write_sizeE">
+<span id="_CPPv3N4espp6Bmi2706Config16burst_write_sizeE"></span><span id="_CPPv2N4espp6Bmi2706Config16burst_write_sizeE"></span><span id="espp::Bmi270::Config::burst_write_size__uint16_t"></span><span class="target" id="structespp_1_1Bmi270_1_1Config_1ac4a3ef7dd8332d1daa318af518c00ef0"></span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">burst_write_size</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N4espp6Bmi2706Config16burst_write_sizeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Maximum number of bytes to write in a single burst during config upload. If 0 will use full config file size of 8192 bytes. Default is 0 (uses full config file size of 8192 bytes). Set this to a small non-zero value (e.g., 128) if you encounter stack overflow or want to decrease memory usage. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi2706Config9auto_initE">
+<span id="_CPPv3N4espp6Bmi2706Config9auto_initE"></span><span id="_CPPv2N4espp6Bmi2706Config9auto_initE"></span><span id="espp::Bmi270::Config::auto_init__b"></span><span class="target" id="structespp_1_1Bmi270_1_1Config_1af25fd811ba3cd45b6cb1866149307c5d"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">auto_init</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp6Bmi2706Config9auto_initE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Automatically initialize the BMI270. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bmi2706Config9log_levelE">
+<span id="_CPPv3N4espp6Bmi2706Config9log_levelE"></span><span id="_CPPv2N4espp6Bmi2706Config9log_levelE"></span><span id="espp::Bmi270::Config::log_level__Logger::Verbosity"></span><span class="target" id="structespp_1_1Bmi270_1_1Config_1a785824212e402a4ac54dfcfdaf00c1ed"></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp6Bmi2706Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Log level. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="id1">
+<h3>Header File<a class="headerlink" href="#id1" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/32e8215e/components/bmi270/include/bmi270_detail.hpp">components/bmi270/include/bmi270_detail.hpp</a></p></li>
+</ul>
+</section>
+<section id="unions">
+<h3>Unions<a class="headerlink" href="#unions" title="Permalink to this heading"></a></h3>
+<dl class="cpp union">
+<dt class="sig sig-object cpp">
+<span class="target" id="unionespp_1_1bmi270_1_1Value_8____unnamed3____"></span><span class="sig-name descname"><span class="pre">espp::bmi270::Value.__unnamed3__</span></span></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="unionespp_1_1bmi270_1_1Value_8____unnamed3_____1ae80230e7c0b67771dddc6a497e5e2e5e"></span><span class="sig-name descname"><span class="pre">struct</span> <span class="pre">espp::bmi270::Value</span></span></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="unionespp_1_1bmi270_1_1Value_8____unnamed3_____1a60e3c12db6ddaae1f88a6e0e8d5118e0"></span><span class="sig-name descname"><span class="pre">struct</span> <span class="pre">espp::bmi270::Value</span></span></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19PhonyNameDueToError6valuesE">
+<span id="_CPPv3N19PhonyNameDueToError6valuesE"></span><span id="_CPPv2N19PhonyNameDueToError6valuesE"></span><span id="PhonyNameDueToError::values__floatA"></span><span class="target" id="unionespp_1_1bmi270_1_1Value_8____unnamed3_____1ade0b2f70455306cc4e316cbfe3aca1cf"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">values</span></span></span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">3</span></span><span class="p"><span class="pre">]</span></span><a class="headerlink" href="#_CPPv4N19PhonyNameDueToError6valuesE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Array access. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+<section id="id2">
+<h3>Classes<a class="headerlink" href="#id2" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN4espp6bmi27010ScopeGuardE">
+<span id="_CPPv3I0EN4espp6bmi27010ScopeGuardE"></span><span id="_CPPv2I0EN4espp6bmi27010ScopeGuardE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">F</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1bmi270_1_1ScopeGuard"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ScopeGuard</span></span></span><a class="headerlink" href="#_CPPv4I0EN4espp6bmi27010ScopeGuardE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="#classespp_1_1bmi270_1_1ScopeGuard"><span class="std std-ref">ScopeGuard</span></a> class for RAII-based cleanup. </p>
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="adxl345_example.html" class="btn btn-neutral float-left" title="ADXL345 Example" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="bmi270_example.html" class="btn btn-neutral float-right" title="BMI270 Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

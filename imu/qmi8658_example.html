@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QMI8658 Example - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'imu/qmi8658_example';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Interrupt APIs" href="../interrupt.html" />
+    <link rel="prev" title="QMI8658 6-Axis IMU" href="qmi8658.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_component.html">Base Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../byte90.html">ALXV Labs Byte90</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cobs.html">COBS (Consistent Overhead Byte Stuffing)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp32_timer_cam.html">ESP32 TimerCam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp_box.html">ESP BOX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../i2c.html">I2C</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">IMU APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="adxl345.html">ADXL345 3-Axis Accelerometer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bmi270.html">BMI270 6-Axis IMU</a></li>
+<li class="toctree-l2"><a class="reference internal" href="icm20948.html">ICM20948 9-Axis IMU</a></li>
+<li class="toctree-l2"><a class="reference internal" href="icm42607.html">ICM42607 6-Axis IMU</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lsm6dso.html">LSM6DSO 6-Axis IMU</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="qmi8658.html">QMI8658 6-Axis IMU</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">QMI8658 Example</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#how-to-use-example">How to use example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#example-output">Example Output</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="qmi8658.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../interrupt.html">Interrupt APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../iperf_menu.html">Iperf Menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../m5stack_tab5.html">M5Stack Tab5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../matouch_rotary_display.html">MaTouch Rotary Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../motorgo_mini.html">MotorGo Mini</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../neopixel.html">Neopixel APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nvs.html">NVS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../remote_debug.html">Remote Debug APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../runqueue.html">RunQueue APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../seeed_studio_round_display.html">Seeed Studio Round Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_deck.html">LilyGo T-Deck</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_dongle_s3.html">LilyGo T-Dongle S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wrover_kit.html">ESP32-WROVER-KIT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">IMU APIs</a></li>
+          <li class="breadcrumb-item"><a href="qmi8658.html">QMI8658 6-Axis IMU</a></li>
+      <li class="breadcrumb-item active">QMI8658 Example</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/32e8215e/docs/en/imu/qmi8658_example.md" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="qmi8658-example">
+<h1>QMI8658 Example<a class="headerlink" href="#qmi8658-example" title="Permalink to this heading"></a></h1>
+<p>This example shows how to use the <code class="docutils literal notranslate"><span class="pre">espp::Qmi8658</span></code> component to initialize and
+communicate with an QMI8658 6-axis IMU.</p>
+<img width="3952" height="2247" alt="CleanShot 2025-07-12 at 18 18 49" src="https://github.com/user-attachments/assets/d9e09dae-2568-46c5-b500-104714704e4c" />
+<section id="how-to-use-example">
+<h2>How to use example<a class="headerlink" href="#how-to-use-example" title="Permalink to this heading"></a></h2>
+<section id="hardware-required">
+<h3>Hardware Required<a class="headerlink" href="#hardware-required" title="Permalink to this heading"></a></h3>
+<p>This example is designed to run on a custom board with a QMI8658 IMU.
+You will need to configure the I2C pins for your specific hardware.</p>
+</section>
+<section id="build-and-flash">
+<h3>Build and Flash<a class="headerlink" href="#build-and-flash" title="Permalink to this heading"></a></h3>
+<p>Build the project and flash it to the board, then run monitor tool to view
+serial output:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">idf</span><span class="o">.</span><span class="n">py</span> <span class="o">-</span><span class="n">p</span> <span class="n">PORT</span> <span class="n">flash</span> <span class="n">monitor</span>
+</pre></div>
+</div>
+<p>(Replace PORT with the name of the serial port to use.)</p>
+<p>(To exit the serial monitor, type <code class="docutils literal notranslate"><span class="pre">Ctrl-]</span></code>.)</p>
+<p>See the Getting Started Guide for full steps to configure and use ESP-IDF to build projects.</p>
+</section>
+</section>
+<section id="example-output">
+<h2>Example Output<a class="headerlink" href="#example-output" title="Permalink to this heading"></a></h2>
+<img width="2032" height="1179" alt="CleanShot 2025-07-12 at 18 19 39" src="https://github.com/user-attachments/assets/b8c1ebb2-8516-4d22-a36e-3cc56cbf3f63" />
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">I (304) main_task: Calling app_main()</span>
+<span class="go">[QMI8658 Example/I][0.035]: Starting example!</span>
+<span class="go">[QMI8658 Example/I][0.041]: Creating IMU</span>
+<span class="gp">% </span>Time<span class="w"> </span><span class="o">(</span>s<span class="o">)</span>,<span class="w"> </span>Accel<span class="w"> </span>X<span class="w"> </span><span class="o">(</span>m/s^2<span class="o">)</span>,<span class="w"> </span>Accel<span class="w"> </span>Y<span class="w"> </span><span class="o">(</span>m/s^2<span class="o">)</span>,<span class="w"> </span>Accel<span class="w"> </span>Z<span class="w"> </span><span class="o">(</span>m/s^2<span class="o">)</span>,<span class="w"> </span>Gyro<span class="w"> </span>X<span class="w"> </span><span class="o">(</span>rad/s<span class="o">)</span>,<span class="w"> </span>Gyro<span class="w"> </span>Y<span class="w"> </span><span class="o">(</span>rad/s<span class="o">)</span>,<span class="w"> </span>Gyro<span class="w"> </span>Z<span class="w"> </span><span class="o">(</span>rad/s<span class="o">)</span>,<span class="w"> </span>Temp<span class="w"> </span><span class="o">(</span>C<span class="o">)</span>,<span class="w"> </span>Kalman<span class="w"> </span>Roll<span class="w"> </span><span class="o">(</span>rad<span class="o">)</span>,<span class="w"> </span>Kalman<span class="w"> </span>Pitch<span class="w"> </span><span class="o">(</span>rad<span class="o">)</span>,<span class="w"> </span>Kalman<span class="w"> </span>Yaw<span class="w"> </span><span class="o">(</span>rad<span class="o">)</span>,<span class="w"> </span>Kalman<span class="w"> </span>Gravity<span class="w"> </span>X,<span class="w"> </span>Kalman<span class="w"> </span>Gravity<span class="w"> </span>Y,<span class="w"> </span>Kalman<span class="w"> </span>Gravity<span class="w"> </span>Z,<span class="w"> </span>Madgwick<span class="w"> </span>Roll<span class="w"> </span><span class="o">(</span>rad<span class="o">)</span>,<span class="w"> </span>Madgwick<span class="w"> </span>Pitch<span class="w"> </span><span class="o">(</span>rad<span class="o">)</span>,<span class="w"> </span>Magwick<span class="w"> </span>Yaw<span class="w"> </span><span class="o">(</span>rad<span class="o">)</span>,<span class="w"> </span>Madgwick<span class="w"> </span>Gravity<span class="w"> </span>X,<span class="w"> </span>Madgwick<span class="w"> </span>Gravity<span class="w"> </span>Y,<span class="w"> </span>Madgwick<span class="w"> </span>Gravity<span class="w"> </span>Z
+<span class="go">[QMI8658 Example/I][0.075]: Starting IMU task</span>
+<span class="go">0.091,0.969,0.141,0.069,0.984,-1.484,0.891,38.6,1.115,-1.409,0.000,-0.987,-0.144,-0.071,0.000,-0.000,0.000,-0.000,-0.000,-1.000</span>
+<span class="go">0.104,0.983,0.141,0.072,1.359,-1.969,0.953,38.6,1.099,-1.412,0.000,-0.987,-0.141,-0.072,0.001,-0.003,0.000,-0.003,-0.001,-1.000</span>
+<span class="go">0.117,0.990,0.140,0.069,1.078,-2.812,1.047,38.6,1.115,-1.414,0.000,-0.988,-0.140,-0.069,0.001,-0.006,0.000,-0.006,-0.001,-1.000</span>
+<span class="go">0.130,0.979,0.143,0.068,0.750,-0.984,0.625,38.6,1.129,-1.411,0.000,-0.987,-0.144,-0.068,0.002,-0.009,0.001,-0.009,-0.002,-1.000</span>
+<span class="go">0.143,0.966,0.146,0.070,0.656,0.906,-0.312,38.6,1.122,-1.405,0.000,-0.986,-0.149,-0.072,0.002,-0.011,0.001,-0.011,-0.002,-1.000</span>
+<span class="go">0.156,0.957,0.146,0.073,0.562,1.031,-0.828,38.6,1.107,-1.401,0.000,-0.986,-0.151,-0.075,0.003,-0.014,0.000,-0.014,-0.003,-1.000</span>
+<span class="go">0.169,0.965,0.144,0.075,1.297,-2.125,1.016,38.6,1.089,-1.404,0.000,-0.986,-0.147,-0.077,0.004,-0.017,0.001,-0.017,-0.004,-1.000</span>
+<span class="go">0.182,0.979,0.142,0.068,1.750,-5.609,3.156,38.6,1.125,-1.411,0.000,-0.987,-0.143,-0.069,0.004,-0.021,0.001,-0.021,-0.004,-1.000</span>
+<span class="go">0.195,0.985,0.137,0.063,1.859,-6.734,4.016,38.6,1.139,-1.418,0.000,-0.988,-0.138,-0.064,0.005,-0.025,0.002,-0.025,-0.005,-1.000</span>
+<span class="go">0.208,0.979,0.135,0.057,1.281,-3.359,2.359,38.6,1.170,-1.422,0.000,-0.989,-0.137,-0.058,0.006,-0.028,0.003,-0.028,-0.006,-1.000</span>
+<span class="go">0.221,0.969,0.137,0.059,0.203,2.172,-0.594,38.6,1.163,-1.418,0.000,-0.988,-0.140,-0.061,0.006,-0.030,0.003,-0.030,-0.006,-1.000</span>
+<span class="go">0.234,0.960,0.139,0.065,-0.109,5.188,-2.547,38.6,1.133,-1.413,0.000,-0.988,-0.143,-0.067,0.006,-0.031,0.002,-0.031,-0.006,-0.999</span>
+<span class="go">0.247,0.965,0.142,0.074,0.125,4.453,-3.250,38.6,1.091,-1.406,0.000,-0.987,-0.145,-0.076,0.007,-0.033,0.001,-0.033,-0.007,-0.999</span>
+<span class="go">0.260,0.981,0.145,0.074,1.000,0.812,-0.594,38.6,1.098,-1.407,0.000,-0.987,-0.146,-0.074,0.008,-0.035,0.001,-0.035,-0.008,-0.999</span>
+<span class="go">0.273,0.990,0.146,0.075,1.266,-3.250,1.234,38.6,1.095,-1.407,0.000,-0.987,-0.145,-0.075,0.008,-0.039,0.001,-0.039,-0.008,-0.999</span>
+<span class="go">0.286,0.986,0.146,0.072,1.125,-2.641,1.500,38.6,1.110,-1.407,0.000,-0.987,-0.146,-0.072,0.009,-0.042,0.002,-0.042,-0.009,-0.999</span>
+<span class="go">0.299,0.973,0.147,0.073,0.531,-0.516,0.031,38.6,1.111,-1.404,0.000,-0.986,-0.149,-0.074,0.009,-0.045,0.002,-0.044,-0.009,-0.999</span>
+<span class="go">0.312,0.965,0.146,0.073,0.188,1.625,-0.812,38.6,1.110,-1.403,0.000,-0.986,-0.150,-0.074,0.010,-0.047,0.001,-0.047,-0.010,-0.999</span>
+<span class="go">0.325,0.965,0.146,0.076,0.594,0.359,-0.500,38.6,1.089,-1.402,0.000,-0.986,-0.149,-0.078,0.010,-0.049,0.001,-0.049,-0.010,-0.999</span>
+<span class="go">0.338,0.972,0.145,0.076,1.328,-3.547,1.969,38.6,1.088,-1.404,0.000,-0.986,-0.147,-0.077,0.011,-0.053,0.002,-0.053,-0.011,-0.999</span>
+<span class="go">0.351,0.976,0.142,0.070,1.750,-5.719,3.656,38.6,1.115,-1.410,0.000,-0.987,-0.144,-0.070,0.012,-0.056,0.003,-0.056,-0.012,-0.998</span>
+<span class="go">0.364,0.979,0.138,0.066,1.656,-5.156,3.219,38.6,1.123,-1.415,0.000,-0.988,-0.140,-0.067,0.012,-0.060,0.003,-0.060,-0.012,-0.998</span>
+<span class="go">0.377,0.980,0.137,0.063,1.203,-2.859,1.109,38.6,1.141,-1.418,0.000,-0.988,-0.138,-0.063,0.013,-0.063,0.003,-0.063,-0.013,-0.998</span>
+<span class="go">0.390,0.978,0.141,0.061,0.891,-0.547,-3.969,38.6,1.161,-1.415,0.000,-0.988,-0.143,-0.062,0.014,-0.066,0.002,-0.066,-0.014,-0.998</span>
+<span class="go">0.403,0.973,0.144,0.064,-0.062,2.141,-1.172,38.6,1.150,-1.410,0.000,-0.987,-0.146,-0.065,0.014,-0.068,0.002,-0.068,-0.014,-0.998</span>
+<span class="go">0.416,0.972,0.145,0.073,0.516,3.078,-1.188,38.6,1.104,-1.405,0.000,-0.986,-0.147,-0.074,0.015,-0.070,0.002,-0.070,-0.014,-0.997</span>
+<span class="go">0.429,0.969,0.148,0.076,0.594,0.828,-0.500,38.6,1.095,-1.400,0.000,-0.986,-0.151,-0.078,0.015,-0.072,0.002,-0.072,-0.015,-0.997</span>
+<span class="go">0.442,0.969,0.145,0.075,1.094,-2.031,1.484,38.6,1.090,-1.404,0.000,-0.986,-0.147,-0.077,0.016,-0.075,0.002,-0.075,-0.016,-0.997</span>
+<span class="go">0.455,0.968,0.141,0.073,1.656,-5.109,3.062,38.6,1.095,-1.409,0.000,-0.987,-0.144,-0.074,0.016,-0.079,0.003,-0.079,-0.016,-0.997</span>
+<span class="go">0.468,0.972,0.139,0.066,2.234,-6.969,4.094,38.6,1.130,-1.414,0.000,-0.988,-0.141,-0.067,0.017,-0.083,0.004,-0.083,-0.017,-0.996</span>
+<span class="go">0.481,0.977,0.136,0.056,1.859,-5.938,3.375,38.6,1.179,-1.421,0.000,-0.989,-0.138,-0.057,0.018,-0.087,0.004,-0.087,-0.018,-0.996</span>
+<span class="go">0.494,0.982,0.137,0.055,1.078,-1.797,1.328,38.6,1.190,-1.422,0.000,-0.989,-0.138,-0.055,0.018,-0.090,0.005,-0.090,-0.018,-0.996</span>
+<span class="go">0.507,0.978,0.137,0.060,0.141,4.328,-2.516,38.6,1.159,-1.419,0.000,-0.989,-0.138,-0.060,0.019,-0.092,0.004,-0.092,-0.019,-0.996</span>
+<span class="go">0.520,0.969,0.142,0.071,-0.781,8.203,-4.453,38.6,1.106,-1.409,0.000,-0.987,-0.144,-0.072,0.019,-0.092,0.003,-0.092,-0.019,-0.996</span>
+<span class="go">0.533,0.968,0.148,0.084,-0.656,7.719,-3.906,38.6,1.057,-1.397,0.000,-0.985,-0.151,-0.085,0.020,-0.093,0.002,-0.093,-0.019,-0.995</span>
+<span class="go">0.546,0.971,0.150,0.088,0.844,0.750,-1.594,38.6,1.042,-1.394,0.000,-0.984,-0.152,-0.089,0.020,-0.095,0.002,-0.095,-0.020,-0.995</span>
+<span class="go">0.559,0.980,0.154,0.086,1.969,-5.188,1.484,38.6,1.059,-1.393,0.000,-0.984,-0.154,-0.087,0.021,-0.099,0.002,-0.099,-0.021,-0.995</span>
+<span class="go">0.572,0.977,0.150,0.073,2.562,-9.938,5.984,38.6,1.121,-1.401,0.000,-0.986,-0.152,-0.073,0.022,-0.104,0.003,-0.104,-0.022,-0.994</span>
+<span class="go">0.585,0.970,0.141,0.064,2.391,-9.188,6.594,38.6,1.141,-1.412,0.000,-0.987,-0.144,-0.066,0.023,-0.109,0.005,-0.108,-0.022,-0.994</span>
+<span class="go">0.598,0.969,0.135,0.059,1.562,-4.500,3.219,38.6,1.157,-1.420,0.000,-0.989,-0.138,-0.061,0.023,-0.112,0.005,-0.112,-0.023,-0.993</span>
+<span class="go">0.611,0.974,0.135,0.058,0.672,-0.047,-0.219,38.6,1.167,-1.421,0.000,-0.989,-0.138,-0.059,0.024,-0.115,0.005,-0.115,-0.024,-0.993</span>
+</pre></div>
+</div>
+<p>Running with <code class="docutils literal notranslate"><span class="pre">esp-cpp/uart-serial-plotter</span></code>:
+<img width="3952" height="2247" alt="CleanShot 2025-07-12 at 18 18 49" src="https://github.com/user-attachments/assets/d9e09dae-2568-46c5-b500-104714704e4c" /></p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="qmi8658.html" class="btn btn-neutral float-left" title="QMI8658 6-Axis IMU" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../interrupt.html" class="btn btn-neutral float-right" title="Interrupt APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

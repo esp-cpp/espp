@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BLDC Driver - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'bldc/bldc_driver';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="BLDC Motor" href="bldc_motor.html" />
+    <link rel="prev" title="BLDC APIs" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_component.html">Base Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">BLDC APIs</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">BLDC Driver</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="bldc_motor.html">BLDC Motor</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../byte90.html">ALXV Labs Byte90</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cobs.html">COBS (Consistent Overhead Byte Stuffing)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp32_timer_cam.html">ESP32 TimerCam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp_box.html">ESP BOX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../interrupt.html">Interrupt APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../iperf_menu.html">Iperf Menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../m5stack_tab5.html">M5Stack Tab5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../matouch_rotary_display.html">MaTouch Rotary Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../motorgo_mini.html">MotorGo Mini</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../neopixel.html">Neopixel APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nvs.html">NVS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../remote_debug.html">Remote Debug APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../runqueue.html">RunQueue APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../seeed_studio_round_display.html">Seeed Studio Round Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_deck.html">LilyGo T-Deck</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_dongle_s3.html">LilyGo T-Dongle S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wrover_kit.html">ESP32-WROVER-KIT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">BLDC APIs</a></li>
+      <li class="breadcrumb-item active">BLDC Driver</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/32e8215e/docs/en/bldc/bldc_driver.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="bldc-driver">
+<h1>BLDC Driver<a class="headerlink" href="#bldc-driver" title="Permalink to this heading"></a></h1>
+<p>The <cite>BldcDriver</cite> component wraps around the <a class="reference external" href="https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/mcpwm.html">ESP MCPWM Peripheral</a>
+to provide full 6 PWM control over a 3 phase brushless dc motor.</p>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/32e8215e/components/bldc_driver/include/bldc_driver.hpp">components/bldc_driver/include/bldc_driver.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriverE">
+<span id="_CPPv3N4espp10BldcDriverE"></span><span id="_CPPv2N4espp10BldcDriverE"></span><span id="espp::BldcDriver"></span><span class="target" id="classespp_1_1BldcDriver"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BldcDriver</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp10BldcDriverE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Interface for controlling the 6 PWMs (high/low sides for phases A,B,C) of a brushless dc motor (BLDC motor). Wraps around the ESP32 <a class="reference external" href="https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/mcpwm.html">https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/mcpwm.html</a> peripheral. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriver10BldcDriverERK6Config">
+<span id="_CPPv3N4espp10BldcDriver10BldcDriverERK6Config"></span><span id="_CPPv2N4espp10BldcDriver10BldcDriverERK6Config"></span><span id="espp::BldcDriver::BldcDriver__ConfigCR"></span><span class="target" id="classespp_1_1BldcDriver_1a48348d4eabcf667b6f2a21a4ea722e34"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BldcDriver</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp10BldcDriver6ConfigE" title="espp::BldcDriver::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10BldcDriver10BldcDriverERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the bldc driver. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Enables the driver. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – <a class="reference internal" href="#structespp_1_1BldcDriver_1_1Config"><span class="std std-ref">Config</span></a> used to initialize the driver. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriverD0Ev">
+<span id="_CPPv3N4espp10BldcDriverD0Ev"></span><span id="_CPPv2N4espp10BldcDriverD0Ev"></span><span id="espp::BldcDriver::~BldcDriver"></span><span class="target" id="classespp_1_1BldcDriver_1a47062cd73c9f64f0e47761f1e9f52388"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~BldcDriver</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10BldcDriverD0Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Disable the <a class="reference internal" href="#classespp_1_1BldcDriver"><span class="std std-ref">BldcDriver</span></a> and destroy it. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriver6enableEv">
+<span id="_CPPv3N4espp10BldcDriver6enableEv"></span><span id="_CPPv2N4espp10BldcDriver6enableEv"></span><span id="espp::BldcDriver::enable"></span><span class="target" id="classespp_1_1BldcDriver_1a8a11900bd7376f83d6ad68e14ac55bc3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">enable</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10BldcDriver6enableEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Enable the driver, set the enable pin high (if we were provided an enable pin), and remove any force level on the pins if there was a force level. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriver7disableEv">
+<span id="_CPPv3N4espp10BldcDriver7disableEv"></span><span id="_CPPv2N4espp10BldcDriver7disableEv"></span><span id="espp::BldcDriver::disable"></span><span class="target" id="classespp_1_1BldcDriver_1ada3742500b7ecc487708cbbaf7c2cf16"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">disable</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10BldcDriver7disableEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Disable the driver, set the enable pin low (if we were provided an enable pin), add a force level to each pin to force the gates all low. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10BldcDriver10is_enabledEv">
+<span id="_CPPv3NK4espp10BldcDriver10is_enabledEv"></span><span id="_CPPv2NK4espp10BldcDriver10is_enabledEv"></span><span id="espp::BldcDriver::is_enabledC"></span><span class="target" id="classespp_1_1BldcDriver_1acfc35658144e69367cf99b4e6887b501"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_enabled</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10BldcDriver10is_enabledEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Check if the driver is enabled. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if the driver is enabled, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriver10is_faultedEv">
+<span id="_CPPv3N4espp10BldcDriver10is_faultedEv"></span><span id="_CPPv2N4espp10BldcDriver10is_faultedEv"></span><span id="espp::BldcDriver::is_faulted"></span><span class="target" id="classespp_1_1BldcDriver_1a51ce3b913dded9086b519b848248189e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_faulted</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10BldcDriver10is_faultedEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Check if the driver is faulted. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If no fault pin was provided, this will always return false. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if the driver is faulted, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriver15set_phase_stateEiii">
+<span id="_CPPv3N4espp10BldcDriver15set_phase_stateEiii"></span><span id="_CPPv2N4espp10BldcDriver15set_phase_stateEiii"></span><span id="espp::BldcDriver::set_phase_state__i.i.i"></span><span class="target" id="classespp_1_1BldcDriver_1a2a76544caefb33275e9bc71430f3094d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_phase_state</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">state_a</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">state_b</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">state_c</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10BldcDriver15set_phase_stateEiii" title="Permalink to this definition"></a><br /></dt>
+<dd><p>This function does nothing, merely exists for later if we choose to implement it as part of the FOC control algorithm. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The integers provided are -1 (low), 0 (high impedance), and 1 (active) for the 3 possible states. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>state_a</strong> – Desired state for phase A. </p></li>
+<li><p><strong>state_b</strong> – Desired state for phase B. </p></li>
+<li><p><strong>state_c</strong> – Desired state for phase C. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriver11set_voltageEfff">
+<span id="_CPPv3N4espp10BldcDriver11set_voltageEfff"></span><span id="_CPPv2N4espp10BldcDriver11set_voltageEfff"></span><span id="espp::BldcDriver::set_voltage__float.float.float"></span><span class="target" id="classespp_1_1BldcDriver_1ab9ed561c2ff8e7920d9fe0ba0387fdcd"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_voltage</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ua</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ub</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">uc</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10BldcDriver11set_voltageEfff" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the phase voltages (in volts) to the driver. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Uses the previously configured power supply voltage and limit voltage (if any was provided) to convert to the appropriate pwm. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ua</strong> – Desired voltage [0.0f, power_supply_voltage] for phase A. </p></li>
+<li><p><strong>ub</strong> – Desired voltage [0.0f, power_supply_voltage] for phase B. </p></li>
+<li><p><strong>uc</strong> – Desired voltage [0.0f, power_supply_voltage] for phase C. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriver7set_pwmEfff">
+<span id="_CPPv3N4espp10BldcDriver7set_pwmEfff"></span><span id="_CPPv2N4espp10BldcDriver7set_pwmEfff"></span><span id="espp::BldcDriver::set_pwm__float.float.float"></span><span class="target" id="classespp_1_1BldcDriver_1aac299ed7626f5bb68a5f98871977ded8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_pwm</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">duty_a</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">duty_b</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">duty_c</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10BldcDriver7set_pwmEfff" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Directly set the duty cycle in range [0.0, 1.0] for each phase. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>duty_a</strong> – Duty cycle [0.0, 1.0] for phase A. </p></li>
+<li><p><strong>duty_b</strong> – Duty cycle [0.0, 1.0] for phase B. </p></li>
+<li><p><strong>duty_c</strong> – Duty cycle [0.0, 1.0] for phase C. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriver15configure_powerEff">
+<span id="_CPPv3N4espp10BldcDriver15configure_powerEff"></span><span id="_CPPv2N4espp10BldcDriver15configure_powerEff"></span><span id="espp::BldcDriver::configure_power__float.float"></span><span class="target" id="classespp_1_1BldcDriver_1a698445ef55ca1c027dba0e4eead50f9e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">configure_power</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">power_supply_voltage</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">voltage_limit</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1.0f</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10BldcDriver15configure_powerEff" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Update the power supply configuration and optional motor voltage limit. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>power_supply_voltage</strong> – New max voltage (volts) from the power supply. </p></li>
+<li><p><strong>voltage_limit</strong> – New limit voltage (volts) to allow to the motor. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10BldcDriver17get_voltage_limitEv">
+<span id="_CPPv3NK4espp10BldcDriver17get_voltage_limitEv"></span><span id="_CPPv2NK4espp10BldcDriver17get_voltage_limitEv"></span><span id="espp::BldcDriver::get_voltage_limitC"></span><span class="target" id="classespp_1_1BldcDriver_1a0cc9d8ab56472a10d67f3857e3c6a5e8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_voltage_limit</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10BldcDriver17get_voltage_limitEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the current motor voltage limit (if any). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Voltage limit the driver will allow to the motor. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10BldcDriver22get_power_supply_limitEv">
+<span id="_CPPv3NK4espp10BldcDriver22get_power_supply_limitEv"></span><span id="_CPPv2NK4espp10BldcDriver22get_power_supply_limitEv"></span><span id="espp::BldcDriver::get_power_supply_limitC"></span><span class="target" id="classespp_1_1BldcDriver_1acaa31037546906ada6eef58810032ea6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_power_supply_limit</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10BldcDriver22get_power_supply_limitEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the configured power supply voltage. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Maximum voltage the driver can supply to the motor. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriver24set_power_supply_voltageEf">
+<span id="_CPPv3N4espp10BldcDriver24set_power_supply_voltageEf"></span><span id="_CPPv2N4espp10BldcDriver24set_power_supply_voltageEf"></span><span id="espp::BldcDriver::set_power_supply_voltage__float"></span><span class="target" id="classespp_1_1BldcDriver_1a177036c0f6520241717fc4760e55c5d5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_power_supply_voltage</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">voltage</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10BldcDriver24set_power_supply_voltageEf" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the power supply voltage. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Will update the voltage limit to the minimum of the current limit and the new power supply voltage. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>voltage</strong> – New power supply voltage. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriver17set_voltage_limitEf">
+<span id="_CPPv3N4espp10BldcDriver17set_voltage_limitEf"></span><span id="_CPPv2N4espp10BldcDriver17set_voltage_limitEf"></span><span id="espp::BldcDriver::set_voltage_limit__float"></span><span class="target" id="classespp_1_1BldcDriver_1a35718938cdce94ac35489da680d2c793"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_voltage_limit</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">voltage</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10BldcDriver17set_voltage_limitEf" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the voltage limit. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Will be clamped to the power supply voltage. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>voltage</strong> – New voltage limit. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10BldcDriver8get_nameEv">
+<span id="_CPPv3NK4espp10BldcDriver8get_nameEv"></span><span id="_CPPv2NK4espp10BldcDriver8get_nameEv"></span><span id="espp::BldcDriver::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10BldcDriver8get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriver11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp10BldcDriver11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp10BldcDriver11set_log_tagERKNSt11string_viewE"></span><span id="espp::BldcDriver::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10BldcDriver11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10BldcDriver13get_log_levelEv">
+<span id="_CPPv3NK4espp10BldcDriver13get_log_levelEv"></span><span id="_CPPv2NK4espp10BldcDriver13get_log_levelEv"></span><span id="espp::BldcDriver::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10BldcDriver13get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriver13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp10BldcDriver13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp10BldcDriver13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::BldcDriver::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10BldcDriver13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriver17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp10BldcDriver17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp10BldcDriver17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::BldcDriver::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10BldcDriver17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../ws_s3_touch.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10BldcDriver17get_log_verbosityEv">
+<span id="_CPPv3NK4espp10BldcDriver17get_log_verbosityEv"></span><span id="_CPPv2NK4espp10BldcDriver17get_log_verbosityEv"></span><span id="espp::BldcDriver::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10BldcDriver17get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../ws_s3_touch.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriver18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp10BldcDriver18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp10BldcDriver18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::BldcDriver::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10BldcDriver18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriver6ConfigE">
+<span id="_CPPv3N4espp10BldcDriver6ConfigE"></span><span id="_CPPv2N4espp10BldcDriver6ConfigE"></span><span id="espp::BldcDriver::Config"></span><span class="target" id="structespp_1_1BldcDriver_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp10BldcDriver6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configure the driver for 6-channel control of a BLDC. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriver6Config8gpio_a_hE">
+<span id="_CPPv3N4espp10BldcDriver6Config8gpio_a_hE"></span><span id="_CPPv2N4espp10BldcDriver6Config8gpio_a_hE"></span><span id="espp::BldcDriver::Config::gpio_a_h__i"></span><span class="target" id="structespp_1_1BldcDriver_1_1Config_1a3cb683659d5f10e6900d6ac342d5b13e"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">gpio_a_h</span></span></span><a class="headerlink" href="#_CPPv4N4espp10BldcDriver6Config8gpio_a_hE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Phase A high side gpio. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriver6Config8gpio_a_lE">
+<span id="_CPPv3N4espp10BldcDriver6Config8gpio_a_lE"></span><span id="_CPPv2N4espp10BldcDriver6Config8gpio_a_lE"></span><span id="espp::BldcDriver::Config::gpio_a_l__i"></span><span class="target" id="structespp_1_1BldcDriver_1_1Config_1ab4d48340781fbfcd335bbf962b30f3da"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">gpio_a_l</span></span></span><a class="headerlink" href="#_CPPv4N4espp10BldcDriver6Config8gpio_a_lE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Phase A low side gpio. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriver6Config8gpio_b_hE">
+<span id="_CPPv3N4espp10BldcDriver6Config8gpio_b_hE"></span><span id="_CPPv2N4espp10BldcDriver6Config8gpio_b_hE"></span><span id="espp::BldcDriver::Config::gpio_b_h__i"></span><span class="target" id="structespp_1_1BldcDriver_1_1Config_1a45fa88c8d3497a9fba8cfb6c51e5dad5"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">gpio_b_h</span></span></span><a class="headerlink" href="#_CPPv4N4espp10BldcDriver6Config8gpio_b_hE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Phase B high side gpio. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriver6Config8gpio_b_lE">
+<span id="_CPPv3N4espp10BldcDriver6Config8gpio_b_lE"></span><span id="_CPPv2N4espp10BldcDriver6Config8gpio_b_lE"></span><span id="espp::BldcDriver::Config::gpio_b_l__i"></span><span class="target" id="structespp_1_1BldcDriver_1_1Config_1a900f56225b30fbd0544add4c8b83c74d"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">gpio_b_l</span></span></span><a class="headerlink" href="#_CPPv4N4espp10BldcDriver6Config8gpio_b_lE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Phase B low side gpio. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriver6Config8gpio_c_hE">
+<span id="_CPPv3N4espp10BldcDriver6Config8gpio_c_hE"></span><span id="_CPPv2N4espp10BldcDriver6Config8gpio_c_hE"></span><span id="espp::BldcDriver::Config::gpio_c_h__i"></span><span class="target" id="structespp_1_1BldcDriver_1_1Config_1ab1695f1a20a24be5c4f58ecfe9b2b1f9"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">gpio_c_h</span></span></span><a class="headerlink" href="#_CPPv4N4espp10BldcDriver6Config8gpio_c_hE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Phase C high side gpio. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriver6Config8gpio_c_lE">
+<span id="_CPPv3N4espp10BldcDriver6Config8gpio_c_lE"></span><span id="_CPPv2N4espp10BldcDriver6Config8gpio_c_lE"></span><span id="espp::BldcDriver::Config::gpio_c_l__i"></span><span class="target" id="structespp_1_1BldcDriver_1_1Config_1ac71fae4af801c459f27705f748f32a81"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">gpio_c_l</span></span></span><a class="headerlink" href="#_CPPv4N4espp10BldcDriver6Config8gpio_c_lE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Phase C low side gpio. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriver6Config11gpio_enableE">
+<span id="_CPPv3N4espp10BldcDriver6Config11gpio_enableE"></span><span id="_CPPv2N4espp10BldcDriver6Config11gpio_enableE"></span><span id="espp::BldcDriver::Config::gpio_enable__i"></span><span class="target" id="structespp_1_1BldcDriver_1_1Config_1a79b407e441367ea16b1b19809c872080"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">gpio_enable</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp10BldcDriver6Config11gpio_enableE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Enable pin for the BLDC driver (if any). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriver6Config10gpio_faultE">
+<span id="_CPPv3N4espp10BldcDriver6Config10gpio_faultE"></span><span id="_CPPv2N4espp10BldcDriver6Config10gpio_faultE"></span><span id="espp::BldcDriver::Config::gpio_fault__i"></span><span class="target" id="structespp_1_1BldcDriver_1_1Config_1ad40125ac7ca81b79980e22833ecb237c"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">gpio_fault</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp10BldcDriver6Config10gpio_faultE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Fault pin for the BLDC driver (if any). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriver6Config20power_supply_voltageE">
+<span id="_CPPv3N4espp10BldcDriver6Config20power_supply_voltageE"></span><span id="_CPPv2N4espp10BldcDriver6Config20power_supply_voltageE"></span><span id="espp::BldcDriver::Config::power_supply_voltage__float"></span><span class="target" id="structespp_1_1BldcDriver_1_1Config_1a2d21a60564be1b4d390fe30756e3d45f"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">power_supply_voltage</span></span></span><a class="headerlink" href="#_CPPv4N4espp10BldcDriver6Config20power_supply_voltageE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Voltage of the power supply. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriver6Config13limit_voltageE">
+<span id="_CPPv3N4espp10BldcDriver6Config13limit_voltageE"></span><span id="_CPPv2N4espp10BldcDriver6Config13limit_voltageE"></span><span id="espp::BldcDriver::Config::limit_voltage__float"></span><span class="target" id="structespp_1_1BldcDriver_1_1Config_1ad4e02725fb672643063c86988e4e5c18"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">limit_voltage</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp10BldcDriver6Config13limit_voltageE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>What voltage the motor should be limited to. Less than 0 means no limit. Will be clamped to power supply voltage. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriver6Config12dead_zone_nsE">
+<span id="_CPPv3N4espp10BldcDriver6Config12dead_zone_nsE"></span><span id="_CPPv2N4espp10BldcDriver6Config12dead_zone_nsE"></span><span id="espp::BldcDriver::Config::dead_zone_ns__uint64_t"></span><span class="target" id="structespp_1_1BldcDriver_1_1Config_1ab3159e8d18de5d2a82509d87251d6210"></span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dead_zone_ns</span></span></span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">100</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp10BldcDriver6Config12dead_zone_nsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Dead zone in nanoseconds. Will be applied to both sides of the waveform. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriver6Config9log_levelE">
+<span id="_CPPv3N4espp10BldcDriver6Config9log_levelE"></span><span id="_CPPv2N4espp10BldcDriver6Config9log_levelE"></span><span id="espp::BldcDriver::Config::log_level__espp::Logger::Verbosity"></span><span class="target" id="structespp_1_1BldcDriver_1_1Config_1a55947283826e99a6937a2d366fd41741"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp10BldcDriver6Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Verbosity for the bldc driver. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="BLDC APIs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="bldc_motor.html" class="btn btn-neutral float-right" title="BLDC Motor" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

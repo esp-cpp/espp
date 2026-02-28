@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Display - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'display/display';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Display Drivers" href="display_drivers.html" />
+    <link rel="prev" title="Display APIs" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_component.html">Base Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../byte90.html">ALXV Labs Byte90</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cobs.html">COBS (Consistent Overhead Byte Stuffing)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../csv.html">CSV APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Display APIs</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Display</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="display_drivers.html">Display Drivers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="expressive_eyes.html">Expressive Eyes APIs</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp32_timer_cam.html">ESP32 TimerCam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp_box.html">ESP BOX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../interrupt.html">Interrupt APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../iperf_menu.html">Iperf Menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../m5stack_tab5.html">M5Stack Tab5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../matouch_rotary_display.html">MaTouch Rotary Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../motorgo_mini.html">MotorGo Mini</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../neopixel.html">Neopixel APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nvs.html">NVS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../remote_debug.html">Remote Debug APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../runqueue.html">RunQueue APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../seeed_studio_round_display.html">Seeed Studio Round Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_deck.html">LilyGo T-Deck</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_dongle_s3.html">LilyGo T-Dongle S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wrover_kit.html">ESP32-WROVER-KIT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Display APIs</a></li>
+      <li class="breadcrumb-item active">Display</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/32e8215e/docs/en/display/display.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="display">
+<h1>Display<a class="headerlink" href="#display" title="Permalink to this heading"></a></h1>
+<p>The <cite>display</cite> component is responsible for managing the memory associated the
+display buffer / video RAM (vram). It ensures that the LVGL subsystem is
+configured appropriately.</p>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/32e8215e/components/display/include/display.hpp">components/display/include/display.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN4espp7DisplayE">
+<span id="_CPPv3I0EN4espp7DisplayE"></span><span id="_CPPv2I0EN4espp7DisplayE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Pixel</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1Display"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Display</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4I0EN4espp7DisplayE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Wrapper class around LVGL display buffer and display driver. </p>
+<p>Optionally allocates and owns the memory associated with the pixel display buffers. Initializes the LVGL subsystem.</p>
+<p>For more information, see <a class="reference external" href="https://docs.lvgl.io/9.1/porting/display.html#display-interface">https://docs.lvgl.io/9.1/porting/display.html#display-interface</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>Pixel</strong> – The pixel format to be used for the display. This allows the class to be used with displays of different color depths and formats. </p>
+</dd>
+</dl>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display8flush_fnE">
+<span id="_CPPv3N4espp7Display8flush_fnE"></span><span id="_CPPv2N4espp7Display8flush_fnE"></span><span id="espp::Display::flush_fn"></span><span class="target" id="classespp_1_1Display_1a9ff93b2177cd51d77a949953df5abc11"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">lv_display_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">disp</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">lv_area_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">area</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">color_map</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">flush_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Display8flush_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback for lvgl to flush segments of pixel data from the pixel buffers to the display. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param disp<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The display to flush data to. </p>
+</dd>
+<dt class="field-even">Param area<span class="colon">:</span></dt>
+<dd class="field-even"><p>The area of the display to flush data to. </p>
+</dd>
+<dt class="field-odd">Param color_map<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The color data to flush to the display. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display11rotation_fnE">
+<span id="_CPPv3N4espp7Display11rotation_fnE"></span><span id="_CPPv2N4espp7Display11rotation_fnE"></span><span id="espp::Display::rotation_fn"></span><span class="target" id="classespp_1_1Display_1a5a66d283b05571d9006efcd214959bd8"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">DisplayRotation</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">rotation</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">rotation_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Display11rotation_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback for lvgl event handler to reconfigure the display hardware. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param rotation<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The new rotation setting for the display. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display17set_brightness_fnE">
+<span id="_CPPv3N4espp7Display17set_brightness_fnE"></span><span id="_CPPv2N4espp7Display17set_brightness_fnE"></span><span id="espp::Display::set_brightness_fn"></span><span class="target" id="classespp_1_1Display_1a79726f99f02483d3fa753563b49850c2"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n"><span class="pre">brightness</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_brightness_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Display17set_brightness_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback for setting the display brightness. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param brightness<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Brightness value between 0.0 and 1.0. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display17get_brightness_fnE">
+<span id="_CPPv3N4espp7Display17get_brightness_fnE"></span><span id="_CPPv2N4espp7Display17get_brightness_fnE"></span><span id="espp::Display::get_brightness_fn"></span><span class="target" id="classespp_1_1Display_1a4d8c43accd3bc7e2f76e49a924eb8995"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_brightness_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Display17get_brightness_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback for getting the display brightness. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Return<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float Brightness value between 0.0 and 1.0. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display7DisplayERK10LvglConfigRK9LcdConfigRK18StaticMemoryConfigKN6Logger9VerbosityE">
+<span id="_CPPv3N4espp7Display7DisplayERK10LvglConfigRK9LcdConfigRK18StaticMemoryConfigKN6Logger9VerbosityE"></span><span id="_CPPv2N4espp7Display7DisplayERK10LvglConfigRK9LcdConfigRK18StaticMemoryConfigKN6Logger9VerbosityE"></span><span id="espp::Display::Display__LvglConfigCR.LcdConfigCR.StaticMemoryConfigCR.Logger::VerbosityC"></span><span class="target" id="classespp_1_1Display_1a283b73329153855105bbfb0c520c387b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Display</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Display10LvglConfigE" title="espp::Display::LvglConfig"><span class="n"><span class="pre">LvglConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">lvgl_conf</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Display9LcdConfigE" title="espp::Display::LcdConfig"><span class="n"><span class="pre">LcdConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">lcd_config</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Display18StaticMemoryConfigE" title="espp::Display::StaticMemoryConfig"><span class="n"><span class="pre">StaticMemoryConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">mem_conf</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">log_level</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Display7DisplayERK10LvglConfigRK9LcdConfigRK18StaticMemoryConfigKN6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize LVGL. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lvgl_conf</strong> – LVGL Configuration, including display size, flush callback and optional rotation callback. </p></li>
+<li><p><strong>lcd_config</strong> – LCD specific configuration. </p></li>
+<li><p><strong>mem_conf</strong> – Static memory configuration. </p></li>
+<li><p><strong>log_level</strong> – The verbosity level for the <a class="reference internal" href="#classespp_1_1Display"><span class="std std-ref">Display</span></a> logger_. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display7DisplayERK10LvglConfigRK9LcdConfigRK19DynamicMemoryConfigKN6Logger9VerbosityE">
+<span id="_CPPv3N4espp7Display7DisplayERK10LvglConfigRK9LcdConfigRK19DynamicMemoryConfigKN6Logger9VerbosityE"></span><span id="_CPPv2N4espp7Display7DisplayERK10LvglConfigRK9LcdConfigRK19DynamicMemoryConfigKN6Logger9VerbosityE"></span><span id="espp::Display::Display__LvglConfigCR.LcdConfigCR.DynamicMemoryConfigCR.Logger::VerbosityC"></span><span class="target" id="classespp_1_1Display_1a76d82e0d32331ce1a75540d8a94aa688"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Display</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Display10LvglConfigE" title="espp::Display::LvglConfig"><span class="n"><span class="pre">LvglConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">lvgl_conf</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Display9LcdConfigE" title="espp::Display::LcdConfig"><span class="n"><span class="pre">LcdConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">lcd_config</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Display19DynamicMemoryConfigE" title="espp::Display::DynamicMemoryConfig"><span class="n"><span class="pre">DynamicMemoryConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">mem_conf</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">log_level</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Display7DisplayERK10LvglConfigRK9LcdConfigRK19DynamicMemoryConfigKN6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Allocate the display buffers and initialize LVGL. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lvgl_conf</strong> – LVGL Configuration, including display size, flush callback and optional rotation callback. </p></li>
+<li><p><strong>lcd_config</strong> – LCD specific configuration. </p></li>
+<li><p><strong>mem_conf</strong> – Dynamic memory configuration. </p></li>
+<li><p><strong>log_level</strong> – The verbosity level for the <a class="reference internal" href="#classespp_1_1Display"><span class="std std-ref">Display</span></a> logger_. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display7DisplayERK10LvglConfigRK10OledConfigRK18StaticMemoryConfigKN6Logger9VerbosityE">
+<span id="_CPPv3N4espp7Display7DisplayERK10LvglConfigRK10OledConfigRK18StaticMemoryConfigKN6Logger9VerbosityE"></span><span id="_CPPv2N4espp7Display7DisplayERK10LvglConfigRK10OledConfigRK18StaticMemoryConfigKN6Logger9VerbosityE"></span><span id="espp::Display::Display__LvglConfigCR.OledConfigCR.StaticMemoryConfigCR.Logger::VerbosityC"></span><span class="target" id="classespp_1_1Display_1ae5fea3a03c2a9ed8b17e2bef77824db2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Display</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Display10LvglConfigE" title="espp::Display::LvglConfig"><span class="n"><span class="pre">LvglConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">lvgl_conf</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Display10OledConfigE" title="espp::Display::OledConfig"><span class="n"><span class="pre">OledConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">oled_config</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Display18StaticMemoryConfigE" title="espp::Display::StaticMemoryConfig"><span class="n"><span class="pre">StaticMemoryConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">mem_conf</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">log_level</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Display7DisplayERK10LvglConfigRK10OledConfigRK18StaticMemoryConfigKN6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize LVGL. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lvgl_conf</strong> – LVGL Configuration, including display size, flush callback and optional rotation callback. </p></li>
+<li><p><strong>oled_config</strong> – OLED specific configuration. </p></li>
+<li><p><strong>mem_conf</strong> – Static memory configuration. </p></li>
+<li><p><strong>log_level</strong> – The verbosity level for the <a class="reference internal" href="#classespp_1_1Display"><span class="std std-ref">Display</span></a> logger_. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display7DisplayERK10LvglConfigRK10OledConfigRK19DynamicMemoryConfigKN6Logger9VerbosityE">
+<span id="_CPPv3N4espp7Display7DisplayERK10LvglConfigRK10OledConfigRK19DynamicMemoryConfigKN6Logger9VerbosityE"></span><span id="_CPPv2N4espp7Display7DisplayERK10LvglConfigRK10OledConfigRK19DynamicMemoryConfigKN6Logger9VerbosityE"></span><span id="espp::Display::Display__LvglConfigCR.OledConfigCR.DynamicMemoryConfigCR.Logger::VerbosityC"></span><span class="target" id="classespp_1_1Display_1acd869f8621bb9dcbafd0aa6453ee4b38"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Display</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Display10LvglConfigE" title="espp::Display::LvglConfig"><span class="n"><span class="pre">LvglConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">lvgl_conf</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Display10OledConfigE" title="espp::Display::OledConfig"><span class="n"><span class="pre">OledConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">oled_config</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Display19DynamicMemoryConfigE" title="espp::Display::DynamicMemoryConfig"><span class="n"><span class="pre">DynamicMemoryConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">mem_conf</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">log_level</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Display7DisplayERK10LvglConfigRK10OledConfigRK19DynamicMemoryConfigKN6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Allocate the display buffers then initialize LVGL. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lvgl_conf</strong> – LVGL Configuration, including display size, flush callback and optional rotation callback. </p></li>
+<li><p><strong>oled_config</strong> – OLED specific configuration. </p></li>
+<li><p><strong>mem_conf</strong> – Dynamic memory configuration. </p></li>
+<li><p><strong>log_level</strong> – The verbosity level for the <a class="reference internal" href="#classespp_1_1Display"><span class="std std-ref">Display</span></a> logger_. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7DisplayD0Ev">
+<span id="_CPPv3N4espp7DisplayD0Ev"></span><span id="_CPPv2N4espp7DisplayD0Ev"></span><span id="espp::Display::~Display"></span><span class="target" id="classespp_1_1Display_1aae35a7c3915e4dfb054cb59b751b7a4a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~Display</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7DisplayD0Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Frees the display buffer memory. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7Display5widthEv">
+<span id="_CPPv3NK4espp7Display5widthEv"></span><span id="_CPPv2NK4espp7Display5widthEv"></span><span id="espp::Display::widthC"></span><span class="target" id="classespp_1_1Display_1ac286d7d123a82f3ed1a689ed98766eeb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">width</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7Display5widthEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Return the configured width of the display in pixels. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>size_t width of the display. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7Display6heightEv">
+<span id="_CPPv3NK4espp7Display6heightEv"></span><span id="_CPPv2NK4espp7Display6heightEv"></span><span id="espp::Display::heightC"></span><span class="target" id="classespp_1_1Display_1a1a66cdbfbd6e6f601e0ee02623b2bdbe"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">height</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7Display6heightEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Return the configured height of the display in pixels. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>size_t height of the display. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display14set_brightnessEf">
+<span id="_CPPv3N4espp7Display14set_brightnessEf"></span><span id="_CPPv2N4espp7Display14set_brightnessEf"></span><span id="espp::Display::set_brightness__float"></span><span class="target" id="classespp_1_1Display_1a0f2dbc98740f1a7aadf4d0f1747a46bc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_brightness</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">brightness</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Display14set_brightnessEf" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the brightness of the display. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>brightness</strong> – Brightness value between 0.0 and 1.0. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7Display14get_brightnessEv">
+<span id="_CPPv3NK4espp7Display14get_brightnessEv"></span><span id="_CPPv2NK4espp7Display14get_brightnessEv"></span><span id="espp::Display::get_brightnessC"></span><span class="target" id="classespp_1_1Display_1aea6abd750a76a052169256ed0406b7ba"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_brightness</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7Display14get_brightnessEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the brightness of the display. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float Brightness value between 0.0 and 1.0. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7Display13force_refreshEv">
+<span id="_CPPv3NK4espp7Display13force_refreshEv"></span><span id="_CPPv2NK4espp7Display13force_refreshEv"></span><span id="espp::Display::force_refreshC"></span><span class="target" id="classespp_1_1Display_1a9d8df455f893ee80872ea674ee76c760"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">force_refresh</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7Display13force_refreshEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Force a redraw / refresh of the display. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is mainly useful after you have called pause() on the display (to draw to it with something other than LVGL) and want to switch back to the LVGL gui. Normally you should not call this function. </p>
+</div>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display5vram0Ev">
+<span id="_CPPv3N4espp7Display5vram0Ev"></span><span id="_CPPv2N4espp7Display5vram0Ev"></span><span id="espp::Display::vram0"></span><span class="target" id="classespp_1_1Display_1ad6bf4c11db45172fedd9da12d7f31dd1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN4espp7DisplayE" title="espp::Display::Pixel"><span class="n"><span class="pre">Pixel</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">vram0</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Display5vram0Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get pointer to main display buffer for custom writing. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>uint16_t* Pointer to the main display buffer. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display5vram1Ev">
+<span id="_CPPv3N4espp7Display5vram1Ev"></span><span id="_CPPv2N4espp7Display5vram1Ev"></span><span id="espp::Display::vram1"></span><span class="target" id="classespp_1_1Display_1a6fd3da5520c382a9c5f115ed7af1207d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN4espp7DisplayE" title="espp::Display::Pixel"><span class="n"><span class="pre">Pixel</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">vram1</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Display5vram1Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get pointer to secondary display buffer for custom writing. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>uint16_t* Pointer to the secondary display buffer. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7Display12vram_size_pxEv">
+<span id="_CPPv3NK4espp7Display12vram_size_pxEv"></span><span id="_CPPv2NK4espp7Display12vram_size_pxEv"></span><span id="espp::Display::vram_size_pxC"></span><span class="target" id="classespp_1_1Display_1a032033c24ba1ec66f33c6ec26e9cf8b0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">vram_size_px</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7Display12vram_size_pxEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Return the number of pixels that vram() can hold. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>size_t Number of pixels that fit in the display buffer. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7Display15vram_size_bytesEv">
+<span id="_CPPv3NK4espp7Display15vram_size_bytesEv"></span><span id="_CPPv2NK4espp7Display15vram_size_bytesEv"></span><span id="espp::Display::vram_size_bytesC"></span><span class="target" id="classespp_1_1Display_1aec2eca6f961dd775600b7ee5a6d96cd4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">vram_size_bytes</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7Display15vram_size_bytesEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Return the number of bytes that vram() can hold. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>size_t Number of bytes that fit in the display buffer. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display12set_rotationE15DisplayRotation">
+<span id="_CPPv3N4espp7Display12set_rotationE15DisplayRotation"></span><span id="_CPPv2N4espp7Display12set_rotationE15DisplayRotation"></span><span id="espp::Display::set_rotation__DisplayRotation"></span><span class="target" id="classespp_1_1Display_1afa348299a341bf65cff9057e36016d2e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_rotation</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">DisplayRotation</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rotation</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Display12set_rotationE15DisplayRotation" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rotation of the display. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is called by the event handler when the display resolution changes, so that the display hardware can be reconfigured to match the new software rotation setting. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rotation</strong> – The new rotation setting for the display. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display5flushEP12lv_display_tPK9lv_area_tP7uint8_t">
+<span id="_CPPv3N4espp7Display5flushEP12lv_display_tPK9lv_area_tP7uint8_t"></span><span id="_CPPv2N4espp7Display5flushEP12lv_display_tPK9lv_area_tP7uint8_t"></span><span id="espp::Display::flush__lv_display_tP.lv_area_tCP.uint8_tP"></span><span class="target" id="classespp_1_1Display_1ae204dab67786c3977142f0f7d81fe696"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">flush</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">lv_display_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">disp</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">lv_area_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">area</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">color_map</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Display5flushEP12lv_display_tPK9lv_area_tP7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Flush the data to the display. </p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This function is called by the LVGL flush callback, so it is recommended to not call this function directly. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>disp</strong> – The display to flush data to. </p></li>
+<li><p><strong>area</strong> – The area of the display to flush data to. </p></li>
+<li><p><strong>color_map</strong> – The color data to flush to the display. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display18notify_flush_readyEv">
+<span id="_CPPv3N4espp7Display18notify_flush_readyEv"></span><span id="_CPPv2N4espp7Display18notify_flush_readyEv"></span><span id="espp::Display::notify_flush_ready"></span><span class="target" id="classespp_1_1Display_1abd8f8dce12300bbae5f46a8da2b4a928"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">notify_flush_ready</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Display18notify_flush_readyEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Notify LVGL that the flush operation is complete. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7Display16get_lvgl_displayEv">
+<span id="_CPPv3NK4espp7Display16get_lvgl_displayEv"></span><span id="_CPPv2NK4espp7Display16get_lvgl_displayEv"></span><span id="espp::Display::get_lvgl_displayC"></span><span class="target" id="classespp_1_1Display_1a14d03225a2819e4c6735836d6e11ef74"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">lv_display_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_lvgl_display</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7Display16get_lvgl_displayEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get pointer to the LVGL display object. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>lv_display_t* Pointer to the LVGL display object. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7Display8get_nameEv">
+<span id="_CPPv3NK4espp7Display8get_nameEv"></span><span id="_CPPv2NK4espp7Display8get_nameEv"></span><span id="espp::Display::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7Display8get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp7Display11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp7Display11set_log_tagERKNSt11string_viewE"></span><span id="espp::Display::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Display11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7Display13get_log_levelEv">
+<span id="_CPPv3NK4espp7Display13get_log_levelEv"></span><span id="_CPPv2NK4espp7Display13get_log_levelEv"></span><span id="espp::Display::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7Display13get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp7Display13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp7Display13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::Display::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Display13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp7Display17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp7Display17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::Display::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Display17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../ws_s3_touch.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7Display17get_log_verbosityEv">
+<span id="_CPPv3NK4espp7Display17get_log_verbosityEv"></span><span id="_CPPv2NK4espp7Display17get_log_verbosityEv"></span><span id="espp::Display::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7Display17get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../ws_s3_touch.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp7Display18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp7Display18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::Display::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Display18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display19DynamicMemoryConfigE">
+<span id="_CPPv3N4espp7Display19DynamicMemoryConfigE"></span><span id="_CPPv2N4espp7Display19DynamicMemoryConfigE"></span><span id="espp::Display::DynamicMemoryConfig"></span><span class="target" id="structespp_1_1Display_1_1DynamicMemoryConfig"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DynamicMemoryConfig</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Display19DynamicMemoryConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Used if you want the <a class="reference internal" href="#classespp_1_1Display"><span class="std std-ref">Display</span></a> to manage the allocation / lifecycle of the display buffer memory itself. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display19DynamicMemoryConfig17pixel_buffer_sizeE">
+<span id="_CPPv3N4espp7Display19DynamicMemoryConfig17pixel_buffer_sizeE"></span><span id="_CPPv2N4espp7Display19DynamicMemoryConfig17pixel_buffer_sizeE"></span><span id="espp::Display::DynamicMemoryConfig::pixel_buffer_size__s"></span><span class="target" id="structespp_1_1Display_1_1DynamicMemoryConfig_1a1b578204281f378c07287012153edc30"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pixel_buffer_size</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Display19DynamicMemoryConfig17pixel_buffer_sizeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Size of the display buffer in pixels. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display19DynamicMemoryConfig15double_bufferedE">
+<span id="_CPPv3N4espp7Display19DynamicMemoryConfig15double_bufferedE"></span><span id="_CPPv2N4espp7Display19DynamicMemoryConfig15double_bufferedE"></span><span id="espp::Display::DynamicMemoryConfig::double_buffered__b"></span><span class="target" id="structespp_1_1Display_1_1DynamicMemoryConfig_1a643fccb2c7bd070f703c37d315a42074"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">double_buffered</span></span></span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Display19DynamicMemoryConfig15double_bufferedE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether to use double buffered rendering (two display buffers) or not. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display19DynamicMemoryConfig16allocation_flagsE">
+<span id="_CPPv3N4espp7Display19DynamicMemoryConfig16allocation_flagsE"></span><span id="_CPPv2N4espp7Display19DynamicMemoryConfig16allocation_flagsE"></span><span id="espp::Display::DynamicMemoryConfig::allocation_flags__uint32_t"></span><span class="target" id="structespp_1_1Display_1_1DynamicMemoryConfig_1a5a50e7c6f6dab66836a6120b0ac6c3bf"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">allocation_flags</span></span></span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">MALLOC_CAP_8BIT</span></span><span class="w"> </span><span class="o"><span class="pre">|</span></span><span class="w"> </span><span class="n"><span class="pre">MALLOC_CAP_DMA</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Display19DynamicMemoryConfig16allocation_flagsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>For configuring how the display buffer is allocated </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display9LcdConfigE">
+<span id="_CPPv3N4espp7Display9LcdConfigE"></span><span id="_CPPv2N4espp7Display9LcdConfigE"></span><span id="espp::Display::LcdConfig"></span><span class="target" id="structespp_1_1Display_1_1LcdConfig"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LcdConfig</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Display9LcdConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>LCD specific configuration. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display9LcdConfig13backlight_pinE">
+<span id="_CPPv3N4espp7Display9LcdConfig13backlight_pinE"></span><span id="_CPPv2N4espp7Display9LcdConfig13backlight_pinE"></span><span id="espp::Display::LcdConfig::backlight_pin__gpio_num_t"></span><span class="target" id="structespp_1_1Display_1_1LcdConfig_1a1189a3a6daeba74d8cd141a9672d45bf"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">backlight_pin</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">GPIO_NUM_NC</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Display9LcdConfig13backlight_pinE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>GPIO pin for the backlight. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display9LcdConfig18backlight_on_valueE">
+<span id="_CPPv3N4espp7Display9LcdConfig18backlight_on_valueE"></span><span id="_CPPv2N4espp7Display9LcdConfig18backlight_on_valueE"></span><span id="espp::Display::LcdConfig::backlight_on_value__b"></span><span class="target" id="structespp_1_1Display_1_1LcdConfig_1a019980bb15672f602669b95e024e78ea"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">backlight_on_value</span></span></span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Display9LcdConfig18backlight_on_valueE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Value to write to the backlight pin to turn the backlight on. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display10LvglConfigE">
+<span id="_CPPv3N4espp7Display10LvglConfigE"></span><span id="_CPPv2N4espp7Display10LvglConfigE"></span><span id="espp::Display::LvglConfig"></span><span class="target" id="structespp_1_1Display_1_1LvglConfig"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LvglConfig</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Display10LvglConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Base component configuration for LVGL. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display10LvglConfig5widthE">
+<span id="_CPPv3N4espp7Display10LvglConfig5widthE"></span><span id="_CPPv2N4espp7Display10LvglConfig5widthE"></span><span id="espp::Display::LvglConfig::width__s"></span><span class="target" id="structespp_1_1Display_1_1LvglConfig_1ae609d67b574ad7226ec56be14fdd94af"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">width</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Display10LvglConfig5widthE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Width of th display, in pixels. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display10LvglConfig6heightE">
+<span id="_CPPv3N4espp7Display10LvglConfig6heightE"></span><span id="_CPPv2N4espp7Display10LvglConfig6heightE"></span><span id="espp::Display::LvglConfig::height__s"></span><span class="target" id="structespp_1_1Display_1_1LvglConfig_1a2ae97ca378ebf61633a444826e70230f"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">height</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Display10LvglConfig6heightE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Height of the display, in pixels. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display10LvglConfig14flush_callbackE">
+<span id="_CPPv3N4espp7Display10LvglConfig14flush_callbackE"></span><span id="_CPPv2N4espp7Display10LvglConfig14flush_callbackE"></span><span id="espp::Display::LvglConfig::flush_callback__flush_fn"></span><span class="target" id="structespp_1_1Display_1_1LvglConfig_1aa0c9886ea07299e39c13d86e9bc5157f"></span><a class="reference internal" href="#_CPPv4N4espp7Display8flush_fnE" title="espp::Display::flush_fn"><span class="n"><span class="pre">flush_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">flush_callback</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Display10LvglConfig14flush_callbackE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function provided to LVGL for it to flush data to the display. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display10LvglConfig17rotation_callbackE">
+<span id="_CPPv3N4espp7Display10LvglConfig17rotation_callbackE"></span><span id="_CPPv2N4espp7Display10LvglConfig17rotation_callbackE"></span><span id="espp::Display::LvglConfig::rotation_callback__rotation_fn"></span><span class="target" id="structespp_1_1Display_1_1LvglConfig_1ada23990a632e896fbf6a292a395915c9"></span><a class="reference internal" href="#_CPPv4N4espp7Display11rotation_fnE" title="espp::Display::rotation_fn"><span class="n"><span class="pre">rotation_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">rotation_callback</span></span></span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Display10LvglConfig17rotation_callbackE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Optional function used to configure display with new rotation setting. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display10LvglConfig8rotationE">
+<span id="_CPPv3N4espp7Display10LvglConfig8rotationE"></span><span id="_CPPv2N4espp7Display10LvglConfig8rotationE"></span><span id="espp::Display::LvglConfig::rotation__DisplayRotation"></span><span class="target" id="structespp_1_1Display_1_1LvglConfig_1a27e6b931c86a35d444c694287c3dea46"></span><span class="n"><span class="pre">DisplayRotation</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">rotation</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">DisplayRotation</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">LANDSCAPE</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Display10LvglConfig8rotationE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Default / Initial rotation of the display. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display10OledConfigE">
+<span id="_CPPv3N4espp7Display10OledConfigE"></span><span id="_CPPv2N4espp7Display10OledConfigE"></span><span id="espp::Display::OledConfig"></span><span class="target" id="structespp_1_1Display_1_1OledConfig"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OledConfig</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Display10OledConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>OLED specific configuration. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display10OledConfig23set_brightness_callbackE">
+<span id="_CPPv3N4espp7Display10OledConfig23set_brightness_callbackE"></span><span id="_CPPv2N4espp7Display10OledConfig23set_brightness_callbackE"></span><span id="espp::Display::OledConfig::set_brightness_callback__set_brightness_fn"></span><span class="target" id="structespp_1_1Display_1_1OledConfig_1ad75238a676b60e6a77862edcc428eb83"></span><a class="reference internal" href="#_CPPv4N4espp7Display17set_brightness_fnE" title="espp::Display::set_brightness_fn"><span class="n"><span class="pre">set_brightness_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_brightness_callback</span></span></span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Display10OledConfig23set_brightness_callbackE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback for setting the display brightness </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display10OledConfig23get_brightness_callbackE">
+<span id="_CPPv3N4espp7Display10OledConfig23get_brightness_callbackE"></span><span id="_CPPv2N4espp7Display10OledConfig23get_brightness_callbackE"></span><span id="espp::Display::OledConfig::get_brightness_callback__get_brightness_fn"></span><span class="target" id="structespp_1_1Display_1_1OledConfig_1a6d960529ae24001f894dcf9544514d5b"></span><a class="reference internal" href="#_CPPv4N4espp7Display17get_brightness_fnE" title="espp::Display::get_brightness_fn"><span class="n"><span class="pre">get_brightness_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_brightness_callback</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Display10OledConfig23get_brightness_callbackE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback for getting the display brightness. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display18StaticMemoryConfigE">
+<span id="_CPPv3N4espp7Display18StaticMemoryConfigE"></span><span id="_CPPv2N4espp7Display18StaticMemoryConfigE"></span><span id="espp::Display::StaticMemoryConfig"></span><span class="target" id="structespp_1_1Display_1_1StaticMemoryConfig"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">StaticMemoryConfig</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Display18StaticMemoryConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Used if you want to manage allocation / lifecycle of the display buffer memory separately from this class. This structure allows you to configure the <a class="reference internal" href="#classespp_1_1Display"><span class="std std-ref">Display</span></a> with up to two display buffers. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display18StaticMemoryConfig17pixel_buffer_sizeE">
+<span id="_CPPv3N4espp7Display18StaticMemoryConfig17pixel_buffer_sizeE"></span><span id="_CPPv2N4espp7Display18StaticMemoryConfig17pixel_buffer_sizeE"></span><span id="espp::Display::StaticMemoryConfig::pixel_buffer_size__s"></span><span class="target" id="structespp_1_1Display_1_1StaticMemoryConfig_1ae22abd4b60ea0aa7fc6126a39ecb6c0b"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pixel_buffer_size</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Display18StaticMemoryConfig17pixel_buffer_sizeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Size of the display buffer in pixels. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display18StaticMemoryConfig5vram0E">
+<span id="_CPPv3N4espp7Display18StaticMemoryConfig5vram0E"></span><span id="_CPPv2N4espp7Display18StaticMemoryConfig5vram0E"></span><span id="espp::Display::StaticMemoryConfig::vram0__PixelP"></span><span class="target" id="structespp_1_1Display_1_1StaticMemoryConfig_1a88fd6589a989e1bf871377d4dbb566af"></span><a class="reference internal" href="#_CPPv4I0EN4espp7DisplayE" title="espp::Display::Pixel"><span class="n"><span class="pre">Pixel</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">vram0</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Display18StaticMemoryConfig5vram0E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Pointer to display buffer 1, that lvgl will use. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display18StaticMemoryConfig5vram1E">
+<span id="_CPPv3N4espp7Display18StaticMemoryConfig5vram1E"></span><span id="_CPPv2N4espp7Display18StaticMemoryConfig5vram1E"></span><span id="espp::Display::StaticMemoryConfig::vram1__PixelP"></span><span class="target" id="structespp_1_1Display_1_1StaticMemoryConfig_1aac9ba7f65f408653ed2c591167935afb"></span><a class="reference internal" href="#_CPPv4I0EN4espp7DisplayE" title="espp::Display::Pixel"><span class="n"><span class="pre">Pixel</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">vram1</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Display18StaticMemoryConfig5vram1E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Optional pointer to display buffer 2 (if double buffered), that lvgl will use. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Display APIs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="display_drivers.html" class="btn btn-neutral float-right" title="Display Drivers" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

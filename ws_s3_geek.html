@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Waveshare ESP32-S3 GEEK - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="_static/copybutton.js?v=ff8fa330"></script>
+    <script src="_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'ws_s3_geek';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Waveshare ESP32-S3-GEEK Example" href="ws_s3_geek_example.html" />
+    <link rel="prev" title="Wrover-Kit Example" href="wrover_kit_example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            ESPP
+              <img src="_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_component.html">Base Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l1"><a class="reference internal" href="battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="byte90.html">ALXV Labs Byte90</a></li>
+<li class="toctree-l1"><a class="reference internal" href="controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cobs.html">COBS (Consistent Overhead Byte Stuffing)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="esp32_timer_cam.html">ESP32 TimerCam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="esp_box.html">ESP BOX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hid/index.html">HID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="interrupt.html">Interrupt APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="iperf_menu.html">Iperf Menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="m5stack_tab5.html">M5Stack Tab5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="matouch_rotary_display.html">MaTouch Rotary Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="motorgo_mini.html">MotorGo Mini</a></li>
+<li class="toctree-l1"><a class="reference internal" href="neopixel.html">Neopixel APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nvs.html">NVS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="remote_debug.html">Remote Debug APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="runqueue.html">RunQueue APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="seeed_studio_round_display.html">Seeed Studio Round Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="t_deck.html">LilyGo T-Deck</a></li>
+<li class="toctree-l1"><a class="reference internal" href="t_dongle_s3.html">LilyGo T-Dongle S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wrover_kit.html">ESP32-WROVER-KIT</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Waveshare ESP32-S3 GEEK</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#ws-s3-geek">WS-S3-Geek</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ws_s3_geek_example.html">Waveshare ESP32-S3-GEEK Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Waveshare ESP32-S3 GEEK</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/32e8215e/docs/en/ws_s3_geek.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="waveshare-esp32-s3-geek">
+<h1>Waveshare ESP32-S3 GEEK<a class="headerlink" href="#waveshare-esp32-s3-geek" title="Permalink to this heading"></a></h1>
+<section id="ws-s3-geek">
+<h2>WS-S3-Geek<a class="headerlink" href="#ws-s3-geek" title="Permalink to this heading"></a></h2>
+<p>The Waveshare S3 Geek is a development board featuring the ESP32-S3 module. It
+includes a small display, a button, a TF card slot, a USB-A Plug, and several
+expansion plugs.</p>
+<p>The <cite>espp::WsS3Geek</cite> component provides a singleton hardware abstraction for
+initializing the display, button, and tf card subsystems.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_geek_example.html">Waveshare ESP32-S3-GEEK Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ws_s3_geek_example.html#how-to-use-example">How to use example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ws_s3_geek_example.html#hardware-required">Hardware Required</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="ws_s3_geek_example.html#waveshare-esp32-s3-geek-pin-configuration">Waveshare ESP32-S3-GEEK Pin Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="ws_s3_geek_example.html#build-and-flash">Build and Flash</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ws_s3_geek_example.html#example-output">Example Output</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/32e8215e/components/ws-s3-geek/include/ws-s3-geek.hpp">components/ws-s3-geek/include/ws-s3-geek.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8WsS3GeekE">
+<span id="_CPPv3N4espp8WsS3GeekE"></span><span id="_CPPv2N4espp8WsS3GeekE"></span><span id="espp::WsS3Geek"></span><span class="target" id="classespp_1_1WsS3Geek"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">WsS3Geek</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp8WsS3GeekE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The <a class="reference internal" href="#classespp_1_1WsS3Geek"><span class="std std-ref">WsS3Geek</span></a> class provides an interface to the Waveshare ESP32-S3-GEEK development board.</p>
+<p>The class provides access to the following features:<ul class="simple">
+<li><p><a class="reference internal" href="button.html#classespp_1_1Button"><span class="std std-ref">Button</span></a> (boot button)</p></li>
+<li><p><a class="reference internal" href="display/display.html#classespp_1_1Display"><span class="std std-ref">Display</span></a></p></li>
+<li><p>micro-SD (uSD) card</p></li>
+</ul>
+</p>
+<p>The class is a singleton and can be accessed using the <a class="reference internal" href="#classespp_1_1WsS3Geek_1adeadb3e4d647bb29fe8b842c60e3285e"><span class="std std-ref">get()</span></a> method.</p>
+<section id="classespp_1_1WsS3Geek_1ws_s3_geek_example">
+<h4>Example<a class="headerlink" href="#classespp_1_1WsS3Geek_1ws_s3_geek_example" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1WsS3Geek_1ws_s3_geek_example"><div class="highlight"><pre><span></span><span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">WsS3Geek</span><span class="w"> </span><span class="o">&amp;</span><span class="n">board</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">WsS3Geek</span><span class="o">::</span><span class="n">get</span><span class="p">();</span>
+<span class="w">  </span><span class="n">board</span><span class="p">.</span><span class="n">set_log_level</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// initialize the LCD</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">board</span><span class="p">.</span><span class="n">initialize_lcd</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Failed to initialize LCD!&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="c1">// set the pixel buffer to be a full screen buffer</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">pixel_buffer_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">board</span><span class="p">.</span><span class="n">lcd_width</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">50</span><span class="p">;</span>
+<span class="w">  </span><span class="c1">// initialize the LVGL display for the WsS3Geek</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">board</span><span class="p">.</span><span class="n">initialize_display</span><span class="p">(</span><span class="n">pixel_buffer_size</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Failed to initialize display!&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// initialize the uSD card</span>
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">SdCardConfig</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">WsS3Geek</span><span class="o">::</span><span class="n">SdCardConfig</span><span class="p">;</span>
+<span class="w">  </span><span class="n">SdCardConfig</span><span class="w"> </span><span class="n">sdcard_config</span><span class="p">{};</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">board</span><span class="p">.</span><span class="n">initialize_sdcard</span><span class="p">(</span><span class="n">sdcard_config</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;Failed to initialize SD card, continuing without it.&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// initialize the button, which we&#39;ll use to cycle the rotation of the display</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Initializing the button&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">on_button_pressed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">event</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">event</span><span class="p">.</span><span class="n">active</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="c1">// lock the display mutex</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lock</span><span class="p">(</span><span class="n">lvgl_mutex</span><span class="p">);</span>
+<span class="w">      </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">rotation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LV_DISPLAY_ROTATION_0</span><span class="p">;</span>
+<span class="w">      </span><span class="n">rotation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="n">lv_display_rotation_t</span><span class="o">&gt;</span><span class="p">((</span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">rotation</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">4</span><span class="p">);</span>
+<span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Setting rotation to {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">rotation</span><span class="p">);</span>
+<span class="w">      </span><span class="n">lv_display_t</span><span class="w"> </span><span class="o">*</span><span class="n">disp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lv_disp_get_default</span><span class="p">();</span>
+<span class="w">      </span><span class="n">lv_disp_set_rotation</span><span class="p">(</span><span class="n">disp</span><span class="p">,</span><span class="w"> </span><span class="n">rotation</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="w">  </span><span class="n">board</span><span class="p">.</span><span class="n">initialize_button</span><span class="p">(</span><span class="n">on_button_pressed</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// set the background color to black</span>
+<span class="w">  </span><span class="n">lv_obj_t</span><span class="w"> </span><span class="o">*</span><span class="n">bg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lv_obj_create</span><span class="p">(</span><span class="n">lv_screen_active</span><span class="p">());</span>
+<span class="w">  </span><span class="n">lv_obj_set_size</span><span class="p">(</span><span class="n">bg</span><span class="p">,</span><span class="w"> </span><span class="n">board</span><span class="p">.</span><span class="n">lcd_width</span><span class="p">(),</span><span class="w"> </span><span class="n">board</span><span class="p">.</span><span class="n">lcd_height</span><span class="p">());</span>
+<span class="w">  </span><span class="n">lv_obj_set_style_bg_color</span><span class="p">(</span><span class="n">bg</span><span class="p">,</span><span class="w"> </span><span class="n">lv_color_make</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">),</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// add text in the center of the screen</span>
+<span class="w">  </span><span class="n">lv_obj_t</span><span class="w"> </span><span class="o">*</span><span class="n">label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lv_label_create</span><span class="p">(</span><span class="n">lv_screen_active</span><span class="p">());</span>
+<span class="w">  </span><span class="n">lv_label_set_text</span><span class="p">(</span><span class="n">label</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Drawing circles</span><span class="se">\n</span><span class="s">to the screen.&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">lv_obj_align</span><span class="p">(</span><span class="n">label</span><span class="p">,</span><span class="w"> </span><span class="n">LV_ALIGN_CENTER</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+<span class="w">  </span><span class="n">lv_obj_set_style_text_align</span><span class="p">(</span><span class="n">label</span><span class="p">,</span><span class="w"> </span><span class="n">LV_TEXT_ALIGN_CENTER</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// start a simple thread to do the lv_task_handler every 16ms</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="w"> </span><span class="nf">lv_task</span><span class="p">({.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="o">&amp;</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                        </span><span class="p">{</span>
+<span class="w">                          </span><span class="c1">// lock the display mutex</span>
+<span class="w">                          </span><span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lock</span><span class="p">(</span><span class="n">lvgl_mutex</span><span class="p">);</span>
+<span class="w">                          </span><span class="n">lv_task_handler</span><span class="p">();</span>
+<span class="w">                        </span><span class="p">}</span>
+<span class="w">                        </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lock</span><span class="p">(</span><span class="n">m</span><span class="p">);</span>
+<span class="w">                        </span><span class="n">cv</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">lock</span><span class="p">,</span><span class="w"> </span><span class="mi">16</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">                        </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">                      </span><span class="p">},</span>
+<span class="w">                      </span><span class="p">.</span><span class="n">task_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                          </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;lv_task&quot;</span><span class="p">,</span>
+<span class="w">                          </span><span class="p">.</span><span class="n">core_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">                      </span><span class="p">}});</span>
+<span class="w">  </span><span class="n">lv_task</span><span class="p">.</span><span class="n">start</span><span class="p">();</span>
+
+<span class="w">  </span><span class="c1">// set the display brightness to be 75%</span>
+<span class="w">  </span><span class="n">board</span><span class="p">.</span><span class="n">brightness</span><span class="p">(</span><span class="mf">75.0f</span><span class="p">);</span>
+
+<span class="w">  </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">esp_timer_get_time</span><span class="p">();</span>
+<span class="w">    </span><span class="c1">// if there are 10 circles on the screen, clear them</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">max_circles</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">circles</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">max_circles</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="c1">// lock the lvgl mutex</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lock</span><span class="p">(</span><span class="n">lvgl_mutex</span><span class="p">);</span>
+<span class="w">      </span><span class="n">clear_circles</span><span class="p">();</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="c1">// draw a circle of circles on the screen (just draw the next circle)</span>
+<span class="w">      </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">middle_x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">WsS3Geek</span><span class="o">::</span><span class="n">lcd_width</span><span class="p">()</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="w">      </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">middle_y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">WsS3Geek</span><span class="o">::</span><span class="n">lcd_height</span><span class="p">()</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="w">      </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">radius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">30</span><span class="p">;</span>
+<span class="w">      </span><span class="kt">float</span><span class="w"> </span><span class="n">angle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">circles</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">2.0f</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">M_PI</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">max_circles</span><span class="p">;</span>
+<span class="w">      </span><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">middle_x</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">radius</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">);</span>
+<span class="w">      </span><span class="kt">int</span><span class="w"> </span><span class="n">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">middle_y</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">radius</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">);</span>
+
+<span class="w">      </span><span class="c1">// handle the rotation of the display to ensure the circles are centered</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">rotation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lv_display_get_rotation</span><span class="p">(</span><span class="n">lv_disp_get_default</span><span class="p">());</span>
+<span class="w">      </span><span class="k">switch</span><span class="w"> </span><span class="p">(</span><span class="n">rotation</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">default</span><span class="o">:</span>
+<span class="w">      </span><span class="k">case</span><span class="w"> </span><span class="no">LV_DISPLAY_ROTATION_0</span><span class="p">:</span>
+<span class="w">      </span><span class="k">case</span><span class="w"> </span><span class="no">LV_DISPLAY_ROTATION_180</span><span class="p">:</span>
+<span class="w">        </span><span class="k">break</span><span class="p">;</span>
+<span class="w">      </span><span class="k">case</span><span class="w"> </span><span class="no">LV_DISPLAY_ROTATION_90</span><span class="p">:</span>
+<span class="w">      </span><span class="k">case</span><span class="w"> </span><span class="no">LV_DISPLAY_ROTATION_270</span><span class="p">:</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">swap</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">y</span><span class="p">);</span>
+<span class="w">        </span><span class="k">break</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+
+<span class="w">      </span><span class="c1">// lock the lvgl mutex</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lock</span><span class="p">(</span><span class="n">lvgl_mutex</span><span class="p">);</span>
+<span class="w">      </span><span class="n">draw_circle</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">y</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">end</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">esp_timer_get_time</span><span class="p">();</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">elapsed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">end</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">100</span><span class="n">ms</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">microseconds</span><span class="p">(</span><span class="n">elapsed</span><span class="p">));</span>
+<span class="w">  </span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8WsS3Geek17button_callback_tE">
+<span id="_CPPv3N4espp8WsS3Geek17button_callback_tE"></span><span id="_CPPv2N4espp8WsS3Geek17button_callback_tE"></span><span class="target" id="classespp_1_1WsS3Geek_1ab695fcf482a0a0f8f9ab9a776739947d"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">button_callback_t</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="interrupt.html#_CPPv4N4espp9InterruptE" title="espp::Interrupt"><span class="n"><span class="pre">Interrupt</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="interrupt.html#_CPPv4N4espp9Interrupt17event_callback_fnE" title="espp::Interrupt::event_callback_fn"><span class="n"><span class="pre">event_callback_fn</span></span></a><a class="headerlink" href="#_CPPv4N4espp8WsS3Geek17button_callback_tE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Alias for the button callback function. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8WsS3Geek5PixelE">
+<span id="_CPPv3N4espp8WsS3Geek5PixelE"></span><span id="_CPPv2N4espp8WsS3Geek5PixelE"></span><span class="target" id="classespp_1_1WsS3Geek_1a0c917f55e7ed4a6903821ebac0beaa7d"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Pixel</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">lv_color16_t</span></span><a class="headerlink" href="#_CPPv4N4espp8WsS3Geek5PixelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Alias for the pixel type used by the display. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8WsS3Geek10interruptsEv">
+<span id="_CPPv3N4espp8WsS3Geek10interruptsEv"></span><span id="_CPPv2N4espp8WsS3Geek10interruptsEv"></span><span id="espp::WsS3Geek::interrupts"></span><span class="target" id="classespp_1_1WsS3Geek_1ab5e579d1a3804310c08b251ef91a1617"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="interrupt.html#_CPPv4N4espp9InterruptE" title="espp::Interrupt"><span class="n"><span class="pre">Interrupt</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">interrupts</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8WsS3Geek10interruptsEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get a reference to the interrupts </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A reference to the interrupts </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8WsS3Geek17initialize_buttonERK17button_callback_t">
+<span id="_CPPv3N4espp8WsS3Geek17initialize_buttonERK17button_callback_t"></span><span id="_CPPv2N4espp8WsS3Geek17initialize_buttonERK17button_callback_t"></span><span id="espp::WsS3Geek::initialize_button__button_callback_tCR"></span><span class="target" id="classespp_1_1WsS3Geek_1add89dcf779941b29577a8c52a8facf11"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize_button</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp8WsS3Geek17button_callback_tE" title="espp::WsS3Geek::button_callback_t"><span class="n"><span class="pre">button_callback_t</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">callback</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8WsS3Geek17initialize_buttonERK17button_callback_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the button </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>callback</strong> – The callback function to call when the button is pressed </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the button was successfully initialized, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8WsS3Geek12button_stateEv">
+<span id="_CPPv3NK4espp8WsS3Geek12button_stateEv"></span><span id="_CPPv2NK4espp8WsS3Geek12button_stateEv"></span><span id="espp::WsS3Geek::button_stateC"></span><span class="target" id="classespp_1_1WsS3Geek_1aacc49dfe23669ce4de9cf15bee52a238"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">button_state</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8WsS3Geek12button_stateEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the button state </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The button state (true = button pressed, false = button released) </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8WsS3Geek14initialize_lcdEv">
+<span id="_CPPv3N4espp8WsS3Geek14initialize_lcdEv"></span><span id="_CPPv2N4espp8WsS3Geek14initialize_lcdEv"></span><span id="espp::WsS3Geek::initialize_lcd"></span><span class="target" id="classespp_1_1WsS3Geek_1a06d7a8eae7fda5be13e77ee05c217c56"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize_lcd</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8WsS3Geek14initialize_lcdEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the LCD (low level display driver) </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true if the LCD was successfully initialized, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8WsS3Geek18initialize_displayE6size_t">
+<span id="_CPPv3N4espp8WsS3Geek18initialize_displayE6size_t"></span><span id="_CPPv2N4espp8WsS3Geek18initialize_displayE6size_t"></span><span id="espp::WsS3Geek::initialize_display__s"></span><span class="target" id="classespp_1_1WsS3Geek_1a3f2e6e3df970474087340b3aebd89942"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize_display</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">pixel_buffer_size</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8WsS3Geek18initialize_displayE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the display (lvgl display driver) </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will also allocate two full frame buffers in the SPIRAM </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pixel_buffer_size</strong> – The size of the pixel buffer </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the display was successfully initialized, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8WsS3Geek7displayEv">
+<span id="_CPPv3NK4espp8WsS3Geek7displayEv"></span><span id="_CPPv2NK4espp8WsS3Geek7displayEv"></span><span id="espp::WsS3Geek::displayC"></span><span class="target" id="classespp_1_1WsS3Geek_1acab2a4a56ea03911a5e41cfcc2e6c931"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="display/display.html#_CPPv4I0EN4espp7DisplayE" title="espp::Display"><span class="n"><span class="pre">Display</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp8WsS3Geek5PixelE" title="espp::WsS3Geek::Pixel"><span class="n"><span class="pre">Pixel</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">display</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8WsS3Geek7displayEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get a shared pointer to the display </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A shared pointer to the display </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8WsS3Geek10brightnessEf">
+<span id="_CPPv3N4espp8WsS3Geek10brightnessEf"></span><span id="_CPPv2N4espp8WsS3Geek10brightnessEf"></span><span id="espp::WsS3Geek::brightness__float"></span><span class="target" id="classespp_1_1WsS3Geek_1ac234eff74d41bfbc0ec5dbe9e1958ee3"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">brightness</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">brightness</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8WsS3Geek10brightnessEf" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the brightness of the backlight </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function will only work after <a class="reference internal" href="#classespp_1_1WsS3Geek_1a06d7a8eae7fda5be13e77ee05c217c56"><span class="std std-ref">initialize_lcd()</span></a> has been called </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>brightness</strong> – The brightness of the backlight as a percentage (0 - 100) </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8WsS3Geek10brightnessEv">
+<span id="_CPPv3NK4espp8WsS3Geek10brightnessEv"></span><span id="_CPPv2NK4espp8WsS3Geek10brightnessEv"></span><span id="espp::WsS3Geek::brightnessC"></span><span class="target" id="classespp_1_1WsS3Geek_1a1ec3d7ef038ca6a93e3e8056bd50d075"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">brightness</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8WsS3Geek10brightnessEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the brightness of the backlight </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function will only work after <a class="reference internal" href="#classespp_1_1WsS3Geek_1a06d7a8eae7fda5be13e77ee05c217c56"><span class="std std-ref">initialize_lcd()</span></a> has been called </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The brightness of the backlight as a percentage (0 - 100) </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8WsS3Geek5vram0Ev">
+<span id="_CPPv3NK4espp8WsS3Geek5vram0Ev"></span><span id="_CPPv2NK4espp8WsS3Geek5vram0Ev"></span><span id="espp::WsS3Geek::vram0C"></span><span class="target" id="classespp_1_1WsS3Geek_1a64d8d02d5eb8b25dc71077517e2395c3"></span><a class="reference internal" href="#_CPPv4N4espp8WsS3Geek5PixelE" title="espp::WsS3Geek::Pixel"><span class="n"><span class="pre">Pixel</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">vram0</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8WsS3Geek5vram0Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the VRAM 0 pointer (DMA memory used by LVGL) </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the memory used by LVGL for rendering </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is null unless <a class="reference internal" href="#classespp_1_1WsS3Geek_1a3f2e6e3df970474087340b3aebd89942"><span class="std std-ref">initialize_display()</span></a> has been called </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The VRAM 0 pointer </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8WsS3Geek5vram1Ev">
+<span id="_CPPv3NK4espp8WsS3Geek5vram1Ev"></span><span id="_CPPv2NK4espp8WsS3Geek5vram1Ev"></span><span id="espp::WsS3Geek::vram1C"></span><span class="target" id="classespp_1_1WsS3Geek_1a39d1c172f2090b04ae75076259b482ea"></span><a class="reference internal" href="#_CPPv4N4espp8WsS3Geek5PixelE" title="espp::WsS3Geek::Pixel"><span class="n"><span class="pre">Pixel</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">vram1</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8WsS3Geek5vram1Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the VRAM 1 pointer (DMA memory used by LVGL) </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the memory used by LVGL for rendering </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is null unless <a class="reference internal" href="#classespp_1_1WsS3Geek_1a3f2e6e3df970474087340b3aebd89942"><span class="std std-ref">initialize_display()</span></a> has been called </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The VRAM 1 pointer </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8WsS3Geek13write_commandE7uint8_tNSt4spanIK7uint8_tEE8uint32_t">
+<span id="_CPPv3N4espp8WsS3Geek13write_commandE7uint8_tNSt4spanIK7uint8_tEE8uint32_t"></span><span id="_CPPv2N4espp8WsS3Geek13write_commandE7uint8_tNSt4spanIK7uint8_tEE8uint32_t"></span><span id="espp::WsS3Geek::write_command__uint8_t.std::span:uint8_tC:.uint32_t"></span><span class="target" id="classespp_1_1WsS3Geek_1aaf135392992e57da9c97ab20997db061"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_command</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">command</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">parameters</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">user_data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8WsS3Geek13write_commandE7uint8_tNSt4spanIK7uint8_tEE8uint32_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Write command and optional parameters to the LCD </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This method is designed to be used by the display driver </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This method queues the data to be written to the LCD, only blocking if there is an ongoing SPI transaction </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>command</strong> – The command to write </p></li>
+<li><p><strong>parameters</strong> – The command parameters to write </p></li>
+<li><p><strong>user_data</strong> – User data to pass to the spi transaction callback </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8WsS3Geek15write_lcd_frameEK8uint16_tK8uint16_tK8uint16_tK8uint16_tP7uint8_t">
+<span id="_CPPv3N4espp8WsS3Geek15write_lcd_frameEK8uint16_tK8uint16_tK8uint16_tK8uint16_tP7uint8_t"></span><span id="_CPPv2N4espp8WsS3Geek15write_lcd_frameEK8uint16_tK8uint16_tK8uint16_tK8uint16_tP7uint8_t"></span><span id="espp::WsS3Geek::write_lcd_frame__uint16_tC.uint16_tC.uint16_tC.uint16_tC.uint8_tP"></span><span class="target" id="classespp_1_1WsS3Geek_1a505a486d4c61116b8e612af089895df2"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_lcd_frame</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">x</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">y</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">width</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">height</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8WsS3Geek15write_lcd_frameEK8uint16_tK8uint16_tK8uint16_tK8uint16_tP7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Write a frame to the LCD </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This method queues the data to be written to the LCD, only blocking if there is an ongoing SPI transaction </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – The x coordinate </p></li>
+<li><p><strong>y</strong> – The y coordinate </p></li>
+<li><p><strong>width</strong> – The width of the frame, in pixels </p></li>
+<li><p><strong>height</strong> – The height of the frame, in pixels </p></li>
+<li><p><strong>data</strong> – The data to write </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8WsS3Geek15write_lcd_linesEiiiiPK7uint8_t8uint32_t">
+<span id="_CPPv3N4espp8WsS3Geek15write_lcd_linesEiiiiPK7uint8_t8uint32_t"></span><span id="_CPPv2N4espp8WsS3Geek15write_lcd_linesEiiiiPK7uint8_t8uint32_t"></span><span id="espp::WsS3Geek::write_lcd_lines__i.i.i.i.uint8_tCP.uint32_t"></span><span class="target" id="classespp_1_1WsS3Geek_1afaeae8d964bc50679803ca5e7bdf6e0e"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_lcd_lines</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">xs</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ys</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">xe</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ye</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">user_data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8WsS3Geek15write_lcd_linesEiiiiPK7uint8_t8uint32_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Write lines to the LCD </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This method queues the data to be written to the LCD, only blocking if there is an ongoing SPI transaction </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xs</strong> – The x start coordinate </p></li>
+<li><p><strong>ys</strong> – The y start coordinate </p></li>
+<li><p><strong>xe</strong> – The x end coordinate </p></li>
+<li><p><strong>ye</strong> – The y end coordinate </p></li>
+<li><p><strong>data</strong> – The data to write </p></li>
+<li><p><strong>user_data</strong> – User data to pass to the spi transaction callback </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8WsS3Geek17initialize_sdcardERK12SdCardConfig">
+<span id="_CPPv3N4espp8WsS3Geek17initialize_sdcardERK12SdCardConfig"></span><span id="_CPPv2N4espp8WsS3Geek17initialize_sdcardERK12SdCardConfig"></span><span id="espp::WsS3Geek::initialize_sdcard__SdCardConfigCR"></span><span class="target" id="classespp_1_1WsS3Geek_1a7a3e432fd6ecdd1d19c246d81d4b316a"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize_sdcard</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp8WsS3Geek12SdCardConfigE" title="espp::WsS3Geek::SdCardConfig"><span class="n"><span class="pre">SdCardConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8WsS3Geek17initialize_sdcardERK12SdCardConfig" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the uSD card </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – The configuration for the uSD card </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the uSD card was initialized properly. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8WsS3Geek6sdcardEv">
+<span id="_CPPv3NK4espp8WsS3Geek6sdcardEv"></span><span id="_CPPv2NK4espp8WsS3Geek6sdcardEv"></span><span id="espp::WsS3Geek::sdcardC"></span><span class="target" id="classespp_1_1WsS3Geek_1ae585cf0b75e7cbcd7d71110804e1b6ea"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">sdmmc_card_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">sdcard</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8WsS3Geek6sdcardEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the uSD card </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The uSD card is only available if it was successfully initialized and the mount point is valid </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A pointer to the uSD card </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8WsS3Geek8get_nameEv">
+<span id="_CPPv3NK4espp8WsS3Geek8get_nameEv"></span><span id="_CPPv2NK4espp8WsS3Geek8get_nameEv"></span><span id="espp::WsS3Geek::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8WsS3Geek8get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8WsS3Geek11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp8WsS3Geek11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp8WsS3Geek11set_log_tagERKNSt11string_viewE"></span><span id="espp::WsS3Geek::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8WsS3Geek11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8WsS3Geek13get_log_levelEv">
+<span id="_CPPv3NK4espp8WsS3Geek13get_log_levelEv"></span><span id="_CPPv2NK4espp8WsS3Geek13get_log_levelEv"></span><span id="espp::WsS3Geek::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8WsS3Geek13get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8WsS3Geek13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp8WsS3Geek13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp8WsS3Geek13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::WsS3Geek::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8WsS3Geek13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8WsS3Geek17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp8WsS3Geek17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp8WsS3Geek17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::WsS3Geek::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8WsS3Geek17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="ws_s3_touch.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8WsS3Geek17get_log_verbosityEv">
+<span id="_CPPv3NK4espp8WsS3Geek17get_log_verbosityEv"></span><span id="_CPPv2NK4espp8WsS3Geek17get_log_verbosityEv"></span><span id="espp::WsS3Geek::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8WsS3Geek17get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="ws_s3_touch.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8WsS3Geek18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp8WsS3Geek18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp8WsS3Geek18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::WsS3Geek::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8WsS3Geek18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8WsS3Geek3getEv">
+<span id="_CPPv3N4espp8WsS3Geek3getEv"></span><span id="_CPPv2N4espp8WsS3Geek3getEv"></span><span id="espp::WsS3Geek::get"></span><span class="target" id="classespp_1_1WsS3Geek_1adeadb3e4d647bb29fe8b842c60e3285e"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp8WsS3GeekE" title="espp::WsS3Geek"><span class="n"><span class="pre">WsS3Geek</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8WsS3Geek3getEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Access the singleton instance of the <a class="reference internal" href="#classespp_1_1WsS3Geek"><span class="std std-ref">WsS3Geek</span></a> class. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Reference to the singleton instance of the <a class="reference internal" href="#classespp_1_1WsS3Geek"><span class="std std-ref">WsS3Geek</span></a> class </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8WsS3Geek9lcd_widthEv">
+<span id="_CPPv3N4espp8WsS3Geek9lcd_widthEv"></span><span id="_CPPv2N4espp8WsS3Geek9lcd_widthEv"></span><span id="espp::WsS3Geek::lcd_widthCE"></span><span class="target" id="classespp_1_1WsS3Geek_1a4b45e956fe99f63595b187b7dc229deb"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lcd_width</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8WsS3Geek9lcd_widthEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the width of the LCD in pixels </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The width of the LCD in pixels </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8WsS3Geek10lcd_heightEv">
+<span id="_CPPv3N4espp8WsS3Geek10lcd_heightEv"></span><span id="_CPPv2N4espp8WsS3Geek10lcd_heightEv"></span><span id="espp::WsS3Geek::lcd_heightCE"></span><span class="target" id="classespp_1_1WsS3Geek_1a11b46c911fb64490c33fed5a6d40b177"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lcd_height</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8WsS3Geek10lcd_heightEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the height of the LCD in pixels </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The height of the LCD in pixels </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8WsS3Geek15get_lcd_dc_gpioEv">
+<span id="_CPPv3N4espp8WsS3Geek15get_lcd_dc_gpioEv"></span><span id="_CPPv2N4espp8WsS3Geek15get_lcd_dc_gpioEv"></span><span id="espp::WsS3Geek::get_lcd_dc_gpioCE"></span><span class="target" id="classespp_1_1WsS3Geek_1ae8b52342ac0ef31e3ccfe78386871215"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_lcd_dc_gpio</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8WsS3Geek15get_lcd_dc_gpioEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the GPIO pin for the LCD data/command signal </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The GPIO pin for the LCD data/command signal </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8WsS3Geek22SPI_MAX_TRANSFER_BYTESE">
+<span id="_CPPv3N4espp8WsS3Geek22SPI_MAX_TRANSFER_BYTESE"></span><span id="_CPPv2N4espp8WsS3Geek22SPI_MAX_TRANSFER_BYTESE"></span><span id="espp::WsS3Geek::SPI_MAX_TRANSFER_BYTES__s"></span><span class="target" id="classespp_1_1WsS3Geek_1ae291d1ec3c496ef996e15fc41c74d45c"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SPI_MAX_TRANSFER_BYTES</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">SPI_LL_DMA_MAX_BIT_LEN</span></span><span class="w"> </span><span class="o"><span class="pre">/</span></span><span class="w"> </span><span class="m"><span class="pre">8</span></span><a class="headerlink" href="#_CPPv4N4espp8WsS3Geek22SPI_MAX_TRANSFER_BYTESE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Maximum number of bytes that can be transferred in a single SPI transaction to the <a class="reference internal" href="display/display.html#classespp_1_1Display"><span class="std std-ref">Display</span></a>. 32k on the ESP32-S3. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8WsS3Geek11mount_pointE">
+<span id="_CPPv3N4espp8WsS3Geek11mount_pointE"></span><span id="_CPPv2N4espp8WsS3Geek11mount_pointE"></span><span id="espp::WsS3Geek::mount_point__cA"></span><span class="target" id="classespp_1_1WsS3Geek_1ac8137513e86c45cf8a7fa66c66c1c075"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mount_point</span></span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;/sdcard&quot;</span></span><a class="headerlink" href="#_CPPv4N4espp8WsS3Geek11mount_pointE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Mount point for the uSD card. </p>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8WsS3Geek12SdCardConfigE">
+<span id="_CPPv3N4espp8WsS3Geek12SdCardConfigE"></span><span id="_CPPv2N4espp8WsS3Geek12SdCardConfigE"></span><span id="espp::WsS3Geek::SdCardConfig"></span><span class="target" id="structespp_1_1WsS3Geek_1_1SdCardConfig"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SdCardConfig</span></span></span><a class="headerlink" href="#_CPPv4N4espp8WsS3Geek12SdCardConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration for the uSD card. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8WsS3Geek12SdCardConfig22format_if_mount_failedE">
+<span id="_CPPv3N4espp8WsS3Geek12SdCardConfig22format_if_mount_failedE"></span><span id="_CPPv2N4espp8WsS3Geek12SdCardConfig22format_if_mount_failedE"></span><span id="espp::WsS3Geek::SdCardConfig::format_if_mount_failed__b"></span><span class="target" id="structespp_1_1WsS3Geek_1_1SdCardConfig_1ac318e582596511a858e05a7b33df2bc0"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">format_if_mount_failed</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N4espp8WsS3Geek12SdCardConfig22format_if_mount_failedE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Format the uSD card if mount failed. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8WsS3Geek12SdCardConfig9max_filesE">
+<span id="_CPPv3N4espp8WsS3Geek12SdCardConfig9max_filesE"></span><span id="_CPPv2N4espp8WsS3Geek12SdCardConfig9max_filesE"></span><span id="espp::WsS3Geek::SdCardConfig::max_files__i"></span><span class="target" id="structespp_1_1WsS3Geek_1_1SdCardConfig_1a9dcab531576e112392b0efde37eb5784"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">max_files</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">5</span></span><a class="headerlink" href="#_CPPv4N4espp8WsS3Geek12SdCardConfig9max_filesE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The maximum number of files to open at once. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8WsS3Geek12SdCardConfig20allocation_unit_sizeE">
+<span id="_CPPv3N4espp8WsS3Geek12SdCardConfig20allocation_unit_sizeE"></span><span id="_CPPv2N4espp8WsS3Geek12SdCardConfig20allocation_unit_sizeE"></span><span id="espp::WsS3Geek::SdCardConfig::allocation_unit_size__s"></span><span class="target" id="structespp_1_1WsS3Geek_1_1SdCardConfig_1a924527005388bb888981b2b816aec18d"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">allocation_unit_size</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">2</span></span><span class="w"> </span><span class="o"><span class="pre">*</span></span><span class="w"> </span><span class="m"><span class="pre">1024</span></span><a class="headerlink" href="#_CPPv4N4espp8WsS3Geek12SdCardConfig20allocation_unit_sizeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The allocation unit size in bytes. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="wrover_kit_example.html" class="btn btn-neutral float-left" title="Wrover-Kit Example" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ws_s3_geek_example.html" class="btn btn-neutral float-right" title="Waveshare ESP32-S3-GEEK Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

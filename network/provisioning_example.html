@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Provisioning Example - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'network/provisioning_example';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Socket Example" href="socket_example.html" />
+    <link rel="prev" title="Provisioning" href="provisioning.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_component.html">Base Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../byte90.html">ALXV Labs Byte90</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cobs.html">COBS (Consistent Overhead Byte Stuffing)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp32_timer_cam.html">ESP32 TimerCam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp_box.html">ESP BOX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../interrupt.html">Interrupt APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../iperf_menu.html">Iperf Menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../m5stack_tab5.html">M5Stack Tab5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../matouch_rotary_display.html">MaTouch Rotary Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../motorgo_mini.html">MotorGo Mini</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../neopixel.html">Neopixel APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Network APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="dns_server.html">DNS Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ping.html">Ping</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="provisioning.html">Provisioning</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Provisioning Example</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#how-to-use-example">How to use example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#example-usage">Example Usage</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#example-output">Example Output</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#configuration">Configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#web-interface-features">Web Interface Features</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="provisioning.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="socket_example.html">Socket Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="socket.html">Sockets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tcp_socket.html">TCP Sockets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="udp_socket.html">UDP Sockets</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nvs.html">NVS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../remote_debug.html">Remote Debug APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../runqueue.html">RunQueue APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../seeed_studio_round_display.html">Seeed Studio Round Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_deck.html">LilyGo T-Deck</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_dongle_s3.html">LilyGo T-Dongle S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wrover_kit.html">ESP32-WROVER-KIT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Network APIs</a></li>
+          <li class="breadcrumb-item"><a href="provisioning.html">Provisioning</a></li>
+      <li class="breadcrumb-item active">Provisioning Example</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/32e8215e/docs/en/network/provisioning_example.md" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="provisioning-example">
+<h1>Provisioning Example<a class="headerlink" href="#provisioning-example" title="Permalink to this heading"></a></h1>
+<p>This example demonstrates the <code class="docutils literal notranslate"><span class="pre">espp::Provisioning</span></code> component, which provides a
+web-based WiFi configuration interface for ESP32 devices.</p>
+<p><strong>Scanning for network and connecting</strong>:</p>
+<table>
+  <tr>
+    <td>scan <img alt="image" src="https://github.com/user-attachments/assets/ffc31171-8575-49a9-b5bf-0b934f030497"></td>
+    <td>enter password <img alt="image" src="https://github.com/user-attachments/assets/e230ce28-c1a4-4919-bac0-91757ac3f71c"></td>
+  </tr>
+  <tr>
+    <td>connecting <img alt="image" src="https://github.com/user-attachments/assets/b8a6d2de-927e-4b12-b749-9190b9cf5200"></td>
+    <td>connected <img alt="image" src="https://github.com/user-attachments/assets/19e7d9e8-1c9d-4da6-adba-591ec0c886f9"></td>
+  </tr>
+  <tr>
+    <td>provisioning completed <img alt="image" src="https://github.com/user-attachments/assets/adcbc5db-c4c3-49fb-9a81-e78ef70303c4"></td>
+  </tr>
+</table>
+<p><strong>Managing saved networks</strong>:</p>
+<table>
+  <tr>
+    <td>view <img alt="image" src="https://github.com/user-attachments/assets/ce099bfc-2fe7-4dd6-b0f3-6bf0f7223a4c"></td>
+    <td>connect <img alt="image" src="https://github.com/user-attachments/assets/a17a4999-ae34-4705-a568-c15c428fcff5"></td>
+  </tr>
+  <tr>
+    <td>connected <img alt="image" src="https://github.com/user-attachments/assets/d8f42595-3102-439e-9e1b-3d5b5a438148"></td>
+    <td>delete <img alt="image" src="https://github.com/user-attachments/assets/5d6370ef-0d1b-4a43-bb40-1017b7044f7a"></td>
+  </tr>
+</table>
+<section id="how-to-use-example">
+<h2>How to use example<a class="headerlink" href="#how-to-use-example" title="Permalink to this heading"></a></h2>
+<section id="hardware-required">
+<h3>Hardware Required<a class="headerlink" href="#hardware-required" title="Permalink to this heading"></a></h3>
+<p>This example can run on any ESP32 development board with WiFi capability.</p>
+</section>
+<section id="build-and-flash">
+<h3>Build and Flash<a class="headerlink" href="#build-and-flash" title="Permalink to this heading"></a></h3>
+<p>Build the project and flash it to the board, then run monitor tool to view serial output:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">idf</span><span class="o">.</span><span class="n">py</span> <span class="o">-</span><span class="n">p</span> <span class="n">PORT</span> <span class="n">flash</span> <span class="n">monitor</span>
+</pre></div>
+</div>
+<p>(Replace PORT with the name of the serial port to use.)</p>
+<p>(To exit the serial monitor, type <code class="docutils literal notranslate"><span class="pre">Ctrl-]</span></code>.)</p>
+<p>See the Getting Started Guide for full steps to configure and use ESP-IDF to build projects.</p>
+</section>
+</section>
+<section id="example-usage">
+<h2>Example Usage<a class="headerlink" href="#example-usage" title="Permalink to this heading"></a></h2>
+<section id="first-time-setup">
+<h3>First Time Setup<a class="headerlink" href="#first-time-setup" title="Permalink to this heading"></a></h3>
+<ol class="arabic simple">
+<li><p>Flash the example to your ESP32 device</p></li>
+<li><p>The device will create a WiFi access point named <code class="docutils literal notranslate"><span class="pre">ESP-Prov-XXXX</span></code> (where XXXX is part of the MAC address)</p></li>
+<li><p>Connect to this AP using your phone or computer (password: “configure”)</p></li>
+<li><p>Open a web browser and navigate to <code class="docutils literal notranslate"><span class="pre">http://192.168.4.1</span></code></p></li>
+<li><p>Use the web interface to:</p>
+<ul class="simple">
+<li><p>Click “Scan Networks” to see available WiFi networks</p></li>
+<li><p>Select a network from the list (or manually enter SSID)</p></li>
+<li><p>Enter the network password</p></li>
+<li><p>Click “Connect” to test the connection</p></li>
+<li><p>If successful, click “Complete Provisioning” to save and exit</p></li>
+</ul>
+</li>
+</ol>
+</section>
+<section id="subsequent-boots">
+<h3>Subsequent Boots<a class="headerlink" href="#subsequent-boots" title="Permalink to this heading"></a></h3>
+<p>The device stores WiFi credentials in NVS for future use. The provisioning web
+interface allows you to view saved networks and reconnect to them. Note: This
+example does not automatically connect to saved networks - it only demonstrates
+the provisioning UI. To implement auto-connect on boot, your application should
+retrieve saved credentials from NVS and use the <code class="docutils literal notranslate"><span class="pre">WifiSta</span></code> component to connect.</p>
+</section>
+</section>
+<section id="example-output">
+<h2>Example Output<a class="headerlink" href="#example-output" title="Permalink to this heading"></a></h2>
+<p>Aut-opening provisioning portal on Android when connecting to the AP:</p>
+<p>https://github.com/user-attachments/assets/bd43125d-1641-4586-a958-39720e82f960</p>
+<p>And on iOS:
+<img width="1206" height="2622" alt="image" src="https://github.com/user-attachments/assets/be61fcba-177f-4266-a5a7-c74d05c32097" />
+<img width="1206" height="2622" alt="image" src="https://github.com/user-attachments/assets/129184eb-53d4-49ec-b391-9a8021bec6b2" />
+<img width="1206" height="2622" alt="image" src="https://github.com/user-attachments/assets/3e0fbd40-5176-4853-a5c2-2606d001d05b" /></p>
+<p>Scanning for network and connecting:
+<img width="852" height="1898" alt="image" src="https://github.com/user-attachments/assets/ffc31171-8575-49a9-b5bf-0b934f030497" />
+<img width="852" height="1898" alt="image" src="https://github.com/user-attachments/assets/e230ce28-c1a4-4919-bac0-91757ac3f71c" />
+<img width="852" height="1898" alt="image" src="https://github.com/user-attachments/assets/b8a6d2de-927e-4b12-b749-9190b9cf5200" />
+<img width="852" height="1898" alt="image" src="https://github.com/user-attachments/assets/19e7d9e8-1c9d-4da6-adba-591ec0c886f9" />
+<img width="852" height="1898" alt="image" src="https://github.com/user-attachments/assets/a261f075-d780-4be9-8a0d-46b8c3e469aa" />
+<img width="852" height="1898" alt="image" src="https://github.com/user-attachments/assets/adcbc5db-c4c3-49fb-9a81-e78ef70303c4" /></p>
+<p>Managing saved networks:
+<img width="852" height="1898" alt="image" src="https://github.com/user-attachments/assets/ce099bfc-2fe7-4dd6-b0f3-6bf0f7223a4c" />
+<img width="852" height="1898" alt="image" src="https://github.com/user-attachments/assets/a17a4999-ae34-4705-a568-c15c428fcff5" />
+<img width="852" height="1898" alt="image" src="https://github.com/user-attachments/assets/d8f42595-3102-439e-9e1b-3d5b5a438148" />
+<img width="852" height="1898" alt="image" src="https://github.com/user-attachments/assets/5d6370ef-0d1b-4a43-bb40-1017b7044f7a" /></p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">I (415) main_task: Calling app_main()</span>
+<span class="go">[Provisioning Example/I][0.415]: Starting WiFi Provisioning Example</span>
+<span class="go">[Provisioning Example/I][0.415]: Initializing NVS...</span>
+<span class="go">[Provisioning/I][0.465]: Initialized with AP SSID: ESP-Prov-8590</span>
+<span class="go">[Provisioning Example/I][0.465]: Existing provisioned network SSID: HouseOfBoo</span>
+<span class="go">[WifiAp/I][0.465]: Creating network interface and ensuring WiFi stack is initialized</span>
+<span class="go">I (475) pp: pp rom version: e7ae62f</span>
+<span class="go">I (475) net80211: net80211 rom version: e7ae62f</span>
+<span class="go">I (495) wifi:wifi driver task: 3fcedc7c, prio:23, stack:6656, core=0</span>
+<span class="go">I (505) wifi:wifi firmware version: ee91c8c</span>
+<span class="go">I (505) wifi:wifi certification version: v7.0</span>
+<span class="go">I (505) wifi:config NVS flash: enabled</span>
+<span class="go">I (505) wifi:config nano formatting: disabled</span>
+<span class="go">I (505) wifi:Init data frame dynamic rx buffer num: 32</span>
+<span class="go">I (515) wifi:Init static rx mgmt buffer num: 5</span>
+<span class="go">I (515) wifi:Init management short buffer num: 32</span>
+<span class="go">I (525) wifi:Init dynamic tx buffer num: 32</span>
+<span class="go">I (525) wifi:Init static tx FG buffer num: 2</span>
+<span class="go">I (535) wifi:Init static rx buffer size: 1600</span>
+<span class="go">I (535) wifi:Init static rx buffer num: 10</span>
+<span class="go">I (535) wifi:Init dynamic rx buffer num: 32</span>
+<span class="go">I (545) wifi_init: rx ba win: 6</span>
+<span class="go">I (545) wifi_init: accept mbox: 6</span>
+<span class="go">I (545) wifi_init: tcpip mbox: 32</span>
+<span class="go">I (555) wifi_init: udp mbox: 6</span>
+<span class="go">I (555) wifi_init: tcp mbox: 6</span>
+<span class="go">I (555) wifi_init: tcp tx win: 5760</span>
+<span class="go">I (565) wifi_init: tcp rx win: 5760</span>
+<span class="go">I (565) wifi_init: tcp mss: 1440</span>
+<span class="go">I (565) wifi_init: WiFi IRAM OP enabled</span>
+<span class="go">I (575) wifi_init: WiFi RX IRAM OP enabled</span>
+<span class="go">[WifiAp/I][0.575]: Reconfiguring WiFi AP</span>
+<span class="go">[WifiAp/I][0.575]: WiFi AP stopped</span>
+<span class="go">I (585) phy_init: phy_version 711,97bcf0a2,Aug 25 2025,19:04:10</span>
+<span class="go">I (625) wifi:mode : softAP (f4:12:fa:5a:85:91)</span>
+<span class="go">I (625) wifi:Total power save buffer number: 16</span>
+<span class="go">I (625) wifi:Init max length of beacon: 752/752</span>
+<span class="go">I (625) wifi:Init max length of beacon: 752/752</span>
+<span class="go">I (635) esp_netif_lwip: DHCP server started on interface WIFI_AP_DEF with IP: 192.168.4.1</span>
+<span class="go">[WifiAp/I][0.635]: WiFi AP started</span>
+<span class="go">[WifiAp/I][0.645]: WiFi AP started</span>
+<span class="go">[WifiAp/I][0.645]: WiFi AP started, SSID: &#39;ESP-Prov-8590&#39;</span>
+<span class="go">[Provisioning/I][0.655]: Provisioning started at http://192.168.4.1</span>
+<span class="go">[Provisioning Example/I][0.655]: Provisioning started</span>
+<span class="go">[Provisioning Example/I][0.665]: Connect to WiFi network: ESP-Prov-8590</span>
+<span class="go">[Provisioning Example/I][0.675]: Open browser to: http://192.168.4.1</span>
+<span class="go">I (7265) wifi:new:&lt;1,0&gt;, old:&lt;1,1&gt;, ap:&lt;1,1&gt;, sta:&lt;255,255&gt;, prof:1, snd_ch_cfg:0x0</span>
+<span class="go">I (7265) wifi:station: a2:51:f2:06:a8:34 join, AID=1, bgn, 20</span>
+<span class="go">[WifiAp/I][7.265]: Station join, AID=1</span>
+<span class="go">I (7475) wifi:&lt;ba-add&gt;idx:2 (ifx:1, a2:51:f2:06:a8:34), tid:0, ssn:643, winSize:64</span>
+<span class="go">I (7695) esp_netif_lwip: DHCP server assigned IP to a client, IP is: 192.168.4.2</span>
+<span class="go">I (7935) wifi:&lt;ba-add&gt;idx:3 (ifx:1, a2:51:f2:06:a8:34), tid:6, ssn:2922, winSize:64</span>
+<span class="go">[WifiAp/I][15.025]: Station leave, AID=1</span>
+<span class="go">I (15035) wifi:&lt;ba-del&gt;idx:2, tid:0</span>
+<span class="go">I (15035) wifi:&lt;ba-del&gt;idx:3, tid:6</span>
+<span class="go">I (15035) wifi:new:&lt;1,0&gt;, old:&lt;1,0&gt;, ap:&lt;1,1&gt;, sta:&lt;255,255&gt;, prof:1, snd_ch_cfg:0x0</span>
+<span class="go">I (15035) wifi:station: a2:51:f2:06:a8:34 join, AID=1, bgn, 20</span>
+<span class="go">[WifiAp/I][15.045]: Station join, AID=1</span>
+<span class="go">I (15205) wifi:&lt;ba-add&gt;idx:2 (ifx:1, a2:51:f2:06:a8:34), tid:0, ssn:2714, winSize:64</span>
+<span class="go">I (15345) esp_netif_lwip: DHCP server assigned IP to a client, IP is: 192.168.4.2</span>
+<span class="go">I (15655) wifi:&lt;ba-add&gt;idx:3 (ifx:1, a2:51:f2:06:a8:34), tid:6, ssn:3177, winSize:64</span>
+<span class="go">[Provisioning/I][17.785]: Starting WiFi scan...</span>
+<span class="go">I (17795) wifi:mode : sta (f4:12:fa:5a:85:90) + softAP (f4:12:fa:5a:85:91)</span>
+<span class="go">I (17795) wifi:enable tsf</span>
+<span class="go">I (20705) wifi:mode : softAP (f4:12:fa:5a:85:91)</span>
+<span class="go">[Provisioning/I][20.715]: Found 3 networks</span>
+<span class="go">[Provisioning/I][34.945]: Testing connection to: HouseOfBoo</span>
+<span class="go">[Provisioning/I][34.955]: Creating test WiFi STA instance</span>
+<span class="go">[WifiSta/I][34.955]: Creating network interface and ensuring WiFi stack is initialized</span>
+<span class="go">[WifiSta/D][34.965]: Adding event handler for WIFI_EVENT(s)</span>
+<span class="go">[WifiSta/D][34.965]: Adding IP event handler for IP_EVENT_STA_GOT_IP</span>
+<span class="go">[WifiSta/I][34.975]: Reconfiguring WiFi STA</span>
+<span class="go">[WifiSta/D][34.975]: Setting WiFi SSID to &#39;HouseOfBoo&#39;</span>
+<span class="go">[WifiSta/D][34.985]: AP mode already active, setting mode to APSTA</span>
+<span class="go">[WifiSta/D][34.995]: Setting WiFi mode to WIFI_MODE_APSTA</span>
+<span class="go">I (35005) wifi:mode : sta (f4:12:fa:5a:85:90) + softAP (f4:12:fa:5a:85:91)</span>
+<span class="go">I (35005) wifi:enable tsf</span>
+<span class="go">[WifiSta/D][35.025]: Setting WiFi config</span>
+<span class="go">W (35025) wifi:Password length matches WPA2 standards, authmode threshold changes from OPEN to WPA2</span>
+<span class="go">[WifiSta/D][35.025]: WIFI_EVENT_STA_START - initiating connection</span>
+<span class="go">[WifiSta/D][35.035]: Setting WiFi PHY rate to MCS0_LGI (6.5-13.5 Mbps)</span>
+<span class="go">I (35045) wifi:primary chan differ, old=1, new=9, start CSA timer</span>
+<span class="go">[WifiSta/I][35.045]: WiFi STA reconfigured successfully</span>
+<span class="go">[WifiSta/D][35.055]: Starting WiFi</span>
+<span class="go">[WifiSta/I][35.055]: WiFi started</span>
+<span class="go">[WifiSta/I][35.065]: WiFi STA started, SSID: &#39;HouseOfBoo&#39;</span>
+<span class="go">[Provisioning/I][35.065]: Waiting for connection (max 15 seconds)...</span>
+<span class="go">I (35445) wifi:switch to channel 9</span>
+<span class="go">I (35445) wifi:ap channel adjust o:1,1 n:9,2</span>
+<span class="go">I (35445) wifi:new:&lt;9,0&gt;, old:&lt;1,0&gt;, ap:&lt;9,2&gt;, sta:&lt;0,0&gt;, prof:1, snd_ch_cfg:0x0</span>
+<span class="go">I (35455) wifi:new:&lt;9,2&gt;, old:&lt;9,0&gt;, ap:&lt;9,2&gt;, sta:&lt;9,0&gt;, prof:1, snd_ch_cfg:0x0</span>
+<span class="go">I (35455) wifi:state: init -&gt; auth (0xb0)</span>
+<span class="go">I (35475) wifi:state: auth -&gt; assoc (0x0)</span>
+<span class="go">I (35495) wifi:state: assoc -&gt; run (0x10)</span>
+<span class="go">I (35525) wifi:connected with HouseOfBoo, aid = 7, channel 9, BW20, bssid = 08:02:8e:8a:54:73</span>
+<span class="go">I (35525) wifi:security: WPA2-PSK, phy: bgn, rssi: -55</span>
+<span class="go">I (35525) wifi:pm start, type: 1</span>
+
+<span class="go">I (35525) wifi:dp: 1, bi: 102400, li: 3, scale listen interval from 307200 us to 307200 us</span>
+<span class="go">I (35535) wifi:set rx beacon pti, rx_bcn_pti: 0, bcn_timeout: 25000, mt_pti: 0, mt_time: 10000</span>
+<span class="go">I (35545) wifi:dp: 2, bi: 102400, li: 4, scale listen interval from 307200 us to 409600 us</span>
+<span class="go">I (35555) wifi:AP&#39;s beacon interval = 102400 us, DTIM period = 2</span>
+<span class="go">[WifiSta/D][35.565]: WIFI_EVENT_STA_CONNECTED - waiting for IP</span>
+<span class="go">I (36905) wifi:&lt;ba-add&gt;idx:0 (ifx:0, 08:02:8e:8a:54:73), tid:6, ssn:4, winSize:64</span>
+<span class="go">I (37905) esp_netif_handlers: sta ip: 192.168.1.25, mask: 255.255.255.0, gw: 192.168.1.1</span>
+<span class="go">[WifiSta/I][37.905]: got ip: 192.168.1.25</span>
+<span class="go">[Provisioning/I][37.905]: Connection callback - connected to AP</span>
+<span class="go">[Provisioning/I][37.905]: Got IP callback - 192.168.1.25</span>
+<span class="go">[Provisioning/I][38.015]: Connection test result: true (got_ip=true, failed=false)</span>
+<span class="go">[Provisioning/I][38.015]: Cleaning up test STA</span>
+<span class="go">[WifiSta/D][38.015]: Destroying WiFiSta</span>
+<span class="go">[WifiSta/D][38.015]: Unregistering event handlers</span>
+<span class="go">[WifiSta/D][38.025]: Unregistering any wifi event handler</span>
+<span class="go">[WifiSta/D][38.035]: Unregistering got ip event handler</span>
+<span class="go">[WifiSta/D][38.035]: In APSTA mode, disconnecting STA interface</span>
+<span class="go">I (38045) wifi:state: run -&gt; init (0x0)</span>
+<span class="go">I (38065) wifi:pm stop, total sleep time: 1777943 us / 2533745 us</span>
+
+<span class="go">I (38065) wifi:&lt;ba-del&gt;idx:0, tid:6</span>
+<span class="go">I (38065) wifi:new:&lt;9,0&gt;, old:&lt;9,2&gt;, ap:&lt;9,2&gt;, sta:&lt;9,0&gt;, prof:1, snd_ch_cfg:0x0</span>
+<span class="go">I (38065) wifi:mode : softAP (f4:12:fa:5a:85:91)</span>
+<span class="go">[WifiSta/I][38.075]: WiFi STA disconnected, AP still running</span>
+<span class="go">[Provisioning/I][38.285]: Saving credentials for: HouseOfBoo</span>
+<span class="go">[Provisioning Example/I][40.965]: Provisioned successfully!</span>
+<span class="go">[Provisioning Example/I][40.965]:   SSID: HouseOfBoo</span>
+<span class="go">[Provisioning Example/I][40.965]:   Password: ********</span>
+<span class="go">[Provisioning Example/I][40.965]: Credentials saved to NVS</span>
+<span class="go">[Provisioning Example/I][41.085]: Provisioning completed by user, stopping service</span>
+<span class="go">I (41185) wifi:station: a2:51:f2:06:a8:34 leave, AID = 1, reason = 2, bss_flags is 33721443, bss:0x3fcb5a9c</span>
+<span class="go">I (41185) wifi:new:&lt;9,0&gt;, old:&lt;9,0&gt;, ap:&lt;9,2&gt;, sta:&lt;255,255&gt;, prof:1, snd_ch_cfg:0x0</span>
+<span class="go">I (41185) wifi:&lt;ba-del&gt;idx:2, tid:0</span>
+<span class="go">I (41195) wifi:&lt;ba-del&gt;idx:3, tid:6</span>
+<span class="go">I (41195) wifi:new:&lt;9,2&gt;, old:&lt;9,0&gt;, ap:&lt;9,2&gt;, sta:&lt;255,255&gt;, prof:1, snd_ch_cfg:0x0</span>
+<span class="go">I (41255) wifi:flush txq</span>
+<span class="go">I (41255) wifi:stop sw txq</span>
+<span class="go">I (41255) wifi:lmac stop hw txq</span>
+<span class="go">[WifiAp/I][41.255]: WiFi AP stopped</span>
+<span class="go">[Provisioning/I][41.255]: Provisioning stopped</span>
+<span class="go">[Provisioning Example/I][41.255]: Provisioning example finished</span>
+</pre></div>
+</div>
+</section>
+<section id="configuration">
+<h2>Configuration<a class="headerlink" href="#configuration" title="Permalink to this heading"></a></h2>
+<p>The example can be configured through <code class="docutils literal notranslate"><span class="pre">idf.py</span> <span class="pre">menuconfig</span></code> under “Provisioning Example Configuration”:</p>
+<ul class="simple">
+<li><p><strong>AP SSID</strong>: Name of the provisioning access point (default: “ESP-Prov”)</p></li>
+<li><p><strong>AP Password</strong>: Password for the provisioning AP (default: “configure”)</p></li>
+<li><p><strong>Device Name</strong>: Friendly name shown in web interface</p></li>
+<li><p><strong>Auto-generate unique SSID</strong>: Append MAC address to SSID to avoid conflicts</p></li>
+<li><p><strong>Auto-shutdown AP</strong>: Automatically stop AP after successful provisioning</p></li>
+<li><p><strong>Web Server Port</strong>: HTTP server port (default: 80)</p></li>
+</ul>
+</section>
+<section id="web-interface-features">
+<h2>Web Interface Features<a class="headerlink" href="#web-interface-features" title="Permalink to this heading"></a></h2>
+<p>The embedded web interface provides:</p>
+<ul class="simple">
+<li><p><strong>Network Scanner</strong>: Shows available WiFi networks with signal strength indicators</p></li>
+<li><p><strong>Manual Entry</strong>: Option to manually enter SSID for hidden networks</p></li>
+<li><p><strong>Connection Testing</strong>: Validates credentials before saving</p></li>
+<li><p><strong>Credential Management</strong>: View, delete, and reconnect to stored networks</p></li>
+<li><p><strong>Responsive Design</strong>: Works on mobile phones, tablets, and desktop browsers</p></li>
+<li><p><strong>Real-time Feedback</strong>: Shows connection status and error messages</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="provisioning.html" class="btn btn-neutral float-left" title="Provisioning" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="socket_example.html" class="btn btn-neutral float-right" title="Socket Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

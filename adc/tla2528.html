@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TLA2528 I2C ADC - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'adc/tla2528';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Tla2528 Example" href="tla2528_example.html" />
+    <link rel="prev" title="Continuous ADC" href="continuous_adc.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">ADC APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="ads1x15.html">ADS1x15 I2C ADC</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ads7138.html">ADS7138 I2C ADC</a></li>
+<li class="toctree-l2"><a class="reference internal" href="oneshot_adc.html">Oneshot ADC</a></li>
+<li class="toctree-l2"><a class="reference internal" href="continuous_adc.html">Continuous ADC</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">TLA2528 I2C ADC</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="tla2528_example.html">Tla2528 Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="adc_types.html">ADC Types</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../base_component.html">Base Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../byte90.html">ALXV Labs Byte90</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cobs.html">COBS (Consistent Overhead Byte Stuffing)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp32_timer_cam.html">ESP32 TimerCam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp_box.html">ESP BOX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../interrupt.html">Interrupt APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../iperf_menu.html">Iperf Menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../m5stack_tab5.html">M5Stack Tab5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../matouch_rotary_display.html">MaTouch Rotary Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../motorgo_mini.html">MotorGo Mini</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../neopixel.html">Neopixel APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nvs.html">NVS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../remote_debug.html">Remote Debug APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../runqueue.html">RunQueue APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../seeed_studio_round_display.html">Seeed Studio Round Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_deck.html">LilyGo T-Deck</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_dongle_s3.html">LilyGo T-Dongle S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wrover_kit.html">ESP32-WROVER-KIT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">ADC APIs</a></li>
+      <li class="breadcrumb-item active">TLA2528 I2C ADC</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/32e8215e/docs/en/adc/tla2528.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="tla2528-i2c-adc">
+<h1>TLA2528 I2C ADC<a class="headerlink" href="#tla2528-i2c-adc" title="Permalink to this heading"></a></h1>
+<p>The <cite>Tla2528</cite> class implements support for the Texas Instruments TLA2528 12-bit
+8-channel ADC. The TLA2528 is a 12-bit, 8-channel, low-power, successive
+approximation register (SAR) analog-to-digital converter (ADC) which can
+configure any of its 8 channels as single-ended analog inputs, digital inputs,
+or digital outputs. It has an operating mode that allows the user to configure
+the device for a single conversion, or to automatically convert on a
+sequenced basis.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tla2528_example.html">Tla2528 Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tla2528_example.html#how-to-use-example">How to use example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="tla2528_example.html#hardware-required">Hardware Required</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tla2528_example.html#build-and-flash">Build and Flash</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="tla2528_example.html#example-output">Example Output</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/32e8215e/components/tla2528/include/tla2528.hpp">components/tla2528/include/tla2528.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla2528E">
+<span id="_CPPv3N4espp7Tla2528E"></span><span id="_CPPv2N4espp7Tla2528E"></span><span id="espp::Tla2528"></span><span class="target" id="classespp_1_1Tla2528"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Tla2528</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../base_peripheral.html#_CPPv4I_NSt8integralE_b_b_bEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp7Tla2528E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Class for reading values from the TLA2528 family of ADC chips. </p>
+<p>The TLA2528 is a 16-bit, 8-channel ADC with 8 digital I/O pins. It supports a variety of sampling modes, including manual sampling, and auto sequence sampling. It also supports oversampling ratios of 2, 4, 8, 16, 32, 64, and 128. It additionally allows the user to configure the analog or digital inputs to trigger an alert when the value goes above or below a threshold (enter or leave a region of voltage). <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference external" href="https://www.ti.com/lit/ds/symlink/tla2528.pdf">https://www.ti.com/lit/ds/symlink/tla2528.pdf</a></p>
+</div>
+</p>
+<section id="classespp_1_1Tla2528_1tla2528_ex1">
+<h4>TLA2528 Example<a class="headerlink" href="#classespp_1_1Tla2528_1tla2528_ex1" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1Tla2528_1tla2528_ex1"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// make the I2C that we&#39;ll use to communicate</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="w"> </span><span class="nf">i2c</span><span class="p">({</span>
+<span class="w">        </span><span class="p">.</span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_NUM_0</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">sda_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">gpio_num_t</span><span class="p">)</span><span class="n">CONFIG_EXAMPLE_I2C_SDA_GPIO</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">scl_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">gpio_num_t</span><span class="p">)</span><span class="n">CONFIG_EXAMPLE_I2C_SCL_GPIO</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">sda_pullup_en</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_PULLUP_ENABLE</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">scl_pullup_en</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_PULLUP_ENABLE</span><span class="p">,</span>
+<span class="w">    </span><span class="p">});</span>
+
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">found_addresses</span><span class="p">;</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">address</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">128</span><span class="p">;</span><span class="w"> </span><span class="n">address</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;probing address {:#02x}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">address</span><span class="p">);</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">i2c</span><span class="p">.</span><span class="n">probe_device</span><span class="p">(</span><span class="n">address</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">found_addresses</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">address</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="c1">// print out the addresses that were found</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Found devices at addresses: {::#02x}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">found_addresses</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">found_addresses</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;No devices found!&quot;</span><span class="p">);</span>
+<span class="w">      </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// make sure one of the TLA addresses is in the list, and use one if it was found</span>
+<span class="w">    </span><span class="c1">//</span>
+<span class="w">    </span><span class="c1">// NOTE: the TLA2528 has 8 addresses, so we need to check for them all</span>
+<span class="w">    </span><span class="c1">// 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17</span>
+<span class="w">    </span><span class="c1">//</span>
+<span class="w">    </span><span class="c1">// Example: Address pin is connected via 11k to ADC_DECAP, so the default</span>
+<span class="w">    </span><span class="c1">// address of 0x10 becomes 0x16: espp::Tla2528::DEFAULT_ADDRESS | 0x06</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">tla_addresses</span><span class="p">{</span><span class="mh">0x10</span><span class="p">,</span><span class="w"> </span><span class="mh">0x11</span><span class="p">,</span><span class="w"> </span><span class="mh">0x12</span><span class="p">,</span><span class="w"> </span><span class="mh">0x13</span><span class="p">,</span><span class="w"> </span><span class="mh">0x14</span><span class="p">,</span><span class="w"> </span><span class="mh">0x15</span><span class="p">,</span><span class="w"> </span><span class="mh">0x16</span><span class="p">,</span><span class="w"> </span><span class="mh">0x17</span><span class="p">};</span>
+<span class="w">    </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">tla_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">it</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">find_first_of</span><span class="p">(</span><span class="n">tla_addresses</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span><span class="w"> </span><span class="n">tla_addresses</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span>
+<span class="w">                                 </span><span class="n">found_addresses</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span><span class="w"> </span><span class="n">found_addresses</span><span class="p">.</span><span class="n">end</span><span class="p">());</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">it</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">tla_addresses</span><span class="p">.</span><span class="n">end</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">tla_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">*</span><span class="n">it</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;No TLA2528 found!&quot;</span><span class="p">);</span>
+<span class="w">      </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Found TLA2528 at address {:#02x}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">tla_address</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="o">::</span><span class="n">Channel</span><span class="o">&gt;</span><span class="w"> </span><span class="n">channels</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH0</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH1</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH2</span><span class="p">,</span>
+<span class="w">        </span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH3</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH4</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH5</span><span class="p">,</span>
+<span class="w">        </span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH6</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH7</span><span class="p">};</span>
+
+<span class="w">    </span><span class="c1">// make the actual tla class</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="w"> </span><span class="nf">tla</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="o">::</span><span class="n">Config</span><span class="p">{</span>
+<span class="w">        </span><span class="p">.</span><span class="n">device_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tla_address</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="o">::</span><span class="n">Mode</span><span class="o">::</span><span class="n">AUTO_SEQ</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">analog_inputs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">channels</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">digital_inputs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{},</span>
+<span class="w">        </span><span class="p">.</span><span class="n">digital_outputs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{},</span>
+<span class="w">        </span><span class="c1">// enable oversampling / averaging</span>
+<span class="w">        </span><span class="p">.</span><span class="n">oversampling_ratio</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="o">::</span><span class="n">OversamplingRatio</span><span class="o">::</span><span class="n">NONE</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">write</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span>
+<span class="w">                           </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
+<span class="w">        </span><span class="p">.</span><span class="n">read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">read</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span>
+<span class="w">                          </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
+<span class="w">        </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">,</span>
+<span class="w">    </span><span class="p">});</span>
+
+<span class="w">    </span><span class="c1">// calibrate the ADC</span>
+<span class="w">    </span><span class="c1">//</span>
+<span class="w">    </span><span class="c1">// NOTE: this is not strictly necessary, but improves the accuracy of the</span>
+<span class="w">    </span><span class="c1">//       ADC.</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">cal_start_us</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">esp_timer_get_time</span><span class="p">();</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+<span class="w">    </span><span class="n">tla</span><span class="p">.</span><span class="n">calibrate</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">cal_end_us</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">esp_timer_get_time</span><span class="p">();</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;error calibrating TLA2528: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">      </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;calibration took {} us&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">cal_end_us</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">cal_start_us</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// make the task which will get the raw data from the I2C ADC</span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;%time (s), ntc (mV), x (mV), y (mV)</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">tla_read_task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">tla</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="o">&amp;</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">elapsed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">).</span><span class="n">count</span><span class="p">();</span>
+
+<span class="w">      </span><span class="c1">// get the analog input data individually; NOTE: this only works if you have configured the</span>
+<span class="w">      </span><span class="c1">// TLA2528 to use MANUAL mode</span>
+<span class="w">      </span><span class="c1">// auto ch0_mv = tla.get_mv(channels[0]);</span>
+<span class="w">      </span><span class="c1">// auto ch1_mv = tla.get_mv(channels[1]);</span>
+<span class="w">      </span><span class="c1">// auto ch2_mv = tla.get_mv(channels[2]);</span>
+
+<span class="w">      </span><span class="c1">// Could also read them all at once; NOTE: this only works if you have configured the</span>
+<span class="w">      </span><span class="c1">// TLA2528 to use AUTO_SEQ mode (which is more efficient)</span>
+<span class="w">      </span><span class="c1">// auto all_mv = tla.get_all_mv();</span>
+<span class="w">      </span><span class="c1">// auto ch0_mv = all_mv[0];</span>
+<span class="w">      </span><span class="c1">// auto ch1_mv = all_mv[1];</span>
+<span class="w">      </span><span class="c1">// auto ch2_mv = all_mv[2];</span>
+
+<span class="w">      </span><span class="c1">// Could also use the mapped version; NOTE: this only works if you have configured the</span>
+<span class="w">      </span><span class="c1">// TLA2528 to use AUTO_SEQ mode (which is more efficient)</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">all_mv_map</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tla</span><span class="p">.</span><span class="n">get_all_mv_map</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;error reading TLA2528: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+
+<span class="w">      </span><span class="c1">// use fmt to print so it doesn&#39;t have the prefix and can be used more</span>
+<span class="w">      </span><span class="c1">// easily as CSV (for plotting using uart_serial_plotter)</span>
+<span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;{:.3f}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">elapsed</span><span class="p">);</span>
+<span class="w">      </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="p">[</span><span class="n">ch</span><span class="p">,</span><span class="w"> </span><span class="n">mv</span><span class="p">]</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">all_mv_map</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;, {:.1f}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">mv</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+
+<span class="w">      </span><span class="c1">// NOTE: sleeping in this way allows the sleep to exit early when the</span>
+<span class="w">      </span><span class="c1">// task is being stopped / destroyed</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">std</span><span class="o">::</span><span class="nn">chrono_literals</span><span class="p">;</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lk</span><span class="p">(</span><span class="n">m</span><span class="p">);</span>
+<span class="w">        </span><span class="n">cv</span><span class="p">.</span><span class="n">wait_until</span><span class="p">(</span><span class="n">lk</span><span class="p">,</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">10</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="c1">// we don&#39;t want to stop, so return false</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">    </span><span class="p">};</span>
+
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">tla_task</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="o">::</span><span class="n">make_unique</span><span class="p">({.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tla_read_task_fn</span><span class="p">,</span>
+<span class="w">                                             </span><span class="p">.</span><span class="n">task_config</span><span class="w"> </span><span class="o">=</span>
+<span class="w">                                                 </span><span class="p">{</span>
+<span class="w">                                                     </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;TLA&quot;</span><span class="p">,</span>
+<span class="w">                                                     </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="p">{</span><span class="mi">8</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="p">},</span>
+<span class="w">                                                 </span><span class="p">},</span>
+<span class="w">                                             </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">});</span>
+<span class="w">    </span><span class="n">tla_task</span><span class="o">-&gt;</span><span class="n">start</span><span class="p">();</span>
+</pre></div>
+</div>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252817OversamplingRatioE">
+<span id="_CPPv3N4espp7Tla252817OversamplingRatioE"></span><span id="_CPPv2N4espp7Tla252817OversamplingRatioE"></span><span class="target" id="classespp_1_1Tla2528_1a3db98cfd5c32bff1b4dce6590cb3032c"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OversamplingRatio</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp7Tla252817OversamplingRatioE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Possible oversampling ratios, see data sheet Table 15 (p. 34) </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252817OversamplingRatio4NONEE">
+<span id="_CPPv3N4espp7Tla252817OversamplingRatio4NONEE"></span><span id="_CPPv2N4espp7Tla252817OversamplingRatio4NONEE"></span><span class="target" id="classespp_1_1Tla2528_1a3db98cfd5c32bff1b4dce6590cb3032cab50339a10e1de285ac99d4c3990b8693"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NONE</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla252817OversamplingRatio4NONEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>No oversampling. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252817OversamplingRatio5OSR_2E">
+<span id="_CPPv3N4espp7Tla252817OversamplingRatio5OSR_2E"></span><span id="_CPPv2N4espp7Tla252817OversamplingRatio5OSR_2E"></span><span class="target" id="classespp_1_1Tla2528_1a3db98cfd5c32bff1b4dce6590cb3032caa1d08e16cb8529c05bd121849b11ab1e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OSR_2</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla252817OversamplingRatio5OSR_2E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>2x oversampling </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252817OversamplingRatio5OSR_4E">
+<span id="_CPPv3N4espp7Tla252817OversamplingRatio5OSR_4E"></span><span id="_CPPv2N4espp7Tla252817OversamplingRatio5OSR_4E"></span><span class="target" id="classespp_1_1Tla2528_1a3db98cfd5c32bff1b4dce6590cb3032ca897e5ed5d2a90d915a94337b81b8500c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OSR_4</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla252817OversamplingRatio5OSR_4E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>4x oversampling </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252817OversamplingRatio5OSR_8E">
+<span id="_CPPv3N4espp7Tla252817OversamplingRatio5OSR_8E"></span><span id="_CPPv2N4espp7Tla252817OversamplingRatio5OSR_8E"></span><span class="target" id="classespp_1_1Tla2528_1a3db98cfd5c32bff1b4dce6590cb3032ca002cc7e2c9ad0050830a1a61ebdffde9"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OSR_8</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla252817OversamplingRatio5OSR_8E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>8x oversampling </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252817OversamplingRatio6OSR_16E">
+<span id="_CPPv3N4espp7Tla252817OversamplingRatio6OSR_16E"></span><span id="_CPPv2N4espp7Tla252817OversamplingRatio6OSR_16E"></span><span class="target" id="classespp_1_1Tla2528_1a3db98cfd5c32bff1b4dce6590cb3032cad8a2bc64e342df45a6c253398fea8bda"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OSR_16</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla252817OversamplingRatio6OSR_16E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>16x oversampling </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252817OversamplingRatio6OSR_32E">
+<span id="_CPPv3N4espp7Tla252817OversamplingRatio6OSR_32E"></span><span id="_CPPv2N4espp7Tla252817OversamplingRatio6OSR_32E"></span><span class="target" id="classespp_1_1Tla2528_1a3db98cfd5c32bff1b4dce6590cb3032cacc0281f5b10ad72d659bc277907710de"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OSR_32</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla252817OversamplingRatio6OSR_32E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>32x oversampling </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252817OversamplingRatio6OSR_64E">
+<span id="_CPPv3N4espp7Tla252817OversamplingRatio6OSR_64E"></span><span id="_CPPv2N4espp7Tla252817OversamplingRatio6OSR_64E"></span><span class="target" id="classespp_1_1Tla2528_1a3db98cfd5c32bff1b4dce6590cb3032ca683d580dc5991f59d48a98e4902d5af3"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OSR_64</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla252817OversamplingRatio6OSR_64E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>64x oversampling </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252817OversamplingRatio7OSR_128E">
+<span id="_CPPv3N4espp7Tla252817OversamplingRatio7OSR_128E"></span><span id="_CPPv2N4espp7Tla252817OversamplingRatio7OSR_128E"></span><span class="target" id="classespp_1_1Tla2528_1a3db98cfd5c32bff1b4dce6590cb3032ca086763f27afcbc6218d3f1375b895d15"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OSR_128</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla252817OversamplingRatio7OSR_128E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>128x oversampling </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25287ChannelE">
+<span id="_CPPv3N4espp7Tla25287ChannelE"></span><span id="_CPPv2N4espp7Tla25287ChannelE"></span><span class="target" id="classespp_1_1Tla2528_1a287de5832b1745e2ac13e59589256a62"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Channel</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25287ChannelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Possible channel numbers. </p>
+<p>The TLA2528 has 8 channels, see data sheet Table 1 (p. 4) </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The channel numbers are 0-indexed. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The channel may be configured as digital input, digital output, or analog input. </p>
+</div>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25287Channel3CH0E">
+<span id="_CPPv3N4espp7Tla25287Channel3CH0E"></span><span id="_CPPv2N4espp7Tla25287Channel3CH0E"></span><span class="target" id="classespp_1_1Tla2528_1a287de5832b1745e2ac13e59589256a62a2264c6e9d8288b49bfcf8018d64bc4ec"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CH0</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25287Channel3CH0E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Channel 0. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25287Channel3CH1E">
+<span id="_CPPv3N4espp7Tla25287Channel3CH1E"></span><span id="_CPPv2N4espp7Tla25287Channel3CH1E"></span><span class="target" id="classespp_1_1Tla2528_1a287de5832b1745e2ac13e59589256a62ae36fe09eceee9fa8f63747109d31cac5"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CH1</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25287Channel3CH1E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Channel 1. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25287Channel3CH2E">
+<span id="_CPPv3N4espp7Tla25287Channel3CH2E"></span><span id="_CPPv2N4espp7Tla25287Channel3CH2E"></span><span class="target" id="classespp_1_1Tla2528_1a287de5832b1745e2ac13e59589256a62a79a66be7a0427b4ce07a201d58f80d0c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CH2</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25287Channel3CH2E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Channel 2. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25287Channel3CH3E">
+<span id="_CPPv3N4espp7Tla25287Channel3CH3E"></span><span id="_CPPv2N4espp7Tla25287Channel3CH3E"></span><span class="target" id="classespp_1_1Tla2528_1a287de5832b1745e2ac13e59589256a62a6c88494b48501a9de03abd4b7056cd33"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CH3</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25287Channel3CH3E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Channel 3. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25287Channel3CH4E">
+<span id="_CPPv3N4espp7Tla25287Channel3CH4E"></span><span id="_CPPv2N4espp7Tla25287Channel3CH4E"></span><span class="target" id="classespp_1_1Tla2528_1a287de5832b1745e2ac13e59589256a62aec9eb60d9c94f6b9ca2ecd6db52e158c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CH4</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25287Channel3CH4E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Channel 4. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25287Channel3CH5E">
+<span id="_CPPv3N4espp7Tla25287Channel3CH5E"></span><span id="_CPPv2N4espp7Tla25287Channel3CH5E"></span><span class="target" id="classespp_1_1Tla2528_1a287de5832b1745e2ac13e59589256a62a9906695eb33d2d71b9fcc9a693bc1c68"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CH5</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25287Channel3CH5E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Channel 5. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25287Channel3CH6E">
+<span id="_CPPv3N4espp7Tla25287Channel3CH6E"></span><span id="_CPPv2N4espp7Tla25287Channel3CH6E"></span><span class="target" id="classespp_1_1Tla2528_1a287de5832b1745e2ac13e59589256a62afb35b15b134c9f9ac4abc9d97d0ce305"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CH6</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25287Channel3CH6E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Channel 6. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25287Channel3CH7E">
+<span id="_CPPv3N4espp7Tla25287Channel3CH7E"></span><span id="_CPPv2N4espp7Tla25287Channel3CH7E"></span><span class="target" id="classespp_1_1Tla2528_1a287de5832b1745e2ac13e59589256a62a3110a213c23d11de8010560aac1e9173"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CH7</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25287Channel3CH7E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Channel 7. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25284ModeE">
+<span id="_CPPv3N4espp7Tla25284ModeE"></span><span id="_CPPv2N4espp7Tla25284ModeE"></span><span class="target" id="classespp_1_1Tla2528_1af229e1a30bc0cf3277f3f3ffa5e4b8fd"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Mode</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25284ModeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Possible modes for analog input conversion. </p>
+<p>The ADS7128 device has the following sampling modes: * Manual Mode: Allows the external host processor to directly request and control when the data are sampled. The host provides I2C frames to control conversions and the captured data are returned overthe I2C bus after each conversion. * Auto-Sequence Mode: The host can configure the device to scan through the enabled analog input channels. The host must provide continuous clocks (SCL) to the device to scan through the channels and to read the data from the device. The mux automatically switches through the predetermined channel sequence, and the data conversion results are sent through the data bus. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25284Mode6MANUALE">
+<span id="_CPPv3N4espp7Tla25284Mode6MANUALE"></span><span id="_CPPv2N4espp7Tla25284Mode6MANUALE"></span><span class="target" id="classespp_1_1Tla2528_1af229e1a30bc0cf3277f3f3ffa5e4b8fdaa60a6a471c0681e5a49c4f5d00f6bc5a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MANUAL</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25284Mode6MANUALE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Manual mode (9th falling edge of SCL (ACK) triggers conversion) and the MUX is controlled by register write to MANUAL_CHID field of the CHANNEL_SEL register. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25284Mode8AUTO_SEQE">
+<span id="_CPPv3N4espp7Tla25284Mode8AUTO_SEQE"></span><span id="_CPPv2N4espp7Tla25284Mode8AUTO_SEQE"></span><span class="target" id="classespp_1_1Tla2528_1af229e1a30bc0cf3277f3f3ffa5e4b8fdaa520138eef4dfce068a078832473c835"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AUTO_SEQ</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25284Mode8AUTO_SEQE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Auto sequence mode (9th falling edge of SCL (ACK) triggers conversion) and the MUX is incremented after each conversion. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252810OutputModeE">
+<span id="_CPPv3N4espp7Tla252810OutputModeE"></span><span id="_CPPv2N4espp7Tla252810OutputModeE"></span><span class="target" id="classespp_1_1Tla2528_1a13815a440c540c266552aea8179881fb"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OutputMode</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp7Tla252810OutputModeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Output mode for digital output channels and ALERT pin. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252810OutputMode10OPEN_DRAINE">
+<span id="_CPPv3N4espp7Tla252810OutputMode10OPEN_DRAINE"></span><span id="_CPPv2N4espp7Tla252810OutputMode10OPEN_DRAINE"></span><span class="target" id="classespp_1_1Tla2528_1a13815a440c540c266552aea8179881fbaf8eab64275fc0fab3d946c89bb143865"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OPEN_DRAIN</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla252810OutputMode10OPEN_DRAINE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Open drain output mode. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252810OutputMode9PUSH_PULLE">
+<span id="_CPPv3N4espp7Tla252810OutputMode9PUSH_PULLE"></span><span id="_CPPv2N4espp7Tla252810OutputMode9PUSH_PULLE"></span><span class="target" id="classespp_1_1Tla2528_1a13815a440c540c266552aea8179881fba4e6016b9110e871668e4a5fae6090b11"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PUSH_PULL</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla252810OutputMode9PUSH_PULLE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Push-pull output mode. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252810DataFormatE">
+<span id="_CPPv3N4espp7Tla252810DataFormatE"></span><span id="_CPPv2N4espp7Tla252810DataFormatE"></span><span class="target" id="classespp_1_1Tla2528_1aa7d822cdb659eec75e629c27e8d57767"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DataFormat</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp7Tla252810DataFormatE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Enum for the data format that can be read from the ADC. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252810DataFormat3RAWE">
+<span id="_CPPv3N4espp7Tla252810DataFormat3RAWE"></span><span id="_CPPv2N4espp7Tla252810DataFormat3RAWE"></span><span class="target" id="classespp_1_1Tla2528_1aa7d822cdb659eec75e629c27e8d57767a633d6abff0a3fc22404347728d195059"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RAW</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla252810DataFormat3RAWE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Raw data format, 12 bit ADC data. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252810DataFormat8AVERAGEDE">
+<span id="_CPPv3N4espp7Tla252810DataFormat8AVERAGEDE"></span><span id="_CPPv2N4espp7Tla252810DataFormat8AVERAGEDE"></span><span class="target" id="classespp_1_1Tla2528_1aa7d822cdb659eec75e629c27e8d57767a53767e20df87edd124f0bde6db2a26af"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AVERAGED</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla252810DataFormat8AVERAGEDE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Averaged data format, 16 bit ADC data. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25286AppendE">
+<span id="_CPPv3N4espp7Tla25286AppendE"></span><span id="_CPPv2N4espp7Tla25286AppendE"></span><span class="target" id="classespp_1_1Tla2528_1a7e0b45e69a4b130ed6ddee1ab8628939"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Append</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25286AppendE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Enum for the different configurations of bits that can be appended to the data when reading from the ADC. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25286Append4NONEE">
+<span id="_CPPv3N4espp7Tla25286Append4NONEE"></span><span id="_CPPv2N4espp7Tla25286Append4NONEE"></span><span class="target" id="classespp_1_1Tla2528_1a7e0b45e69a4b130ed6ddee1ab8628939ab50339a10e1de285ac99d4c3990b8693"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NONE</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25286Append4NONEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>No append. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25286Append10CHANNEL_IDE">
+<span id="_CPPv3N4espp7Tla25286Append10CHANNEL_IDE"></span><span id="_CPPv2N4espp7Tla25286Append10CHANNEL_IDE"></span><span class="target" id="classespp_1_1Tla2528_1a7e0b45e69a4b130ed6ddee1ab8628939af2f9f6189ea89474c712f93d7e688f4b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CHANNEL_ID</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25286Append10CHANNEL_IDE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Append Channel ID. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252810AlertLogicE">
+<span id="_CPPv3N4espp7Tla252810AlertLogicE"></span><span id="_CPPv2N4espp7Tla252810AlertLogicE"></span><span class="target" id="classespp_1_1Tla2528_1a91a41e99a67fd9e5bf4396dec5a928fb"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AlertLogic</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp7Tla252810AlertLogicE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Alert logic for ALERT pin. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252810AlertLogic10ACTIVE_LOWE">
+<span id="_CPPv3N4espp7Tla252810AlertLogic10ACTIVE_LOWE"></span><span id="_CPPv2N4espp7Tla252810AlertLogic10ACTIVE_LOWE"></span><span class="target" id="classespp_1_1Tla2528_1a91a41e99a67fd9e5bf4396dec5a928fbae434209643a0d01f383a46eece525679"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ACTIVE_LOW</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla252810AlertLogic10ACTIVE_LOWE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>ALERT pin is active low. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252810AlertLogic11ACTIVE_HIGHE">
+<span id="_CPPv3N4espp7Tla252810AlertLogic11ACTIVE_HIGHE"></span><span id="_CPPv2N4espp7Tla252810AlertLogic11ACTIVE_HIGHE"></span><span class="target" id="classespp_1_1Tla2528_1a91a41e99a67fd9e5bf4396dec5a928fbab868e37f0edfdbea9838600657b6f4b3"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ACTIVE_HIGH</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla252810AlertLogic11ACTIVE_HIGHE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>ALERT pin is active high. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252810AlertLogic10PULSED_LOWE">
+<span id="_CPPv3N4espp7Tla252810AlertLogic10PULSED_LOWE"></span><span id="_CPPv2N4espp7Tla252810AlertLogic10PULSED_LOWE"></span><span class="target" id="classespp_1_1Tla2528_1a91a41e99a67fd9e5bf4396dec5a928fba783c29f70d7d4c2ec996fbd3ba486a25"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PULSED_LOW</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla252810AlertLogic10PULSED_LOWE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>ALERT pin is pulsed low per alert flag. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252810AlertLogic11PULSED_HIGHE">
+<span id="_CPPv3N4espp7Tla252810AlertLogic11PULSED_HIGHE"></span><span id="_CPPv2N4espp7Tla252810AlertLogic11PULSED_HIGHE"></span><span class="target" id="classespp_1_1Tla2528_1a91a41e99a67fd9e5bf4396dec5a928fbae50c61f9b111881d30c9aa2ed6747b7e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PULSED_HIGH</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla252810AlertLogic11PULSED_HIGHE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>ALERT pin is pulsed high per alert flag. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25288probe_fnE">
+<span id="_CPPv3N4espp7Tla25288probe_fnE"></span><span id="_CPPv2N4espp7Tla25288probe_fnE"></span><span id="espp::Tla2528::probe_fn"></span><span class="target" id="classespp_1_1BasePeripheral_1ad12a713efc443157b7d6fd1ba4fdf88f"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">probe_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25288probe_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to probe the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param address<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The address to probe </p>
+</dd>
+<dt class="field-even">Return<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the peripheral is found at the given address </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25287Tla2528ERK6Config">
+<span id="_CPPv3N4espp7Tla25287Tla2528ERK6Config"></span><span id="_CPPv2N4espp7Tla25287Tla2528ERK6Config"></span><span id="espp::Tla2528::Tla2528__ConfigCR"></span><span class="target" id="classespp_1_1Tla2528_1ae8ec718b917b96103c20258b160b28ce"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Tla2528</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Tla25286ConfigE" title="espp::Tla2528::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla25287Tla2528ERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct <a class="reference internal" href="#classespp_1_1Tla2528"><span class="std std-ref">Tla2528</span></a>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – Configuration structure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252810initializeERNSt10error_codeE">
+<span id="_CPPv3N4espp7Tla252810initializeERNSt10error_codeE"></span><span id="_CPPv2N4espp7Tla252810initializeERNSt10error_codeE"></span><span id="espp::Tla2528::initialize__std::error_codeR"></span><span class="target" id="classespp_1_1Tla2528_1a68babcb209d140aca6c453f36e0413c8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla252810initializeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the ADC This function uses the configuration structure passed to the constructor to configure the ADC. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function must be called before any other functions as it configures the ADC pins and sets the mode. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25289calibrateERNSt10error_codeENSt6chrono12millisecondsENSt6chrono12millisecondsE">
+<span id="_CPPv3N4espp7Tla25289calibrateERNSt10error_codeENSt6chrono12millisecondsENSt6chrono12millisecondsE"></span><span id="_CPPv2N4espp7Tla25289calibrateERNSt10error_codeENSt6chrono12millisecondsENSt6chrono12millisecondsE"></span><span id="espp::Tla2528::calibrate__std::error_codeR.std::chrono::milliseconds.std::chrono::milliseconds"></span><span class="target" id="classespp_1_1Tla2528_1aece8715373f5f864080774368287e03b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">calibrate</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">milliseconds</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">poll_interval</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">milliseconds</span></span><span class="p"><span class="pre">(</span></span><span class="m"><span class="pre">10</span></span><span class="p"><span class="pre">)</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">milliseconds</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">timeout</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">milliseconds</span></span><span class="p"><span class="pre">(</span></span><span class="m"><span class="pre">100</span></span><span class="p"><span class="pre">)</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla25289calibrateERNSt10error_codeENSt6chrono12millisecondsENSt6chrono12millisecondsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Calibrate the ADC This function will set the calibration bit in the GENERAL_CFG register to start the calibration process and will wait for the calibration to complete (CAL bit in GENERAL_CFG register to be cleared). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+<li><p><strong>poll_interval</strong> – The time to wait between polls for the calibration to complete. </p></li>
+<li><p><strong>timeout</strong> – The time to wait for the calibration to complete before returning an error. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25286get_mvE7ChannelRNSt10error_codeE">
+<span id="_CPPv3N4espp7Tla25286get_mvE7ChannelRNSt10error_codeE"></span><span id="_CPPv2N4espp7Tla25286get_mvE7ChannelRNSt10error_codeE"></span><span id="espp::Tla2528::get_mv__Channel.std::error_codeR"></span><span class="target" id="classespp_1_1Tla2528_1aba48a8a7b176bd06d548c9715a643f8d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_mv</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Tla25287ChannelE" title="espp::Tla2528::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla25286get_mvE7ChannelRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Communicate with the ADC to get the analog value for the channel and return it. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The channel must have been configured as an analog input. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the ADC is in autonomous mode, this function will simply read the value from the ADC’s buffer. If the ADC is in manual mode, this function will trigger a conversion and then read the value from the ADC’s buffer (blocking until conversion is complete). </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function will return 0 and log an error if the channel is not configured as an analog input. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>channel</strong> – Which channel of the ADC to read </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The voltage (in mV) read from the channel. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252810get_all_mvERNSt10error_codeE">
+<span id="_CPPv3N4espp7Tla252810get_all_mvERNSt10error_codeE"></span><span id="_CPPv2N4espp7Tla252810get_all_mvERNSt10error_codeE"></span><span id="espp::Tla2528::get_all_mv__std::error_codeR"></span><span class="target" id="classespp_1_1Tla2528_1a65210b54e7ed2eaea73c33f7fc03664e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_all_mv</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla252810get_all_mvERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Communicate with the ADC to get the analog value for all channels and return them. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The channels must have been configured as analog inputs. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The vector will be in the order of the channels configured in the constructor. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The vector will be the same length as the number of channels configured in the constructor. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the ADC is in autonomous mode, this function will simply read the values from the ADC’s buffer. If the ADC is in manual mode, this function will trigger a conversion and then read the values from the ADC’s buffer (blocking until conversion is complete). </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A vector of the voltages (in mV) read from each channel. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252814get_all_mv_mapERNSt10error_codeE">
+<span id="_CPPv3N4espp7Tla252814get_all_mv_mapERNSt10error_codeE"></span><span id="_CPPv2N4espp7Tla252814get_all_mv_mapERNSt10error_codeE"></span><span id="espp::Tla2528::get_all_mv_map__std::error_codeR"></span><span class="target" id="classespp_1_1Tla2528_1a6f921830fb7a38d86aed3c4f988db025"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unordered_map</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp7Tla25287ChannelE" title="espp::Tla2528::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_all_mv_map</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla252814get_all_mv_mapERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Communicate with the ADC to get the analog value for all channels and return them. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>These are the channels that were configured as analog inputs. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the ADC is in autonomous mode, this function will simply read the values from the ADC’s buffer. If the ADC is in manual mode, this function will trigger a conversion and then read the values from the ADC’s buffer (blocking until conversion is complete). </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An unordered map of the voltages (in mV) read from each channel. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252823set_digital_output_modeE7Channel10OutputModeRNSt10error_codeE">
+<span id="_CPPv3N4espp7Tla252823set_digital_output_modeE7Channel10OutputModeRNSt10error_codeE"></span><span id="_CPPv2N4espp7Tla252823set_digital_output_modeE7Channel10OutputModeRNSt10error_codeE"></span><span id="espp::Tla2528::set_digital_output_mode__Channel.OutputMode.std::error_codeR"></span><span class="target" id="classespp_1_1Tla2528_1a87e60a3e09aaf2b225bce730b06119f0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_digital_output_mode</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Tla25287ChannelE" title="espp::Tla2528::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span>, <a class="reference internal" href="#_CPPv4N4espp7Tla252810OutputModeE" title="espp::Tla2528::OutputMode"><span class="n"><span class="pre">OutputMode</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">output_mode</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla252823set_digital_output_modeE7Channel10OutputModeRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configure the digital output mode for the given channel. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The channel must have been configured as a digital output. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>channel</strong> – Channel to configure </p></li>
+<li><p><strong>output_mode</strong> – Output mode for the channel </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252824set_digital_output_valueE7ChannelbRNSt10error_codeE">
+<span id="_CPPv3N4espp7Tla252824set_digital_output_valueE7ChannelbRNSt10error_codeE"></span><span id="_CPPv2N4espp7Tla252824set_digital_output_valueE7ChannelbRNSt10error_codeE"></span><span id="espp::Tla2528::set_digital_output_value__Channel.b.std::error_codeR"></span><span class="target" id="classespp_1_1Tla2528_1a480a985d3dd5fe5e27ce667e8ddc3040"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_digital_output_value</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Tla25287ChannelE" title="espp::Tla2528::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla252824set_digital_output_valueE7ChannelbRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the digital output value for the given channel. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The channel must have been configured as a digital output. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>channel</strong> – Which channel to set the digital output value for. </p></li>
+<li><p><strong>value</strong> – The value to set the digital output to. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252823get_digital_input_valueE7ChannelRNSt10error_codeE">
+<span id="_CPPv3N4espp7Tla252823get_digital_input_valueE7ChannelRNSt10error_codeE"></span><span id="_CPPv2N4espp7Tla252823get_digital_input_valueE7ChannelRNSt10error_codeE"></span><span id="espp::Tla2528::get_digital_input_value__Channel.std::error_codeR"></span><span class="target" id="classespp_1_1Tla2528_1a65060c4af5aa108fad56287d9ff1fd5d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_digital_input_value</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Tla25287ChannelE" title="espp::Tla2528::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla252823get_digital_input_valueE7ChannelRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the digital input value for the given channel. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The channel must have been configured as a digital input. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>channel</strong> – Which channel to get the digital input value for. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The value of the digital input. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252824get_digital_input_valuesERNSt10error_codeE">
+<span id="_CPPv3N4espp7Tla252824get_digital_input_valuesERNSt10error_codeE"></span><span id="_CPPv2N4espp7Tla252824get_digital_input_valuesERNSt10error_codeE"></span><span id="espp::Tla2528::get_digital_input_values__std::error_codeR"></span><span class="target" id="classespp_1_1Tla2528_1a5132f0c5f1a730dd8e0d3d0284d77eb9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_digital_input_values</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla252824get_digital_input_valuesERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the digital input values for all channels. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The returned value is a bitfield, with each bit corresponding to a channel. The LSB corresponds to channel 0, the MSB to channel 7. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only channels configured as digital inputs are returned. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The values of the digital inputs. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25285resetERNSt10error_codeE">
+<span id="_CPPv3N4espp7Tla25285resetERNSt10error_codeE"></span><span id="_CPPv2N4espp7Tla25285resetERNSt10error_codeE"></span><span id="espp::Tla2528::reset__std::error_codeR"></span><span class="target" id="classespp_1_1Tla2528_1ab3901f9ccbb5f8e90b9a93db5c29d20d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla25285resetERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Perform a software reset of the device. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will reset all registers to their default values (converting all channels to analog inputs and disabling all events). </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7Tla25285probeERNSt10error_codeE">
+<span id="_CPPv3NK4espp7Tla25285probeERNSt10error_codeE"></span><span id="_CPPv2NK4espp7Tla25285probeERNSt10error_codeE"></span><span id="espp::Tla2528::probe__std::error_codeRC"></span><span class="target" id="classespp_1_1BasePeripheral_1a05481a009a7302fff3b43d301de6b1eb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">probe</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7Tla25285probeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Probe the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the probe function is not set, this function will return false and set the error code to operation_not_supported </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is only available if UseAddress is true </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code to set if there is an error </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the peripheral is found </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252811set_addressE7uint8_t">
+<span id="_CPPv3N4espp7Tla252811set_addressE7uint8_t"></span><span id="_CPPv2N4espp7Tla252811set_addressE7uint8_t"></span><span id="espp::Tla2528::set_address__uint8_t"></span><span class="target" id="classespp_1_1BasePeripheral_1a31fb8ec471403bf9be06428dbc46277a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_address</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">address</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla252811set_addressE7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the address of the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is only available if UseAddress is true </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>address</strong> – The address of the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25289set_probeERK8probe_fn">
+<span id="_CPPv3N4espp7Tla25289set_probeERK8probe_fn"></span><span id="_CPPv2N4espp7Tla25289set_probeERK8probe_fn"></span><span id="espp::Tla2528::set_probe__probe_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a5b5d7753ea6ccf361e495fdc80c81f19"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_probe</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Tla25288probe_fnE" title="espp::Tla2528::probe_fn"><span class="n"><span class="pre">probe_fn</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">probe</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla25289set_probeERK8probe_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the probe function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the probe function is usually set in the constructor. If you need to change the probe function, consider using the set_config function instead. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is only available if UseAddress is true </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>probe</strong> – The probe function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25289set_writeERK8write_fn">
+<span id="_CPPv3N4espp7Tla25289set_writeERK8write_fn"></span><span id="_CPPv2N4espp7Tla25289set_writeERK8write_fn"></span><span id="espp::Tla2528::set_write__write_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1ab5d5d18cd4e8893ed4f937dcfdaba5ba"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_write</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">write_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">write</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla25289set_writeERK8write_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the write function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the write function is usually set in the constructor. If you need to change the write function, consider using the set_config function instead. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>write</strong> – The write function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25288set_readERK7read_fn">
+<span id="_CPPv3N4espp7Tla25288set_readERK7read_fn"></span><span id="_CPPv2N4espp7Tla25288set_readERK7read_fn"></span><span id="espp::Tla2528::set_read__read_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1aa6d8131a30233e8439628815db8b1843"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_read</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">read_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">read</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla25288set_readERK7read_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the read function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the read function is usually set in the constructor. If you need to change the read function, consider using the set_config function instead. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>read</strong> – The read function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252817set_read_registerERK16read_register_fn">
+<span id="_CPPv3N4espp7Tla252817set_read_registerERK16read_register_fn"></span><span id="_CPPv2N4espp7Tla252817set_read_registerERK16read_register_fn"></span><span id="espp::Tla2528::set_read_register__read_register_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a72e039592417cd32bc47c77120005d3f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_read_register</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">read_register_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">read_register</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla252817set_read_registerERK16read_register_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the read register function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the read register function is usually set in the constructor. If you need to change the read register function, consider using the set_config function instead. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>read_register</strong> – The read register function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252819set_write_then_readERK18write_then_read_fn">
+<span id="_CPPv3N4espp7Tla252819set_write_then_readERK18write_then_read_fn"></span><span id="_CPPv2N4espp7Tla252819set_write_then_readERK18write_then_read_fn"></span><span id="espp::Tla2528::set_write_then_read__write_then_read_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a07b152dbfba43b5c82a498416f6887b2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_write_then_read</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">write_then_read_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">write_then_read</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla252819set_write_then_readERK18write_then_read_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the write then read function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the write then read function is usually set in the constructor. If you need to change the write then </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>write_then_read</strong> – The write then read function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252834set_separate_write_then_read_delayERKNSt6chrono12millisecondsE">
+<span id="_CPPv3N4espp7Tla252834set_separate_write_then_read_delayERKNSt6chrono12millisecondsE"></span><span id="_CPPv2N4espp7Tla252834set_separate_write_then_read_delayERKNSt6chrono12millisecondsE"></span><span id="espp::Tla2528::set_separate_write_then_read_delay__std::chrono::millisecondsCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a8c70b96c37525f90cc85ddfe4a40b82a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_separate_write_then_read_delay</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">milliseconds</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">delay</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla252834set_separate_write_then_read_delayERKNSt6chrono12millisecondsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the delay between the write and read operations in write_then_read </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the delay is usually set in the constructor. If you need to change the delay, consider using the set_config function instead. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This delay is only used if the write_then_read function is not set to a custom function and the write and read functions are separate functions. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>delay</strong> – The delay between the write and read operations in write_then_read </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252810set_configERK6Config">
+<span id="_CPPv3N4espp7Tla252810set_configERK6Config"></span><span id="_CPPv2N4espp7Tla252810set_configERK6Config"></span><span id="espp::Tla2528::set_config__ConfigCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a163b98a30940711b23a7e7dce81efe0c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_config</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Tla25286ConfigE" title="espp::Tla2528::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla252810set_configERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the configuration for the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The configuration should normally be set in the constructor, but this function can be used to change the configuration after the peripheral has been created - for instance if the peripheral could be found on different communications buses. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – The configuration for the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252810set_configERR6Config">
+<span id="_CPPv3N4espp7Tla252810set_configERR6Config"></span><span id="_CPPv2N4espp7Tla252810set_configERR6Config"></span><span id="espp::Tla2528::set_config__ConfigRR"></span><span class="target" id="classespp_1_1BasePeripheral_1a704004cfda66bf3ce5ed725b3003c32b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_config</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Tla25286ConfigE" title="espp::Tla2528::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla252810set_configERR6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the configuration for the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The configuration should normally be set in the constructor, but this function can be used to change the configuration after the peripheral has been created - for instance if the peripheral could be found on different communications buses. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – The configuration for the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7Tla25286configEv">
+<span id="_CPPv3NK4espp7Tla25286configEv"></span><span id="_CPPv2NK4espp7Tla25286configEv"></span><span id="espp::Tla2528::configC"></span><span class="target" id="classespp_1_1BasePeripheral_1ae66896cf25c9dde79522f354cdb23896"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Tla25286ConfigE" title="espp::Tla2528::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">config</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7Tla25286configEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the configuration for the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The configuration for the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7Tla25287addressEv">
+<span id="_CPPv3NK4espp7Tla25287addressEv"></span><span id="_CPPv2NK4espp7Tla25287addressEv"></span><span id="espp::Tla2528::addressC"></span><span class="target" id="classespp_1_1BasePeripheral_1add730fb3307dd52ed5f8905a576e7ecc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">address</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7Tla25287addressEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the address of the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The address of the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7Tla25288get_nameEv">
+<span id="_CPPv3NK4espp7Tla25288get_nameEv"></span><span id="_CPPv2NK4espp7Tla25288get_nameEv"></span><span id="espp::Tla2528::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7Tla25288get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252811set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp7Tla252811set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp7Tla252811set_log_tagERKNSt11string_viewE"></span><span id="espp::Tla2528::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla252811set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7Tla252813get_log_levelEv">
+<span id="_CPPv3NK4espp7Tla252813get_log_levelEv"></span><span id="_CPPv2NK4espp7Tla252813get_log_levelEv"></span><span id="espp::Tla2528::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7Tla252813get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252813set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp7Tla252813set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp7Tla252813set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::Tla2528::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla252813set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252817set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp7Tla252817set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp7Tla252817set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::Tla2528::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla252817set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../ws_s3_touch.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7Tla252817get_log_verbosityEv">
+<span id="_CPPv3NK4espp7Tla252817get_log_verbosityEv"></span><span id="_CPPv2NK4espp7Tla252817get_log_verbosityEv"></span><span id="espp::Tla2528::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7Tla252817get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../ws_s3_touch.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252818set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp7Tla252818set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp7Tla252818set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::Tla2528::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla252818set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252815DEFAULT_ADDRESSE">
+<span id="_CPPv3N4espp7Tla252815DEFAULT_ADDRESSE"></span><span id="_CPPv2N4espp7Tla252815DEFAULT_ADDRESSE"></span><span id="espp::Tla2528::DEFAULT_ADDRESS__uint8_t"></span><span class="target" id="classespp_1_1Tla2528_1ab577c2a44f90708ffc43760996141d68"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DEFAULT_ADDRESS</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="m"><span class="pre">0x10</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N4espp7Tla252815DEFAULT_ADDRESSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Default I2C address of the device (when both R1 and R2 are DNP) (see data sheet Table 2, p. 16) </p>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25286ConfigE">
+<span id="_CPPv3N4espp7Tla25286ConfigE"></span><span id="_CPPv2N4espp7Tla25286ConfigE"></span><span id="espp::Tla2528::Config"></span><span class="target" id="structespp_1_1Tla2528_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25286ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration structure. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25286Config14device_addressE">
+<span id="_CPPv3N4espp7Tla25286Config14device_addressE"></span><span id="_CPPv2N4espp7Tla25286Config14device_addressE"></span><span id="espp::Tla2528::Config::device_address__uint8_t"></span><span class="target" id="structespp_1_1Tla2528_1_1Config_1a6b3310ac396344bfeb6e496314938b16"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">device_address</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Tla252815DEFAULT_ADDRESSE" title="espp::Tla2528::DEFAULT_ADDRESS"><span class="n"><span class="pre">DEFAULT_ADDRESS</span></span></a><a class="headerlink" href="#_CPPv4N4espp7Tla25286Config14device_addressE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>I2C address of the device. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25286Config10avdd_voltsE">
+<span id="_CPPv3N4espp7Tla25286Config10avdd_voltsE"></span><span id="_CPPv2N4espp7Tla25286Config10avdd_voltsE"></span><span id="espp::Tla2528::Config::avdd_volts__float"></span><span class="target" id="structespp_1_1Tla2528_1_1Config_1a50eb4ed2ab34e775ba3a707d7f247dab"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">avdd_volts</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">3.3f</span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25286Config10avdd_voltsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>AVDD voltage in Volts. Used for calculating analog input voltage. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25286Config4modeE">
+<span id="_CPPv3N4espp7Tla25286Config4modeE"></span><span id="_CPPv2N4espp7Tla25286Config4modeE"></span><span id="espp::Tla2528::Config::mode__Mode"></span><span class="target" id="structespp_1_1Tla2528_1_1Config_1a27b61feef7793f33ea3cfdfdc5d14ed0"></span><a class="reference internal" href="#_CPPv4N4espp7Tla25284ModeE" title="espp::Tla2528::Mode"><span class="n"><span class="pre">Mode</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mode</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Tla25284ModeE" title="espp::Tla2528::Mode"><span class="n"><span class="pre">Mode</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp7Tla25284Mode6MANUALE" title="espp::Tla2528::Mode::MANUAL"><span class="n"><span class="pre">MANUAL</span></span></a><a class="headerlink" href="#_CPPv4N4espp7Tla25286Config4modeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Mode for analog input conversion. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25286Config13analog_inputsE">
+<span id="_CPPv3N4espp7Tla25286Config13analog_inputsE"></span><span id="_CPPv2N4espp7Tla25286Config13analog_inputsE"></span><span id="espp::Tla2528::Config::analog_inputs__std::vector:Channel:"></span><span class="target" id="structespp_1_1Tla2528_1_1Config_1a1856f33683a56fd661a57e1458cc77e0"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp7Tla25287ChannelE" title="espp::Tla2528::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">analog_inputs</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25286Config13analog_inputsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>List of analog input channels to sample. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25286Config14digital_inputsE">
+<span id="_CPPv3N4espp7Tla25286Config14digital_inputsE"></span><span id="_CPPv2N4espp7Tla25286Config14digital_inputsE"></span><span id="espp::Tla2528::Config::digital_inputs__std::vector:Channel:"></span><span class="target" id="structespp_1_1Tla2528_1_1Config_1aecc59975df28d06e7a0da3a97ffd514f"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp7Tla25287ChannelE" title="espp::Tla2528::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">digital_inputs</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25286Config14digital_inputsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>List of digital input channels to sample. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25286Config15digital_outputsE">
+<span id="_CPPv3N4espp7Tla25286Config15digital_outputsE"></span><span id="_CPPv2N4espp7Tla25286Config15digital_outputsE"></span><span id="espp::Tla2528::Config::digital_outputs__std::vector:Channel:"></span><span class="target" id="structespp_1_1Tla2528_1_1Config_1a081a3903632ed2a915ee58e14b1933f6"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp7Tla25287ChannelE" title="espp::Tla2528::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">digital_outputs</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25286Config15digital_outputsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>List of digital output channels to sample. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25286Config20digital_output_modesE">
+<span id="_CPPv3N4espp7Tla25286Config20digital_output_modesE"></span><span id="_CPPv2N4espp7Tla25286Config20digital_output_modesE"></span><span id="espp::Tla2528::Config::digital_output_modes__std::unordered_map:Channel.OutputMode:"></span><span class="target" id="structespp_1_1Tla2528_1_1Config_1a19bfa8bc0a78c1262e9ef949b6bde6d6"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unordered_map</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp7Tla25287ChannelE" title="espp::Tla2528::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Tla252810OutputModeE" title="espp::Tla2528::OutputMode"><span class="n"><span class="pre">OutputMode</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">digital_output_modes</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25286Config20digital_output_modesE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Optional output mode for digital output channels. If not specified, the default value is open-drain. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25286Config21digital_output_valuesE">
+<span id="_CPPv3N4espp7Tla25286Config21digital_output_valuesE"></span><span id="_CPPv2N4espp7Tla25286Config21digital_output_valuesE"></span><span id="espp::Tla2528::Config::digital_output_values__std::unordered_map:Channel.b:"></span><span class="target" id="structespp_1_1Tla2528_1_1Config_1a014aedc4079ee939517b23397a32fd58"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unordered_map</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp7Tla25287ChannelE" title="espp::Tla2528::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">digital_output_values</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25286Config21digital_output_valuesE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Optional initial values for digital output channels. If not specified, the default value is false in open-drain mode. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25286Config18oversampling_ratioE">
+<span id="_CPPv3N4espp7Tla25286Config18oversampling_ratioE"></span><span id="_CPPv2N4espp7Tla25286Config18oversampling_ratioE"></span><span id="espp::Tla2528::Config::oversampling_ratio__OversamplingRatio"></span><span class="target" id="structespp_1_1Tla2528_1_1Config_1a3f8524966903fec70616fcfc097b3481"></span><a class="reference internal" href="#_CPPv4N4espp7Tla252817OversamplingRatioE" title="espp::Tla2528::OversamplingRatio"><span class="n"><span class="pre">OversamplingRatio</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">oversampling_ratio</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Tla252817OversamplingRatioE" title="espp::Tla2528::OversamplingRatio"><span class="n"><span class="pre">OversamplingRatio</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp7Tla252817OversamplingRatio4NONEE" title="espp::Tla2528::OversamplingRatio::NONE"><span class="n"><span class="pre">NONE</span></span></a><a class="headerlink" href="#_CPPv4N4espp7Tla25286Config18oversampling_ratioE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Oversampling ratio to use. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25286Config6appendE">
+<span id="_CPPv3N4espp7Tla25286Config6appendE"></span><span id="_CPPv2N4espp7Tla25286Config6appendE"></span><span id="espp::Tla2528::Config::append__Append"></span><span class="target" id="structespp_1_1Tla2528_1_1Config_1a0cdb572fba9a8d4f2e3201d4aa78b857"></span><a class="reference internal" href="#_CPPv4N4espp7Tla25286AppendE" title="espp::Tla2528::Append"><span class="n"><span class="pre">Append</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">append</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Tla25286AppendE" title="espp::Tla2528::Append"><span class="n"><span class="pre">Append</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp7Tla25286Append4NONEE" title="espp::Tla2528::Append::NONE"><span class="n"><span class="pre">NONE</span></span></a><a class="headerlink" href="#_CPPv4N4espp7Tla25286Config6appendE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>What data to append to samples when reading analog inputs. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25286Config5writeE">
+<span id="_CPPv3N4espp7Tla25286Config5writeE"></span><span id="_CPPv2N4espp7Tla25286Config5writeE"></span><span id="espp::Tla2528::Config::write__BasePeripheral::write_fn"></span><span class="target" id="structespp_1_1Tla2528_1_1Config_1a2730f10f70344439787cfeab5a1b0f81"></span><a class="reference internal" href="../base_peripheral.html#_CPPv4I_NSt8integralE_b_b_bEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">write_fn</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25286Config5writeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to write to the ADC. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25286Config4readE">
+<span id="_CPPv3N4espp7Tla25286Config4readE"></span><span id="_CPPv2N4espp7Tla25286Config4readE"></span><span id="espp::Tla2528::Config::read__BasePeripheral::read_fn"></span><span class="target" id="structespp_1_1Tla2528_1_1Config_1adc140e6aa085d8a20fcffa6e456a7ebc"></span><a class="reference internal" href="../base_peripheral.html#_CPPv4I_NSt8integralE_b_b_bEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">read_fn</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25286Config4readE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to read from the ADC. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25286Config9auto_initE">
+<span id="_CPPv3N4espp7Tla25286Config9auto_initE"></span><span id="_CPPv2N4espp7Tla25286Config9auto_initE"></span><span id="espp::Tla2528::Config::auto_init__b"></span><span class="target" id="structespp_1_1Tla2528_1_1Config_1aae2540b06964c912d894256f7280d7c2"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">auto_init</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25286Config9auto_initE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Automatically initialize the ADC on construction. If false, <a class="reference internal" href="#classespp_1_1Tla2528_1a68babcb209d140aca6c453f36e0413c8"><span class="std std-ref">initialize()</span></a> must be called before any other functions. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25286Config14auto_calibrateE">
+<span id="_CPPv3N4espp7Tla25286Config14auto_calibrateE"></span><span id="_CPPv2N4espp7Tla25286Config14auto_calibrateE"></span><span id="espp::Tla2528::Config::auto_calibrate__b"></span><span class="target" id="structespp_1_1Tla2528_1_1Config_1a137902295515ee6703eff6ca6f80be9f"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">auto_calibrate</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25286Config14auto_calibrateE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Automatically calibrate the ADC on construction. If false, <a class="reference internal" href="#classespp_1_1Tla2528_1aece8715373f5f864080774368287e03b"><span class="std std-ref">calibrate()</span></a> should be called to increase the accuracy of the ADC. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Can only be set to true if auto_init is also true, otherwise it will be ignored. </p>
+</div>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25286Config9log_levelE">
+<span id="_CPPv3N4espp7Tla25286Config9log_levelE"></span><span id="_CPPv2N4espp7Tla25286Config9log_levelE"></span><span id="espp::Tla2528::Config::log_level__espp::Logger::Verbosity"></span><span class="target" id="structespp_1_1Tla2528_1_1Config_1a91d60e7210b1d2ee5cc671546ed6b59c"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25286Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Verbosity for the logger. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="continuous_adc.html" class="btn btn-neutral float-left" title="Continuous ADC" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="tla2528_example.html" class="btn btn-neutral float-right" title="Tla2528 Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

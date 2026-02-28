@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MotorGo Mini - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="_static/copybutton.js?v=ff8fa330"></script>
+    <script src="_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'motorgo_mini';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="MotorGo-Mini Example" href="motorgo_mini_example.html" />
+    <link rel="prev" title="Monitor Example" href="monitor_example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            ESPP
+              <img src="_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_component.html">Base Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l1"><a class="reference internal" href="battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="byte90.html">ALXV Labs Byte90</a></li>
+<li class="toctree-l1"><a class="reference internal" href="controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cobs.html">COBS (Consistent Overhead Byte Stuffing)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="esp32_timer_cam.html">ESP32 TimerCam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="esp_box.html">ESP BOX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hid/index.html">HID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="interrupt.html">Interrupt APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="iperf_menu.html">Iperf Menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="m5stack_tab5.html">M5Stack Tab5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="matouch_rotary_display.html">MaTouch Rotary Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">MotorGo Mini</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id1">MotorGo Mini</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="motorgo_mini_example.html">MotorGo-Mini Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="neopixel.html">Neopixel APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nvs.html">NVS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="remote_debug.html">Remote Debug APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="runqueue.html">RunQueue APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="seeed_studio_round_display.html">Seeed Studio Round Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="t_deck.html">LilyGo T-Deck</a></li>
+<li class="toctree-l1"><a class="reference internal" href="t_dongle_s3.html">LilyGo T-Dongle S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wrover_kit.html">ESP32-WROVER-KIT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">MotorGo Mini</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/32e8215e/docs/en/motorgo_mini.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="motorgo-mini">
+<h1>MotorGo Mini<a class="headerlink" href="#motorgo-mini" title="Permalink to this heading"></a></h1>
+<section id="id1">
+<h2>MotorGo Mini<a class="headerlink" href="#id1" title="Permalink to this heading"></a></h2>
+<p>The MotorGo Mini is a small, low-cost, low-power motor controller that can be
+used to control a two motors.</p>
+<p><a class="reference external" href="https://motorgo.net">https://motorgo.net</a></p>
+<p>It’s pretty sweet and the component provides the implementation of the two
+channel FOC motor controller, along with other peripheral classes such as the
+ADC, LEDs, and I2C.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="motorgo_mini_example.html">MotorGo-Mini Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="motorgo_mini_example.html#how-to-use-example">How to use example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="motorgo_mini_example.html#hardware-required">Hardware Required</a></li>
+<li class="toctree-l3"><a class="reference internal" href="motorgo_mini_example.html#build-and-flash">Build and Flash</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="motorgo_mini_example.html#example-output">Example Output</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/32e8215e/components/motorgo-mini/include/motorgo-mini.hpp">components/motorgo-mini/include/motorgo-mini.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMiniE">
+<span id="_CPPv3N4espp11MotorGoMiniE"></span><span id="_CPPv2N4espp11MotorGoMiniE"></span><span id="espp::MotorGoMini"></span><span class="target" id="classespp_1_1MotorGoMini"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MotorGoMini</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp11MotorGoMiniE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>This class acts as a board support component for the MotorGo-Mini board. It provides a high-level interface to the board’s functionality. The MotorGo-Mini board is a motor driver board that can drive two DC motors. More information about the board can be found at: <a class="reference external" href="https://github.com/Every-Flavor-Robotics/motorgo-mini-hardware">https://github.com/Every-Flavor-Robotics/motorgo-mini-hardware</a></p>
+<p>High level overview of the board:<ul class="simple">
+<li><p>ESP32s3 module</p></li>
+<li><p>Two LEDs (yellow and red)</p></li>
+<li><p>Two BLDC motor drivers (TMC6300)</p></li>
+<li><p>Two magnetic encoders (connected via two JST-SH 5 pin connectors to EncoderGo boards) (SPI2_HOST)</p></li>
+<li><p>Two Qwiic connectors for I2C communication (I2C0)</p></li>
+<li><p>Current sense resistors for each motor on the U and W phases NOTE: on the MotorGo-Mini v1.3, the M2 motor sense is swapped in the schematic, with U and W swapped</p></li>
+</ul>
+</p>
+<p>The class is a singleton and can be accessed using the <a class="reference internal" href="#classespp_1_1MotorGoMini_1a0f75c024e0f8000e33e209c420451046"><span class="std std-ref">get()</span></a> method.</p>
+<section id="classespp_1_1MotorGoMini_1motorgo_ex1">
+<h4>MotorGo-Mini Example<a class="headerlink" href="#classespp_1_1MotorGoMini_1motorgo_ex1" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1MotorGoMini_1motorgo_ex1"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">motorgo_mini</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">MotorGoMini</span><span class="o">::</span><span class="n">get</span><span class="p">();</span>
+<span class="w">  </span><span class="n">motorgo_mini</span><span class="p">.</span><span class="n">set_log_level</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// set the configuration for the motors For simplicity, we&#39;ll copy the</span>
+<span class="w">  </span><span class="c1">// defaults and modify them, but you can also just make a type of</span>
+<span class="w">  </span><span class="c1">// espp::MotorGoMini::BldcMotor::Config</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">motor1_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">motorgo_mini</span><span class="p">.</span><span class="n">default_motor1_config</span><span class="p">;</span>
+<span class="w">  </span><span class="n">motor1_config</span><span class="p">.</span><span class="n">phase_resistance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">4.0f</span><span class="p">;</span><span class="w"> </span><span class="c1">// ohms</span>
+<span class="w">  </span><span class="n">motor1_config</span><span class="p">.</span><span class="n">current_limit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">;</span><span class="w">    </span><span class="c1">// amps</span>
+<span class="w">  </span><span class="c1">// velocity PID config:</span>
+<span class="w">  </span><span class="n">motor1_config</span><span class="p">.</span><span class="n">velocity_pid_config</span><span class="p">.</span><span class="n">kp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.020f</span><span class="p">;</span>
+<span class="w">  </span><span class="n">motor1_config</span><span class="p">.</span><span class="n">velocity_pid_config</span><span class="p">.</span><span class="n">ki</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.700f</span><span class="p">;</span>
+<span class="w">  </span><span class="n">motor1_config</span><span class="p">.</span><span class="n">velocity_pid_config</span><span class="p">.</span><span class="n">kd</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.000f</span><span class="p">;</span>
+<span class="w">  </span><span class="c1">// angle PID config:</span>
+<span class="w">  </span><span class="n">motor1_config</span><span class="p">.</span><span class="n">angle_pid_config</span><span class="p">.</span><span class="n">kp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">5.000f</span><span class="p">;</span>
+<span class="w">  </span><span class="n">motor1_config</span><span class="p">.</span><span class="n">angle_pid_config</span><span class="p">.</span><span class="n">ki</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.000f</span><span class="p">;</span>
+<span class="w">  </span><span class="n">motor1_config</span><span class="p">.</span><span class="n">angle_pid_config</span><span class="p">.</span><span class="n">kd</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.000f</span><span class="p">;</span>
+
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">motor2_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">motorgo_mini</span><span class="p">.</span><span class="n">default_motor2_config</span><span class="p">;</span>
+<span class="w">  </span><span class="n">motor2_config</span><span class="p">.</span><span class="n">phase_resistance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">4.0f</span><span class="p">;</span><span class="w"> </span><span class="c1">// ohms</span>
+<span class="w">  </span><span class="n">motor2_config</span><span class="p">.</span><span class="n">current_limit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">;</span><span class="w">    </span><span class="c1">// amps</span>
+<span class="w">  </span><span class="c1">// velocity PID config:</span>
+<span class="w">  </span><span class="n">motor2_config</span><span class="p">.</span><span class="n">velocity_pid_config</span><span class="p">.</span><span class="n">kp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.020f</span><span class="p">;</span>
+<span class="w">  </span><span class="n">motor2_config</span><span class="p">.</span><span class="n">velocity_pid_config</span><span class="p">.</span><span class="n">ki</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.700f</span><span class="p">;</span>
+<span class="w">  </span><span class="n">motor2_config</span><span class="p">.</span><span class="n">velocity_pid_config</span><span class="p">.</span><span class="n">kd</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.000f</span><span class="p">;</span>
+<span class="w">  </span><span class="c1">// angle PID config:</span>
+<span class="w">  </span><span class="n">motor2_config</span><span class="p">.</span><span class="n">angle_pid_config</span><span class="p">.</span><span class="n">kp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">5.000f</span><span class="p">;</span>
+<span class="w">  </span><span class="n">motor2_config</span><span class="p">.</span><span class="n">angle_pid_config</span><span class="p">.</span><span class="n">ki</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.000f</span><span class="p">;</span>
+<span class="w">  </span><span class="n">motor2_config</span><span class="p">.</span><span class="n">angle_pid_config</span><span class="p">.</span><span class="n">kd</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.000f</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// now initialize the motors</span>
+<span class="w">  </span><span class="n">motorgo_mini</span><span class="p">.</span><span class="n">init_motor_channel_1</span><span class="p">(</span><span class="n">motor1_config</span><span class="p">);</span>
+<span class="w">  </span><span class="n">motorgo_mini</span><span class="p">.</span><span class="n">init_motor_channel_2</span><span class="p">(</span><span class="n">motor2_config</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// get the motor objects (shared pointers) for use in the script</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">motor1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">motorgo_mini</span><span class="p">.</span><span class="n">motor1</span><span class="p">();</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">motor2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">motorgo_mini</span><span class="p">.</span><span class="n">motor2</span><span class="p">();</span>
+
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">uint64_t</span><span class="w"> </span><span class="n">core_update_period_us</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1&#39;000</span><span class="p">;</span><span class="w">                  </span><span class="c1">// microseconds</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">core_update_period</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">core_update_period_us</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">1e6f</span><span class="p">;</span><span class="w"> </span><span class="c1">// seconds</span>
+
+<span class="w">  </span><span class="c1">// static auto motion_control_type = espp::detail::MotionControlType::VELOCITY;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">motion_control_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">detail</span><span class="o">::</span><span class="n">MotionControlType</span><span class="o">::</span><span class="n">ANGLE</span><span class="p">;</span>
+
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Setting motion control type to {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">motion_control_type</span><span class="p">);</span>
+<span class="w">  </span><span class="n">motor1</span><span class="o">-&gt;</span><span class="n">set_motion_control_type</span><span class="p">(</span><span class="n">motion_control_type</span><span class="p">);</span>
+<span class="w">  </span><span class="n">motor2</span><span class="o">-&gt;</span><span class="n">set_motion_control_type</span><span class="p">(</span><span class="n">motion_control_type</span><span class="p">);</span>
+
+<span class="w">  </span><span class="n">motor1</span><span class="o">-&gt;</span><span class="n">enable</span><span class="p">();</span>
+<span class="w">  </span><span class="n">motor2</span><span class="o">-&gt;</span><span class="n">enable</span><span class="p">();</span>
+
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">target1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">60.0f</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">target2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">60.0f</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">target_is_angle</span><span class="w"> </span><span class="o">=</span>
+<span class="w">      </span><span class="n">motion_control_type</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">detail</span><span class="o">::</span><span class="n">MotionControlType</span><span class="o">::</span><span class="n">ANGLE</span><span class="w"> </span><span class="o">||</span>
+<span class="w">      </span><span class="n">motion_control_type</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">detail</span><span class="o">::</span><span class="n">MotionControlType</span><span class="o">::</span><span class="n">ANGLE_OPENLOOP</span><span class="p">;</span>
+<span class="w">  </span><span class="c1">// Function for initializing the target based on the motion control type</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">initialize_target</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">target_is_angle</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">target1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">motor1</span><span class="o">-&gt;</span><span class="n">get_shaft_angle</span><span class="p">();</span>
+<span class="w">      </span><span class="n">target2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">motor2</span><span class="o">-&gt;</span><span class="n">get_shaft_angle</span><span class="p">();</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">target1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">50.0f</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">RPM_TO_RADS</span><span class="p">;</span>
+<span class="w">      </span><span class="n">target2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">50.0f</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">RPM_TO_RADS</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="w">  </span><span class="c1">// run it once</span>
+<span class="w">  </span><span class="n">initialize_target</span><span class="p">();</span>
+
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">dual_motor_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">motor1</span><span class="o">-&gt;</span><span class="n">loop_foc</span><span class="p">();</span>
+<span class="w">    </span><span class="n">motor1</span><span class="o">-&gt;</span><span class="n">move</span><span class="p">(</span><span class="n">target1</span><span class="p">);</span>
+<span class="w">    </span><span class="n">motor2</span><span class="o">-&gt;</span><span class="n">loop_foc</span><span class="p">();</span>
+<span class="w">    </span><span class="n">motor2</span><span class="o">-&gt;</span><span class="n">move</span><span class="p">(</span><span class="n">target2</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="c1">// don&#39;t want to stop the task</span>
+<span class="w">  </span><span class="p">};</span>
+
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">dual_motor_timer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">HighResolutionTimer</span><span class="p">({.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Motor Timer&quot;</span><span class="p">,</span>
+<span class="w">                                                     </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dual_motor_fn</span><span class="p">,</span>
+<span class="w">                                                     </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
+<span class="w">  </span><span class="n">dual_motor_timer</span><span class="p">.</span><span class="n">periodic</span><span class="p">(</span><span class="n">core_update_period_us</span><span class="p">);</span>
+
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">sample_freq_hz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">100.0f</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">filter_cutoff_freq_hz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">5.0f</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">normalized_cutoff_frequency</span><span class="w"> </span><span class="o">=</span>
+<span class="w">      </span><span class="mf">2.0f</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">filter_cutoff_freq_hz</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">sample_freq_hz</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">ORDER</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="w">  </span><span class="c1">// NOTE: using the Df2 since it&#39;s hardware accelerated :)</span>
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">Filter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">ButterworthFilter</span><span class="o">&lt;</span><span class="n">ORDER</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">BiquadFilterDf2</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="n">Filter</span><span class="w"> </span><span class="nf">filter1</span><span class="p">({.</span><span class="n">normalized_cutoff_frequency</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">normalized_cutoff_frequency</span><span class="p">});</span>
+<span class="w">  </span><span class="n">Filter</span><span class="w"> </span><span class="nf">filter2</span><span class="p">({.</span><span class="n">normalized_cutoff_frequency</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">normalized_cutoff_frequency</span><span class="p">});</span>
+
+<span class="w">  </span><span class="c1">// if it&#39;s a velocity setpoint then target is RPM</span>
+<span class="w">  </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;%time(s), &quot;</span>
+<span class="w">             </span><span class="s">&quot;motor 1 target, &quot;</span><span class="w"> </span><span class="c1">// target is either RPM or radians</span>
+<span class="w">             </span><span class="s">&quot;motor 1 angle (radians), &quot;</span>
+<span class="w">             </span><span class="s">&quot;motor 1 speed (rpm), &quot;</span>
+<span class="w">             </span><span class="s">&quot;motor 2 target, &quot;</span><span class="w"> </span><span class="c1">// target is either RPM or radians</span>
+<span class="w">             </span><span class="s">&quot;motor 2 angle (radians), &quot;</span>
+<span class="w">             </span><span class="s">&quot;motor 2 speed (rpm)</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// make the task to periodically poll the encoders and print the state. NOTE:</span>
+<span class="w">  </span><span class="c1">// the encoders run their own tasks to maintain state, so we&#39;re just polling</span>
+<span class="w">  </span><span class="c1">// the current state.</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">logging_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="o">&amp;</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">seconds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">).</span><span class="n">count</span><span class="p">();</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">_target1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">target1</span><span class="p">.</span><span class="n">load</span><span class="p">();</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">target_is_angle</span><span class="p">)</span>
+<span class="w">      </span><span class="n">_target1</span><span class="w"> </span><span class="o">*=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">RADS_TO_RPM</span><span class="p">;</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">_target2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">target2</span><span class="p">.</span><span class="n">load</span><span class="p">();</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">target_is_angle</span><span class="p">)</span>
+<span class="w">      </span><span class="n">_target2</span><span class="w"> </span><span class="o">*=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">RADS_TO_RPM</span><span class="p">;</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">rpm1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">filter1</span><span class="p">(</span><span class="n">motor1</span><span class="o">-&gt;</span><span class="n">get_shaft_velocity</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">RADS_TO_RPM</span><span class="p">);</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">rpm2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">filter2</span><span class="p">(</span><span class="n">motor2</span><span class="o">-&gt;</span><span class="n">get_shaft_velocity</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">RADS_TO_RPM</span><span class="p">);</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">rads1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">motor1</span><span class="o">-&gt;</span><span class="n">get_shaft_angle</span><span class="p">();</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">rads2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">motor2</span><span class="o">-&gt;</span><span class="n">get_shaft_angle</span><span class="p">();</span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;{:.3f}, {:.3f}, {:.3f}, {:.3f}, {:.3f}, {:.3f}, {:.3f}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">seconds</span><span class="p">,</span><span class="w"> </span><span class="n">_target1</span><span class="p">,</span><span class="w"> </span><span class="n">rads1</span><span class="p">,</span>
+<span class="w">               </span><span class="n">rpm1</span><span class="p">,</span><span class="w"> </span><span class="n">_target2</span><span class="p">,</span><span class="w"> </span><span class="n">rads2</span><span class="p">,</span><span class="w"> </span><span class="n">rpm2</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// NOTE: sleeping in this way allows the sleep to exit early when the</span>
+<span class="w">    </span><span class="c1">// task is being stopped / destroyed</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lk</span><span class="p">(</span><span class="n">m</span><span class="p">);</span>
+<span class="w">      </span><span class="n">cv</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">lk</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="c1">// don&#39;t want to stop the task</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">logging_task</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="p">({.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">logging_fn</span><span class="p">,</span>
+<span class="w">                                  </span><span class="p">.</span><span class="n">task_config</span><span class="w"> </span><span class="o">=</span>
+<span class="w">                                      </span><span class="p">{</span>
+<span class="w">                                          </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Logging Task&quot;</span><span class="p">,</span>
+<span class="w">                                          </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="p">,</span>
+<span class="w">                                      </span><span class="p">},</span>
+<span class="w">                                  </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
+<span class="w">  </span><span class="n">logging_task</span><span class="p">.</span><span class="n">start</span><span class="p">();</span>
+
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">1</span><span class="n">s</span><span class="p">);</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Starting target task&quot;</span><span class="p">);</span>
+
+<span class="w">  </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">IncrementDirection</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">DOWN</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-1</span><span class="p">,</span><span class="w"> </span><span class="n">HOLD</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">UP</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="p">};</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="n">IncrementDirection</span><span class="w"> </span><span class="n">increment_direction1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">IncrementDirection</span><span class="o">::</span><span class="n">UP</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="n">IncrementDirection</span><span class="w"> </span><span class="n">increment_direction2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">IncrementDirection</span><span class="o">::</span><span class="n">DOWN</span><span class="p">;</span>
+
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">update_target</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">target</span><span class="p">,</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">increment_direction</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">max_target</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">target_is_angle</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="p">(</span><span class="mf">2.0f</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">M_PI</span><span class="p">)</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="p">(</span><span class="mf">200.0f</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">RPM_TO_RADS</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">target_delta</span><span class="w"> </span><span class="o">=</span>
+<span class="w">        </span><span class="n">target_is_angle</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="p">(</span><span class="n">M_PI</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">4.0f</span><span class="p">)</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="p">(</span><span class="mf">50.0f</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">RPM_TO_RADS</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">core_update_period</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// update target</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">increment_direction</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">IncrementDirection</span><span class="o">::</span><span class="n">UP</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">target</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">target_delta</span><span class="p">;</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">target</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">max_target</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">increment_direction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">IncrementDirection</span><span class="o">::</span><span class="n">DOWN</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">increment_direction</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">IncrementDirection</span><span class="o">::</span><span class="n">DOWN</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">target</span><span class="w"> </span><span class="o">-=</span><span class="w"> </span><span class="n">target_delta</span><span class="p">;</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">target</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="o">-</span><span class="n">max_target</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">increment_direction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">IncrementDirection</span><span class="o">::</span><span class="n">UP</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// make a task which will update the target (velocity or angle)</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">target_task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="o">&amp;</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">delay</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">target_is_angle</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="mf">1.0f</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">core_update_period</span><span class="p">);</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+<span class="w">    </span><span class="n">update_target</span><span class="p">(</span><span class="n">target1</span><span class="p">,</span><span class="w"> </span><span class="n">increment_direction1</span><span class="p">);</span>
+<span class="w">    </span><span class="n">update_target</span><span class="p">(</span><span class="n">target2</span><span class="p">,</span><span class="w"> </span><span class="n">increment_direction2</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// NOTE: sleeping in this way allows the sleep to exit early when the</span>
+<span class="w">    </span><span class="c1">// task is being stopped / destroyed</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lk</span><span class="p">(</span><span class="n">m</span><span class="p">);</span>
+<span class="w">      </span><span class="n">cv</span><span class="p">.</span><span class="n">wait_until</span><span class="p">(</span><span class="n">lk</span><span class="p">,</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">delay</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="c1">// don&#39;t want to stop the task</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">target_task</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="p">({</span>
+<span class="w">      </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">target_task_fn</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">task_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Target Task&quot;</span><span class="p">},</span>
+<span class="w">  </span><span class="p">});</span>
+<span class="w">  </span><span class="n">target_task</span><span class="p">.</span><span class="n">start</span><span class="p">();</span>
+
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Initializing the button&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">on_button_pressed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">event</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">event</span><span class="p">.</span><span class="n">active</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Button pressed, changing motion control type&quot;</span><span class="p">);</span>
+<span class="w">      </span><span class="c1">// switch between ANGLE and VELOCITY</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">motion_control_type</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">detail</span><span class="o">::</span><span class="n">MotionControlType</span><span class="o">::</span><span class="n">ANGLE</span><span class="w"> </span><span class="o">||</span>
+<span class="w">          </span><span class="n">motion_control_type</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">detail</span><span class="o">::</span><span class="n">MotionControlType</span><span class="o">::</span><span class="n">ANGLE_OPENLOOP</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">motion_control_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">detail</span><span class="o">::</span><span class="n">MotionControlType</span><span class="o">::</span><span class="n">VELOCITY</span><span class="p">;</span>
+<span class="w">        </span><span class="n">target_is_angle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">motion_control_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">detail</span><span class="o">::</span><span class="n">MotionControlType</span><span class="o">::</span><span class="n">ANGLE</span><span class="p">;</span>
+<span class="w">        </span><span class="n">target_is_angle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="n">initialize_target</span><span class="p">();</span>
+<span class="w">      </span><span class="n">motor1</span><span class="o">-&gt;</span><span class="n">set_motion_control_type</span><span class="p">(</span><span class="n">motion_control_type</span><span class="p">);</span>
+<span class="w">      </span><span class="n">motor2</span><span class="o">-&gt;</span><span class="n">set_motion_control_type</span><span class="p">(</span><span class="n">motion_control_type</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Button released&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="w">  </span><span class="n">motorgo_mini</span><span class="p">.</span><span class="n">initialize_button</span><span class="p">(</span><span class="n">on_button_pressed</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// now loop forever (do nothing)</span>
+<span class="w">  </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">1</span><span class="n">s</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini17button_callback_tE">
+<span id="_CPPv3N4espp11MotorGoMini17button_callback_tE"></span><span id="_CPPv2N4espp11MotorGoMini17button_callback_tE"></span><span class="target" id="classespp_1_1MotorGoMini_1a8ade1782f7d18b02bf37d701b90738d5"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">button_callback_t</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="interrupt.html#_CPPv4N4espp9InterruptE" title="espp::Interrupt"><span class="n"><span class="pre">Interrupt</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="interrupt.html#_CPPv4N4espp9Interrupt17event_callback_fnE" title="espp::Interrupt::event_callback_fn"><span class="n"><span class="pre">event_callback_fn</span></span></a><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini17button_callback_tE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Alias for the button callback function. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini7EncoderE">
+<span id="_CPPv3N4espp11MotorGoMini7EncoderE"></span><span id="_CPPv2N4espp11MotorGoMini7EncoderE"></span><span class="target" id="classespp_1_1MotorGoMini_1a146910f8e141c4e0ddeb19bdfb869d03"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Encoder</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="encoder/mt6701.html#_CPPv4I_15Mt6701InterfaceEN4espp6Mt6701E" title="espp::Mt6701"><span class="n"><span class="pre">Mt6701</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Mt6701Interface</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">SSI</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini7EncoderE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Alias for the encoder type. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini9BldcMotorE">
+<span id="_CPPv3N4espp11MotorGoMini9BldcMotorE"></span><span id="_CPPv2N4espp11MotorGoMini9BldcMotorE"></span><span class="target" id="classespp_1_1MotorGoMini_1a2d23611f96951bab08053479ea17c731"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BldcMotor</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="bldc/bldc_motor.html#_CPPv4I_13DriverConcept_13SensorConcept_20CurrentSensorConceptEN4espp9BldcMotorE" title="espp::BldcMotor"><span class="n"><span class="pre">BldcMotor</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="bldc/bldc_driver.html#_CPPv4N4espp10BldcDriverE" title="espp::BldcDriver"><span class="n"><span class="pre">BldcDriver</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp11MotorGoMini7EncoderE" title="espp::MotorGoMini::Encoder"><span class="n"><span class="pre">Encoder</span></span></a><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini9BldcMotorE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Alias for the BLDC motor type. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini14VelocityFilterE">
+<span id="_CPPv3N4espp11MotorGoMini14VelocityFilterE"></span><span id="_CPPv2N4espp11MotorGoMini14VelocityFilterE"></span><span class="target" id="classespp_1_1MotorGoMini_1a9b539b069a0f81aefd02184014fe5432"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">VelocityFilter</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="filters/simple_lowpass.html#_CPPv4N4espp19SimpleLowpassFilterE" title="espp::SimpleLowpassFilter"><span class="n"><span class="pre">SimpleLowpassFilter</span></span></a><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini14VelocityFilterE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Alias for the velocity filter type. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini11AngleFilterE">
+<span id="_CPPv3N4espp11MotorGoMini11AngleFilterE"></span><span id="_CPPv2N4espp11MotorGoMini11AngleFilterE"></span><span class="target" id="classespp_1_1MotorGoMini_1adc3768617e62fffafdb8f92c91a72eb6"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AngleFilter</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="filters/simple_lowpass.html#_CPPv4N4espp19SimpleLowpassFilterE" title="espp::SimpleLowpassFilter"><span class="n"><span class="pre">SimpleLowpassFilter</span></span></a><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini11AngleFilterE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Alias for the angle filter type. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini16get_external_i2cEv">
+<span id="_CPPv3N4espp11MotorGoMini16get_external_i2cEv"></span><span id="_CPPv2N4espp11MotorGoMini16get_external_i2cEv"></span><span id="espp::MotorGoMini::get_external_i2c"></span><span class="target" id="classespp_1_1MotorGoMini_1a6e154461e3d0a067ff45d7dba4cc89ed"></span><a class="reference internal" href="i2c.html#_CPPv4N4espp3I2cE" title="espp::I2c"><span class="n"><span class="pre">I2c</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_external_i2c</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini16get_external_i2cEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get a reference to the external I2C bus </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A reference to the external I2C bus </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini10interruptsEv">
+<span id="_CPPv3N4espp11MotorGoMini10interruptsEv"></span><span id="_CPPv2N4espp11MotorGoMini10interruptsEv"></span><span id="espp::MotorGoMini::interrupts"></span><span class="target" id="classespp_1_1MotorGoMini_1a12b4ddf9204ccf0e4ce2cffafe5feac9"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="interrupt.html#_CPPv4N4espp9InterruptE" title="espp::Interrupt"><span class="n"><span class="pre">Interrupt</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">interrupts</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini10interruptsEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get a reference to the interrupts </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A reference to the interrupts </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini17initialize_buttonERK17button_callback_t">
+<span id="_CPPv3N4espp11MotorGoMini17initialize_buttonERK17button_callback_t"></span><span id="_CPPv2N4espp11MotorGoMini17initialize_buttonERK17button_callback_t"></span><span id="espp::MotorGoMini::initialize_button__button_callback_tCR"></span><span class="target" id="classespp_1_1MotorGoMini_1a1eb60bdde0ecca7e21cd8da0937f5da5"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize_button</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp11MotorGoMini17button_callback_tE" title="espp::MotorGoMini::button_callback_t"><span class="n"><span class="pre">button_callback_t</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">callback</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini17initialize_buttonERK17button_callback_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the button </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>callback</strong> – The callback function to call when the button is pressed </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the button was successfully initialized, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp11MotorGoMini12button_stateEv">
+<span id="_CPPv3NK4espp11MotorGoMini12button_stateEv"></span><span id="_CPPv2NK4espp11MotorGoMini12button_stateEv"></span><span id="espp::MotorGoMini::button_stateC"></span><span class="target" id="classespp_1_1MotorGoMini_1a06aa2b30ce976cbaeff0d28f815e8ee0"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">button_state</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp11MotorGoMini12button_stateEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the button state </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The button state (true = button pressed, false = button released) </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini10yellow_ledEv">
+<span id="_CPPv3N4espp11MotorGoMini10yellow_ledEv"></span><span id="_CPPv2N4espp11MotorGoMini10yellow_ledEv"></span><span id="espp::MotorGoMini::yellow_led"></span><span class="target" id="classespp_1_1MotorGoMini_1a579c474dec54f9a7a881513a4460b3aa"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="led.html#_CPPv4N4espp3LedE" title="espp::Led"><span class="n"><span class="pre">Led</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="led.html#_CPPv4N4espp3Led13ChannelConfigE" title="espp::Led::ChannelConfig"><span class="n"><span class="pre">ChannelConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">yellow_led</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini10yellow_ledEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get a reference to the yellow LED channel (channel 0) </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A reference to the yellow LED channel (channel 0) </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini12led_channel0Ev">
+<span id="_CPPv3N4espp11MotorGoMini12led_channel0Ev"></span><span id="_CPPv2N4espp11MotorGoMini12led_channel0Ev"></span><span id="espp::MotorGoMini::led_channel0"></span><span class="target" id="classespp_1_1MotorGoMini_1a02530bcad9b2f53f6a5bae70e1ed5654"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="led.html#_CPPv4N4espp3LedE" title="espp::Led"><span class="n"><span class="pre">Led</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="led.html#_CPPv4N4espp3Led13ChannelConfigE" title="espp::Led::ChannelConfig"><span class="n"><span class="pre">ChannelConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">led_channel0</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini12led_channel0Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get a reference to the yellow LED channel (channel 0) </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A reference to the yellow LED channel (channel 0) </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini19set_yellow_led_dutyEf">
+<span id="_CPPv3N4espp11MotorGoMini19set_yellow_led_dutyEf"></span><span id="_CPPv2N4espp11MotorGoMini19set_yellow_led_dutyEf"></span><span id="espp::MotorGoMini::set_yellow_led_duty__float"></span><span class="target" id="classespp_1_1MotorGoMini_1a96e6b20890a52efd2ca1a4c6dc88a75e"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_yellow_led_duty</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">duty</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini19set_yellow_led_dutyEf" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the duty cycle of the yellow LED </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The duty cycle is a percentage of the maximum duty cycle (which is 100.0) 0.0 is off, 100.0 is fully on </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For this function to have an effect, the LED timer must NOT be running (i.e. <a class="reference internal" href="#classespp_1_1MotorGoMini_1ac79b617a85e4ea8e4dcc867212186387"><span class="std std-ref">stop_breathing()</span></a> must be called) </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>duty</strong> – The duty cycle of the yellow LED (0.0 - 100.0) </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini7red_ledEv">
+<span id="_CPPv3N4espp11MotorGoMini7red_ledEv"></span><span id="_CPPv2N4espp11MotorGoMini7red_ledEv"></span><span id="espp::MotorGoMini::red_led"></span><span class="target" id="classespp_1_1MotorGoMini_1a5958483d0f5a1f909b3524bde08a6858"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="led.html#_CPPv4N4espp3LedE" title="espp::Led"><span class="n"><span class="pre">Led</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="led.html#_CPPv4N4espp3Led13ChannelConfigE" title="espp::Led::ChannelConfig"><span class="n"><span class="pre">ChannelConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">red_led</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini7red_ledEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get a reference to the red LED channel (channel 1) </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A reference to the red LED channel (channel 1) </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini12led_channel1Ev">
+<span id="_CPPv3N4espp11MotorGoMini12led_channel1Ev"></span><span id="_CPPv2N4espp11MotorGoMini12led_channel1Ev"></span><span id="espp::MotorGoMini::led_channel1"></span><span class="target" id="classespp_1_1MotorGoMini_1ae5916b5faadf7bc1f75fb7019c053c58"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="led.html#_CPPv4N4espp3LedE" title="espp::Led"><span class="n"><span class="pre">Led</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="led.html#_CPPv4N4espp3Led13ChannelConfigE" title="espp::Led::ChannelConfig"><span class="n"><span class="pre">ChannelConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">led_channel1</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini12led_channel1Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get a reference to the red LED channel (channel 1) </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A reference to the red LED channel (channel 1) </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini16set_red_led_dutyEf">
+<span id="_CPPv3N4espp11MotorGoMini16set_red_led_dutyEf"></span><span id="_CPPv2N4espp11MotorGoMini16set_red_led_dutyEf"></span><span id="espp::MotorGoMini::set_red_led_duty__float"></span><span class="target" id="classespp_1_1MotorGoMini_1ae0c7c2804693814783e3c8cca1c86b55"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_red_led_duty</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">duty</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini16set_red_led_dutyEf" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the duty cycle of the red LED </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The duty cycle is a percentage of the maximum duty cycle (which is 100.0) 0.0 is off, 100.0 is fully on </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For this function to have an effect, the LED timer must NOT be running (i.e. <a class="reference internal" href="#classespp_1_1MotorGoMini_1ac79b617a85e4ea8e4dcc867212186387"><span class="std std-ref">stop_breathing()</span></a> must be called) </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>duty</strong> – The duty cycle of the red LED (0.0 - 100.0) </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini3ledEv">
+<span id="_CPPv3N4espp11MotorGoMini3ledEv"></span><span id="_CPPv2N4espp11MotorGoMini3ledEv"></span><span id="espp::MotorGoMini::led"></span><span class="target" id="classespp_1_1MotorGoMini_1a56186982a9a00f8d52b9e9b03bff08fb"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="led.html#_CPPv4N4espp3LedE" title="espp::Led"><span class="n"><span class="pre">Led</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">led</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini3ledEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get a reference to the LED object which controls the LEDs </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A reference to the <a class="reference internal" href="led.html#classespp_1_1Led"><span class="std std-ref">Led</span></a> object </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini8gaussianEv">
+<span id="_CPPv3N4espp11MotorGoMini8gaussianEv"></span><span id="_CPPv2N4espp11MotorGoMini8gaussianEv"></span><span id="espp::MotorGoMini::gaussian"></span><span class="target" id="classespp_1_1MotorGoMini_1acf0be2e3144f5ac50353d5187dbe3444"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="math/gaussian.html#_CPPv4N4espp8GaussianE" title="espp::Gaussian"><span class="n"><span class="pre">Gaussian</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">gaussian</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini8gaussianEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get a reference to the <a class="reference internal" href="math/gaussian.html#classespp_1_1Gaussian"><span class="std std-ref">Gaussian</span></a> object which is used for breathing the LEDs. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A reference to the <a class="reference internal" href="math/gaussian.html#classespp_1_1Gaussian"><span class="std std-ref">Gaussian</span></a> object </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini15start_breathingEv">
+<span id="_CPPv3N4espp11MotorGoMini15start_breathingEv"></span><span id="_CPPv2N4espp11MotorGoMini15start_breathingEv"></span><span id="espp::MotorGoMini::start_breathing"></span><span class="target" id="classespp_1_1MotorGoMini_1a0c904dad71f5b8112411d8fd88e31711"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">start_breathing</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini15start_breathingEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Start breathing the LEDs</p>
+<p>This function starts the LED timer which will periodically update the LED duty cycle using the gaussian to create a breathing efect. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini14stop_breathingEv">
+<span id="_CPPv3N4espp11MotorGoMini14stop_breathingEv"></span><span id="_CPPv2N4espp11MotorGoMini14stop_breathingEv"></span><span id="espp::MotorGoMini::stop_breathing"></span><span class="target" id="classespp_1_1MotorGoMini_1ac79b617a85e4ea8e4dcc867212186387"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stop_breathing</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini14stop_breathingEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Stop breathing the LEDs</p>
+<p>This function stops the LED timer which will stop updating the LED duty cycle. It will also set the LED duty cycle to 0, effectively turning off the LEDs. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini4adc1Ev">
+<span id="_CPPv3N4espp11MotorGoMini4adc1Ev"></span><span id="_CPPv2N4espp11MotorGoMini4adc1Ev"></span><span id="espp::MotorGoMini::adc1"></span><span class="target" id="classespp_1_1MotorGoMini_1a00d431b00f20032be03e873fb800dd27"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="adc/oneshot_adc.html#_CPPv4N4espp10OneshotAdcE" title="espp::OneshotAdc"><span class="n"><span class="pre">OneshotAdc</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">adc1</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini4adc1Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get a reference to the ADC_UNIT_1 <a class="reference internal" href="adc/oneshot_adc.html#classespp_1_1OneshotAdc"><span class="std std-ref">OneshotAdc</span></a> object </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A reference to the ADC_UNIT_1 <a class="reference internal" href="adc/oneshot_adc.html#classespp_1_1OneshotAdc"><span class="std std-ref">OneshotAdc</span></a> object </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini4adc2Ev">
+<span id="_CPPv3N4espp11MotorGoMini4adc2Ev"></span><span id="_CPPv2N4espp11MotorGoMini4adc2Ev"></span><span id="espp::MotorGoMini::adc2"></span><span class="target" id="classespp_1_1MotorGoMini_1a726dbe0d8a968be6ff0e58e1ec8bab69"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="adc/oneshot_adc.html#_CPPv4N4espp10OneshotAdcE" title="espp::OneshotAdc"><span class="n"><span class="pre">OneshotAdc</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">adc2</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini4adc2Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get a reference to the ADC_UNIT_2 <a class="reference internal" href="adc/oneshot_adc.html#classespp_1_1OneshotAdc"><span class="std std-ref">OneshotAdc</span></a> object </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A reference to the ADC_UNIT_2 <a class="reference internal" href="adc/oneshot_adc.html#classespp_1_1OneshotAdc"><span class="std std-ref">OneshotAdc</span></a> object </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="classespp_1_1MotorGoMini_1aff467c5b6e1f8a12599b49708a0b7e73"></span><span class="sig-name descname"><span class="pre">void</span> <span class="pre">init_motor_channel_1</span> <span class="pre">(const</span> <span class="pre">BldcMotor::Config</span> <span class="pre">&amp;motor_config,</span> <span class="pre">const</span> <span class="pre">DriverConfig</span> <span class="pre">&amp;driver_config={.power_supply_voltage=5.0f,.limit_voltage=5.0f})</span></span></dt>
+<dd><p>Initialize the MotorGo-Mini’s components for motor channel 1</p>
+<p>This function initializes the encoder, driver, and motor for motor channel 1. This consists of initializing encoder1, motor_driver, and motor1. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>motor_config</strong> – The motor configuration </p></li>
+<li><p><strong>driver_config</strong> – The driver configuration </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="classespp_1_1MotorGoMini_1af3dd8ac1a9995c24946eb6e5ca11e382"></span><span class="sig-name descname"><span class="pre">void</span> <span class="pre">init_motor_channel_2</span> <span class="pre">(const</span> <span class="pre">BldcMotor::Config</span> <span class="pre">&amp;motor_config,</span> <span class="pre">const</span> <span class="pre">DriverConfig</span> <span class="pre">&amp;driver_config={.power_supply_voltage=5.0f,.limit_voltage=5.0f})</span></span></dt>
+<dd><p>Initialize the MotorGo-Mini’s components for motor channel 2</p>
+<p>This function initializes the encoder, driver and motor for motor channel 2. This consists of initializing encoder2, motor2_driver, and motor2. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>motor_config</strong> – The motor configuration </p></li>
+<li><p><strong>driver_config</strong> – The driver configuration </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini13motor1_driverEv">
+<span id="_CPPv3N4espp11MotorGoMini13motor1_driverEv"></span><span id="_CPPv2N4espp11MotorGoMini13motor1_driverEv"></span><span id="espp::MotorGoMini::motor1_driver"></span><span class="target" id="classespp_1_1MotorGoMini_1ae725870c760457e2549c23a3a2fa3a55"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="bldc/bldc_driver.html#_CPPv4N4espp10BldcDriverE" title="espp::BldcDriver"><span class="n"><span class="pre">BldcDriver</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">motor1_driver</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini13motor1_driverEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get a shared pointer to the motor 1 driver </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A shared pointer to the motor 1 driver </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini13motor2_driverEv">
+<span id="_CPPv3N4espp11MotorGoMini13motor2_driverEv"></span><span id="_CPPv2N4espp11MotorGoMini13motor2_driverEv"></span><span id="espp::MotorGoMini::motor2_driver"></span><span class="target" id="classespp_1_1MotorGoMini_1a643f8a964fd413185470c19a405fd5d6"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="bldc/bldc_driver.html#_CPPv4N4espp10BldcDriverE" title="espp::BldcDriver"><span class="n"><span class="pre">BldcDriver</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">motor2_driver</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini13motor2_driverEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get a shared pointer to the motor 2 driver </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A shared pointer to the motor 2 driver </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini6motor1Ev">
+<span id="_CPPv3N4espp11MotorGoMini6motor1Ev"></span><span id="_CPPv2N4espp11MotorGoMini6motor1Ev"></span><span id="espp::MotorGoMini::motor1"></span><span class="target" id="classespp_1_1MotorGoMini_1a53a0aafd3063f69799a5e246a00a2c94"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp11MotorGoMini9BldcMotorE" title="espp::MotorGoMini::BldcMotor"><span class="n"><span class="pre">BldcMotor</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">motor1</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini6motor1Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get a shared pointer to the motor 1 </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A shared pointer to the motor 1 </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini6motor2Ev">
+<span id="_CPPv3N4espp11MotorGoMini6motor2Ev"></span><span id="_CPPv2N4espp11MotorGoMini6motor2Ev"></span><span id="espp::MotorGoMini::motor2"></span><span class="target" id="classespp_1_1MotorGoMini_1ad35f23b41b6e352e19a282ae0417d585"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp11MotorGoMini9BldcMotorE" title="espp::MotorGoMini::BldcMotor"><span class="n"><span class="pre">BldcMotor</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">motor2</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini6motor2Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get a shared pointer to the motor 2 </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A shared pointer to the motor 2 </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini22motor1_velocity_filterEv">
+<span id="_CPPv3N4espp11MotorGoMini22motor1_velocity_filterEv"></span><span id="_CPPv2N4espp11MotorGoMini22motor1_velocity_filterEv"></span><span id="espp::MotorGoMini::motor1_velocity_filter"></span><span class="target" id="classespp_1_1MotorGoMini_1a9b115a9b03616d9db15fbeca15aa0364"></span><a class="reference internal" href="#_CPPv4N4espp11MotorGoMini14VelocityFilterE" title="espp::MotorGoMini::VelocityFilter"><span class="n"><span class="pre">VelocityFilter</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">motor1_velocity_filter</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini22motor1_velocity_filterEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get a reference to the motor 1 velocity filter </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A reference to the motor 1 velocity filter </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini19motor1_angle_filterEv">
+<span id="_CPPv3N4espp11MotorGoMini19motor1_angle_filterEv"></span><span id="_CPPv2N4espp11MotorGoMini19motor1_angle_filterEv"></span><span id="espp::MotorGoMini::motor1_angle_filter"></span><span class="target" id="classespp_1_1MotorGoMini_1adb56727b062c99949870ed727129fdbe"></span><a class="reference internal" href="#_CPPv4N4espp11MotorGoMini11AngleFilterE" title="espp::MotorGoMini::AngleFilter"><span class="n"><span class="pre">AngleFilter</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">motor1_angle_filter</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini19motor1_angle_filterEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get a reference to the motor 1 angle filter </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A reference to the motor 1 angle filter </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini22motor2_velocity_filterEv">
+<span id="_CPPv3N4espp11MotorGoMini22motor2_velocity_filterEv"></span><span id="_CPPv2N4espp11MotorGoMini22motor2_velocity_filterEv"></span><span id="espp::MotorGoMini::motor2_velocity_filter"></span><span class="target" id="classespp_1_1MotorGoMini_1add852f0a9e82cc3f3f13e5bf1f591dff"></span><a class="reference internal" href="#_CPPv4N4espp11MotorGoMini14VelocityFilterE" title="espp::MotorGoMini::VelocityFilter"><span class="n"><span class="pre">VelocityFilter</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">motor2_velocity_filter</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini22motor2_velocity_filterEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get a reference to the motor 2 velocity filter </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A reference to the motor 2 velocity filter </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini19motor2_angle_filterEv">
+<span id="_CPPv3N4espp11MotorGoMini19motor2_angle_filterEv"></span><span id="_CPPv2N4espp11MotorGoMini19motor2_angle_filterEv"></span><span id="espp::MotorGoMini::motor2_angle_filter"></span><span class="target" id="classespp_1_1MotorGoMini_1aca8f79935351a27017c3354d6a485ef6"></span><a class="reference internal" href="#_CPPv4N4espp11MotorGoMini11AngleFilterE" title="espp::MotorGoMini::AngleFilter"><span class="n"><span class="pre">AngleFilter</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">motor2_angle_filter</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini19motor2_angle_filterEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get a reference to the motor 2 angle filter </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A reference to the motor 2 angle filter </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini8encoder1Ev">
+<span id="_CPPv3N4espp11MotorGoMini8encoder1Ev"></span><span id="_CPPv2N4espp11MotorGoMini8encoder1Ev"></span><span id="espp::MotorGoMini::encoder1"></span><span class="target" id="classespp_1_1MotorGoMini_1a0f153166231c2c47e96b750ffa44fbe4"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp11MotorGoMini7EncoderE" title="espp::MotorGoMini::Encoder"><span class="n"><span class="pre">Encoder</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">encoder1</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini8encoder1Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get a shared pointer to the encoder 1 </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A shared pointer to the encoder 1 </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini8encoder2Ev">
+<span id="_CPPv3N4espp11MotorGoMini8encoder2Ev"></span><span id="_CPPv2N4espp11MotorGoMini8encoder2Ev"></span><span id="espp::MotorGoMini::encoder2"></span><span class="target" id="classespp_1_1MotorGoMini_1a27a59679cb53009c319c95b57b79ae9f"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp11MotorGoMini7EncoderE" title="espp::MotorGoMini::Encoder"><span class="n"><span class="pre">Encoder</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">encoder2</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini8encoder2Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get a shared pointer to the encoder 2 </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A shared pointer to the encoder 2 </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini26reset_encoder1_accumulatorEv">
+<span id="_CPPv3N4espp11MotorGoMini26reset_encoder1_accumulatorEv"></span><span id="_CPPv2N4espp11MotorGoMini26reset_encoder1_accumulatorEv"></span><span id="espp::MotorGoMini::reset_encoder1_accumulator"></span><span class="target" id="classespp_1_1MotorGoMini_1af49e5607db38452de009fb698669dd18"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset_encoder1_accumulator</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini26reset_encoder1_accumulatorEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Reset the encoder 1 accumulator</p>
+<p>This function resets the encoder 1 accumulator to 0. This will reset the encoder’s position to be within the range of 0 to 2*pi. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini26reset_encoder2_accumulatorEv">
+<span id="_CPPv3N4espp11MotorGoMini26reset_encoder2_accumulatorEv"></span><span id="_CPPv2N4espp11MotorGoMini26reset_encoder2_accumulatorEv"></span><span id="espp::MotorGoMini::reset_encoder2_accumulator"></span><span class="target" id="classespp_1_1MotorGoMini_1abd4d60ca0b2559ce2e1e46739630d75b"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset_encoder2_accumulator</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini26reset_encoder2_accumulatorEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Reset the encoder 2 accumulator</p>
+<p>This function resets the encoder 2 accumulator to 0. This will reset the encoder’s position to be within the range of 0 to 2*pi. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini21motor1_current_u_ampsEv">
+<span id="_CPPv3N4espp11MotorGoMini21motor1_current_u_ampsEv"></span><span id="_CPPv2N4espp11MotorGoMini21motor1_current_u_ampsEv"></span><span id="espp::MotorGoMini::motor1_current_u_amps"></span><span class="target" id="classespp_1_1MotorGoMini_1aa942db0f2d43ca1ab95649cfd4b40de0"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">motor1_current_u_amps</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini21motor1_current_u_ampsEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the current sense value for motor 1 phase U </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The current sense value for motor 1 phase U in amps </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini21motor1_current_w_ampsEv">
+<span id="_CPPv3N4espp11MotorGoMini21motor1_current_w_ampsEv"></span><span id="_CPPv2N4espp11MotorGoMini21motor1_current_w_ampsEv"></span><span id="espp::MotorGoMini::motor1_current_w_amps"></span><span class="target" id="classespp_1_1MotorGoMini_1a6687cbfbd882058a6fea74ae330cd907"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">motor1_current_w_amps</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini21motor1_current_w_ampsEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the current sense value for motor 1 phase W </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The current sense value for motor 1 phase W in amps </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini21motor2_current_u_ampsEv">
+<span id="_CPPv3N4espp11MotorGoMini21motor2_current_u_ampsEv"></span><span id="_CPPv2N4espp11MotorGoMini21motor2_current_u_ampsEv"></span><span id="espp::MotorGoMini::motor2_current_u_amps"></span><span class="target" id="classespp_1_1MotorGoMini_1aa44d9c09a5246ab9c3a1ea7ab667e5fd"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">motor2_current_u_amps</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini21motor2_current_u_ampsEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the current sense value for motor 2 phase U </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The current sense value for motor 2 phase U in amps </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini21motor2_current_w_ampsEv">
+<span id="_CPPv3N4espp11MotorGoMini21motor2_current_w_ampsEv"></span><span id="_CPPv2N4espp11MotorGoMini21motor2_current_w_ampsEv"></span><span id="espp::MotorGoMini::motor2_current_w_amps"></span><span class="target" id="classespp_1_1MotorGoMini_1aee30069d9daf8e1a8ad988f8edf91446"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">motor2_current_w_amps</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini21motor2_current_w_ampsEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the current sense value for motor 2 phase W </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The current sense value for motor 2 phase W in amps </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp11MotorGoMini8get_nameEv">
+<span id="_CPPv3NK4espp11MotorGoMini8get_nameEv"></span><span id="_CPPv2NK4espp11MotorGoMini8get_nameEv"></span><span id="espp::MotorGoMini::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp11MotorGoMini8get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp11MotorGoMini11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp11MotorGoMini11set_log_tagERKNSt11string_viewE"></span><span id="espp::MotorGoMini::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp11MotorGoMini13get_log_levelEv">
+<span id="_CPPv3NK4espp11MotorGoMini13get_log_levelEv"></span><span id="_CPPv2NK4espp11MotorGoMini13get_log_levelEv"></span><span id="espp::MotorGoMini::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp11MotorGoMini13get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp11MotorGoMini13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp11MotorGoMini13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::MotorGoMini::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp11MotorGoMini17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp11MotorGoMini17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::MotorGoMini::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="ws_s3_touch.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp11MotorGoMini17get_log_verbosityEv">
+<span id="_CPPv3NK4espp11MotorGoMini17get_log_verbosityEv"></span><span id="_CPPv2NK4espp11MotorGoMini17get_log_verbosityEv"></span><span id="espp::MotorGoMini::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp11MotorGoMini17get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="ws_s3_touch.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp11MotorGoMini18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp11MotorGoMini18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::MotorGoMini::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini21default_motor1_configE">
+<span id="_CPPv3N4espp11MotorGoMini21default_motor1_configE"></span><span id="_CPPv2N4espp11MotorGoMini21default_motor1_configE"></span><span id="espp::MotorGoMini::default_motor1_config__BldcMotor::ConfigC"></span><span class="target" id="classespp_1_1MotorGoMini_1ab8ca351978fdfa1527adf8add708913e"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp11MotorGoMini9BldcMotorE" title="espp::MotorGoMini::BldcMotor"><span class="n"><span class="pre">BldcMotor</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Config</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">default_motor1_config</span></span></span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini21default_motor1_configE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Default configuration for the MotorGo-Mini’s BLDC motor on channel 1. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini21default_motor2_configE">
+<span id="_CPPv3N4espp11MotorGoMini21default_motor2_configE"></span><span id="_CPPv2N4espp11MotorGoMini21default_motor2_configE"></span><span id="espp::MotorGoMini::default_motor2_config__BldcMotor::ConfigC"></span><span class="target" id="classespp_1_1MotorGoMini_1a1f0f57f4af354408ffeaeb8f0ee0351a"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp11MotorGoMini9BldcMotorE" title="espp::MotorGoMini::BldcMotor"><span class="n"><span class="pre">BldcMotor</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Config</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">default_motor2_config</span></span></span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini21default_motor2_configE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Default configuration for the MotorGo-Mini’s BLDC motor on channel 2. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini3getEv">
+<span id="_CPPv3N4espp11MotorGoMini3getEv"></span><span id="_CPPv2N4espp11MotorGoMini3getEv"></span><span id="espp::MotorGoMini::get"></span><span class="target" id="classespp_1_1MotorGoMini_1a0f75c024e0f8000e33e209c420451046"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp11MotorGoMiniE" title="espp::MotorGoMini"><span class="n"><span class="pre">MotorGoMini</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini3getEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Access the singleton instance of the <a class="reference internal" href="#classespp_1_1MotorGoMini"><span class="std std-ref">MotorGoMini</span></a> class. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Reference to the singleton instance of the <a class="reference internal" href="#classespp_1_1MotorGoMini"><span class="std std-ref">MotorGoMini</span></a> class </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini12DriverConfigE">
+<span id="_CPPv3N4espp11MotorGoMini12DriverConfigE"></span><span id="_CPPv2N4espp11MotorGoMini12DriverConfigE"></span><span id="espp::MotorGoMini::DriverConfig"></span><span class="target" id="structespp_1_1MotorGoMini_1_1DriverConfig"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DriverConfig</span></span></span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini12DriverConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Driver Configuration for the MotorGo-Mini Motor Driver(s) </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini12DriverConfig20power_supply_voltageE">
+<span id="_CPPv3N4espp11MotorGoMini12DriverConfig20power_supply_voltageE"></span><span id="_CPPv2N4espp11MotorGoMini12DriverConfig20power_supply_voltageE"></span><span id="espp::MotorGoMini::DriverConfig::power_supply_voltage__float"></span><span class="target" id="structespp_1_1MotorGoMini_1_1DriverConfig_1a38b547c92fbcdeaf1cc41ce80516b2ab"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">power_supply_voltage</span></span></span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini12DriverConfig20power_supply_voltageE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The power supply voltage in volts. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11MotorGoMini12DriverConfig13limit_voltageE">
+<span id="_CPPv3N4espp11MotorGoMini12DriverConfig13limit_voltageE"></span><span id="_CPPv2N4espp11MotorGoMini12DriverConfig13limit_voltageE"></span><span id="espp::MotorGoMini::DriverConfig::limit_voltage__float"></span><span class="target" id="structespp_1_1MotorGoMini_1_1DriverConfig_1aa79e62d30ce5bf96b859873ca5d25085"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">limit_voltage</span></span></span><a class="headerlink" href="#_CPPv4N4espp11MotorGoMini12DriverConfig13limit_voltageE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The limit voltage in volts. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="monitor_example.html" class="btn btn-neutral float-left" title="Monitor Example" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="motorgo_mini_example.html" class="btn btn-neutral float-right" title="MotorGo-Mini Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

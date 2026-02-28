@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ST25DV - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'nfc/st25dv';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="St25dv Example" href="st25dv_example.html" />
+    <link rel="prev" title="NDEF" href="ndef.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_component.html">Base Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../byte90.html">ALXV Labs Byte90</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cobs.html">COBS (Consistent Overhead Byte Stuffing)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp32_timer_cam.html">ESP32 TimerCam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp_box.html">ESP BOX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../interrupt.html">Interrupt APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../iperf_menu.html">Iperf Menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../m5stack_tab5.html">M5Stack Tab5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../matouch_rotary_display.html">MaTouch Rotary Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../motorgo_mini.html">MotorGo Mini</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../neopixel.html">Neopixel APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">NFC APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="ndef.html">NDEF</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">ST25DV</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="st25dv_example.html">St25dv Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#unions">Unions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../nvs.html">NVS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../remote_debug.html">Remote Debug APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../runqueue.html">RunQueue APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../seeed_studio_round_display.html">Seeed Studio Round Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_deck.html">LilyGo T-Deck</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_dongle_s3.html">LilyGo T-Dongle S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wrover_kit.html">ESP32-WROVER-KIT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">NFC APIs</a></li>
+      <li class="breadcrumb-item active">ST25DV</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/32e8215e/docs/en/nfc/st25dv.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="st25dv">
+<h1>ST25DV<a class="headerlink" href="#st25dv" title="Permalink to this heading"></a></h1>
+<p>The <cite>St25dv</cite> provides a utility class for NFC communications using the ST25DV
+Dynamic NFC / RFID tag. The tag includes 4Kb, 16Kb, or 64Kb EEPROM along with
+support for fast transfer mode - which enables bi-directional communications
+with other NFC/RFID enabled devices such as phones. This chip stores in its
+EEPROM NFC T5T tag records - which include a CC header (that this class
+maintains) followed by serialized NDEF records.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="st25dv_example.html">St25dv Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="st25dv_example.html#how-to-use-example">How to use example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="st25dv_example.html#hardware-required">Hardware Required</a></li>
+<li class="toctree-l3"><a class="reference internal" href="st25dv_example.html#build-and-flash">Build and Flash</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="st25dv_example.html#example-output">Example Output</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/32e8215e/components/st25dv/include/st25dv.hpp">components/st25dv/include/st25dv.hpp</a></p></li>
+</ul>
+</section>
+<section id="unions">
+<h3>Unions<a class="headerlink" href="#unions" title="Permalink to this heading"></a></h3>
+<dl class="cpp union">
+<dt class="sig sig-object cpp">
+<span class="target" id="unionespp_1_1St25dv_1_1IT__STS_8____unnamed131____"></span><span class="sig-name descname"><span class="pre">espp::St25dv::IT_STS.__unnamed131__</span></span></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="unionespp_1_1St25dv_1_1IT__STS_8____unnamed131_____1a781e330a2b610fa0cc19c2fdc4c56c5f"></span><span class="sig-name descname"><span class="pre">struct</span> <span class="pre">espp::St25dv::IT_STS</span></span></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19PhonyNameDueToError3rawE">
+<span id="_CPPv3N19PhonyNameDueToError3rawE"></span><span id="_CPPv2N19PhonyNameDueToError3rawE"></span><span id="PhonyNameDueToError::raw__uint8_t"></span><span class="target" id="unionespp_1_1St25dv_1_1IT__STS_8____unnamed131_____1abdd166af3a63f7be696dd17a218a6ffb"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">raw</span></span></span><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dvE">
+<span id="_CPPv3N4espp6St25dvE"></span><span id="_CPPv2N4espp6St25dvE"></span><span id="espp::St25dv"></span><span class="target" id="classespp_1_1St25dv"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">St25dv</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../base_peripheral.html#_CPPv4I_NSt8integralE_b_b_bEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint16_t</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp6St25dvE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Class for wireless communications using a ST25DV Dynamic NFC/RFID tag. The datasheet for the ST25DV can be found here: <a class="reference external" href="https://www.st.com/resource/en/datasheet/st25dv04k.pdf">https://www.st.com/resource/en/datasheet/st25dv04k.pdf</a>. </p>
+<section id="classespp_1_1St25dv_1st25dv_ex1">
+<h4>St25dv Example<a class="headerlink" href="#classespp_1_1St25dv_1st25dv_ex1" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1St25dv_1st25dv_ex1"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// make the I2C that we&#39;ll use to communicate</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="w"> </span><span class="nf">i2c</span><span class="p">({</span>
+<span class="w">        </span><span class="p">.</span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_NUM_0</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">sda_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">gpio_num_t</span><span class="p">)</span><span class="n">CONFIG_EXAMPLE_I2C_SDA_GPIO</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">scl_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">gpio_num_t</span><span class="p">)</span><span class="n">CONFIG_EXAMPLE_I2C_SCL_GPIO</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">clk_speed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1000</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span>
+<span class="w">    </span><span class="p">});</span>
+
+<span class="w">    </span><span class="c1">// now make the st25dv which decodes the data</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">St25dv</span><span class="w"> </span><span class="nf">st25dv</span><span class="p">({.</span><span class="n">write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">write</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span>
+<span class="w">                                            </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
+<span class="w">                         </span><span class="p">.</span><span class="n">read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">read</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span>
+<span class="w">                                           </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
+<span class="w">                         </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">});</span>
+
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">array</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="p">,</span><span class="w"> </span><span class="mi">50</span><span class="o">&gt;</span><span class="w"> </span><span class="n">programmed_data</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+<span class="w">    </span><span class="n">st25dv</span><span class="p">.</span><span class="n">read</span><span class="p">(</span><span class="n">programmed_data</span><span class="p">.</span><span class="n">data</span><span class="p">(),</span><span class="w"> </span><span class="n">programmed_data</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Failed to read st25dv: {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">      </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Read: {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">programmed_data</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">&gt;</span><span class="w"> </span><span class="n">records</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1">// create some sample records</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">payload_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sc">&#39;0&#39;</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">records</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">make_handover_select</span><span class="p">(</span><span class="n">payload_id</span><span class="p">));</span>
+<span class="w">    </span><span class="n">records</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">make_text</span><span class="p">(</span><span class="s">&quot;hello!&quot;</span><span class="p">));</span>
+<span class="w">    </span><span class="n">records</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">make_uri</span><span class="p">(</span><span class="s">&quot;github.com/esp-cpp/espp&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">Uic</span><span class="o">::</span><span class="n">HTTPS</span><span class="p">));</span>
+<span class="w">    </span><span class="n">records</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">make_android_launcher</span><span class="p">(</span><span class="s">&quot;com.google.android.apps.photos&quot;</span><span class="p">));</span>
+<span class="w">    </span><span class="n">records</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">make_wifi_config</span><span class="p">({</span>
+<span class="w">        </span><span class="p">.</span><span class="n">ssid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_ESP_WIFI_SSID</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_ESP_WIFI_PASSWORD</span><span class="p">,</span>
+<span class="w">    </span><span class="p">}));</span>
+
+<span class="w">    </span><span class="c1">// create BLE OOB pairing record</span>
+<span class="w">    </span><span class="kt">uint64_t</span><span class="w"> </span><span class="n">radio_mac_addr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x060504030201</span><span class="p">;</span><span class="w"> </span><span class="c1">// 48b, example address 06:05:04:03:02:01</span>
+<span class="cp">#if CONFIG_BT_BLE_ENABLED</span>
+<span class="w">    </span><span class="c1">// get the mac address of the radio</span>
+<span class="w">    </span><span class="n">init_low_level</span><span class="p">(</span><span class="n">HID_DEV_MODE</span><span class="p">);</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="o">*</span><span class="n">point</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">esp_bt_dev_get_address</span><span class="p">();</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">point</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="k">nullptr</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Failed to get radio mac address!</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="w">      </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="c1">// convert the 6 byte mac address to a 48 bit integer</span>
+<span class="w">      </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">6</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">radio_mac_addr</span><span class="w"> </span><span class="o">|=</span><span class="w"> </span><span class="p">(</span><span class="kt">uint64_t</span><span class="p">)</span><span class="n">point</span><span class="p">[</span><span class="mi">5</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">8</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;radio mac addr: {:#x}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">radio_mac_addr</span><span class="p">);</span>
+<span class="cp">#endif</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ble_role</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">BleRole</span><span class="o">::</span><span class="n">PERIPHERAL_ONLY</span><span class="p">;</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ble_appearance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">BtAppearance</span><span class="o">::</span><span class="n">GAMEPAD</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string_view</span><span class="w"> </span><span class="n">ble_radio_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;BLE Radio&quot;</span><span class="p">;</span>
+<span class="w">    </span><span class="n">records</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span>
+<span class="w">        </span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">make_le_oob_pairing</span><span class="p">(</span><span class="n">radio_mac_addr</span><span class="p">,</span><span class="w"> </span><span class="n">ble_role</span><span class="p">,</span><span class="w"> </span><span class="n">ble_radio_name</span><span class="p">,</span><span class="w"> </span><span class="n">ble_appearance</span><span class="p">));</span>
+<span class="w">    </span><span class="n">records</span><span class="p">.</span><span class="n">back</span><span class="p">().</span><span class="n">set_id</span><span class="p">(</span><span class="n">payload_id</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// set one of the records we made to be the active tag</span>
+<span class="w">    </span><span class="n">st25dv</span><span class="p">.</span><span class="n">set_records</span><span class="p">(</span><span class="n">records</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// and finally, make the task to periodically poll the st25dv and print the</span>
+<span class="w">    </span><span class="c1">// state. The task will trigger sample quit when the phone reads the tag.</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">quit_test</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">st25dv</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="o">&amp;</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lock</span><span class="p">(</span><span class="n">m</span><span class="p">);</span>
+<span class="w">        </span><span class="n">cv</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">lock</span><span class="p">,</span><span class="w"> </span><span class="mi">30</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">it_sts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">st25dv</span><span class="p">.</span><span class="n">get_interrupt_status</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Failed to get interrupt status: {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">        </span><span class="c1">// wait a bit before trying again</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lock</span><span class="p">(</span><span class="n">m</span><span class="p">);</span>
+<span class="w">        </span><span class="n">cv</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">lock</span><span class="p">,</span><span class="w"> </span><span class="mi">300</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">last_it_sts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">it_sts</span><span class="p">;</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">it_sts</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">last_it_sts</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;[{:.3f}] IT STS: {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">elapsed</span><span class="p">(),</span><span class="w"> </span><span class="n">it_sts</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="n">last_it_sts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">it_sts</span><span class="p">;</span>
+<span class="w">      </span><span class="c1">// we don&#39;t want to stop the task, so return false</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">    </span><span class="p">};</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="p">({.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">task_fn</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">task_config</span><span class="w"> </span><span class="o">=</span>
+<span class="w">                                </span><span class="p">{</span>
+<span class="w">                                    </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;St25dv Task&quot;</span><span class="p">,</span>
+<span class="w">                                    </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="p">,</span>
+<span class="w">                                </span><span class="p">},</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
+<span class="w">    </span><span class="n">task</span><span class="p">.</span><span class="n">start</span><span class="p">();</span>
+</pre></div>
+</div>
+</section>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>See <a class="reference external" href="https://stackoverflow.com/questions/61622309/base-address-requirement-for-ndef-messages-on-type-5-tags">https://stackoverflow.com/questions/61622309/base-address-requirement-for-ndef-messages-on-type-5-tags</a> for some discussion about the Capability Container (CC) header that must be the first data in the EEPROM.</p>
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv8probe_fnE">
+<span id="_CPPv3N4espp6St25dv8probe_fnE"></span><span id="_CPPv2N4espp6St25dv8probe_fnE"></span><span id="espp::St25dv::probe_fn"></span><span class="target" id="classespp_1_1BasePeripheral_1ad12a713efc443157b7d6fd1ba4fdf88f"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">probe_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv8probe_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to probe the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param address<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The address to probe </p>
+</dd>
+<dt class="field-even">Return<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the peripheral is found at the given address </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv6St25dvERK6Config">
+<span id="_CPPv3N4espp6St25dv6St25dvERK6Config"></span><span id="_CPPv2N4espp6St25dv6St25dvERK6Config"></span><span id="espp::St25dv::St25dv__ConfigCR"></span><span class="target" id="classespp_1_1St25dv_1a0b80019df7264936050d3f0a6c491ca4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">St25dv</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6St25dv6ConfigE" title="espp::St25dv::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv6St25dvERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct the <a class="reference internal" href="#classespp_1_1St25dv"><span class="std std-ref">St25dv</span></a> with the provided configuration. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv10initializeERNSt10error_codeE">
+<span id="_CPPv3N4espp6St25dv10initializeERNSt10error_codeE"></span><span id="_CPPv2N4espp6St25dv10initializeERNSt10error_codeE"></span><span id="espp::St25dv::initialize__std::error_codeR"></span><span class="target" id="classespp_1_1St25dv_1a470a7c3f134f04c7f6e5a04560b601b6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv10initializeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the <a class="reference internal" href="#classespp_1_1St25dv"><span class="std std-ref">St25dv</span></a>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>&amp;ec</strong> – Error code to be filled with any errors that occur during initialization. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv20get_interrupt_statusERNSt10error_codeE">
+<span id="_CPPv3N4espp6St25dv20get_interrupt_statusERNSt10error_codeE"></span><span id="_CPPv2N4espp6St25dv20get_interrupt_statusERNSt10error_codeE"></span><span id="espp::St25dv::get_interrupt_status__std::error_codeR"></span><span class="target" id="classespp_1_1St25dv_1a49e2977f1f001995f8f7a491c43d5c55"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6St25dv6IT_STSE" title="espp::St25dv::IT_STS"><span class="n"><span class="pre">IT_STS</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_interrupt_status</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv20get_interrupt_statusERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the interrupt status register (dynamic <a class="reference internal" href="#structespp_1_1St25dv_1_1IT__STS"><span class="std std-ref">IT_STS</span></a>). </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Reading the interrupt status register clears it. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The available states / flags in the register are available in <code class="docutils literal notranslate"><a class="reference internal" href="#structespp_1_1St25dv_1_1IT__STS"><span class="std std-ref"><span class="pre">St25dv::IT_STS</span></span></a></code>. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>&amp;ec</strong> – Error code to be filled with any errors that occur during reading. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The interrupt status register. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv10set_recordER4NdefRNSt10error_codeE">
+<span id="_CPPv3N4espp6St25dv10set_recordER4NdefRNSt10error_codeE"></span><span id="_CPPv2N4espp6St25dv10set_recordER4NdefRNSt10error_codeE"></span><span id="espp::St25dv::set_record__NdefR.std::error_codeR"></span><span class="target" id="classespp_1_1St25dv_1a4f55000f9d55ba84c47c32e4d3ebfc64"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_record</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="ndef.html#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">record</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv10set_recordER4NdefRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Writes the provided record (along with CC header) to the EEPROM. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Right now this only supports 4 B CC headers (for memory less than 16 Kbit). </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>record</strong> – The new NDEF record to serialize to the NFC EEPROM. </p></li>
+<li><p><strong>&amp;ec</strong> – Error code to be filled with any errors that occur during writing. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv10set_recordERKNSt6vectorI7uint8_tEERNSt10error_codeE">
+<span id="_CPPv3N4espp6St25dv10set_recordERKNSt6vectorI7uint8_tEERNSt10error_codeE"></span><span id="_CPPv2N4espp6St25dv10set_recordERKNSt6vectorI7uint8_tEERNSt10error_codeE"></span><span id="espp::St25dv::set_record__std::vector:uint8_t:CR.std::error_codeR"></span><span class="target" id="classespp_1_1St25dv_1a66038f2da23d3870181e3635d3f468c8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_record</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">record_data</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv10set_recordERKNSt6vectorI7uint8_tEERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Writes the provided record (along with CC header) to the EEPROM. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>&amp;record_data</strong> – The serialized NDEF record to write to the NFC EEPROM. </p></li>
+<li><p><strong>&amp;ec</strong> – Error code to be filled with any errors that occur during writing. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv11set_recordsERNSt6vectorI4NdefEERNSt10error_codeE">
+<span id="_CPPv3N4espp6St25dv11set_recordsERNSt6vectorI4NdefEERNSt10error_codeE"></span><span id="_CPPv2N4espp6St25dv11set_recordsERNSt6vectorI4NdefEERNSt10error_codeE"></span><span id="espp::St25dv::set_records__std::vector:Ndef:R.std::error_codeR"></span><span class="target" id="classespp_1_1St25dv_1a884efa5630c8b78f7c23a228bb2df2d8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_records</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="ndef.html#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">records</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv11set_recordsERNSt6vectorI4NdefEERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Writes the provided records (along with CC header) to the EEPROM. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>&amp;records</strong> – Vector of NDEF records to serialize to the NFC EEPROM. </p></li>
+<li><p><strong>&amp;ec</strong> – Error code to be filled with any errors that occur during writing. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv5writeENSt11string_viewERNSt10error_codeE">
+<span id="_CPPv3N4espp6St25dv5writeENSt11string_viewERNSt10error_codeE"></span><span id="_CPPv2N4espp6St25dv5writeENSt11string_viewERNSt10error_codeE"></span><span id="espp::St25dv::write__std::string_view.std::error_codeR"></span><span class="target" id="classespp_1_1St25dv_1a04121467d95e0870f3afb09195898ee7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">payload</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv5writeENSt11string_viewERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Write a raw sequence of bytes to the EEPROM. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>payload</strong> – Sequence of bytes to write. </p></li>
+<li><p><strong>&amp;ec</strong> – Error code to be filled with any errors that occur during writing. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv4readEP7uint8_t7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6St25dv4readEP7uint8_t7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6St25dv4readEP7uint8_t7uint8_tRNSt10error_codeE"></span><span id="espp::St25dv::read__uint8_tP.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1St25dv_1a11d0165e0213d98bb9ceed308beebcb0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">length</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv4readEP7uint8_t7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read a sequence of bytes from the EEPROM starting at offset 0. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This may contain raw NDEF bytes as well as the CC header. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>*data</strong> – Pointer to memory to be filled with bytes read. </p></li>
+<li><p><strong>length</strong> – Number of bytes to read. </p></li>
+<li><p><strong>&amp;ec</strong> – Error code to be filled with any errors that occur during reading. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv4readEP7uint8_t7uint8_t8uint16_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6St25dv4readEP7uint8_t7uint8_t8uint16_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6St25dv4readEP7uint8_t7uint8_t8uint16_tRNSt10error_codeE"></span><span id="espp::St25dv::read__uint8_tP.uint8_t.uint16_t.std::error_codeR"></span><span class="target" id="classespp_1_1St25dv_1af3c3d3bba9b6763a9d0a7b5f8e42bc37"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">length</span></span>, <span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">offset</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv4readEP7uint8_t7uint8_t8uint16_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read a sequence of bytes from the EEPROM starting at the provided offset. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This may contain raw NDEF bytes as well as the CC header. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>*data</strong> – Pointer to memory to be filled with bytes read. </p></li>
+<li><p><strong>length</strong> – Number of bytes to read. </p></li>
+<li><p><strong>offset</strong> – Offset to start reading from. </p></li>
+<li><p><strong>&amp;ec</strong> – Error code to be filled with any errors that occur during reading. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv24start_fast_transfer_modeERNSt10error_codeE">
+<span id="_CPPv3N4espp6St25dv24start_fast_transfer_modeERNSt10error_codeE"></span><span id="_CPPv2N4espp6St25dv24start_fast_transfer_modeERNSt10error_codeE"></span><span id="espp::St25dv::start_fast_transfer_mode__std::error_codeR"></span><span class="target" id="classespp_1_1St25dv_1a76f318ad8b6f472e92a0ec4beb489f20"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">start_fast_transfer_mode</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv24start_fast_transfer_modeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Enable fast transfer mode (using up to 255 bytes at a time) between RF and I2C. After calling this, you can call <a class="reference internal" href="#classespp_1_1St25dv_1adb0f476473dc8d7e046c56ea1ed4a968"><span class="std std-ref">transfer()</span></a>, <a class="reference internal" href="#classespp_1_1St25dv_1a3a5ec4bc9ed58a774ab9fc8770c81e36"><span class="std std-ref">receive()</span></a>, and <a class="reference internal" href="#classespp_1_1St25dv_1af1ffafe21cc826e8e4fafef44aef0873"><span class="std std-ref">get_ftm_length()</span></a> for fast bi-directional communications between RF and I2C. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You must call <a class="reference internal" href="#classespp_1_1St25dv_1a323147d0aa9c96e1307b3ed3d78a72b0"><span class="std std-ref">stop_fast_transfer_mode()</span></a> before calling any other functions on this class. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>&amp;ec</strong> – Error code to be filled with any errors that occur during writing. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv23stop_fast_transfer_modeERNSt10error_codeE">
+<span id="_CPPv3N4espp6St25dv23stop_fast_transfer_modeERNSt10error_codeE"></span><span id="_CPPv2N4espp6St25dv23stop_fast_transfer_modeERNSt10error_codeE"></span><span id="espp::St25dv::stop_fast_transfer_mode__std::error_codeR"></span><span class="target" id="classespp_1_1St25dv_1a323147d0aa9c96e1307b3ed3d78a72b0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stop_fast_transfer_mode</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv23stop_fast_transfer_modeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Disable fast transfer mode (using up to 255 bytes at a time) between RF and I2C. After calling this, you cannot call <a class="reference internal" href="#classespp_1_1St25dv_1adb0f476473dc8d7e046c56ea1ed4a968"><span class="std std-ref">transfer()</span></a> or <a class="reference internal" href="#classespp_1_1St25dv_1a3a5ec4bc9ed58a774ab9fc8770c81e36"><span class="std std-ref">receive()</span></a> without again calling <a class="reference internal" href="#classespp_1_1St25dv_1a76f318ad8b6f472e92a0ec4beb489f20"><span class="std std-ref">start_fast_transfer_mode()</span></a> first. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>&amp;ec</strong> – Error code to be filled with any errors that occur during writing. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv14get_ftm_lengthERNSt10error_codeE">
+<span id="_CPPv3N4espp6St25dv14get_ftm_lengthERNSt10error_codeE"></span><span id="_CPPv2N4espp6St25dv14get_ftm_lengthERNSt10error_codeE"></span><span id="espp::St25dv::get_ftm_length__std::error_codeR"></span><span class="target" id="classespp_1_1St25dv_1af1ffafe21cc826e8e4fafef44aef0873"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_ftm_length</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv14get_ftm_lengthERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns the available message length in the FTM message box. </p>
+<p>Will return non-zero if the RF received data into the FTM. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>&amp;ec</strong> – Error code to be filled with any errors that occur during reading. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Number of bytes (up to 255) available in the FTM message box. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv8transferEPK7uint8_t7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6St25dv8transferEPK7uint8_t7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6St25dv8transferEPK7uint8_t7uint8_tRNSt10error_codeE"></span><span id="espp::St25dv::transfer__uint8_tCP.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1St25dv_1adb0f476473dc8d7e046c56ea1ed4a968"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">transfer</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">length</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv8transferEPK7uint8_t7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Write data to the FTM message box to send. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Must call <a class="reference internal" href="#classespp_1_1St25dv_1a76f318ad8b6f472e92a0ec4beb489f20"><span class="std std-ref">start_fast_transfer_mode()</span></a> prior to use. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – Data to be written. </p></li>
+<li><p><strong>length</strong> – Number of bytes to write. </p></li>
+<li><p><strong>&amp;ec</strong> – Error code to be filled with any errors that occur during </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv7receiveEP7uint8_t7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6St25dv7receiveEP7uint8_t7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6St25dv7receiveEP7uint8_t7uint8_tRNSt10error_codeE"></span><span id="espp::St25dv::receive__uint8_tP.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1St25dv_1a3a5ec4bc9ed58a774ab9fc8770c81e36"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">receive</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">length</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv7receiveEP7uint8_t7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read data from the FTM message box. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Must call <a class="reference internal" href="#classespp_1_1St25dv_1a76f318ad8b6f472e92a0ec4beb489f20"><span class="std std-ref">start_fast_transfer_mode()</span></a> prior to use. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The length available to be read can be found by calling <a class="reference internal" href="#classespp_1_1St25dv_1af1ffafe21cc826e8e4fafef44aef0873"><span class="std std-ref">get_ftm_length()</span></a>. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – Pointer to memory to be filled with data. </p></li>
+<li><p><strong>length</strong> – Number of bytes to read. </p></li>
+<li><p><strong>&amp;ec</strong> – Error code to be filled with any errors that occur during </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6St25dv5probeERNSt10error_codeE">
+<span id="_CPPv3NK4espp6St25dv5probeERNSt10error_codeE"></span><span id="_CPPv2NK4espp6St25dv5probeERNSt10error_codeE"></span><span id="espp::St25dv::probe__std::error_codeRC"></span><span class="target" id="classespp_1_1BasePeripheral_1a05481a009a7302fff3b43d301de6b1eb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">probe</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6St25dv5probeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Probe the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the probe function is not set, this function will return false and set the error code to operation_not_supported </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is only available if UseAddress is true </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code to set if there is an error </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the peripheral is found </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv11set_addressE7uint8_t">
+<span id="_CPPv3N4espp6St25dv11set_addressE7uint8_t"></span><span id="_CPPv2N4espp6St25dv11set_addressE7uint8_t"></span><span id="espp::St25dv::set_address__uint8_t"></span><span class="target" id="classespp_1_1BasePeripheral_1a31fb8ec471403bf9be06428dbc46277a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_address</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">address</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv11set_addressE7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the address of the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is only available if UseAddress is true </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>address</strong> – The address of the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv9set_probeERK8probe_fn">
+<span id="_CPPv3N4espp6St25dv9set_probeERK8probe_fn"></span><span id="_CPPv2N4espp6St25dv9set_probeERK8probe_fn"></span><span id="espp::St25dv::set_probe__probe_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a5b5d7753ea6ccf361e495fdc80c81f19"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_probe</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6St25dv8probe_fnE" title="espp::St25dv::probe_fn"><span class="n"><span class="pre">probe_fn</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">probe</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv9set_probeERK8probe_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the probe function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the probe function is usually set in the constructor. If you need to change the probe function, consider using the set_config function instead. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is only available if UseAddress is true </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>probe</strong> – The probe function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv9set_writeERK8write_fn">
+<span id="_CPPv3N4espp6St25dv9set_writeERK8write_fn"></span><span id="_CPPv2N4espp6St25dv9set_writeERK8write_fn"></span><span id="espp::St25dv::set_write__write_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1ab5d5d18cd4e8893ed4f937dcfdaba5ba"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_write</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">write_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">write</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv9set_writeERK8write_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the write function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the write function is usually set in the constructor. If you need to change the write function, consider using the set_config function instead. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>write</strong> – The write function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv8set_readERK7read_fn">
+<span id="_CPPv3N4espp6St25dv8set_readERK7read_fn"></span><span id="_CPPv2N4espp6St25dv8set_readERK7read_fn"></span><span id="espp::St25dv::set_read__read_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1aa6d8131a30233e8439628815db8b1843"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_read</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">read_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">read</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv8set_readERK7read_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the read function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the read function is usually set in the constructor. If you need to change the read function, consider using the set_config function instead. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>read</strong> – The read function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv17set_read_registerERK16read_register_fn">
+<span id="_CPPv3N4espp6St25dv17set_read_registerERK16read_register_fn"></span><span id="_CPPv2N4espp6St25dv17set_read_registerERK16read_register_fn"></span><span id="espp::St25dv::set_read_register__read_register_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a72e039592417cd32bc47c77120005d3f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_read_register</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">read_register_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">read_register</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv17set_read_registerERK16read_register_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the read register function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the read register function is usually set in the constructor. If you need to change the read register function, consider using the set_config function instead. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>read_register</strong> – The read register function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv19set_write_then_readERK18write_then_read_fn">
+<span id="_CPPv3N4espp6St25dv19set_write_then_readERK18write_then_read_fn"></span><span id="_CPPv2N4espp6St25dv19set_write_then_readERK18write_then_read_fn"></span><span id="espp::St25dv::set_write_then_read__write_then_read_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a07b152dbfba43b5c82a498416f6887b2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_write_then_read</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">write_then_read_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">write_then_read</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv19set_write_then_readERK18write_then_read_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the write then read function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the write then read function is usually set in the constructor. If you need to change the write then </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>write_then_read</strong> – The write then read function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv34set_separate_write_then_read_delayERKNSt6chrono12millisecondsE">
+<span id="_CPPv3N4espp6St25dv34set_separate_write_then_read_delayERKNSt6chrono12millisecondsE"></span><span id="_CPPv2N4espp6St25dv34set_separate_write_then_read_delayERKNSt6chrono12millisecondsE"></span><span id="espp::St25dv::set_separate_write_then_read_delay__std::chrono::millisecondsCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a8c70b96c37525f90cc85ddfe4a40b82a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_separate_write_then_read_delay</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">milliseconds</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">delay</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv34set_separate_write_then_read_delayERKNSt6chrono12millisecondsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the delay between the write and read operations in write_then_read </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the delay is usually set in the constructor. If you need to change the delay, consider using the set_config function instead. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This delay is only used if the write_then_read function is not set to a custom function and the write and read functions are separate functions. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>delay</strong> – The delay between the write and read operations in write_then_read </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv10set_configERK6Config">
+<span id="_CPPv3N4espp6St25dv10set_configERK6Config"></span><span id="_CPPv2N4espp6St25dv10set_configERK6Config"></span><span id="espp::St25dv::set_config__ConfigCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a163b98a30940711b23a7e7dce81efe0c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_config</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6St25dv6ConfigE" title="espp::St25dv::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv10set_configERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the configuration for the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The configuration should normally be set in the constructor, but this function can be used to change the configuration after the peripheral has been created - for instance if the peripheral could be found on different communications buses. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – The configuration for the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv10set_configERR6Config">
+<span id="_CPPv3N4espp6St25dv10set_configERR6Config"></span><span id="_CPPv2N4espp6St25dv10set_configERR6Config"></span><span id="espp::St25dv::set_config__ConfigRR"></span><span class="target" id="classespp_1_1BasePeripheral_1a704004cfda66bf3ce5ed725b3003c32b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_config</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6St25dv6ConfigE" title="espp::St25dv::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv10set_configERR6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the configuration for the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The configuration should normally be set in the constructor, but this function can be used to change the configuration after the peripheral has been created - for instance if the peripheral could be found on different communications buses. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – The configuration for the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6St25dv6configEv">
+<span id="_CPPv3NK4espp6St25dv6configEv"></span><span id="_CPPv2NK4espp6St25dv6configEv"></span><span id="espp::St25dv::configC"></span><span class="target" id="classespp_1_1BasePeripheral_1ae66896cf25c9dde79522f354cdb23896"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6St25dv6ConfigE" title="espp::St25dv::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">config</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6St25dv6configEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the configuration for the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The configuration for the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6St25dv7addressEv">
+<span id="_CPPv3NK4espp6St25dv7addressEv"></span><span id="_CPPv2NK4espp6St25dv7addressEv"></span><span id="espp::St25dv::addressC"></span><span class="target" id="classespp_1_1BasePeripheral_1add730fb3307dd52ed5f8905a576e7ecc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">address</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6St25dv7addressEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the address of the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The address of the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6St25dv8get_nameEv">
+<span id="_CPPv3NK4espp6St25dv8get_nameEv"></span><span id="_CPPv2NK4espp6St25dv8get_nameEv"></span><span id="espp::St25dv::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6St25dv8get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp6St25dv11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp6St25dv11set_log_tagERKNSt11string_viewE"></span><span id="espp::St25dv::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6St25dv13get_log_levelEv">
+<span id="_CPPv3NK4espp6St25dv13get_log_levelEv"></span><span id="_CPPv2NK4espp6St25dv13get_log_levelEv"></span><span id="espp::St25dv::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6St25dv13get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp6St25dv13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp6St25dv13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::St25dv::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp6St25dv17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp6St25dv17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::St25dv::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../ws_s3_touch.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6St25dv17get_log_verbosityEv">
+<span id="_CPPv3NK4espp6St25dv17get_log_verbosityEv"></span><span id="_CPPv2NK4espp6St25dv17get_log_verbosityEv"></span><span id="espp::St25dv::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6St25dv17get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../ws_s3_touch.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp6St25dv18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp6St25dv18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::St25dv::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv12DATA_ADDRESSE">
+<span id="_CPPv3N4espp6St25dv12DATA_ADDRESSE"></span><span id="_CPPv2N4espp6St25dv12DATA_ADDRESSE"></span><span id="espp::St25dv::DATA_ADDRESS__uint8_t"></span><span class="target" id="classespp_1_1St25dv_1ad4ee1298d7092a1c4a34a754a6009c81"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DATA_ADDRESS</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="m"><span class="pre">0xA6</span></span><span class="w"> </span><span class="o"><span class="pre">&gt;&gt;</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv12DATA_ADDRESSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>I2C Address for writing / reading data. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv12SYST_ADDRESSE">
+<span id="_CPPv3N4espp6St25dv12SYST_ADDRESSE"></span><span id="_CPPv2N4espp6St25dv12SYST_ADDRESSE"></span><span id="espp::St25dv::SYST_ADDRESS__uint8_t"></span><span class="target" id="classespp_1_1St25dv_1a9ae4a502428bac93420af107e9c55f53"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SYST_ADDRESS</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="m"><span class="pre">0xAE</span></span><span class="w"> </span><span class="o"><span class="pre">&gt;&gt;</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv12SYST_ADDRESSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>I2C Address for writing / reading system config. </p>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv6ConfigE">
+<span id="_CPPv3N4espp6St25dv6ConfigE"></span><span id="_CPPv2N4espp6St25dv6ConfigE"></span><span id="espp::St25dv::Config"></span><span class="target" id="structespp_1_1St25dv_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration information for the <a class="reference internal" href="#classespp_1_1St25dv"><span class="std std-ref">St25dv</span></a>. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv6Config5writeE">
+<span id="_CPPv3N4espp6St25dv6Config5writeE"></span><span id="_CPPv2N4espp6St25dv6Config5writeE"></span><span id="espp::St25dv::Config::write__BasePeripheral::write_fn"></span><span class="target" id="structespp_1_1St25dv_1_1Config_1ab6bf7b3c6e35c0b78e11238c83108812"></span><a class="reference internal" href="../base_peripheral.html#_CPPv4I_NSt8integralE_b_b_bEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">write_fn</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv6Config5writeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to write to the device. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv6Config4readE">
+<span id="_CPPv3N4espp6St25dv6Config4readE"></span><span id="_CPPv2N4espp6St25dv6Config4readE"></span><span id="espp::St25dv::Config::read__BasePeripheral::read_fn"></span><span class="target" id="structespp_1_1St25dv_1_1Config_1ac6f0e6b54ee60822a7213c31e436f9e1"></span><a class="reference internal" href="../base_peripheral.html#_CPPv4I_NSt8integralE_b_b_bEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">read_fn</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv6Config4readE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to read from the device. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv6Config9auto_initE">
+<span id="_CPPv3N4espp6St25dv6Config9auto_initE"></span><span id="_CPPv2N4espp6St25dv6Config9auto_initE"></span><span id="espp::St25dv::Config::auto_init__b"></span><span class="target" id="structespp_1_1St25dv_1_1Config_1aede2bd55f1433188d6d24a5283fb91b8"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">auto_init</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv6Config9auto_initE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Automatically initialize the device. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv6Config9log_levelE">
+<span id="_CPPv3N4espp6St25dv6Config9log_levelE"></span><span id="_CPPv2N4espp6St25dv6Config9log_levelE"></span><span id="espp::St25dv::Config::log_level__Logger::Verbosity"></span><span class="target" id="structespp_1_1St25dv_1_1Config_1a1b93b55b35f9e73909e79341070ba739"></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv6Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Log verbosity for the component. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv6IT_STSE">
+<span id="_CPPv3N4espp6St25dv6IT_STSE"></span><span id="_CPPv2N4espp6St25dv6IT_STSE"></span><span id="espp::St25dv::IT_STS"></span><span class="target" id="structespp_1_1St25dv_1_1IT__STS"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">IT_STS</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv6IT_STSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Encapsulates the different flags / bit fields that the <a class="reference internal" href="#structespp_1_1St25dv_1_1IT__STS"><span class="std std-ref">IT_STS</span></a> dynamic register holds for the different states it represents. Reading this register clears it to 0x00. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>RF events are reported in the <a class="reference internal" href="#structespp_1_1St25dv_1_1IT__STS"><span class="std std-ref">IT_STS</span></a> register even if <a class="reference internal" href="#classespp_1_1St25dv_1_1GPO"><span class="std std-ref">GPO</span></a> output is disabled. </p>
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6St25dv6IT_STSeqERK6IT_STS">
+<span id="_CPPv3NK4espp6St25dv6IT_STSeqERK6IT_STS"></span><span id="_CPPv2NK4espp6St25dv6IT_STSeqERK6IT_STS"></span><span id="espp::St25dv::IT_STS::eq-operator__IT_STSCRC"></span><span class="target" id="structespp_1_1St25dv_1_1IT__STS_1ad0d3545d0f70937f807bf53763bf1fee"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">==</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6St25dv6IT_STSE" title="espp::St25dv::IT_STS"><span class="n"><span class="pre">IT_STS</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6St25dv6IT_STSeqERK6IT_STS" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Equivalence operator for <a class="reference internal" href="#structespp_1_1St25dv_1_1IT__STS"><span class="std std-ref">IT_STS</span></a>. </p>
+<p>This is used to compare the raw value of the <a class="reference internal" href="#structespp_1_1St25dv_1_1IT__STS"><span class="std std-ref">IT_STS</span></a> register to another <a class="reference internal" href="#structespp_1_1St25dv_1_1IT__STS"><span class="std std-ref">IT_STS</span></a> register. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>other</strong> – The other <a class="reference internal" href="#structespp_1_1St25dv_1_1IT__STS"><span class="std std-ref">IT_STS</span></a> register to compare to. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the two registers are equal, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6St25dv6IT_STSneERK6IT_STS">
+<span id="_CPPv3NK4espp6St25dv6IT_STSneERK6IT_STS"></span><span id="_CPPv2NK4espp6St25dv6IT_STSneERK6IT_STS"></span><span id="espp::St25dv::IT_STS::neq-operator__IT_STSCRC"></span><span class="target" id="structespp_1_1St25dv_1_1IT__STS_1a8ea9d04db9739c3c9be19b01597f4767"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">!=</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6St25dv6IT_STSE" title="espp::St25dv::IT_STS"><span class="n"><span class="pre">IT_STS</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6St25dv6IT_STSneERK6IT_STS" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Inequivalence operator for <a class="reference internal" href="#structespp_1_1St25dv_1_1IT__STS"><span class="std std-ref">IT_STS</span></a>. </p>
+<p>This is used to compare the raw value of the <a class="reference internal" href="#structespp_1_1St25dv_1_1IT__STS"><span class="std std-ref">IT_STS</span></a> register to another <a class="reference internal" href="#structespp_1_1St25dv_1_1IT__STS"><span class="std std-ref">IT_STS</span></a> register. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>other</strong> – The other <a class="reference internal" href="#structespp_1_1St25dv_1_1IT__STS"><span class="std std-ref">IT_STS</span></a> register to compare to. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the two registers are not equal, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp union">
+<dt class="sig sig-object cpp">
+<span class="target" id="unionespp_1_1St25dv_1_1IT__STS_8____unnamed131____"></span><span class="sig-name descname"><span class="pre">IT_STS.__unnamed131__</span></span></dt>
+<dd></dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp">
+<span class="target" id="structespp_1_1St25dv_1_1IT__STS_8____unnamed131_____8____unnamed133____"></span><span class="sig-name descname"><span class="pre">IT_STS.__unnamed131__.__unnamed133__</span></span></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv19PhonyNameDueToError7RF_USERE">
+<span id="_CPPv3N4espp6St25dv19PhonyNameDueToError7RF_USERE"></span><span id="_CPPv2N4espp6St25dv19PhonyNameDueToError7RF_USERE"></span><span id="espp::St25dv::PhonyNameDueToError::RF_USER__uint8_t"></span><span class="target" id="structespp_1_1St25dv_1_1IT__STS_8____unnamed131_____8____unnamed133_____1a45392fe006e378e754907d2d460b5f79"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RF_USER</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv19PhonyNameDueToError7RF_USERE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Manage <a class="reference internal" href="#classespp_1_1St25dv_1_1GPO"><span class="std std-ref">GPO</span></a> (set / reset <a class="reference internal" href="#classespp_1_1St25dv_1_1GPO"><span class="std std-ref">GPO</span></a>) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv19PhonyNameDueToError11RF_ACTIVITYE">
+<span id="_CPPv3N4espp6St25dv19PhonyNameDueToError11RF_ACTIVITYE"></span><span id="_CPPv2N4espp6St25dv19PhonyNameDueToError11RF_ACTIVITYE"></span><span id="espp::St25dv::PhonyNameDueToError::RF_ACTIVITY__uint8_t"></span><span class="target" id="structespp_1_1St25dv_1_1IT__STS_8____unnamed131_____8____unnamed133_____1a56a71f790b5d6f94c3f5d39084a8e07c"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RF_ACTIVITY</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv19PhonyNameDueToError11RF_ACTIVITYE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Indicates RF Access. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv19PhonyNameDueToError12RF_INTTERUPTE">
+<span id="_CPPv3N4espp6St25dv19PhonyNameDueToError12RF_INTTERUPTE"></span><span id="_CPPv2N4espp6St25dv19PhonyNameDueToError12RF_INTTERUPTE"></span><span id="espp::St25dv::PhonyNameDueToError::RF_INTTERUPT__uint8_t"></span><span class="target" id="structespp_1_1St25dv_1_1IT__STS_8____unnamed131_____8____unnamed133_____1adae7bc9272d9db21be1d7aabf03e026c"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RF_INTTERUPT</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv19PhonyNameDueToError12RF_INTTERUPTE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="#classespp_1_1St25dv_1_1GPO"><span class="std std-ref">GPO</span></a> <a class="reference internal" href="../interrupt.html#classespp_1_1Interrupt"><span class="std std-ref">Interrupt</span></a> request. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv19PhonyNameDueToError13FIELD_FALLINGE">
+<span id="_CPPv3N4espp6St25dv19PhonyNameDueToError13FIELD_FALLINGE"></span><span id="_CPPv2N4espp6St25dv19PhonyNameDueToError13FIELD_FALLINGE"></span><span id="espp::St25dv::PhonyNameDueToError::FIELD_FALLING__uint8_t"></span><span class="target" id="structespp_1_1St25dv_1_1IT__STS_8____unnamed131_____8____unnamed133_____1a1986e0b5af9d4b1eb527b18bec726d28"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FIELD_FALLING</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv19PhonyNameDueToError13FIELD_FALLINGE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>RF field is falling. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv19PhonyNameDueToError12FIELD_RISINGE">
+<span id="_CPPv3N4espp6St25dv19PhonyNameDueToError12FIELD_RISINGE"></span><span id="_CPPv2N4espp6St25dv19PhonyNameDueToError12FIELD_RISINGE"></span><span id="espp::St25dv::PhonyNameDueToError::FIELD_RISING__uint8_t"></span><span class="target" id="structespp_1_1St25dv_1_1IT__STS_8____unnamed131_____8____unnamed133_____1ad07290bb5cefdcc580c281c17525426a"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FIELD_RISING</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv19PhonyNameDueToError12FIELD_RISINGE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>RF field is rising. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv19PhonyNameDueToError10RF_PUT_MSGE">
+<span id="_CPPv3N4espp6St25dv19PhonyNameDueToError10RF_PUT_MSGE"></span><span id="_CPPv2N4espp6St25dv19PhonyNameDueToError10RF_PUT_MSGE"></span><span id="espp::St25dv::PhonyNameDueToError::RF_PUT_MSG__uint8_t"></span><span class="target" id="structespp_1_1St25dv_1_1IT__STS_8____unnamed131_____8____unnamed133_____1aed11562d18d3f91c1a4665bba274efdd"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RF_PUT_MSG</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv19PhonyNameDueToError10RF_PUT_MSGE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Message put by RF into FTM mailbox. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv19PhonyNameDueToError10RF_GET_MSGE">
+<span id="_CPPv3N4espp6St25dv19PhonyNameDueToError10RF_GET_MSGE"></span><span id="_CPPv2N4espp6St25dv19PhonyNameDueToError10RF_GET_MSGE"></span><span id="espp::St25dv::PhonyNameDueToError::RF_GET_MSG__uint8_t"></span><span class="target" id="structespp_1_1St25dv_1_1IT__STS_8____unnamed131_____8____unnamed133_____1a6c9ae2099e7cc9408328557e2cd73146"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RF_GET_MSG</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv19PhonyNameDueToError10RF_GET_MSGE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>reached. </p>
+<p>Message read by RF from FTM mailbox, and end of message has been </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv19PhonyNameDueToError8RF_WRITEE">
+<span id="_CPPv3N4espp6St25dv19PhonyNameDueToError8RF_WRITEE"></span><span id="_CPPv2N4espp6St25dv19PhonyNameDueToError8RF_WRITEE"></span><span id="espp::St25dv::PhonyNameDueToError::RF_WRITE__uint8_t"></span><span class="target" id="structespp_1_1St25dv_1_1IT__STS_8____unnamed131_____8____unnamed133_____1a2579c4821a593356c3e6ca0ca04f62fa"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RF_WRITE</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv19PhonyNameDueToError8RF_WRITEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Write in eeprom. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv3GPOE">
+<span id="_CPPv3N4espp6St25dv3GPOE"></span><span id="_CPPv2N4espp6St25dv3GPOE"></span><span id="espp::St25dv::GPO"></span><span class="target" id="classespp_1_1St25dv_1_1GPO"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GPO</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv3GPOE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv7EH_CTRLE">
+<span id="_CPPv3N4espp6St25dv7EH_CTRLE"></span><span id="_CPPv2N4espp6St25dv7EH_CTRLE"></span><span id="espp::St25dv::EH_CTRL"></span><span class="target" id="classespp_1_1St25dv_1_1EH__CTRL"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EH_CTRL</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv7EH_CTRLE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv7MB_CTRLE">
+<span id="_CPPv3N4espp6St25dv7MB_CTRLE"></span><span id="_CPPv2N4espp6St25dv7MB_CTRLE"></span><span id="espp::St25dv::MB_CTRL"></span><span class="target" id="classespp_1_1St25dv_1_1MB__CTRL"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MB_CTRL</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv7MB_CTRLE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ndef.html" class="btn btn-neutral float-left" title="NDEF" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="st25dv_example.html" class="btn btn-neutral float-right" title="St25dv Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

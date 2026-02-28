@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>INA226 I2C Current/Power Monitor - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'power/ina226';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="INA226 Example" href="ina226_example.html" />
+    <link rel="prev" title="Power Monitoring APIs" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_component.html">Base Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../byte90.html">ALXV Labs Byte90</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cobs.html">COBS (Consistent Overhead Byte Stuffing)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp32_timer_cam.html">ESP32 TimerCam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp_box.html">ESP BOX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../interrupt.html">Interrupt APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../iperf_menu.html">Iperf Menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../m5stack_tab5.html">M5Stack Tab5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../matouch_rotary_display.html">MaTouch Rotary Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../motorgo_mini.html">MotorGo Mini</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../neopixel.html">Neopixel APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nvs.html">NVS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Power Monitoring APIs</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">INA226 I2C Current/Power Monitor</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ina226_example.html">INA226 Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../remote_debug.html">Remote Debug APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../runqueue.html">RunQueue APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../seeed_studio_round_display.html">Seeed Studio Round Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_deck.html">LilyGo T-Deck</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_dongle_s3.html">LilyGo T-Dongle S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wrover_kit.html">ESP32-WROVER-KIT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Power Monitoring APIs</a></li>
+      <li class="breadcrumb-item active">INA226 I2C Current/Power Monitor</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/32e8215e/docs/en/power/ina226.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="ina226-i2c-current-power-monitor">
+<h1>INA226 I2C Current/Power Monitor<a class="headerlink" href="#ina226-i2c-current-power-monitor" title="Permalink to this heading"></a></h1>
+<p>The <cite>Ina226</cite> class implements support for the Texas Instruments INA226 current
+and power monitor. It exposes helpers to configure averaging and conversion
+times, program calibration based on shunt resistance and desired current LSB,
+and read shunt voltage, bus voltage, current, and power.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ina226_example.html">INA226 Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ina226_example.html#how-to-use-example">How to use example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ina226_example.html#hardware-required">Hardware Required</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ina226_example.html#build-and-flash">Build and Flash</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/32e8215e/components/ina226/include/ina226.hpp">components/ina226/include/ina226.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina226E">
+<span id="_CPPv3N4espp6Ina226E"></span><span id="_CPPv2N4espp6Ina226E"></span><span id="espp::Ina226"></span><span class="target" id="classespp_1_1Ina226"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ina226</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../base_peripheral.html#_CPPv4I_NSt8integralE_b_b_bEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp6Ina226E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>INA226 Current/Power Monitor (I2C)</p>
+<p>Provides helpers to configure and read bus voltage, shunt voltage, current, and power. Uses <a class="reference internal" href="../base_peripheral.html#classespp_1_1BasePeripheral"><span class="std std-ref">BasePeripheral</span></a> for I2C access, 8-bit register addresses.</p>
+<p>Section: Example <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">extern</span><span class="w"> </span><span class="s">&quot;C&quot;</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">app_main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="w"> </span><span class="n">logger</span><span class="p">({.</span><span class="n">tag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;INA226 Example&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">});</span>
+
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="w"> </span><span class="nf">i2c</span><span class="p">({</span>
+<span class="w">      </span><span class="p">.</span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_NUM_1</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">sda_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">gpio_num_t</span><span class="p">)</span><span class="n">CONFIG_EXAMPLE_I2C_SDA_GPIO</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">scl_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">gpio_num_t</span><span class="p">)</span><span class="n">CONFIG_EXAMPLE_I2C_SCL_GPIO</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">clk_speed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_EXAMPLE_I2C_CLOCK_SPEED_HZ</span><span class="p">,</span>
+<span class="w">  </span><span class="p">});</span>
+
+<span class="w">  </span><span class="c1">// since the ina226 can have addresses ranging from 0x40 to 0x4F, we probe for</span>
+<span class="w">  </span><span class="c1">// it</span>
+<span class="cp">#if defined(CONFIG_EXAMPLE_USE_STATIC_ADDRESS)</span>
+<span class="w">  </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_EXAMPLE_I2C_ADDRESS</span><span class="p">;</span>
+<span class="cp">#else</span>
+<span class="w">  </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ina226</span><span class="o">::</span><span class="n">DEFAULT_ADDRESS</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">max_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x4F</span><span class="p">;</span>
+<span class="w">  </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">i2c</span><span class="p">.</span><span class="n">probe_device</span><span class="p">(</span><span class="n">address</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">address</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">max_address</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">address</span><span class="o">++</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">address</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">max_address</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;INA226 not found on I2C bus!&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="cp">#endif</span>
+
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Using INA226 address 0x{:02X}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">address</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Configure INA226 with reasonable defaults and known shunt resistor</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Ina226</span><span class="w"> </span><span class="nf">ina</span><span class="p">({</span>
+<span class="w">      </span><span class="p">.</span><span class="n">device_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">address</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">averaging</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ina226</span><span class="o">::</span><span class="n">Avg</span><span class="o">::</span><span class="n">AVG_16</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">bus_conv_time</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ina226</span><span class="o">::</span><span class="n">ConvTime</span><span class="o">::</span><span class="n">MS_1_1</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">shunt_conv_time</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ina226</span><span class="o">::</span><span class="n">ConvTime</span><span class="o">::</span><span class="n">MS_1_1</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ina226</span><span class="o">::</span><span class="n">Mode</span><span class="o">::</span><span class="n">SHUNT_BUS_CONT</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">current_lsb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.001f</span><span class="p">,</span><span class="w">         </span><span class="c1">// 1mA / LSB</span>
+<span class="w">      </span><span class="p">.</span><span class="n">shunt_resistance_ohms</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.1f</span><span class="p">,</span><span class="w"> </span><span class="c1">// 0.1 ohm</span>
+<span class="w">      </span><span class="p">.</span><span class="n">probe</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">probe_device</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">),</span>
+<span class="w">      </span><span class="p">.</span><span class="n">write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">write</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span>
+<span class="w">                         </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
+<span class="w">      </span><span class="p">.</span><span class="n">read_register</span><span class="w"> </span><span class="o">=</span>
+<span class="w">          </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">read_at_register</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span>
+<span class="w">                    </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_4</span><span class="p">),</span>
+<span class="w">      </span><span class="p">.</span><span class="n">write_then_read</span><span class="w"> </span><span class="o">=</span>
+<span class="w">          </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">write_read</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span>
+<span class="w">                    </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_4</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_5</span><span class="p">),</span>
+<span class="w">      </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">,</span>
+<span class="w">  </span><span class="p">});</span>
+
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+<span class="w">  </span><span class="c1">// Optional explicit initialize</span>
+<span class="w">  </span><span class="n">ina</span><span class="p">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;INA226 init failed: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="o">&amp;</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">vbus</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ina</span><span class="p">.</span><span class="n">bus_voltage_volts</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">vshunt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ina</span><span class="p">.</span><span class="n">shunt_voltage_volts</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">current</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ina</span><span class="p">.</span><span class="n">current_amps</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">power</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ina</span><span class="p">.</span><span class="n">power_watts</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;INA226 read failed: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span><span class="w"> </span><span class="c1">// stop</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Vbus={:.3f}V, Vshunt={:.6f}V, I={:.3f}A, P={:.3f}W&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">vbus</span><span class="p">,</span><span class="w"> </span><span class="n">vshunt</span><span class="p">,</span><span class="w"> </span><span class="n">current</span><span class="p">,</span><span class="w"> </span><span class="n">power</span><span class="p">);</span>
+
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lk</span><span class="p">(</span><span class="n">m</span><span class="p">);</span>
+<span class="w">      </span><span class="n">cv</span><span class="p">.</span><span class="n">wait_until</span><span class="p">(</span><span class="n">lk</span><span class="p">,</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">250</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="p">};</span>
+
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="w"> </span><span class="n">task</span><span class="p">({.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">task_fn</span><span class="p">,</span>
+<span class="w">                   </span><span class="p">.</span><span class="n">task_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;INA226 Task&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="p">},</span>
+<span class="w">                   </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
+<span class="w">  </span><span class="n">task</span><span class="p">.</span><span class="n">start</span><span class="p">();</span>
+
+<span class="w">  </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">1</span><span class="n">s</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2263AvgE">
+<span id="_CPPv3N4espp6Ina2263AvgE"></span><span id="_CPPv2N4espp6Ina2263AvgE"></span><span class="target" id="classespp_1_1Ina226_1a15be4ec20554134b34d96f3779e7387d"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Avg</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2263AvgE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Averaging (AVG) field values (bits 14..12 of CONFIG) </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2263Avg5AVG_1E">
+<span id="_CPPv3N4espp6Ina2263Avg5AVG_1E"></span><span id="_CPPv2N4espp6Ina2263Avg5AVG_1E"></span><span class="target" id="classespp_1_1Ina226_1a15be4ec20554134b34d96f3779e7387da0e1dad64ff226da838c42ef470c44130"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AVG_1</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2263Avg5AVG_1E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2263Avg5AVG_4E">
+<span id="_CPPv3N4espp6Ina2263Avg5AVG_4E"></span><span id="_CPPv2N4espp6Ina2263Avg5AVG_4E"></span><span class="target" id="classespp_1_1Ina226_1a15be4ec20554134b34d96f3779e7387da4f91b71e175d17b54f72111f8a2f448f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AVG_4</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2263Avg5AVG_4E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2263Avg6AVG_16E">
+<span id="_CPPv3N4espp6Ina2263Avg6AVG_16E"></span><span id="_CPPv2N4espp6Ina2263Avg6AVG_16E"></span><span class="target" id="classespp_1_1Ina226_1a15be4ec20554134b34d96f3779e7387dad52a23a3a06614aefd7b8c55510f95f6"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AVG_16</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2263Avg6AVG_16E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2263Avg6AVG_64E">
+<span id="_CPPv3N4espp6Ina2263Avg6AVG_64E"></span><span id="_CPPv2N4espp6Ina2263Avg6AVG_64E"></span><span class="target" id="classespp_1_1Ina226_1a15be4ec20554134b34d96f3779e7387dac36b80b074a6c01ebbb930bce9b15f93"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AVG_64</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2263Avg6AVG_64E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2263Avg7AVG_128E">
+<span id="_CPPv3N4espp6Ina2263Avg7AVG_128E"></span><span id="_CPPv2N4espp6Ina2263Avg7AVG_128E"></span><span class="target" id="classespp_1_1Ina226_1a15be4ec20554134b34d96f3779e7387da42196be320909c8dda602c04785329d4"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AVG_128</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2263Avg7AVG_128E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2263Avg7AVG_256E">
+<span id="_CPPv3N4espp6Ina2263Avg7AVG_256E"></span><span id="_CPPv2N4espp6Ina2263Avg7AVG_256E"></span><span class="target" id="classespp_1_1Ina226_1a15be4ec20554134b34d96f3779e7387da4e6f03f4e55e120820b2172e3d9c2ad3"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AVG_256</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2263Avg7AVG_256E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2263Avg7AVG_512E">
+<span id="_CPPv3N4espp6Ina2263Avg7AVG_512E"></span><span id="_CPPv2N4espp6Ina2263Avg7AVG_512E"></span><span class="target" id="classespp_1_1Ina226_1a15be4ec20554134b34d96f3779e7387da269f62996936c23eb7f9c94088daae29"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AVG_512</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2263Avg7AVG_512E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2263Avg8AVG_1024E">
+<span id="_CPPv3N4espp6Ina2263Avg8AVG_1024E"></span><span id="_CPPv2N4espp6Ina2263Avg8AVG_1024E"></span><span class="target" id="classespp_1_1Ina226_1a15be4ec20554134b34d96f3779e7387dad1c27cfbdc81d2121e72a672ea65e3ba"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AVG_1024</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2263Avg8AVG_1024E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2268ConvTimeE">
+<span id="_CPPv3N4espp6Ina2268ConvTimeE"></span><span id="_CPPv2N4espp6Ina2268ConvTimeE"></span><span class="target" id="classespp_1_1Ina226_1a1d31ece5f39a37c4ac5abd9e9ce90699"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ConvTime</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2268ConvTimeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Bus/Shunt conversion time (VBUSCT/VSHCT) field values (bits 11..9, 8..6) </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2268ConvTime6US_140E">
+<span id="_CPPv3N4espp6Ina2268ConvTime6US_140E"></span><span id="_CPPv2N4espp6Ina2268ConvTime6US_140E"></span><span class="target" id="classespp_1_1Ina226_1a1d31ece5f39a37c4ac5abd9e9ce90699a33c2abe81e7354e2b8eb3735e748888c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">US_140</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2268ConvTime6US_140E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2268ConvTime6US_204E">
+<span id="_CPPv3N4espp6Ina2268ConvTime6US_204E"></span><span id="_CPPv2N4espp6Ina2268ConvTime6US_204E"></span><span class="target" id="classespp_1_1Ina226_1a1d31ece5f39a37c4ac5abd9e9ce90699a820320af01ed544e46784ccc93696b6a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">US_204</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2268ConvTime6US_204E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2268ConvTime6US_332E">
+<span id="_CPPv3N4espp6Ina2268ConvTime6US_332E"></span><span id="_CPPv2N4espp6Ina2268ConvTime6US_332E"></span><span class="target" id="classespp_1_1Ina226_1a1d31ece5f39a37c4ac5abd9e9ce90699a37459930a0b9b67144fc29fe853b9e72"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">US_332</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2268ConvTime6US_332E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2268ConvTime6US_588E">
+<span id="_CPPv3N4espp6Ina2268ConvTime6US_588E"></span><span id="_CPPv2N4espp6Ina2268ConvTime6US_588E"></span><span class="target" id="classespp_1_1Ina226_1a1d31ece5f39a37c4ac5abd9e9ce90699ab9e9ece06d5c4058bfd0ef56132b4098"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">US_588</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2268ConvTime6US_588E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2268ConvTime6MS_1_1E">
+<span id="_CPPv3N4espp6Ina2268ConvTime6MS_1_1E"></span><span id="_CPPv2N4espp6Ina2268ConvTime6MS_1_1E"></span><span class="target" id="classespp_1_1Ina226_1a1d31ece5f39a37c4ac5abd9e9ce90699a568feef1002e65b2a32126554cf41a91"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MS_1_1</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2268ConvTime6MS_1_1E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2268ConvTime8MS_2_116E">
+<span id="_CPPv3N4espp6Ina2268ConvTime8MS_2_116E"></span><span id="_CPPv2N4espp6Ina2268ConvTime8MS_2_116E"></span><span class="target" id="classespp_1_1Ina226_1a1d31ece5f39a37c4ac5abd9e9ce90699a226e09c5d6323402ae54e94cb2b73a6a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MS_2_116</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2268ConvTime8MS_2_116E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2268ConvTime8MS_4_156E">
+<span id="_CPPv3N4espp6Ina2268ConvTime8MS_4_156E"></span><span id="_CPPv2N4espp6Ina2268ConvTime8MS_4_156E"></span><span class="target" id="classespp_1_1Ina226_1a1d31ece5f39a37c4ac5abd9e9ce90699a16d42aa1f638898bd974228d06caac3a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MS_4_156</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2268ConvTime8MS_4_156E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2268ConvTime8MS_8_244E">
+<span id="_CPPv3N4espp6Ina2268ConvTime8MS_8_244E"></span><span id="_CPPv2N4espp6Ina2268ConvTime8MS_8_244E"></span><span class="target" id="classespp_1_1Ina226_1a1d31ece5f39a37c4ac5abd9e9ce90699afb0e7cc3c1b1aa66cdfb85bc79a475e9"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MS_8_244</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2268ConvTime8MS_8_244E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2264ModeE">
+<span id="_CPPv3N4espp6Ina2264ModeE"></span><span id="_CPPv2N4espp6Ina2264ModeE"></span><span class="target" id="classespp_1_1Ina226_1ad45d389f13b216882a0af17121175aab"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Mode</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2264ModeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Operating mode (MODE bits 2..0) </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2264Mode10POWER_DOWNE">
+<span id="_CPPv3N4espp6Ina2264Mode10POWER_DOWNE"></span><span id="_CPPv2N4espp6Ina2264Mode10POWER_DOWNE"></span><span class="target" id="classespp_1_1Ina226_1ad45d389f13b216882a0af17121175aaba62f255a0405c1614801a52285695c501"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">POWER_DOWN</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2264Mode10POWER_DOWNE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2264Mode10SHUNT_TRIGE">
+<span id="_CPPv3N4espp6Ina2264Mode10SHUNT_TRIGE"></span><span id="_CPPv2N4espp6Ina2264Mode10SHUNT_TRIGE"></span><span class="target" id="classespp_1_1Ina226_1ad45d389f13b216882a0af17121175aabaf1db4cb420188b1392a4155265e398ef"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SHUNT_TRIG</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2264Mode10SHUNT_TRIGE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2264Mode8BUS_TRIGE">
+<span id="_CPPv3N4espp6Ina2264Mode8BUS_TRIGE"></span><span id="_CPPv2N4espp6Ina2264Mode8BUS_TRIGE"></span><span class="target" id="classespp_1_1Ina226_1ad45d389f13b216882a0af17121175aabaf51d3cb91b71348b910ffb5bc370e336"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BUS_TRIG</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2264Mode8BUS_TRIGE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2264Mode14SHUNT_BUS_TRIGE">
+<span id="_CPPv3N4espp6Ina2264Mode14SHUNT_BUS_TRIGE"></span><span id="_CPPv2N4espp6Ina2264Mode14SHUNT_BUS_TRIGE"></span><span class="target" id="classespp_1_1Ina226_1ad45d389f13b216882a0af17121175aaba54c687bd5b486fd22bce51d5d6d3d40b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SHUNT_BUS_TRIG</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2264Mode14SHUNT_BUS_TRIGE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2264Mode7ADC_OFFE">
+<span id="_CPPv3N4espp6Ina2264Mode7ADC_OFFE"></span><span id="_CPPv2N4espp6Ina2264Mode7ADC_OFFE"></span><span class="target" id="classespp_1_1Ina226_1ad45d389f13b216882a0af17121175aaba43945a677a84cb88ac3e5b4425545fc4"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ADC_OFF</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2264Mode7ADC_OFFE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2264Mode10SHUNT_CONTE">
+<span id="_CPPv3N4espp6Ina2264Mode10SHUNT_CONTE"></span><span id="_CPPv2N4espp6Ina2264Mode10SHUNT_CONTE"></span><span class="target" id="classespp_1_1Ina226_1ad45d389f13b216882a0af17121175aaba7cc345c4ac10a55f6c76244fab1a9afe"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SHUNT_CONT</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2264Mode10SHUNT_CONTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2264Mode8BUS_CONTE">
+<span id="_CPPv3N4espp6Ina2264Mode8BUS_CONTE"></span><span id="_CPPv2N4espp6Ina2264Mode8BUS_CONTE"></span><span class="target" id="classespp_1_1Ina226_1ad45d389f13b216882a0af17121175aaba00784339d41140d36407f0bdd0f164cd"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BUS_CONT</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2264Mode8BUS_CONTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2264Mode14SHUNT_BUS_CONTE">
+<span id="_CPPv3N4espp6Ina2264Mode14SHUNT_BUS_CONTE"></span><span id="_CPPv2N4espp6Ina2264Mode14SHUNT_BUS_CONTE"></span><span class="target" id="classespp_1_1Ina226_1ad45d389f13b216882a0af17121175aaba98801f7b802db3457207bc7c9bd99ea4"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SHUNT_BUS_CONT</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2264Mode14SHUNT_BUS_CONTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2268probe_fnE">
+<span id="_CPPv3N4espp6Ina2268probe_fnE"></span><span id="_CPPv2N4espp6Ina2268probe_fnE"></span><span id="espp::Ina226::probe_fn"></span><span class="target" id="classespp_1_1BasePeripheral_1ad12a713efc443157b7d6fd1ba4fdf88f"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">probe_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2268probe_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to probe the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param address<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The address to probe </p>
+</dd>
+<dt class="field-even">Return<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the peripheral is found at the given address </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2266Ina226ERK6Config">
+<span id="_CPPv3N4espp6Ina2266Ina226ERK6Config"></span><span id="_CPPv2N4espp6Ina2266Ina226ERK6Config"></span><span id="espp::Ina226::Ina226__ConfigCR"></span><span class="target" id="classespp_1_1Ina226_1a8d930056910dd1d773bddf801184995a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ina226</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Ina2266ConfigE" title="espp::Ina226::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Ina2266Ina226ERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Constructor with configuration </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – Configuration structure with device address, averaging, conversion times, mode, current LSB, shunt resistance, and I/O hooks </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina22610initializeERNSt10error_codeE">
+<span id="_CPPv3N4espp6Ina22610initializeERNSt10error_codeE"></span><span id="_CPPv2N4espp6Ina22610initializeERNSt10error_codeE"></span><span id="espp::Ina226::initialize__std::error_codeR"></span><span class="target" id="classespp_1_1Ina226_1a1e67138276936300a2a869c4fb05d380"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Ina22610initializeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the INA226 </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to capture any initialization errors </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if initialization succeeded, false if it failed </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Ina22615manufacturer_idERNSt10error_codeE">
+<span id="_CPPv3NK4espp6Ina22615manufacturer_idERNSt10error_codeE"></span><span id="_CPPv2NK4espp6Ina22615manufacturer_idERNSt10error_codeE"></span><span id="espp::Ina226::manufacturer_id__std::error_codeRC"></span><span class="target" id="classespp_1_1Ina226_1a684966f331db27a599a9cf53eccf9fe2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">manufacturer_id</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Ina22615manufacturer_idERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read manufacturer ID (0x5449 for Texas Instruments) </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to capture any read errors </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Manufacturer ID (0x5449) or 0 on error </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Ina2266die_idERNSt10error_codeE">
+<span id="_CPPv3NK4espp6Ina2266die_idERNSt10error_codeE"></span><span id="_CPPv2NK4espp6Ina2266die_idERNSt10error_codeE"></span><span id="espp::Ina226::die_id__std::error_codeRC"></span><span class="target" id="classespp_1_1Ina226_1a8145691843638236742f57acf5f59958"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">die_id</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Ina2266die_idERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read die ID (0x2260 for INA226) </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to capture any read errors </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Die ID (0x2260) or 0 on error </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Ina22619shunt_voltage_voltsERNSt10error_codeE">
+<span id="_CPPv3NK4espp6Ina22619shunt_voltage_voltsERNSt10error_codeE"></span><span id="_CPPv2NK4espp6Ina22619shunt_voltage_voltsERNSt10error_codeE"></span><span id="espp::Ina226::shunt_voltage_volts__std::error_codeRC"></span><span class="target" id="classespp_1_1Ina226_1acfe04c77e14b1bb7cf811faa67fea3cc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">shunt_voltage_volts</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Ina22619shunt_voltage_voltsERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read shunt voltage in volts </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The shunt voltage is signed, so it can be negative if the current flows in the reverse direction. The LSB is 2.5 uV </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to capture any read errors </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Shunt voltage in volts, or 0.0f on error </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Ina22617bus_voltage_voltsERNSt10error_codeE">
+<span id="_CPPv3NK4espp6Ina22617bus_voltage_voltsERNSt10error_codeE"></span><span id="_CPPv2NK4espp6Ina22617bus_voltage_voltsERNSt10error_codeE"></span><span id="espp::Ina226::bus_voltage_volts__std::error_codeRC"></span><span class="target" id="classespp_1_1Ina226_1a72d72181ffd66bc4ddef98cd7f216f22"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">bus_voltage_volts</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Ina22617bus_voltage_voltsERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read bus voltage in volts </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The bus voltage is unsigned, so it cannot be negative. The LSB is 1.25 mV </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to capture any read errors </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Bus voltage in volts, or 0.0f on error </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Ina22612current_ampsERNSt10error_codeE">
+<span id="_CPPv3NK4espp6Ina22612current_ampsERNSt10error_codeE"></span><span id="_CPPv2NK4espp6Ina22612current_ampsERNSt10error_codeE"></span><span id="espp::Ina226::current_amps__std::error_codeRC"></span><span class="target" id="classespp_1_1Ina226_1acc834d477d132e3493632bb046054553"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">current_amps</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Ina22612current_ampsERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read current in amps </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The current is signed, so it can be negative if the current flows in the reverse direction. The LSB is set via the <a class="reference internal" href="#classespp_1_1Ina226_1a831ae29475987aee6971878a2c758718"><span class="std std-ref">calibrate()</span></a> method and is in Amps/LSB. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to capture any read errors </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Current in amps, or 0.0f on error </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina22611power_wattsERNSt10error_codeE">
+<span id="_CPPv3N4espp6Ina22611power_wattsERNSt10error_codeE"></span><span id="_CPPv2N4espp6Ina22611power_wattsERNSt10error_codeE"></span><span id="espp::Ina226::power_watts__std::error_codeR"></span><span class="target" id="classespp_1_1Ina226_1afeeb50b4474d351fc4e1ff909e6cb81f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">power_watts</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Ina22611power_wattsERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read power in watts </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The power is unsigned, so it cannot be negative. The LSB is 25 * current_lsb, where current_lsb is set via the <a class="reference internal" href="#classespp_1_1Ina226_1a831ae29475987aee6971878a2c758718"><span class="std std-ref">calibrate()</span></a> method. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to capture any read errors </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Power in watts, or 0.0f on error </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2265resetERNSt10error_codeE">
+<span id="_CPPv3N4espp6Ina2265resetERNSt10error_codeE"></span><span id="_CPPv2N4espp6Ina2265resetERNSt10error_codeE"></span><span id="espp::Ina226::reset__std::error_codeR"></span><span class="target" id="classespp_1_1Ina226_1a7f76ccf0cb92087b2e13e6f196564ba0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Ina2265resetERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Reset the INA226 to default settings </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to capture any write errors </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if reset succeeded, false if it failed </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2269configureE3Avg8ConvTime8ConvTime4ModeRNSt10error_codeE">
+<span id="_CPPv3N4espp6Ina2269configureE3Avg8ConvTime8ConvTime4ModeRNSt10error_codeE"></span><span id="_CPPv2N4espp6Ina2269configureE3Avg8ConvTime8ConvTime4ModeRNSt10error_codeE"></span><span id="espp::Ina226::configure__Avg.ConvTime.ConvTime.Mode.std::error_codeR"></span><span class="target" id="classespp_1_1Ina226_1af8be613047ed6428322cf6eb8f0220ab"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">configure</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Ina2263AvgE" title="espp::Ina226::Avg"><span class="n"><span class="pre">Avg</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">avg</span></span>, <a class="reference internal" href="#_CPPv4N4espp6Ina2268ConvTimeE" title="espp::Ina226::ConvTime"><span class="n"><span class="pre">ConvTime</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">vbus</span></span>, <a class="reference internal" href="#_CPPv4N4espp6Ina2268ConvTimeE" title="espp::Ina226::ConvTime"><span class="n"><span class="pre">ConvTime</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">vshunt</span></span>, <a class="reference internal" href="#_CPPv4N4espp6Ina2264ModeE" title="espp::Ina226::Mode"><span class="n"><span class="pre">Mode</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">mode</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Ina2269configureE3Avg8ConvTime8ConvTime4ModeRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configure the INA226 with averaging, conversion times, and mode </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>avg</strong> – Averaging mode </p></li>
+<li><p><strong>vbus</strong> – Bus voltage conversion time </p></li>
+<li><p><strong>vshunt</strong> – Shunt voltage conversion time </p></li>
+<li><p><strong>mode</strong> – Operating mode </p></li>
+<li><p><strong>ec</strong> – Error code to capture any write errors </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if configuration succeeded, false if it failed </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2269calibrateEffRNSt10error_codeE">
+<span id="_CPPv3N4espp6Ina2269calibrateEffRNSt10error_codeE"></span><span id="_CPPv2N4espp6Ina2269calibrateEffRNSt10error_codeE"></span><span id="espp::Ina226::calibrate__float.float.std::error_codeR"></span><span class="target" id="classespp_1_1Ina226_1a831ae29475987aee6971878a2c758718"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">calibrate</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">current_lsb</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">shunt_res_ohms</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Ina2269calibrateEffRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Calibrate the INA226 with current LSB and shunt resistance </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function programs the CALIBRATION register based on the provided current_lsb and shunt resistance. The current_lsb is used to determine the scaling of the CURRENT and POWER registers. The shunt resistance is used to calculate the calibration value. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The current_lsb should be chosen based on the expected maximum current and the resolution required. A smaller current_lsb provides higher resolution but reduces the maximum measurable current. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Per the datasheet, the calibration value is calculated as:  <div class="math notranslate nohighlight">
+\[
+      Cal = floor(0.00512 / (current_lsb * shunt_res_ohms))
+      \]</div>
+ This ensures that the calibration value is non-zero and avoids division by zero. If the calculated value is zero, it is set to 1 to avoid issues. This function should be called after configuring the INA226. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>current_lsb</strong> – Current LSB in Amps/LSB </p></li>
+<li><p><strong>shunt_res_ohms</strong> – Shunt resistance in Ohms </p></li>
+<li><p><strong>ec</strong> – Error code to capture any write errors </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if calibration succeeded, false if it failed </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Ina2265probeERNSt10error_codeE">
+<span id="_CPPv3NK4espp6Ina2265probeERNSt10error_codeE"></span><span id="_CPPv2NK4espp6Ina2265probeERNSt10error_codeE"></span><span id="espp::Ina226::probe__std::error_codeRC"></span><span class="target" id="classespp_1_1BasePeripheral_1a05481a009a7302fff3b43d301de6b1eb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">probe</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Ina2265probeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Probe the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the probe function is not set, this function will return false and set the error code to operation_not_supported </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is only available if UseAddress is true </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code to set if there is an error </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the peripheral is found </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina22611set_addressE7uint8_t">
+<span id="_CPPv3N4espp6Ina22611set_addressE7uint8_t"></span><span id="_CPPv2N4espp6Ina22611set_addressE7uint8_t"></span><span id="espp::Ina226::set_address__uint8_t"></span><span class="target" id="classespp_1_1BasePeripheral_1a31fb8ec471403bf9be06428dbc46277a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_address</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">address</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Ina22611set_addressE7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the address of the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is only available if UseAddress is true </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>address</strong> – The address of the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2269set_probeERK8probe_fn">
+<span id="_CPPv3N4espp6Ina2269set_probeERK8probe_fn"></span><span id="_CPPv2N4espp6Ina2269set_probeERK8probe_fn"></span><span id="espp::Ina226::set_probe__probe_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a5b5d7753ea6ccf361e495fdc80c81f19"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_probe</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Ina2268probe_fnE" title="espp::Ina226::probe_fn"><span class="n"><span class="pre">probe_fn</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">probe</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Ina2269set_probeERK8probe_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the probe function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the probe function is usually set in the constructor. If you need to change the probe function, consider using the set_config function instead. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is only available if UseAddress is true </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>probe</strong> – The probe function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2269set_writeERK8write_fn">
+<span id="_CPPv3N4espp6Ina2269set_writeERK8write_fn"></span><span id="_CPPv2N4espp6Ina2269set_writeERK8write_fn"></span><span id="espp::Ina226::set_write__write_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1ab5d5d18cd4e8893ed4f937dcfdaba5ba"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_write</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">write_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">write</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Ina2269set_writeERK8write_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the write function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the write function is usually set in the constructor. If you need to change the write function, consider using the set_config function instead. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>write</strong> – The write function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2268set_readERK7read_fn">
+<span id="_CPPv3N4espp6Ina2268set_readERK7read_fn"></span><span id="_CPPv2N4espp6Ina2268set_readERK7read_fn"></span><span id="espp::Ina226::set_read__read_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1aa6d8131a30233e8439628815db8b1843"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_read</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">read_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">read</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Ina2268set_readERK7read_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the read function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the read function is usually set in the constructor. If you need to change the read function, consider using the set_config function instead. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>read</strong> – The read function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina22617set_read_registerERK16read_register_fn">
+<span id="_CPPv3N4espp6Ina22617set_read_registerERK16read_register_fn"></span><span id="_CPPv2N4espp6Ina22617set_read_registerERK16read_register_fn"></span><span id="espp::Ina226::set_read_register__read_register_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a72e039592417cd32bc47c77120005d3f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_read_register</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">read_register_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">read_register</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Ina22617set_read_registerERK16read_register_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the read register function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the read register function is usually set in the constructor. If you need to change the read register function, consider using the set_config function instead. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>read_register</strong> – The read register function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina22619set_write_then_readERK18write_then_read_fn">
+<span id="_CPPv3N4espp6Ina22619set_write_then_readERK18write_then_read_fn"></span><span id="_CPPv2N4espp6Ina22619set_write_then_readERK18write_then_read_fn"></span><span id="espp::Ina226::set_write_then_read__write_then_read_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a07b152dbfba43b5c82a498416f6887b2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_write_then_read</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">write_then_read_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">write_then_read</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Ina22619set_write_then_readERK18write_then_read_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the write then read function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the write then read function is usually set in the constructor. If you need to change the write then </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>write_then_read</strong> – The write then read function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina22634set_separate_write_then_read_delayERKNSt6chrono12millisecondsE">
+<span id="_CPPv3N4espp6Ina22634set_separate_write_then_read_delayERKNSt6chrono12millisecondsE"></span><span id="_CPPv2N4espp6Ina22634set_separate_write_then_read_delayERKNSt6chrono12millisecondsE"></span><span id="espp::Ina226::set_separate_write_then_read_delay__std::chrono::millisecondsCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a8c70b96c37525f90cc85ddfe4a40b82a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_separate_write_then_read_delay</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">milliseconds</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">delay</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Ina22634set_separate_write_then_read_delayERKNSt6chrono12millisecondsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the delay between the write and read operations in write_then_read </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the delay is usually set in the constructor. If you need to change the delay, consider using the set_config function instead. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This delay is only used if the write_then_read function is not set to a custom function and the write and read functions are separate functions. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>delay</strong> – The delay between the write and read operations in write_then_read </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina22610set_configERK6Config">
+<span id="_CPPv3N4espp6Ina22610set_configERK6Config"></span><span id="_CPPv2N4espp6Ina22610set_configERK6Config"></span><span id="espp::Ina226::set_config__ConfigCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a163b98a30940711b23a7e7dce81efe0c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_config</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Ina2266ConfigE" title="espp::Ina226::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Ina22610set_configERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the configuration for the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The configuration should normally be set in the constructor, but this function can be used to change the configuration after the peripheral has been created - for instance if the peripheral could be found on different communications buses. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – The configuration for the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina22610set_configERR6Config">
+<span id="_CPPv3N4espp6Ina22610set_configERR6Config"></span><span id="_CPPv2N4espp6Ina22610set_configERR6Config"></span><span id="espp::Ina226::set_config__ConfigRR"></span><span class="target" id="classespp_1_1BasePeripheral_1a704004cfda66bf3ce5ed725b3003c32b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_config</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Ina2266ConfigE" title="espp::Ina226::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Ina22610set_configERR6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the configuration for the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The configuration should normally be set in the constructor, but this function can be used to change the configuration after the peripheral has been created - for instance if the peripheral could be found on different communications buses. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – The configuration for the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Ina2266configEv">
+<span id="_CPPv3NK4espp6Ina2266configEv"></span><span id="_CPPv2NK4espp6Ina2266configEv"></span><span id="espp::Ina226::configC"></span><span class="target" id="classespp_1_1BasePeripheral_1ae66896cf25c9dde79522f354cdb23896"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Ina2266ConfigE" title="espp::Ina226::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">config</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Ina2266configEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the configuration for the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The configuration for the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Ina2267addressEv">
+<span id="_CPPv3NK4espp6Ina2267addressEv"></span><span id="_CPPv2NK4espp6Ina2267addressEv"></span><span id="espp::Ina226::addressC"></span><span class="target" id="classespp_1_1BasePeripheral_1add730fb3307dd52ed5f8905a576e7ecc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">address</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Ina2267addressEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the address of the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The address of the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Ina2268get_nameEv">
+<span id="_CPPv3NK4espp6Ina2268get_nameEv"></span><span id="_CPPv2NK4espp6Ina2268get_nameEv"></span><span id="espp::Ina226::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Ina2268get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina22611set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp6Ina22611set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp6Ina22611set_log_tagERKNSt11string_viewE"></span><span id="espp::Ina226::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Ina22611set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Ina22613get_log_levelEv">
+<span id="_CPPv3NK4espp6Ina22613get_log_levelEv"></span><span id="_CPPv2NK4espp6Ina22613get_log_levelEv"></span><span id="espp::Ina226::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Ina22613get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina22613set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp6Ina22613set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp6Ina22613set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::Ina226::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Ina22613set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina22617set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp6Ina22617set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp6Ina22617set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::Ina226::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Ina22617set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../ws_s3_touch.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Ina22617get_log_verbosityEv">
+<span id="_CPPv3NK4espp6Ina22617get_log_verbosityEv"></span><span id="_CPPv2NK4espp6Ina22617get_log_verbosityEv"></span><span id="espp::Ina226::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Ina22617get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../ws_s3_touch.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina22618set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp6Ina22618set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp6Ina22618set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::Ina226::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Ina22618set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina22615DEFAULT_ADDRESSE">
+<span id="_CPPv3N4espp6Ina22615DEFAULT_ADDRESSE"></span><span id="_CPPv2N4espp6Ina22615DEFAULT_ADDRESSE"></span><span id="espp::Ina226::DEFAULT_ADDRESS__uint8_t"></span><span class="target" id="classespp_1_1Ina226_1aeaa8dca54905d373ba5b709d294d9d6f"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DEFAULT_ADDRESS</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x40</span></span><a class="headerlink" href="#_CPPv4N4espp6Ina22615DEFAULT_ADDRESSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Default I2C address if A0/A1=GND. </p>
+<p>Address is configured based on whether A0/A1 are connected to GND, VCC, SDA, or SCL, address can be 0x40..0x4F </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina22618MANUFACTURER_ID_TIE">
+<span id="_CPPv3N4espp6Ina22618MANUFACTURER_ID_TIE"></span><span id="_CPPv2N4espp6Ina22618MANUFACTURER_ID_TIE"></span><span id="espp::Ina226::MANUFACTURER_ID_TI__uint16_t"></span><span class="target" id="classespp_1_1Ina226_1ae579f31e133884bc228bf696baa50c9e"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MANUFACTURER_ID_TI</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x5449</span></span><a class="headerlink" href="#_CPPv4N4espp6Ina22618MANUFACTURER_ID_TIE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Texas Instruments Manufacturer ID. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina22613DIE_ID_INA226E">
+<span id="_CPPv3N4espp6Ina22613DIE_ID_INA226E"></span><span id="_CPPv2N4espp6Ina22613DIE_ID_INA226E"></span><span id="espp::Ina226::DIE_ID_INA226__uint16_t"></span><span class="target" id="classespp_1_1Ina226_1a95ee8b0a52127397f8392cb17eb89fc0"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DIE_ID_INA226</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x2260</span></span><a class="headerlink" href="#_CPPv4N4espp6Ina22613DIE_ID_INA226E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>INA226 Die ID. </p>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2266ConfigE">
+<span id="_CPPv3N4espp6Ina2266ConfigE"></span><span id="_CPPv2N4espp6Ina2266ConfigE"></span><span id="espp::Ina226::Config"></span><span class="target" id="structespp_1_1Ina226_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2266ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration structure for INA226. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2266Config14device_addressE">
+<span id="_CPPv3N4espp6Ina2266Config14device_addressE"></span><span id="_CPPv2N4espp6Ina2266Config14device_addressE"></span><span id="espp::Ina226::Config::device_address__uint8_t"></span><span class="target" id="structespp_1_1Ina226_1_1Config_1a6f5ccf9c613c1d202f12d9f7c6f0e11e"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">device_address</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Ina22615DEFAULT_ADDRESSE" title="espp::Ina226::DEFAULT_ADDRESS"><span class="n"><span class="pre">DEFAULT_ADDRESS</span></span></a><a class="headerlink" href="#_CPPv4N4espp6Ina2266Config14device_addressE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>I2C address, 0x40..0x4F. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2266Config13bus_conv_timeE">
+<span id="_CPPv3N4espp6Ina2266Config13bus_conv_timeE"></span><span id="_CPPv2N4espp6Ina2266Config13bus_conv_timeE"></span><span id="espp::Ina226::Config::bus_conv_time__ConvTime"></span><span class="target" id="structespp_1_1Ina226_1_1Config_1ad62e80a6b335141dab982d5892ce0c36"></span><a class="reference internal" href="#_CPPv4N4espp6Ina2268ConvTimeE" title="espp::Ina226::ConvTime"><span class="n"><span class="pre">ConvTime</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">bus_conv_time</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Ina2268ConvTimeE" title="espp::Ina226::ConvTime"><span class="n"><span class="pre">ConvTime</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp6Ina2268ConvTime6MS_1_1E" title="espp::Ina226::ConvTime::MS_1_1"><span class="n"><span class="pre">MS_1_1</span></span></a><a class="headerlink" href="#_CPPv4N4espp6Ina2266Config13bus_conv_timeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Bus conversion time. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2266Config15shunt_conv_timeE">
+<span id="_CPPv3N4espp6Ina2266Config15shunt_conv_timeE"></span><span id="_CPPv2N4espp6Ina2266Config15shunt_conv_timeE"></span><span id="espp::Ina226::Config::shunt_conv_time__ConvTime"></span><span class="target" id="structespp_1_1Ina226_1_1Config_1a152976358a6588cc7cfdc9dbcfdd5f07"></span><a class="reference internal" href="#_CPPv4N4espp6Ina2268ConvTimeE" title="espp::Ina226::ConvTime"><span class="n"><span class="pre">ConvTime</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">shunt_conv_time</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Ina2268ConvTimeE" title="espp::Ina226::ConvTime"><span class="n"><span class="pre">ConvTime</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp6Ina2268ConvTime6MS_1_1E" title="espp::Ina226::ConvTime::MS_1_1"><span class="n"><span class="pre">MS_1_1</span></span></a><a class="headerlink" href="#_CPPv4N4espp6Ina2266Config15shunt_conv_timeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Shunt conversion time. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2266Config4modeE">
+<span id="_CPPv3N4espp6Ina2266Config4modeE"></span><span id="_CPPv2N4espp6Ina2266Config4modeE"></span><span id="espp::Ina226::Config::mode__Mode"></span><span class="target" id="structespp_1_1Ina226_1_1Config_1aaee3faddbe6fb4c18d85be07e13a12ef"></span><a class="reference internal" href="#_CPPv4N4espp6Ina2264ModeE" title="espp::Ina226::Mode"><span class="n"><span class="pre">Mode</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mode</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Ina2264ModeE" title="espp::Ina226::Mode"><span class="n"><span class="pre">Mode</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp6Ina2264Mode14SHUNT_BUS_CONTE" title="espp::Ina226::Mode::SHUNT_BUS_CONT"><span class="n"><span class="pre">SHUNT_BUS_CONT</span></span></a><a class="headerlink" href="#_CPPv4N4espp6Ina2266Config4modeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Operating mode. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2266Config5probeE">
+<span id="_CPPv3N4espp6Ina2266Config5probeE"></span><span id="_CPPv2N4espp6Ina2266Config5probeE"></span><span id="espp::Ina226::Config::probe__BasePeripheral::probe_fn"></span><span class="target" id="structespp_1_1Ina226_1_1Config_1a141e97f18dfaf00c7afa6daa2b6c2e91"></span><a class="reference internal" href="../base_peripheral.html#_CPPv4I_NSt8integralE_b_b_bEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../base_peripheral.html#_CPPv4N4espp14BasePeripheral8probe_fnE" title="espp::BasePeripheral::probe_fn"><span class="n"><span class="pre">probe_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">probe</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2266Config5probeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Probe function to check I2C device presence. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2266Config5writeE">
+<span id="_CPPv3N4espp6Ina2266Config5writeE"></span><span id="_CPPv2N4espp6Ina2266Config5writeE"></span><span id="espp::Ina226::Config::write__BasePeripheral::write_fn"></span><span class="target" id="structespp_1_1Ina226_1_1Config_1a379e43d0bf935e8315e18f34d0e627f2"></span><a class="reference internal" href="../base_peripheral.html#_CPPv4I_NSt8integralE_b_b_bEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">write_fn</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2266Config5writeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Write function to send data to I2C device. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2266Config13read_registerE">
+<span id="_CPPv3N4espp6Ina2266Config13read_registerE"></span><span id="_CPPv2N4espp6Ina2266Config13read_registerE"></span><span id="espp::Ina226::Config::read_register__BasePeripheral::read_register_fn"></span><span class="target" id="structespp_1_1Ina226_1_1Config_1a0869b47cb5140c035b1510ca50798817"></span><a class="reference internal" href="../base_peripheral.html#_CPPv4I_NSt8integralE_b_b_bEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">read_register_fn</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_register</span></span></span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2266Config13read_registerE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read function to read a register from I2C device. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2266Config15write_then_readE">
+<span id="_CPPv3N4espp6Ina2266Config15write_then_readE"></span><span id="_CPPv2N4espp6Ina2266Config15write_then_readE"></span><span id="espp::Ina226::Config::write_then_read__BasePeripheral::write_then_read_fn"></span><span class="target" id="structespp_1_1Ina226_1_1Config_1affb7308be10aaab65858528ef9eed1d8"></span><a class="reference internal" href="../base_peripheral.html#_CPPv4I_NSt8integralE_b_b_bEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">write_then_read_fn</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_then_read</span></span></span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2266Config15write_then_readE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Write then read function for I2C device. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2266Config9auto_initE">
+<span id="_CPPv3N4espp6Ina2266Config9auto_initE"></span><span id="_CPPv2N4espp6Ina2266Config9auto_initE"></span><span id="espp::Ina226::Config::auto_init__b"></span><span class="target" id="structespp_1_1Ina226_1_1Config_1afc485a13f4c8a2b114f145a61b7b8cd3"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">auto_init</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2266Config9auto_initE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Automatically initialize on construction. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ina2266Config9log_levelE">
+<span id="_CPPv3N4espp6Ina2266Config9log_levelE"></span><span id="_CPPv2N4espp6Ina2266Config9log_levelE"></span><span id="espp::Ina226::Config::log_level__Logger::Verbosity"></span><span class="target" id="structespp_1_1Ina226_1_1Config_1a009e8e667be0edda44ed5c2429ff4315"></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp6Ina2266Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Log level for INA226 messages. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Power Monitoring APIs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ina226_example.html" class="btn btn-neutral float-right" title="INA226 Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

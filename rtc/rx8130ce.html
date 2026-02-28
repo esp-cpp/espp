@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RX8130CE - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'rtc/rx8130ce';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="RX8130CE Example" href="rx8130ce_example.html" />
+    <link rel="prev" title="PCF85063 Example" href="pcf85063_example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_component.html">Base Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../byte90.html">ALXV Labs Byte90</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cobs.html">COBS (Consistent Overhead Byte Stuffing)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp32_timer_cam.html">ESP32 TimerCam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp_box.html">ESP BOX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../interrupt.html">Interrupt APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../iperf_menu.html">Iperf Menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../m5stack_tab5.html">M5Stack Tab5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../matouch_rotary_display.html">MaTouch Rotary Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../motorgo_mini.html">MotorGo Mini</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../neopixel.html">Neopixel APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nvs.html">NVS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../remote_debug.html">Remote Debug APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">RTC APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="bm8563.html">BM8563</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pcf85063.html">PCF85063</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">RX8130CE</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="rx8130ce_example.html">RX8130CE Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../runqueue.html">RunQueue APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../seeed_studio_round_display.html">Seeed Studio Round Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_deck.html">LilyGo T-Deck</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_dongle_s3.html">LilyGo T-Dongle S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wrover_kit.html">ESP32-WROVER-KIT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">RTC APIs</a></li>
+      <li class="breadcrumb-item active">RX8130CE</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/32e8215e/docs/en/rtc/rx8130ce.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="rx8130ce">
+<h1>RX8130CE<a class="headerlink" href="#rx8130ce" title="Permalink to this heading"></a></h1>
+<p>The <cite>Rx8130ce</cite> component provides a driver for the RX8130CE Real-Time Clock chip from EPSON.</p>
+<p>This component supports both <strong>std::tm based APIs</strong> for portability across different RTC chips, and <strong>device-specific APIs</strong> for accessing advanced features like temperature sensing, timer functionality, and clock output.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="rx8130ce_example.html">RX8130CE Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="rx8130ce_example.html#how-to-use-example">How to use example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="rx8130ce_example.html#hardware-required">Hardware Required</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rx8130ce_example.html#build-and-flash">Build and Flash</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="rx8130ce_example.html#example-output">Example Output</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/32e8215e/components/rx8130ce/include/rx8130ce.hpp">components/rx8130ce/include/rx8130ce.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4I_bEN4espp8Rx8130ceE">
+<span id="_CPPv3I_bEN4espp8Rx8130ceE"></span><span id="_CPPv2I_bEN4espp8Rx8130ceE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UseAddress</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1Rx8130ce"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Rx8130ce</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../base_peripheral.html#_CPPv4I_NSt8integralE_b_b_bEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4I_bEN4espp8Rx8130ceE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The RX8130CE Real-Time Clock driver. </p>
+<p>This driver is for the RX8130CE RTC chip from EPSON. <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference external" href="https://support.epson.biz/td/api/doc_check.php?dl=brief_RX8130CE&amp;lang=en">https://support.epson.biz/td/api/doc_check.php?dl=brief_RX8130CE&amp;lang=en</a></p>
+</div>
+</p>
+<section id="classespp_1_1Rx8130ce_1rx8130ce_ex1">
+<h4>Example<a class="headerlink" href="#classespp_1_1Rx8130ce_1rx8130ce_ex1" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1Rx8130ce_1rx8130ce_ex1"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1">// make the I2C that we&#39;ll use to communicate</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">i2c_port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_NUM_0</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">i2c_clock_speed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_EXAMPLE_I2C_CLOCK_SPEED_HZ</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="n">gpio_num_t</span><span class="w"> </span><span class="n">i2c_sda</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">gpio_num_t</span><span class="p">)</span><span class="n">CONFIG_EXAMPLE_I2C_SDA_GPIO</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="n">gpio_num_t</span><span class="w"> </span><span class="n">i2c_scl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">gpio_num_t</span><span class="p">)</span><span class="n">CONFIG_EXAMPLE_I2C_SCL_GPIO</span><span class="p">;</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="w"> </span><span class="nf">i2c</span><span class="p">({.</span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_port</span><span class="p">,</span>
+<span class="w">                 </span><span class="p">.</span><span class="n">sda_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_sda</span><span class="p">,</span>
+<span class="w">                 </span><span class="p">.</span><span class="n">scl_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_scl</span><span class="p">,</span>
+<span class="w">                 </span><span class="p">.</span><span class="n">sda_pullup_en</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_PULLUP_ENABLE</span><span class="p">,</span>
+<span class="w">                 </span><span class="p">.</span><span class="n">scl_pullup_en</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_PULLUP_ENABLE</span><span class="p">,</span>
+<span class="w">                 </span><span class="p">.</span><span class="n">clk_speed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_clock_speed</span><span class="p">});</span>
+
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">Rtc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Rx8130ce</span><span class="o">&lt;&gt;</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// Configure the RX8130CE</span>
+<span class="w">  </span><span class="n">Rtc</span><span class="o">::</span><span class="n">Config</span><span class="w"> </span><span class="n">config</span><span class="p">{.</span><span class="n">device_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Rtc</span><span class="o">::</span><span class="n">DEFAULT_ADDRESS</span><span class="p">,</span>
+<span class="w">                     </span><span class="p">.</span><span class="n">write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind_front</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">write</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">),</span>
+<span class="w">                     </span><span class="p">.</span><span class="n">read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind_front</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">read</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">),</span>
+<span class="w">                     </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// Create RTC instance</span>
+<span class="w">  </span><span class="n">Rtc</span><span class="w"> </span><span class="nf">rtc</span><span class="p">(</span><span class="n">config</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Test std::tm based API</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Testing std::tm based API&quot;</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Set time using std::tm</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">tm</span><span class="w"> </span><span class="n">time</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{};</span>
+<span class="w">  </span><span class="n">time</span><span class="p">.</span><span class="n">tm_year</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">124</span><span class="p">;</span><span class="w"> </span><span class="c1">// 2024 - 1900</span>
+<span class="w">  </span><span class="n">time</span><span class="p">.</span><span class="n">tm_mon</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w">    </span><span class="c1">// January (0-based)</span>
+<span class="w">  </span><span class="n">time</span><span class="p">.</span><span class="n">tm_mday</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">15</span><span class="p">;</span><span class="w">  </span><span class="c1">// 15th</span>
+<span class="w">  </span><span class="n">time</span><span class="p">.</span><span class="n">tm_hour</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">14</span><span class="p">;</span><span class="w">  </span><span class="c1">// 2 PM</span>
+<span class="w">  </span><span class="n">time</span><span class="p">.</span><span class="n">tm_min</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">30</span><span class="p">;</span>
+<span class="w">  </span><span class="n">time</span><span class="p">.</span><span class="n">tm_sec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">45</span><span class="p">;</span>
+<span class="w">  </span><span class="n">time</span><span class="p">.</span><span class="n">tm_wday</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="c1">// Monday</span>
+
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">rtc</span><span class="p">.</span><span class="n">set_time</span><span class="p">(</span><span class="n">time</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Time set successfully&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Failed to set time: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// Get time using std::tm</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">current_time</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rtc</span><span class="p">.</span><span class="n">get_time</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Current time: {}-{:02d}-{:02d} {:02d}:{:02d}:{:02d} (wday: {})&quot;</span><span class="p">,</span>
+<span class="w">                </span><span class="n">current_time</span><span class="p">.</span><span class="n">tm_year</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1900</span><span class="p">,</span><span class="w"> </span><span class="n">current_time</span><span class="p">.</span><span class="n">tm_mon</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">current_time</span><span class="p">.</span><span class="n">tm_mday</span><span class="p">,</span>
+<span class="w">                </span><span class="n">current_time</span><span class="p">.</span><span class="n">tm_hour</span><span class="p">,</span><span class="w"> </span><span class="n">current_time</span><span class="p">.</span><span class="n">tm_min</span><span class="p">,</span><span class="w"> </span><span class="n">current_time</span><span class="p">.</span><span class="n">tm_sec</span><span class="p">,</span>
+<span class="w">                </span><span class="n">current_time</span><span class="p">.</span><span class="n">tm_wday</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Failed to get time: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// Test device-specific API</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Testing device-specific API&quot;</span><span class="p">);</span>
+
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">dt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rtc</span><span class="p">.</span><span class="n">get_date_time</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Device format - Date: {}-{:02d}-{:02d} (wday: {}), Time: {:02d}:{:02d}:{:02d}&quot;</span><span class="p">,</span>
+<span class="w">                </span><span class="n">dt</span><span class="p">.</span><span class="n">date</span><span class="p">.</span><span class="n">year</span><span class="p">,</span><span class="w"> </span><span class="n">dt</span><span class="p">.</span><span class="n">date</span><span class="p">.</span><span class="n">month</span><span class="p">,</span><span class="w"> </span><span class="n">dt</span><span class="p">.</span><span class="n">date</span><span class="p">.</span><span class="n">day</span><span class="p">,</span><span class="w"> </span><span class="n">dt</span><span class="p">.</span><span class="n">date</span><span class="p">.</span><span class="n">weekday</span><span class="p">,</span><span class="w"> </span><span class="n">dt</span><span class="p">.</span><span class="n">time</span><span class="p">.</span><span class="n">hour</span><span class="p">,</span>
+<span class="w">                </span><span class="n">dt</span><span class="p">.</span><span class="n">time</span><span class="p">.</span><span class="n">minute</span><span class="p">,</span><span class="w"> </span><span class="n">dt</span><span class="p">.</span><span class="n">time</span><span class="p">.</span><span class="n">second</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// Test alarm functionality</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Testing alarm functionality&quot;</span><span class="p">);</span>
+
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">tm</span><span class="w"> </span><span class="n">alarm_time</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">current_time</span><span class="p">;</span>
+<span class="w">  </span><span class="n">alarm_time</span><span class="p">.</span><span class="n">tm_sec</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span><span class="w"> </span><span class="c1">// Alarm in 10 seconds</span>
+<span class="w">  </span><span class="n">mktime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">alarm_time</span><span class="p">);</span><span class="w">     </span><span class="c1">// Normalize the time</span>
+
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">rtc</span><span class="p">.</span><span class="n">set_alarm</span><span class="p">(</span><span class="n">alarm_time</span><span class="p">,</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Alarm set for {:02d}:{:02d}:{:02d}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">alarm_time</span><span class="p">.</span><span class="n">tm_hour</span><span class="p">,</span><span class="w"> </span><span class="n">alarm_time</span><span class="p">.</span><span class="n">tm_min</span><span class="p">,</span>
+<span class="w">                </span><span class="n">alarm_time</span><span class="p">.</span><span class="n">tm_sec</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// Test timer functionality</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Testing timer functionality&quot;</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Set a 5-second timer</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">rtc</span><span class="p">.</span><span class="n">set_timer</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="n">Rtc</span><span class="o">::</span><span class="n">TimerClockSource</span><span class="o">::</span><span class="n">FREQ_1_HZ</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Timer set for 5 seconds&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// Configure clock output</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Configuring clock output to 1Hz&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">rtc</span><span class="p">.</span><span class="n">set_clock_output</span><span class="p">(</span><span class="n">Rtc</span><span class="o">::</span><span class="n">ClockOutFrequency</span><span class="o">::</span><span class="n">FREQ_1_HZ</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Main loop - monitor alarms and timer</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Monitoring RTC events...&quot;</span><span class="p">);</span>
+
+<span class="w">  </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">1</span><span class="n">s</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// Get current time</span>
+<span class="w">    </span><span class="n">current_time</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rtc</span><span class="p">.</span><span class="n">get_time</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Time: {:02d}:{:02d}:{:02d}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">current_time</span><span class="p">.</span><span class="n">tm_hour</span><span class="p">,</span><span class="w"> </span><span class="n">current_time</span><span class="p">.</span><span class="n">tm_min</span><span class="p">,</span>
+<span class="w">                  </span><span class="n">current_time</span><span class="p">.</span><span class="n">tm_sec</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// Check alarm</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">rtc</span><span class="p">.</span><span class="n">is_alarm_triggered</span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;🚨 ALARM TRIGGERED!&quot;</span><span class="p">);</span>
+<span class="w">      </span><span class="n">rtc</span><span class="p">.</span><span class="n">clear_alarm_flag</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// Check timer</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">rtc</span><span class="p">.</span><span class="n">is_timer_expired</span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;⏰ TIMER EXPIRED!&quot;</span><span class="p">);</span>
+<span class="w">      </span><span class="n">rtc</span><span class="p">.</span><span class="n">clear_timer_flag</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+
+<span class="w">      </span><span class="c1">// Restart timer for another 5 seconds</span>
+<span class="w">      </span><span class="n">rtc</span><span class="p">.</span><span class="n">set_timer</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="n">Rtc</span><span class="o">::</span><span class="n">TimerClockSource</span><span class="o">::</span><span class="n">FREQ_1_HZ</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Timer restarted&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The RX8130CE is a temperature compensated crystal oscillator (TCXO) RTC with I2C interface and various timing/alarm features. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>UseAddress</strong> – Whether to use I2C addressing (default: true) </p>
+</dd>
+</dl>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce17ClockOutFrequencyE">
+<span id="_CPPv3N4espp8Rx8130ce17ClockOutFrequencyE"></span><span id="_CPPv2N4espp8Rx8130ce17ClockOutFrequencyE"></span><span class="target" id="classespp_1_1Rx8130ce_1aaaa8f721c2c4c44ed3f81668b26755da"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ClockOutFrequency</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce17ClockOutFrequencyE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clock output frequencies available on the RX8130CE. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce17ClockOutFrequency13FREQ_32768_HZE">
+<span id="_CPPv3N4espp8Rx8130ce17ClockOutFrequency13FREQ_32768_HZE"></span><span id="_CPPv2N4espp8Rx8130ce17ClockOutFrequency13FREQ_32768_HZE"></span><span class="target" id="classespp_1_1Rx8130ce_1aaaa8f721c2c4c44ed3f81668b26755daac45dd3f530765873b224ef6242430da5"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FREQ_32768_HZ</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce17ClockOutFrequency13FREQ_32768_HZE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>32.768 kHz </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce17ClockOutFrequency12FREQ_1024_HZE">
+<span id="_CPPv3N4espp8Rx8130ce17ClockOutFrequency12FREQ_1024_HZE"></span><span id="_CPPv2N4espp8Rx8130ce17ClockOutFrequency12FREQ_1024_HZE"></span><span class="target" id="classespp_1_1Rx8130ce_1aaaa8f721c2c4c44ed3f81668b26755daaf35600b92f398b699b8f2333f99bf530"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FREQ_1024_HZ</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce17ClockOutFrequency12FREQ_1024_HZE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>1.024 kHz </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce17ClockOutFrequency9FREQ_1_HZE">
+<span id="_CPPv3N4espp8Rx8130ce17ClockOutFrequency9FREQ_1_HZE"></span><span id="_CPPv2N4espp8Rx8130ce17ClockOutFrequency9FREQ_1_HZE"></span><span class="target" id="classespp_1_1Rx8130ce_1aaaa8f721c2c4c44ed3f81668b26755daa69e126b4b55ad033f76a0299a4e772be"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FREQ_1_HZ</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce17ClockOutFrequency9FREQ_1_HZE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>1 Hz </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce17ClockOutFrequency8DISABLEDE">
+<span id="_CPPv3N4espp8Rx8130ce17ClockOutFrequency8DISABLEDE"></span><span id="_CPPv2N4espp8Rx8130ce17ClockOutFrequency8DISABLEDE"></span><span class="target" id="classespp_1_1Rx8130ce_1aaaa8f721c2c4c44ed3f81668b26755daa055c1a591abb0e8cd86dc969727bcc0b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DISABLED</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce17ClockOutFrequency8DISABLEDE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clock output disabled. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce16TimerClockSourceE">
+<span id="_CPPv3N4espp8Rx8130ce16TimerClockSourceE"></span><span id="_CPPv2N4espp8Rx8130ce16TimerClockSourceE"></span><span class="target" id="classespp_1_1Rx8130ce_1a6f9d0339560494019fb5db485debdac7"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TimerClockSource</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce16TimerClockSourceE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="../timer.html#classespp_1_1Timer"><span class="std std-ref">Timer</span></a> clock source frequencies. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce16TimerClockSource12FREQ_4096_HZE">
+<span id="_CPPv3N4espp8Rx8130ce16TimerClockSource12FREQ_4096_HZE"></span><span id="_CPPv2N4espp8Rx8130ce16TimerClockSource12FREQ_4096_HZE"></span><span class="target" id="classespp_1_1Rx8130ce_1a6f9d0339560494019fb5db485debdac7a28c8381906c2e1418b8e34f8f5e41abc"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FREQ_4096_HZ</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce16TimerClockSource12FREQ_4096_HZE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>4.096 kHz </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce16TimerClockSource10FREQ_64_HZE">
+<span id="_CPPv3N4espp8Rx8130ce16TimerClockSource10FREQ_64_HZE"></span><span id="_CPPv2N4espp8Rx8130ce16TimerClockSource10FREQ_64_HZE"></span><span class="target" id="classespp_1_1Rx8130ce_1a6f9d0339560494019fb5db485debdac7aa4d2ad2f7010f710d89ed81de814c28e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FREQ_64_HZ</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce16TimerClockSource10FREQ_64_HZE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>64 Hz </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce16TimerClockSource9FREQ_1_HZE">
+<span id="_CPPv3N4espp8Rx8130ce16TimerClockSource9FREQ_1_HZE"></span><span id="_CPPv2N4espp8Rx8130ce16TimerClockSource9FREQ_1_HZE"></span><span class="target" id="classespp_1_1Rx8130ce_1a6f9d0339560494019fb5db485debdac7a69e126b4b55ad033f76a0299a4e772be"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FREQ_1_HZ</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce16TimerClockSource9FREQ_1_HZE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>1 Hz </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce16TimerClockSource12FREQ_1_60_HZE">
+<span id="_CPPv3N4espp8Rx8130ce16TimerClockSource12FREQ_1_60_HZE"></span><span id="_CPPv2N4espp8Rx8130ce16TimerClockSource12FREQ_1_60_HZE"></span><span class="target" id="classespp_1_1Rx8130ce_1a6f9d0339560494019fb5db485debdac7a053b716aa5e7f739b8459373d64c1a87"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FREQ_1_60_HZ</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce16TimerClockSource12FREQ_1_60_HZE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>1/60 Hz (1 minute) </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce16TimerClockSource14FREQ_1_3600_HZE">
+<span id="_CPPv3N4espp8Rx8130ce16TimerClockSource14FREQ_1_3600_HZE"></span><span id="_CPPv2N4espp8Rx8130ce16TimerClockSource14FREQ_1_3600_HZE"></span><span class="target" id="classespp_1_1Rx8130ce_1a6f9d0339560494019fb5db485debdac7a1e485a2dca8967d960a4f7b114a99043"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FREQ_1_3600_HZ</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce16TimerClockSource14FREQ_1_3600_HZE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>1/3600 Hz (1 hour) </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce8probe_fnE">
+<span id="_CPPv3N4espp8Rx8130ce8probe_fnE"></span><span id="_CPPv2N4espp8Rx8130ce8probe_fnE"></span><span id="espp::Rx8130ce::probe_fn"></span><span class="target" id="classespp_1_1BasePeripheral_1ad12a713efc443157b7d6fd1ba4fdf88f"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">probe_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce8probe_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to probe the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param address<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The address to probe </p>
+</dd>
+<dt class="field-even">Return<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the peripheral is found at the given address </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce8Rx8130ceERK6Config">
+<span id="_CPPv3N4espp8Rx8130ce8Rx8130ceERK6Config"></span><span id="_CPPv2N4espp8Rx8130ce8Rx8130ceERK6Config"></span><span id="espp::Rx8130ce::Rx8130ce__ConfigCR"></span><span class="target" id="classespp_1_1Rx8130ce_1ae169a88ba830c6a7537db713e0188005"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Rx8130ce</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp8Rx8130ce6ConfigE" title="espp::Rx8130ce::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce8Rx8130ceERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct a new <a class="reference internal" href="#classespp_1_1Rx8130ce"><span class="std std-ref">Rx8130ce</span></a> object. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – The configuration for the device </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce4initERNSt10error_codeE">
+<span id="_CPPv3N4espp8Rx8130ce4initERNSt10error_codeE"></span><span id="_CPPv2N4espp8Rx8130ce4initERNSt10error_codeE"></span><span id="espp::Rx8130ce::init__std::error_codeR"></span><span class="target" id="classespp_1_1Rx8130ce_1a700fcbea39043e481c49db0dce05f4c1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">init</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce4initERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the device. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code to set if an error occurs </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the device was initialized successfully, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce5resetERNSt10error_codeE">
+<span id="_CPPv3N4espp8Rx8130ce5resetERNSt10error_codeE"></span><span id="_CPPv2N4espp8Rx8130ce5resetERNSt10error_codeE"></span><span id="espp::Rx8130ce::reset__std::error_codeR"></span><span class="target" id="classespp_1_1Rx8130ce_1a10660f907228fef87ca82bb7b2e0e676"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce5resetERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Reset the RX8130CE device. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code to set if an error occurs </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the device was reset successfully, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce8set_timeERKNSt2tmERNSt10error_codeE">
+<span id="_CPPv3N4espp8Rx8130ce8set_timeERKNSt2tmERNSt10error_codeE"></span><span id="_CPPv2N4espp8Rx8130ce8set_timeERKNSt2tmERNSt10error_codeE"></span><span id="espp::Rx8130ce::set_time__std::tmCR.std::error_codeR"></span><span class="target" id="classespp_1_1Rx8130ce_1afa753815b742bd716318f2f277f5c0ee"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_time</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">tm</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">time</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce8set_timeERKNSt2tmERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the time using std::tm structure. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>time</strong> – The time to set </p></li>
+<li><p><strong>ec</strong> – The error code to set if an error occurs </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the time was set successfully, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce8get_timeERNSt10error_codeE">
+<span id="_CPPv3N4espp8Rx8130ce8get_timeERNSt10error_codeE"></span><span id="_CPPv2N4espp8Rx8130ce8get_timeERNSt10error_codeE"></span><span id="espp::Rx8130ce::get_time__std::error_codeR"></span><span class="target" id="classespp_1_1Rx8130ce_1ad5d32db4872472ce87032d259dbe9538"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">tm</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_time</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce8get_timeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the time using std::tm structure. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code to set if an error occurs </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The time from the device </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce13get_date_timeERNSt10error_codeE">
+<span id="_CPPv3N4espp8Rx8130ce13get_date_timeERNSt10error_codeE"></span><span id="_CPPv2N4espp8Rx8130ce13get_date_timeERNSt10error_codeE"></span><span id="espp::Rx8130ce::get_date_time__std::error_codeR"></span><span class="target" id="classespp_1_1Rx8130ce_1a36c2270425ba8ab983f722e0278e2558"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp8Rx8130ce8DateTimeE" title="espp::Rx8130ce::DateTime"><span class="n"><span class="pre">DateTime</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_date_time</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce13get_date_timeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the date and time using device-specific structures. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code to set if an error occurs </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The date and time </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce13set_date_timeERK8DateTimeRNSt10error_codeE">
+<span id="_CPPv3N4espp8Rx8130ce13set_date_timeERK8DateTimeRNSt10error_codeE"></span><span id="_CPPv2N4espp8Rx8130ce13set_date_timeERK8DateTimeRNSt10error_codeE"></span><span id="espp::Rx8130ce::set_date_time__DateTimeCR.std::error_codeR"></span><span class="target" id="classespp_1_1Rx8130ce_1a2b60602e7ca2b59b3fc04e748621de6c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_date_time</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp8Rx8130ce8DateTimeE" title="espp::Rx8130ce::DateTime"><span class="n"><span class="pre">DateTime</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">dt</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce13set_date_timeERK8DateTimeRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the date and time using device-specific structures. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dt</strong> – The date and time to set </p></li>
+<li><p><strong>ec</strong> – The error code to set if an error occurs </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce21get_voltage_loss_flagERNSt10error_codeE">
+<span id="_CPPv3N4espp8Rx8130ce21get_voltage_loss_flagERNSt10error_codeE"></span><span id="_CPPv2N4espp8Rx8130ce21get_voltage_loss_flagERNSt10error_codeE"></span><span id="espp::Rx8130ce::get_voltage_loss_flag__std::error_codeR"></span><span class="target" id="classespp_1_1Rx8130ce_1acf6dc37a77d8e513e9f2159c21c507e5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_voltage_loss_flag</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce21get_voltage_loss_flagERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Check if the voltage loss flag is set. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code to set if an error occurs </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if a voltage loss has occurred, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce23clear_voltage_loss_flagERNSt10error_codeE">
+<span id="_CPPv3N4espp8Rx8130ce23clear_voltage_loss_flagERNSt10error_codeE"></span><span id="_CPPv2N4espp8Rx8130ce23clear_voltage_loss_flagERNSt10error_codeE"></span><span id="espp::Rx8130ce::clear_voltage_loss_flag__std::error_codeR"></span><span class="target" id="classespp_1_1Rx8130ce_1a88ba6cd61e9b84b405398b391a9f20b5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_voltage_loss_flag</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce23clear_voltage_loss_flagERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear the voltage loss flag. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code to set if an error occurs </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the flag was cleared successfully, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce9set_alarmERKNSt2tmEbRNSt10error_codeE">
+<span id="_CPPv3N4espp8Rx8130ce9set_alarmERKNSt2tmEbRNSt10error_codeE"></span><span id="_CPPv2N4espp8Rx8130ce9set_alarmERKNSt2tmEbRNSt10error_codeE"></span><span id="espp::Rx8130ce::set_alarm__std::tmCR.b.std::error_codeR"></span><span class="target" id="classespp_1_1Rx8130ce_1a46b54574f64b5b0b39c709ad4810e7ae"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_alarm</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">tm</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">alarm_time</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">is_week_day_target</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce9set_alarmERKNSt2tmEbRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set an alarm using std::tm structure. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If is_week_day_target is true, the alarm will trigger on the specified day of the month. If false, it will trigger on the specified day of the week. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will match exactly the minute, hour, and day/week specified because it will set all the alarm bits to 0 (enabled for exact match). </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>alarm_time</strong> – The time to trigger the alarm </p></li>
+<li><p><strong>is_week_day_target</strong> – True to use week day as target of alarm function, false to use month day </p></li>
+<li><p><strong>ec</strong> – The error code to set if an error occurs </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the alarm was set successfully, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce27set_alarm_interrupt_enabledEbRNSt10error_codeE">
+<span id="_CPPv3N4espp8Rx8130ce27set_alarm_interrupt_enabledEbRNSt10error_codeE"></span><span id="_CPPv2N4espp8Rx8130ce27set_alarm_interrupt_enabledEbRNSt10error_codeE"></span><span id="espp::Rx8130ce::set_alarm_interrupt_enabled__b.std::error_codeR"></span><span class="target" id="classespp_1_1Rx8130ce_1adae8df2f2f32a3b07221fc3479b366a6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_alarm_interrupt_enabled</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">enabled</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce27set_alarm_interrupt_enabledEbRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Enable or disable the alarm interrupt. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>enabled</strong> – True to enable, false to disable </p></li>
+<li><p><strong>ec</strong> – The error code to set if an error occurs </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the operation was successful, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce13disable_alarmERNSt10error_codeE">
+<span id="_CPPv3N4espp8Rx8130ce13disable_alarmERNSt10error_codeE"></span><span id="_CPPv2N4espp8Rx8130ce13disable_alarmERNSt10error_codeE"></span><span id="espp::Rx8130ce::disable_alarm__std::error_codeR"></span><span class="target" id="classespp_1_1Rx8130ce_1ae3891bfadc9866ce2a548cfe03e332b4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">disable_alarm</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce13disable_alarmERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Disable the alarm. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code to set if an error occurs </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the alarm was disabled successfully, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce18is_alarm_triggeredERNSt10error_codeE">
+<span id="_CPPv3N4espp8Rx8130ce18is_alarm_triggeredERNSt10error_codeE"></span><span id="_CPPv2N4espp8Rx8130ce18is_alarm_triggeredERNSt10error_codeE"></span><span id="espp::Rx8130ce::is_alarm_triggered__std::error_codeR"></span><span class="target" id="classespp_1_1Rx8130ce_1ad07e62eda62ba201193b6f40098815e5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_alarm_triggered</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce18is_alarm_triggeredERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Check if the alarm flag is set. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code to set if an error occurs </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the alarm is triggered, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce16clear_alarm_flagERNSt10error_codeE">
+<span id="_CPPv3N4espp8Rx8130ce16clear_alarm_flagERNSt10error_codeE"></span><span id="_CPPv2N4espp8Rx8130ce16clear_alarm_flagERNSt10error_codeE"></span><span id="espp::Rx8130ce::clear_alarm_flag__std::error_codeR"></span><span class="target" id="classespp_1_1Rx8130ce_1a6973b6fca578e421c17dda54931744dc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_alarm_flag</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce16clear_alarm_flagERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear the alarm flag. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code to set if an error occurs </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the flag was cleared successfully, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce9set_timerE8uint16_t16TimerClockSourceRNSt10error_codeE">
+<span id="_CPPv3N4espp8Rx8130ce9set_timerE8uint16_t16TimerClockSourceRNSt10error_codeE"></span><span id="_CPPv2N4espp8Rx8130ce9set_timerE8uint16_t16TimerClockSourceRNSt10error_codeE"></span><span id="espp::Rx8130ce::set_timer__uint16_t.TimerClockSource.std::error_codeR"></span><span class="target" id="classespp_1_1Rx8130ce_1a5ce61e9daa06089defb01193c88bf7b6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_timer</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span>, <a class="reference internal" href="#_CPPv4N4espp8Rx8130ce16TimerClockSourceE" title="espp::Rx8130ce::TimerClockSource"><span class="n"><span class="pre">TimerClockSource</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">clock_source</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce9set_timerE8uint16_t16TimerClockSourceRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the countdown timer. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> – <a class="reference internal" href="../timer.html#classespp_1_1Timer"><span class="std std-ref">Timer</span></a> value (0-4095) </p></li>
+<li><p><strong>clock_source</strong> – <a class="reference internal" href="../timer.html#classespp_1_1Timer"><span class="std std-ref">Timer</span></a> clock source </p></li>
+<li><p><strong>ec</strong> – The error code to set if an error occurs </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the timer was set successfully, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce10stop_timerERNSt10error_codeE">
+<span id="_CPPv3N4espp8Rx8130ce10stop_timerERNSt10error_codeE"></span><span id="_CPPv2N4espp8Rx8130ce10stop_timerERNSt10error_codeE"></span><span id="espp::Rx8130ce::stop_timer__std::error_codeR"></span><span class="target" id="classespp_1_1Rx8130ce_1abc15a2be4f5cd2ced17d3aac5896d77c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stop_timer</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce10stop_timerERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Stop the timer. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code to set if an error occurs </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the timer was stopped successfully, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce27set_timer_interrupt_enabledEbRNSt10error_codeE">
+<span id="_CPPv3N4espp8Rx8130ce27set_timer_interrupt_enabledEbRNSt10error_codeE"></span><span id="_CPPv2N4espp8Rx8130ce27set_timer_interrupt_enabledEbRNSt10error_codeE"></span><span id="espp::Rx8130ce::set_timer_interrupt_enabled__b.std::error_codeR"></span><span class="target" id="classespp_1_1Rx8130ce_1a3d4a2b4fbae593cfd7c6c234e083e348"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_timer_interrupt_enabled</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">enabled</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce27set_timer_interrupt_enabledEbRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Enable or disable the timer interrupt. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>enabled</strong> – True to enable, false to disable </p></li>
+<li><p><strong>ec</strong> – The error code to set if an error occurs </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the operation was successful, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce16is_timer_expiredERNSt10error_codeE">
+<span id="_CPPv3N4espp8Rx8130ce16is_timer_expiredERNSt10error_codeE"></span><span id="_CPPv2N4espp8Rx8130ce16is_timer_expiredERNSt10error_codeE"></span><span id="espp::Rx8130ce::is_timer_expired__std::error_codeR"></span><span class="target" id="classespp_1_1Rx8130ce_1a684f08c521ba75eea79994a889c692c9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_timer_expired</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce16is_timer_expiredERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Check if the timer flag is set. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code to set if an error occurs </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the timer has expired, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce16clear_timer_flagERNSt10error_codeE">
+<span id="_CPPv3N4espp8Rx8130ce16clear_timer_flagERNSt10error_codeE"></span><span id="_CPPv2N4espp8Rx8130ce16clear_timer_flagERNSt10error_codeE"></span><span id="espp::Rx8130ce::clear_timer_flag__std::error_codeR"></span><span class="target" id="classespp_1_1Rx8130ce_1aacdae65a04bb387299e1a6e28382b5d6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_timer_flag</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce16clear_timer_flagERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear the timer flag. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code to set if an error occurs </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the flag was cleared successfully, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce16set_clock_outputE17ClockOutFrequencyRNSt10error_codeE">
+<span id="_CPPv3N4espp8Rx8130ce16set_clock_outputE17ClockOutFrequencyRNSt10error_codeE"></span><span id="_CPPv2N4espp8Rx8130ce16set_clock_outputE17ClockOutFrequencyRNSt10error_codeE"></span><span id="espp::Rx8130ce::set_clock_output__ClockOutFrequency.std::error_codeR"></span><span class="target" id="classespp_1_1Rx8130ce_1adf83e8a45a7b4ecb928705eb40744706"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_clock_output</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp8Rx8130ce17ClockOutFrequencyE" title="espp::Rx8130ce::ClockOutFrequency"><span class="n"><span class="pre">ClockOutFrequency</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">frequency</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce16set_clock_outputE17ClockOutFrequencyRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configure the clock output. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>frequency</strong> – The output frequency </p></li>
+<li><p><strong>ec</strong> – The error code to set if an error occurs </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the clock output was configured successfully, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8Rx8130ce5probeERNSt10error_codeE">
+<span id="_CPPv3NK4espp8Rx8130ce5probeERNSt10error_codeE"></span><span id="_CPPv2NK4espp8Rx8130ce5probeERNSt10error_codeE"></span><span id="espp::Rx8130ce::probe__std::error_codeRC"></span><span class="target" id="classespp_1_1BasePeripheral_1a05481a009a7302fff3b43d301de6b1eb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">probe</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8Rx8130ce5probeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Probe the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the probe function is not set, this function will return false and set the error code to operation_not_supported </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is only available if UseAddress is true </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code to set if there is an error </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the peripheral is found </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce11set_addressE7uint8_t">
+<span id="_CPPv3N4espp8Rx8130ce11set_addressE7uint8_t"></span><span id="_CPPv2N4espp8Rx8130ce11set_addressE7uint8_t"></span><span id="espp::Rx8130ce::set_address__uint8_t"></span><span class="target" id="classespp_1_1BasePeripheral_1a31fb8ec471403bf9be06428dbc46277a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_address</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">address</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce11set_addressE7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the address of the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is only available if UseAddress is true </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>address</strong> – The address of the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce9set_probeERK8probe_fn">
+<span id="_CPPv3N4espp8Rx8130ce9set_probeERK8probe_fn"></span><span id="_CPPv2N4espp8Rx8130ce9set_probeERK8probe_fn"></span><span id="espp::Rx8130ce::set_probe__probe_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a5b5d7753ea6ccf361e495fdc80c81f19"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_probe</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp8Rx8130ce8probe_fnE" title="espp::Rx8130ce::probe_fn"><span class="n"><span class="pre">probe_fn</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">probe</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce9set_probeERK8probe_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the probe function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the probe function is usually set in the constructor. If you need to change the probe function, consider using the set_config function instead. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is only available if UseAddress is true </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>probe</strong> – The probe function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce9set_writeERK8write_fn">
+<span id="_CPPv3N4espp8Rx8130ce9set_writeERK8write_fn"></span><span id="_CPPv2N4espp8Rx8130ce9set_writeERK8write_fn"></span><span id="espp::Rx8130ce::set_write__write_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1ab5d5d18cd4e8893ed4f937dcfdaba5ba"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_write</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">write_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">write</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce9set_writeERK8write_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the write function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the write function is usually set in the constructor. If you need to change the write function, consider using the set_config function instead. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>write</strong> – The write function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce8set_readERK7read_fn">
+<span id="_CPPv3N4espp8Rx8130ce8set_readERK7read_fn"></span><span id="_CPPv2N4espp8Rx8130ce8set_readERK7read_fn"></span><span id="espp::Rx8130ce::set_read__read_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1aa6d8131a30233e8439628815db8b1843"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_read</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">read_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">read</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce8set_readERK7read_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the read function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the read function is usually set in the constructor. If you need to change the read function, consider using the set_config function instead. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>read</strong> – The read function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce17set_read_registerERK16read_register_fn">
+<span id="_CPPv3N4espp8Rx8130ce17set_read_registerERK16read_register_fn"></span><span id="_CPPv2N4espp8Rx8130ce17set_read_registerERK16read_register_fn"></span><span id="espp::Rx8130ce::set_read_register__read_register_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a72e039592417cd32bc47c77120005d3f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_read_register</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">read_register_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">read_register</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce17set_read_registerERK16read_register_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the read register function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the read register function is usually set in the constructor. If you need to change the read register function, consider using the set_config function instead. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>read_register</strong> – The read register function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce19set_write_then_readERK18write_then_read_fn">
+<span id="_CPPv3N4espp8Rx8130ce19set_write_then_readERK18write_then_read_fn"></span><span id="_CPPv2N4espp8Rx8130ce19set_write_then_readERK18write_then_read_fn"></span><span id="espp::Rx8130ce::set_write_then_read__write_then_read_fnCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a07b152dbfba43b5c82a498416f6887b2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_write_then_read</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">write_then_read_fn</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">write_then_read</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce19set_write_then_readERK18write_then_read_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the write then read function </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the write then read function is usually set in the constructor. If you need to change the write then </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>write_then_read</strong> – The write then read function </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce34set_separate_write_then_read_delayERKNSt6chrono12millisecondsE">
+<span id="_CPPv3N4espp8Rx8130ce34set_separate_write_then_read_delayERKNSt6chrono12millisecondsE"></span><span id="_CPPv2N4espp8Rx8130ce34set_separate_write_then_read_delayERKNSt6chrono12millisecondsE"></span><span id="espp::Rx8130ce::set_separate_write_then_read_delay__std::chrono::millisecondsCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a8c70b96c37525f90cc85ddfe4a40b82a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_separate_write_then_read_delay</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">milliseconds</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">delay</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce34set_separate_write_then_read_delayERKNSt6chrono12millisecondsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the delay between the write and read operations in write_then_read </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the delay is usually set in the constructor. If you need to change the delay, consider using the set_config function instead. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This delay is only used if the write_then_read function is not set to a custom function and the write and read functions are separate functions. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>delay</strong> – The delay between the write and read operations in write_then_read </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce10set_configERK6Config">
+<span id="_CPPv3N4espp8Rx8130ce10set_configERK6Config"></span><span id="_CPPv2N4espp8Rx8130ce10set_configERK6Config"></span><span id="espp::Rx8130ce::set_config__ConfigCR"></span><span class="target" id="classespp_1_1BasePeripheral_1a163b98a30940711b23a7e7dce81efe0c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_config</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp8Rx8130ce6ConfigE" title="espp::Rx8130ce::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce10set_configERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the configuration for the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The configuration should normally be set in the constructor, but this function can be used to change the configuration after the peripheral has been created - for instance if the peripheral could be found on different communications buses. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – The configuration for the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce10set_configERR6Config">
+<span id="_CPPv3N4espp8Rx8130ce10set_configERR6Config"></span><span id="_CPPv2N4espp8Rx8130ce10set_configERR6Config"></span><span id="espp::Rx8130ce::set_config__ConfigRR"></span><span class="target" id="classespp_1_1BasePeripheral_1a704004cfda66bf3ce5ed725b3003c32b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_config</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp8Rx8130ce6ConfigE" title="espp::Rx8130ce::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce10set_configERR6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the configuration for the peripheral </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The configuration should normally be set in the constructor, but this function can be used to change the configuration after the peripheral has been created - for instance if the peripheral could be found on different communications buses. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – The configuration for the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8Rx8130ce6configEv">
+<span id="_CPPv3NK4espp8Rx8130ce6configEv"></span><span id="_CPPv2NK4espp8Rx8130ce6configEv"></span><span id="espp::Rx8130ce::configC"></span><span class="target" id="classespp_1_1BasePeripheral_1ae66896cf25c9dde79522f354cdb23896"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp8Rx8130ce6ConfigE" title="espp::Rx8130ce::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">config</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8Rx8130ce6configEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the configuration for the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The configuration for the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8Rx8130ce7addressEv">
+<span id="_CPPv3NK4espp8Rx8130ce7addressEv"></span><span id="_CPPv2NK4espp8Rx8130ce7addressEv"></span><span id="espp::Rx8130ce::addressC"></span><span class="target" id="classespp_1_1BasePeripheral_1add730fb3307dd52ed5f8905a576e7ecc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">address</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8Rx8130ce7addressEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the address of the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The address of the peripheral </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8Rx8130ce8get_nameEv">
+<span id="_CPPv3NK4espp8Rx8130ce8get_nameEv"></span><span id="_CPPv2NK4espp8Rx8130ce8get_nameEv"></span><span id="espp::Rx8130ce::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8Rx8130ce8get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp8Rx8130ce11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp8Rx8130ce11set_log_tagERKNSt11string_viewE"></span><span id="espp::Rx8130ce::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8Rx8130ce13get_log_levelEv">
+<span id="_CPPv3NK4espp8Rx8130ce13get_log_levelEv"></span><span id="_CPPv2NK4espp8Rx8130ce13get_log_levelEv"></span><span id="espp::Rx8130ce::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8Rx8130ce13get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp8Rx8130ce13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp8Rx8130ce13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::Rx8130ce::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp8Rx8130ce17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp8Rx8130ce17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::Rx8130ce::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../ws_s3_touch.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8Rx8130ce17get_log_verbosityEv">
+<span id="_CPPv3NK4espp8Rx8130ce17get_log_verbosityEv"></span><span id="_CPPv2NK4espp8Rx8130ce17get_log_verbosityEv"></span><span id="espp::Rx8130ce::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8Rx8130ce17get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../ws_s3_touch.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp8Rx8130ce18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp8Rx8130ce18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::Rx8130ce::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce15DEFAULT_ADDRESSE">
+<span id="_CPPv3N4espp8Rx8130ce15DEFAULT_ADDRESSE"></span><span id="_CPPv2N4espp8Rx8130ce15DEFAULT_ADDRESSE"></span><span id="espp::Rx8130ce::DEFAULT_ADDRESS__uint8_t"></span><span class="target" id="classespp_1_1Rx8130ce_1adb67167a45f501bf896897f01c97da2e"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DEFAULT_ADDRESS</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x32</span></span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce15DEFAULT_ADDRESSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Default I2C address of the RX8130CE. </p>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce6ConfigE">
+<span id="_CPPv3N4espp8Rx8130ce6ConfigE"></span><span id="_CPPv2N4espp8Rx8130ce6ConfigE"></span><span id="espp::Rx8130ce::Config"></span><span class="target" id="structespp_1_1Rx8130ce_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration structure for the <a class="reference internal" href="#classespp_1_1Rx8130ce"><span class="std std-ref">Rx8130ce</span></a>. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce6Config14device_addressE">
+<span id="_CPPv3N4espp8Rx8130ce6Config14device_addressE"></span><span id="_CPPv2N4espp8Rx8130ce6Config14device_addressE"></span><span id="espp::Rx8130ce::Config::device_address__uint8_t"></span><span class="target" id="structespp_1_1Rx8130ce_1_1Config_1a1231de58a442302d194f9b903fe6540a"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">device_address</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp8Rx8130ce15DEFAULT_ADDRESSE" title="espp::Rx8130ce::DEFAULT_ADDRESS"><span class="n"><span class="pre">DEFAULT_ADDRESS</span></span></a><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce6Config14device_addressE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>I2C address of the device. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce6Config5writeE">
+<span id="_CPPv3N4espp8Rx8130ce6Config5writeE"></span><span id="_CPPv2N4espp8Rx8130ce6Config5writeE"></span><span id="espp::Rx8130ce::Config::write__BasePeripheral:uint8_t.UseAddress:::write_fn"></span><span class="target" id="structespp_1_1Rx8130ce_1_1Config_1a4e611c7106181386b1d744a287b03500"></span><a class="reference internal" href="../base_peripheral.html#_CPPv4I_NSt8integralE_b_b_bEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I_bEN4espp8Rx8130ceE" title="espp::Rx8130ce::UseAddress"><span class="n"><span class="pre">UseAddress</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">write_fn</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce6Config5writeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Write function for the I2C bus. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce6Config4readE">
+<span id="_CPPv3N4espp8Rx8130ce6Config4readE"></span><span id="_CPPv2N4espp8Rx8130ce6Config4readE"></span><span id="espp::Rx8130ce::Config::read__BasePeripheral:uint8_t.UseAddress:::read_fn"></span><span class="target" id="structespp_1_1Rx8130ce_1_1Config_1a0ffce044d8740fe583e21096281e38da"></span><a class="reference internal" href="../base_peripheral.html#_CPPv4I_NSt8integralE_b_b_bEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I_bEN4espp8Rx8130ceE" title="espp::Rx8130ce::UseAddress"><span class="n"><span class="pre">UseAddress</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">read_fn</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce6Config4readE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read function for the I2C bus. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce6Config9auto_initE">
+<span id="_CPPv3N4espp8Rx8130ce6Config9auto_initE"></span><span id="_CPPv2N4espp8Rx8130ce6Config9auto_initE"></span><span id="espp::Rx8130ce::Config::auto_init__b"></span><span class="target" id="structespp_1_1Rx8130ce_1_1Config_1adce4fcf28b311cbe1732bbb9b05249c4"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">auto_init</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce6Config9auto_initE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether to automatically initialize the device. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce6Config9log_levelE">
+<span id="_CPPv3N4espp8Rx8130ce6Config9log_levelE"></span><span id="_CPPv2N4espp8Rx8130ce6Config9log_levelE"></span><span id="espp::Rx8130ce::Config::log_level__Logger::Verbosity"></span><span class="target" id="structespp_1_1Rx8130ce_1_1Config_1a9119667e3e3cd8c577018c08fde4b355"></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce6Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Log level for the device. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce4DateE">
+<span id="_CPPv3N4espp8Rx8130ce4DateE"></span><span id="_CPPv2N4espp8Rx8130ce4DateE"></span><span id="espp::Rx8130ce::Date"></span><span class="target" id="structespp_1_1Rx8130ce_1_1Date"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Date</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce4DateE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The date structure (device-specific format) </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce4Date4yearE">
+<span id="_CPPv3N4espp8Rx8130ce4Date4yearE"></span><span id="_CPPv2N4espp8Rx8130ce4Date4yearE"></span><span id="espp::Rx8130ce::Date::year__uint16_t"></span><span class="target" id="structespp_1_1Rx8130ce_1_1Date_1a3d28c01b8c40595dcdd4a1f70ba7f9b0"></span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">year</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce4Date4yearE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The year (full 4-digit year) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce4Date5monthE">
+<span id="_CPPv3N4espp8Rx8130ce4Date5monthE"></span><span id="_CPPv2N4espp8Rx8130ce4Date5monthE"></span><span id="espp::Rx8130ce::Date::month__uint8_t"></span><span class="target" id="structespp_1_1Rx8130ce_1_1Date_1a5d174a03e9c7f0dfa8d6bd76f413d910"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">month</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce4Date5monthE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The month (1-12) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce4Date7weekdayE">
+<span id="_CPPv3N4espp8Rx8130ce4Date7weekdayE"></span><span id="_CPPv2N4espp8Rx8130ce4Date7weekdayE"></span><span id="espp::Rx8130ce::Date::weekday__uint8_t"></span><span class="target" id="structespp_1_1Rx8130ce_1_1Date_1a39f6b437b57767f61f39bd1ad7a9396f"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">weekday</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce4Date7weekdayE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The day of the week (0-6, Sunday=0) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce4Date3dayE">
+<span id="_CPPv3N4espp8Rx8130ce4Date3dayE"></span><span id="_CPPv2N4espp8Rx8130ce4Date3dayE"></span><span id="espp::Rx8130ce::Date::day__uint8_t"></span><span class="target" id="structespp_1_1Rx8130ce_1_1Date_1abc7ea44cba47a00b9cbe2384e9b131b7"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">day</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce4Date3dayE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The day of the month (1-31) </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce8DateTimeE">
+<span id="_CPPv3N4espp8Rx8130ce8DateTimeE"></span><span id="_CPPv2N4espp8Rx8130ce8DateTimeE"></span><span id="espp::Rx8130ce::DateTime"></span><span class="target" id="structespp_1_1Rx8130ce_1_1DateTime"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DateTime</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce8DateTimeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The date and time structure (device-specific format) </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce8DateTime4dateE">
+<span id="_CPPv3N4espp8Rx8130ce8DateTime4dateE"></span><span id="_CPPv2N4espp8Rx8130ce8DateTime4dateE"></span><span id="espp::Rx8130ce::DateTime::date__Date"></span><span class="target" id="structespp_1_1Rx8130ce_1_1DateTime_1ac1876dd5dbbef4e26a63c17f6b783a7e"></span><a class="reference internal" href="#_CPPv4N4espp8Rx8130ce4DateE" title="espp::Rx8130ce::Date"><span class="n"><span class="pre">Date</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">date</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce8DateTime4dateE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The date. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce8DateTime4timeE">
+<span id="_CPPv3N4espp8Rx8130ce8DateTime4timeE"></span><span id="_CPPv2N4espp8Rx8130ce8DateTime4timeE"></span><span id="espp::Rx8130ce::DateTime::time__Time"></span><span class="target" id="structespp_1_1Rx8130ce_1_1DateTime_1a1ee1291af9e62486ba2ec1f32e66d1b8"></span><a class="reference internal" href="#_CPPv4N4espp8Rx8130ce4TimeE" title="espp::Rx8130ce::Time"><span class="n"><span class="pre">Time</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">time</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce8DateTime4timeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The time. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce4TimeE">
+<span id="_CPPv3N4espp8Rx8130ce4TimeE"></span><span id="_CPPv2N4espp8Rx8130ce4TimeE"></span><span id="espp::Rx8130ce::Time"></span><span class="target" id="structespp_1_1Rx8130ce_1_1Time"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Time</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce4TimeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The time structure (device-specific format) </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce4Time4hourE">
+<span id="_CPPv3N4espp8Rx8130ce4Time4hourE"></span><span id="_CPPv2N4espp8Rx8130ce4Time4hourE"></span><span id="espp::Rx8130ce::Time::hour__uint8_t"></span><span class="target" id="structespp_1_1Rx8130ce_1_1Time_1a80deea5e985a17b2fb56867ec02bbbb3"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hour</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce4Time4hourE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The hour (0-23) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce4Time6minuteE">
+<span id="_CPPv3N4espp8Rx8130ce4Time6minuteE"></span><span id="_CPPv2N4espp8Rx8130ce4Time6minuteE"></span><span id="espp::Rx8130ce::Time::minute__uint8_t"></span><span class="target" id="structespp_1_1Rx8130ce_1_1Time_1a7d2a987f846b0e61f07f3d1302e520ad"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">minute</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce4Time6minuteE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The minute (0-59) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Rx8130ce4Time6secondE">
+<span id="_CPPv3N4espp8Rx8130ce4Time6secondE"></span><span id="_CPPv2N4espp8Rx8130ce4Time6secondE"></span><span id="espp::Rx8130ce::Time::second__uint8_t"></span><span class="target" id="structespp_1_1Rx8130ce_1_1Time_1ab814d4d5b90ccafc13b2b81b020339b4"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">second</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Rx8130ce4Time6secondE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The second (0-59) </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="pcf85063_example.html" class="btn btn-neutral float-left" title="PCF85063 Example" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="rx8130ce_example.html" class="btn btn-neutral float-right" title="RX8130CE Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

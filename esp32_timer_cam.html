@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ESP32 TimerCam - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="_static/copybutton.js?v=ff8fa330"></script>
+    <script src="_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'esp32_timer_cam';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="ESP32-TIMER-CAM Example" href="esp32_timer_cam_example.html" />
+    <link rel="prev" title="Mt6701 Example" href="encoder/mt6701_example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            ESPP
+              <img src="_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_component.html">Base Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l1"><a class="reference internal" href="battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="byte90.html">ALXV Labs Byte90</a></li>
+<li class="toctree-l1"><a class="reference internal" href="controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cobs.html">COBS (Consistent Overhead Byte Stuffing)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">ESP32 TimerCam</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#esp32-timer-cam">Esp32-Timer-Cam</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="esp32_timer_cam_example.html">ESP32-TIMER-CAM Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="esp_box.html">ESP BOX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hid/index.html">HID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="interrupt.html">Interrupt APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="iperf_menu.html">Iperf Menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="m5stack_tab5.html">M5Stack Tab5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="matouch_rotary_display.html">MaTouch Rotary Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="motorgo_mini.html">MotorGo Mini</a></li>
+<li class="toctree-l1"><a class="reference internal" href="neopixel.html">Neopixel APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nvs.html">NVS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="remote_debug.html">Remote Debug APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="runqueue.html">RunQueue APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="seeed_studio_round_display.html">Seeed Studio Round Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="t_deck.html">LilyGo T-Deck</a></li>
+<li class="toctree-l1"><a class="reference internal" href="t_dongle_s3.html">LilyGo T-Dongle S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wrover_kit.html">ESP32-WROVER-KIT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">ESP32 TimerCam</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/32e8215e/docs/en/esp32_timer_cam.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="esp32-timercam">
+<h1>ESP32 TimerCam<a class="headerlink" href="#esp32-timercam" title="Permalink to this heading"></a></h1>
+<section id="esp32-timer-cam">
+<h2>Esp32-Timer-Cam<a class="headerlink" href="#esp32-timer-cam" title="Permalink to this heading"></a></h2>
+<p>The ESP32 TimerCam is a little usb-c webcamera using the ESP32. It has a little
+blue LED, a real-time clock (RTC), and supports battery operation with battery
+voltage monitoring as well.</p>
+<p>The <cite>espp::EspTimerCam</cite> component provides a singleton hardware abstraction for
+initializing the I2C, LED, RTC, and ADC subsystems.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="esp32_timer_cam_example.html">ESP32-TIMER-CAM Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="esp32_timer_cam_example.html#how-to-use-example">How to use example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="esp32_timer_cam_example.html#hardware-required">Hardware Required</a></li>
+<li class="toctree-l3"><a class="reference internal" href="esp32_timer_cam_example.html#build-and-flash">Build and Flash</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="esp32_timer_cam_example.html#example-output">Example Output</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/32e8215e/components/esp32-timer-cam/include/esp32-timer-cam.hpp">components/esp32-timer-cam/include/esp32-timer-cam.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCamE">
+<span id="_CPPv3N4espp11EspTimerCamE"></span><span id="_CPPv2N4espp11EspTimerCamE"></span><span id="espp::EspTimerCam"></span><span class="target" id="classespp_1_1EspTimerCam"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EspTimerCam</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp11EspTimerCamE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The <a class="reference internal" href="#classespp_1_1EspTimerCam"><span class="std std-ref">EspTimerCam</span></a> class provides an interface to the ESP32-S3-BOX and ESP32-S3-BOX-3 development boards.</p>
+<p>The class provides access to the following features:<ul class="simple">
+<li><p>I2C</p></li>
+<li><p>LED</p></li>
+<li><p>Battery Voltage Measurement</p></li>
+<li><p>RTC</p></li>
+<li><p>Camera pin definition</p></li>
+</ul>
+</p>
+<p>The class is a singleton and can be accessed using the <a class="reference internal" href="#classespp_1_1EspTimerCam_1acd7202691a902141deebfe781793c87e"><span class="std std-ref">get()</span></a> method.</p>
+<section id="classespp_1_1EspTimerCam_1esp_timer_cam_example">
+<h4>Example<a class="headerlink" href="#classespp_1_1EspTimerCam_1esp_timer_cam_example" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1EspTimerCam_1esp_timer_cam_example"><div class="highlight"><pre><span></span><span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">EspTimerCam</span><span class="w"> </span><span class="o">&amp;</span><span class="n">timer_cam</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">EspTimerCam</span><span class="o">::</span><span class="n">get</span><span class="p">();</span>
+
+<span class="w">  </span><span class="c1">// initialize the LED</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">led_breathing_period</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">3.5f</span><span class="p">;</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">timer_cam</span><span class="p">.</span><span class="n">initialize_led</span><span class="p">(</span><span class="n">led_breathing_period</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Failed to initialize LED!&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// initialize the rtc</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">timer_cam</span><span class="p">.</span><span class="n">initialize_rtc</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Failed to initialize RTC!&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// start the LED breathing</span>
+<span class="w">  </span><span class="n">timer_cam</span><span class="p">.</span><span class="n">start_led_breathing</span><span class="p">();</span>
+
+<span class="w">  </span><span class="c1">// loop forever</span>
+<span class="w">  </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// print out the battery voltage</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Battery voltage: {:.02f} V&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">timer_cam</span><span class="p">.</span><span class="n">get_battery_voltage</span><span class="p">());</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">100</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// go up a line to overwrite the previous message</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">move_up</span><span class="p">();</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">clear_line</span><span class="p">();</span>
+<span class="w">  </span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam12internal_i2cEv">
+<span id="_CPPv3N4espp11EspTimerCam12internal_i2cEv"></span><span id="_CPPv2N4espp11EspTimerCam12internal_i2cEv"></span><span id="espp::EspTimerCam::internal_i2c"></span><span class="target" id="classespp_1_1EspTimerCam_1a80dc5375b941218ca2ed6bd98ed89a99"></span><a class="reference internal" href="i2c.html#_CPPv4N4espp3I2cE" title="espp::I2c"><span class="n"><span class="pre">I2c</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">internal_i2c</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam12internal_i2cEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get a reference to the internal I2C bus </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The internal I2C bus is used for the touchscreen and audio codec </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A reference to the internal I2C bus </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam10interruptsEv">
+<span id="_CPPv3N4espp11EspTimerCam10interruptsEv"></span><span id="_CPPv2N4espp11EspTimerCam10interruptsEv"></span><span id="espp::EspTimerCam::interrupts"></span><span class="target" id="classespp_1_1EspTimerCam_1af6757fb0dcc9b56aa11ab1a03b2b6860"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="interrupt.html#_CPPv4N4espp9InterruptE" title="espp::Interrupt"><span class="n"><span class="pre">Interrupt</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">interrupts</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam10interruptsEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get a reference to the interrupts </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A reference to the interrupts </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam14initialize_ledEf">
+<span id="_CPPv3N4espp11EspTimerCam14initialize_ledEf"></span><span id="_CPPv2N4espp11EspTimerCam14initialize_ledEf"></span><span id="espp::EspTimerCam::initialize_led__float"></span><span class="target" id="classespp_1_1EspTimerCam_1a3fbb2ffecf6199453b37ae9ab1828ad1"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize_led</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">breathing_period</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">3.5f</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam14initialize_ledEf" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the LED. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>breathing_period</strong> – The period of the LED breathing effect </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the LED was successfully initialized, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam19start_led_breathingEv">
+<span id="_CPPv3N4espp11EspTimerCam19start_led_breathingEv"></span><span id="_CPPv2N4espp11EspTimerCam19start_led_breathingEv"></span><span id="espp::EspTimerCam::start_led_breathing"></span><span class="target" id="classespp_1_1EspTimerCam_1a990a4693c8fd569fe920c28cb0c26fd3"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">start_led_breathing</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam19start_led_breathingEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Start the LED breathing effect. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam18stop_led_breathingEv">
+<span id="_CPPv3N4espp11EspTimerCam18stop_led_breathingEv"></span><span id="_CPPv2N4espp11EspTimerCam18stop_led_breathingEv"></span><span id="espp::EspTimerCam::stop_led_breathing"></span><span class="target" id="classespp_1_1EspTimerCam_1a788bb7be9557e4b4bfd698e6142b8992"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stop_led_breathing</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam18stop_led_breathingEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Stop the LED breathing effect. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam18set_led_brightnessEf">
+<span id="_CPPv3N4espp11EspTimerCam18set_led_brightnessEf"></span><span id="_CPPv2N4espp11EspTimerCam18set_led_brightnessEf"></span><span id="espp::EspTimerCam::set_led_brightness__float"></span><span class="target" id="classespp_1_1EspTimerCam_1a38b243ca1e0582ba088decba0f6b198a"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_led_brightness</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">brightness</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam18set_led_brightnessEf" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the LED brightness. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The LED brightness can only be set if the LED is not currently breathing </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>brightness</strong> – The brightness of the LED, in the range [0, 1] </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the LED brightness was successfully set, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam18get_led_brightnessEv">
+<span id="_CPPv3N4espp11EspTimerCam18get_led_brightnessEv"></span><span id="_CPPv2N4espp11EspTimerCam18get_led_brightnessEv"></span><span id="espp::EspTimerCam::get_led_brightness"></span><span class="target" id="classespp_1_1EspTimerCam_1ae07cc8d55e716d24de629ede63ff4313"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_led_brightness</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam18get_led_brightnessEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the LED brightness. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The brightness of the LED, in the range [0, 1] </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam24set_led_breathing_periodEf">
+<span id="_CPPv3N4espp11EspTimerCam24set_led_breathing_periodEf"></span><span id="_CPPv2N4espp11EspTimerCam24set_led_breathing_periodEf"></span><span id="espp::EspTimerCam::set_led_breathing_period__float"></span><span class="target" id="classespp_1_1EspTimerCam_1a78ddd882a02511f463f7fa9b0fe55622"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_led_breathing_period</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">period</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam24set_led_breathing_periodEf" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the LED breathing period. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>period</strong> – The period of the LED breathing effect in seconds </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the LED breathing period was successfully set, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam24get_led_breathing_periodEv">
+<span id="_CPPv3N4espp11EspTimerCam24get_led_breathing_periodEv"></span><span id="_CPPv2N4espp11EspTimerCam24get_led_breathing_periodEv"></span><span id="espp::EspTimerCam::get_led_breathing_period"></span><span class="target" id="classespp_1_1EspTimerCam_1a3125ac76f5fc99823c6e079dda9df301"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_led_breathing_period</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam24get_led_breathing_periodEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the LED breathing period. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The period of the LED breathing effect in seconds </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam3ledEv">
+<span id="_CPPv3N4espp11EspTimerCam3ledEv"></span><span id="_CPPv2N4espp11EspTimerCam3ledEv"></span><span id="espp::EspTimerCam::led"></span><span class="target" id="classespp_1_1EspTimerCam_1a00ce4527a67fa6a4ffa4df778d61f58d"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="led.html#_CPPv4N4espp3LedE" title="espp::Led"><span class="n"><span class="pre">Led</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">led</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam3ledEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the LED. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A shared pointer to the LED </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam8gaussianEv">
+<span id="_CPPv3N4espp11EspTimerCam8gaussianEv"></span><span id="_CPPv2N4espp11EspTimerCam8gaussianEv"></span><span id="espp::EspTimerCam::gaussian"></span><span class="target" id="classespp_1_1EspTimerCam_1ab51862cfd6bd07b32cd9f61cd6e7b19b"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="math/gaussian.html#_CPPv4N4espp8GaussianE" title="espp::Gaussian"><span class="n"><span class="pre">Gaussian</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">gaussian</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam8gaussianEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the <a class="reference internal" href="math/gaussian.html#classespp_1_1Gaussian"><span class="std std-ref">Gaussian</span></a> waveform used for the LED breathing effect. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A reference to the <a class="reference internal" href="math/gaussian.html#classespp_1_1Gaussian"><span class="std std-ref">Gaussian</span></a> waveform used for the LED breathing effect </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam19get_battery_voltageEv">
+<span id="_CPPv3N4espp11EspTimerCam19get_battery_voltageEv"></span><span id="_CPPv2N4espp11EspTimerCam19get_battery_voltageEv"></span><span id="espp::EspTimerCam::get_battery_voltage"></span><span class="target" id="classespp_1_1EspTimerCam_1a91f18321990647ade4fdbede1951a858"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_battery_voltage</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam19get_battery_voltageEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the battery voltage. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The battery voltage in volts </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam14initialize_rtcEv">
+<span id="_CPPv3N4espp11EspTimerCam14initialize_rtcEv"></span><span id="_CPPv2N4espp11EspTimerCam14initialize_rtcEv"></span><span id="espp::EspTimerCam::initialize_rtc"></span><span class="target" id="classespp_1_1EspTimerCam_1ab62df08a30d45d494a4464374e0d4f9a"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize_rtc</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam14initialize_rtcEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the RTC. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if the RTC was successfully initialized, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam3rtcEv">
+<span id="_CPPv3N4espp11EspTimerCam3rtcEv"></span><span id="_CPPv2N4espp11EspTimerCam3rtcEv"></span><span id="espp::EspTimerCam::rtc"></span><span class="target" id="classespp_1_1EspTimerCam_1a469370e109b0b949b736713da5e938f2"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">Rtc</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">rtc</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam3rtcEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the RTC. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A shared pointer to the RTC </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp11EspTimerCam8get_nameEv">
+<span id="_CPPv3NK4espp11EspTimerCam8get_nameEv"></span><span id="_CPPv2NK4espp11EspTimerCam8get_nameEv"></span><span id="espp::EspTimerCam::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp11EspTimerCam8get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp11EspTimerCam11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp11EspTimerCam11set_log_tagERKNSt11string_viewE"></span><span id="espp::EspTimerCam::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp11EspTimerCam13get_log_levelEv">
+<span id="_CPPv3NK4espp11EspTimerCam13get_log_levelEv"></span><span id="_CPPv2NK4espp11EspTimerCam13get_log_levelEv"></span><span id="espp::EspTimerCam::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp11EspTimerCam13get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp11EspTimerCam13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp11EspTimerCam13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::EspTimerCam::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp11EspTimerCam17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp11EspTimerCam17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::EspTimerCam::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="ws_s3_touch.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp11EspTimerCam17get_log_verbosityEv">
+<span id="_CPPv3NK4espp11EspTimerCam17get_log_verbosityEv"></span><span id="_CPPv2NK4espp11EspTimerCam17get_log_verbosityEv"></span><span id="espp::EspTimerCam::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp11EspTimerCam17get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="ws_s3_touch.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp11EspTimerCam18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp11EspTimerCam18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::EspTimerCam::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam3getEv">
+<span id="_CPPv3N4espp11EspTimerCam3getEv"></span><span id="_CPPv2N4espp11EspTimerCam3getEv"></span><span id="espp::EspTimerCam::get"></span><span class="target" id="classespp_1_1EspTimerCam_1acd7202691a902141deebfe781793c87e"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp11EspTimerCamE" title="espp::EspTimerCam"><span class="n"><span class="pre">EspTimerCam</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam3getEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Access the singleton instance of the <a class="reference internal" href="#classespp_1_1EspTimerCam"><span class="std std-ref">EspTimerCam</span></a> class. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Reference to the singleton instance of the <a class="reference internal" href="#classespp_1_1EspTimerCam"><span class="std std-ref">EspTimerCam</span></a> class </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam20get_camera_reset_pinEv">
+<span id="_CPPv3N4espp11EspTimerCam20get_camera_reset_pinEv"></span><span id="_CPPv2N4espp11EspTimerCam20get_camera_reset_pinEv"></span><span id="espp::EspTimerCam::get_camera_reset_pin"></span><span class="target" id="classespp_1_1EspTimerCam_1a1efda96323ab2411aad62e6b7f5ef390"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_camera_reset_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam20get_camera_reset_pinEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the camera reset pin. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The camera reset pin </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam19get_camera_xclk_pinEv">
+<span id="_CPPv3N4espp11EspTimerCam19get_camera_xclk_pinEv"></span><span id="_CPPv2N4espp11EspTimerCam19get_camera_xclk_pinEv"></span><span id="espp::EspTimerCam::get_camera_xclk_pin"></span><span class="target" id="classespp_1_1EspTimerCam_1a4a76267bfc04c176915acb1881a7aec3"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_camera_xclk_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam19get_camera_xclk_pinEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the camera XCLK pin. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The camera XCLK pin </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam18get_camera_sda_pinEv">
+<span id="_CPPv3N4espp11EspTimerCam18get_camera_sda_pinEv"></span><span id="_CPPv2N4espp11EspTimerCam18get_camera_sda_pinEv"></span><span id="espp::EspTimerCam::get_camera_sda_pin"></span><span class="target" id="classespp_1_1EspTimerCam_1a604312036622c75e74493f8d943a587c"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_camera_sda_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam18get_camera_sda_pinEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the camera SDA pin. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The camera SDA pin </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam18get_camera_scl_pinEv">
+<span id="_CPPv3N4espp11EspTimerCam18get_camera_scl_pinEv"></span><span id="_CPPv2N4espp11EspTimerCam18get_camera_scl_pinEv"></span><span id="espp::EspTimerCam::get_camera_scl_pin"></span><span class="target" id="classespp_1_1EspTimerCam_1a68b03e326163e6753ee497ddb959fd6a"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_camera_scl_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam18get_camera_scl_pinEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the camera SCL pin. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The camera SCL pin </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam17get_camera_d0_pinEv">
+<span id="_CPPv3N4espp11EspTimerCam17get_camera_d0_pinEv"></span><span id="_CPPv2N4espp11EspTimerCam17get_camera_d0_pinEv"></span><span id="espp::EspTimerCam::get_camera_d0_pin"></span><span class="target" id="classespp_1_1EspTimerCam_1a3bdd047855156a76d0e445a23c320e2c"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_camera_d0_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam17get_camera_d0_pinEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the camera D0 pin. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The camera D0 pin </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam17get_camera_d1_pinEv">
+<span id="_CPPv3N4espp11EspTimerCam17get_camera_d1_pinEv"></span><span id="_CPPv2N4espp11EspTimerCam17get_camera_d1_pinEv"></span><span id="espp::EspTimerCam::get_camera_d1_pin"></span><span class="target" id="classespp_1_1EspTimerCam_1add1c5b7024a390d266e37d2bc3e7ae44"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_camera_d1_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam17get_camera_d1_pinEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the camera D1 pin. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The camera D1 pin </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam17get_camera_d2_pinEv">
+<span id="_CPPv3N4espp11EspTimerCam17get_camera_d2_pinEv"></span><span id="_CPPv2N4espp11EspTimerCam17get_camera_d2_pinEv"></span><span id="espp::EspTimerCam::get_camera_d2_pin"></span><span class="target" id="classespp_1_1EspTimerCam_1a9ab01fe3f95d5617ea5a05c38d70e796"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_camera_d2_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam17get_camera_d2_pinEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the camera D2 pin. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The camera D2 pin </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam17get_camera_d3_pinEv">
+<span id="_CPPv3N4espp11EspTimerCam17get_camera_d3_pinEv"></span><span id="_CPPv2N4espp11EspTimerCam17get_camera_d3_pinEv"></span><span id="espp::EspTimerCam::get_camera_d3_pin"></span><span class="target" id="classespp_1_1EspTimerCam_1ae8a4e3fd90536abb2c2ce46b6483d933"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_camera_d3_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam17get_camera_d3_pinEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the camera D3 pin. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The camera D3 pin </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam17get_camera_d4_pinEv">
+<span id="_CPPv3N4espp11EspTimerCam17get_camera_d4_pinEv"></span><span id="_CPPv2N4espp11EspTimerCam17get_camera_d4_pinEv"></span><span id="espp::EspTimerCam::get_camera_d4_pin"></span><span class="target" id="classespp_1_1EspTimerCam_1a05e63eeb82989b2cedb28e72f7ccde06"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_camera_d4_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam17get_camera_d4_pinEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the camera D4 pin. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The camera D4 pin </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam17get_camera_d5_pinEv">
+<span id="_CPPv3N4espp11EspTimerCam17get_camera_d5_pinEv"></span><span id="_CPPv2N4espp11EspTimerCam17get_camera_d5_pinEv"></span><span id="espp::EspTimerCam::get_camera_d5_pin"></span><span class="target" id="classespp_1_1EspTimerCam_1a8bb8f205493069b24f364a8d8ba40fb0"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_camera_d5_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam17get_camera_d5_pinEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the camera D5 pin. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The camera D5 pin </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam17get_camera_d6_pinEv">
+<span id="_CPPv3N4espp11EspTimerCam17get_camera_d6_pinEv"></span><span id="_CPPv2N4espp11EspTimerCam17get_camera_d6_pinEv"></span><span id="espp::EspTimerCam::get_camera_d6_pin"></span><span class="target" id="classespp_1_1EspTimerCam_1a06b7b5047697d9642fb8580dfa711fdf"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_camera_d6_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam17get_camera_d6_pinEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the camera D6 pin. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The camera D6 pin </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam17get_camera_d7_pinEv">
+<span id="_CPPv3N4espp11EspTimerCam17get_camera_d7_pinEv"></span><span id="_CPPv2N4espp11EspTimerCam17get_camera_d7_pinEv"></span><span id="espp::EspTimerCam::get_camera_d7_pin"></span><span class="target" id="classespp_1_1EspTimerCam_1a1db530c8d76501dc46ff3b36dcd146b7"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_camera_d7_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam17get_camera_d7_pinEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the camera D7 pin. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The camera D7 pin </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam20get_camera_vsync_pinEv">
+<span id="_CPPv3N4espp11EspTimerCam20get_camera_vsync_pinEv"></span><span id="_CPPv2N4espp11EspTimerCam20get_camera_vsync_pinEv"></span><span id="espp::EspTimerCam::get_camera_vsync_pin"></span><span class="target" id="classespp_1_1EspTimerCam_1a1e92d0bd2e5b6c70ab18f5a5213b92e6"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_camera_vsync_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam20get_camera_vsync_pinEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the camera VSYNC pin. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The camera VSYNC pin </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam19get_camera_href_pinEv">
+<span id="_CPPv3N4espp11EspTimerCam19get_camera_href_pinEv"></span><span id="_CPPv2N4espp11EspTimerCam19get_camera_href_pinEv"></span><span id="espp::EspTimerCam::get_camera_href_pin"></span><span class="target" id="classespp_1_1EspTimerCam_1a67bf94b0a299052cbf1271629734e43c"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_camera_href_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam19get_camera_href_pinEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the camera HREF pin. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The camera HREF pin </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam19get_camera_pclk_pinEv">
+<span id="_CPPv3N4espp11EspTimerCam19get_camera_pclk_pinEv"></span><span id="_CPPv2N4espp11EspTimerCam19get_camera_pclk_pinEv"></span><span id="espp::EspTimerCam::get_camera_pclk_pin"></span><span class="target" id="classespp_1_1EspTimerCam_1abc4dea5ad8ca939ddb0ce73353652089"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_camera_pclk_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam19get_camera_pclk_pinEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the camera PCLK pin. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The camera PCLK pin </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11EspTimerCam23get_camera_xclk_freq_hzEv">
+<span id="_CPPv3N4espp11EspTimerCam23get_camera_xclk_freq_hzEv"></span><span id="_CPPv2N4espp11EspTimerCam23get_camera_xclk_freq_hzEv"></span><span id="espp::EspTimerCam::get_camera_xclk_freq_hz"></span><span class="target" id="classespp_1_1EspTimerCam_1a5427c7a4b5ee596989bfbdef9b880bdf"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_camera_xclk_freq_hz</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11EspTimerCam23get_camera_xclk_freq_hzEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the camera XCLK frequency. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The camera XCLK frequency in Hz </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="encoder/mt6701_example.html" class="btn btn-neutral float-left" title="Mt6701 Example" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="esp32_timer_cam_example.html" class="btn btn-neutral float-right" title="ESP32-TIMER-CAM Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

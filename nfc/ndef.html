@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NDEF - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'nfc/ndef';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="ST25DV" href="st25dv.html" />
+    <link rel="prev" title="NFC APIs" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_component.html">Base Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../byte90.html">ALXV Labs Byte90</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cobs.html">COBS (Consistent Overhead Byte Stuffing)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp32_timer_cam.html">ESP32 TimerCam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esp_box.html">ESP BOX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../interrupt.html">Interrupt APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../iperf_menu.html">Iperf Menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../m5stack_tab5.html">M5Stack Tab5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../matouch_rotary_display.html">MaTouch Rotary Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../motorgo_mini.html">MotorGo Mini</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../neopixel.html">Neopixel APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">NFC APIs</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">NDEF</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#unions">Unions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="st25dv.html">ST25DV</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../nvs.html">NVS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../remote_debug.html">Remote Debug APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../runqueue.html">RunQueue APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../seeed_studio_round_display.html">Seeed Studio Round Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_deck.html">LilyGo T-Deck</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../t_dongle_s3.html">LilyGo T-Dongle S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wrover_kit.html">ESP32-WROVER-KIT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">NFC APIs</a></li>
+      <li class="breadcrumb-item active">NDEF</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/32e8215e/docs/en/nfc/ndef.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="ndef">
+<h1>NDEF<a class="headerlink" href="#ndef" title="Permalink to this heading"></a></h1>
+<p>The <cite>NDEF</cite> component provides a utility class for dealing with NFC Data Exchange
+Format (NDEF) records, which are used by NFC Tags.</p>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/32e8215e/components/ndef/include/ndef.hpp">components/ndef/include/ndef.hpp</a></p></li>
+</ul>
+</section>
+<section id="unions">
+<h3>Unions<a class="headerlink" href="#unions" title="Permalink to this heading"></a></h3>
+<dl class="cpp union">
+<dt class="sig sig-object cpp">
+<span class="target" id="unionespp_1_1Ndef_1_1Flags_8____unnamed117____"></span><span class="sig-name descname"><span class="pre">espp::Ndef::Flags.__unnamed117__</span></span></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="unionespp_1_1Ndef_1_1Flags_8____unnamed117_____1a76cc0142e39a4d85b81d8d41171b7199"></span><span class="sig-name descname"><span class="pre">struct</span> <span class="pre">espp::Ndef::Flags</span></span></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19PhonyNameDueToError3rawE">
+<span id="_CPPv3N19PhonyNameDueToError3rawE"></span><span id="_CPPv2N19PhonyNameDueToError3rawE"></span><span id="PhonyNameDueToError::raw__uint8_t"></span><span class="target" id="unionespp_1_1Ndef_1_1Flags_8____unnamed117_____1abdd166af3a63f7be696dd17a218a6ffb"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">raw</span></span></span><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4NdefE">
+<span id="_CPPv3N4espp4NdefE"></span><span id="_CPPv2N4espp4NdefE"></span><span id="espp::Ndef"></span><span class="target" id="classespp_1_1Ndef"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ndef</span></span></span><a class="headerlink" href="#_CPPv4N4espp4NdefE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>implements serialization &amp; deserialization logic for NFC Data Exchange Format (NDEF) records which can be stored on and transmitted from NFC devices. </p>
+<p>NDEF records can be composed the following way: <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Bit 7     6       5       4       3       2       1       0
+------  ------  ------  ------  ------  ------  ------  ------
+[ MB ]  [ ME ]  [ CF ]  [ SR ]  [ IL ]  [        TNF         ]
+[                         TYPE LENGTH  (may be 0)            ]
+[                       PAYLOAD LENGTH (1B or 4B, see SR)    ]
+[                          ID LENGTH   (if IL)               ]
+[                         RECORD TYPE  (if TYPE LENGTH &gt; 0)  ]
+[                              ID      (if IL)               ]
+[                           PAYLOAD    (payload length bytes)]
+</pre></div>
+</div>
+</p>
+<p>The first byte (Flags) has these bits: * Bits 0-3: TNF - Type Name Format - describes record type (see TNF class) * Bit 3: IL - ID Length - indicates if the ID Length Field is present or not * Bit 4: SR - Short Record - set to 1 if the payload length field is 1 byte (8 bits / 0-255) or less, otherwise the payload length is 4 bytes * Bit 5: CF - Chunk Flag - indicates if this is the first record chunk or a middle record chunk, set to 0 for the first record of the message and for subsequent records set to 1. * Bit 6: ME - Message End - 1 indicates if this is the last record in the message * Bit 7: MB - Message Begin - 1 indicates if this is the first record in the message</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Some information about NDEF can be found: * <a class="reference external" href="https://www.maskaravivek.com/post/understanding-the-format-of-ndef-messages/">https://www.maskaravivek.com/post/understanding-the-format-of-ndef-messages/</a> * <a class="reference external" href="https://ndeflib.readthedocs.io/en/stable/records/bluetooth.html">https://ndeflib.readthedocs.io/en/stable/records/bluetooth.html</a> * <a class="reference external" href="https://developer.android.com/reference/android/nfc/NdefMessage">https://developer.android.com/reference/android/nfc/NdefMessage</a> * <a class="reference external" href="https://www.oreilly.com/library/view/beginning-nfc/9781449324094/ch04.html">https://www.oreilly.com/library/view/beginning-nfc/9781449324094/ch04.html</a> * <a class="reference external" href="https://learn.adafruit.com/adafruit-pn532-rfid-nfc/ndef">https://learn.adafruit.com/adafruit-pn532-rfid-nfc/ndef</a></p>
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3TNFE">
+<span id="_CPPv3N4espp4Ndef3TNFE"></span><span id="_CPPv2N4espp4Ndef3TNFE"></span><span class="target" id="classespp_1_1Ndef_1a3bba1f80fdab091bae84963ede3003e5"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TNF</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3TNFE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Type Name Format (TNF) field is a 3-bit value that describes the record type. </p>
+<p>Some Common <a class="reference internal" href="#classespp_1_1Ndef_1a3bba1f80fdab091bae84963ede3003e5a8ee291cc9f4250e12b6a43acd1ae71f1"><span class="std std-ref">TNF::WELL_KNOWN</span></a> record type strings: * Text (T) * URI (U) * Smart Poster (Sp) * Alternative Carrier (ac) * Handover Carrier (Hc) * Handover Request (Hr) * Handover Select (Hs) </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3TNF5EMPTYE">
+<span id="_CPPv3N4espp4Ndef3TNF5EMPTYE"></span><span id="_CPPv2N4espp4Ndef3TNF5EMPTYE"></span><span class="target" id="classespp_1_1Ndef_1a3bba1f80fdab091bae84963ede3003e5aba2b45bdc11e2a4a6e86aab2ac693cbb"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EMPTY</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3TNF5EMPTYE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Record is empty. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3TNF10WELL_KNOWNE">
+<span id="_CPPv3N4espp4Ndef3TNF10WELL_KNOWNE"></span><span id="_CPPv2N4espp4Ndef3TNF10WELL_KNOWNE"></span><span class="target" id="classespp_1_1Ndef_1a3bba1f80fdab091bae84963ede3003e5a8ee291cc9f4250e12b6a43acd1ae71f1"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">WELL_KNOWN</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3TNF10WELL_KNOWNE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Type field contains a well-known RTD type name. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3TNF10MIME_MEDIAE">
+<span id="_CPPv3N4espp4Ndef3TNF10MIME_MEDIAE"></span><span id="_CPPv2N4espp4Ndef3TNF10MIME_MEDIAE"></span><span class="target" id="classespp_1_1Ndef_1a3bba1f80fdab091bae84963ede3003e5ac5cf5a39b1c647dbe1b07248cb193891"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MIME_MEDIA</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3TNF10MIME_MEDIAE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Type field contains a media type (RFC 2046) </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3TNF12ABSOLUTE_URIE">
+<span id="_CPPv3N4espp4Ndef3TNF12ABSOLUTE_URIE"></span><span id="_CPPv2N4espp4Ndef3TNF12ABSOLUTE_URIE"></span><span class="target" id="classespp_1_1Ndef_1a3bba1f80fdab091bae84963ede3003e5ab293e9982448138c988cc9ff150745ce"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ABSOLUTE_URI</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3TNF12ABSOLUTE_URIE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Type field contains an absolute URI (RFC 3986) </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3TNF13EXTERNAL_TYPEE">
+<span id="_CPPv3N4espp4Ndef3TNF13EXTERNAL_TYPEE"></span><span id="_CPPv2N4espp4Ndef3TNF13EXTERNAL_TYPEE"></span><span class="target" id="classespp_1_1Ndef_1a3bba1f80fdab091bae84963ede3003e5a1fc8068b9089dba0cce62a46f030edad"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EXTERNAL_TYPE</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3TNF13EXTERNAL_TYPEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Type field Contains an external type name. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3TNF7UNKNOWNE">
+<span id="_CPPv3N4espp4Ndef3TNF7UNKNOWNE"></span><span id="_CPPv2N4espp4Ndef3TNF7UNKNOWNE"></span><span class="target" id="classespp_1_1Ndef_1a3bba1f80fdab091bae84963ede3003e5a696b031073e74bf2cb98e5ef201d4aa3"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UNKNOWN</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3TNF7UNKNOWNE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Payload type is unknown, type length must be 0. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3TNF9UNCHANGEDE">
+<span id="_CPPv3N4espp4Ndef3TNF9UNCHANGEDE"></span><span id="_CPPv2N4espp4Ndef3TNF9UNCHANGEDE"></span><span class="target" id="classespp_1_1Ndef_1a3bba1f80fdab091bae84963ede3003e5a46335765005ff44b1fe1e38e5d2ddfcc"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UNCHANGED</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3TNF9UNCHANGEDE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Indicates the payload is an intermediate or final chunk of a chunked NDEF record, type length must be 0. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3TNF8RESERVEDE">
+<span id="_CPPv3N4espp4Ndef3TNF8RESERVEDE"></span><span id="_CPPv2N4espp4Ndef3TNF8RESERVEDE"></span><span class="target" id="classespp_1_1Ndef_1a3bba1f80fdab091bae84963ede3003e5a83c7f2aa8c3ac10ed8beb75cad162827"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RESERVED</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3TNF8RESERVEDE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Reserved by the NFC forum for future use. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3UicE">
+<span id="_CPPv3N4espp4Ndef3UicE"></span><span id="_CPPv2N4espp4Ndef3UicE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Uic</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3UicE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>URI Identifier Codes (UIC), See Table A-3 at <a class="reference external" href="https://www.oreilly.com/library/view/beginning-nfc/9781449324094/apa.html">https://www.oreilly.com/library/view/beginning-nfc/9781449324094/apa.html</a> and <a class="reference external" href="https://learn.adafruit.com/adafruit-pn532-rfid-nfc/ndef">https://learn.adafruit.com/adafruit-pn532-rfid-nfc/ndef</a></p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic4NONEE">
+<span id="_CPPv3N4espp4Ndef3Uic4NONEE"></span><span id="_CPPv2N4espp4Ndef3Uic4NONEE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17ab50339a10e1de285ac99d4c3990b8693"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NONE</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic4NONEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Exactly as written. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic8HTTP_WWWE">
+<span id="_CPPv3N4espp4Ndef3Uic8HTTP_WWWE"></span><span id="_CPPv2N4espp4Ndef3Uic8HTTP_WWWE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17a610eb6d830ec73ea0cbb0db7e0dd21bb"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">HTTP_WWW</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic8HTTP_WWWE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference external" href="http://www">http://www</a>. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic9HTTPS_WWWE">
+<span id="_CPPv3N4espp4Ndef3Uic9HTTPS_WWWE"></span><span id="_CPPv2N4espp4Ndef3Uic9HTTPS_WWWE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17ab9522804eaa2e4afccb42a63de1c90a0"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">HTTPS_WWW</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic9HTTPS_WWWE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference external" href="https://www">https://www</a>. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic4HTTPE">
+<span id="_CPPv3N4espp4Ndef3Uic4HTTPE"></span><span id="_CPPv2N4espp4Ndef3Uic4HTTPE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17a293c9ea246ff9985dc6f62a650f78986"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">HTTP</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic4HTTPE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference external" href="http://">http://</a></p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic5HTTPSE">
+<span id="_CPPv3N4espp4Ndef3Uic5HTTPSE"></span><span id="_CPPv2N4espp4Ndef3Uic5HTTPSE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17a0e8433f9a404f1f3ba601c14b026d321"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">HTTPS</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic5HTTPSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference external" href="https://">https://</a></p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic3TELE">
+<span id="_CPPv3N4espp4Ndef3Uic3TELE"></span><span id="_CPPv2N4espp4Ndef3Uic3TELE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17a6154785551f14c097a9caf44e74b615e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TEL</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic3TELE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>tel: </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic6MAILTOE">
+<span id="_CPPv3N4espp4Ndef3Uic6MAILTOE"></span><span id="_CPPv2N4espp4Ndef3Uic6MAILTOE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17a43b8b3d092408ddc2ae9af844fe50850"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MAILTO</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic6MAILTOE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>mailto: </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic8FTP_ANONE">
+<span id="_CPPv3N4espp4Ndef3Uic8FTP_ANONE"></span><span id="_CPPv2N4espp4Ndef3Uic8FTP_ANONE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17a472afb56940f76c4ad36f06ad4ddc1d7"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FTP_ANON</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic8FTP_ANONE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference external" href="ftp://anonymous:anonymous&#64;">ftp://anonymous:anonymous&#64;</a></p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic7FTP_FTPE">
+<span id="_CPPv3N4espp4Ndef3Uic7FTP_FTPE"></span><span id="_CPPv2N4espp4Ndef3Uic7FTP_FTPE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17aec69ec65586bccf2924fd029d1a4141e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FTP_FTP</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic7FTP_FTPE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference external" href="ftp://ftp">ftp://ftp</a>. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic4FTPSE">
+<span id="_CPPv3N4espp4Ndef3Uic4FTPSE"></span><span id="_CPPv2N4espp4Ndef3Uic4FTPSE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17a29f97c79cb913145ca7c7b259f68eda9"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FTPS</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic4FTPSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference external" href="ftps://">ftps://</a></p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic4SFTPE">
+<span id="_CPPv3N4espp4Ndef3Uic4SFTPE"></span><span id="_CPPv2N4espp4Ndef3Uic4SFTPE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17aea1386cf13bf90b95782349fdd4b2721"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SFTP</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic4SFTPE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference external" href="sftp://">sftp://</a></p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic3SMBE">
+<span id="_CPPv3N4espp4Ndef3Uic3SMBE"></span><span id="_CPPv2N4espp4Ndef3Uic3SMBE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17ab4fdd997b1f33e0d4c6964444c2bf399"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SMB</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic3SMBE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>smb:// </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic3NFSE">
+<span id="_CPPv3N4espp4Ndef3Uic3NFSE"></span><span id="_CPPv2N4espp4Ndef3Uic3NFSE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17a1d1a594959ec615f56516f5d0f5e8ddb"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NFS</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic3NFSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>nfs:// </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic3FTPE">
+<span id="_CPPv3N4espp4Ndef3Uic3FTPE"></span><span id="_CPPv2N4espp4Ndef3Uic3FTPE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17ac728a49363c9a93a43a7e7f232b5a54a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FTP</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic3FTPE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference external" href="ftp://">ftp://</a></p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic3DAVE">
+<span id="_CPPv3N4espp4Ndef3Uic3DAVE"></span><span id="_CPPv2N4espp4Ndef3Uic3DAVE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17a6c994b55210b8ad59f2663f3bb049673"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DAV</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic3DAVE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>dav:// </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic4NEWSE">
+<span id="_CPPv3N4espp4Ndef3Uic4NEWSE"></span><span id="_CPPv2N4espp4Ndef3Uic4NEWSE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17aff4e2dc4962dc25a1512353299992c8d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NEWS</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic4NEWSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>news: </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic6TELNETE">
+<span id="_CPPv3N4espp4Ndef3Uic6TELNETE"></span><span id="_CPPv2N4espp4Ndef3Uic6TELNETE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17a1360d1787ff8bb4f8eca82602452a58d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TELNET</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic6TELNETE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>telnet:// </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic4IMAPE">
+<span id="_CPPv3N4espp4Ndef3Uic4IMAPE"></span><span id="_CPPv2N4espp4Ndef3Uic4IMAPE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17a0b787be1ef17df10d26758673ae24325"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">IMAP</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic4IMAPE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>imap: </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic4RSTPE">
+<span id="_CPPv3N4espp4Ndef3Uic4RSTPE"></span><span id="_CPPv2N4espp4Ndef3Uic4RSTPE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17a70c93323ddcb89632da9dcb77ba54844"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RSTP</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic4RSTPE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>rtsp:// </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic3URNE">
+<span id="_CPPv3N4espp4Ndef3Uic3URNE"></span><span id="_CPPv2N4espp4Ndef3Uic3URNE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17a159673fd09d9000e8d7706ea5a751b10"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">URN</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic3URNE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>urn: </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic3POPE">
+<span id="_CPPv3N4espp4Ndef3Uic3POPE"></span><span id="_CPPv2N4espp4Ndef3Uic3POPE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17aefdb39a4c7286afcecf0e8a7435fce6a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">POP</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic3POPE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>pop: </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic3SIPE">
+<span id="_CPPv3N4espp4Ndef3Uic3SIPE"></span><span id="_CPPv2N4espp4Ndef3Uic3SIPE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17a7eb2de9ed94db7230fcafeb1d7c40878"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SIP</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic3SIPE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>sip: </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic4SIPSE">
+<span id="_CPPv3N4espp4Ndef3Uic4SIPSE"></span><span id="_CPPv2N4espp4Ndef3Uic4SIPSE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17a44a76d8e5ffed8c0e72f6207902dba14"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SIPS</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic4SIPSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>sips: </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic4TFTPE">
+<span id="_CPPv3N4espp4Ndef3Uic4TFTPE"></span><span id="_CPPv2N4espp4Ndef3Uic4TFTPE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17a34d3dff1acba95184204f7a379c6d4f7"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TFTP</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic4TFTPE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>tftp: </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic5BTSPPE">
+<span id="_CPPv3N4espp4Ndef3Uic5BTSPPE"></span><span id="_CPPv2N4espp4Ndef3Uic5BTSPPE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17a81090b5fcb6f86a2e1630cbbfbf3662d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BTSPP</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic5BTSPPE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>btspp:// </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic7BTL2CAPE">
+<span id="_CPPv3N4espp4Ndef3Uic7BTL2CAPE"></span><span id="_CPPv2N4espp4Ndef3Uic7BTL2CAPE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17a1ee9bbae71c45ab4397c161feaec4840"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BTL2CAP</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic7BTL2CAPE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>btl2cap:// </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic6BTGOEPE">
+<span id="_CPPv3N4espp4Ndef3Uic6BTGOEPE"></span><span id="_CPPv2N4espp4Ndef3Uic6BTGOEPE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17aff6343cef8f89994d9c9eb5df5b71593"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BTGOEP</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic6BTGOEPE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>btgoep:// </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic7TCPOBEXE">
+<span id="_CPPv3N4espp4Ndef3Uic7TCPOBEXE"></span><span id="_CPPv2N4espp4Ndef3Uic7TCPOBEXE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17ae3c51d88bdea51cfc57178bfd6709596"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TCPOBEX</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic7TCPOBEXE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>tcpobex:// </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic8IRDAOBEXE">
+<span id="_CPPv3N4espp4Ndef3Uic8IRDAOBEXE"></span><span id="_CPPv2N4espp4Ndef3Uic8IRDAOBEXE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17a8790d2ac467ea1bef0e6ddd6cdf5c294"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">IRDAOBEX</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic8IRDAOBEXE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>irdaobex:// </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic4FILEE">
+<span id="_CPPv3N4espp4Ndef3Uic4FILEE"></span><span id="_CPPv2N4espp4Ndef3Uic4FILEE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17a9fc5887c030f7a3e19821ebec457e719"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FILE</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic4FILEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference external" href="file://">file://</a></p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic10URN_EPC_IDE">
+<span id="_CPPv3N4espp4Ndef3Uic10URN_EPC_IDE"></span><span id="_CPPv2N4espp4Ndef3Uic10URN_EPC_IDE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17a7c5fab2988fa4a6868131391acb98569"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">URN_EPC_ID</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic10URN_EPC_IDE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>urn:epc:id: </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic11URN_EPC_TAGE">
+<span id="_CPPv3N4espp4Ndef3Uic11URN_EPC_TAGE"></span><span id="_CPPv2N4espp4Ndef3Uic11URN_EPC_TAGE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17a21380900a76174819c59015ffcd17f7e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">URN_EPC_TAG</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic11URN_EPC_TAGE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>urn:epc:tag: </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic11URN_EPC_PATE">
+<span id="_CPPv3N4espp4Ndef3Uic11URN_EPC_PATE"></span><span id="_CPPv2N4espp4Ndef3Uic11URN_EPC_PATE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17a0d93e64775449882c412ffc993c2fbe0"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">URN_EPC_PAT</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic11URN_EPC_PATE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>urn:epc:pat: </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic11URN_EPC_RAWE">
+<span id="_CPPv3N4espp4Ndef3Uic11URN_EPC_RAWE"></span><span id="_CPPv2N4espp4Ndef3Uic11URN_EPC_RAWE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17a49194a2bedc87e93c1fa90ed70d440ec"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">URN_EPC_RAW</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic11URN_EPC_RAWE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>urn:epc:raw: </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic7URN_EPCE">
+<span id="_CPPv3N4espp4Ndef3Uic7URN_EPCE"></span><span id="_CPPv2N4espp4Ndef3Uic7URN_EPCE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17a2d330bbe4ce80a2e335abf1ac0cf557c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">URN_EPC</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic7URN_EPCE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>urn:epc: </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic7URN_NFCE">
+<span id="_CPPv3N4espp4Ndef3Uic7URN_NFCE"></span><span id="_CPPv2N4espp4Ndef3Uic7URN_NFCE"></span><span class="target" id="classespp_1_1Ndef_1a7d817b2e34e9db2201c6117d133a5a17ab7009d66ae58d7ad9ef3213164f455f7"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">URN_NFC</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic7URN_NFCE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>urn:nfc: </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef6BtTypeE">
+<span id="_CPPv3N4espp4Ndef6BtTypeE"></span><span id="_CPPv2N4espp4Ndef6BtTypeE"></span><span class="target" id="classespp_1_1Ndef_1a3e16f7b6238006bfe97ddee2e281756e"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BtType</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef6BtTypeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Type of Bluetooth radios. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef6BtType5BREDRE">
+<span id="_CPPv3N4espp4Ndef6BtType5BREDRE"></span><span id="_CPPv2N4espp4Ndef6BtType5BREDRE"></span><span class="target" id="classespp_1_1Ndef_1a3e16f7b6238006bfe97ddee2e281756eaef8d1ba34cf71f0642c8f16f494c17e4"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BREDR</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef6BtType5BREDRE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>BT Classic. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef6BtType3BLEE">
+<span id="_CPPv3N4espp4Ndef6BtType3BLEE"></span><span id="_CPPv2N4espp4Ndef6BtType3BLEE"></span><span class="target" id="classespp_1_1Ndef_1a3e16f7b6238006bfe97ddee2e281756eaae804beca913e84e57f2288debee6d2a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BLE</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef6BtType3BLEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>BT Low Energy. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef12BtAppearanceE">
+<span id="_CPPv3N4espp4Ndef12BtAppearanceE"></span><span id="_CPPv2N4espp4Ndef12BtAppearanceE"></span><span class="target" id="classespp_1_1Ndef_1aca3cdad6726307fe22736ca6f5bb25d3"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BtAppearance</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef12BtAppearanceE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Some appearance codes for BLE radios. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef12BtAppearance7UNKNOWNE">
+<span id="_CPPv3N4espp4Ndef12BtAppearance7UNKNOWNE"></span><span id="_CPPv2N4espp4Ndef12BtAppearance7UNKNOWNE"></span><span class="target" id="classespp_1_1Ndef_1aca3cdad6726307fe22736ca6f5bb25d3a696b031073e74bf2cb98e5ef201d4aa3"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UNKNOWN</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef12BtAppearance7UNKNOWNE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Generic Unknown. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef12BtAppearance5PHONEE">
+<span id="_CPPv3N4espp4Ndef12BtAppearance5PHONEE"></span><span id="_CPPv2N4espp4Ndef12BtAppearance5PHONEE"></span><span class="target" id="classespp_1_1Ndef_1aca3cdad6726307fe22736ca6f5bb25d3af9dd946cc89c1f3b41a0edbe0f36931d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PHONE</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef12BtAppearance5PHONEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Generic Phone. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef12BtAppearance8COMPUTERE">
+<span id="_CPPv3N4espp4Ndef12BtAppearance8COMPUTERE"></span><span id="_CPPv2N4espp4Ndef12BtAppearance8COMPUTERE"></span><span class="target" id="classespp_1_1Ndef_1aca3cdad6726307fe22736ca6f5bb25d3ad19cbc472227d1e3d1d276c2cbc0e513"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">COMPUTER</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef12BtAppearance8COMPUTERE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Generic Computer. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef12BtAppearance5WATCHE">
+<span id="_CPPv3N4espp4Ndef12BtAppearance5WATCHE"></span><span id="_CPPv2N4espp4Ndef12BtAppearance5WATCHE"></span><span class="target" id="classespp_1_1Ndef_1aca3cdad6726307fe22736ca6f5bb25d3ae586513b443516b9e00a844bfbacd16e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">WATCH</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef12BtAppearance5WATCHE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Generic Watch. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef12BtAppearance5CLOCKE">
+<span id="_CPPv3N4espp4Ndef12BtAppearance5CLOCKE"></span><span id="_CPPv2N4espp4Ndef12BtAppearance5CLOCKE"></span><span class="target" id="classespp_1_1Ndef_1aca3cdad6726307fe22736ca6f5bb25d3aca6c44800b2dc123e0d4389a867e8686"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CLOCK</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef12BtAppearance5CLOCKE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Generic Clock. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef12BtAppearance7DISPLAYE">
+<span id="_CPPv3N4espp4Ndef12BtAppearance7DISPLAYE"></span><span id="_CPPv2N4espp4Ndef12BtAppearance7DISPLAYE"></span><span class="target" id="classespp_1_1Ndef_1aca3cdad6726307fe22736ca6f5bb25d3ac97ad854bf48c774ad3d0863fe1ec8cd"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DISPLAY</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef12BtAppearance7DISPLAYE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Generic <a class="reference internal" href="../display/display.html#classespp_1_1Display"><span class="std std-ref">Display</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef12BtAppearance14REMOTE_CONTROLE">
+<span id="_CPPv3N4espp4Ndef12BtAppearance14REMOTE_CONTROLE"></span><span id="_CPPv2N4espp4Ndef12BtAppearance14REMOTE_CONTROLE"></span><span class="target" id="classespp_1_1Ndef_1aca3cdad6726307fe22736ca6f5bb25d3abf93a2711fd75b37341df61a2325eb87"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">REMOTE_CONTROL</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef12BtAppearance14REMOTE_CONTROLE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Generic Remote Control. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef12BtAppearance11GENERIC_HIDE">
+<span id="_CPPv3N4espp4Ndef12BtAppearance11GENERIC_HIDE"></span><span id="_CPPv2N4espp4Ndef12BtAppearance11GENERIC_HIDE"></span><span class="target" id="classespp_1_1Ndef_1aca3cdad6726307fe22736ca6f5bb25d3abaadec66cd41e07935bc7da6e4fd3799"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GENERIC_HID</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef12BtAppearance11GENERIC_HIDE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Generic HID. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef12BtAppearance8KEYBOARDE">
+<span id="_CPPv3N4espp4Ndef12BtAppearance8KEYBOARDE"></span><span id="_CPPv2N4espp4Ndef12BtAppearance8KEYBOARDE"></span><span class="target" id="classespp_1_1Ndef_1aca3cdad6726307fe22736ca6f5bb25d3aedda266cdb6345b9f6914cc2e7577475"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">KEYBOARD</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef12BtAppearance8KEYBOARDE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>HID Keyboard. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef12BtAppearance5MOUSEE">
+<span id="_CPPv3N4espp4Ndef12BtAppearance5MOUSEE"></span><span id="_CPPv2N4espp4Ndef12BtAppearance5MOUSEE"></span><span class="target" id="classespp_1_1Ndef_1aca3cdad6726307fe22736ca6f5bb25d3a2ec2be318cc86a1224c0e9dcc71321e4"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MOUSE</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef12BtAppearance5MOUSEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>HID Mouse. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef12BtAppearance8JOYSTICKE">
+<span id="_CPPv3N4espp4Ndef12BtAppearance8JOYSTICKE"></span><span id="_CPPv2N4espp4Ndef12BtAppearance8JOYSTICKE"></span><span class="target" id="classespp_1_1Ndef_1aca3cdad6726307fe22736ca6f5bb25d3ab1863bd2f1f87295e69e4b2a7b4b5bfd"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">JOYSTICK</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef12BtAppearance8JOYSTICKE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>HID <a class="reference internal" href="../joystick.html#classespp_1_1Joystick"><span class="std std-ref">Joystick</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef12BtAppearance7GAMEPADE">
+<span id="_CPPv3N4espp4Ndef12BtAppearance7GAMEPADE"></span><span id="_CPPv2N4espp4Ndef12BtAppearance7GAMEPADE"></span><span class="target" id="classespp_1_1Ndef_1aca3cdad6726307fe22736ca6f5bb25d3a239b3c8d76ee0445bb32a79499d244e8"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GAMEPAD</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef12BtAppearance7GAMEPADE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>HID Gamepad. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef12BtAppearance8TOUCHPADE">
+<span id="_CPPv3N4espp4Ndef12BtAppearance8TOUCHPADE"></span><span id="_CPPv2N4espp4Ndef12BtAppearance8TOUCHPADE"></span><span class="target" id="classespp_1_1Ndef_1aca3cdad6726307fe22736ca6f5bb25d3ab37023f260283a7a7f7ae79637f476d1"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TOUCHPAD</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef12BtAppearance8TOUCHPADE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>HID Touchpad. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef12BtAppearance6GAMINGE">
+<span id="_CPPv3N4espp4Ndef12BtAppearance6GAMINGE"></span><span id="_CPPv2N4espp4Ndef12BtAppearance6GAMINGE"></span><span class="target" id="classespp_1_1Ndef_1aca3cdad6726307fe22736ca6f5bb25d3abc28dfa98e037dee6cbd580f6e6979ef"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GAMING</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef12BtAppearance6GAMINGE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Generic Gaming group. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef17CarrierPowerStateE">
+<span id="_CPPv3N4espp4Ndef17CarrierPowerStateE"></span><span id="_CPPv2N4espp4Ndef17CarrierPowerStateE"></span><span class="target" id="classespp_1_1Ndef_1a4de88f0052d7d3aeec538f5bd58be6aa"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CarrierPowerState</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef17CarrierPowerStateE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Power state of a BLE radio. </p>
+<p>Representation of the carrier power state in a Handover Select message. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef17CarrierPowerState8INACTIVEE">
+<span id="_CPPv3N4espp4Ndef17CarrierPowerState8INACTIVEE"></span><span id="_CPPv2N4espp4Ndef17CarrierPowerState8INACTIVEE"></span><span class="target" id="classespp_1_1Ndef_1a4de88f0052d7d3aeec538f5bd58be6aaa6b273343c454f9c53dcfc9c4ccf171d2"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">INACTIVE</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef17CarrierPowerState8INACTIVEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Carrier power is off. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef17CarrierPowerState6ACTIVEE">
+<span id="_CPPv3N4espp4Ndef17CarrierPowerState6ACTIVEE"></span><span id="_CPPv2N4espp4Ndef17CarrierPowerState6ACTIVEE"></span><span class="target" id="classespp_1_1Ndef_1a4de88f0052d7d3aeec538f5bd58be6aaa18ff74f43da410c5529f7d6fca84f115"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ACTIVE</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef17CarrierPowerState6ACTIVEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Carrier power is on. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef17CarrierPowerState10ACTIVATINGE">
+<span id="_CPPv3N4espp4Ndef17CarrierPowerState10ACTIVATINGE"></span><span id="_CPPv2N4espp4Ndef17CarrierPowerState10ACTIVATINGE"></span><span class="target" id="classespp_1_1Ndef_1a4de88f0052d7d3aeec538f5bd58be6aaaf0e310ac027b783acc3f0772af161652"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ACTIVATING</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef17CarrierPowerState10ACTIVATINGE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Carrier power is turning on. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef17CarrierPowerState7UNKNOWNE">
+<span id="_CPPv3N4espp4Ndef17CarrierPowerState7UNKNOWNE"></span><span id="_CPPv2N4espp4Ndef17CarrierPowerState7UNKNOWNE"></span><span class="target" id="classespp_1_1Ndef_1a4de88f0052d7d3aeec538f5bd58be6aaa696b031073e74bf2cb98e5ef201d4aa3"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UNKNOWN</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef17CarrierPowerState7UNKNOWNE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Carrier power state is unknown. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef5BtEirE">
+<span id="_CPPv3N4espp4Ndef5BtEirE"></span><span id="_CPPv2N4espp4Ndef5BtEirE"></span><span class="target" id="classespp_1_1Ndef_1ae3328b4bb00e11aaf1b2c38c11402e1c"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BtEir</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef5BtEirE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Extended Inquiry Response (EIR) codes for data types in BT and BLE out of band (OOB) pairing NDEF records. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef5BtEir5FLAGSE">
+<span id="_CPPv3N4espp4Ndef5BtEir5FLAGSE"></span><span id="_CPPv2N4espp4Ndef5BtEir5FLAGSE"></span><span class="target" id="classespp_1_1Ndef_1ae3328b4bb00e11aaf1b2c38c11402e1ca67c6e660061c755787b8f8716b4f2430"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FLAGS</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef5BtEir5FLAGSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>BT flags: b0: LE limited discoverable mode, b1: LE general discoverable mode, b2: BR/EDR not supported, b3: Simultaneous LE &amp; BR/EDR controller, b4: simultaneous LE &amp; BR/EDR Host </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef5BtEir20UUIDS_16_BIT_PARTIALE">
+<span id="_CPPv3N4espp4Ndef5BtEir20UUIDS_16_BIT_PARTIALE"></span><span id="_CPPv2N4espp4Ndef5BtEir20UUIDS_16_BIT_PARTIALE"></span><span class="target" id="classespp_1_1Ndef_1ae3328b4bb00e11aaf1b2c38c11402e1ca654d46a608759b8400d20786979f79eb"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UUIDS_16_BIT_PARTIAL</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef5BtEir20UUIDS_16_BIT_PARTIALE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Incomplete list of 16 bit service class UUIDs. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef5BtEir21UUIDS_16_BIT_COMPLETEE">
+<span id="_CPPv3N4espp4Ndef5BtEir21UUIDS_16_BIT_COMPLETEE"></span><span id="_CPPv2N4espp4Ndef5BtEir21UUIDS_16_BIT_COMPLETEE"></span><span class="target" id="classespp_1_1Ndef_1ae3328b4bb00e11aaf1b2c38c11402e1ca01856ed58a05f33240ddd06519880119"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UUIDS_16_BIT_COMPLETE</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef5BtEir21UUIDS_16_BIT_COMPLETEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Complete list of 16 bit service class UUIDs. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef5BtEir20UUIDS_32_BIT_PARTIALE">
+<span id="_CPPv3N4espp4Ndef5BtEir20UUIDS_32_BIT_PARTIALE"></span><span id="_CPPv2N4espp4Ndef5BtEir20UUIDS_32_BIT_PARTIALE"></span><span class="target" id="classespp_1_1Ndef_1ae3328b4bb00e11aaf1b2c38c11402e1ca6ed417238d5370bc86cd9469e960e206"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UUIDS_32_BIT_PARTIAL</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef5BtEir20UUIDS_32_BIT_PARTIALE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Incomplete list of 32 bit service class UUIDs. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef5BtEir21UUIDS_32_BIT_COMPLETEE">
+<span id="_CPPv3N4espp4Ndef5BtEir21UUIDS_32_BIT_COMPLETEE"></span><span id="_CPPv2N4espp4Ndef5BtEir21UUIDS_32_BIT_COMPLETEE"></span><span class="target" id="classespp_1_1Ndef_1ae3328b4bb00e11aaf1b2c38c11402e1ca75783736660a6bc8f2e7b2ded73fbe0e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UUIDS_32_BIT_COMPLETE</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef5BtEir21UUIDS_32_BIT_COMPLETEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Complete list of 32 bit service class UUIDs. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef5BtEir21UUIDS_128_BIT_PARTIALE">
+<span id="_CPPv3N4espp4Ndef5BtEir21UUIDS_128_BIT_PARTIALE"></span><span id="_CPPv2N4espp4Ndef5BtEir21UUIDS_128_BIT_PARTIALE"></span><span class="target" id="classespp_1_1Ndef_1ae3328b4bb00e11aaf1b2c38c11402e1caaa5b86f0162b7f0a4c09c617dd60b482"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UUIDS_128_BIT_PARTIAL</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef5BtEir21UUIDS_128_BIT_PARTIALE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Incomplete list of 128 bit service class UUIDs. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef5BtEir22UUIDS_128_BIT_COMPLETEE">
+<span id="_CPPv3N4espp4Ndef5BtEir22UUIDS_128_BIT_COMPLETEE"></span><span id="_CPPv2N4espp4Ndef5BtEir22UUIDS_128_BIT_COMPLETEE"></span><span class="target" id="classespp_1_1Ndef_1ae3328b4bb00e11aaf1b2c38c11402e1caffd0d092114cd3e2a546fa6747435f4f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UUIDS_128_BIT_COMPLETE</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef5BtEir22UUIDS_128_BIT_COMPLETEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Complete list of 128 bit service class UUIDs. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef5BtEir16SHORT_LOCAL_NAMEE">
+<span id="_CPPv3N4espp4Ndef5BtEir16SHORT_LOCAL_NAMEE"></span><span id="_CPPv2N4espp4Ndef5BtEir16SHORT_LOCAL_NAMEE"></span><span class="target" id="classespp_1_1Ndef_1ae3328b4bb00e11aaf1b2c38c11402e1caa0f83ac4b67b87b0ebcdc824ddd07635"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SHORT_LOCAL_NAME</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef5BtEir16SHORT_LOCAL_NAMEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Shortened Bluetooth Local Name. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef5BtEir15LONG_LOCAL_NAMEE">
+<span id="_CPPv3N4espp4Ndef5BtEir15LONG_LOCAL_NAMEE"></span><span id="_CPPv2N4espp4Ndef5BtEir15LONG_LOCAL_NAMEE"></span><span class="target" id="classespp_1_1Ndef_1ae3328b4bb00e11aaf1b2c38c11402e1ca0b7c80e6a1112cc8cfdf7bfa536c83cc"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LONG_LOCAL_NAME</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef5BtEir15LONG_LOCAL_NAMEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Complete Bluetooth Local Name. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef5BtEir14TX_POWER_LEVELE">
+<span id="_CPPv3N4espp4Ndef5BtEir14TX_POWER_LEVELE"></span><span id="_CPPv2N4espp4Ndef5BtEir14TX_POWER_LEVELE"></span><span class="target" id="classespp_1_1Ndef_1ae3328b4bb00e11aaf1b2c38c11402e1cabc5139f47058fb513e901af523a7ab88"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TX_POWER_LEVEL</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef5BtEir14TX_POWER_LEVELE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>TX Power level (1 byte), -127 dBm to +127 dBm. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef5BtEir15CLASS_OF_DEVICEE">
+<span id="_CPPv3N4espp4Ndef5BtEir15CLASS_OF_DEVICEE"></span><span id="_CPPv2N4espp4Ndef5BtEir15CLASS_OF_DEVICEE"></span><span class="target" id="classespp_1_1Ndef_1ae3328b4bb00e11aaf1b2c38c11402e1ca5e1d6708ca41e5ad55de5bece7cd28e4"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CLASS_OF_DEVICE</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef5BtEir15CLASS_OF_DEVICEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Class of Device. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef5BtEir12SP_HASH_C192E">
+<span id="_CPPv3N4espp4Ndef5BtEir12SP_HASH_C192E"></span><span id="_CPPv2N4espp4Ndef5BtEir12SP_HASH_C192E"></span><span class="target" id="classespp_1_1Ndef_1ae3328b4bb00e11aaf1b2c38c11402e1ca3756b49ea37fc214a5bd69c4257dc86d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SP_HASH_C192</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef5BtEir12SP_HASH_C192E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Simple Pairing Hash C-192. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef5BtEir14SP_RANDOM_R192E">
+<span id="_CPPv3N4espp4Ndef5BtEir14SP_RANDOM_R192E"></span><span id="_CPPv2N4espp4Ndef5BtEir14SP_RANDOM_R192E"></span><span class="target" id="classespp_1_1Ndef_1ae3328b4bb00e11aaf1b2c38c11402e1ca8f424aaa97a505b9e784b61efc18ff68"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SP_RANDOM_R192</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef5BtEir14SP_RANDOM_R192E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Simple Pairing Randomizer R-192. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef5BtEir19SECURITY_MANAGER_TKE">
+<span id="_CPPv3N4espp4Ndef5BtEir19SECURITY_MANAGER_TKE"></span><span id="_CPPv2N4espp4Ndef5BtEir19SECURITY_MANAGER_TKE"></span><span class="target" id="classespp_1_1Ndef_1ae3328b4bb00e11aaf1b2c38c11402e1ca3254ddc742e6b4632a503cc4e89ab185"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SECURITY_MANAGER_TK</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef5BtEir19SECURITY_MANAGER_TKE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Security Manager TK Value (LE Legacy Pairing) </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef5BtEir22SECURITY_MANAGER_FLAGSE">
+<span id="_CPPv3N4espp4Ndef5BtEir22SECURITY_MANAGER_FLAGSE"></span><span id="_CPPv2N4espp4Ndef5BtEir22SECURITY_MANAGER_FLAGSE"></span><span class="target" id="classespp_1_1Ndef_1ae3328b4bb00e11aaf1b2c38c11402e1ca62b2ccdb7ea8cbc8f4e95c0d79bce4a1"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SECURITY_MANAGER_FLAGS</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef5BtEir22SECURITY_MANAGER_FLAGSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Flags (1 B), b0: OOB flags field (1 = 00B data present, 0 not), b1: LE Supported (host), b2: Simultaneous LE &amp; BR/EDR to same device capable (host), b3: address type (0 = public, 1 = random) </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef5BtEir10APPEARANCEE">
+<span id="_CPPv3N4espp4Ndef5BtEir10APPEARANCEE"></span><span id="_CPPv2N4espp4Ndef5BtEir10APPEARANCEE"></span><span class="target" id="classespp_1_1Ndef_1ae3328b4bb00e11aaf1b2c38c11402e1ca3d67defbb7eda50f100abd0ca9f3ec1d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">APPEARANCE</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef5BtEir10APPEARANCEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Appearance. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef5BtEir3MACE">
+<span id="_CPPv3N4espp4Ndef5BtEir3MACE"></span><span id="_CPPv2N4espp4Ndef5BtEir3MACE"></span><span class="target" id="classespp_1_1Ndef_1ae3328b4bb00e11aaf1b2c38c11402e1ca2e25c285356cbb0ed8785a1377027d79"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MAC</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef5BtEir3MACE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Bluetooth Device Address. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef5BtEir7LE_ROLEE">
+<span id="_CPPv3N4espp4Ndef5BtEir7LE_ROLEE"></span><span id="_CPPv2N4espp4Ndef5BtEir7LE_ROLEE"></span><span class="target" id="classespp_1_1Ndef_1ae3328b4bb00e11aaf1b2c38c11402e1ca092499ef66ac9dfe33d2871e211119ba"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LE_ROLE</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef5BtEir7LE_ROLEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>LE Role. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef5BtEir12SP_HASH_C256E">
+<span id="_CPPv3N4espp4Ndef5BtEir12SP_HASH_C256E"></span><span id="_CPPv2N4espp4Ndef5BtEir12SP_HASH_C256E"></span><span class="target" id="classespp_1_1Ndef_1ae3328b4bb00e11aaf1b2c38c11402e1ca7da00a1c495b8d63b4757ed8e10c1797"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SP_HASH_C256</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef5BtEir12SP_HASH_C256E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Simple Pairing Hash C-256. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef5BtEir12SP_HASH_R256E">
+<span id="_CPPv3N4espp4Ndef5BtEir12SP_HASH_R256E"></span><span id="_CPPv2N4espp4Ndef5BtEir12SP_HASH_R256E"></span><span class="target" id="classespp_1_1Ndef_1ae3328b4bb00e11aaf1b2c38c11402e1caa5b9c7502d30ae3a0cb19e854ef88aa8"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SP_HASH_R256</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef5BtEir12SP_HASH_R256E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Simple Pairing Randomizer R-256. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef5BtEir18LE_SC_CONFIRMATIONE">
+<span id="_CPPv3N4espp4Ndef5BtEir18LE_SC_CONFIRMATIONE"></span><span id="_CPPv2N4espp4Ndef5BtEir18LE_SC_CONFIRMATIONE"></span><span class="target" id="classespp_1_1Ndef_1ae3328b4bb00e11aaf1b2c38c11402e1ca7fb8d9bf37cfe778bfd16e50fce474c5"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LE_SC_CONFIRMATION</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef5BtEir18LE_SC_CONFIRMATIONE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>LE Secure Connections Confirmation Value. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef5BtEir12LE_SC_RANDOME">
+<span id="_CPPv3N4espp4Ndef5BtEir12LE_SC_RANDOME"></span><span id="_CPPv2N4espp4Ndef5BtEir12LE_SC_RANDOME"></span><span class="target" id="classespp_1_1Ndef_1ae3328b4bb00e11aaf1b2c38c11402e1cadc6fbaf6ae35c482a57d7efc95ad1191"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LE_SC_RANDOM</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef5BtEir12LE_SC_RANDOME" title="Permalink to this definition"></a><br /></dt>
+<dd><p>LE Secure Connections Random Value. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef7BleRoleE">
+<span id="_CPPv3N4espp4Ndef7BleRoleE"></span><span id="_CPPv2N4espp4Ndef7BleRoleE"></span><span class="target" id="classespp_1_1Ndef_1a04a518893a6326bf9a66b95390962f4c"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BleRole</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef7BleRoleE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Possible roles for BLE records to indicate support for. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef7BleRole15PERIPHERAL_ONLYE">
+<span id="_CPPv3N4espp4Ndef7BleRole15PERIPHERAL_ONLYE"></span><span id="_CPPv2N4espp4Ndef7BleRole15PERIPHERAL_ONLYE"></span><span class="target" id="classespp_1_1Ndef_1a04a518893a6326bf9a66b95390962f4caaf172a6bf3ab704f76c3b375d0c2864b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PERIPHERAL_ONLY</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef7BleRole15PERIPHERAL_ONLYE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Radio can only act as a peripheral. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef7BleRole12CENTRAL_ONLYE">
+<span id="_CPPv3N4espp4Ndef7BleRole12CENTRAL_ONLYE"></span><span id="_CPPv2N4espp4Ndef7BleRole12CENTRAL_ONLYE"></span><span class="target" id="classespp_1_1Ndef_1a04a518893a6326bf9a66b95390962f4ca3291c667b9cf701fdbc19ce0541a8bce"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CENTRAL_ONLY</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef7BleRole12CENTRAL_ONLYE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Radio can only act as a central. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef7BleRole18PERIPHERAL_CENTRALE">
+<span id="_CPPv3N4espp4Ndef7BleRole18PERIPHERAL_CENTRALE"></span><span id="_CPPv2N4espp4Ndef7BleRole18PERIPHERAL_CENTRALE"></span><span class="target" id="classespp_1_1Ndef_1a04a518893a6326bf9a66b95390962f4caa5d8608614fb247dae0fb59f6923154c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PERIPHERAL_CENTRAL</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef7BleRole18PERIPHERAL_CENTRALE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Radio can act as both a peripheral and a central, but prefers peripheral. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef7BleRole18CENTRAL_PERIPHERALE">
+<span id="_CPPv3N4espp4Ndef7BleRole18CENTRAL_PERIPHERALE"></span><span id="_CPPv2N4espp4Ndef7BleRole18CENTRAL_PERIPHERALE"></span><span class="target" id="classespp_1_1Ndef_1a04a518893a6326bf9a66b95390962f4caa4525b86d3f141cc4f62eccfae615b23"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CENTRAL_PERIPHERAL</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef7BleRole18CENTRAL_PERIPHERALE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Radio can act as both a peripheral and a central, but prefers central. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef18WifiEncryptionTypeE">
+<span id="_CPPv3N4espp4Ndef18WifiEncryptionTypeE"></span><span id="_CPPv2N4espp4Ndef18WifiEncryptionTypeE"></span><span class="target" id="classespp_1_1Ndef_1a5209758bb27c168d43b2ca50deda74ab"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">WifiEncryptionType</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef18WifiEncryptionTypeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Types of configurable encryption for WiFi networks. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef18WifiEncryptionType4NONEE">
+<span id="_CPPv3N4espp4Ndef18WifiEncryptionType4NONEE"></span><span id="_CPPv2N4espp4Ndef18WifiEncryptionType4NONEE"></span><span class="target" id="classespp_1_1Ndef_1a5209758bb27c168d43b2ca50deda74abab50339a10e1de285ac99d4c3990b8693"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NONE</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef18WifiEncryptionType4NONEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>No encryption. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef18WifiEncryptionType3WEPE">
+<span id="_CPPv3N4espp4Ndef18WifiEncryptionType3WEPE"></span><span id="_CPPv2N4espp4Ndef18WifiEncryptionType3WEPE"></span><span class="target" id="classespp_1_1Ndef_1a5209758bb27c168d43b2ca50deda74aba8ed9a3fd014b5967fc51f397c3bb8d46"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">WEP</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef18WifiEncryptionType3WEPE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>WEP. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef18WifiEncryptionType4TKIPE">
+<span id="_CPPv3N4espp4Ndef18WifiEncryptionType4TKIPE"></span><span id="_CPPv2N4espp4Ndef18WifiEncryptionType4TKIPE"></span><span class="target" id="classespp_1_1Ndef_1a5209758bb27c168d43b2ca50deda74aba507b30b42a6803d534094f786acaae4a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TKIP</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef18WifiEncryptionType4TKIPE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>TKIP. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef18WifiEncryptionType3AESE">
+<span id="_CPPv3N4espp4Ndef18WifiEncryptionType3AESE"></span><span id="_CPPv2N4espp4Ndef18WifiEncryptionType3AESE"></span><span class="target" id="classespp_1_1Ndef_1a5209758bb27c168d43b2ca50deda74aba76b7593457e2ab50befe2dcd63cf388f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AES</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef18WifiEncryptionType3AESE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>AES. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef22WifiAuthenticationTypeE">
+<span id="_CPPv3N4espp4Ndef22WifiAuthenticationTypeE"></span><span id="_CPPv2N4espp4Ndef22WifiAuthenticationTypeE"></span><span class="target" id="classespp_1_1Ndef_1ac2d8aac71361558784f9a2587d734e44"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">WifiAuthenticationType</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef22WifiAuthenticationTypeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>WiFi network authentication. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef22WifiAuthenticationType4OPENE">
+<span id="_CPPv3N4espp4Ndef22WifiAuthenticationType4OPENE"></span><span id="_CPPv2N4espp4Ndef22WifiAuthenticationType4OPENE"></span><span class="target" id="classespp_1_1Ndef_1ac2d8aac71361558784f9a2587d734e44aa38bd5138bf35514df41a1795ebbf5c3"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OPEN</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef22WifiAuthenticationType4OPENE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Open / no security. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef22WifiAuthenticationType12WPA_PERSONALE">
+<span id="_CPPv3N4espp4Ndef22WifiAuthenticationType12WPA_PERSONALE"></span><span id="_CPPv2N4espp4Ndef22WifiAuthenticationType12WPA_PERSONALE"></span><span class="target" id="classespp_1_1Ndef_1ac2d8aac71361558784f9a2587d734e44aad91a3bdc8286d0892ac1816c9f53380"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">WPA_PERSONAL</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef22WifiAuthenticationType12WPA_PERSONALE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>WPA personal. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef22WifiAuthenticationType6SHAREDE">
+<span id="_CPPv3N4espp4Ndef22WifiAuthenticationType6SHAREDE"></span><span id="_CPPv2N4espp4Ndef22WifiAuthenticationType6SHAREDE"></span><span class="target" id="classespp_1_1Ndef_1ac2d8aac71361558784f9a2587d734e44a049518eb4dc1859c7cebbe15876cfd63"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SHARED</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef22WifiAuthenticationType6SHAREDE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Shared key. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef22WifiAuthenticationType14WPA_ENTERPRISEE">
+<span id="_CPPv3N4espp4Ndef22WifiAuthenticationType14WPA_ENTERPRISEE"></span><span id="_CPPv2N4espp4Ndef22WifiAuthenticationType14WPA_ENTERPRISEE"></span><span class="target" id="classespp_1_1Ndef_1ac2d8aac71361558784f9a2587d734e44acadd3369af06dfcd73c0523e5f9ed715"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">WPA_ENTERPRISE</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef22WifiAuthenticationType14WPA_ENTERPRISEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>WPA enterprise. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef22WifiAuthenticationType15WPA2_ENTERPRISEE">
+<span id="_CPPv3N4espp4Ndef22WifiAuthenticationType15WPA2_ENTERPRISEE"></span><span id="_CPPv2N4espp4Ndef22WifiAuthenticationType15WPA2_ENTERPRISEE"></span><span class="target" id="classespp_1_1Ndef_1ac2d8aac71361558784f9a2587d734e44ac2940ff56796bd1895634e4eaeb8c90d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">WPA2_ENTERPRISE</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef22WifiAuthenticationType15WPA2_ENTERPRISEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>WPA2 Enterprise. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef22WifiAuthenticationType13WPA2_PERSONALE">
+<span id="_CPPv3N4espp4Ndef22WifiAuthenticationType13WPA2_PERSONALE"></span><span id="_CPPv2N4espp4Ndef22WifiAuthenticationType13WPA2_PERSONALE"></span><span class="target" id="classespp_1_1Ndef_1ac2d8aac71361558784f9a2587d734e44a26622a0eab8b304984b8c932c74cc293"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">WPA2_PERSONAL</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef22WifiAuthenticationType13WPA2_PERSONALE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>WPA2 personal. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef22WifiAuthenticationType17WPA_WPA2_PERSONALE">
+<span id="_CPPv3N4espp4Ndef22WifiAuthenticationType17WPA_WPA2_PERSONALE"></span><span id="_CPPv2N4espp4Ndef22WifiAuthenticationType17WPA_WPA2_PERSONALE"></span><span class="target" id="classespp_1_1Ndef_1ac2d8aac71361558784f9a2587d734e44acd3656cff240742b2546221eb730627c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">WPA_WPA2_PERSONAL</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef22WifiAuthenticationType17WPA_WPA2_PERSONALE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Both WPA and WPA2 personal. </p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef4NdefEN4espp4Ndef3TNFENSt11string_viewENSt11string_viewE">
+<span id="_CPPv3N4espp4Ndef4NdefEN4espp4Ndef3TNFENSt11string_viewENSt11string_viewE"></span><span id="_CPPv2N4espp4Ndef4NdefEN4espp4Ndef3TNFENSt11string_viewENSt11string_viewE"></span><span id="espp::Ndef::Ndef__espp::Ndef::TNF.std::string_view.std::string_view"></span><span class="target" id="classespp_1_1Ndef_1a0e94889415e142e401ef8cf6de4b5038"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ndef</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp4Ndef3TNFE" title="espp::Ndef::TNF"><span class="n"><span class="pre">TNF</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">tnf</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">payload</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef4NdefEN4espp4Ndef3TNFENSt11string_viewENSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Makes an NDEF record with header and payload. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tnf</strong> – The TNF for this packet. </p></li>
+<li><p><strong>type</strong> – String view for the type of this packet </p></li>
+<li><p><strong>payload</strong> – The payload data for the packet </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef9serializeEbb">
+<span id="_CPPv3N4espp4Ndef9serializeEbb"></span><span id="_CPPv2N4espp4Ndef9serializeEbb"></span><span id="espp::Ndef::serialize__b.b"></span><span class="target" id="classespp_1_1Ndef_1ae34e66cba73ac6096c971b4c532e6f2c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">serialize</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">message_begin</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">message_end</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef9serializeEbb" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Serialize the NDEF record into a sequence of bytes. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>message_begin</strong> – True if this is the first record in the message. </p></li>
+<li><p><strong>message_end</strong> – True if this is the last record in the message. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The vector&lt;uint8_t&gt; of bytes representing the NDEF record. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef7payloadEv">
+<span id="_CPPv3N4espp4Ndef7payloadEv"></span><span id="_CPPv2N4espp4Ndef7payloadEv"></span><span id="espp::Ndef::payload"></span><span class="target" id="classespp_1_1Ndef_1a00721174d57b20184fa71d0ca4860c6f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">payload</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef7payloadEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Return just the payload as a vector of bytes. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Payload of the NDEF record as a vector of bytes. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef6set_idEi">
+<span id="_CPPv3N4espp4Ndef6set_idEi"></span><span id="_CPPv2N4espp4Ndef6set_idEi"></span><span id="espp::Ndef::set_id__i"></span><span class="target" id="classespp_1_1Ndef_1a9cd7c27c52e10849685a9233f486b5d7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_id</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef6set_idEi" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the payload ID of the NDEF record. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> – ID of the NDEF record. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp4Ndef6get_idEv">
+<span id="_CPPv3NK4espp4Ndef6get_idEv"></span><span id="_CPPv2NK4espp4Ndef6get_idEv"></span><span id="espp::Ndef::get_idC"></span><span class="target" id="classespp_1_1Ndef_1a4044f091190b594c84de3b6cb6019175"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_id</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp4Ndef6get_idEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the ID of the NDEF record. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ID of the NDEF record. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp4Ndef8get_sizeEv">
+<span id="_CPPv3NK4espp4Ndef8get_sizeEv"></span><span id="_CPPv2NK4espp4Ndef8get_sizeEv"></span><span id="espp::Ndef::get_sizeC"></span><span class="target" id="classespp_1_1Ndef_1ab2d88c1fcdf8df7dcb752d769a8972d2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_size</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp4Ndef8get_sizeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the number of bytes needed for the NDEF record. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Size of the NDEF record (bytes), for serialization. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef9make_textENSt11string_viewE">
+<span id="_CPPv3N4espp4Ndef9make_textENSt11string_viewE"></span><span id="_CPPv2N4espp4Ndef9make_textENSt11string_viewE"></span><span id="espp::Ndef::make_text__std::string_view"></span><span class="target" id="classespp_1_1Ndef_1af4a15190e6bf904e5ac160be87d8655d"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make_text</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">text</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef9make_textENSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Static function to make an NDEF record for transmitting english text. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>text</strong> – The text that the NDEF record will hold. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>NDEF record object. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef8make_uriENSt11string_viewEN4espp4Ndef3UicE">
+<span id="_CPPv3N4espp4Ndef8make_uriENSt11string_viewEN4espp4Ndef3UicE"></span><span id="_CPPv2N4espp4Ndef8make_uriENSt11string_viewEN4espp4Ndef3UicE"></span><span id="espp::Ndef::make_uri__std::string_view.espp::Ndef::Uic"></span><span class="target" id="classespp_1_1Ndef_1a8e6efd9906787d879d398b0d0652ed1a"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make_uri</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">uri</span></span>, <span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp4Ndef3UicE" title="espp::Ndef::Uic"><span class="n"><span class="pre">Uic</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">uic</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp4Ndef3UicE" title="espp::Ndef::Uic"><span class="n"><span class="pre">Uic</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp4Ndef3Uic4NONEE" title="espp::Ndef::Uic::NONE"><span class="n"><span class="pre">NONE</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef8make_uriENSt11string_viewEN4espp4Ndef3UicE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Static function to make an NDEF record for loading a URI. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>uri</strong> – URI for the record to point to. </p></li>
+<li><p><strong>uic</strong> – UIC for the uri - helps shorten the uri text / NDEF record. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>NDEF record object. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef21make_android_launcherENSt11string_viewE">
+<span id="_CPPv3N4espp4Ndef21make_android_launcherENSt11string_viewE"></span><span id="_CPPv2N4espp4Ndef21make_android_launcherENSt11string_viewE"></span><span id="espp::Ndef::make_android_launcher__std::string_view"></span><span class="target" id="classespp_1_1Ndef_1a064ede4447ab3cde15428ff9c758ad52"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make_android_launcher</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">uri</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef21make_android_launcherENSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Static function to make an NDEF record for launching an Android App. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>uri</strong> – URI for the android package / app to launch. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>NDEF record object. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef16make_wifi_configERKN4espp4Ndef10WifiConfigE">
+<span id="_CPPv3N4espp4Ndef16make_wifi_configERKN4espp4Ndef10WifiConfigE"></span><span id="_CPPv2N4espp4Ndef16make_wifi_configERKN4espp4Ndef10WifiConfigE"></span><span id="espp::Ndef::make_wifi_config__espp::Ndef::WifiConfigCR"></span><span class="target" id="classespp_1_1Ndef_1a98ccd4120c10535d4afc6bdb30fc95a6"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make_wifi_config</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp4Ndef10WifiConfigE" title="espp::Ndef::WifiConfig"><span class="n"><span class="pre">WifiConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef16make_wifi_configERKN4espp4Ndef10WifiConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Create a WiFi credential tag. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – <a class="reference internal" href="#structespp_1_1Ndef_1_1WifiConfig"><span class="std std-ref">WifiConfig</span></a> describing the WiFi network. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>NDEF record object. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef20make_handover_selectEi">
+<span id="_CPPv3N4espp4Ndef20make_handover_selectEi"></span><span id="_CPPv2N4espp4Ndef20make_handover_selectEi"></span><span id="espp::Ndef::make_handover_select__i"></span><span class="target" id="classespp_1_1Ndef_1ae9b137db087845a5df8b4d6550d92238"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make_handover_select</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">carrier_data_ref</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef20make_handover_selectEi" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Create a Handover Select record for a Bluetooth device. </p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference external" href="https://members.nfc-forum.org/apps/group_public/download.php/18688/NFCForum-AD-BTSSP_1_1.pdf">https://members.nfc-forum.org/apps/group_public/download.php/18688/NFCForum-AD-BTSSP_1_1.pdf</a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>carrier_data_ref</strong> – Reference to the carrier data record, which is the record that contains the actual bluetooth data. This should be the same as the id of the carrier data record, such as ‘0’. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>NDEF record object. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef21make_handover_requestEi">
+<span id="_CPPv3N4espp4Ndef21make_handover_requestEi"></span><span id="_CPPv2N4espp4Ndef21make_handover_requestEi"></span><span id="espp::Ndef::make_handover_request__i"></span><span class="target" id="classespp_1_1Ndef_1a32d1ff3b1abd28aba61066cda5b5f65e"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make_handover_request</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">carrier_data_ref</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef21make_handover_requestEi" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Create a Handover request record for a Bluetooth device. </p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference external" href="https://members.nfc-forum.org/apps/group_public/download.php/18688/NFCForum-AD-BTSSP_1_1.pdf">https://members.nfc-forum.org/apps/group_public/download.php/18688/NFCForum-AD-BTSSP_1_1.pdf</a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>carrier_data_ref</strong> – Reference to the carrier data record, which is the record that contains the actual bluetooth data. This should be the same as the id of the carrier data record, such as ‘0’. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>NDEF record object. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef24make_alternative_carrierERK17CarrierPowerStatei">
+<span id="_CPPv3N4espp4Ndef24make_alternative_carrierERK17CarrierPowerStatei"></span><span id="_CPPv2N4espp4Ndef24make_alternative_carrierERK17CarrierPowerStatei"></span><span id="espp::Ndef::make_alternative_carrier__CarrierPowerStateCR.i"></span><span class="target" id="classespp_1_1Ndef_1a357035211d0eb593a74384ba33db10ec"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make_alternative_carrier</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4Ndef17CarrierPowerStateE" title="espp::Ndef::CarrierPowerState"><span class="n"><span class="pre">CarrierPowerState</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">power_state</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">carrier_data_ref</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef24make_alternative_carrierERK17CarrierPowerStatei" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Create a Handover Request record for a Bluetooth device. </p>
+<p>See page 18 of <a class="reference external" href="https://core.ac.uk/download/pdf/250136576.pdf">https://core.ac.uk/download/pdf/250136576.pdf</a> for more details. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>power_state</strong> – Power state of the alternative carrier. </p></li>
+<li><p><strong>carrier_data_ref</strong> – Reference to the carrier data record, which is the record that contains the actual bluetooth data. This should be the same as the id of the carrier data record, such as ‘0’. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>NDEF record object. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef16make_oob_pairingE8uint64_t8uint32_tNSt11string_viewENSt11string_viewENSt11string_viewE">
+<span id="_CPPv3N4espp4Ndef16make_oob_pairingE8uint64_t8uint32_tNSt11string_viewENSt11string_viewENSt11string_viewE"></span><span id="_CPPv2N4espp4Ndef16make_oob_pairingE8uint64_t8uint32_tNSt11string_viewENSt11string_viewENSt11string_viewE"></span><span id="espp::Ndef::make_oob_pairing__uint64_t.uint32_t.std::string_view.std::string_view.std::string_view"></span><span class="target" id="classespp_1_1Ndef_1ab1322fa414a1bc131675b5c354ad5bc5"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make_oob_pairing</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mac_addr</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">device_class</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">random_value</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;&quot;</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">confirm_value</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;&quot;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef16make_oob_pairingE8uint64_t8uint32_tNSt11string_viewENSt11string_viewENSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Static function to make an NDEF record for BT classic OOB Pairing (Android). </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the address is e.g. f4:12:fa:42:fe:9e then the mac_addr should be 0xf412fa42fe9e. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mac_addr</strong> – 48 bit MAC Address of the BT radio </p></li>
+<li><p><strong>device_class</strong> – The bluetooth device class for this radio. </p></li>
+<li><p><strong>name</strong> – Name of the BT device. </p></li>
+<li><p><strong>random_value</strong> – The Simple pairing randomizer R for the pairing. </p></li>
+<li><p><strong>confirm_value</strong> – The Simple pairing hash C (confirm value) for the pairing. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>NDEF record object. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef19make_le_oob_pairingE8uint64_tN4espp4Ndef7BleRoleENSt11string_viewEN4espp4Ndef12BtAppearanceENSt11string_viewENSt11string_viewENSt11string_viewE">
+<span id="_CPPv3N4espp4Ndef19make_le_oob_pairingE8uint64_tN4espp4Ndef7BleRoleENSt11string_viewEN4espp4Ndef12BtAppearanceENSt11string_viewENSt11string_viewENSt11string_viewE"></span><span id="_CPPv2N4espp4Ndef19make_le_oob_pairingE8uint64_tN4espp4Ndef7BleRoleENSt11string_viewEN4espp4Ndef12BtAppearanceENSt11string_viewENSt11string_viewENSt11string_viewE"></span><span id="espp::Ndef::make_le_oob_pairing__uint64_t.espp::Ndef::BleRole.std::string_view.espp::Ndef::BtAppearance.std::string_view.std::string_view.std::string_view"></span><span class="target" id="classespp_1_1Ndef_1a3888aa42afb6d6cc91e9639b77f9ed58"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make_le_oob_pairing</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mac_addr</span></span>, <span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp4Ndef7BleRoleE" title="espp::Ndef::BleRole"><span class="n"><span class="pre">BleRole</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">role</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;&quot;</span></span>, <span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp4Ndef12BtAppearanceE" title="espp::Ndef::BtAppearance"><span class="n"><span class="pre">BtAppearance</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">appearance</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp4Ndef12BtAppearanceE" title="espp::Ndef::BtAppearance"><span class="n"><span class="pre">BtAppearance</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp4Ndef12BtAppearance7UNKNOWNE" title="espp::Ndef::BtAppearance::UNKNOWN"><span class="n"><span class="pre">UNKNOWN</span></span></a>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">random_value</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;&quot;</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">confirm_value</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;&quot;</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">tk</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;&quot;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef19make_le_oob_pairingE8uint64_tN4espp4Ndef7BleRoleENSt11string_viewEN4espp4Ndef12BtAppearanceENSt11string_viewENSt11string_viewENSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Static function to make an NDEF record for BLE OOB Pairing (Android). </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the address is e.g. f4:12:fa:42:fe:9e then the mac_addr should be 0xf412fa42fe9e. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mac_addr</strong> – 48 bit MAC Address of the BLE radio. </p></li>
+<li><p><strong>role</strong> – The BLE role of the device (central / peripheral / dual) </p></li>
+<li><p><strong>name</strong> – Name of the BLE device. Optional. </p></li>
+<li><p><strong>appearance</strong> – BtAppearance of the device. Optional. </p></li>
+<li><p><strong>random_value</strong> – The Simple pairing randomizer R for the pairing. (16 bytes, optional) </p></li>
+<li><p><strong>confirm_value</strong> – The Simple pairing hash C (confirm value) for the pairing. (16 bytes, optional) </p></li>
+<li><p><strong>tk</strong> – Temporary key for the pairing (16 bytes, optional) </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>NDEF record object. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef16HANDOVER_VERSIONE">
+<span id="_CPPv3N4espp4Ndef16HANDOVER_VERSIONE"></span><span id="_CPPv2N4espp4Ndef16HANDOVER_VERSIONE"></span><span id="espp::Ndef::HANDOVER_VERSION__uint8_t"></span><span class="target" id="classespp_1_1Ndef_1afe00767664ad49497e25d6064b3d882f"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">HANDOVER_VERSION</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x13</span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef16HANDOVER_VERSIONE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Connection Handover version 1.3. </p>
+</dd></dl>
+
+</div>
+<dl class="cpp union">
+<dt class="sig sig-object cpp">
+<span class="target" id="unionespp_1_1Ndef_1_1Flags_8____unnamed117____"></span><span class="sig-name descname"><span class="pre">Flags.__unnamed117__</span></span></dt>
+<dd></dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp">
+<span class="target" id="structespp_1_1Ndef_1_1Flags_8____unnamed117_____8____unnamed119____"></span><span class="sig-name descname"><span class="pre">Flags.__unnamed117__.__unnamed119__</span></span></dt>
+<dd></dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef10WifiConfigE">
+<span id="_CPPv3N4espp4Ndef10WifiConfigE"></span><span id="_CPPv2N4espp4Ndef10WifiConfigE"></span><span id="espp::Ndef::WifiConfig"></span><span class="target" id="structespp_1_1Ndef_1_1WifiConfig"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">WifiConfig</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef10WifiConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration structure for wifi configuration ndef structure. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef10WifiConfig4ssidE">
+<span id="_CPPv3N4espp4Ndef10WifiConfig4ssidE"></span><span id="_CPPv2N4espp4Ndef10WifiConfig4ssidE"></span><span id="espp::Ndef::WifiConfig::ssid__std::string_view"></span><span class="target" id="structespp_1_1Ndef_1_1WifiConfig_1a6c9337d9281568fba5b917a99be49f85"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ssid</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef10WifiConfig4ssidE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>SSID for the network. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef10WifiConfig3keyE">
+<span id="_CPPv3N4espp4Ndef10WifiConfig3keyE"></span><span id="_CPPv2N4espp4Ndef10WifiConfig3keyE"></span><span id="espp::Ndef::WifiConfig::key__std::string_view"></span><span class="target" id="structespp_1_1Ndef_1_1WifiConfig_1ab92bb7642c4c176c66685bcd87e19f3d"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">key</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef10WifiConfig3keyE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Security key / password for the network. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef10WifiConfig14authenticationE">
+<span id="_CPPv3N4espp4Ndef10WifiConfig14authenticationE"></span><span id="_CPPv2N4espp4Ndef10WifiConfig14authenticationE"></span><span id="espp::Ndef::WifiConfig::authentication__espp::Ndef::WifiAuthenticationType"></span><span class="target" id="structespp_1_1Ndef_1_1WifiConfig_1aaac4de9f080362853ca0e0e94f2d0692"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp4Ndef22WifiAuthenticationTypeE" title="espp::Ndef::WifiAuthenticationType"><span class="n"><span class="pre">WifiAuthenticationType</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">authentication</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp4Ndef22WifiAuthenticationTypeE" title="espp::Ndef::WifiAuthenticationType"><span class="n"><span class="pre">WifiAuthenticationType</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp4Ndef22WifiAuthenticationType13WPA2_PERSONALE" title="espp::Ndef::WifiAuthenticationType::WPA2_PERSONAL"><span class="n"><span class="pre">WPA2_PERSONAL</span></span></a><a class="headerlink" href="#_CPPv4N4espp4Ndef10WifiConfig14authenticationE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Authentication type the network uses. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef10WifiConfig10encryptionE">
+<span id="_CPPv3N4espp4Ndef10WifiConfig10encryptionE"></span><span id="_CPPv2N4espp4Ndef10WifiConfig10encryptionE"></span><span id="espp::Ndef::WifiConfig::encryption__espp::Ndef::WifiEncryptionType"></span><span class="target" id="structespp_1_1Ndef_1_1WifiConfig_1a4ef9b9e131d2bf6eebbe02a8b2260d78"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp4Ndef18WifiEncryptionTypeE" title="espp::Ndef::WifiEncryptionType"><span class="n"><span class="pre">WifiEncryptionType</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">encryption</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp4Ndef18WifiEncryptionTypeE" title="espp::Ndef::WifiEncryptionType"><span class="n"><span class="pre">WifiEncryptionType</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp4Ndef18WifiEncryptionType3AESE" title="espp::Ndef::WifiEncryptionType::AES"><span class="n"><span class="pre">AES</span></span></a><a class="headerlink" href="#_CPPv4N4espp4Ndef10WifiConfig10encryptionE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Encryption type the network uses. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef10WifiConfig11mac_addressE">
+<span id="_CPPv3N4espp4Ndef10WifiConfig11mac_addressE"></span><span id="_CPPv2N4espp4Ndef10WifiConfig11mac_addressE"></span><span id="espp::Ndef::WifiConfig::mac_address__uint64_t"></span><span class="target" id="structespp_1_1Ndef_1_1WifiConfig_1a147c49da63bc7611d5c73f1b40e1e2ca"></span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mac_address</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFFFFFFFFFFFF</span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef10WifiConfig11mac_addressE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Broadcast MAC address FF:FF:FF:FF:FF:FF. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="NFC APIs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="st25dv.html" class="btn btn-neutral float-right" title="ST25DV" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
