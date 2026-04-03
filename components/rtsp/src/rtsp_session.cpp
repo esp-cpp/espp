@@ -5,12 +5,11 @@ using namespace espp;
 RtspSession::RtspSession(std::shared_ptr<TcpSocket> control_socket, const Config &config)
     : BaseComponent("RtspSession", config.log_level)
     , control_socket_(std::move(control_socket))
-    , rtp_socket_({.log_level = Logger::Verbosity::WARN})
-    , rtcp_socket_({.log_level = Logger::Verbosity::WARN})
     , session_id_(generate_session_id())
     , server_address_(config.server_address)
     , rtsp_path_(config.rtsp_path)
-    , client_address_(control_socket_->get_remote_info().address) {
+    , client_address_(control_socket_->get_remote_info().address)
+    , sdp_generator_(config.sdp_generator) {
   // set the logger tag to include the session id
   logger_.set_tag("RtspSession " + std::to_string(session_id_));
   // ensure there is a timeout on the control socket receive
@@ -57,21 +56,37 @@ void RtspSession::teardown() {
   closed_ = true;
 }
 
-bool RtspSession::send_rtp_packet(const RtpPacket &packet) {
-  logger_.debug("Sending RTP packet");
-  return rtp_socket_.send(packet.get_data(), {
-                                                 .ip_address = client_address_,
-                                                 .port = (size_t)client_rtp_port_,
-                                             });
+bool RtspSession::send_rtp_packet(int track_id, const RtpPacket &packet) {
+  auto it = tracks_.find(track_id);
+  if (it == tracks_.end() || !it->second) {
+    logger_.error("No track with id {} found", track_id);
+    return false;
+  }
+  auto &track = *it->second;
+  logger_.debug("Sending RTP packet on track {}", track_id);
+  return track.rtp_socket.send(packet.get_data(), {
+                                                      .ip_address = client_address_,
+                                                      .port = (size_t)track.client_rtp_port,
+                                                  });
 }
 
-bool RtspSession::send_rtcp_packet(const RtcpPacket &packet) {
-  logger_.debug("Sending RTCP packet");
-  return rtcp_socket_.send(packet.get_data(), {
-                                                  .ip_address = client_address_,
-                                                  .port = (size_t)client_rtcp_port_,
-                                              });
+bool RtspSession::send_rtp_packet(const RtpPacket &packet) { return send_rtp_packet(0, packet); }
+
+bool RtspSession::send_rtcp_packet(int track_id, const RtcpPacket &packet) {
+  auto it = tracks_.find(track_id);
+  if (it == tracks_.end() || !it->second) {
+    logger_.error("No track with id {} found", track_id);
+    return false;
+  }
+  auto &track = *it->second;
+  logger_.debug("Sending RTCP packet on track {}", track_id);
+  return track.rtcp_socket.send(packet.get_data(), {
+                                                       .ip_address = client_address_,
+                                                       .port = (size_t)track.client_rtcp_port,
+                                                   });
 }
+
+bool RtspSession::send_rtcp_packet(const RtcpPacket &packet) { return send_rtcp_packet(0, packet); }
 
 bool RtspSession::send_response(int code, std::string_view message, int sequence_number,
                                 std::string_view headers, std::string_view body) {
@@ -118,27 +133,33 @@ bool RtspSession::handle_rtsp_describe(std::string_view request) {
   // create a response
   int code = 200;
   std::string message = "OK";
-  // SDP description for an MJPEG stream
   std::string rtsp_path = "rtsp://" + server_address_ + "/" + rtsp_path_;
-  std::string body = "v=0\r\n" // version (0)
-                     "o=- " +
-                     std::to_string(session_id_) + " 1 IN IP4 " + server_address_ +
-                     "\r\n" // username (none), session id, version, network type (internet),
-                     // address type, address
-                     "s=MJPEG Stream\r\n" // session name (can be anything)
-                     "i=MJPEG Stream\r\n" // session name (can be anything)
-                     "t=0 0\r\n"          // start / stop
-                     "a=control:" +
-                     rtsp_path +
-                     "\r\n"                                          // the RTSP path
-                     "a=mimetype:string;\"video/x-motion-jpeg\"\r\n" // MIME type
-                     "m=video 0 RTP/AVP 26\r\n"                      // MJPEG
-                     "c=IN IP4 0.0.0.0\r\n" // client will use the RTSP address
-                     "b=AS:256\r\n"         // 256kbps
-                     "a=control:" +
-                     rtsp_path +
-                     "\r\n"
-                     "a=udp-only\r\n";
+
+  std::string body;
+  if (sdp_generator_) {
+    body = sdp_generator_(rtsp_path, session_id_, server_address_);
+  } else {
+    // Default SDP description for an MJPEG stream (backward compatibility)
+    body = "v=0\r\n" // version (0)
+           "o=- " +
+           std::to_string(session_id_) + " 1 IN IP4 " + server_address_ +
+           "\r\n"               // username (none), session id, version, network type (internet),
+                                // address type, address
+           "s=MJPEG Stream\r\n" // session name (can be anything)
+           "i=MJPEG Stream\r\n" // session name (can be anything)
+           "t=0 0\r\n"          // start / stop
+           "a=control:" +
+           rtsp_path +
+           "\r\n"                                          // the RTSP path
+           "a=mimetype:string;\"video/x-motion-jpeg\"\r\n" // MIME type
+           "m=video 0 RTP/AVP 26\r\n"                      // MJPEG
+           "c=IN IP4 0.0.0.0\r\n"                          // client will use the RTSP address
+           "b=AS:256\r\n"                                  // 256kbps
+           "a=control:" +
+           rtsp_path +
+           "\r\n"
+           "a=udp-only\r\n";
+  }
 
   std::string headers = "Content-Type: application/sdp\r\n"
                         "Content-Base: " +
@@ -163,9 +184,33 @@ bool RtspSession::handle_rtsp_setup(std::string_view request) {
     return handle_rtsp_invalid_request(request);
   }
   logger_.info("RTSP SETUP request");
-  // save the client port numbers
-  client_rtp_port_ = client_rtp_port;
-  client_rtcp_port_ = client_rtcp_port;
+
+  // extract track ID from the RTSP URL (e.g., "rtsp://ip:port/path/trackID=0")
+  int track_id = 0; // default to track 0 for backward compatibility
+  auto track_id_pos = rtsp_path.find("trackID=");
+  if (track_id_pos != std::string_view::npos) {
+    auto track_id_str = rtsp_path.substr(track_id_pos + 8);
+    auto end_pos = track_id_str.find_first_not_of("0123456789");
+    if (end_pos != std::string_view::npos) {
+      track_id_str = track_id_str.substr(0, end_pos);
+    }
+    if (!track_id_str.empty()) {
+      track_id = std::stoi(std::string{track_id_str});
+    }
+  }
+
+  // create or find the track
+  auto &track_ptr = tracks_[track_id];
+  if (!track_ptr) {
+    track_ptr = std::make_unique<Track>();
+  }
+  auto &track = *track_ptr;
+  track.track_id = track_id;
+  track.control_path = "trackID=" + std::to_string(track_id);
+  track.client_rtp_port = client_rtp_port;
+  track.client_rtcp_port = client_rtcp_port;
+  track.setup_complete = true;
+
   // create a response
   int code = 200;
   std::string message = "OK";
@@ -258,7 +303,7 @@ bool RtspSession::handle_rtsp_request(std::string_view request) {
   } else if (method == "DESCRIBE") {
     return handle_rtsp_describe(request_body);
   } else if (method == "SETUP") {
-    return handle_rtsp_setup(request_body);
+    return handle_rtsp_setup(request);
   } else if (method == "PLAY") {
     return handle_rtsp_play(request_body);
   } else if (method == "PAUSE") {

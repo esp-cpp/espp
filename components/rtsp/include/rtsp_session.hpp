@@ -2,9 +2,11 @@
 
 #include "socket_msvc.hpp"
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <system_error>
+#include <unordered_map>
 #include <vector>
 
 #if defined(ESP_PLATFORM)
@@ -26,12 +28,35 @@ namespace espp {
 /// session id and sends frame data over RTP and RTCP to the client
 class RtspSession : public BaseComponent {
 public:
+  /// Represents one media track within an RTSP session
+  struct Track {
+    int track_id{0};             ///< Track identifier (matches trackID=N in SDP)
+    std::string control_path;    ///< Control path suffix (e.g., "trackID=0")
+    espp::UdpSocket rtp_socket;  ///< RTP socket for this track
+    espp::UdpSocket rtcp_socket; ///< RTCP socket for this track
+    int client_rtp_port{0};      ///< Client's RTP port
+    int client_rtcp_port{0};     ///< Client's RTCP port
+    bool setup_complete{false};  ///< Whether SETUP has been completed for this track
+
+    Track()
+        : rtp_socket({.log_level = espp::Logger::Verbosity::WARN})
+        , rtcp_socket({.log_level = espp::Logger::Verbosity::WARN}) {}
+  };
+
   /// Configuration for the RTSP session
   struct Config {
     std::string server_address; ///< The address of the server
     std::string rtsp_path;      ///< The RTSP path of the session
     std::chrono::duration<float> receive_timeout =
         std::chrono::seconds(5); ///< The timeout for receiving data. Should be > 0.
+    /// SDP generator callback. If set, called during DESCRIBE to produce the SDP body.
+    /// If not set, a default MJPEG SDP is generated for backward compatibility.
+    /// @param session_path Full RTSP path (e.g., "rtsp://ip:port/path")
+    /// @param session_id The session ID
+    /// @param server_address The server address with port
+    std::function<std::string(const std::string &session_path, uint32_t session_id,
+                              const std::string &server_address)>
+        sdp_generator;
     espp::Logger::Verbosity log_level =
         espp::Logger::Verbosity::WARN; ///< The log level of the session
   };
@@ -77,12 +102,24 @@ public:
   /// and close the connection
   void teardown();
 
-  /// Send an RTP packet to the client
+  /// Send an RTP packet on a specific track
+  /// @param track_id The track to send on
+  /// @param packet The RTP packet to send
+  /// @return True if the packet was sent successfully, false otherwise
+  bool send_rtp_packet(int track_id, const espp::RtpPacket &packet);
+
+  /// Send an RTP packet to the client (backward compat — sends on default track 0)
   /// @param packet The RTP packet to send
   /// @return True if the packet was sent successfully, false otherwise
   bool send_rtp_packet(const espp::RtpPacket &packet);
 
-  /// Send an RTCP packet to the client
+  /// Send an RTCP packet on a specific track
+  /// @param track_id The track to send on
+  /// @param packet The RTCP packet to send
+  /// @return True if the packet was sent successfully, false otherwise
+  bool send_rtcp_packet(int track_id, const espp::RtcpPacket &packet);
+
+  /// Send an RTCP packet to the client (backward compat — sends on default track 0)
   /// @param packet The RTCP packet to send
   /// @return True if the packet was sent successfully, false otherwise
   bool send_rtcp_packet(const espp::RtcpPacket &packet);
@@ -184,8 +221,7 @@ protected:
                                 int &client_rtp_port, int &client_rtcp_port);
 
   std::shared_ptr<espp::TcpSocket> control_socket_;
-  espp::UdpSocket rtp_socket_;
-  espp::UdpSocket rtcp_socket_;
+  std::unordered_map<int, std::unique_ptr<Track>> tracks_;
 
   uint32_t session_id_;
   bool closed_ = false;
@@ -195,8 +231,8 @@ protected:
   std::string rtsp_path_;
 
   std::string client_address_;
-  int client_rtp_port_;
-  int client_rtcp_port_;
+
+  std::function<std::string(const std::string &, uint32_t, const std::string &)> sdp_generator_;
 
   std::unique_ptr<Task> control_task_;
 };

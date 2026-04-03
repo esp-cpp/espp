@@ -1,9 +1,12 @@
 #pragma once
 
+#include <cstring>
 #include <span>
 #include <string>
 #include <string_view>
 #include <vector>
+
+#include "format.hpp"
 
 namespace espp {
 /// A class to generate a JPEG header for a given image size and quantization tables.

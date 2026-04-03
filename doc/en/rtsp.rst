@@ -1,38 +1,49 @@
 RTSP APIs
 *********
 
+The ``rtsp`` component provides a flexible, multi-codec RTSP streaming framework
+for ESP32 devices. It supports MJPEG, H.264, and generic audio codecs through
+an extensible packetizer/depacketizer architecture. The component handles only
+RTP packet splitting and reassembly — encoding and decoding of media data is
+performed externally.
+
 RTSP Client
 -----------
 
-The `RtspClient` class provides an interface to an RTSP server. It is used to
-send RTSP requests and receive RTSP responses. It also provides an interface
-to the RTP and RTCP sessions that are created as a result of the RTSP
-interactions.
+The ``RtspClient`` class connects to an RTSP server and receives media streams
+over RTP/UDP. It dispatches incoming RTP packets to registered depacketizers
+based on payload type.
 
-The `RtspClient` currently only supports MJPEG streams, since the ESP32 does
-not have a hardware decoder for H.264 or H.265.
-
-Additionally the client currently only supports UDP transport for RTP and RTCP
-packets. TCP transport is not supported.
-
-The user can register a callback function to be notified when new, complete JPEG
-frames are received. The callback function is called with a pointer to the JPEG
-frame.
+For **backward compatibility**, setting the ``on_jpeg_frame`` callback
+automatically creates an ``MjpegDepacketizer`` for MJPEG streams (payload type
+26). For other codecs, register a depacketizer via ``add_depacketizer()``.
 
 
 RTSP Server
 -----------
 
-The `RtspServer` class provides an implementation of an RTSP server. It is used
-to receive RTSP requests and send RTSP responses. It is designed to allow the
-user to send JPEG frames to the server, which will then send them to the client
-over RTP/UDP.
+The ``RtspServer`` class accepts RTSP connections and streams media over
+RTP/UDP. It supports multiple tracks, each with its own codec-specific
+packetizer, SSRC, and sequence numbering.
 
-The server currently only supports MJPEG streams, since the ESP32 does not have
-a hardware encoder for H.264 or H.265.
+For **backward compatibility**, calling ``send_frame(const JpegFrame&)`` lazily
+creates a default MJPEG track. For other codecs, register tracks via
+``add_track()`` and send frames with ``send_frame(track_id, data)``.
 
-Additionally, the server currently only supports UDP transport for RTP and RTCP
-packets. TCP transport is not supported.
+
+RTP Packetizers & Depacketizers
+-------------------------------
+
+The packetizer/depacketizer abstraction allows the server and client to support
+any media codec. Concrete implementations are provided for:
+
+- **MJPEG** (``MjpegPacketizer`` / ``MjpegDepacketizer``) — RFC 2435
+- **H.264** (``H264Packetizer`` / ``H264Depacketizer``) — RFC 6184, FU-A fragmentation
+- **Generic** (``GenericPacketizer`` / ``GenericDepacketizer``) — Simple MTU chunking for audio
+
+Custom packetizers can be created by subclassing ``RtpPacketizer`` or
+``RtpDepacketizer``.
+
 
 .. ------------------------------- Example -------------------------------------
 
@@ -48,6 +59,15 @@ API Reference
 .. include-build-file:: inc/rtsp_client.inc
 .. include-build-file:: inc/rtsp_server.inc
 .. include-build-file:: inc/rtsp_session.inc
+.. include-build-file:: inc/rtp_packetizer.inc
+.. include-build-file:: inc/rtp_depacketizer.inc
+.. include-build-file:: inc/rtp_types.inc
+.. include-build-file:: inc/mjpeg_packetizer.inc
+.. include-build-file:: inc/mjpeg_depacketizer.inc
+.. include-build-file:: inc/h264_packetizer.inc
+.. include-build-file:: inc/h264_depacketizer.inc
+.. include-build-file:: inc/generic_packetizer.inc
+.. include-build-file:: inc/generic_depacketizer.inc
 .. include-build-file:: inc/rtp_packet.inc
 .. include-build-file:: inc/rtp_jpeg_packet.inc
 .. include-build-file:: inc/rtcp_packet.inc

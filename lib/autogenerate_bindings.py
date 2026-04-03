@@ -130,6 +130,15 @@ def autogenerate() -> None:
                     include_dir + "joystick/include/joystick.hpp",
 
                     # NOTE: this must come after socket since it depends on it!
+                    include_dir + "rtsp/include/rtp_types.hpp",
+                    include_dir + "rtsp/include/rtp_depacketizer.hpp",
+                    include_dir + "rtsp/include/rtp_packetizer.hpp",
+                    include_dir + "rtsp/include/generic_depacketizer.hpp",
+                    include_dir + "rtsp/include/generic_packetizer.hpp",
+                    include_dir + "rtsp/include/h264_depacketizer.hpp",
+                    include_dir + "rtsp/include/h264_packetizer.hpp",
+                    include_dir + "rtsp/include/mjpeg_depacketizer.hpp",
+                    include_dir + "rtsp/include/mjpeg_packetizer.hpp",
                     include_dir + "rtsp/include/rtp_jpeg_packet.hpp",
                     include_dir + "rtsp/include/jpeg_frame.hpp",
                     include_dir + "rtsp/include/jpeg_header.hpp",
