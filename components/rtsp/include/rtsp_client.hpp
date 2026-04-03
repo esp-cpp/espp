@@ -13,6 +13,8 @@
 #include "udp_socket.hpp"
 
 #include "jpeg_frame.hpp"
+#include "mjpeg_depacketizer.hpp"
+#include "rtp_depacketizer.hpp"
 
 namespace espp {
 
@@ -33,6 +35,9 @@ public:
   /// Function type for the callback to call when a JPEG frame is received
   typedef std::function<void(std::shared_ptr<espp::JpegFrame> jpeg_frame)> jpeg_frame_callback_t;
 
+  /// Generic frame callback — called for any track/codec with raw frame data
+  using frame_callback_t = std::function<void(int track_id, std::vector<uint8_t> &&data)>;
+
   /// Configuration for the RTSP client
   struct Config {
     std::string server_address;   ///< The server IP Address to connect to
@@ -40,8 +45,15 @@ public:
     std::string path{"/mjpeg/1"}; ///< The path to the RTSP stream on the server. Will be appended
                                   ///< to the server address and port to form the full path of the
                                   ///< form "rtsp://<server_address>:<rtsp_port><path>"
-    espp::RtspClient::jpeg_frame_callback_t
-        on_jpeg_frame; ///< The callback to call when a JPEG frame is received
+
+    /// Generic frame callback for any codec (track_id, raw frame data)
+    frame_callback_t on_frame{nullptr};
+
+    /// JPEG-specific frame callback (backward compatible).
+    /// If set and no depacketizer is registered for PT 26, an MjpegDepacketizer
+    /// is automatically created.
+    jpeg_frame_callback_t on_jpeg_frame{nullptr};
+
     espp::Logger::Verbosity log_level =
         espp::Logger::Verbosity::INFO; ///< The verbosity of the logger
   };
@@ -112,6 +124,13 @@ public:
   void setup(size_t rtp_port, size_t rtcp_port, const std::chrono::duration<float> &receive_timeout,
              std::error_code &ec);
 
+  /// Register a depacketizer for a specific RTP payload type.
+  /// When RTP packets with this payload type are received, they are
+  /// dispatched to the registered depacketizer.
+  /// @param payload_type The RTP payload type (e.g., 26 for MJPEG, 96 for H264)
+  /// @param depacketizer The depacketizer to handle packets of this type
+  void add_depacketizer(int payload_type, std::shared_ptr<RtpDepacketizer> depacketizer);
+
   /// Play the RTSP stream
   /// Sends the PLAY request to the RTSP server and parses the response.
   /// \param ec The error code to set if an error occurs
@@ -156,11 +175,12 @@ protected:
                  std::error_code &ec);
 
   /// Handle an RTP packet
-  /// \note Parses the RTP packet and appends it to the current JPEG frame.
-  /// \note If the packet is the last fragment of the JPEG frame, the frame is sent to the
-  /// on_jpeg_frame callback. \note This function is called by the RTP socket task. \param data The
-  /// data to handle \param sender_info The sender info \return Optional data to send back to the
-  /// sender
+  /// \note Parses the RTP packet header, determines the payload type, and
+  /// dispatches to the appropriate registered depacketizer.
+  /// \note This function is called by the RTP socket task.
+  /// \param data The data to handle
+  /// \param sender_info The sender info
+  /// \return Optional data to send back to the sender
   std::optional<std::vector<uint8_t>> handle_rtp_packet(std::vector<uint8_t> &data,
                                                         const espp::Socket::Info &sender_info);
 
@@ -180,6 +200,8 @@ protected:
   espp::UdpSocket rtcp_socket_;
 
   jpeg_frame_callback_t on_jpeg_frame_{nullptr};
+  frame_callback_t on_frame_{nullptr};
+  std::unordered_map<int, std::shared_ptr<RtpDepacketizer>> depacketizers_;
 
   int cseq_ = 0;
   int video_port_ = 0;

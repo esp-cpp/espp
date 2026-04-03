@@ -1,6 +1,9 @@
 #pragma once
 
+#include <cstring>
 #include <span>
+
+#include "format.hpp"
 
 #include "rtp_packet.hpp"
 

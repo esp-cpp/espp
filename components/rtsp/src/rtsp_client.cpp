@@ -10,8 +10,22 @@ RtspClient::RtspClient(const Config &config)
     , rtp_socket_({.log_level = espp::Logger::Verbosity::WARN})
     , rtcp_socket_({.log_level = espp::Logger::Verbosity::WARN})
     , on_jpeg_frame_(config.on_jpeg_frame)
+    , on_frame_(config.on_frame)
     , cseq_(0)
-    , path_("rtsp://" + server_address_ + ":" + std::to_string(rtsp_port_) + config.path) {}
+    , path_("rtsp://" + server_address_ + ":" + std::to_string(rtsp_port_) + config.path) {
+  // If on_jpeg_frame is set, auto-create an MjpegDepacketizer for PT 26
+  if (on_jpeg_frame_) {
+    auto mjpeg_depacker = std::make_shared<MjpegDepacketizer>(MjpegDepacketizer::Config{});
+    mjpeg_depacker->set_jpeg_frame_callback(on_jpeg_frame_);
+    if (on_frame_) {
+      mjpeg_depacker->set_frame_callback([this](std::vector<uint8_t> &&data) {
+        if (on_frame_)
+          on_frame_(0, std::move(data));
+      });
+    }
+    depacketizers_[26] = mjpeg_depacker;
+  }
+}
 
 RtspClient::~RtspClient() {
   std::error_code ec;
@@ -178,6 +192,10 @@ void RtspClient::setup(size_t rtp_port, size_t rtcp_port,
   init_rtcp(rtcp_port, receive_timeout, ec);
 }
 
+void RtspClient::add_depacketizer(int payload_type, std::shared_ptr<RtpDepacketizer> depacketizer) {
+  depacketizers_[payload_type] = std::move(depacketizer);
+}
+
 void RtspClient::play(std::error_code &ec) {
   // exit early if the error code is set
   if (ec) {
@@ -295,57 +313,18 @@ void RtspClient::init_rtcp(size_t rtcp_port, const std::chrono::duration<float> 
 
 std::optional<std::vector<uint8_t>>
 RtspClient::handle_rtp_packet(std::vector<uint8_t> &data, const espp::Socket::Info &sender_info) {
-  // jpeg frame that we are building
-  static std::shared_ptr<JpegFrame> jpeg_frame;
-
   logger_.debug("Got RTP packet of size: {}", data.size());
 
-  std::span<const uint8_t> packet(data.data(), data.size());
-  // parse the rtp packet
-  RtpJpegPacket rtp_jpeg_packet(packet);
-  auto frag_offset = rtp_jpeg_packet.get_offset();
-  if (frag_offset == 0) {
-    // first fragment
-    logger_.debug("Received first fragment, size: {}, sequence number: {}",
-                  rtp_jpeg_packet.get_data().size(), rtp_jpeg_packet.get_sequence_number());
-    if (jpeg_frame) {
-      // we already have a frame, this is an error
-      logger_.warn("Received first fragment but already have a frame");
-      jpeg_frame.reset();
-    }
-    logger_.debug("Creating new jpeg frame from rtpjpegpacket of size {} x {} pixels",
-                  rtp_jpeg_packet.get_width(), rtp_jpeg_packet.get_height());
-    jpeg_frame = std::make_shared<JpegFrame>(rtp_jpeg_packet);
-    logger_.debug("Created new jpeg frame, size: {} x {} pixels", jpeg_frame->get_width(),
-                  jpeg_frame->get_height());
-  } else if (jpeg_frame) {
-    logger_.debug("Received middle fragment, size: {}, sequence number: {}",
-                  rtp_jpeg_packet.get_data().size(), rtp_jpeg_packet.get_sequence_number());
-    // middle fragment
-    jpeg_frame->append(rtp_jpeg_packet);
+  RtpPacket packet(std::span<const uint8_t>(data.data(), data.size()));
+  int pt = packet.get_payload_type();
+
+  auto it = depacketizers_.find(pt);
+  if (it != depacketizers_.end()) {
+    it->second->process_packet(packet);
   } else {
-    // we don't have a frame to append to but we got a middle fragment
-    // this is an error
-    logger_.warn("Received middle fragment without a frame");
-    return {};
+    logger_.debug("No depacketizer registered for payload type {}", pt);
   }
 
-  // check if this is the last packet of the frame (the last packet will have
-  // the marker bit set)
-  if (jpeg_frame && jpeg_frame->is_complete()) {
-    // get the jpeg data
-    auto jpeg_data = jpeg_frame->get_data();
-    logger_.debug("Received jpeg frame of size: {} B", jpeg_data.size());
-    // call the on_jpeg_frame callback
-    if (on_jpeg_frame_) {
-      on_jpeg_frame_(jpeg_frame);
-    }
-    // reset the jpeg frame
-    jpeg_frame.reset();
-    logger_.debug("Sent jpeg frame to callback, now jpeg_frame is nullptr? {}",
-                  jpeg_frame == nullptr);
-  }
-  // return an empty vector to indicate that we don't want to send a response
   return {};
 }
 

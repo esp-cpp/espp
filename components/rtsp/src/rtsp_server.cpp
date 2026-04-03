@@ -8,17 +8,7 @@ RtspServer::RtspServer(const Config &config)
     , port_(config.port)
     , path_(config.path)
     , rtsp_socket_({.log_level = espp::Logger::Verbosity::WARN})
-    , max_data_size_(config.max_data_size) {
-  // generate a random ssrc
-#if defined(ESP_PLATFORM)
-  ssrc_ = esp_random();
-#else
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::uniform_int_distribution<uint32_t> dis;
-  ssrc_ = dis(gen);
-#endif
-}
+    , max_data_size_(config.max_data_size) {}
 
 RtspServer::~RtspServer() { stop(); }
 
@@ -79,8 +69,85 @@ void RtspServer::stop() {
   rtsp_socket_.close();
 }
 
+void RtspServer::add_track(const TrackConfig &config) {
+  auto state = std::make_shared<TrackState>();
+  state->track_id = config.track_id;
+  state->packetizer = config.packetizer;
+  state->ssrc = generate_ssrc();
+  tracks_.push_back(state);
+  logger_.info("Added track {} with SSRC {}", config.track_id, state->ssrc);
+}
+
+void RtspServer::send_frame(int track_id, std::span<const uint8_t> frame_data) {
+  // Find the track
+  std::shared_ptr<TrackState> track;
+  for (auto &t : tracks_) {
+    if (t->track_id == track_id) {
+      track = t;
+      break;
+    }
+  }
+  if (!track) {
+    logger_.error("No track with id {} found", track_id);
+    return;
+  }
+
+  // Packetize the frame using the track's codec-specific packetizer
+  auto chunks = track->packetizer->packetize(frame_data);
+
+  // Wrap each chunk in an RtpPacket
+  std::vector<std::unique_ptr<RtpPacket>> packets;
+  packets.reserve(chunks.size());
+
+  static auto start_time = std::chrono::steady_clock::now();
+  auto now = std::chrono::steady_clock::now();
+  auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - start_time).count();
+  uint32_t timestamp =
+      static_cast<uint32_t>(elapsed_ms * track->packetizer->get_clock_rate() / 1000);
+
+  for (auto &chunk : chunks) {
+    auto pkt = std::make_unique<RtpPacket>(chunk.data.size());
+    pkt->set_version(2);
+    pkt->set_marker(chunk.marker);
+    pkt->set_payload_type(track->packetizer->get_payload_type());
+    pkt->set_sequence_number(track->sequence_number++);
+    pkt->set_timestamp(timestamp);
+    pkt->set_ssrc(track->ssrc);
+    pkt->set_payload(std::span<const uint8_t>(chunk.data.data(), chunk.data.size()));
+    pkt->serialize();
+    packets.emplace_back(std::move(pkt));
+  }
+
+  // Store pending packets for the session task to pick up
+  {
+    std::lock_guard<std::mutex> lock(track->packets_mutex);
+    track->pending_packets = std::move(packets);
+  }
+}
+
 void RtspServer::send_frame(const espp::JpegFrame &frame) {
-  // get the frame scan data
+  // Lazily create default MJPEG track for backward compatibility
+  if (!default_mjpeg_track_created_) {
+    MjpegPacketizer::Config mjpeg_config;
+    mjpeg_config.max_payload_size = max_data_size_;
+    auto mjpeg_packetizer = std::make_shared<MjpegPacketizer>(mjpeg_config);
+    add_track(TrackConfig{.track_id = 0, .packetizer = mjpeg_packetizer});
+    default_mjpeg_track_created_ = true;
+  }
+
+  // Find track 0
+  std::shared_ptr<TrackState> track;
+  for (auto &t : tracks_) {
+    if (t->track_id == 0) {
+      track = t;
+      break;
+    }
+  }
+  if (!track)
+    return;
+
+  // Use the legacy RtpJpegPacket-based packetization to preserve the
+  // exact wire format for existing MJPEG users
   auto frame_header = frame.get_header();
   auto frame_data = frame.get_data();
 
@@ -97,7 +164,7 @@ void RtspServer::send_frame(const espp::JpegFrame &frame) {
   // create num_packets RtpJpegPackets
   // The first packet will have the quantization tables, and the last packet
   // will have the end of image marker and the marker bit set
-  std::vector<std::unique_ptr<RtpJpegPacket>> packets;
+  std::vector<std::unique_ptr<RtpPacket>> packets;
   packets.reserve(num_packets);
   for (size_t i = 0; i < num_packets; i++) {
     // get the start and end indices for the current packet
@@ -126,7 +193,7 @@ void RtspServer::send_frame(const espp::JpegFrame &frame) {
     // set the payload type to 26 (JPEG)
     packet->set_payload_type(26);
     // set the sequence number
-    packet->set_sequence_number(sequence_number_++);
+    packet->set_sequence_number(track->sequence_number++);
     // set the timestamp
     static auto start_time = std::chrono::steady_clock::now();
     auto now = std::chrono::steady_clock::now();
@@ -135,10 +202,7 @@ void RtspServer::send_frame(const espp::JpegFrame &frame) {
     packet->set_timestamp(timestamp * 90);
 
     // set the ssrc
-    packet->set_ssrc(ssrc_);
-
-    // auto mjpeg_header = packet->get_mjpeg_header();
-    // std::vector<char> mjpeg_vec(mjpeg_header.begin(), mjpeg_header.end());
+    packet->set_ssrc(track->ssrc);
 
     // if it's the last packet, set the marker bit
     if (i == num_packets - 1) {
@@ -152,12 +216,31 @@ void RtspServer::send_frame(const espp::JpegFrame &frame) {
     packets.emplace_back(std::move(packet));
   }
 
-  // now move the packets into the rtp_packets_ vector
+  // store the packets in the track's pending list
   {
-    std::unique_lock<std::mutex> lock(rtp_packets_mutex_);
-    // move the new packets into the list
-    rtp_packets_ = std::move(packets);
+    std::lock_guard<std::mutex> lock(track->packets_mutex);
+    track->pending_packets = std::move(packets);
   }
+}
+
+std::string RtspServer::generate_sdp(const std::string &session_path, uint32_t session_id,
+                                     const std::string &server_address) const {
+  std::string sdp;
+  sdp += "v=0\r\n";
+  sdp += fmt::format("o=- {} 1 IN IP4 {}\r\n", session_id, server_address);
+  sdp += "s=RTSP Stream\r\n";
+  sdp += "t=0 0\r\n";
+  sdp += fmt::format("a=control:{}\r\n", session_path);
+
+  for (const auto &track : tracks_) {
+    sdp += track->packetizer->get_sdp_media_line() + "\r\n";
+    sdp += "c=IN IP4 0.0.0.0\r\n";
+    sdp += "b=AS:256\r\n";
+    sdp += track->packetizer->get_sdp_media_attributes() + "\r\n";
+    sdp += fmt::format("a=control:{}/trackID={}\r\n", session_path, track->track_id);
+  }
+
+  return sdp;
 }
 
 bool RtspServer::accept_task_function(std::mutex &m, std::condition_variable &cv,
@@ -182,6 +265,11 @@ bool RtspServer::accept_task_function(std::mutex &m, std::condition_variable &cv
       std::move(control_socket),
       RtspSession::Config{.server_address = fmt::format("{}:{}", server_address_, port_),
                           .rtsp_path = path_,
+                          .sdp_generator =
+                              [this](const std::string &session_path, uint32_t session_id,
+                                     const std::string &server_address) {
+                                return generate_sdp(session_path, session_id, server_address);
+                              },
                           .log_level = session_log_level_});
 
   // add the session to the list of sessions
@@ -223,20 +311,23 @@ bool RtspServer::session_task_function(std::mutex &m, std::condition_variable &c
     }
   }
 
-  // when this function returns, the vector of pointers will go out of scope
-  // and the pointers will be deleted (which is good because it means we
-  // won't send the same frame twice)
-  std::vector<std::unique_ptr<RtpJpegPacket>> packets;
-  {
-    // copy the rtp packets into a local vector
-    std::unique_lock<std::mutex> lock(rtp_packets_mutex_);
-    if (rtp_packets_.empty()) {
-      // if there is not a new frame (no packets), then simply return
-      // we do not want to stop the task
-      return false;
-    }
-    // move the packets into the local vector
-    packets = std::move(rtp_packets_);
+  // Collect pending packets from all tracks
+  struct TrackPackets {
+    int track_id;
+    std::vector<std::unique_ptr<RtpPacket>> packets;
+  };
+  std::vector<TrackPackets> all_track_packets;
+
+  for (auto &track : tracks_) {
+    std::lock_guard<std::mutex> lock(track->packets_mutex);
+    if (track->pending_packets.empty())
+      continue;
+    all_track_packets.push_back({track->track_id, std::move(track->pending_packets)});
+  }
+
+  if (all_track_packets.empty()) {
+    // no new frames, do not stop the task
+    return false;
   }
 
   logger_.debug("Sending frame data to clients");
@@ -245,16 +336,13 @@ bool RtspServer::session_task_function(std::mutex &m, std::condition_variable &c
   // if the session is active
   // send the latest frame to the client
   std::lock_guard<std::mutex> lk(session_mutex_);
-  for (auto &session : sessions_) {
-    [[maybe_unused]] auto session_id = session.first;
-    auto &session_ptr = session.second;
-    // send the packets to the client
-    for (auto &packet : packets) {
-      // if the session is not active or is closed, then stop sending
-      if (!session_ptr->is_active() || session_ptr->is_closed()) {
-        break;
+  for (auto &[sid, session_ptr] : sessions_) {
+    if (!session_ptr->is_active() || session_ptr->is_closed())
+      continue;
+    for (auto &tp : all_track_packets) {
+      for (auto &packet : tp.packets) {
+        session_ptr->send_rtp_packet(tp.track_id, *packet);
       }
-      session_ptr->send_rtp_packet(*packet);
     }
   }
   // loop over the sessions and erase ones which are closed

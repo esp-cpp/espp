@@ -58,6 +58,12 @@ set(ESPP_SOURCES
   ${ESPP_COMPONENTS}/rtsp/src/rtsp_client.cpp
   ${ESPP_COMPONENTS}/rtsp/src/rtsp_server.cpp
   ${ESPP_COMPONENTS}/rtsp/src/rtsp_session.cpp
+  ${ESPP_COMPONENTS}/rtsp/src/generic_depacketizer.cpp
+  ${ESPP_COMPONENTS}/rtsp/src/generic_packetizer.cpp
+  ${ESPP_COMPONENTS}/rtsp/src/h264_packetizer.cpp
+  ${ESPP_COMPONENTS}/rtsp/src/h264_depacketizer.cpp
+  ${ESPP_COMPONENTS}/rtsp/src/mjpeg_depacketizer.cpp
+  ${ESPP_COMPONENTS}/rtsp/src/mjpeg_packetizer.cpp
   ${ESPP_COMPONENTS}/task/src/task.cpp
   ${ESPP_COMPONENTS}/timer/src/timer.cpp
   ${ESPP_COMPONENTS}/socket/src/socket.cpp

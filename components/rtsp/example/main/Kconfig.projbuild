@@ -6,6 +6,55 @@ menu "RTSP Example Configuration"
         help
             The port number of the RTSP server.
 
+    choice RTSP_EXAMPLE_MODE
+        prompt "Example Mode"
+        default RTSP_EXAMPLE_MODE_LEGACY
+        help
+            Select which RTSP example mode to run.
+
+        config RTSP_EXAMPLE_MODE_LEGACY
+            bool "Legacy MJPEG (server + client)"
+            help
+                Runs the original MJPEG server and client on the same device.
+                The server streams a JPEG image and the client receives it.
+                Uses the backward-compatible JpegFrame API.
+
+        config RTSP_EXAMPLE_MODE_SERVER_ONLY
+            bool "MJPEG Server only"
+            help
+                Runs only the RTSP server streaming MJPEG frames.
+                Connect an external RTSP client (e.g. VLC) to view the stream.
+
+        config RTSP_EXAMPLE_MODE_CLIENT_ONLY
+            bool "MJPEG Client only"
+            help
+                Runs only the RTSP client connecting to a remote RTSP server.
+                Requires an external RTSP server to be running.
+
+        config RTSP_EXAMPLE_MODE_MULTITRACK
+            bool "Multi-track server (MJPEG + audio)"
+            help
+                Runs a multi-track RTSP server with an MJPEG video track and
+                a generic audio track, demonstrating the add_track() API
+                and generic send_frame(track_id, data) API.
+
+    endchoice
+
+    config RTSP_EXAMPLE_RUN_API_TESTS
+        bool "Run API tests at startup"
+        default y
+        help
+            Run offline API tests for packetizers, depacketizers, and
+            server/client construction before starting network operations.
+            This exercises the component APIs to catch breaking changes.
+
+    config RTSP_CLIENT_SERVER_ADDRESS
+        string "Remote RTSP server address (client-only mode)"
+        default "192.168.1.100"
+        depends on RTSP_EXAMPLE_MODE_CLIENT_ONLY
+        help
+            IP address of the remote RTSP server to connect to in client-only mode.
+
     config ESP_WIFI_SSID
         string "WiFi SSID"
         default "myssid"

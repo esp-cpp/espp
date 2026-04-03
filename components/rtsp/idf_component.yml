@@ -12,10 +12,13 @@ tags:
   - cpp
   - Component
   - RTSP
+  - RTP
   - TCP
   - UDP
   - Video
+  - Audio
   - MJPEG
+  - H264
   - Client
   - Server
 dependencies:

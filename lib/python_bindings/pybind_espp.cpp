@@ -758,7 +758,7 @@ void py_init_module_espp(py::module &m) {
            "distribution.\n")
       .def("unmap", &espp::RangeMapper<int>::unmap, py::arg("v"),
            "*\n   * @brief Unmap a value \\p v from the configured output range (centered,\n   *   "
-           "     default [-1,1]) back into the input distribution.\n   * @param T&v Value from the "
+           "     default [-1,1]) back into the input distribution.\n   * @param v Value from the "
            "centered output distribution.\n   * @return Value within the input distribution.\n");
   auto pyClassRangeMapper_float = py::class_<espp::RangeMapper<float>>(
       m, "RangeMapper_float", py::dynamic_attr(),
@@ -2457,6 +2457,428 @@ void py_init_module_espp(py::module &m) {
            "alive.\n");
   ////////////////////    </generated_from:joystick.hpp>    ////////////////////
 
+  ////////////////////    <generated_from:rtp_types.hpp>    ////////////////////
+  auto pyEnumMediaType =
+      py::enum_<espp::MediaType>(m, "MediaType", py::arithmetic(),
+                                 "/ Describes a media type for RTSP tracks.")
+          .value("video", espp::MediaType::VIDEO, "/< Video media (MJPEG, H264, etc.)")
+          .value("audio", espp::MediaType::AUDIO, "/< Audio media (PCM, Opus, AAC, etc.)");
+
+  auto pyClassRtpPayloadChunk =
+      py::class_<espp::RtpPayloadChunk>(
+          m, "RtpPayloadChunk", py::dynamic_attr(),
+          "/ Represents one RTP payload chunk ready to be wrapped in an RtpPacket.\n/ Packetizers "
+          "produce these; the server wraps them with RTP headers.")
+          .def(py::init<>(
+                   [](std::vector<uint8_t> data = std::vector<uint8_t>(), bool marker = {false}) {
+                     auto r_ctor_ = std::make_unique<espp::RtpPayloadChunk>();
+                     r_ctor_->data = data;
+                     r_ctor_->marker = marker;
+                     return r_ctor_;
+                   }),
+               py::arg("data") = std::vector<uint8_t>(), py::arg("marker") = bool{false})
+          .def_readwrite("data", &espp::RtpPayloadChunk::data, "/< The payload data for this chunk")
+          .def_readwrite("marker", &espp::RtpPayloadChunk::marker,
+                         "/< Set on last chunk of a frame/access unit");
+  ////////////////////    </generated_from:rtp_types.hpp>    ////////////////////
+
+  ////////////////////    <generated_from:rtp_depacketizer.hpp>    ////////////////////
+  auto pyClassRtpDepacketizer = py::class_<espp::RtpDepacketizer,
+                                           std::shared_ptr<espp::RtpDepacketizer>>(
+      m, "RtpDepacketizer", py::dynamic_attr(),
+      "/ Abstract base class for reassembling media frames from incoming RTP packets.\n/ Concrete "
+      "depacketizers (e.g. MJPEG, H.264) override process_packet() to\n/ accumulate payload data "
+      "and invoke the frame callback when a complete frame\n/ has been assembled.");
+
+  { // inner classes & enums of RtpDepacketizer
+    auto pyClassRtpDepacketizer_ClassConfig =
+        py::class_<espp::RtpDepacketizer::Config>(pyClassRtpDepacketizer, "Config",
+                                                  py::dynamic_attr(),
+                                                  "/ Configuration for RtpDepacketizer.")
+            .def(
+                py::init<>([](espp::Logger::Verbosity log_level = {espp::Logger::Verbosity::WARN}) {
+                  auto r_ctor_ = std::make_unique<espp::RtpDepacketizer::Config>();
+                  r_ctor_->log_level = log_level;
+                  return r_ctor_;
+                }),
+                py::arg("log_level") = espp::Logger::Verbosity{espp::Logger::Verbosity::WARN})
+            .def_readwrite("log_level", &espp::RtpDepacketizer::Config::log_level,
+                           "/< Log verbosity level");
+  } // end of inner classes & enums of RtpDepacketizer
+
+  pyClassRtpDepacketizer
+      .def(
+          "process_packet", &espp::RtpDepacketizer::process_packet, py::arg("packet"),
+          "/ Process an incoming RTP packet, accumulating payload data.\n/ When a complete frame "
+          "is assembled the frame callback is invoked.\n/ @param packet The RTP packet to process.")
+      .def("set_frame_callback", &espp::RtpDepacketizer::set_frame_callback, py::arg("cb"),
+           "/ Set the callback for completed frames.\n/ @param cb The callback to invoke when a "
+           "full frame is ready.");
+  ////////////////////    </generated_from:rtp_depacketizer.hpp>    ////////////////////
+
+  ////////////////////    <generated_from:generic_depacketizer.hpp>    ////////////////////
+  auto pyClassGenericDepacketizer = py::class_<espp::GenericDepacketizer, espp::RtpDepacketizer,
+                                               std::shared_ptr<espp::GenericDepacketizer>>(
+      m, "GenericDepacketizer", py::dynamic_attr(),
+      "/ A generic RTP depacketizer that reassembles media frames from incoming RTP\n/ packets. It "
+      "accumulates payload data until a packet with the marker bit set\n/ is received, then "
+      "delivers the complete frame via the frame callback. If a\n/ packet arrives with a different "
+      "RTP timestamp than the current accumulation\n/ buffer, the old buffer is discarded and a "
+      "new one is started.\n/\n/ This is suitable for audio codecs (PCM, G.711, Opus, etc.) or any "
+      "payload\n/ format that uses simple marker-based framing.\n/\n/ \\section "
+      "generic_depacketizer_ex1 Example\n/ \\snippet generic_depacketizer_example.cpp "
+      "generic_depacketizer example");
+
+  { // inner classes & enums of GenericDepacketizer
+    auto pyClassGenericDepacketizer_ClassConfig =
+        py::class_<espp::GenericDepacketizer::Config>(pyClassGenericDepacketizer, "Config",
+                                                      py::dynamic_attr(),
+                                                      "/ Configuration for GenericDepacketizer.")
+            .def(
+                py::init<>([](espp::Logger::Verbosity log_level = {espp::Logger::Verbosity::WARN}) {
+                  auto r_ctor_ = std::make_unique<espp::GenericDepacketizer::Config>();
+                  r_ctor_->log_level = log_level;
+                  return r_ctor_;
+                }),
+                py::arg("log_level") = espp::Logger::Verbosity{espp::Logger::Verbosity::WARN})
+            .def_readwrite("log_level", &espp::GenericDepacketizer::Config::log_level,
+                           "/< Log verbosity level");
+  } // end of inner classes & enums of GenericDepacketizer
+
+  pyClassGenericDepacketizer
+      .def(py::init<const espp::GenericDepacketizer::Config &>(),
+           py::arg("config") = espp::GenericDepacketizer::Config{})
+      .def("process_packet", &espp::GenericDepacketizer::process_packet, py::arg("packet"),
+           "/ Process an incoming RTP packet.\n/ Payload data is accumulated until a packet with "
+           "the marker bit set is\n/ received. At that point the assembled frame is delivered via "
+           "the frame\n/ callback and the buffer is reset.\n/ @param packet The RTP packet to "
+           "process.");
+  ////////////////////    </generated_from:generic_depacketizer.hpp>    ////////////////////
+
+  ////////////////////    <generated_from:h264_depacketizer.hpp>    ////////////////////
+  auto pyClassH264Depacketizer = py::class_<espp::H264Depacketizer, espp::RtpDepacketizer,
+                                            std::shared_ptr<espp::H264Depacketizer>>(
+      m, "H264Depacketizer", py::dynamic_attr(),
+      "/ @brief RTP depacketizer for H.264 video per RFC 6184.\n/\n/ Reassembles H.264 access "
+      "units from incoming RTP packets. Supports:\n/   - **Single NAL unit** packets (NAL type "
+      "1–23)\n/   - **STAP-A** aggregation packets (NAL type 24)\n/   - **FU-A** fragmentation "
+      "packets (NAL type 28)\n/\n/ When the RTP marker bit is set, the accumulated NAL units are "
+      "delivered\n/ as one Annex B byte-stream (each NAL prefixed with 0x00 0x00 0x00 0x01)\n/ via "
+      "the frame callback set with set_frame_callback().\n/\n/ \\section h264_depacketizer_ex1 "
+      "Example\n/ \\snippet h264_depacketizer_example.cpp h264_depacketizer example");
+
+  { // inner classes & enums of H264Depacketizer
+    auto pyClassH264Depacketizer_ClassConfig =
+        py::class_<espp::H264Depacketizer::Config>(pyClassH264Depacketizer, "Config",
+                                                   py::dynamic_attr(),
+                                                   "/ Configuration for the H264Depacketizer.")
+            .def(
+                py::init<>([](espp::Logger::Verbosity log_level = {espp::Logger::Verbosity::WARN}) {
+                  auto r_ctor_ = std::make_unique<espp::H264Depacketizer::Config>();
+                  r_ctor_->log_level = log_level;
+                  return r_ctor_;
+                }),
+                py::arg("log_level") = espp::Logger::Verbosity{espp::Logger::Verbosity::WARN})
+            .def_readwrite("log_level", &espp::H264Depacketizer::Config::log_level,
+                           "/< Log verbosity level");
+  } // end of inner classes & enums of H264Depacketizer
+
+  pyClassH264Depacketizer
+      .def(py::init<const espp::H264Depacketizer::Config &>(),
+           py::arg("config") = espp::H264Depacketizer::Config{})
+      .def("process_packet", &espp::H264Depacketizer::process_packet, py::arg("packet"),
+           "/ Process an incoming RTP packet containing H.264 payload.\n/\n/ Handles single NAL, "
+           "STAP-A, and FU-A packet types. NAL units are\n/ buffered until the RTP marker bit "
+           "indicates the end of an access unit,\n/ at which point the complete Annex B frame is "
+           "delivered via the callback.\n/\n/ @param packet The RTP packet to process.");
+  ////////////////////    </generated_from:h264_depacketizer.hpp>    ////////////////////
+
+  ////////////////////    <generated_from:mjpeg_depacketizer.hpp>    ////////////////////
+  auto pyClassMjpegDepacketizer = py::class_<espp::MjpegDepacketizer, espp::RtpDepacketizer,
+                                             std::shared_ptr<espp::MjpegDepacketizer>>(
+      m, "MjpegDepacketizer", py::dynamic_attr(),
+      "/ MJPEG depacketizer that reassembles JPEG frames from RTP packets.\n/\n/ This class "
+      "receives individual RTP packets containing RFC 2435 MJPEG\n/ payloads, reassembles the scan "
+      "data fragments, reconstructs the JPEG\n/ header from the MJPEG header fields, and delivers "
+      "complete JPEG frames\n/ through callbacks.");
+
+  { // inner classes & enums of MjpegDepacketizer
+    auto pyClassMjpegDepacketizer_ClassConfig =
+        py::class_<espp::MjpegDepacketizer::Config>(pyClassMjpegDepacketizer, "Config",
+                                                    py::dynamic_attr(),
+                                                    "/ Configuration for the MJPEG depacketizer.")
+            .def(
+                py::init<>([](espp::Logger::Verbosity log_level = {espp::Logger::Verbosity::WARN}) {
+                  auto r_ctor_ = std::make_unique<espp::MjpegDepacketizer::Config>();
+                  r_ctor_->log_level = log_level;
+                  return r_ctor_;
+                }),
+                py::arg("log_level") = espp::Logger::Verbosity{espp::Logger::Verbosity::WARN})
+            .def_readwrite("log_level", &espp::MjpegDepacketizer::Config::log_level,
+                           "/< Log verbosity level");
+  } // end of inner classes & enums of MjpegDepacketizer
+
+  pyClassMjpegDepacketizer
+      .def(py::init<const espp::MjpegDepacketizer::Config &>(),
+           py::arg("config") = espp::MjpegDepacketizer::Config{})
+      .def("set_jpeg_frame_callback", &espp::MjpegDepacketizer::set_jpeg_frame_callback,
+           py::arg("cb"),
+           "/ Set callback for receiving complete JPEG frames.\n/ @param cb Callback receiving a "
+           "shared pointer to the completed JpegFrame.");
+  ////////////////////    </generated_from:mjpeg_depacketizer.hpp>    ////////////////////
+
+  ////////////////////    <generated_from:rtp_packetizer.hpp>    ////////////////////
+  auto pyClassRtpPacketizer = py::class_<espp::RtpPacketizer, std::shared_ptr<espp::RtpPacketizer>>(
+      m, "RtpPacketizer", py::dynamic_attr(),
+      "/ Abstract base class for splitting media frames into RTP payload chunks.\n/ Concrete "
+      "packetizers (e.g. MJPEG, H.264) override the pure-virtual methods\n/ to produce "
+      "codec-specific payloads. The RTSP server wraps each returned\n/ RtpPayloadChunk with an RTP "
+      "header before sending.");
+
+  { // inner classes & enums of RtpPacketizer
+    auto pyClassRtpPacketizer_ClassConfig =
+        py::class_<espp::RtpPacketizer::Config>(pyClassRtpPacketizer, "Config", py::dynamic_attr(),
+                                                "/ Configuration for RtpPacketizer.")
+            .def(
+                py::init<>([](size_t max_payload_size = {1400},
+                              espp::Logger::Verbosity log_level = {espp::Logger::Verbosity::WARN}) {
+                  auto r_ctor_ = std::make_unique<espp::RtpPacketizer::Config>();
+                  r_ctor_->max_payload_size = max_payload_size;
+                  r_ctor_->log_level = log_level;
+                  return r_ctor_;
+                }),
+                py::arg("max_payload_size") = size_t{1400},
+                py::arg("log_level") = espp::Logger::Verbosity{espp::Logger::Verbosity::WARN})
+            .def_readwrite("max_payload_size", &espp::RtpPacketizer::Config::max_payload_size,
+                           "/< Maximum payload bytes per RTP packet")
+            .def_readwrite("log_level", &espp::RtpPacketizer::Config::log_level,
+                           "/< Log verbosity level");
+  } // end of inner classes & enums of RtpPacketizer
+
+  pyClassRtpPacketizer
+      .def("packetize", &espp::RtpPacketizer::packetize, py::arg("frame_data"),
+           "/ Packetize a complete media frame into RTP payload chunks.\n/ @param frame_data The "
+           "raw frame bytes to packetize.\n/ @return A vector of RtpPayloadChunk ready to be "
+           "wrapped in RTP packets.")
+      .def("get_payload_type", &espp::RtpPacketizer::get_payload_type,
+           "/ Get the RTP payload type number for this codec.\n/ @return The RTP payload type "
+           "(e.g. 26 for MJPEG, 96 for dynamic).")
+      .def("get_clock_rate", &espp::RtpPacketizer::get_clock_rate,
+           "/ Get the RTP clock rate for timestamp calculation.\n/ @return The clock rate in Hz "
+           "(e.g. 90000 for video, 8000 for audio).")
+      .def("get_sdp_media_attributes", &espp::RtpPacketizer::get_sdp_media_attributes,
+           "/ Generate the SDP media-level attributes for this codec.\n/ @return A string "
+           "containing SDP a= lines (without trailing CRLF).")
+      .def("get_sdp_media_line", &espp::RtpPacketizer::get_sdp_media_line,
+           "/ Generate the SDP m= line for this codec.\n/ @return A string containing the SDP m= "
+           "line (without trailing CRLF).");
+  ////////////////////    </generated_from:rtp_packetizer.hpp>    ////////////////////
+
+  ////////////////////    <generated_from:generic_packetizer.hpp>    ////////////////////
+  auto pyClassGenericPacketizer = py::class_<espp::GenericPacketizer, espp::RtpPacketizer,
+                                             std::shared_ptr<espp::GenericPacketizer>>(
+      m, "GenericPacketizer", py::dynamic_attr(),
+      "/ A generic RTP packetizer suitable for audio codecs (PCM, G.711, Opus, etc.)\n/ or any "
+      "pre-formatted data that simply needs MTU-based chunking. It splits\n/ frame data into "
+      "chunks of at most max_payload_size bytes and marks the last\n/ chunk with the RTP marker "
+      "bit.\n/\n/ \\section generic_packetizer_ex1 Example\n/ \\snippet "
+      "generic_packetizer_example.cpp generic_packetizer example");
+
+  { // inner classes & enums of GenericPacketizer
+    auto pyClassGenericPacketizer_ClassConfig =
+        py::class_<espp::GenericPacketizer::Config>(pyClassGenericPacketizer, "Config",
+                                                    py::dynamic_attr(),
+                                                    "/ Configuration for GenericPacketizer.")
+            .def(
+                py::init<>([](size_t max_payload_size = {1400}, int payload_type = {96},
+                              uint32_t clock_rate = {48000}, std::string encoding_name = {"L16"},
+                              int channels = {1}, std::string fmtp = std::string(),
+                              espp::MediaType media_type = {espp::MediaType::AUDIO},
+                              espp::Logger::Verbosity log_level = {espp::Logger::Verbosity::WARN}) {
+                  auto r_ctor_ = std::make_unique<espp::GenericPacketizer::Config>();
+                  r_ctor_->max_payload_size = max_payload_size;
+                  r_ctor_->payload_type = payload_type;
+                  r_ctor_->clock_rate = clock_rate;
+                  r_ctor_->encoding_name = encoding_name;
+                  r_ctor_->channels = channels;
+                  r_ctor_->fmtp = fmtp;
+                  r_ctor_->media_type = media_type;
+                  r_ctor_->log_level = log_level;
+                  return r_ctor_;
+                }),
+                py::arg("max_payload_size") = size_t{1400}, py::arg("payload_type") = int{96},
+                py::arg("clock_rate") = uint32_t{48000},
+                py::arg("encoding_name") = std::string{"L16"}, py::arg("channels") = int{1},
+                py::arg("fmtp") = std::string(),
+                py::arg("media_type") = espp::MediaType{espp::MediaType::AUDIO},
+                py::arg("log_level") = espp::Logger::Verbosity{espp::Logger::Verbosity::WARN})
+            .def_readwrite("max_payload_size", &espp::GenericPacketizer::Config::max_payload_size,
+                           "/< Maximum payload bytes per RTP packet")
+            .def_readwrite("payload_type", &espp::GenericPacketizer::Config::payload_type,
+                           "/< RTP payload type number")
+            .def_readwrite("clock_rate", &espp::GenericPacketizer::Config::clock_rate,
+                           "/< Clock rate in Hz for RTP timestamps")
+            .def_readwrite("encoding_name", &espp::GenericPacketizer::Config::encoding_name,
+                           "/< Encoding name for SDP rtpmap line")
+            .def_readwrite("channels", &espp::GenericPacketizer::Config::channels,
+                           "/< Number of audio channels")
+            .def_readwrite("fmtp", &espp::GenericPacketizer::Config::fmtp,
+                           "/< Optional format parameters for SDP fmtp line")
+            .def_readwrite("media_type", &espp::GenericPacketizer::Config::media_type,
+                           "/< Media type for the SDP m= line")
+            .def_readwrite("log_level", &espp::GenericPacketizer::Config::log_level,
+                           "/< Log verbosity level");
+  } // end of inner classes & enums of GenericPacketizer
+
+  pyClassGenericPacketizer
+      .def(py::init<const espp::GenericPacketizer::Config &>(),
+           py::arg("config") = espp::GenericPacketizer::Config{})
+      .def("packetize", &espp::GenericPacketizer::packetize, py::arg("frame_data"),
+           "/ Split frame data into RTP payload chunks of at most max_payload_size.\n/ The last "
+           "(or only) chunk has its marker flag set.\n/ @param frame_data The raw frame bytes to "
+           "packetize.\n/ @return A vector of RtpPayloadChunk ready to be wrapped in RTP packets.")
+      .def("get_payload_type", &espp::GenericPacketizer::get_payload_type,
+           "/ Get the RTP payload type number.\n/ @return The configured RTP payload type.")
+      .def("get_clock_rate", &espp::GenericPacketizer::get_clock_rate,
+           "/ Get the RTP clock rate.\n/ @return The configured clock rate in Hz.")
+      .def("get_sdp_media_attributes", &espp::GenericPacketizer::get_sdp_media_attributes,
+           "/ Generate the SDP media-level attribute lines for this codec.\n/ Produces an a=rtpmap "
+           "line and, if fmtp is non-empty, an a=fmtp line.\n/ @return A string containing the SDP "
+           "a= lines.")
+      .def("get_sdp_media_line", &espp::GenericPacketizer::get_sdp_media_line,
+           "/ Generate the SDP m= line for this codec.\n/ @return A string such as \"m=audio 0 "
+           "RTP/AVP 96\".");
+  ////////////////////    </generated_from:generic_packetizer.hpp>    ////////////////////
+
+  ////////////////////    <generated_from:h264_packetizer.hpp>    ////////////////////
+  auto pyClassH264Packetizer = py::class_<espp::H264Packetizer, espp::RtpPacketizer,
+                                          std::shared_ptr<espp::H264Packetizer>>(
+      m, "H264Packetizer", py::dynamic_attr(),
+      "/ @brief RTP packetizer for H.264 video per RFC 6184.\n/\n/ Accepts H.264 access units in "
+      "Annex B byte-stream format (NAL units\n/ separated by 0x00000001 or 0x000001 start codes) "
+      "and produces a sequence\n/ of RTP payload chunks suitable for transmission.\n/\n/ Supports "
+      "two NAL-unit packetization strategies:\n/   - **Single NAL unit mode** — NAL fits within "
+      "max_payload_size.\n/   - **FU-A fragmentation** — NAL exceeds max_payload_size "
+      "(packetization_mode >= 1).\n/\n/ @note This class does not manage RTP headers (sequence "
+      "numbers, timestamps,\n/       SSRC). The caller wraps each returned chunk into an "
+      "RtpPacket.\n/\n/ \\section h264_packetizer_ex1 Example\n/ \\snippet "
+      "h264_packetizer_example.cpp h264_packetizer example");
+
+  { // inner classes & enums of H264Packetizer
+    auto pyClassH264Packetizer_ClassConfig =
+        py::class_<espp::H264Packetizer::Config>(pyClassH264Packetizer, "Config",
+                                                 py::dynamic_attr(),
+                                                 "/ Configuration for the H264Packetizer.")
+            .def(py::init<>(
+                     [](size_t max_payload_size = {1400}, int payload_type = {96},
+                        std::string profile_level_id = std::string(), int packetization_mode = {1},
+                        std::vector<uint8_t> sps = std::vector<uint8_t>(),
+                        std::vector<uint8_t> pps = std::vector<uint8_t>(),
+                        espp::Logger::Verbosity log_level = {espp::Logger::Verbosity::WARN}) {
+                       auto r_ctor_ = std::make_unique<espp::H264Packetizer::Config>();
+                       r_ctor_->max_payload_size = max_payload_size;
+                       r_ctor_->payload_type = payload_type;
+                       r_ctor_->profile_level_id = profile_level_id;
+                       r_ctor_->packetization_mode = packetization_mode;
+                       r_ctor_->sps = sps;
+                       r_ctor_->pps = pps;
+                       r_ctor_->log_level = log_level;
+                       return r_ctor_;
+                     }),
+                 py::arg("max_payload_size") = size_t{1400}, py::arg("payload_type") = int{96},
+                 py::arg("profile_level_id") = std::string(),
+                 py::arg("packetization_mode") = int{1}, py::arg("sps") = std::vector<uint8_t>(),
+                 py::arg("pps") = std::vector<uint8_t>(),
+                 py::arg("log_level") = espp::Logger::Verbosity{espp::Logger::Verbosity::WARN})
+            .def_readwrite("max_payload_size", &espp::H264Packetizer::Config::max_payload_size,
+                           "/< Maximum payload bytes per RTP packet")
+            .def_readwrite("payload_type", &espp::H264Packetizer::Config::payload_type,
+                           "/< Dynamic RTP payload type (typically 96–127).")
+            .def_readwrite("profile_level_id", &espp::H264Packetizer::Config::profile_level_id,
+                           "/< H.264 profile-level-id hex string, e.g. \"42C01E\".")
+            .def_readwrite("packetization_mode", &espp::H264Packetizer::Config::packetization_mode,
+                           "/< 0 = single NAL only, 1 = non-interleaved (FU-A allowed).")
+            .def_readwrite("sps", &espp::H264Packetizer::Config::sps,
+                           "/< Sequence Parameter Set raw bytes (without start code).")
+            .def_readwrite("pps", &espp::H264Packetizer::Config::pps,
+                           "/< Picture Parameter Set raw bytes (without start code).")
+            .def_readwrite("log_level", &espp::H264Packetizer::Config::log_level,
+                           "/< Log verbosity level");
+  } // end of inner classes & enums of H264Packetizer
+
+  pyClassH264Packetizer
+      .def(py::init<const espp::H264Packetizer::Config &>(),
+           py::arg("config") = espp::H264Packetizer::Config{})
+      .def("packetize", &espp::H264Packetizer::packetize, py::arg("frame_data"),
+           "/ Packetize a complete H.264 access unit (Annex B format).\n/\n/ The input may contain "
+           "multiple NAL units separated by 3-byte or 4-byte\n/ start codes. Each NAL is "
+           "individually packetized (single NAL or FU-A).\n/ The marker bit is set on the last "
+           "chunk of the last NAL unit in the\n/ access unit.\n/\n/ @param frame_data Raw Annex B "
+           "byte-stream of one access unit.\n/ @return Vector of RTP payload chunks ready for "
+           "transmission.")
+      .def("packetize_nal", &espp::H264Packetizer::packetize_nal, py::arg("nal_data"),
+           py::arg("is_last_nal") = true,
+           "/ Packetize a single pre-parsed NAL unit (no start code prefix).\n/\n/ @param nal_data "
+           "The raw NAL unit bytes (including NAL header byte).\n/ @param is_last_nal If True, the "
+           "marker bit is set on the last chunk.\n/ @return Vector of RTP payload chunks for this "
+           "NAL.")
+      .def("set_sps_pps", &espp::H264Packetizer::set_sps_pps, py::arg("sps"), py::arg("pps"),
+           "/ Update the SPS and PPS used for SDP generation.\n/ @param sps Sequence Parameter Set "
+           "raw bytes.\n/ @param pps Picture Parameter Set raw bytes.")
+      .def("get_payload_type", &espp::H264Packetizer::get_payload_type,
+           "/ Get the RTP payload type.\n/ @return The dynamic payload type configured for H.264.")
+      .def("get_clock_rate", &espp::H264Packetizer::get_clock_rate,
+           "/ Get the RTP clock rate for H.264 video.\n/ @return 90000 (fixed for H.264).")
+      .def("get_sdp_media_attributes", &espp::H264Packetizer::get_sdp_media_attributes,
+           "/ Get the SDP attribute lines for H.264.\n/ @return SDP a= lines (rtpmap and fmtp) "
+           "without trailing CRLF.")
+      .def("get_sdp_media_line", &espp::H264Packetizer::get_sdp_media_line,
+           "/ Get the SDP m= media line for H.264.\n/ @return SDP m= line without trailing CRLF.");
+  ////////////////////    </generated_from:h264_packetizer.hpp>    ////////////////////
+
+  ////////////////////    <generated_from:mjpeg_packetizer.hpp>    ////////////////////
+  auto pyClassMjpegPacketizer = py::class_<espp::MjpegPacketizer, espp::RtpPacketizer,
+                                           std::shared_ptr<espp::MjpegPacketizer>>(
+      m, "MjpegPacketizer", py::dynamic_attr(),
+      "/ MJPEG packetizer that fragments JPEG frames into RFC 2435 RTP payloads.\n/\n/ This class "
+      "takes complete JPEG frames and produces RTP payload chunks\n/ suitable for MJPEG streaming. "
+      "Each chunk contains an RFC 2435 MJPEG\n/ header, and the first chunk additionally includes "
+      "quantization tables.");
+
+  { // inner classes & enums of MjpegPacketizer
+    auto pyClassMjpegPacketizer_ClassConfig =
+        py::class_<espp::MjpegPacketizer::Config>(pyClassMjpegPacketizer, "Config",
+                                                  py::dynamic_attr(),
+                                                  "/ Configuration for the MJPEG packetizer.")
+            .def(
+                py::init<>([](size_t max_payload_size = {1400},
+                              espp::Logger::Verbosity log_level = {espp::Logger::Verbosity::WARN}) {
+                  auto r_ctor_ = std::make_unique<espp::MjpegPacketizer::Config>();
+                  r_ctor_->max_payload_size = max_payload_size;
+                  r_ctor_->log_level = log_level;
+                  return r_ctor_;
+                }),
+                py::arg("max_payload_size") = size_t{1400},
+                py::arg("log_level") = espp::Logger::Verbosity{espp::Logger::Verbosity::WARN})
+            .def_readwrite("max_payload_size", &espp::MjpegPacketizer::Config::max_payload_size,
+                           "/< Maximum payload bytes per RTP packet")
+            .def_readwrite("log_level", &espp::MjpegPacketizer::Config::log_level,
+                           "/< Log verbosity level");
+  } // end of inner classes & enums of MjpegPacketizer
+
+  pyClassMjpegPacketizer
+      .def(py::init<const espp::MjpegPacketizer::Config &>(),
+           py::arg("config") = espp::MjpegPacketizer::Config{})
+      .def("get_payload_type", &espp::MjpegPacketizer::get_payload_type,
+           "/ Get the RTP payload type for MJPEG.\n/ @return 26 (static JPEG payload type).")
+      .def("get_clock_rate", &espp::MjpegPacketizer::get_clock_rate,
+           "/ Get the RTP clock rate for MJPEG.\n/ @return 90000 Hz.")
+      .def("get_sdp_media_attributes", &espp::MjpegPacketizer::get_sdp_media_attributes,
+           "/ Get the SDP media attributes for MJPEG.\n/ @return SDP rtpmap attribute string.")
+      .def("get_sdp_media_line", &espp::MjpegPacketizer::get_sdp_media_line,
+           "/ Get the SDP media line for MJPEG.\n/ @return SDP media description line.");
+  ////////////////////    </generated_from:mjpeg_packetizer.hpp>    ////////////////////
+
   ////////////////////    <generated_from:rtp_jpeg_packet.hpp>    ////////////////////
   auto pyClassRtpJpegPacket =
       py::class_<espp::RtpJpegPacket>(
@@ -2709,20 +3131,22 @@ void py_init_module_espp(py::module &m) {
                                              "/ Configuration for the RTSP client")
             .def(py::init<>([](std::string server_address = std::string(), int rtsp_port = {8554},
                                std::string path = {"/mjpeg/1"},
-                               espp::RtspClient::jpeg_frame_callback_t on_jpeg_frame =
-                                   espp::RtspClient::jpeg_frame_callback_t(),
+                               espp::RtspClient::frame_callback_t on_frame = {nullptr},
+                               espp::RtspClient::jpeg_frame_callback_t on_jpeg_frame = {nullptr},
                                espp::Logger::Verbosity log_level = espp::Logger::Verbosity::INFO) {
                    auto r_ctor_ = std::make_unique<espp::RtspClient::Config>();
                    r_ctor_->server_address = server_address;
                    r_ctor_->rtsp_port = rtsp_port;
                    r_ctor_->path = path;
+                   r_ctor_->on_frame = on_frame;
                    r_ctor_->on_jpeg_frame = on_jpeg_frame;
                    r_ctor_->log_level = log_level;
                    return r_ctor_;
                  }),
                  py::arg("server_address") = std::string(), py::arg("rtsp_port") = int{8554},
                  py::arg("path") = std::string{"/mjpeg/1"},
-                 py::arg("on_jpeg_frame") = espp::RtspClient::jpeg_frame_callback_t(),
+                 py::arg("on_frame") = espp::RtspClient::frame_callback_t{nullptr},
+                 py::arg("on_jpeg_frame") = espp::RtspClient::jpeg_frame_callback_t{nullptr},
                  py::arg("log_level") = espp::Logger::Verbosity::INFO)
             .def_readwrite("server_address", &espp::RtspClient::Config::server_address,
                            "/< The server IP Address to connect to")
@@ -2730,13 +3154,17 @@ void py_init_module_espp(py::module &m) {
                            "/< The port of the RTSP server")
             .def_readwrite("path", &espp::RtspClient::Config::path,
                            "/< The path to the RTSP stream on the server. Will be appended")
+            .def_readwrite("on_frame", &espp::RtspClient::Config::on_frame,
+                           "/ Generic frame callback for any codec (track_id, raw frame data)")
             .def_readwrite("on_jpeg_frame", &espp::RtspClient::Config::on_jpeg_frame,
-                           "/< The callback to call when a JPEG frame is received")
+                           "/ JPEG-specific frame callback (backward compatible).\n/ If set and no "
+                           "depacketizer is registered for PT 26, an MjpegDepacketizer\n/ is "
+                           "automatically created.")
             .def_readwrite("log_level", &espp::RtspClient::Config::log_level,
                            "/< The verbosity of the logger");
   } // end of inner classes & enums of RtspClient
 
-  pyClassRtspClient.def(py::init<const espp::RtspClient::Config &>())
+  pyClassRtspClient.def(py::init<const espp::RtspClient::Config &>(), py::arg("config"))
       .def("send_request", &espp::RtspClient::send_request, py::arg("method"), py::arg("path"),
            py::arg("extra_headers"), py::arg("ec"),
            "/ Send an RTSP request to the server\n/ \note This is a blocking call\n/ \note This "
@@ -2778,6 +3206,12 @@ void py_init_module_espp(py::module &m) {
            "port\n/ \\param rtcp_port The RTCP client port\n/ \\param receive_timeout The timeout "
            "for receiving RTP and RTCP packets\n/ \\param ec The error code to set if an error "
            "occurs")
+      .def("add_depacketizer", &espp::RtspClient::add_depacketizer, py::arg("payload_type"),
+           py::arg("depacketizer"),
+           "/ Register a depacketizer for a specific RTP payload type.\n/ When RTP packets with "
+           "this payload type are received, they are\n/ dispatched to the registered "
+           "depacketizer.\n/ @param payload_type The RTP payload type (e.g., 26 for MJPEG, 96 for "
+           "H264)\n/ @param depacketizer The depacketizer to handle packets of this type")
       .def("play", &espp::RtspClient::play, py::arg("ec"),
            "/ Play the RTSP stream\n/ Sends the PLAY request to the RTSP server and parses the "
            "response.\n/ \\param ec The error code to set if an error occurs")
@@ -2826,9 +3260,26 @@ void py_init_module_espp(py::module &m) {
                            "will be broken")
             .def_readwrite("log_level", &espp::RtspServer::Config::log_level,
                            "/< The log level for the RTSP server");
+    auto pyClassRtspServer_ClassTrackConfig =
+        py::class_<espp::RtspServer::TrackConfig>(
+            pyClassRtspServer, "TrackConfig", py::dynamic_attr(),
+            "/ Configuration for a media track to be registered with the server")
+            .def(py::init<>([](int track_id = {0},
+                               std::shared_ptr<espp::RtpPacketizer> packetizer = {nullptr}) {
+                   auto r_ctor_ = std::make_unique<espp::RtspServer::TrackConfig>();
+                   r_ctor_->track_id = track_id;
+                   r_ctor_->packetizer = packetizer;
+                   return r_ctor_;
+                 }),
+                 py::arg("track_id") = int{0},
+                 py::arg("packetizer") = std::shared_ptr<espp::RtpPacketizer>{nullptr})
+            .def_readwrite("track_id", &espp::RtspServer::TrackConfig::track_id,
+                           "/< Track identifier")
+            .def_readwrite("packetizer", &espp::RtspServer::TrackConfig::packetizer,
+                           "/< Codec-specific packetizer");
   } // end of inner classes & enums of RtspServer
 
-  pyClassRtspServer.def(py::init<const espp::RtspServer::Config &>())
+  pyClassRtspServer.def(py::init<const espp::RtspServer::Config &>(), py::arg("config"))
       .def("set_session_log_level", &espp::RtspServer::set_session_log_level, py::arg("log_level"),
            "/ @brief Sets the log level for the RTSP sessions created by this server\n/ @note This "
            "does not affect the log level of the RTSP server itself\n/ @note This does not change "
@@ -2841,11 +3292,24 @@ void py_init_module_espp(py::module &m) {
       .def("stop", &espp::RtspServer::stop,
            "/ @brief Stop the FTP server\n/ Stops the accept task, session task, and closes the "
            "RTSP socket")
-      .def("send_frame", &espp::RtspServer::send_frame, py::arg("frame"),
-           "/ @brief Send a frame over the RTSP connection\n/ Converts the full JPEG frame into a "
-           "series of simplified RTP/JPEG\n/ packets and stores it to be sent over the RTP socket, "
-           "but does not\n/ actually send it\n/ @note Overwrites any existing frame that has not "
-           "been sent\n/ @param frame The frame to send");
+      .def("add_track", &espp::RtspServer::add_track, py::arg("config"),
+           "/ @brief Register a media track with the server.\n/ Each track has its own packetizer, "
+           "SSRC, and sequence number.\n/ @param config Track configuration including the "
+           "packetizer.")
+      .def("send_frame",
+           py::overload_cast<int, std::span<const uint8_t>>(&espp::RtspServer::send_frame),
+           py::arg("track_id"), py::arg("frame_data"),
+           "/ @brief Send a frame on a specific track.\n/ The track's packetizer splits the frame "
+           "into RTP payload chunks,\n/ which are then wrapped with RTP headers and queued for "
+           "delivery.\n/ @note Overwrites any existing pending packets for this track.\n/ @param "
+           "track_id The track to send on.\n/ @param frame_data Raw encoded frame data.")
+      .def("send_frame", py::overload_cast<const espp::JpegFrame &>(&espp::RtspServer::send_frame),
+           py::arg("frame"),
+           "/ @brief Send a JPEG frame over the RTSP connection (backward compatible).\n/ If no "
+           "tracks have been added, lazily creates a default MJPEG track on\n/ track 0. Uses the "
+           "legacy RtpJpegPacket packetization to preserve the\n/ exact wire format for existing "
+           "MJPEG users.\n/ @note Overwrites any existing frame that has not been sent.\n/ @param "
+           "frame The frame to send.");
   ////////////////////    </generated_from:rtsp_server.hpp>    ////////////////////
 
   ////////////////////    <generated_from:rtsp_session.hpp>    ////////////////////
@@ -2855,6 +3319,24 @@ void py_init_module_espp(py::module &m) {
       "and sends frame data over RTP and RTCP to the client");
 
   { // inner classes & enums of RtspSession
+    auto pyClassRtspSession_ClassTrack =
+        py::class_<espp::RtspSession::Track>(pyClassRtspSession, "Track", py::dynamic_attr(),
+                                             "/ Represents one media track within an RTSP session")
+            .def_readwrite("track_id", &espp::RtspSession::Track::track_id,
+                           "/< Track identifier (matches trackID=N in SDP)")
+            .def_readwrite("control_path", &espp::RtspSession::Track::control_path,
+                           "/< Control path suffix (e.g., \"trackID=0\")")
+            .def_readonly("rtp_socket", &espp::RtspSession::Track::rtp_socket,
+                          "/< RTP socket for this track")
+            .def_readonly("rtcp_socket", &espp::RtspSession::Track::rtcp_socket,
+                          "/< RTCP socket for this track")
+            .def_readwrite("client_rtp_port", &espp::RtspSession::Track::client_rtp_port,
+                           "/< Client's RTP port")
+            .def_readwrite("client_rtcp_port", &espp::RtspSession::Track::client_rtcp_port,
+                           "/< Client's RTCP port")
+            .def_readwrite("setup_complete", &espp::RtspSession::Track::setup_complete,
+                           "/< Whether SETUP has been completed for this track")
+            .def(py::init<>());
     auto pyClassRtspSession_ClassConfig =
         py::class_<espp::RtspSession::Config>(pyClassRtspSession, "Config", py::dynamic_attr(),
                                               "/ Configuration for the RTSP session")
@@ -2879,12 +3361,14 @@ void py_init_module_espp(py::module &m) {
                            "/< The RTSP path of the session")
             .def_readwrite("receive_timeout", &espp::RtspSession::Config::receive_timeout,
                            "/< The timeout for receiving data. Should be > 0.")
+            .def_readwrite("sdp_generator", &espp::RtspSession::Config::sdp_generator, "")
             .def_readwrite("log_level", &espp::RtspSession::Config::log_level,
                            "/< The log level of the session");
   } // end of inner classes & enums of RtspSession
 
   pyClassRtspSession
-      .def(py::init<std::shared_ptr<espp::TcpSocket>, const espp::RtspSession::Config &>())
+      .def(py::init<std::shared_ptr<espp::TcpSocket>, const espp::RtspSession::Config &>(),
+           py::arg("control_socket"), py::arg("config"))
       .def("get_session_id", &espp::RtspSession::get_session_id,
            "/ @brief Get the session id\n/ @return The session id")
       .def("is_closed", &espp::RtspSession::is_closed,
@@ -2906,12 +3390,30 @@ void py_init_module_espp(py::module &m) {
       .def("teardown", &espp::RtspSession::teardown,
            "/ Teardown the session\n/ This will cause the server to stop sending frames to the "
            "client\n/ and close the connection")
-      .def("send_rtp_packet", &espp::RtspSession::send_rtp_packet, py::arg("packet"),
-           "/ Send an RTP packet to the client\n/ @param packet The RTP packet to send\n/ @return "
-           "True if the packet was sent successfully, False otherwise")
-      .def("send_rtcp_packet", &espp::RtspSession::send_rtcp_packet, py::arg("packet"),
-           "/ Send an RTCP packet to the client\n/ @param packet The RTCP packet to send\n/ "
-           "@return True if the packet was sent successfully, False otherwise");
+      .def("send_rtp_packet",
+           py::overload_cast<int, const espp::RtpPacket &>(&espp::RtspSession::send_rtp_packet),
+           py::arg("track_id"), py::arg("packet"),
+           "/ Send an RTP packet on a specific track\n/ @param track_id The track to send on\n/ "
+           "@param packet The RTP packet to send\n/ @return True if the packet was sent "
+           "successfully, False otherwise")
+      .def("send_rtp_packet",
+           py::overload_cast<const espp::RtpPacket &>(&espp::RtspSession::send_rtp_packet),
+           py::arg("packet"),
+           "/ Send an RTP packet to the client (backward compat — sends on default track 0)\n/ "
+           "@param packet The RTP packet to send\n/ @return True if the packet was sent "
+           "successfully, False otherwise")
+      .def("send_rtcp_packet",
+           py::overload_cast<int, const espp::RtcpPacket &>(&espp::RtspSession::send_rtcp_packet),
+           py::arg("track_id"), py::arg("packet"),
+           "/ Send an RTCP packet on a specific track\n/ @param track_id The track to send on\n/ "
+           "@param packet The RTCP packet to send\n/ @return True if the packet was sent "
+           "successfully, False otherwise")
+      .def("send_rtcp_packet",
+           py::overload_cast<const espp::RtcpPacket &>(&espp::RtspSession::send_rtcp_packet),
+           py::arg("packet"),
+           "/ Send an RTCP packet to the client (backward compat — sends on default track 0)\n/ "
+           "@param packet The RTCP packet to send\n/ @return True if the packet was sent "
+           "successfully, False otherwise");
   ////////////////////    </generated_from:rtsp_session.hpp>    ////////////////////
 
   ////////////////////    <generated_from:lowpass_filter.hpp>    ////////////////////
