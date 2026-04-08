@@ -15,7 +15,11 @@
 
 #include "esp_vfs_cdcacm.h"
 #include "esp_vfs_dev.h"
+
+#include "esp_idf_version.h"
+#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(6, 0, 0)
 #include "esp_vfs_usb_serial_jtag.h"
+#endif
 
 #include "line_input.hpp"
 

@@ -1,5 +1,16 @@
 #include "heap_monitor.hpp"
 
+#include "esp_idf_version.h"
+
+// MALLOC_CAP_TCM was renamed to MALLOC_CAP_SPM in ESP-IDF v6.0
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
+#define ESPP_MALLOC_CAP_TCM MALLOC_CAP_SPM
+#define ESPP_MALLOC_CAP_TCM_NAME "SPM "
+#else
+#define ESPP_MALLOC_CAP_TCM MALLOC_CAP_TCM
+#define ESPP_MALLOC_CAP_TCM_NAME "TCM "
+#endif
+
 using namespace espp;
 
 std::string HeapMonitor::get_region_name(int heap_flags) {
@@ -25,8 +36,8 @@ std::string HeapMonitor::get_region_name(int heap_flags) {
   if (heap_flags & MALLOC_CAP_RTCRAM) {
     name += "RTCRAM ";
   }
-  if (heap_flags & MALLOC_CAP_TCM) {
-    name += "TCM ";
+  if (heap_flags & ESPP_MALLOC_CAP_TCM) {
+    name += ESPP_MALLOC_CAP_TCM_NAME;
   }
   if (heap_flags & MALLOC_CAP_DMA_DESC_AHB) {
     name += "DMA AHB ";

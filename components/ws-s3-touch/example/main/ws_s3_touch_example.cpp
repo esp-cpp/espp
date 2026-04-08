@@ -115,14 +115,15 @@ extern "C" void app_main(void) {
     return;
   }
   // now set the time on the RTC
-  std::tm timeinfo{
-      .tm_sec = 0,
-      .tm_min = 42,
-      .tm_hour = 13,
-      .tm_mday = 24,
-      .tm_mon = 10,  // 0-11, so 10 is November
-      .tm_year = 123 // years since 1900, so 100 is 2000
-  };
+  std::tm timeinfo{.tm_sec = 0,
+                   .tm_min = 42,
+                   .tm_hour = 13,
+                   .tm_mday = 24,
+                   .tm_mon = 10,   // 0-11, so 10 is November
+                   .tm_year = 123, // years since 1900, so 100 is 2000
+                   .tm_wday = 0,
+                   .tm_yday = 0,
+                   .tm_isdst = -1};
   std::error_code ec;
   bsp.rtc()->set_time(timeinfo, ec);
   if (ec) {
