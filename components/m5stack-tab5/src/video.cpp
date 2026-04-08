@@ -1,5 +1,7 @@
 #include "m5stack-tab5.hpp"
 
+#include "esp_idf_version.h"
+
 #include <algorithm>
 #include <cstdlib>
 
@@ -92,11 +94,15 @@ bool M5StackTab5::initialize_lcd() {
   if (lcd_handles_.mipi_dsi_bus == nullptr) {
     logger_.info("Creating MIPI DSI bus");
     esp_lcd_dsi_bus_config_t bus_config = {
-        .bus_id = 0,
-        .num_data_lanes = 2,
-        .phy_clk_src = MIPI_DSI_PHY_CLK_SRC_DEFAULT,
-        .lane_bit_rate_mbps =
-            static_cast<float>(detected_controller == DisplayController::ILI9881 ? 730 : 965),
+      .bus_id = 0,
+      .num_data_lanes = 2,
+      .phy_clk_src = MIPI_DSI_PHY_CLK_SRC_DEFAULT,
+      .lane_bit_rate_mbps =
+#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(6, 0, 0)
+          static_cast<uint32_t>(detected_controller == DisplayController::ILI9881 ? 730 : 965),
+#else
+          static_cast<float>(detected_controller == DisplayController::ILI9881 ? 730 : 965),
+#endif
     };
     ret = esp_lcd_new_dsi_bus(&bus_config, &lcd_handles_.mipi_dsi_bus);
     if (ret != ESP_OK) {
