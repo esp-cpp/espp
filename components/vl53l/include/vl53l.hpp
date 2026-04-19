@@ -8,17 +8,20 @@
 namespace espp {
 using vl53l_register_t = uint16_t;
 
-/// \brief VL53LXXX Time-of-Flight Distance Sensor
+/// \brief VL53L4CD / VL53L4CX Time-of-Flight Distance Sensor
 /// \details
-/// The VL53LXX is a new generation Time-of-Flight (ToF) laser-ranging module
-/// housed in the smallest package on the market today, providing accurate
-/// distance measurement whatever the target reflectances unlike conventional
-/// technologies. It can measure absolute distances up to 2m, setting a new
-/// benchmark in ranging performance levels, opening the door to various new
-/// applications.
-/// \see https://www.st.com/en/imaging-and-photonics-solutions/vl53l1x.html
-/// \see https://www.st.com/en/imaging-and-photonics-solutions/vl53l4CD.html
-/// \see https://www.st.com/en/imaging-and-photonics-solutions/vl53l4CX.html
+/// The VL53L4CD and VL53L4CX are Time-of-Flight (ToF) laser-ranging modules
+/// that provide accurate distance measurement regardless of target reflectance.
+/// The VL53L4CD measures distances up to 1.3 m and the VL53L4CX up to 6 m,
+/// both with 1 mm resolution.
+///
+/// \note
+/// This driver uses a 16-bit register addressing scheme as required by the
+/// VL53L4CD and VL53L4CX. It is \b not compatible with the VL53L0X or
+/// VL53L1X sensors, which use a different (8-bit) register map.
+///
+/// \see https://www.st.com/en/imaging-and-photonics-solutions/vl53l4cd.html
+/// \see https://www.st.com/en/imaging-and-photonics-solutions/vl53l4cx.html
 ///
 /// \note
 /// For an official Arduino library, see
@@ -115,7 +118,7 @@ public:
   /// \brief Get the ModelInfo
   /// \param ec Error code if unsuccessful
   /// \return ModelInfo
-  /// \see VL53L0X_GetModelID
+  /// \see VL53L4CD UM2931 section 3.2.4
   ModelInfo get_model_info(std::error_code &ec) {
     uint8_t data[2];
     if (!read_reg(Register::IDENTIFICATION_MODEL_ID, data, 2, ec)) {
@@ -125,10 +128,13 @@ public:
     info.model_id = data[0];
     info.module_type = data[1];
     logger_.debug("Model ID: {:#04x}, Module Type: {:#04x}", info.model_id, info.module_type);
-    if (info.model_id != MODEL_ID || info.module_type != MODULE_TYPE) {
-      logger_.error("Model ID ({:#04x}) or Module Type ({:#04x}) does not match expected values "
-                    "({:#04x}, {:#04x})",
-                    info.model_id, info.module_type, MODEL_ID, MODULE_TYPE);
+    if (info.model_id != MODEL_ID || (info.module_type != MODULE_TYPE_CD &&
+                                      info.module_type != MODULE_TYPE_CX)) {
+      logger_.warn("Model ID ({:#04x}) or Module Type ({:#04x}) does not match expected values "
+                   "for VL53L4CD ({:#04x}, {:#04x}) or VL53L4CX ({:#04x}, {:#04x}). "
+                   "Ensure you are using a VL53L4CD or VL53L4CX sensor.",
+                   info.model_id, info.module_type, MODEL_ID, MODULE_TYPE_CD, MODEL_ID,
+                   MODULE_TYPE_CX);
     }
     return info;
   }
@@ -531,8 +537,9 @@ public:
   }
 
 protected:
-  static constexpr uint8_t MODEL_ID = 0xEB;
-  static constexpr uint8_t MODULE_TYPE = 0xAA;
+  static constexpr uint8_t MODEL_ID = 0xEB;       ///< Model ID for VL53L4CD and VL53L4CX
+  static constexpr uint8_t MODULE_TYPE_CD = 0xAA; ///< Module type for VL53L4CD
+  static constexpr uint8_t MODULE_TYPE_CX = 0x10; ///< Module type for VL53L4CX
 
   static constexpr int MIN_TIMING_BUDGET_US = 10000;  // 10 ms
   static constexpr int MAX_TIMING_BUDGET_US = 200000; // 200 ms
@@ -710,7 +717,7 @@ protected:
     if (!write_reg(Register::SYSTEM_SEQUENCE_CONFIG, 0x00, ec)) {
       return false;
     }
-    // write 0x0500 to 0x0024 (VL53L0X_REG_FINAL_RANGE_CONFIG_MIN_COUNT_RATE_RTN_LIMIT?)
+    // write 0x0500 to RANGE_CONFIG_MIN_COUNT_RATE_RTN_LIMIT_MCPS (0x0066)
     uint16_t val = 0x0005;
     if (!write_reg(Register::RANGE_CONFIG_MIN_COUNT_RATE_RTN_LIMIT_MCPS, (uint8_t *)&val, 2, ec)) {
       return false;
