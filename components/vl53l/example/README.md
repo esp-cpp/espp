@@ -1,6 +1,6 @@
 # VL53LXX Example
 
-This example shows the use of the `Vl53l` component to communicate with a VL53L0X
+This example shows the use of the `Vl53l` component to communicate with a VL53L4CD
 time-of-flight distance sensor.
 
 The example initializes the sensor, configures it, and then reads the distance
@@ -14,8 +14,14 @@ This example is designed to work with any ESP32 which has I2C pins exposed, but
 is pre-configured to run on QtPy boards such as the QtPy ESP32 Pico and QtPy
 ESP32-S3.
 
-It requires that you have a time of flight distance sensor dev board, such as
-the [VL53L0X dev board from Adafruit](https://www.adafruit.com/product/3317).
+It requires that you have a VL53L4CD or VL53L4CX time of flight distance sensor
+dev board, such as the [VL53L4CD breakout from
+Adafruit](https://www.adafruit.com/product/5396).
+
+> **Note:** This component is **not** compatible with the VL53L0X sensor. If you
+> have a VL53L0X (e.g., WHADDA WPSE337 or the Adafruit VL53L0X breakout), you
+> will need a different driver, as VL53L0X uses a different register addressing
+> scheme.
 
 ![image](https://github.com/user-attachments/assets/47f7f64a-ad55-4529-9851-5283fc57bcb8)
 
