@@ -208,16 +208,11 @@ float MotorGoMini::breathe(float breathing_period, uint64_t start_us, bool resta
 
 bool IRAM_ATTR MotorGoMini::read_encoder(const auto &encoder_handle, uint8_t *data, size_t size) {
   static constexpr uint8_t SPIBUS_READ = 0x80;
-  spi_transaction_t t = {
-      .flags = 0,
-      .cmd = 0,
-      .addr = SPIBUS_READ,
-      .length = size * 8,
-      .rxlength = size * 8,
-      .user = nullptr,
-      .tx_buffer = nullptr,
-      .rx_buffer = data,
-  };
+  spi_transaction_t t{};
+  t.addr = SPIBUS_READ;
+  t.length = size * 8;
+  t.rxlength = size * 8;
+  t.rx_buffer = data;
   if (size <= 4) {
     t.flags = SPI_TRANS_USE_RXDATA;
     t.rx_buffer = nullptr;

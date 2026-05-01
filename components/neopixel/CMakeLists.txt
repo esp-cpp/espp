@@ -1,5 +1,5 @@
 idf_component_register(
   INCLUDE_DIRS "include"
   SRC_DIRS "src"
-  REQUIRES base_component color rmt
+  REQUIRES base_component color esp_driver_gpio rmt
   )

@@ -127,7 +127,7 @@ bool Socket::set_receive_timeout(const std::chrono::duration<float> &timeout) {
     return true;
   }
   float intpart;
-  float fractpart = modf(seconds, &intpart);
+  float fractpart = modff(seconds, &intpart);
   const time_t response_timeout_s = (int)intpart;
   const time_t response_timeout_us = (int)(fractpart * 1E6);
   //// Alternatively we could do this:

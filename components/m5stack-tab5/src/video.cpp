@@ -1,8 +1,11 @@
 #include "m5stack-tab5.hpp"
 
+#include "esp_idf_version.h"
+
 #include <algorithm>
 #include <cstdlib>
 
+#include <esp_idf_version.h>
 #include <esp_lcd_mipi_dsi.h>
 #include <esp_lcd_panel_io.h>
 #include <esp_lcd_panel_ops.h>
@@ -91,11 +94,15 @@ bool M5StackTab5::initialize_lcd() {
   if (lcd_handles_.mipi_dsi_bus == nullptr) {
     logger_.info("Creating MIPI DSI bus");
     esp_lcd_dsi_bus_config_t bus_config = {
-        .bus_id = 0,
-        .num_data_lanes = 2,
-        .phy_clk_src = MIPI_DSI_PHY_CLK_SRC_DEFAULT,
-        .lane_bit_rate_mbps =
-            (uint32_t)(detected_controller == DisplayController::ILI9881 ? 730 : 965),
+      .bus_id = 0,
+      .num_data_lanes = 2,
+      .phy_clk_src = MIPI_DSI_PHY_CLK_SRC_DEFAULT,
+      .lane_bit_rate_mbps =
+#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(6, 0, 0)
+          static_cast<uint32_t>(detected_controller == DisplayController::ILI9881 ? 730 : 965),
+#else
+          static_cast<float>(detected_controller == DisplayController::ILI9881 ? 730 : 965),
+#endif
     };
     ret = esp_lcd_new_dsi_bus(&bus_config, &lcd_handles_.mipi_dsi_bus);
     if (ret != ESP_OK) {
@@ -135,7 +142,12 @@ bool M5StackTab5::initialize_lcd() {
     dpi_cfg.virtual_channel = 0;
     dpi_cfg.dpi_clk_src = MIPI_DSI_DPI_CLK_SRC_DEFAULT;
     dpi_cfg.dpi_clock_freq_mhz = 60;
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
+    dpi_cfg.in_color_format = LCD_COLOR_FMT_RGB565;
+    dpi_cfg.out_color_format = LCD_COLOR_FMT_RGB565;
+#else
     dpi_cfg.pixel_format = LCD_COLOR_PIXEL_FORMAT_RGB565;
+#endif
     dpi_cfg.num_fbs = 1;
     dpi_cfg.video_timing.h_size = display_width_;
     dpi_cfg.video_timing.v_size = display_height_;
@@ -145,13 +157,20 @@ bool M5StackTab5::initialize_lcd() {
     dpi_cfg.video_timing.vsync_back_porch = 20;
     dpi_cfg.video_timing.vsync_pulse_width = 4;
     dpi_cfg.video_timing.vsync_front_porch = 20;
+#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(6, 0, 0)
     dpi_cfg.flags.use_dma2d = true;
+#endif
 
   } else if (detected_controller == DisplayController::ST7123 && lcd_handles_.panel == nullptr) {
     dpi_cfg.virtual_channel = 0;
     dpi_cfg.dpi_clk_src = MIPI_DSI_DPI_CLK_SRC_DEFAULT;
     dpi_cfg.dpi_clock_freq_mhz = 100;
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
+    dpi_cfg.in_color_format = LCD_COLOR_FMT_RGB565;
+    dpi_cfg.out_color_format = LCD_COLOR_FMT_RGB565;
+#else
     dpi_cfg.pixel_format = LCD_COLOR_PIXEL_FORMAT_RGB565;
+#endif
     dpi_cfg.num_fbs = 1;
     dpi_cfg.video_timing.h_size = display_width_;
     dpi_cfg.video_timing.v_size = display_height_;
@@ -161,7 +180,9 @@ bool M5StackTab5::initialize_lcd() {
     dpi_cfg.video_timing.vsync_back_porch = 8;
     dpi_cfg.video_timing.vsync_pulse_width = 2;
     dpi_cfg.video_timing.vsync_front_porch = 220;
+#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(6, 0, 0)
     dpi_cfg.flags.use_dma2d = true;
+#endif
   }
 
   if (lcd_handles_.panel == nullptr) {

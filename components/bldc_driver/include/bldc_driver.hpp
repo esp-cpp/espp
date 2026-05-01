@@ -6,6 +6,8 @@
 
 #include "driver/gpio.h"
 #include "driver/mcpwm_prelude.h"
+#include "esp_idf_version.h"
+#include "soc/soc_caps.h"
 
 #include "base_component.hpp"
 
@@ -260,10 +262,12 @@ protected:
   static int GROUP_ID;
 
   void init(const Config &config) {
+#if defined(SOC_MCPWM_GROUPS)
     if (GROUP_ID >= SOC_MCPWM_GROUPS) {
       GROUP_ID = 0;
       logger_.error("Exceeded max number of MCPWM groups ({}), resetting to 0", SOC_MCPWM_GROUPS);
     }
+#endif
     configure_enable_gpio();
     configure_timer();
     configure_operators();
@@ -324,8 +328,10 @@ protected:
     gpio_fault_config.gpio_num = (gpio_num_t)gpio_fault_;
     gpio_fault_config.group_id = GROUP_ID;
     gpio_fault_config.flags.active_level = 1; // high level means fault, refer to TMC6300 datasheet
-    gpio_fault_config.flags.pull_down = true; // internally pull down
+#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(6, 0, 0)
+    gpio_fault_config.flags.pull_down = true;    // internally pull down
     gpio_fault_config.flags.io_loop_back = true; // enable loop back to GPIO input
+#endif
     ESP_ERROR_CHECK(mcpwm_new_gpio_fault(&gpio_fault_config, &fault_handle_));
 
     logger_.info("Set brake mode on the fault event");
