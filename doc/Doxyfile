@@ -323,6 +323,7 @@ INPUT = \
   $(PROJECT_PATH)/components/socket/include/udp_socket.hpp \
   $(PROJECT_PATH)/components/socket/include/tcp_socket.hpp \
   $(PROJECT_PATH)/components/st25dv/include/st25dv.hpp \
+  $(PROJECT_PATH)/components/st7123touch/include/st7123touch.hpp \
   $(PROJECT_PATH)/components/state_machine/include/deep_history_state.hpp \
   $(PROJECT_PATH)/components/state_machine/include/shallow_history_state.hpp \
   $(PROJECT_PATH)/components/state_machine/include/state_base.hpp \

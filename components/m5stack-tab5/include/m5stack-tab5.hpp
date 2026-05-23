@@ -33,6 +33,7 @@
 #include "es8388.hpp"
 #include "gt911.hpp"
 #include "i2c.hpp"
+#include "st7123touch.hpp"
 #include "ili9881.hpp"
 #include "ina226.hpp"
 #include "interrupt.hpp"
@@ -104,8 +105,11 @@ public:
     }
   }
 
-  /// Alias for the GT911 touch controller used by the Tab5
+  /// Alias for the GT911 touch controller used by the Tab5 (ILI9881 variant)
   using TouchDriver = espp::Gt911;
+
+  /// Alias for the ST7123 integrated touch controller (ST7123 variant)
+  using St7123TouchDriver = espp::St7123Touch;
 
   /// Alias for the touchpad data used by the Tab5 touchpad
   using TouchpadData = espp::TouchpadData;
@@ -678,7 +682,8 @@ protected:
                        .stack_size_bytes = CONFIG_M5STACK_TAB5_INTERRUPT_STACK_SIZE}}};
 
   // Component instances
-  std::shared_ptr<TouchDriver> touch_driver_;
+  std::shared_ptr<TouchDriver> touch_driver_;           ///< GT911 touch driver (ILI9881 variant)
+  std::shared_ptr<St7123TouchDriver> st7123_touch_driver_; ///< ST7123 integrated touch (ST7123 variant)
   std::shared_ptr<TouchpadInput> touchpad_input_;
   std::recursive_mutex touchpad_data_mutex_;
   TouchpadData touchpad_data_;

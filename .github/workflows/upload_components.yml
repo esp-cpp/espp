@@ -113,6 +113,7 @@ jobs:
             components/serialization
             components/socket
             components/st25dv
+            components/st7123touch
             components/state_machine
             components/t_keyboard
             components/t-deck

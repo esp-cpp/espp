@@ -8,6 +8,7 @@ Input APIs
     cst816
     ft5x06
     gt911
+    st7123touch
     tt21100
     t_keyboard
     encoder_input
