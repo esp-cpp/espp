@@ -146,6 +146,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/seeed-studio-round-display/example/main/seeed_studio_round_display_example.cpp \
   $(PROJECT_PATH)/components/socket/example/main/socket_example.cpp \
   $(PROJECT_PATH)/components/st25dv/example/main/st25dv_example.cpp \
+  $(PROJECT_PATH)/components/st7123touch/example/main/st7123touch_example.cpp \
   $(PROJECT_PATH)/components/state_machine/example/main/hfsm_example.cpp \
   $(PROJECT_PATH)/components/tabulate/example/main/tabulate_example.cpp \
   $(PROJECT_PATH)/components/t-deck/example/main/t_deck_example.cpp \

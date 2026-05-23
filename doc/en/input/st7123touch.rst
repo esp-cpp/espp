@@ -16,6 +16,22 @@ controller in a single IC. This driver accesses the touch side over I2C
    standalone controllers such as the GT911, as this can take the touch I2C
    endpoint offline.
 
+The driver also provides:
+
+- ``espp::TouchDriverConcept`` — C++23 concept satisfied by any touch driver
+  exposing ``update()``, ``get_touch_point()``, and ``get_home_button_state()``.
+- ``espp::ITouchDriver`` — abstract type-erased interface backed by the concept.
+- ``espp::TouchDriverAdapter<T>`` — concept-constrained adapter wrapping any
+  concrete driver behind ``ITouchDriver``.
+- ``espp::make_touch_driver(driver)`` — convenience factory returning a
+  ``std::shared_ptr<ITouchDriver>``.
+
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   st7123touch_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

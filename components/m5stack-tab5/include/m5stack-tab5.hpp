@@ -682,8 +682,7 @@ protected:
                        .stack_size_bytes = CONFIG_M5STACK_TAB5_INTERRUPT_STACK_SIZE}}};
 
   // Component instances
-  std::shared_ptr<TouchDriver> touch_driver_;           ///< GT911 touch driver (ILI9881 variant)
-  std::shared_ptr<St7123TouchDriver> st7123_touch_driver_; ///< ST7123 integrated touch (ST7123 variant)
+  std::shared_ptr<espp::ITouchDriver> touch_driver_; ///< Concept-erased touch driver (GT911 or ST7123)
   std::shared_ptr<TouchpadInput> touchpad_input_;
   std::recursive_mutex touchpad_data_mutex_;
   TouchpadData touchpad_data_;
