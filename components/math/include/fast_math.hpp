@@ -111,11 +111,12 @@ template <typename T> int sgn(T x) { return (T(0) < x) - (x < T(0)); }
   if (x >= points[points.size() - 1].first) {
     return points[points.size() - 1].second;
   }
-  for (size_t i = 1; i < points.size(); i++) {
-    if (x <= points[i].first) {
-      float t = inv_lerp(points[i - 1].first, points[i].first, x);
-      return lerp(points[i - 1].second, points[i].second, t);
-    }
+  const auto it = std::find_if(points.begin() + 1, points.end(),
+                               [x](const auto &point) { return x <= point.first; });
+  if (it != points.end()) {
+    const auto prev = std::prev(it);
+    float t = inv_lerp(prev->first, it->first, x);
+    return lerp(prev->second, it->second, t);
   }
   return 0.0f;
 }

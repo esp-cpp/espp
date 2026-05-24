@@ -44,7 +44,8 @@ public:
   bool update(std::error_code &ec) {
     bool new_data = false;
     Data data{};
-    read_many_from_register((uint8_t)Registers::DATA_START, (uint8_t *)&data, sizeof(data), ec);
+    read_many_from_register(static_cast<uint8_t>(Registers::DATA_START),
+                            reinterpret_cast<uint8_t *>(&data), sizeof(data), ec);
     if (ec)
       return false;
 

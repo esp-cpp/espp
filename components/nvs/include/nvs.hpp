@@ -53,7 +53,7 @@ public:
   /// @brief Erase a namespace from the NVS
   /// @param[in] ns_name Namespace of the variable to erase
   /// @param[out] ec Saves a std::error_code representing success or failure
-  bool erase(std::string_view ns_name, std::error_code &ec) {
+  bool erase(std::string_view ns_name, std::error_code &ec) const {
     espp::NvsHandle handle(ns_name.data(), ec);
     if (ec)
       return false;
@@ -68,7 +68,7 @@ public:
   /// @param[in] ns_name Namespace of the variable to erase
   /// @param[in] key NVS Key of the variable to erase
   /// @param[out] ec Saves a std::error_code representing success or failure
-  bool erase(std::string_view ns_name, std::string_view key, std::error_code &ec) {
+  bool erase(std::string_view ns_name, std::string_view key, std::error_code &ec) const {
     espp::NvsHandle handle(ns_name.data(), ec);
     if (ec)
       return false;

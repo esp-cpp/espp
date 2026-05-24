@@ -867,8 +867,6 @@ bool Root::State_2::ChildState3::Grand2::handleEvent(GeneratedEventBase *event) 
   // take care of all event types that this branch will not handle -
   // for more consistent run-time performnace
   switch (event->get_type()) {
-    handled = true;
-    break;
   default:
     handled = false;
     break;
@@ -1631,8 +1629,6 @@ bool Root::State3::ChildState::handleEvent(GeneratedEventBase *event) {
   // take care of all event types that this branch will not handle -
   // for more consistent run-time performnace
   switch (event->get_type()) {
-    handled = true;
-    break;
   default:
     handled = false;
     break;

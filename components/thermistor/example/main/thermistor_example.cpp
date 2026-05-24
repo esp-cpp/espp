@@ -75,7 +75,7 @@ extern "C" void app_main(void) {
   // create a continuous ADC which will sample and filter the thermistor
   // voltage on ADC1 channel 7
   std::vector<espp::AdcConfig> channels{
-      {.unit = ADC_UNIT_1, .channel = ADC_CHANNEL_7, .attenuation = ADC_ATTEN_DB_11}};
+      {.unit = ADC_UNIT_1, .channel = ADC_CHANNEL_7, .attenuation = ADC_ATTEN_DB_12}};
   // this initailizes the DMA and filter task for the continuous adc
   espp::ContinuousAdc adc(
       {.sample_rate_hz = 20 * 1000,

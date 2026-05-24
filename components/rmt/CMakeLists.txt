@@ -1,4 +1,4 @@
 idf_component_register(
   INCLUDE_DIRS "include"
-  REQUIRES base_component driver
+  REQUIRES base_component driver esp_driver_rmt
   )

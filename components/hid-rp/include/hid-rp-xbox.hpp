@@ -152,7 +152,7 @@ public:
   static constexpr std::size_t num_data_bytes = sizeof(XboxRumbleOutputReport);
 
   /// Construct a new Xbox Rumble Output Report object
-  constexpr XboxRumbleOutputReport() = default;
+  constexpr XboxRumbleOutputReport() { reset(); }
 
   /// Reset the rumble effect
   constexpr void reset() {
@@ -165,7 +165,7 @@ public:
 
   /// Get the enabled mask for the rumble motors
   /// \return The enabled mask for the rumble motors
-  constexpr auto get_enabled() { return enabled; }
+  constexpr auto get_enabled() const { return enabled; }
 
   /// Set the enabled mask for the rumble motors
   /// \param new_enabled The enabled mask for the rumble motors
@@ -174,7 +174,7 @@ public:
   /// Get the magnitude of the rumble effect for the specified motor
   /// \param motor The motor for which you want to get the magnitude.
   /// \return The magnitude of the rumble effect for the specified motor.
-  constexpr auto get_magnitude(std::size_t motor) { return magnitude[motor]; }
+  constexpr auto get_magnitude(std::size_t motor) const { return magnitude[motor]; }
 
   /// Set the magnitude of the rumble effect for the specified motor
   /// \param motor The motor for which you want to set the magnitude.
@@ -192,7 +192,7 @@ public:
 
   /// Get the duration of the rumble effect
   /// \return The duration of the rumble effect
-  constexpr auto get_duration() { return duration; }
+  constexpr auto get_duration() const { return duration; }
 
   /// Set the duration of the rumble effect
   /// \param value The duration of the rumble effect.
@@ -201,7 +201,7 @@ public:
 
   /// Get the start delay of the rumble effect
   /// \return The start delay of the rumble effect
-  constexpr auto get_start_delay() { return start_delay; }
+  constexpr auto get_start_delay() const { return start_delay; }
 
   /// Set the start delay of the rumble effect
   /// \param value The start delay of the rumble effect.
@@ -210,7 +210,7 @@ public:
 
   /// Get the loop count of the rumble effect
   /// \return The loop count of the rumble effect
-  constexpr auto get_loop_count() { return loop_count; }
+  constexpr auto get_loop_count() const { return loop_count; }
 
   /// Set the loop count of the rumble effect
   /// \param value The loop count of the rumble effect.
