@@ -1,0 +1,49 @@
+menu "Android TV Remote Example Configuration"
+
+    config ANDROID_TV_REMOTE_EXAMPLE_WIFI_SSID
+        string "WiFi SSID"
+        default ""
+        help
+            WiFi SSID for the example. Leave empty to use saved station credentials.
+
+    config ANDROID_TV_REMOTE_EXAMPLE_WIFI_PASSWORD
+        string "WiFi password"
+        default ""
+        help
+            WiFi password for the example. Leave empty to use saved station credentials.
+
+    config ANDROID_TV_REMOTE_EXAMPLE_TARGET_HOST
+        string "Target host override"
+        default ""
+        help
+            Optional IPv4 address or hostname of the Android TV / Google TV device.
+
+    config ANDROID_TV_REMOTE_EXAMPLE_ENABLE_DISCOVERY
+        bool "Enable mDNS discovery"
+        default y
+
+    config ANDROID_TV_REMOTE_EXAMPLE_PAIR_IF_CONFIGURED
+        bool "Attempt pairing when a host and pairing code are configured"
+        default n
+
+    config ANDROID_TV_REMOTE_EXAMPLE_PAIRING_CODE
+        string "Pairing code"
+        default ""
+        help
+            Six-character hexadecimal pairing code shown on the TV during pairing.
+
+    config ANDROID_TV_REMOTE_EXAMPLE_CLIENT_NAME
+        string "Client display name"
+        default "ESPP Android TV Remote"
+
+    config ANDROID_TV_REMOTE_EXAMPLE_PERSISTENCE_NAMESPACE
+        string "NVS namespace"
+        default "atvremote"
+        help
+            Namespace used to persist the client certificate and private key.
+
+    config ANDROID_TV_REMOTE_EXAMPLE_ENABLE_IME
+        bool "Enable IME text input support"
+        default y
+
+endmenu
