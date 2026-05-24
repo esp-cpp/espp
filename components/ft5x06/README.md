@@ -2,7 +2,9 @@
 
 [![Badge](https://components.espressif.com/components/espp/ft5x06/badge.svg)](https://components.espressif.com/components/espp/ft5x06)
 
-The FT5x06 is a capacitive touch controller that supports up to 5 touch points.
+The FT5x06 is a capacitive touch controller that supports up to 5 touch points
+and now exposes the same cached touch interface as the other ESPP touch
+controllers.
 
 ## Example
 

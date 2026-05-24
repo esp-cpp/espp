@@ -155,6 +155,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/task/example/main/task_example.cpp \
   $(PROJECT_PATH)/components/thermistor/example/main/thermistor_example.cpp \
   $(PROJECT_PATH)/components/timer/example/main/timer_example.cpp \
+  $(PROJECT_PATH)/components/touch/example/main/touch_example.cpp \
   $(PROJECT_PATH)/components/tla2528/example/main/tla2528_example.cpp \
   $(PROJECT_PATH)/components/tt21100/example/main/tt21100_example.cpp \
   $(PROJECT_PATH)/components/vl53l/example/main/vl53l_example.cpp \
@@ -338,6 +339,7 @@ INPUT = \
   $(PROJECT_PATH)/components/thermistor/include/thermistor.hpp \
   $(PROJECT_PATH)/components/timer/include/high_resolution_timer.hpp \
   $(PROJECT_PATH)/components/timer/include/timer.hpp \
+  $(PROJECT_PATH)/components/touch/include/touch.hpp \
   $(PROJECT_PATH)/components/tla2528/include/tla2528.hpp \
   $(PROJECT_PATH)/components/tt21100/include/tt21100.hpp \
   $(PROJECT_PATH)/components/vl53l/include/vl53l.hpp \
@@ -380,4 +382,3 @@ HAVE_DOT        = NO
 GENERATE_LATEX  = YES
 GENERATE_MAN    = NO
 GENERATE_RTF    = NO
-

@@ -7,21 +7,9 @@
 #include "sdkconfig.h"
 
 #include "base_component.hpp"
+#include "touch.hpp"
 
 namespace espp {
-
-/// The data structure for the touchpad
-struct TouchpadData {
-  uint8_t num_touch_points = 0; ///< The number of touch points
-  uint16_t x = 0;               ///< The x coordinate
-  uint16_t y = 0;               ///< The y coordinate
-  uint8_t btn_state = 0;        ///< The button state (0 = button released, 1 = button pressed)
-
-  /// @brief Compare two TouchpadData objects for equality
-  /// @param rhs The right hand side of the comparison
-  /// @return true if the two TouchpadData objects are equal, false otherwise
-  bool operator==(const TouchpadData &rhs) const = default;
-};
 
 /**
  *  @brief Light wrapper around LVGL input device driver, specifically

@@ -9,8 +9,9 @@ Input APIs
     ft5x06
     gt911
     st7123touch
-    tt21100
     t_keyboard
+    touch
+    tt21100
     encoder_input
     keypad_input
     pointer_input

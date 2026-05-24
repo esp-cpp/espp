@@ -1,15 +1,17 @@
 #pragma once
 
+#include <algorithm>
 #include <functional>
 
 #include "base_peripheral.hpp"
+#include "touch.hpp"
 
 namespace espp {
 /// @brief Driver for the Tt21100 touch controller
 ///
 /// \section tt21100_ex1 Example
 /// \snippet tt21100_example.cpp tt21100 example
-class Tt21100 : public BasePeripheral<> {
+class Tt21100 : public BasePeripheral<>, public ITouchDevice {
 public:
   /// @brief The default i2c address
   static constexpr uint8_t DEFAULT_ADDRESS = (0x24);
@@ -39,6 +41,7 @@ public:
   bool update(std::error_code &ec) {
     static uint16_t data_len;
     static uint8_t data[256];
+    TouchState state{};
 
     // NOTE: this chip is weird, and even though we're reading a u16, we can't
     //       use the read_u16 since that function assumes the data is in little
@@ -77,37 +80,59 @@ public:
     case 7:
     case 17:
     case 27: {
-      // touch event - NOTE: this only gets the first touch record
+      // touch event
       const auto report_data = reinterpret_cast<const TouchReport *>(data);
-      const auto touch_data = reinterpret_cast<const TouchRecord *>(&report_data->touch_record[0]);
-      x_ = touch_data->x;
-      y_ = touch_data->y;
-      num_touch_points_ = (data_len - sizeof(TouchReport)) / sizeof(TouchRecord);
-      logger_.debug("Touch event: #={}, [0]=({}, {})", num_touch_points_, x_, y_);
+      const auto *touch_records = reinterpret_cast<const TouchRecord *>(data + sizeof(TouchReport));
+      state = touch_state();
+      state.num_touch_points =
+          std::min<uint8_t>(report_data->record_num, TouchState::MAX_TOUCH_POINTS);
+      for (size_t i = 0; i < state.num_touch_points; i++) {
+        state.points[i] = {.x = touch_records[i].x, .y = touch_records[i].y};
+      }
+      if (state.num_touch_points > 0) {
+        logger_.debug("Touch event: #={}, [0]=({}, {})", state.num_touch_points, state.points[0].x,
+                      state.points[0].y);
+      }
       new_data = true;
       break;
     }
     case 14: {
       // button event
       const auto button_data = reinterpret_cast<const ButtonRecord *>(data);
-      home_button_pressed_ = button_data->btn_val;
+      state = touch_state();
+      state.btn_state = button_data->btn_val;
       auto btn_signal = button_data->btn_signal[0];
       logger_.debug("Button event({}): {}, {}", static_cast<int>(button_data->length),
-                    home_button_pressed_, btn_signal);
+                    state.btn_state, btn_signal);
       new_data = true;
       break;
     }
     default:
       break;
     }
+    if (new_data) {
+      std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+      touch_state_ = state;
+    }
     return new_data;
   }
+
+  /// @brief Get the cached touch state.
+  /// @return The cached touch state as of the last update() call.
+  TouchState touch_state() const override {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    return touch_state_;
+  }
+
+  /// @brief Whether the controller exposes a home button.
+  /// @return True.
+  bool has_home_button() const override { return true; }
 
   /// @brief Get the number of touch points
   /// @note This is the number of touch points that were present when the last
   ///       update() was called
   /// @return The number of touch points
-  uint8_t get_num_touch_points() const { return num_touch_points_; }
+  uint8_t get_num_touch_points() const { return touch_state().num_touch_points; }
 
   /// @brief Get the touch point data
   /// @note This is the touch point data that was present when the last
@@ -116,18 +141,18 @@ public:
   /// @param x The x position of the touch point
   /// @param y The y position of the touch point
   void get_touch_point(uint8_t *num_touch_points, uint16_t *x, uint16_t *y) const {
-    *num_touch_points = get_num_touch_points();
-    if (*num_touch_points != 0) {
-      *x = x_;
-      *y = y_;
-    }
+    auto state = touch_state();
+    auto point = state.primary_point();
+    *num_touch_points = state.num_touch_points;
+    *x = point.x;
+    *y = point.y;
   }
 
   /// @brief Get the state of the home button
   /// @note This is the state of the home button when the last update() was
   ///       called
   /// @return True if the home button is pressed
-  uint8_t get_home_button_state() const { return home_button_pressed_; }
+  uint8_t get_home_button_state() const { return touch_state().btn_state; }
 
 protected:
   void init(std::error_code &ec) {
@@ -195,9 +220,6 @@ protected:
 
 #pragma pack(pop)
 
-  std::atomic<bool> home_button_pressed_{false};
-  std::atomic<uint8_t> num_touch_points_;
-  std::atomic<uint16_t> x_;
-  std::atomic<uint16_t> y_;
+  TouchState touch_state_;
 };
 } // namespace espp

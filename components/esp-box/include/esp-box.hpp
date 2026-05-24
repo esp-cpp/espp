@@ -23,6 +23,7 @@
 #include "icm42607.hpp"
 #include "interrupt.hpp"
 #include "st7789.hpp"
+#include "touch.hpp"
 #include "touchpad_input.hpp"
 #include "tt21100.hpp"
 
@@ -359,8 +360,6 @@ protected:
   bool initialize_codec();
   bool initialize_i2s(uint32_t default_audio_rate);
   bool update_touch();
-  bool update_gt911();
-  bool update_tt21100();
   void update_volume_output();
   bool audio_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
   void lcd_wait_lines();
@@ -509,8 +508,7 @@ protected:
   button_callback_t mute_button_callback_{nullptr};
 
   // touch
-  std::shared_ptr<Gt911> gt911_;     // only used on ESP32-S3-BOX-3
-  std::shared_ptr<Tt21100> tt21100_; // only used on ESP32-S3-BOX
+  std::shared_ptr<ITouchDevice> touch_driver_;
   std::shared_ptr<TouchpadInput> touchpad_input_;
   std::recursive_mutex touchpad_data_mutex_;
   TouchpadData touchpad_data_;

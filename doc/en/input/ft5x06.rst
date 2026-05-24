@@ -2,6 +2,8 @@ FT5x06 Touch Controller
 ***********************
 
 The FT5x06 is a capacitive touch controller that supports up to 5 touch points.
+It also implements the shared `ITouchDevice` runtime interface so it can be
+used interchangeably with the other ESPP touch drivers.
 
 .. ------------------------------- Example -------------------------------------
 

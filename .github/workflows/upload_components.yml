@@ -122,6 +122,7 @@ jobs:
             components/task
             components/thermistor
             components/timer
+            components/touch
             components/tla2528
             components/tt21100
             components/utils
