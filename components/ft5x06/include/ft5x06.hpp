@@ -92,20 +92,18 @@ public:
   }
 
   /// @brief Get the number of touch points.
-  /// @param ec The error code if the function fails.
+  /// @note This is the number of touch points that were present when the last
+  ///       update() was called
   /// @return The number of touch points.
-  uint8_t get_num_touch_points(std::error_code &ec) {
-    ec.clear();
-    return touch_state().num_touch_points;
-  }
+  uint8_t get_num_touch_points() const { return touch_state().num_touch_points; }
 
-  /// @brief Get the touch point.
+  /// @brief Get the touch point data.
+  /// @note This is the touch point data that was present when the last
+  ///       update() was called
   /// @param num_touch_points The number of touch points.
   /// @param x The x coordinate of the touch point.
   /// @param y The y coordinate of the touch point.
-  /// @param ec The error code if the function fails.
-  void get_touch_point(uint8_t *num_touch_points, uint16_t *x, uint16_t *y, std::error_code &ec) {
-    ec.clear();
+  void get_touch_point(uint8_t *num_touch_points, uint16_t *x, uint16_t *y) const {
     auto state = touch_state();
     auto point = state.primary_point();
     *num_touch_points = state.num_touch_points;
