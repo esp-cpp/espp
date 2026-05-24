@@ -201,13 +201,12 @@ protected:
     uint16_t data_len;
     uint8_t report_id;
     uint16_t time_stamp;
-    uint8_t : 2;
-    uint8_t large_object : 1;
     uint8_t record_num : 5;
+    uint8_t large_object : 1;
     uint8_t report_counter : 2;
-    uint8_t : 3;
+    uint8_t : 2;
     uint8_t noise_efect : 3;
-    TouchRecord touch_record[0];
+    uint8_t : 3;
   };
 
   struct ButtonRecord {
