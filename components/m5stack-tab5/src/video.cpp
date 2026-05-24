@@ -381,8 +381,8 @@ void IRAM_ATTR M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uin
       lv_draw_sw_rotate(px_map, third_buffer, ww, hh, w_stride, h_stride, LV_DISPLAY_ROTATION_270,
                         cf);
     }
-    px_map = (uint8_t *)third_buffer;
-    lv_display_rotate_area(disp, (lv_area_t *)area);
+    px_map = reinterpret_cast<uint8_t *>(third_buffer);
+    lv_display_rotate_area(disp, const_cast<lv_area_t *>(area));
     offsetx1 = area->x1;
     offsetx2 = area->x2;
     offsety1 = area->y1;
