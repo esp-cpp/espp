@@ -692,7 +692,7 @@ protected:
     return true;
   }
 
-  espp::Nvs nvs_;                      ///< NVS instance for storing WiFi credentials if enabled
+  espp::Nvs nvs_;                      ///< NVS instance used to initialize NVS when WiFi NVS support is enabled
   mutable std::recursive_mutex mutex_; ///< Mutex for thread-safe access to configs and state
   std::unordered_map<std::string, WifiAp::Config> ap_configs_;
   std::unordered_map<std::string, WifiSta::Config> sta_configs_;
