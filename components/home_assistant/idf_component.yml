@@ -1,0 +1,24 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "Home Assistant integration component with MQTT discovery and REST/WebSocket helpers"
+url: "https://github.com/esp-cpp/espp/tree/main/components/home_assistant"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/network/home_assistant.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - Network
+  - HomeAssistant
+  - MQTT
+  - REST
+  - WebSocket
+dependencies:
+  idf:
+    version: ">=5.5"
+  espp/base_component: ">=1.0"
+  espp/logger: ">=1.0"
+  espressif/esp_websocket_client: "*"

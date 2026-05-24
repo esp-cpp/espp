@@ -1,0 +1,65 @@
+menu "Home Assistant Example Configuration"
+
+    config HOME_ASSISTANT_EXAMPLE_WIFI_SSID
+        string "WiFi SSID"
+        default ""
+        help
+            WiFi SSID for the example. Leave empty to use saved station credentials.
+
+    config HOME_ASSISTANT_EXAMPLE_WIFI_PASSWORD
+        string "WiFi password"
+        default ""
+        help
+            WiFi password for the example. Leave empty to use saved station credentials.
+
+    config HOME_ASSISTANT_EXAMPLE_MQTT_BROKER_URI
+        string "MQTT broker URI"
+        default ""
+        help
+            MQTT broker URI such as mqtt://192.168.1.10.
+
+    config HOME_ASSISTANT_EXAMPLE_MQTT_USERNAME
+        string "MQTT username"
+        default ""
+
+    config HOME_ASSISTANT_EXAMPLE_MQTT_PASSWORD
+        string "MQTT password"
+        default ""
+
+    config HOME_ASSISTANT_EXAMPLE_DISCOVERY_PREFIX
+        string "MQTT discovery prefix"
+        default "homeassistant"
+
+    config HOME_ASSISTANT_EXAMPLE_NODE_ID
+        string "MQTT node id"
+        default ""
+
+    config HOME_ASSISTANT_EXAMPLE_DEVICE_NAME
+        string "Device name"
+        default "ESPP Home Assistant Example"
+
+    config HOME_ASSISTANT_EXAMPLE_DEVICE_IDENTIFIER
+        string "Device identifier"
+        default "espp-home-assistant-example"
+
+    config HOME_ASSISTANT_EXAMPLE_HOME_ASSISTANT_URL
+        string "Home Assistant base URL"
+        default ""
+        help
+            Base URL such as http://homeassistant.local:8123.
+
+    config HOME_ASSISTANT_EXAMPLE_HOME_ASSISTANT_TOKEN
+        string "Home Assistant access token"
+        default ""
+        help
+            Long-lived access token for REST and WebSocket APIs.
+
+    config HOME_ASSISTANT_EXAMPLE_ENABLE_WEBSOCKET
+        bool "Enable Home Assistant WebSocket demo"
+        default n
+
+    config HOME_ASSISTANT_EXAMPLE_REST_TIMEOUT_MS
+        int "REST / WebSocket timeout (ms)"
+        default 10000
+
+endmenu
