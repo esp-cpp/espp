@@ -71,7 +71,7 @@ public:
         if (ec)
           return false;
         // convert the data pointer to a GTPoint*
-        const GTPoint *point = (GTPoint *)&data[0];
+        const auto *point = reinterpret_cast<const GTPoint *>(&data[0]);
         x_ = point->x;
         y_ = point->y;
         logger_.debug("Touch at ({}, {})", x_, y_);

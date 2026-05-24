@@ -98,12 +98,12 @@ int espp::gfps::ble_gap_event_handler(ble_gap_event *event, void *arg) {
     if (pairing_succeeded) {
       logger.info("Pairing succeeded with {}", addr.toString());
       if (g_bt_interface) {
-        g_bt_interface->on_paired(uint64_t(addr));
+        g_bt_interface->on_paired(static_cast<uint64_t>(addr));
       }
     } else {
       logger.error("Pairing failed with {}", addr.toString());
       if (g_bt_interface) {
-        g_bt_interface->on_pairing_failed(uint64_t(addr));
+        g_bt_interface->on_pairing_failed(static_cast<uint64_t>(addr));
       }
     }
     // set the IO capability of the device (GFPS uses the passkey through a
@@ -129,7 +129,7 @@ uint64_t nearby_platform_GetBleAddress() {
   // explicitly get the random address here, since the GetPublicAddress function
   // will call NimBLEDevice::getAddress() which will return the public address
   uint64_t address = 0;
-  auto rc = ble_hs_id_copy_addr(BLE_ADDR_RANDOM, (uint8_t *)&address, nullptr);
+  auto rc = ble_hs_id_copy_addr(BLE_ADDR_RANDOM, reinterpret_cast<uint8_t *>(&address), nullptr);
   if (rc != 0) {
     logger.error("Failed to get ble address");
     return 0;
@@ -205,7 +205,7 @@ nearby_platform_status nearby_platform_GattNotify(uint64_t peer_address,
 // interval - Advertising interval code.
 nearby_platform_status nearby_platform_SetAdvertisement(const uint8_t *payload, size_t length,
                                                         nearby_fp_AvertisementInterval interval) {
-  logger.info("Setting advertisement, interval code: {}", (int)interval);
+  logger.info("Setting advertisement, interval code: {}", static_cast<int>(interval));
 
   // For information of the contents of the payload, see:
   // https://btprodspecificationrefs.blob.core.windows.net/assigned-numbers/Assigned%20Number%20Types/Assigned_Numbers.pdf
@@ -246,7 +246,7 @@ uint64_t nearby_platform_GetPublicAddress() {
 #if CONFIG_BT_NIMBLE_ENABLED
   auto address = NimBLEDevice::getAddress();
   logger.info("GetPublicAddress: {}", address.toString());
-  return uint64_t(address);
+  return static_cast<uint64_t>(address);
 #else
   return 0;
 #endif // CONFIG_BT_NIMBLE_ENABLED

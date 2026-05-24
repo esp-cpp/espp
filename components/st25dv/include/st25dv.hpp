@@ -182,7 +182,8 @@ public:
     offset += ndef_size;
     // add the TLV terminator (0xFE)
     full_record[offset] = (uint8_t)Type5TagType::TERMINATOR;
-    write(std::string_view{(const char *)full_record.data(), full_record.size()}, ec);
+    write(std::string_view{reinterpret_cast<const char *>(full_record.data()), full_record.size()},
+          ec);
   }
 
   /**
@@ -441,9 +442,9 @@ protected:
   void present_password(std::error_code &ec) {
     // length of messsage is 17 bytes, plus 2 for address
     uint8_t data[2 + 17] = {0};
-    data[0] = (uint16_t)Registers::I2C_PWD >> 8;
-    data[1] = (uint16_t)Registers::I2C_PWD & 0xFF;
-    const uint8_t *pswd_data = (uint8_t *)&password_;
+    data[0] = static_cast<uint16_t>(Registers::I2C_PWD) >> 8;
+    data[1] = static_cast<uint16_t>(Registers::I2C_PWD) & 0xFF;
+    const auto *pswd_data = reinterpret_cast<const uint8_t *>(&password_);
     // validation code in the middle
     data[8 + 2] = 0x09;
     for (int i = 0; i < 4; i++) {

@@ -775,8 +775,8 @@ public:
     std::fill(trigger_axes.begin(), trigger_axes.end(), trigger_center);
     std::fill(buttons.raw.begin(), buttons.raw.end(), 0);
     std::fill(vendor_defined.raw.begin(), vendor_defined.raw.end(), 0);
-    timestamp = prev_timestamp; // cppcheck-suppress redundantAssignment
-    counter = prev_counter;     // cppcheck-suppress redundantAssignment
+    timestamp = prev_timestamp;
+    counter = prev_counter;
     vendor_defined.coarse_timestamp = prev_coarse_timestamp;
     vendor_defined.fine_timestamp1 = prev_fine_timestamp1;
     vendor_defined.fine_timestamp2 = prev_fine_timestamp2;

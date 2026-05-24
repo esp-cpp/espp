@@ -500,7 +500,9 @@ protected:
   /**
    * @brief overload of std::make_error_code used by custom error codes.
    */
-  std::error_code make_error_code(NvsErrc e) { return {static_cast<int>(e), theNvsErrCategory}; }
+  static std::error_code make_error_code(NvsErrc e) {
+    return {static_cast<int>(e), theNvsErrCategory};
+  }
 
 }; // Class NvsHandle
 } // namespace espp

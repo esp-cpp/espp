@@ -235,7 +235,7 @@ public:
 
   /// Get the accelerometer sensitivity from memory
   /// @return The accelerometer sensitivity in g/LSB
-  float get_accelerometer_sensitivity() {
+  float get_accelerometer_sensitivity() const {
     return accelerometer_range_to_sensitivty(imu_config_.accelerometer_range);
   }
 
@@ -259,7 +259,7 @@ public:
 
   /// Get the gyroscope sensitivity from memory
   /// @return The gyroscope sensitivity in °/s/LSB
-  float get_gyroscope_sensitivity() {
+  float get_gyroscope_sensitivity() const {
     return gyroscope_range_to_sensitivty(imu_config_.gyroscope_range);
   }
 

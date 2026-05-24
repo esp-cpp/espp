@@ -57,10 +57,6 @@ extern "C" void app_main(void) {
       uint8_t num_touch_points = 0;
       uint16_t x = 0, y = 0;
       gt911.get_touch_point(&num_touch_points, &x, &y);
-      if (ec) {
-        fmt::print("Could not get touch point\n");
-        return false;
-      }
       fmt::print("num_touch_points: {}, x: {}, y: {}\n", num_touch_points, x, y);
       // NOTE: sleeping in this way allows the sleep to exit early when the
       // task is being stopped / destroyed

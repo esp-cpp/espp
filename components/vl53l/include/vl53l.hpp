@@ -128,8 +128,8 @@ public:
     info.model_id = data[0];
     info.module_type = data[1];
     logger_.debug("Model ID: {:#04x}, Module Type: {:#04x}", info.model_id, info.module_type);
-    if (info.model_id != MODEL_ID || (info.module_type != MODULE_TYPE_CD &&
-                                      info.module_type != MODULE_TYPE_CX)) {
+    if (info.model_id != MODEL_ID ||
+        (info.module_type != MODULE_TYPE_CD && info.module_type != MODULE_TYPE_CX)) {
       logger_.warn("Model ID ({:#04x}) or Module Type ({:#04x}) does not match expected values "
                    "for VL53L4CD ({:#04x}, {:#04x}) or VL53L4CX ({:#04x}, {:#04x}). "
                    "Ensure you are using a VL53L4CD or VL53L4CX sensor.",
@@ -414,7 +414,7 @@ public:
   /// \see set_timing_budget_us()
   /// \see set_inter_measurement_period_ms()
   /// \see get_inter_measurement_period_ms()
-  float get_timing_budget_seconds() { return get_timing_budget_ms() / 1000.0f; }
+  float get_timing_budget_seconds() const { return get_timing_budget_ms() / 1000.0f; }
 
   /// \brief Read the current timing budget in seconds
   /// \details
@@ -719,7 +719,8 @@ protected:
     }
     // write 0x0500 to RANGE_CONFIG_MIN_COUNT_RATE_RTN_LIMIT_MCPS (0x0066)
     uint16_t val = 0x0005;
-    if (!write_reg(Register::RANGE_CONFIG_MIN_COUNT_RATE_RTN_LIMIT_MCPS, (uint8_t *)&val, 2, ec)) {
+    if (!write_reg(Register::RANGE_CONFIG_MIN_COUNT_RATE_RTN_LIMIT_MCPS,
+                   reinterpret_cast<uint8_t *>(&val), 2, ec)) {
       return false;
     }
     return true;
