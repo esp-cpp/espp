@@ -1,0 +1,23 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "Android TV Remote v2 client component for Google TV and Chromecast devices"
+url: "https://github.com/esp-cpp/espp/tree/main/components/android_tv_remote"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/network/android_tv_remote.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - Network
+  - AndroidTV
+  - GoogleTV
+  - Chromecast
+dependencies:
+  idf:
+    version: ">=5.5"
+  espressif/mdns: ">=1.8"
+  espp/base_component: ">=1.0"
+  espp/nvs: ">=1.0"
