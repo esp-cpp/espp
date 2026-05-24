@@ -1,0 +1,23 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "SNMP manager component for ESP-IDF with SNMPv2c and SNMPv3 authPriv support"
+url: "https://github.com/esp-cpp/espp/tree/main/components/snmp"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/network/snmp.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - Network
+  - SNMP
+  - SNMPv3
+  - Management
+dependencies:
+  idf:
+    version: ">=5.0"
+  espp/base_component: ">=1.0"
+  espp/logger: ">=1.0"
+  espp/socket: ">=1.0"

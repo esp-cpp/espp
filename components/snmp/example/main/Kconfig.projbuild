@@ -1,0 +1,54 @@
+menu "SNMP Example Configuration"
+
+    config SNMP_EXAMPLE_WIFI_SSID
+        string "WiFi SSID"
+        default ""
+        help
+            WiFi SSID for the example. Leave empty to use saved station credentials.
+
+    config SNMP_EXAMPLE_WIFI_PASSWORD
+        string "WiFi password"
+        default ""
+        help
+            WiFi password for the example. Leave empty to use saved station credentials.
+
+    config SNMP_EXAMPLE_TARGET_HOST
+        string "SNMP target host"
+        default "192.168.1.1"
+        help
+            IPv4 address or hostname of the target SNMP agent.
+
+    config SNMP_EXAMPLE_COMMUNITY
+        string "SNMP community"
+        default "public"
+        help
+            Community string used when SNMPv2c mode is selected.
+
+    config SNMP_EXAMPLE_USE_V3
+        bool "Use SNMPv3 authPriv"
+        default n
+        help
+            Enable SNMPv3 authPriv instead of SNMPv2c.
+
+    config SNMP_EXAMPLE_V3_USERNAME
+        string "SNMPv3 username"
+        default "snmpuser"
+        depends on SNMP_EXAMPLE_USE_V3
+
+    config SNMP_EXAMPLE_V3_AUTH_PASSWORD
+        string "SNMPv3 auth password"
+        default "authpassword"
+        depends on SNMP_EXAMPLE_USE_V3
+
+    config SNMP_EXAMPLE_V3_PRIV_PASSWORD
+        string "SNMPv3 privacy password"
+        default "privpassword"
+        depends on SNMP_EXAMPLE_USE_V3
+
+    config SNMP_EXAMPLE_TIMEOUT_MS
+        int "SNMP timeout (ms)"
+        default 1500
+        help
+            Per-request timeout in milliseconds.
+
+endmenu
