@@ -15,6 +15,10 @@
 #include "wifi_format_helpers.hpp"
 #include "wifi_sta.hpp"
 
+#if CONFIG_ESP32_WIFI_NVS_ENABLED
+#include "nvs.hpp"
+#endif
+
 namespace espp {
 
 /// @brief The Wifi class provides access to the ESP32 Wifi functionality.
@@ -568,7 +572,17 @@ protected:
   /// @details The Wifi object is a singleton object and can only be
   /// constructed once. WiFi stack initialization is deferred to init().
   Wifi()
-      : BaseComponent("Wifi") {}
+      : BaseComponent("Wifi") {
+#if CONFIG_ESP32_WIFI_NVS_ENABLED
+    std::error_code ec;
+    nvs_.init(ec);
+    if (ec) {
+      logger_.error("Failed to initialize NVS for WiFi credentials: {}", ec.message());
+    } else {
+      logger_.info("NVS initialized for WiFi credentials");
+    }
+#endif
+  }
 
   /// @brief Destructor - cleans up WiFi stack.
   ~Wifi() {
@@ -678,6 +692,7 @@ protected:
     return true;
   }
 
+  espp::Nvs nvs_;                      ///< NVS instance for storing WiFi credentials if enabled
   mutable std::recursive_mutex mutex_; ///< Mutex for thread-safe access to configs and state
   std::unordered_map<std::string, WifiAp::Config> ap_configs_;
   std::unordered_map<std::string, WifiSta::Config> sta_configs_;
