@@ -383,7 +383,7 @@ protected:
   }
 
   bool parse_ftp_command(std::string_view request, std::string_view &command,
-                         std::string_view &arguments) {
+                         std::string_view &arguments) const {
     // parses the command from the FTP client's request. The command is the
     // first word in the request. The command is case insensitive.
     // The command is followed by a space and then the arguments.

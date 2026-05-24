@@ -35,7 +35,8 @@ bool TcpSocket::connect(const TcpSocket::ConnectConfig &connect_config) {
   auto server_address = server_info.ipv4_ptr();
   logger_.info("Client connecting to {}", server_info);
   // connect
-  int error = ::connect(socket_, (struct sockaddr *)server_address, sizeof(*server_address));
+  int error = ::connect(socket_, reinterpret_cast<struct sockaddr *>(server_address),
+                        sizeof(*server_address));
   if (error != 0) {
     logger_.error("Could not connect to the server: {}", error_string());
     return false;
@@ -116,7 +117,7 @@ bool TcpSocket::receive(std::vector<uint8_t> &data, size_t max_num_bytes) {
   int num_bytes_received = receive(receive_buffer.get(), max_num_bytes);
   if (num_bytes_received > 0) {
     logger_.info("Received {} bytes", num_bytes_received);
-    uint8_t *data_ptr = (uint8_t *)receive_buffer.get();
+    uint8_t *data_ptr = receive_buffer.get();
     data.assign(data_ptr, data_ptr + num_bytes_received);
     return true;
   }
@@ -134,7 +135,7 @@ size_t TcpSocket::receive(uint8_t *data, size_t max_num_bytes) {
   }
   logger_.info("Receiving up to {} bytes", max_num_bytes);
   // now actually read data from the socket
-  int num_bytes_received = ::recv(socket_, (char *)data, max_num_bytes, 0);
+  int num_bytes_received = ::recv(socket_, reinterpret_cast<char *>(data), max_num_bytes, 0);
   // if we didn't receive anything return false and don't do anything else
   if (num_bytes_received < 0) {
     // if we got an error, log it and return 0
@@ -155,13 +156,14 @@ bool TcpSocket::bind(int port) {
     logger_.error("Socket invalid, cannot bind.");
     return false;
   }
-  struct sockaddr_in server_addr;
+  struct sockaddr_in server_addr {};
   // configure the server socket accordingly - assume IPV4 and bind to the
   // any address "0.0.0.0"
   server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
   server_addr.sin_family = address_family_;
   server_addr.sin_port = htons(port);
-  auto err = ::bind(socket_, (struct sockaddr *)&server_addr, sizeof(server_addr));
+  auto err =
+      ::bind(socket_, reinterpret_cast<struct sockaddr *>(&server_addr), sizeof(server_addr));
   if (err < 0) {
     logger_.error("Unable to bind: {}", error_string());
     return false;
@@ -191,7 +193,8 @@ std::unique_ptr<TcpSocket> TcpSocket::accept() {
   auto sender_address = connected_client_info.ipv4_ptr();
   socklen_t socklen = sizeof(*sender_address);
   // accept connection
-  auto accepted_socket = ::accept(socket_, (struct sockaddr *)sender_address, &socklen);
+  auto accepted_socket =
+      ::accept(socket_, reinterpret_cast<struct sockaddr *>(sender_address), &socklen);
   if (accepted_socket < 0) {
     logger_.info("Could not accept connection: {}", error_string());
     return nullptr;
@@ -218,7 +221,8 @@ bool TcpSocket::set_keepalive(const std::chrono::seconds &idle_time,
   }
   int optval = 1;
   // enable keepalive
-  auto err = setsockopt(socket_, SOL_SOCKET, SO_KEEPALIVE, (const char *)&optval, sizeof(optval));
+  auto err = setsockopt(socket_, SOL_SOCKET, SO_KEEPALIVE, reinterpret_cast<const char *>(&optval),
+                        sizeof(optval));
   if (err < 0) {
     logger_.error("Unable to set keepalive: {}", error_string());
     return false;
@@ -229,7 +233,8 @@ bool TcpSocket::set_keepalive(const std::chrono::seconds &idle_time,
 #else
   // set the idle time
   optval = idle_time.count();
-  err = setsockopt(socket_, IPPROTO_TCP, TCP_KEEPIDLE, (const char *)&optval, sizeof(optval));
+  err = setsockopt(socket_, IPPROTO_TCP, TCP_KEEPIDLE, reinterpret_cast<const char *>(&optval),
+                   sizeof(optval));
   if (err < 0) {
     logger_.error("Unable to set keepalive idle time: {}", error_string());
     return false;
@@ -238,14 +243,16 @@ bool TcpSocket::set_keepalive(const std::chrono::seconds &idle_time,
 
   // set the interval
   optval = interval.count();
-  err = setsockopt(socket_, IPPROTO_TCP, TCP_KEEPINTVL, (const char *)&optval, sizeof(optval));
+  err = setsockopt(socket_, IPPROTO_TCP, TCP_KEEPINTVL, reinterpret_cast<const char *>(&optval),
+                   sizeof(optval));
   if (err < 0) {
     logger_.error("Unable to set keepalive interval: {}", error_string());
     return false;
   }
   // set the max probes
   optval = max_probes;
-  err = setsockopt(socket_, IPPROTO_TCP, TCP_KEEPCNT, (const char *)&optval, sizeof(optval));
+  err = setsockopt(socket_, IPPROTO_TCP, TCP_KEEPCNT, reinterpret_cast<const char *>(&optval),
+                   sizeof(optval));
   if (err < 0) {
     logger_.error("Unable to set keepalive max probes: {}", error_string());
     return false;

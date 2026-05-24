@@ -59,7 +59,7 @@ public:
   using Hat = espp::gamepad::Hat;
 
   /// Construct a new Gamepad Input Report object
-  constexpr GamepadInputReport() = default;
+  constexpr GamepadInputReport() { reset(); }
 
   /// Reset the gamepad inputs
   constexpr void reset() {

@@ -1,6 +1,12 @@
 #include "heap_monitor.hpp"
 
 #include "esp_idf_version.h"
+#ifndef ESP_IDF_VERSION_VAL
+#define ESP_IDF_VERSION_VAL(major, minor, patch) (((major) << 16) | ((minor) << 8) | (patch))
+#endif
+#ifndef ESP_IDF_VERSION
+#define ESP_IDF_VERSION ESP_IDF_VERSION_VAL(0, 0, 0)
+#endif
 
 // MALLOC_CAP_TCM was renamed to MALLOC_CAP_SPM in ESP-IDF v6.0
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)

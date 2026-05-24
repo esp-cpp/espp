@@ -1510,7 +1510,7 @@ protected:
   }
 
   void write_two_(Register reg, uint16_t value, std::error_code &ec) {
-    write_block_(reg, (uint8_t *)&value, 2, ec);
+    write_block_(reg, reinterpret_cast<uint8_t *>(&value), 2, ec);
   }
 
   void write_block_(Register reg, const uint8_t *data, uint8_t len, std::error_code &ec) {

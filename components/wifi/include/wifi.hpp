@@ -405,14 +405,14 @@ public:
 
   /// @brief Get all registered STA configurations.
   /// @return Unordered map of registered STA configurations.
-  std::unordered_map<std::string, WifiSta::Config> get_registered_sta_configs() {
+  std::unordered_map<std::string, WifiSta::Config> get_registered_sta_configs() const {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     return sta_configs_;
   }
 
   /// @brief Get all registered AP configurations.
   /// @return Unordered map of registered AP configurations.
-  std::unordered_map<std::string, WifiAp::Config> get_registered_ap_configs() {
+  std::unordered_map<std::string, WifiAp::Config> get_registered_ap_configs() const {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     return ap_configs_;
   }

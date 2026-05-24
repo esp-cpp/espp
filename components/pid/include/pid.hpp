@@ -151,7 +151,7 @@ public:
    * @brief Get the configuration for the PID (gains, etc.).
    * @return Config structure containing gains, etc.
    */
-  Config get_config() const { return config_; }
+  const Config &get_config() const { return config_; }
 
 protected:
   Config config_;

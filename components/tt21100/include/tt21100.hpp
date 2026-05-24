@@ -48,7 +48,7 @@ public:
     {
       std::lock_guard<std::recursive_mutex> lock(base_mutex_);
 
-      read_many((uint8_t *)&data_len, 2, ec);
+      read_many(reinterpret_cast<uint8_t *>(&data_len), 2, ec);
       if (ec) {
         logger_.error("Failed to read data length: {}", ec.message());
         return false;
@@ -78,8 +78,8 @@ public:
     case 17:
     case 27: {
       // touch event - NOTE: this only gets the first touch record
-      const auto report_data = (const TouchReport *)data;
-      const auto touch_data = (const TouchRecord *)(&report_data->touch_record[0]);
+      const auto report_data = reinterpret_cast<const TouchReport *>(data);
+      const auto touch_data = reinterpret_cast<const TouchRecord *>(&report_data->touch_record[0]);
       x_ = touch_data->x;
       y_ = touch_data->y;
       num_touch_points_ = (data_len - sizeof(TouchReport)) / sizeof(TouchRecord);
@@ -89,11 +89,11 @@ public:
     }
     case 14: {
       // button event
-      const auto button_data = (const ButtonRecord *)data;
+      const auto button_data = reinterpret_cast<const ButtonRecord *>(data);
       home_button_pressed_ = button_data->btn_val;
       auto btn_signal = button_data->btn_signal[0];
-      logger_.debug("Button event({}): {}, {}", (int)(button_data->length), home_button_pressed_,
-                    btn_signal);
+      logger_.debug("Button event({}): {}, {}", static_cast<int>(button_data->length),
+                    home_button_pressed_, btn_signal);
       new_data = true;
       break;
     }
@@ -138,7 +138,7 @@ protected:
     int num_tries = 0;
     do {
       using namespace std::chrono_literals;
-      read_many((uint8_t *)&reg_val, 2, ec);
+      read_many(reinterpret_cast<uint8_t *>(&reg_val), 2, ec);
       if (ec) {
         logger_.error("Failed to read...");
         return;

@@ -46,8 +46,9 @@ bool UdpSocket::send(std::span<const uint8_t> data, const UdpSocket::SendConfig 
   auto server_address = server_info.ipv4_ptr();
   logger_.info("Client sending {} bytes to {}:{}", data.size(), send_config.ip_address,
                send_config.port);
-  int num_bytes_sent = sendto(socket_, reinterpret_cast<const char *>(data.data()), data.size(), 0,
-                              (struct sockaddr *)server_address, sizeof(*server_address));
+  int num_bytes_sent =
+      sendto(socket_, reinterpret_cast<const char *>(data.data()), data.size(), 0,
+             reinterpret_cast<struct sockaddr *>(server_address), sizeof(*server_address));
   if (num_bytes_sent < 0) {
     logger_.error("Error occurred during sending: {}", error_string());
     return false;
@@ -91,15 +92,16 @@ bool UdpSocket::receive(size_t max_num_bytes, std::vector<uint8_t> &data,
   std::unique_ptr<uint8_t[]> receive_buffer(new uint8_t[max_num_bytes]());
   // now actually receive
   logger_.info("Receiving up to {} bytes", max_num_bytes);
-  int num_bytes_received = recvfrom(socket_, (char *)receive_buffer.get(), max_num_bytes, 0,
-                                    (struct sockaddr *)remote_address, &socklen);
+  int num_bytes_received =
+      recvfrom(socket_, reinterpret_cast<char *>(receive_buffer.get()), max_num_bytes, 0,
+               reinterpret_cast<struct sockaddr *>(remote_address), &socklen);
   // if we didn't receive anything return false and don't do anything else
   if (num_bytes_received < 0) {
     logger_.info("Receive failed: {}", error_string());
     return false;
   }
   // we received data, so call the callback function if one was provided.
-  uint8_t *data_ptr = (uint8_t *)receive_buffer.get();
+  uint8_t *data_ptr = receive_buffer.get();
   data.assign(data_ptr, data_ptr + num_bytes_received);
   remote_info.update();
   logger_.debug("Received {} bytes from {}", num_bytes_received, remote_info);
@@ -118,13 +120,13 @@ bool UdpSocket::start_receiving(Task::BaseConfig &task_config,
   }
   server_receive_callback_ = receive_config.on_receive_callback;
   // bind
-  struct sockaddr_in server_addr;
+  struct sockaddr_in server_addr {};
   // configure the server socket accordingly - assume IPV4 and bind to the
   // any address "0.0.0.0"
   server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
   server_addr.sin_family = address_family_;
   server_addr.sin_port = htons(receive_config.port);
-  int err = bind(socket_, (struct sockaddr *)&server_addr, sizeof(server_addr));
+  int err = bind(socket_, reinterpret_cast<struct sockaddr *>(&server_addr), sizeof(server_addr));
   if (err < 0) {
     logger_.error("Unable to bind: {}", error_string());
     return false;
@@ -183,8 +185,9 @@ bool UdpSocket::server_task_function(size_t buffer_size, std::mutex &m, std::con
   // sendto
   logger_.info("Server responding to {} with message of length {}", sender_info, response.size());
   auto sender_address = sender_info.ipv4_ptr();
-  int num_bytes_sent = sendto(socket_, (const char *)response.data(), response.size(), 0,
-                              (struct sockaddr *)sender_address, sizeof(*sender_address));
+  int num_bytes_sent =
+      sendto(socket_, reinterpret_cast<const char *>(response.data()), response.size(), 0,
+             reinterpret_cast<struct sockaddr *>(sender_address), sizeof(*sender_address));
   if (num_bytes_sent < 0) {
     logger_.error("Error occurred responding: {}", error_string());
   }

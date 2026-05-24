@@ -12,26 +12,28 @@ void Socket::Info::init_ipv4(const std::string &addr, size_t prt) {
 }
 
 struct sockaddr_in *Socket::Info::ipv4_ptr() {
-  return (struct sockaddr_in *)&raw;
+  return reinterpret_cast<struct sockaddr_in *>(&raw);
 }
 
 struct sockaddr_in6 *Socket::Info::ipv6_ptr() {
-  return (struct sockaddr_in6 *)&raw;
+  return reinterpret_cast<struct sockaddr_in6 *>(&raw);
 }
 
 void Socket::Info::update() {
   if (raw.ss_family == PF_INET) {
-    address = inet_ntoa(((struct sockaddr_in *)&raw)->sin_addr);
-    port = ((struct sockaddr_in *)&raw)->sin_port;
+    const auto *ipv4 = reinterpret_cast<const struct sockaddr_in *>(&raw);
+    address = inet_ntoa(ipv4->sin_addr);
+    port = ipv4->sin_port;
   } else if (raw.ss_family == PF_INET6) {
+    const auto *ipv6 = reinterpret_cast<const struct sockaddr_in6 *>(&raw);
 #if defined(ESP_PLATFORM)
-    address = inet_ntoa(((struct sockaddr_in6 *)&raw)->sin6_addr);
+    address = inet_ntoa(ipv6->sin6_addr);
 #else
     char str[INET6_ADDRSTRLEN];
-    inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)&raw)->sin6_addr), str, INET6_ADDRSTRLEN);
+    inet_ntop(AF_INET6, &(ipv6->sin6_addr), str, INET6_ADDRSTRLEN);
     address = str;
 #endif
-    port = ((struct sockaddr_in6 *)&raw)->sin6_port;
+    port = ipv6->sin6_port;
   }
 }
 
@@ -112,7 +114,7 @@ bool Socket::is_valid_fd(sock_type_t socket_fd) {
 std::optional<Socket::Info> Socket::get_ipv4_info() {
   struct sockaddr_storage addr;
   socklen_t addr_len = sizeof(addr);
-  if (getsockname(socket_, (struct sockaddr *)&addr, &addr_len) < 0) {
+  if (getsockname(socket_, reinterpret_cast<struct sockaddr *>(&addr), &addr_len) < 0) {
     logger_.error("getsockname() failed: {}", error_string());
     return {};
   }
@@ -128,8 +130,8 @@ bool Socket::set_receive_timeout(const std::chrono::duration<float> &timeout) {
   }
   float intpart;
   float fractpart = modff(seconds, &intpart);
-  const time_t response_timeout_s = (int)intpart;
-  const time_t response_timeout_us = (int)(fractpart * 1E6);
+  const auto response_timeout_s = static_cast<time_t>(intpart);
+  const auto response_timeout_us = static_cast<time_t>(fractpart * 1E6f);
   //// Alternatively we could do this:
   // int microseconds =
   // (int)(std::chrono::duration_cast<std::chrono::microseconds>(timeout).count()) % (int)1E6;
@@ -139,7 +141,8 @@ bool Socket::set_receive_timeout(const std::chrono::duration<float> &timeout) {
   struct timeval tv;
   tv.tv_sec = response_timeout_s;
   tv.tv_usec = response_timeout_us;
-  int err = setsockopt(socket_, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv));
+  int err =
+      setsockopt(socket_, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char *>(&tv), sizeof(tv));
   if (err < 0) {
     return false;
   }
@@ -153,7 +156,8 @@ bool Socket::enable_reuse() {
 #else // CONFIG_LWIP_SO_REUSE || !defined(ESP_PLATFORM)
   int err = 0;
   int enabled = 1;
-  err = setsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, (const char *)&enabled, sizeof(enabled));
+  err = setsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char *>(&enabled),
+                   sizeof(enabled));
   if (err < 0) {
     fmt::print(fg(fmt::color::red), "Couldn't set SO_REUSEADDR: {}\n", error_string());
     return false;
@@ -161,13 +165,15 @@ bool Socket::enable_reuse() {
 #if !defined(ESP_PLATFORM)
 #ifdef _MSC_VER
   // NOTE: according to stackoverflow, we have to set broadcast instead of reuseport
-  err = setsockopt(socket_, SOL_SOCKET, SO_BROADCAST, (const char *)&enabled, sizeof(enabled));
+  err = setsockopt(socket_, SOL_SOCKET, SO_BROADCAST, reinterpret_cast<const char *>(&enabled),
+                   sizeof(enabled));
   if (err < 0) {
     fmt::print(fg(fmt::color::red), "Couldn't set SO_BROADCAST: {}\n", error_string());
     return false;
   }
 #else
-  err = setsockopt(socket_, SOL_SOCKET, SO_REUSEPORT, (const char *)&enabled, sizeof(enabled));
+  err = setsockopt(socket_, SOL_SOCKET, SO_REUSEPORT, reinterpret_cast<const char *>(&enabled),
+                   sizeof(enabled));
   if (err < 0) {
     fmt::print(fg(fmt::color::red), "Couldn't set SO_REUSEPORT: {}\n", error_string());
     return false;
@@ -181,15 +187,15 @@ bool Socket::enable_reuse() {
 bool Socket::make_multicast(uint8_t time_to_live, uint8_t loopback_enabled) {
   int err = 0;
   // Assign multicast TTL - separate from normal interface TTL
-  err = setsockopt(socket_, IPPROTO_IP, IP_MULTICAST_TTL, (const char *)&time_to_live,
-                   sizeof(uint8_t));
+  err = setsockopt(socket_, IPPROTO_IP, IP_MULTICAST_TTL,
+                   reinterpret_cast<const char *>(&time_to_live), sizeof(uint8_t));
   if (err < 0) {
     fmt::print(fg(fmt::color::red), "Couldn't set IP_MULTICAST_TTL: {}\n", error_string());
     return false;
   }
   // select whether multicast traffic should be received by this device, too
-  err = setsockopt(socket_, IPPROTO_IP, IP_MULTICAST_LOOP, (const char *)&loopback_enabled,
-                   sizeof(uint8_t));
+  err = setsockopt(socket_, IPPROTO_IP, IP_MULTICAST_LOOP,
+                   reinterpret_cast<const char *>(&loopback_enabled), sizeof(uint8_t));
   if (err < 0) {
     fmt::print(fg(fmt::color::red), "Couldn't set IP_MULTICAST_LOOP: {}\n", error_string());
     return false;
@@ -225,14 +231,14 @@ bool Socket::add_multicast_group(const std::string &multicast_group) {
   // Assign the IPv4 multicast source interface, via its IP
   // (only necessary if this socket is IPV4 only)
   struct in_addr iaddr;
-  err = setsockopt(socket_, IPPROTO_IP, IP_MULTICAST_IF, (const char *)&iaddr,
+  err = setsockopt(socket_, IPPROTO_IP, IP_MULTICAST_IF, reinterpret_cast<const char *>(&iaddr),
                    sizeof(struct in_addr));
   if (err < 0) {
     fmt::print(fg(fmt::color::red), "Couldn't set IP_MULTICAST_IF: {}\n", error_string());
     return false;
   }
 
-  err = setsockopt(socket_, IPPROTO_IP, IP_ADD_MEMBERSHIP, (const char *)&imreq,
+  err = setsockopt(socket_, IPPROTO_IP, IP_ADD_MEMBERSHIP, reinterpret_cast<const char *>(&imreq),
                    sizeof(struct ip_mreq));
   if (err < 0) {
     fmt::print(fg(fmt::color::red), "Couldn't set IP_ADD_MEMBERSHIP: {}\n", error_string());
@@ -280,7 +286,7 @@ int Socket::select(const std::chrono::microseconds &timeout) {
 
 bool Socket::init(Socket::Type type) {
   // actually make the socket
-  socket_ = socket(address_family_, (int)type, ip_protocol_);
+  socket_ = socket(address_family_, static_cast<int>(type), ip_protocol_);
   if (!is_valid()) {
     logger_.error("Cannot create socket: {}", error_string());
     return false;
@@ -320,7 +326,7 @@ std::string Socket::error_string(int err) const {
   } else if (err == WSANOTINITIALISED) {
     return "WSANOTINITIALISED";
   } else {
-    return fmt::format("Unknown error: {0} ({0:#x})", (int)err);
+    return fmt::format("Unknown error: {0} ({0:#x})", static_cast<int>(err));
   }
 #else
   return fmt::format("{} - '{}'", err, strerror(err));

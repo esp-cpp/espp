@@ -67,8 +67,9 @@ using namespace std::chrono_literals;
 // change the digital output value by pressing the button on the joystick.
 static QueueHandle_t gpio_evt_queue;
 
+// cppcheck-suppress constParameterCallback
 static void gpio_isr_handler(void *arg) {
-  uint32_t gpio_num = (uint32_t)arg;
+  uint32_t gpio_num = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(arg));
   xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
 }
 
@@ -129,7 +130,8 @@ extern "C" void app_main(void) {
 
     // install gpio isr service
     gpio_install_isr_service(0);
-    gpio_isr_handler_add(ALERT_PIN, gpio_isr_handler, (void *)ALERT_PIN);
+    gpio_isr_handler_add(ALERT_PIN, gpio_isr_handler,
+                         reinterpret_cast<void *>(static_cast<uintptr_t>(ALERT_PIN)));
 
     // start the gpio task
     auto alert_task = espp::Task::make_unique({
