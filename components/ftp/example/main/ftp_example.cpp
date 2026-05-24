@@ -4,10 +4,6 @@
 #include <iterator>
 #include <thread>
 
-#if CONFIG_ESP32_WIFI_NVS_ENABLED
-#include "nvs_flash.h"
-#endif
-
 #include "logger.hpp"
 #include "task.hpp"
 #include "wifi_sta.hpp"
@@ -22,16 +18,6 @@ extern "C" void app_main(void) {
   espp::Logger logger({.tag = "main", .level = espp::Logger::Verbosity::INFO});
 
   logger.info("Stating socket example!");
-
-#if CONFIG_ESP32_WIFI_NVS_ENABLED
-  // Initialize NVS
-  esp_err_t ret = nvs_flash_init();
-  if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-    ESP_ERROR_CHECK(nvs_flash_erase());
-    ret = nvs_flash_init();
-  }
-  ESP_ERROR_CHECK(ret);
-#endif
 
   std::string ip_address;
   espp::WifiSta wifi_sta({.ssid = CONFIG_ESP_WIFI_SSID,
