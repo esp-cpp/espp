@@ -13,16 +13,6 @@ extern "C" void app_main(void) {
 
   logger.info("Starting DNS Server Example");
 
-#if CONFIG_ESP32_WIFI_NVS_ENABLED
-  // Initialize NVS
-  esp_err_t ret = nvs_flash_init();
-  if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-    ESP_ERROR_CHECK(nvs_flash_erase());
-    ret = nvs_flash_init();
-  }
-  ESP_ERROR_CHECK(ret);
-#endif
-
   // Initialize WiFi in AP mode
   std::string ap_ssid = "ESP-DNS-Test";
   std::string ap_password = "testpassword";

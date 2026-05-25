@@ -4,10 +4,6 @@
 
 #include "sdkconfig.h"
 
-#if CONFIG_ESP32_WIFI_NVS_ENABLED
-#include "nvs_flash.h"
-#endif
-
 #include "logger.hpp"
 #include "task.hpp"
 #include "wifi.hpp"
@@ -34,16 +30,6 @@ extern "C" void app_main(void) {
   logger.info("Starting WiFi example...");
 
   size_t num_seconds_to_run = 2;
-
-#if CONFIG_ESP32_WIFI_NVS_ENABLED
-  // Initialize NVS
-  esp_err_t ret = nvs_flash_init();
-  if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-    ESP_ERROR_CHECK(nvs_flash_erase());
-    ret = nvs_flash_init();
-  }
-  ESP_ERROR_CHECK(ret);
-#endif
 
   {
     //! [wifi sta menu example]

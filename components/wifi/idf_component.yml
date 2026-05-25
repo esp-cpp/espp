@@ -19,3 +19,4 @@ dependencies:
     version: '>=5.0'
   espp/base_component: '>=1.0'
   espp/cli: '>=1.0'
+  espp/nvs: '>=1.0'
