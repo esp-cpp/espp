@@ -4,6 +4,7 @@
 #include "spi.hpp"
 
 extern "C" void app_main(void) {
+  //! [spi example]
   constexpr spi_host_device_t spi_host = SPI2_HOST;
   constexpr auto sclk_gpio = GPIO_NUM_36;
   constexpr auto miso_gpio = GPIO_NUM_35;
@@ -40,4 +41,5 @@ extern "C" void app_main(void) {
   }
 
   std::printf("Read bytes: 0x%02x 0x%02x\n", rx_data[0], rx_data[1]);
+  //! [spi example]
 }

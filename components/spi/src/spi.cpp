@@ -123,6 +123,7 @@ void Spi::deinit(std::error_code &ec) {
         devices.push_back(device);
       }
     }
+    initialized_ = false;
     devices_.clear();
   }
 
@@ -141,7 +142,6 @@ void Spi::deinit(std::error_code &ec) {
     ec = std::make_error_code(std::errc::io_error);
     return;
   }
-  initialized_ = false;
   ec.clear();
 }
 
