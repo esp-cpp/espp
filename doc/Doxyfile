@@ -145,6 +145,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/serialization/example/main/serialization_example.cpp \
   $(PROJECT_PATH)/components/seeed-studio-round-display/example/main/seeed_studio_round_display_example.cpp \
   $(PROJECT_PATH)/components/socket/example/main/socket_example.cpp \
+  $(PROJECT_PATH)/components/spi/example/main/spi_example.cpp \
   $(PROJECT_PATH)/components/st25dv/example/main/st25dv_example.cpp \
   $(PROJECT_PATH)/components/state_machine/example/main/hfsm_example.cpp \
   $(PROJECT_PATH)/components/tabulate/example/main/tabulate_example.cpp \
@@ -322,6 +323,7 @@ INPUT = \
   $(PROJECT_PATH)/components/socket/include/socket.hpp \
   $(PROJECT_PATH)/components/socket/include/udp_socket.hpp \
   $(PROJECT_PATH)/components/socket/include/tcp_socket.hpp \
+  $(PROJECT_PATH)/components/spi/include/spi.hpp \
   $(PROJECT_PATH)/components/st25dv/include/st25dv.hpp \
   $(PROJECT_PATH)/components/state_machine/include/deep_history_state.hpp \
   $(PROJECT_PATH)/components/state_machine/include/shallow_history_state.hpp \
@@ -378,4 +380,3 @@ HAVE_DOT        = NO
 GENERATE_LATEX  = YES
 GENERATE_MAN    = NO
 GENERATE_RTF    = NO
-
