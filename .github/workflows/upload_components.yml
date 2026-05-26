@@ -112,6 +112,7 @@ jobs:
             components/seeed-studio-round-display
             components/serialization
             components/socket
+            components/spi
             components/st25dv
             components/state_machine
             components/t_keyboard
