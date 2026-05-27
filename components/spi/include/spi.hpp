@@ -150,10 +150,12 @@ public:
   std::shared_ptr<Device> add_device(const DeviceConfig &config, std::error_code &ec);
 
 private:
+  void prune_expired_devices_locked();
+
   friend class Device;
 
   Config config_;
-  std::recursive_mutex mutex_;
+  mutable std::recursive_mutex mutex_;
   bool initialized_{false};
   std::vector<std::weak_ptr<Device>> devices_;
 };
@@ -252,6 +254,6 @@ private:
   Spi &spi_;
   DeviceConfig config_;
   spi_device_handle_t handle_{nullptr};
-  std::recursive_mutex mutex_;
+  mutable std::recursive_mutex mutex_;
 };
 } // namespace espp

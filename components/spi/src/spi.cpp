@@ -1,5 +1,6 @@
 #include "spi.hpp"
 
+#include <algorithm>
 #include <cstring>
 #include <utility>
 
@@ -118,6 +119,7 @@ void Spi::deinit(std::error_code &ec) {
       ec.clear();
       return;
     }
+    prune_expired_devices_locked();
     for (auto &weak_device : devices_) {
       if (auto device = weak_device.lock()) {
         devices.push_back(device);
@@ -145,7 +147,10 @@ void Spi::deinit(std::error_code &ec) {
   ec.clear();
 }
 
-bool Spi::initialized() const { return initialized_; }
+bool Spi::initialized() const {
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  return initialized_;
+}
 
 spi_host_device_t Spi::host() const { return config_.host; }
 
@@ -156,6 +161,7 @@ std::shared_ptr<Spi::Device> Spi::add_device(const DeviceConfig &config, std::er
     ec = std::make_error_code(std::errc::not_connected);
     return nullptr;
   }
+  prune_expired_devices_locked();
   auto device = std::make_shared<Device>(*this, config);
   auto device_config = make_device_config(config);
   auto err = spi_bus_add_device(this->config_.host, &device_config, &device->handle_);
@@ -167,6 +173,10 @@ std::shared_ptr<Spi::Device> Spi::add_device(const DeviceConfig &config, std::er
   devices_.push_back(device);
   ec.clear();
   return device;
+}
+
+void Spi::prune_expired_devices_locked() {
+  std::erase_if(devices_, [](const auto &device) { return device.expired(); });
 }
 
 Spi::Device::Device(Spi &spi, const DeviceConfig &config)
@@ -182,9 +192,15 @@ Spi::Device::~Device() {
   }
 }
 
-bool Spi::Device::initialized() const { return handle_ != nullptr; }
+bool Spi::Device::initialized() const {
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  return handle_ != nullptr;
+}
 
-spi_device_handle_t Spi::Device::handle() const { return handle_; }
+spi_device_handle_t Spi::Device::handle() const {
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  return handle_;
+}
 
 const Spi::DeviceConfig &Spi::Device::config() const { return config_; }
 
@@ -303,6 +319,11 @@ bool Spi::Device::read(std::span<uint8_t> data, const TransactionConfig &config,
 
 bool Spi::Device::transfer(std::span<const uint8_t> tx_data, std::span<uint8_t> rx_data,
                            const TransactionConfig &config, std::error_code &ec) {
+  if (tx_data.empty() && rx_data.empty()) {
+    ec.clear();
+    return true;
+  }
+
   spi_transaction_t transaction{};
   transaction.cmd = config.command;
   transaction.addr = config.address;
