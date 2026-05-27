@@ -64,7 +64,9 @@ public:
     uint16_t command = 0;      ///< Command value for this transaction.
     uint64_t address = 0;      ///< Address value for this transaction.
     uint32_t flags = 0;        ///< ESP-IDF transaction flags.
-    size_t rx_length_bits = 0; ///< Optional receive length override, in bits.
+    size_t rx_length_bits = 0; ///< Optional receive length override, in bits. Must not exceed the
+                               ///< RX buffer capacity, or the TX bit length when both TX and RX are
+                               ///< used in the same transaction.
   };
 
   class Device;

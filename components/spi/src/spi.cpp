@@ -324,13 +324,28 @@ bool Spi::Device::transfer(std::span<const uint8_t> tx_data, std::span<uint8_t> 
     return true;
   }
 
+  const size_t tx_length_bits = tx_data.size() * 8;
+  const size_t rx_buffer_bits = rx_data.size() * 8;
+  const size_t rx_length_bits = config.rx_length_bits ? config.rx_length_bits : rx_buffer_bits;
+
+  if (!rx_data.empty() && rx_length_bits > rx_buffer_bits) {
+    logger_.error("requested RX length exceeds RX buffer capacity");
+    ec = std::make_error_code(std::errc::invalid_argument);
+    return false;
+  }
+  if (!tx_data.empty() && !rx_data.empty() && rx_length_bits > tx_length_bits) {
+    logger_.error("requested RX length exceeds TX clock length");
+    ec = std::make_error_code(std::errc::invalid_argument);
+    return false;
+  }
+
   spi_transaction_t transaction{};
   transaction.cmd = config.command;
   transaction.addr = config.address;
   transaction.flags = config.flags;
 
   if (!tx_data.empty()) {
-    transaction.length = tx_data.size() * 8;
+    transaction.length = tx_length_bits;
     if (tx_data.size() <= sizeof(transaction.tx_data)) {
       std::memcpy(transaction.tx_data, tx_data.data(), tx_data.size());
       transaction.flags |= SPI_TRANS_USE_TXDATA;
@@ -338,11 +353,11 @@ bool Spi::Device::transfer(std::span<const uint8_t> tx_data, std::span<uint8_t> 
       transaction.tx_buffer = tx_data.data();
     }
   } else if (!rx_data.empty()) {
-    transaction.length = rx_data.size() * 8;
+    transaction.length = rx_length_bits;
   }
 
   if (!rx_data.empty()) {
-    transaction.rxlength = config.rx_length_bits ? config.rx_length_bits : rx_data.size() * 8;
+    transaction.rxlength = rx_length_bits;
     if (rx_data.size() <= sizeof(transaction.rx_data)) {
       transaction.flags |= SPI_TRANS_USE_RXDATA;
     } else {
