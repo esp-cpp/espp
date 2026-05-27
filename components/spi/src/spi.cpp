@@ -2,41 +2,55 @@
 
 #include <algorithm>
 #include <cstring>
+#include <mutex>
 #include <utility>
 
 #include "run_on_core.hpp"
 
 namespace espp {
+struct Spi::BusLockState {
+  std::mutex mutex;
+  spi_device_handle_t handle{nullptr};
+  bool lock_held{false};
+};
+
 Spi::BusLock::BusLock() = default;
 
-Spi::BusLock::BusLock(spi_device_handle_t handle)
-    : handle_(handle) {}
+Spi::BusLock::BusLock(std::shared_ptr<BusLockState> state)
+    : state_(std::move(state)) {}
 
 Spi::BusLock::BusLock(BusLock &&other) noexcept
-    : handle_(other.handle_) {
-  other.handle_ = nullptr;
-}
+    : state_(std::move(other.state_)) {}
 
 Spi::BusLock &Spi::BusLock::operator=(BusLock &&other) noexcept {
   if (this == &other) {
     return *this;
   }
   release();
-  handle_ = other.handle_;
-  other.handle_ = nullptr;
+  state_ = std::move(other.state_);
   return *this;
 }
 
 Spi::BusLock::~BusLock() { release(); }
 
 void Spi::BusLock::release() {
-  if (handle_) {
-    spi_device_release_bus(handle_);
-    handle_ = nullptr;
+  auto state = std::move(state_);
+  if (state) {
+    std::lock_guard<std::mutex> lock(state->mutex);
+    if (state->lock_held && state->handle) {
+      spi_device_release_bus(state->handle);
+      state->lock_held = false;
+    }
   }
 }
 
-Spi::BusLock::operator bool() const { return handle_ != nullptr; }
+Spi::BusLock::operator bool() const {
+  if (!state_) {
+    return false;
+  }
+  std::lock_guard<std::mutex> lock(state_->mutex);
+  return state_->lock_held && state_->handle != nullptr;
+}
 
 Spi::Spi(const Config &config)
     : BaseComponent("SPI", config.log_level)
@@ -197,6 +211,11 @@ std::shared_ptr<Spi::Device> Spi::add_device(const DeviceConfig &config, std::er
     ec = std::make_error_code(std::errc::io_error);
     return nullptr;
   }
+  {
+    std::lock_guard<std::mutex> bus_lock_state_lock(device->bus_lock_state_->mutex);
+    device->bus_lock_state_->handle = device->handle_;
+    device->bus_lock_state_->lock_held = false;
+  }
   devices_.push_back(device);
   ec.clear();
   return device;
@@ -209,7 +228,8 @@ void Spi::prune_expired_devices_locked() {
 Spi::Device::Device(Spi &spi, const DeviceConfig &config)
     : BaseComponent("SPI Device", spi.get_log_level())
     , spi_(spi)
-    , config_(config) {}
+    , config_(config)
+    , bus_lock_state_(std::make_shared<BusLockState>()) {}
 
 Spi::Device::~Device() {
   std::error_code ec;
@@ -237,11 +257,23 @@ void Spi::Device::remove_device(std::error_code &ec) {
     ec.clear();
     return;
   }
+  {
+    std::lock_guard<std::mutex> bus_lock_state_lock(bus_lock_state_->mutex);
+    if (bus_lock_state_->lock_held && bus_lock_state_->handle == handle_) {
+      spi_device_release_bus(handle_);
+      bus_lock_state_->lock_held = false;
+    }
+  }
   auto err = spi_bus_remove_device(handle_);
   if (err != ESP_OK) {
     logger_.error("could not remove SPI device: {}", esp_err_to_name(err));
     ec = std::make_error_code(std::errc::io_error);
     return;
+  }
+  {
+    std::lock_guard<std::mutex> bus_lock_state_lock(bus_lock_state_->mutex);
+    bus_lock_state_->handle = nullptr;
+    bus_lock_state_->lock_held = false;
   }
   handle_ = nullptr;
   ec.clear();
@@ -330,8 +362,13 @@ Spi::BusLock Spi::Device::acquire_bus(TickType_t timeout, std::error_code &ec) {
     ec = std::make_error_code(std::errc::io_error);
     return {};
   }
+  {
+    std::lock_guard<std::mutex> bus_lock_state_lock(bus_lock_state_->mutex);
+    bus_lock_state_->handle = handle_;
+    bus_lock_state_->lock_held = true;
+  }
   ec.clear();
-  return BusLock(handle_);
+  return BusLock(bus_lock_state_);
 }
 
 bool Spi::Device::write(std::span<const uint8_t> data, const TransactionConfig &config,

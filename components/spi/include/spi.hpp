@@ -71,16 +71,13 @@ public:
   };
 
   class Device;
+  struct BusLockState;
 
   /// @brief RAII helper for holding an acquired SPI device bus lock.
   class BusLock {
   public:
     /// @brief Construct an empty bus lock.
     BusLock();
-
-    /// @brief Construct a bus lock from an acquired ESP-IDF SPI handle.
-    /// @param handle Acquired device handle.
-    explicit BusLock(spi_device_handle_t handle);
 
     BusLock(const BusLock &) = delete;
     BusLock &operator=(const BusLock &) = delete;
@@ -105,7 +102,11 @@ public:
     explicit operator bool() const;
 
   private:
-    spi_device_handle_t handle_{nullptr};
+    explicit BusLock(std::shared_ptr<BusLockState> state);
+
+    std::shared_ptr<BusLockState> state_{};
+
+    friend class Device;
   };
 
   /// @brief Construct the SPI bus wrapper.
@@ -258,6 +259,7 @@ private:
   Spi &spi_;
   DeviceConfig config_;
   spi_device_handle_t handle_{nullptr};
+  std::shared_ptr<BusLockState> bus_lock_state_{};
   mutable std::recursive_mutex mutex_;
 };
 } // namespace espp
