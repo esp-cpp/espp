@@ -327,6 +327,13 @@ bool Spi::Device::transfer(std::span<const uint8_t> tx_data, std::span<uint8_t> 
   const size_t tx_length_bits = tx_data.size() * 8;
   const size_t rx_buffer_bits = rx_data.size() * 8;
   const size_t rx_length_bits = config.rx_length_bits ? config.rx_length_bits : rx_buffer_bits;
+  const size_t rx_length_bytes = rx_length_bits / 8;
+
+  if (!rx_data.empty() && (rx_length_bits % 8) != 0) {
+    logger_.error("requested RX length must be a multiple of 8 bits");
+    ec = std::make_error_code(std::errc::invalid_argument);
+    return false;
+  }
 
   if (!rx_data.empty() && rx_length_bits > rx_buffer_bits) {
     logger_.error("requested RX length exceeds RX buffer capacity");
@@ -370,7 +377,7 @@ bool Spi::Device::transfer(std::span<const uint8_t> tx_data, std::span<uint8_t> 
   }
 
   if (!rx_data.empty() && rx_data.size() <= sizeof(transaction.rx_data)) {
-    std::memcpy(rx_data.data(), transaction.rx_data, rx_data.size());
+    std::memcpy(rx_data.data(), transaction.rx_data, rx_length_bytes);
   }
   ec.clear();
   return true;
