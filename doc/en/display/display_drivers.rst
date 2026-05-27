@@ -20,4 +20,5 @@ API Reference
 .. include-build-file:: inc/ili9341.inc
 .. include-build-file:: inc/ssd1351.inc
 .. include-build-file:: inc/st7789.inc
+.. include-build-file:: inc/st7796.inc
 .. include-build-file:: inc/sh8601.inc
