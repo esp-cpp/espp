@@ -169,9 +169,9 @@ private:
 class Spi::Device : public BaseComponent {
 public:
   /// @brief Construct an unattached device wrapper.
-  /// @param spi Owning SPI bus wrapper.
+  /// @param log_level Logger verbosity inherited from the owning SPI bus.
   /// @param config Device configuration.
-  explicit Device(Spi &spi, const DeviceConfig &config);
+  explicit Device(Logger::Verbosity log_level, const DeviceConfig &config);
 
   /// @brief Remove the device from the SPI bus on destruction.
   ~Device();
@@ -256,7 +256,6 @@ public:
 private:
   friend class Spi;
 
-  Spi &spi_;
   DeviceConfig config_;
   spi_device_handle_t handle_{nullptr};
   std::shared_ptr<BusLockState> bus_lock_state_{};

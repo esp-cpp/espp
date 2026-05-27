@@ -203,7 +203,7 @@ std::shared_ptr<Spi::Device> Spi::add_device(const DeviceConfig &config, std::er
     return nullptr;
   }
   prune_expired_devices_locked();
-  auto device = std::make_shared<Device>(*this, config);
+  auto device = std::make_shared<Device>(get_log_level(), config);
   auto device_config = make_device_config(config);
   auto err = spi_bus_add_device(this->config_.host, &device_config, &device->handle_);
   if (err != ESP_OK) {
@@ -225,9 +225,8 @@ void Spi::prune_expired_devices_locked() {
   std::erase_if(devices_, [](const auto &device) { return device.expired(); });
 }
 
-Spi::Device::Device(Spi &spi, const DeviceConfig &config)
-    : BaseComponent("SPI Device", spi.get_log_level())
-    , spi_(spi)
+Spi::Device::Device(Logger::Verbosity log_level, const DeviceConfig &config)
+    : BaseComponent("SPI Device", log_level)
     , config_(config)
     , bus_lock_state_(std::make_shared<BusLockState>()) {}
 

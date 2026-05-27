@@ -6,4 +6,5 @@ device, and perform a simple addressed read transaction.
 ## How to use example
 
 The example is intended primarily as a compile-time reference for the `Spi`
-API. Update the GPIO assignments to match your hardware before flashing.
+API. Update the GPIO assignments to match your hardware before flashing; the
+address phase is driven on MOSI and the response is read on MISO.

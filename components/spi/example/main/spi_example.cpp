@@ -7,6 +7,7 @@ extern "C" void app_main(void) {
   //! [spi example]
   constexpr spi_host_device_t spi_host = SPI2_HOST;
   constexpr auto sclk_gpio = GPIO_NUM_36;
+  constexpr auto mosi_gpio = GPIO_NUM_38;
   constexpr auto miso_gpio = GPIO_NUM_35;
   constexpr auto cs_gpio = GPIO_NUM_37;
   constexpr uint8_t read_address = 0x80;
@@ -14,7 +15,7 @@ extern "C" void app_main(void) {
   espp::Spi spi({
       .host = spi_host,
       .sclk_io_num = sclk_gpio,
-      .mosi_io_num = GPIO_NUM_NC,
+      .mosi_io_num = mosi_gpio,
       .miso_io_num = miso_gpio,
       .max_transfer_sz = 16,
   });

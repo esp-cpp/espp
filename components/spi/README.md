@@ -9,4 +9,5 @@ transfers, queued transactions, and bus acquisition.
 ## Example
 
 The [example](./example) shows how to create an SPI bus, attach a device, and
-perform a simple addressed read transaction.
+perform a simple addressed read transaction, with the address phase driven on
+MOSI and the response read back on MISO.
