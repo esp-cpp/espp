@@ -91,6 +91,11 @@ spi_device_interface_config_t Spi::make_device_config(const DeviceConfig &config
 
 void Spi::init(std::error_code &ec) {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
+  if (deinitializing_) {
+    logger_.warn("cannot initialize while deinitialization is in progress");
+    ec = std::make_error_code(std::errc::device_or_resource_busy);
+    return;
+  }
   if (initialized_) {
     logger_.warn("already initialized");
     ec = std::make_error_code(std::errc::protocol_error);
@@ -113,20 +118,25 @@ void Spi::init(std::error_code &ec) {
 
 void Spi::deinit(std::error_code &ec) {
   std::vector<std::shared_ptr<Device>> devices;
+  bool removal_failed = false;
   {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (!initialized_) {
       ec.clear();
       return;
     }
+    if (deinitializing_) {
+      logger_.warn("deinitialization already in progress");
+      ec = std::make_error_code(std::errc::device_or_resource_busy);
+      return;
+    }
+    deinitializing_ = true;
     prune_expired_devices_locked();
     for (auto &weak_device : devices_) {
       if (auto device = weak_device.lock()) {
         devices.push_back(device);
       }
     }
-    initialized_ = false;
-    devices_.clear();
   }
 
   for (auto &device : devices) {
@@ -134,16 +144,28 @@ void Spi::deinit(std::error_code &ec) {
     device->remove_device(device_ec);
     if (device_ec) {
       logger_.error("could not remove SPI device before bus free");
+      removal_failed = true;
     }
+  }
+
+  if (removal_failed) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    deinitializing_ = false;
+    ec = std::make_error_code(std::errc::io_error);
+    return;
   }
 
   std::lock_guard<std::recursive_mutex> lock(mutex_);
   auto err = spi_bus_free(config_.host);
   if (err != ESP_OK) {
     logger_.error("could not free SPI bus: {}", esp_err_to_name(err));
+    deinitializing_ = false;
     ec = std::make_error_code(std::errc::io_error);
     return;
   }
+  devices_.clear();
+  initialized_ = false;
+  deinitializing_ = false;
   ec.clear();
 }
 
@@ -156,6 +178,11 @@ spi_host_device_t Spi::host() const { return config_.host; }
 
 std::shared_ptr<Spi::Device> Spi::add_device(const DeviceConfig &config, std::error_code &ec) {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
+  if (deinitializing_) {
+    logger_.error("bus is deinitializing");
+    ec = std::make_error_code(std::errc::device_or_resource_busy);
+    return nullptr;
+  }
   if (!initialized_) {
     logger_.error("bus not initialized");
     ec = std::make_error_code(std::errc::not_connected);

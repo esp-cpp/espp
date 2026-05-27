@@ -160,6 +160,7 @@ private:
   Config config_;
   mutable std::recursive_mutex mutex_;
   bool initialized_{false};
+  bool deinitializing_{false};
   std::vector<std::weak_ptr<Device>> devices_;
 };
 
