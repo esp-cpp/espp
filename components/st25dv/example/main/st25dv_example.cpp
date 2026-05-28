@@ -99,13 +99,25 @@ extern "C" void app_main(void) {
                                                       size_t len) {
                auto device =
                    addr == espp::St25dv::SYST_ADDRESS ? st25dv_syst_device : st25dv_data_device;
-               return device->write(data, len);
+               std::error_code ec;
+               bool success = device->write(data, len, ec);
+               if (!success) {
+                 fmt::print("Failed to write ST25DV {} I2C device: {}\n",
+                            addr == espp::St25dv::SYST_ADDRESS ? "system" : "data", ec.message());
+               }
+               return success;
              },
          .read =
              [st25dv_data_device, st25dv_syst_device](uint8_t addr, uint8_t *data, size_t len) {
                auto device =
                    addr == espp::St25dv::SYST_ADDRESS ? st25dv_syst_device : st25dv_data_device;
-               return device->read(data, len);
+               std::error_code ec;
+               bool success = device->read(data, len, ec);
+               if (!success) {
+                 fmt::print("Failed to read ST25DV {} I2C device: {}\n",
+                            addr == espp::St25dv::SYST_ADDRESS ? "system" : "data", ec.message());
+               }
+               return success;
              },
          .log_level = espp::Logger::Verbosity::INFO});
 

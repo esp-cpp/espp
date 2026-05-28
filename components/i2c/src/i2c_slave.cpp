@@ -191,7 +191,10 @@ bool I2cSlaveDevice::deinit(std::error_code &ec) {
 
   if (event_queue_) {
     Event stop_event{EventType::STOP};
-    xQueueSend(event_queue_, &stop_event, 0);
+    xQueueReset(event_queue_);
+    if (xQueueSend(event_queue_, &stop_event, timeout_ticks(config_.timeout_ms)) != pdPASS) {
+      logger_.warn("failed to queue I2C slave stop event during deinit");
+    }
   }
   if (event_task_) {
     event_task_->stop();
@@ -348,9 +351,36 @@ void I2cSlaveDevice::log_pending_overflows() {
   }
 }
 
-bool I2cSlaveDevice::event_task_callback(std::mutex &, std::condition_variable &, bool &) {
+bool I2cSlaveDevice::event_task_callback(std::mutex &m, std::condition_variable &, bool &notified) {
+  {
+    std::lock_guard<std::mutex> lock(m);
+    if (notified) {
+      notified = false;
+      return true;
+    }
+  }
+
   Event event{};
-  if (!event_queue_ || !xQueueReceive(event_queue_, &event, portMAX_DELAY)) {
+  static constexpr TickType_t stop_poll_ticks = pdMS_TO_TICKS(50);
+  if (!event_queue_) {
+    return true;
+  }
+  if (!xQueueReceive(event_queue_, &event, stop_poll_ticks)) {
+    std::lock_guard<std::mutex> lock(m);
+    bool stop_requested = notified;
+    notified = false;
+    return stop_requested;
+  }
+
+  {
+    std::lock_guard<std::mutex> lock(m);
+    if (notified) {
+      notified = false;
+      return true;
+    }
+  }
+
+  if (!initialized_ && event.type != EventType::STOP) {
     return false;
   }
 
