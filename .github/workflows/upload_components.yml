@@ -111,7 +111,9 @@ jobs:
             components/rx8130ce
             components/seeed-studio-round-display
             components/serialization
+            components/smartpanlee-sc01-plus
             components/socket
+            components/spi
             components/st25dv
             components/st7123touch
             components/state_machine

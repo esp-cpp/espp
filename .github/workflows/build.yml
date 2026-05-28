@@ -181,8 +181,12 @@ jobs:
           target: esp32s3
         - path: 'components/serialization/example'
           target: esp32
+        - path: 'components/smartpanlee-sc01-plus/example'
+          target: esp32s3
         - path: 'components/socket/example'
           target: esp32
+        - path: 'components/spi/example'
+          target: esp32s3
         - path: 'components/st25dv/example'
           target: esp32s3
         - path: 'components/st7123touch/example'

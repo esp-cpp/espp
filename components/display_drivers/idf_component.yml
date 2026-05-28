@@ -17,6 +17,7 @@ tags:
   - ILI9341
   - SH8601
   - ST7789
+  - ST7796
 dependencies:
   idf:
     version: '>=5.0'
