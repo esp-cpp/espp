@@ -209,7 +209,11 @@ public:
   /// \param height Height in pixels.
   /// \param color RGB565 fill color.
   static void clear(size_t x, size_t y, size_t width, size_t height, uint16_t color = 0x0000) {
-    set_drawing_area(x, y, x + width, y + height);
+    if (width == 0 || height == 0) {
+      return;
+    }
+
+    set_drawing_area(x, y, x + width - 1, y + height - 1);
 
     uint32_t size = width * height;
     static constexpr int max_pixels_to_send = 1024;
