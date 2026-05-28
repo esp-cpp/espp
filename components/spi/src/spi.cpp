@@ -412,7 +412,8 @@ bool Spi::Device::transfer(std::span<const uint8_t> tx_data, std::span<uint8_t> 
   spi_transaction_t transaction{};
   transaction.cmd = config.command;
   transaction.addr = config.address;
-  transaction.flags = config.flags;
+  const auto managed_buffer_flags = SPI_TRANS_USE_TXDATA | SPI_TRANS_USE_RXDATA;
+  transaction.flags = config.flags & ~managed_buffer_flags;
 
   if (!tx_data.empty()) {
     transaction.length = tx_length_bits;
