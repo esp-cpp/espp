@@ -423,7 +423,7 @@ extern "C" void app_main(void) {
 #endif
         .max_transfer_sz = SPI_MAX_TRANSFER_BYTES,
     });
-    if (!spi_bus || !spi_bus->initialized()) {
+    if (!spi_bus->initialized()) {
       fmt::print("Failed to initialize SPI bus\n");
       return;
     }
@@ -469,7 +469,7 @@ extern "C" void app_main(void) {
         .post_transaction_callback_bit_mask = FLUSH_BIT,
         .post_transaction_callback = lcd_spi_flush_ready,
     });
-    if (!panel_io || !panel_io->initialized()) {
+    if (!panel_io->initialized()) {
       fmt::print("Failed to initialize SPI panel I/O\n");
       return;
     }
