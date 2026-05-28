@@ -13,7 +13,7 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py ble_gatt_server gfps_service"
+  "main esptool_py ble_gatt_server gfps_service hid-rp hid_service"
   CACHE STRING
   "List of components to include"
   )

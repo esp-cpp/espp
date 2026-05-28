@@ -4,6 +4,9 @@
 #include "ble_gatt_server.hpp"
 #include "gfps_service.hpp"
 
+#include "hid-rp-xbox.hpp"
+#include "hid_service.hpp"
+
 using namespace std::chrono_literals;
 
 extern "C" void app_main(void) {
@@ -46,13 +49,59 @@ extern "C" void app_main(void) {
   // NOTE: we don't have to set security, since GFPS internally will set it to
   // what is required by the spec.
 
+  // for HID we need to set some security
+  bool bonding = true;
+  bool mitm = false;
+  bool secure_connections = true;
+  ble_gatt_server.set_security(bonding, mitm, secure_connections);
+  // and some i/o and key config
+  ble_gatt_server.set_io_capabilities(BLE_HS_IO_NO_INPUT_OUTPUT);
+  ble_gatt_server.set_init_key_distribution(BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID);
+  ble_gatt_server.set_resp_key_distribution(BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID);
+
   // let's create a GFPS service
   espp::GfpsService gfps_service;
   gfps_service.set_log_level(espp::Logger::Verbosity::DEBUG);
   gfps_service.init(ble_gatt_server.server());
-
-  // now that we've made the input characteristic, we can start the service
   gfps_service.start();
+
+  // let's make a hid service so that the android phone will pair and stay connected
+  // HID Xbox controller
+  uint16_t vid = 0x045E; // Microsoft
+  uint16_t pid = 0x0B13; // Xbox One Controller (model 1708)
+  uint16_t product_version = 0x0100;
+  std::string software_version = "1.0.0";
+  std::string firmware_version = "5.9.2709.0";
+  std::string hardware_version = "1.0.0";
+  std::string advertised_name = device_name;
+  std::string manufacturer_name = "Microsoft";
+  std::string model_number = "1708";
+  std::string serial_number = "1234567890";
+
+  using GamepadInput = espp::XboxGamepadInputReport<>;
+  GamepadInput gamepad_input_report;
+  static constexpr size_t num_buttons = GamepadInput::button_count;
+  static constexpr uint8_t input_report_id = GamepadInput::ID;
+  using namespace hid::page;
+  using namespace hid::rdf;
+  auto raw_descriptor = descriptor(usage_page<generic_desktop>(), usage(generic_desktop::GAMEPAD),
+                                   collection::application(gamepad_input_report.get_descriptor()));
+  // let's create a HID service
+  espp::HidService hid_service;
+  hid_service.init(ble_gatt_server.server());
+  // configure it some
+  uint8_t country_code = 0x00;
+  uint8_t hid_info_flags = 0x01;
+  hid_service.set_info(country_code, hid_info_flags);
+  // Generate the report descriptor for the gamepad
+  auto descriptor = std::vector<uint8_t>(raw_descriptor.begin(), raw_descriptor.end());
+  // set the report map (vector of bytes)
+  hid_service.set_report_map(descriptor);
+  // use the HID service to make an input report characteristic
+  [[maybe_unused]] auto input_report = hid_service.input_report(input_report_id);
+  // now that we've made the input characteristic, we can start the service
+  hid_service.start();
+
   ble_gatt_server.start_services(); // starts the device info service and battery service
   // NOTE: we could also directly start them ourselves if we wanted to
   //      control the order of starting the services
@@ -69,9 +118,6 @@ extern "C" void app_main(void) {
 
   auto &device_info_service = ble_gatt_server.device_info_service();
   uint8_t vendor_source = 0x02; // USB
-  uint16_t vid = 0xCafe;
-  uint16_t pid = 0xBabe;
-  uint16_t product_version = 0x0100;
   device_info_service.set_pnp_id(vendor_source, vid, pid, product_version);
   device_info_service.set_manufacturer_name("ESP-CPP");
   // NOTE: this is NOT required to be the same as the GFPS SKU Name
