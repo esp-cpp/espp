@@ -144,6 +144,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/rx8130ce/example/main/rx8130ce_example.cpp \
   $(PROJECT_PATH)/components/serialization/example/main/serialization_example.cpp \
   $(PROJECT_PATH)/components/seeed-studio-round-display/example/main/seeed_studio_round_display_example.cpp \
+  $(PROJECT_PATH)/components/smartpanlee-sc01-plus/example/main/smartpanlee_sc01_plus_example.cpp \
   $(PROJECT_PATH)/components/socket/example/main/socket_example.cpp \
   $(PROJECT_PATH)/components/spi/example/main/spi_example.cpp \
   $(PROJECT_PATH)/components/st25dv/example/main/st25dv_example.cpp \
@@ -214,9 +215,10 @@ INPUT = \
   $(PROJECT_PATH)/components/display/include/display.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/gc9a01.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/ili9341.hpp \
+  $(PROJECT_PATH)/components/display_drivers/include/sh8601.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/ssd1351.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/st7789.hpp \
-  $(PROJECT_PATH)/components/display_drivers/include/sh8601.hpp \
+  $(PROJECT_PATH)/components/display_drivers/include/st7796.hpp \
   $(PROJECT_PATH)/components/dns_server/include/dns_server.hpp \
   $(PROJECT_PATH)/components/drv2605/include/drv2605.hpp \
   $(PROJECT_PATH)/components/drv2605/include/drv2605_menu.hpp \
@@ -320,6 +322,7 @@ INPUT = \
   $(PROJECT_PATH)/components/rx8130ce/include/rx8130ce.hpp \
   $(PROJECT_PATH)/components/serialization/include/serialization.hpp \
   $(PROJECT_PATH)/components/seeed-studio-round-display/include/seeed-studio-round-display.hpp \
+  $(PROJECT_PATH)/components/smartpanlee-sc01-plus/include/smartpanlee-sc01-plus.hpp \
   $(PROJECT_PATH)/components/socket/include/socket.hpp \
   $(PROJECT_PATH)/components/socket/include/udp_socket.hpp \
   $(PROJECT_PATH)/components/socket/include/tcp_socket.hpp \
