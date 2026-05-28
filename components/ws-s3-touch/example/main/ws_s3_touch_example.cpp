@@ -190,9 +190,9 @@ extern "C" void app_main(void) {
 
   // set the background color to black
   lv_obj_t *bg = lv_obj_create(lv_screen_active());
-  lv_obj_set_size(bg, bsp.lcd_width(), bsp.lcd_height());
+  lv_obj_set_size(bg, bsp.rotated_display_width(), bsp.rotated_display_height());
   lv_obj_set_style_bg_color(bg, lv_color_make(0, 0, 0), 0);
-  if (!initialize_circle_layer(bsp.lcd_width(), bsp.lcd_height())) {
+  if (!initialize_circle_layer(bsp.rotated_display_width(), bsp.rotated_display_height())) {
     logger.error("Failed to initialize circle layer!");
     return;
   }
@@ -202,6 +202,8 @@ extern "C" void app_main(void) {
   static std::string label_text =
       "\n\n\n\nTouch the screen!\nPress the home button to clear circles.";
   lv_label_set_text(label, label_text.c_str());
+  lv_label_set_long_mode(label, LV_LABEL_LONG_WRAP);
+  lv_obj_set_width(label, bsp.rotated_display_width());
   lv_obj_align(label, LV_ALIGN_TOP_LEFT, 0, 0);
   lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_LEFT, 0);
 
@@ -246,24 +248,33 @@ extern "C" void app_main(void) {
   lv_label_set_text(label_btn, LV_SYMBOL_REFRESH);
   // center the text in the button
   lv_obj_align(label_btn, LV_ALIGN_CENTER, 0, 0);
+  static auto update_layout = [&]() {
+    int width = bsp.rotated_display_width();
+    int height = bsp.rotated_display_height();
+    lv_obj_set_size(bg, width, height);
+    lv_obj_set_width(label, width);
+    lv_obj_align(label, LV_ALIGN_TOP_LEFT, 0, 0);
+    lv_obj_align(rtc_label, LV_ALIGN_TOP_MID, 0, 20);
+    lv_obj_align(btn, LV_ALIGN_TOP_LEFT, 0, 0);
+    if (circle_layer) {
+      lv_obj_set_size(circle_layer, width, height);
+      lv_obj_align(circle_layer, LV_ALIGN_CENTER, 0, 0);
+      lv_obj_move_foreground(circle_layer);
+      lv_obj_invalidate(circle_layer);
+    }
+  };
+  static auto rotate_display = [&]() {
+    std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
+    clear_circles();
+    static auto rotation = LV_DISPLAY_ROTATION_0;
+    rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
+    lv_display_t *disp = lv_display_get_default();
+    lv_disp_set_rotation(disp, rotation);
+    update_layout();
+  };
   lv_obj_add_event_cb(
-      btn,
-      [](auto event) {
-        std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
-        clear_circles();
-        static auto rotation = LV_DISPLAY_ROTATION_0;
-        rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
-        lv_display_t *disp = lv_display_get_default();
-        lv_disp_set_rotation(disp, rotation);
-        if (circle_layer) {
-          lv_obj_set_size(circle_layer, lv_display_get_horizontal_resolution(disp),
-                          lv_display_get_vertical_resolution(disp));
-          lv_obj_align(circle_layer, LV_ALIGN_CENTER, 0, 0);
-          lv_obj_move_foreground(circle_layer);
-          lv_obj_invalidate(circle_layer);
-        }
-      },
-      LV_EVENT_PRESSED, nullptr);
+      btn, [](auto event) { rotate_display(); }, LV_EVENT_PRESSED, nullptr);
+  update_layout();
 
   // disable scrolling on the screen (so that it doesn't behave weirdly when
   // rotated and drawing with your finger)
@@ -384,13 +395,15 @@ extern "C" void app_main(void) {
 
          // use the pitch to to draw a line on the screen indiating the
          // direction from the center of the screen to "down"
-         int x0 = bsp.lcd_width() / 2;
-         int y0 = bsp.lcd_height() / 2;
+         int x0 = bsp.rotated_display_width() / 2;
+         int y0 = bsp.rotated_display_height() / 2;
 
          int x1 = x0 + 50 * gravity_vector.x;
          int y1 = y0 + 50 * gravity_vector.y;
 
          static lv_point_precise_t line_points0[] = {{x0, y0}, {x1, y1}};
+         line_points0[0].x = x0;
+         line_points0[0].y = y0;
          line_points0[1].x = x1;
          line_points0[1].y = y1;
 
@@ -425,6 +438,8 @@ extern "C" void app_main(void) {
          y1 = y0 + 50 * vy;
 
          static lv_point_precise_t line_points1[] = {{x0, y0}, {x1, y1}};
+         line_points1[0].x = x0;
+         line_points1[0].y = y0;
          line_points1[1].x = x1;
          line_points1[1].y = y1;
 

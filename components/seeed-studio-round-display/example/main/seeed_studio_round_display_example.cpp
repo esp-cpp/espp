@@ -24,8 +24,6 @@ static void draw_circle_layer(lv_event_t *event);
 static void invalidate_circle_area(const Circle &circle);
 static void draw_circle(int x0, int y0, int radius);
 static void clear_circles();
-static void on_rotate_pressed(lv_event_t *event);
-static void on_clear_pressed(lv_event_t *event);
 
 extern "C" void app_main(void) {
   espp::Logger logger(
@@ -82,9 +80,11 @@ extern "C" void app_main(void) {
 
   // set the background color to black
   lv_obj_t *bg = lv_obj_create(lv_screen_active());
-  lv_obj_set_size(bg, round_display.lcd_width(), round_display.lcd_height());
+  lv_obj_set_size(bg, round_display.rotated_display_width(),
+                  round_display.rotated_display_height());
   lv_obj_set_style_bg_color(bg, lv_color_make(0, 0, 0), 0);
-  if (!initialize_circle_layer(round_display.lcd_width(), round_display.lcd_height())) {
+  if (!initialize_circle_layer(round_display.rotated_display_width(),
+                               round_display.rotated_display_height())) {
     logger.error("Failed to initialize circle layer!");
     return;
   }
@@ -103,7 +103,6 @@ extern "C" void app_main(void) {
   lv_obj_t *label_btn = lv_label_create(btn);
   lv_label_set_text(label_btn, LV_SYMBOL_REFRESH);
   lv_obj_align(label_btn, LV_ALIGN_CENTER, 0, 0);
-  lv_obj_add_event_cb(btn, on_rotate_pressed, LV_EVENT_PRESSED, nullptr);
 
   // add a button in the bottom middle which (when pressed) will clear the
   // circles
@@ -114,7 +113,39 @@ extern "C" void app_main(void) {
   lv_obj_t *label_btn_clear = lv_label_create(btn_clear);
   lv_label_set_text(label_btn_clear, LV_SYMBOL_TRASH);
   lv_obj_align(label_btn_clear, LV_ALIGN_CENTER, 0, 0);
-  lv_obj_add_event_cb(btn_clear, on_clear_pressed, LV_EVENT_PRESSED, nullptr);
+  static auto update_layout = [&]() {
+    int width = round_display.rotated_display_width();
+    int height = round_display.rotated_display_height();
+    lv_obj_set_size(bg, width, height);
+    lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_align(btn, LV_ALIGN_TOP_MID, 0, 0);
+    lv_obj_align(btn_clear, LV_ALIGN_BOTTOM_MID, 0, 0);
+    if (circle_layer) {
+      lv_obj_set_size(circle_layer, width, height);
+      lv_obj_align(circle_layer, LV_ALIGN_CENTER, 0, 0);
+      lv_obj_move_foreground(circle_layer);
+      lv_obj_invalidate(circle_layer);
+    }
+  };
+  static auto rotate_display = [&]() {
+    std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
+    clear_circles();
+    static auto rotation = LV_DISPLAY_ROTATION_0;
+    rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
+    lv_display_t *disp = lv_display_get_default();
+    lv_disp_set_rotation(disp, rotation);
+    update_layout();
+  };
+  lv_obj_add_event_cb(
+      btn, [](auto event) { rotate_display(); }, LV_EVENT_PRESSED, nullptr);
+  lv_obj_add_event_cb(
+      btn_clear,
+      [](auto event) {
+        std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
+        clear_circles();
+      },
+      LV_EVENT_PRESSED, nullptr);
+  update_layout();
 
   // disable scrolling on the screen (so that it doesn't behave weirdly when
   // rotated and drawing with your finger)
@@ -152,28 +183,6 @@ extern "C" void app_main(void) {
     std::this_thread::sleep_for(1s);
   }
   //! [seeed studio round display example]
-}
-
-static void on_rotate_pressed(lv_event_t *event) {
-  std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
-  clear_circles();
-  static auto rotation = LV_DISPLAY_ROTATION_0;
-  rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
-  lv_display_t *disp = lv_display_get_default();
-  lv_disp_set_rotation(disp, rotation);
-  if (circle_layer) {
-    lv_obj_set_size(circle_layer, lv_display_get_horizontal_resolution(disp),
-                    lv_display_get_vertical_resolution(disp));
-    lv_obj_align(circle_layer, LV_ALIGN_CENTER, 0, 0);
-    lv_obj_move_foreground(circle_layer);
-    lv_obj_invalidate(circle_layer);
-  }
-}
-
-// cppcheck-suppress constParameterCallback
-static void on_clear_pressed(lv_event_t *event) {
-  std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
-  clear_circles();
 }
 
 static bool initialize_circle_layer(int width, int height) {

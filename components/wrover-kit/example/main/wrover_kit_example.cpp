@@ -48,53 +48,61 @@ extern "C" void app_main(void) {
   }
 
   logger.info("Adding LVGL objects to the screen.");
+  lv_obj_t *bg = nullptr;
+  lv_obj_t *label = nullptr;
+  static auto update_layout = [&]() {
+    int width = wrover.rotated_display_width();
+    int height = wrover.rotated_display_height();
+    lv_obj_set_size(bg, width, height);
+    lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+    if (circle_layer) {
+      lv_obj_set_size(circle_layer, width, height);
+      lv_obj_align(circle_layer, LV_ALIGN_CENTER, 0, 0);
+      lv_obj_move_foreground(circle_layer);
+      lv_obj_invalidate(circle_layer);
+    }
+  };
 
   // initialize the button, which we'll use to cycle the rotation of the display
   espp::Button button(espp::Button::Config{
       .name = "Boot Button",
       .interrupt_config =
-          espp::Interrupt::PinConfig{
-              .gpio_num = GPIO_NUM_0,
-              .callback =
-                  [](const auto &event) {
-                    if (event.active) {
-                      // lock the display mutex
-                      std::lock_guard<std::mutex> lock(lvgl_mutex);
-                      static auto rotation = LV_DISPLAY_ROTATION_0;
-                      rotation =
-                          static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
-                      fmt::print("Setting rotation to {}\n", (int)rotation);
-                      lv_display_t *disp = lv_display_get_default();
-                      lv_disp_set_rotation(disp, rotation);
-                      if (circle_layer) {
-                        lv_obj_set_size(circle_layer, lv_display_get_horizontal_resolution(disp),
-                                        lv_display_get_vertical_resolution(disp));
-                        lv_obj_align(circle_layer, LV_ALIGN_CENTER, 0, 0);
-                        lv_obj_move_foreground(circle_layer);
-                        lv_obj_invalidate(circle_layer);
-                      }
-                    }
-                  },
-              .active_level = espp::Interrupt::ActiveLevel::LOW,
-              .interrupt_type = espp::Interrupt::Type::ANY_EDGE,
-              .pullup_enabled = false,
-              .pulldown_enabled = false},
+          espp::Interrupt::PinConfig{.gpio_num = GPIO_NUM_0,
+                                     .callback =
+                                         [](const auto &event) {
+                                           if (event.active) {
+                                             // lock the display mutex
+                                             std::lock_guard<std::mutex> lock(lvgl_mutex);
+                                             static auto rotation = LV_DISPLAY_ROTATION_0;
+                                             rotation = static_cast<lv_display_rotation_t>(
+                                                 (static_cast<int>(rotation) + 1) % 4);
+                                             fmt::print("Setting rotation to {}\n", (int)rotation);
+                                             lv_display_t *disp = lv_display_get_default();
+                                             lv_disp_set_rotation(disp, rotation);
+                                             update_layout();
+                                           }
+                                         },
+                                     .active_level = espp::Interrupt::ActiveLevel::LOW,
+                                     .interrupt_type = espp::Interrupt::Type::ANY_EDGE,
+                                     .pullup_enabled = false,
+                                     .pulldown_enabled = false},
   });
 
   // set the background color to black
-  lv_obj_t *bg = lv_obj_create(lv_screen_active());
-  lv_obj_set_size(bg, wrover.lcd_width(), wrover.lcd_height());
+  bg = lv_obj_create(lv_screen_active());
+  lv_obj_set_size(bg, wrover.rotated_display_width(), wrover.rotated_display_height());
   lv_obj_set_style_bg_color(bg, lv_color_make(0, 0, 0), 0);
-  if (!initialize_circle_layer(wrover.lcd_width(), wrover.lcd_height())) {
+  if (!initialize_circle_layer(wrover.rotated_display_width(), wrover.rotated_display_height())) {
     logger.error("Failed to initialize circle layer!");
     return;
   }
 
   // add text in the center of the screen
-  lv_obj_t *label = lv_label_create(lv_screen_active());
+  label = lv_label_create(lv_screen_active());
   lv_label_set_text(label, "Drawing circles to the screen.");
   lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
   lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
+  update_layout();
 
   lv_obj_move_foreground(circle_layer);
 
@@ -124,8 +132,8 @@ extern "C" void app_main(void) {
       clear_circles();
     } else {
       // draw a circle of circles on the screen (just draw the next circle)
-      static constexpr int middle_x = wrover.lcd_width() / 2;
-      static constexpr int middle_y = wrover.lcd_height() / 2;
+      int middle_x = wrover.rotated_display_width() / 2;
+      int middle_y = wrover.rotated_display_height() / 2;
       static constexpr int radius = 50;
       float angle = visible_circle_count * 2.0f * M_PI / MAX_CIRCLES;
       int x = middle_x + radius * cos(angle);

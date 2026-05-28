@@ -90,9 +90,10 @@ extern "C" void app_main(void) {
 
   // set the background color to black
   lv_obj_t *bg = lv_obj_create(lv_screen_active());
-  lv_obj_set_size(bg, mt_display.lcd_width(), mt_display.lcd_height());
+  lv_obj_set_size(bg, mt_display.rotated_display_width(), mt_display.rotated_display_height());
   lv_obj_set_style_bg_color(bg, lv_color_make(0, 0, 0), 0);
-  if (!initialize_circle_layer(mt_display.lcd_width(), mt_display.lcd_height())) {
+  if (!initialize_circle_layer(mt_display.rotated_display_width(),
+                               mt_display.rotated_display_height())) {
     logger.error("Failed to initialize circle layer!");
     return;
   }
@@ -112,24 +113,31 @@ extern "C" void app_main(void) {
   lv_label_set_text(label_btn, LV_SYMBOL_REFRESH);
   // center the text in the button
   lv_obj_align(label_btn, LV_ALIGN_CENTER, 0, 0);
+  static auto update_layout = [&]() {
+    int width = mt_display.rotated_display_width();
+    int height = mt_display.rotated_display_height();
+    lv_obj_set_size(bg, width, height);
+    lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_align(btn, LV_ALIGN_TOP_MID, 0, 0);
+    if (circle_layer) {
+      lv_obj_set_size(circle_layer, width, height);
+      lv_obj_align(circle_layer, LV_ALIGN_CENTER, 0, 0);
+      lv_obj_move_foreground(circle_layer);
+      lv_obj_invalidate(circle_layer);
+    }
+  };
+  static auto rotate_display = [&]() {
+    std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
+    clear_circles();
+    static auto rotation = LV_DISPLAY_ROTATION_0;
+    rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
+    lv_display_t *disp = lv_display_get_default();
+    lv_disp_set_rotation(disp, rotation);
+    update_layout();
+  };
   lv_obj_add_event_cb(
-      btn,
-      [](auto event) {
-        std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
-        clear_circles();
-        static auto rotation = LV_DISPLAY_ROTATION_0;
-        rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
-        lv_display_t *disp = lv_display_get_default();
-        lv_disp_set_rotation(disp, rotation);
-        if (circle_layer) {
-          lv_obj_set_size(circle_layer, lv_display_get_horizontal_resolution(disp),
-                          lv_display_get_vertical_resolution(disp));
-          lv_obj_align(circle_layer, LV_ALIGN_CENTER, 0, 0);
-          lv_obj_move_foreground(circle_layer);
-          lv_obj_invalidate(circle_layer);
-        }
-      },
-      LV_EVENT_PRESSED, nullptr);
+      btn, [](auto event) { rotate_display(); }, LV_EVENT_PRESSED, nullptr);
+  update_layout();
 
   // disable scrolling on the screen (so that it doesn't behave weirdly when
   // rotated and drawing with your finger)

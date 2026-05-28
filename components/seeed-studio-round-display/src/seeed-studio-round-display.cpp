@@ -345,3 +345,31 @@ float SsRoundDisplay::brightness() const {
   }
   return 0.0f; // if no backlight, return 0
 }
+
+size_t SsRoundDisplay::rotated_display_width() const {
+  auto *display = lv_display_get_default();
+  auto rotation = display ? lv_display_get_rotation(display) : LV_DISPLAY_ROTATION_0;
+  switch (rotation) {
+  case LV_DISPLAY_ROTATION_90:
+  case LV_DISPLAY_ROTATION_270:
+    return lcd_height_;
+  case LV_DISPLAY_ROTATION_0:
+  case LV_DISPLAY_ROTATION_180:
+  default:
+    return lcd_width_;
+  }
+}
+
+size_t SsRoundDisplay::rotated_display_height() const {
+  auto *display = lv_display_get_default();
+  auto rotation = display ? lv_display_get_rotation(display) : LV_DISPLAY_ROTATION_0;
+  switch (rotation) {
+  case LV_DISPLAY_ROTATION_90:
+  case LV_DISPLAY_ROTATION_270:
+    return lcd_width_;
+  case LV_DISPLAY_ROTATION_0:
+  case LV_DISPLAY_ROTATION_180:
+  default:
+    return lcd_height_;
+  }
+}

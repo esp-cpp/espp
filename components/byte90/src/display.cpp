@@ -181,3 +181,31 @@ float Byte90::brightness() const {
   // display returns a value between 0 and 1
   return display_->get_brightness() * 100.0f;
 }
+
+size_t Byte90::rotated_display_width() const {
+  auto *display = lv_display_get_default();
+  auto rotation = display ? lv_display_get_rotation(display) : LV_DISPLAY_ROTATION_0;
+  switch (rotation) {
+  case LV_DISPLAY_ROTATION_90:
+  case LV_DISPLAY_ROTATION_270:
+    return lcd_height_;
+  case LV_DISPLAY_ROTATION_0:
+  case LV_DISPLAY_ROTATION_180:
+  default:
+    return lcd_width_;
+  }
+}
+
+size_t Byte90::rotated_display_height() const {
+  auto *display = lv_display_get_default();
+  auto rotation = display ? lv_display_get_rotation(display) : LV_DISPLAY_ROTATION_0;
+  switch (rotation) {
+  case LV_DISPLAY_ROTATION_90:
+  case LV_DISPLAY_ROTATION_270:
+    return lcd_width_;
+  case LV_DISPLAY_ROTATION_0:
+  case LV_DISPLAY_ROTATION_180:
+  default:
+    return lcd_height_;
+  }
+}

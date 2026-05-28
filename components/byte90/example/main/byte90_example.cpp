@@ -51,6 +51,20 @@ extern "C" void app_main(void) {
   }
   // initialize the button, which we'll use to cycle the rotation of the display
   logger.info("Initializing the button");
+  lv_obj_t *bg = nullptr;
+  lv_obj_t *label = nullptr;
+  static auto update_layout = [&]() {
+    int width = byte90.rotated_display_width();
+    int height = byte90.rotated_display_height();
+    lv_obj_set_size(bg, width, height);
+    lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+    if (circle_layer) {
+      lv_obj_set_size(circle_layer, width, height);
+      lv_obj_align(circle_layer, LV_ALIGN_CENTER, 0, 0);
+      lv_obj_move_foreground(circle_layer);
+      lv_obj_invalidate(circle_layer);
+    }
+  };
   auto on_button_pressed = [&](const auto &event) {
     if (event.active) {
       // increment the brightness by 10%, looping back to 0% after 100%
@@ -62,33 +76,28 @@ extern "C" void app_main(void) {
       std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
       static auto rotation = LV_DISPLAY_ROTATION_0;
       rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
-      lv_display_t *disp = lv_disp_get_default();
+      lv_display_t *disp = lv_display_get_default();
       lv_disp_set_rotation(disp, rotation);
-      if (circle_layer) {
-        lv_obj_set_size(circle_layer, lv_display_get_horizontal_resolution(disp),
-                        lv_display_get_vertical_resolution(disp));
-        lv_obj_align(circle_layer, LV_ALIGN_CENTER, 0, 0);
-        lv_obj_move_foreground(circle_layer);
-        lv_obj_invalidate(circle_layer);
-      }
+      update_layout();
     }
   };
   byte90.initialize_button(on_button_pressed);
 
   // set the background color to black
-  lv_obj_t *bg = lv_obj_create(lv_screen_active());
-  lv_obj_set_size(bg, byte90.lcd_width(), byte90.lcd_height());
+  bg = lv_obj_create(lv_screen_active());
+  lv_obj_set_size(bg, byte90.rotated_display_width(), byte90.rotated_display_height());
   lv_obj_set_style_bg_color(bg, lv_color_make(0, 0, 0), 0);
-  if (!initialize_circle_layer(byte90.lcd_width(), byte90.lcd_height())) {
+  if (!initialize_circle_layer(byte90.rotated_display_width(), byte90.rotated_display_height())) {
     logger.error("Failed to initialize circle layer!");
     return;
   }
 
   // add text in the center of the screen
-  lv_obj_t *label = lv_label_create(lv_screen_active());
+  label = lv_label_create(lv_screen_active());
   lv_label_set_text(label, "Drawing circles\nto the screen.");
   lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
   lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
+  update_layout();
 
   lv_obj_move_foreground(circle_layer);
 
@@ -119,8 +128,8 @@ extern "C" void app_main(void) {
       clear_circles();
     } else {
       // draw a circle of circles on the screen (just draw the next circle)
-      static constexpr int middle_x = byte90.lcd_width() / 2;
-      static constexpr int middle_y = byte90.lcd_height() / 2;
+      int middle_x = byte90.rotated_display_width() / 2;
+      int middle_y = byte90.rotated_display_height() / 2;
       static constexpr int radius = 30;
       float angle = visible_circle_count * 2.0f * M_PI / MAX_CIRCLES;
       int x = middle_x + radius * cos(angle);

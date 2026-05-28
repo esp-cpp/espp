@@ -55,6 +55,20 @@ extern "C" void app_main(void) {
 
   // initialize the button, which we'll use to cycle the rotation of the display
   logger.info("Initializing the button");
+  lv_obj_t *bg = nullptr;
+  lv_obj_t *label = nullptr;
+  static auto update_layout = [&]() {
+    int width = board.rotated_display_width();
+    int height = board.rotated_display_height();
+    lv_obj_set_size(bg, width, height);
+    lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+    if (circle_layer) {
+      lv_obj_set_size(circle_layer, width, height);
+      lv_obj_align(circle_layer, LV_ALIGN_CENTER, 0, 0);
+      lv_obj_move_foreground(circle_layer);
+      lv_obj_invalidate(circle_layer);
+    }
+  };
   auto on_button_pressed = [&](const auto &event) {
     if (event.active) {
       // lock the display mutex
@@ -62,33 +76,28 @@ extern "C" void app_main(void) {
       static auto rotation = LV_DISPLAY_ROTATION_0;
       rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
       fmt::print("Setting rotation to {}\n", (int)rotation);
-      lv_display_t *disp = lv_disp_get_default();
+      lv_display_t *disp = lv_display_get_default();
       lv_disp_set_rotation(disp, rotation);
-      if (circle_layer) {
-        lv_obj_set_size(circle_layer, lv_display_get_horizontal_resolution(disp),
-                        lv_display_get_vertical_resolution(disp));
-        lv_obj_align(circle_layer, LV_ALIGN_CENTER, 0, 0);
-        lv_obj_move_foreground(circle_layer);
-        lv_obj_invalidate(circle_layer);
-      }
+      update_layout();
     }
   };
   board.initialize_button(on_button_pressed);
 
   // set the background color to black
-  lv_obj_t *bg = lv_obj_create(lv_screen_active());
-  lv_obj_set_size(bg, board.lcd_width(), board.lcd_height());
+  bg = lv_obj_create(lv_screen_active());
+  lv_obj_set_size(bg, board.rotated_display_width(), board.rotated_display_height());
   lv_obj_set_style_bg_color(bg, lv_color_make(0, 0, 0), 0);
-  if (!initialize_circle_layer(board.lcd_width(), board.lcd_height())) {
+  if (!initialize_circle_layer(board.rotated_display_width(), board.rotated_display_height())) {
     logger.error("Failed to initialize circle layer!");
     return;
   }
 
   // add text in the center of the screen
-  lv_obj_t *label = lv_label_create(lv_screen_active());
+  label = lv_label_create(lv_screen_active());
   lv_label_set_text(label, "Drawing circles\nto the screen.");
   lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
   lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
+  update_layout();
 
   lv_obj_move_foreground(circle_layer);
 
@@ -121,25 +130,12 @@ extern "C" void app_main(void) {
       clear_circles();
     } else {
       // draw a circle of circles on the screen (just draw the next circle)
-      static constexpr int middle_x = espp::WsS3Geek::lcd_width() / 2;
-      static constexpr int middle_y = espp::WsS3Geek::lcd_height() / 2;
+      int middle_x = board.rotated_display_width() / 2;
+      int middle_y = board.rotated_display_height() / 2;
       static constexpr int radius = 30;
       float angle = visible_circle_count * 2.0f * M_PI / MAX_CIRCLES;
       int x = middle_x + radius * cos(angle);
       int y = middle_y + radius * sin(angle);
-
-      // handle the rotation of the display to ensure the circles are centered
-      auto rotation = lv_display_get_rotation(lv_disp_get_default());
-      switch (rotation) {
-      default:
-      case LV_DISPLAY_ROTATION_0:
-      case LV_DISPLAY_ROTATION_180:
-        break;
-      case LV_DISPLAY_ROTATION_90:
-      case LV_DISPLAY_ROTATION_270:
-        std::swap(x, y);
-        break;
-      }
 
       // lock the lvgl mutex
       std::lock_guard<std::mutex> lock(lvgl_mutex);
