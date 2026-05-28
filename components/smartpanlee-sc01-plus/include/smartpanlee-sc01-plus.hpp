@@ -40,8 +40,8 @@ namespace espp {
 ///
 /// The class is a singleton and can be accessed using the get() method.
 ///
-/// \section smartpanle_sc01_plus_example Example
-/// \snippet smartpanle_sc01_plus_example.cpp smartpanle sc01 plus example
+/// \section smartpanlee_sc01_plus_example Example
+/// \snippet smartpanlee_sc01_plus_example.cpp smartpanlee sc01 plus example
 class SmartPanleeSc01Plus : public BaseComponent {
 public:
   /// Alias for the pixel type used by the display.

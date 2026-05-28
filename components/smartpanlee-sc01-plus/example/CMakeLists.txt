@@ -11,11 +11,11 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py smartpanle-sc01-plus display lvgl task"
+  "main esptool_py smartpanlee-sc01-plus display lvgl task"
   CACHE STRING
   "List of components to include"
   )
 
-project(smartpanle_sc01_plus_example)
+project(smartpanlee_sc01_plus_example)
 
 set(CMAKE_CXX_STANDARD 20)

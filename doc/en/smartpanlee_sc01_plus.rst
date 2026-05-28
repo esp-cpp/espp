@@ -15,9 +15,9 @@ while also exposing the board's documented peripheral pins for application use.
 
 .. toctree::
 
-   smartpanle_sc01_plus_example
+   smartpanlee_sc01_plus_example
 
 API Reference
 -------------
 
-.. include-build-file:: inc/smartpanle-sc01-plus.inc
+.. include-build-file:: inc/smartpanlee-sc01-plus.inc

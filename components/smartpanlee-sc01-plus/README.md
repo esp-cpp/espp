@@ -1,6 +1,6 @@
 # Smart Panlee SC01 Plus Board Support Package (BSP) Component
 
-[![Badge](https://components.espressif.com/components/espp/smartpanle-sc01-plus/badge.svg)](https://components.espressif.com/components/espp/smartpanle-sc01-plus)
+[![Badge](https://components.espressif.com/components/espp/smartpanlee-sc01-plus/badge.svg)](https://components.espressif.com/components/espp/smartpanlee-sc01-plus)
 
 The Smart Panlee SC01 Plus (ZX3D50CE08S-USRC / WT32-SC01-PLUS class hardware) is
 an ESP32-S3 touchscreen display module with a 3.5-inch 320x480 ST7796 LCD, an

@@ -1,4 +1,4 @@
-#include "smartpanle-sc01-plus.hpp"
+#include "smartpanlee-sc01-plus.hpp"
 
 #include <algorithm>
 #include <array>

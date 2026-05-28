@@ -1,5 +1,5 @@
 /**
- * @file smartpanle_sc01_plus_example.cpp
+ * @file smartpanlee_sc01_plus_example.cpp
  * @brief Smart Panlee SC01 Plus BSP Example
  */
 
@@ -7,7 +7,7 @@
 #include <thread>
 #include <vector>
 
-#include "smartpanle-sc01-plus.hpp"
+#include "smartpanlee-sc01-plus.hpp"
 
 #include "task.hpp"
 
@@ -31,7 +31,7 @@ extern "C" void app_main(void) {
   logger.info("Starting example!");
   circles.reserve(MAX_CIRCLES);
 
-  //! [smartpanle sc01 plus example]
+  //! [smartpanlee sc01 plus example]
   auto &board = espp::SmartPanleeSc01Plus::get();
 
   if (!board.initialize_lcd()) {
@@ -131,7 +131,7 @@ extern "C" void app_main(void) {
                           .stack_size_bytes = 6 * 1024,
                       }});
   lv_task.start();
-  //! [smartpanle sc01 plus example]
+  //! [smartpanlee sc01 plus example]
 
   while (true) {
     std::this_thread::sleep_for(1s);
