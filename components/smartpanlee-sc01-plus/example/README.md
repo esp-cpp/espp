@@ -3,6 +3,8 @@
 This example demonstrates the core functionality of the `espp::SmartPanleeSc01Plus`
 BSP component on the Smart Panlee SC01 Plus touchscreen display module.
 
+<img width="1515" height="1141" alt="image" src="https://github.com/user-attachments/assets/1d6542f3-d064-4a2c-8913-8a7b1782d703" />
+
 ## Features Demonstrated
 
 - ST7796 display initialization over the ESP32-S3 8-bit parallel LCD bus
