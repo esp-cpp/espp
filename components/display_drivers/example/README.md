@@ -2,7 +2,9 @@
 
 This example is designed to show how the `display_drivers` component can be used
 to drive various different displays with LVGL and a simple GUI (that is
-contained within the example: `main/gui.hpp`).
+contained within the example: `main/gui.hpp`). It demonstrates both the
+object-style display-controller API and the shared SPI transport helpers used by
+the BSPs in this repository.
 
 ## Demo
 
@@ -36,7 +38,7 @@ idf.py menuconfig
 ```
 
 When configuring the project, select the `Display Drivers Example Configuration`
-value that matches the board you've selected (must be one of the 4 boards
+value that matches the board you've selected (must be one of the boards
 mentioned above.)
 
 ### Build and Flash
@@ -60,5 +62,6 @@ The example has the following functionality:
 * Uses `espp::SpiPanelIo` for standard command/data SPI panels
 * Keeps the T-Encoder Pro quad-SPI path on `espp::Spi::Device`, since that panel needs custom
   multi-line transactions
+* Exercises the object-style controller classes from the `display_drivers` component
 * `Gui` class (contained in `main/gui.hpp`) which encapsulates some very basic
   LVGL components into an object that manages gui update task and synchronization.

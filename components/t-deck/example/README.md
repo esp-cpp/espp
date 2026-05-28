@@ -1,12 +1,12 @@
 # T-Deck Example
 
 This example shows how to use the `espp::TDeck` hardware abstraction component
-initialize the components on the LilyGo T-Deck.
+to initialize the components on the LilyGo T-Deck.
 
-It initializes the touch, display, and t-keyboard subsystems. It reads the
-touchpad state and each time you touch the screen it uses LVGL to draw a circle
-where you touch. If you press the home button on the display, it will clear the
-circles.
+It initializes the touch panel, display, keyboard, trackball, sound output, and
+optional microSD card support. Touching the screen draws a cyan trail overlay,
+the delete key clears the trail, the space key or on-screen refresh button
+rotates the display, and the keyboard also exposes simple mute/volume controls.
 
 https://github.com/user-attachments/assets/5d7e7086-fc2c-4477-8948-07b5bab3e51f
 
@@ -35,6 +35,11 @@ idf.py -p PORT flash monitor
 
 See the Getting Started Guide for full steps to configure and use ESP-IDF to build projects.
 
-## Example Output
+## Features Demonstrated
 
-![CleanShot 2024-07-05 at 23 43 27@2x](https://github.com/esp-cpp/espp/assets/213467/03d1dad5-e9fa-461c-9eb2-1e5d314dcfdb)
+- Shared SPI LCD transport via `espp::Spi` and `SpiPanelIo`
+- Touch drawing with a rotation-aware LVGL overlay
+- T-Keyboard input for clearing / rotating and audio control
+- Trackball initialization and callback wiring
+- Optional uSD card mounting over SDSPI on the same SPI host
+- WAV playback through the onboard audio path
