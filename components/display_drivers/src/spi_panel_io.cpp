@@ -16,7 +16,7 @@ SpiPanelIo::SpiPanelIo(const Config &config)
     return;
   }
 
-  auto queue_depth = static_cast<size_t>(std::max(2, config_.device_config.queue_size));
+  auto queue_depth = static_cast<size_t>(config_.device_config.queue_size);
   transactions_.resize(queue_depth);
   contexts_.resize(queue_depth);
   if (!config_.spi) {
@@ -28,7 +28,6 @@ SpiPanelIo::SpiPanelIo(const Config &config)
     gpio_set_level(config_.data_command_io, 0);
   }
   auto device_config = config_.device_config;
-  device_config.queue_size = static_cast<int>(queue_depth);
   device_config.pre_cb = &SpiPanelIo::pre_transfer_callback;
   device_config.post_cb = &SpiPanelIo::post_transfer_callback;
   std::error_code ec;

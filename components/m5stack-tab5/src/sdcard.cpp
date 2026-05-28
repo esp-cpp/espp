@@ -54,12 +54,10 @@ bool M5StackTab5::initialize_sdcard(const M5StackTab5::SdCardConfig &config) {
   if (ret != ESP_OK) {
     if (ret == ESP_FAIL) {
       logger_.error("Failed to mount filesystem. ");
-      return false;
     } else {
-      logger_.error("Failed to initialize the card ({}). "
-                    "Make sure SD card lines have pull-up resistors in place.",
-                    esp_err_to_name(ret));
-      return false;
+      logger_.warn("Failed to initialize the card ({}). "
+                   "Make sure SD card is present and lines have pull-up resistors in place.",
+                   esp_err_to_name(ret));
     }
     return false;
   }
