@@ -15,6 +15,7 @@
 #include "mt6701.hpp"
 #include "oneshot_adc.hpp"
 #include "simple_lowpass_filter.hpp"
+#include "spi.hpp"
 
 namespace espp {
 /// This class acts as a board support component for the MotorGo-Mini board.
@@ -373,7 +374,7 @@ protected:
 
   float breathe(float breathing_period, uint64_t start_us, bool restart = false);
 
-  bool read_encoder(const auto &encoder_handle, uint8_t *data, size_t size);
+  bool read_encoder(const std::shared_ptr<Spi::Device> &encoder_device, uint8_t *data, size_t size);
 
   /// I2C bus for external communication
   I2c external_i2c_{{.port = I2C_PORT,
@@ -382,24 +383,19 @@ protected:
                      .sda_pullup_en = GPIO_PULLUP_ENABLE,
                      .scl_pullup_en = GPIO_PULLUP_ENABLE}};
 
-  /// SPI bus for communication with the Encoders
-  spi_bus_config_t encoder_spi_bus_config_;
-
-  // SPI handles for the encoders
-  spi_device_interface_config_t encoder1_config;
-  spi_device_handle_t encoder1_handle_;
-  spi_device_interface_config_t encoder2_config;
-  spi_device_handle_t encoder2_handle_;
+  std::unique_ptr<Spi> encoder_spi_;
+  std::shared_ptr<Spi::Device> encoder1_spi_device_;
+  std::shared_ptr<Spi::Device> encoder2_spi_device_;
 
   // Encoders
   Encoder::Config encoder1_config_{.read = [this](uint8_t *data, size_t size) -> bool {
-                                     return read_encoder(encoder1_handle_, data, size);
+                                     return read_encoder(encoder1_spi_device_, data, size);
                                    },
                                    .update_period =
                                        std::chrono::duration<float>(core_update_period_us / 1e6f),
                                    .log_level = get_log_level()};
   Encoder::Config encoder2_config_{.read = [this](uint8_t *data, size_t size) -> bool {
-                                     return read_encoder(encoder2_handle_, data, size);
+                                     return read_encoder(encoder2_spi_device_, data, size);
                                    },
                                    .update_period =
                                        std::chrono::duration<float>(core_update_period_us / 1e6f),

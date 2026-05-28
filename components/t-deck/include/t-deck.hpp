@@ -26,6 +26,7 @@
 #include "interrupt.hpp"
 #include "led.hpp"
 #include "pointer_input.hpp"
+#include "spi.hpp"
 #include "st7789.hpp"
 #include "t_keyboard.hpp"
 #include "touchpad_input.hpp"
@@ -562,9 +563,6 @@ protected:
                      .sda_pullup_en = GPIO_PULLUP_ENABLE,
                      .scl_pullup_en = GPIO_PULLUP_ENABLE}};
 
-  // spi bus shared between sdcard and lcd
-  std::atomic<bool> spi_bus_initialized_{false};
-
   // sdcard
   sdmmc_card_t *sdcard_{nullptr};
 
@@ -646,14 +644,12 @@ protected:
 
   // display
   std::shared_ptr<Display<Pixel>> display_;
+  std::unique_ptr<DisplayDriver> display_driver_;
   std::vector<Led::ChannelConfig> backlight_channel_configs_{};
   std::shared_ptr<Led> backlight_{};
-  /// SPI bus for communication with the LCD
-  spi_device_interface_config_t lcd_config_;
-  spi_device_handle_t lcd_handle_{nullptr};
   static constexpr int spi_queue_size = 6;
-  spi_transaction_t trans[spi_queue_size];
-  std::atomic<int> num_queued_trans = 0;
+  std::unique_ptr<Spi> lcd_spi_;
+  std::unique_ptr<SpiPanelIo> lcd_;
   uint8_t *frame_buffer0_{nullptr};
   uint8_t *frame_buffer1_{nullptr};
 

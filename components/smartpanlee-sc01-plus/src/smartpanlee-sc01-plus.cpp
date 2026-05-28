@@ -1,5 +1,13 @@
 #include "smartpanlee-sc01-plus.hpp"
 
+#include "esp_idf_version.h"
+#ifndef ESP_IDF_VERSION_VAL
+#define ESP_IDF_VERSION_VAL(major, minor, patch) (((major) << 16) | ((minor) << 8) | (patch))
+#endif
+#ifndef ESP_IDF_VERSION
+#define ESP_IDF_VERSION ESP_IDF_VERSION_VAL(0, 0, 0)
+#endif
+
 #include <algorithm>
 #include <array>
 #include <cstring>
@@ -167,46 +175,43 @@ bool SmartPanleeSc01Plus::initialize_lcd() {
   }
 
   esp_lcd_i80_bus_config_t bus_config = {
-      .dc_gpio_num = lcd_dc_io,
-      .wr_gpio_num = lcd_wr_io,
-      .clk_src = LCD_CLK_SRC_DEFAULT,
-      .data_gpio_nums = {lcd_d0_io, lcd_d1_io, lcd_d2_io, lcd_d3_io, lcd_d4_io, lcd_d5_io,
-                         lcd_d6_io, lcd_d7_io},
-      .bus_width = 8,
-      .max_transfer_bytes = lcd_max_transfer_bytes,
-      .dma_burst_size = 64,
+    .dc_gpio_num = lcd_dc_io,
+    .wr_gpio_num = lcd_wr_io,
+    .clk_src = LCD_CLK_SRC_DEFAULT,
+    .data_gpio_nums = {lcd_d0_io, lcd_d1_io, lcd_d2_io, lcd_d3_io, lcd_d4_io, lcd_d5_io, lcd_d6_io,
+                       lcd_d7_io},
+    .bus_width = 8,
+    .max_transfer_bytes = lcd_max_transfer_bytes,
+    .dma_burst_size = 64,
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
+    .flags = {},
+#endif
   };
   ESP_ERROR_CHECK(esp_lcd_new_i80_bus(&bus_config, &lcd_bus_));
 
   esp_lcd_panel_io_i80_config_t io_config = {
-      .cs_gpio_num = lcd_cs_io,
-      .pclk_hz = lcd_clock_speed_hz,
-      .trans_queue_depth = 10,
-      .on_color_trans_done = nullptr,
-      .user_ctx = nullptr,
-      .lcd_cmd_bits = 8,
-      .lcd_param_bits = 8,
-      .dc_levels =
-          {
-              .dc_idle_level = 0,
-              .dc_cmd_level = 0,
-              .dc_dummy_level = 0,
-              .dc_data_level = 1,
-          },
+    .cs_gpio_num = lcd_cs_io,
+    .pclk_hz = lcd_clock_speed_hz,
+    .trans_queue_depth = 10,
+    .on_color_trans_done = nullptr,
+    .user_ctx = nullptr,
+    .lcd_cmd_bits = 8,
+    .lcd_param_bits = 8,
+    .dc_levels =
+        {
+            .dc_idle_level = 0,
+            .dc_cmd_level = 0,
+            .dc_dummy_level = 0,
+            .dc_data_level = 1,
+        },
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
+    .flags = {},
+#endif
   };
   ESP_ERROR_CHECK(esp_lcd_new_panel_io_i80(lcd_bus_, &io_config, &panel_io_));
 
-  backlight_channel_configs_.push_back({.gpio = static_cast<size_t>(lcd_backlight_io),
-                                        .channel = LEDC_CHANNEL_0,
-                                        .timer = LEDC_TIMER_0,
-                                        .output_invert = !backlight_value});
-  backlight_ = std::make_shared<Led>(Led::Config{.timer = LEDC_TIMER_0,
-                                                 .frequency_hz = 5000,
-                                                 .channels = backlight_channel_configs_,
-                                                 .duty_resolution = LEDC_TIMER_10_BIT});
-
   using namespace std::placeholders;
-  DisplayDriver::initialize(espp::display_drivers::Config{
+  display_driver_ = std::make_unique<DisplayDriver>(espp::display_drivers::Config{
       .write_command = std::bind(&SmartPanleeSc01Plus::write_command, this, _1, _2, _3),
       .lcd_send_lines =
           std::bind(&SmartPanleeSc01Plus::write_lcd_lines, this, _1, _2, _3, _4, _5, _6),
@@ -218,13 +223,26 @@ bool SmartPanleeSc01Plus::initialize_lcd() {
       .swap_xy = swap_xy,
       .mirror_x = mirror_x,
       .mirror_y = mirror_y});
+  if (!display_driver_ || !display_driver_->initialize()) {
+    display_driver_.reset();
+    return false;
+  }
+
+  backlight_channel_configs_.push_back({.gpio = static_cast<size_t>(lcd_backlight_io),
+                                        .channel = LEDC_CHANNEL_0,
+                                        .timer = LEDC_TIMER_0,
+                                        .output_invert = !backlight_value});
+  backlight_ = std::make_shared<Led>(Led::Config{.timer = LEDC_TIMER_0,
+                                                 .frequency_hz = 5000,
+                                                 .channels = backlight_channel_configs_,
+                                                 .duty_resolution = LEDC_TIMER_10_BIT});
 
   brightness(100.0f);
   return true;
 }
 
 bool SmartPanleeSc01Plus::initialize_display(size_t pixel_buffer_size) {
-  if (!panel_io_) {
+  if (!panel_io_ || !display_driver_) {
     logger_.error(
         "LCD not initialized, you must call initialize_lcd() before initialize_display()!");
     return false;
@@ -235,11 +253,22 @@ bool SmartPanleeSc01Plus::initialize_display(size_t pixel_buffer_size) {
   }
 
   display_ = std::make_shared<Display<Pixel>>(
-      Display<Pixel>::LvglConfig{.width = lcd_width_,
-                                 .height = lcd_height_,
-                                 .flush_callback = DisplayDriver::flush,
-                                 .rotation_callback = DisplayDriver::rotate,
-                                 .rotation = rotation},
+      Display<Pixel>::LvglConfig{
+          .width = lcd_width_,
+          .height = lcd_height_,
+          .flush_callback =
+              [this](lv_display_t *disp, const lv_area_t *area, uint8_t *color_map) {
+                if (display_driver_) {
+                  display_driver_->flush(disp, area, color_map);
+                }
+              },
+          .rotation_callback =
+              [this](const DisplayRotation &new_rotation) {
+                if (display_driver_) {
+                  display_driver_->set_rotation(new_rotation);
+                }
+              },
+          .rotation = rotation},
       Display<Pixel>::OledConfig{
           .set_brightness_callback =
               [this](float brightness) { this->brightness(brightness * 100); },

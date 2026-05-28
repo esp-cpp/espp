@@ -12,6 +12,7 @@ maps.
 The `espp::SmartPanleeSc01Plus` component provides a singleton hardware
 abstraction for the display, touch, backlight, audio output, and microSD card,
 while also exposing the board's documented peripheral pins for application use.
+Its LCD path uses the object-style `espp::St7796` controller integration.
 
 .. toctree::
 

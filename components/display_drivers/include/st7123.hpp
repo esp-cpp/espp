@@ -1,17 +1,14 @@
 #pragma once
 
 #include <array>
-#include <chrono>
-#include <thread>
 
 #include "display_drivers.hpp"
 
 namespace espp {
 
-class St7123 {
-  // MADCTL bits (see Espressif driver)
-  static constexpr uint8_t GS_BIT = 1 << 0; // Row mirror (Y)
-  static constexpr uint8_t SS_BIT = 1 << 1; // Column mirror (X)
+class St7123 : public display_drivers::MipiDbiDisplayDriver {
+  static constexpr uint8_t GS_BIT = 1 << 0;
+  static constexpr uint8_t SS_BIT = 1 << 1;
   static constexpr uint8_t BGR_BIT = 1 << 3;
 
 public:
@@ -34,36 +31,21 @@ public:
     COLMOD = 0x3A,
   };
 
-  static bool initialize(const display_drivers::Config &config) {
-    write_command_ = config.write_command;
-    read_command_ = config.read_command;
-    lcd_send_lines_ = config.lcd_send_lines;
-    reset_pin_ = config.reset_pin;
-    dc_pin_ = config.data_command_pin;
-    offset_x_ = config.offset_x;
-    offset_y_ = config.offset_y;
-    mirror_x_ = config.mirror_x;
-    mirror_y_ = config.mirror_y;
-    mirror_portrait_ = config.mirror_portrait;
-    swap_xy_ = config.swap_xy;
-    swap_color_order_ = config.swap_color_order;
+  explicit St7123(const display_drivers::Config &config)
+      : MipiDbiDisplayDriver(config,
+                             {.column_address_command = static_cast<uint8_t>(Command::CASET),
+                              .row_address_command = static_cast<uint8_t>(Command::RASET),
+                              .memory_write_command = static_cast<uint8_t>(Command::RAMWR)}) {}
 
-    // Initialize display pins
-    display_drivers::init_pins(reset_pin_, dc_pin_, config.reset_value);
+  static constexpr const char *id() { return "ST7123"; }
 
-    // MADCTL value
-    uint8_t madctl = 0;
-    if (mirror_x_)
-      madctl |= GS_BIT;
-    if (mirror_y_)
-      madctl |= SS_BIT;
-    if (swap_color_order_)
-      madctl |= BGR_BIT;
-    // Note: swap_xy_ not supported by ST7123 MADCTL
+  bool initialize() override {
+    display_drivers::init_pins(config_.reset_pin, config_.data_command_pin, config_.reset_value);
 
-    // COLMOD value
-    uint8_t colmod = 0x55; // 16bpp default
-    switch (config.bits_per_pixel) {
+    auto madctl = make_madctl(DisplayRotation::LANDSCAPE);
+
+    uint8_t colmod = 0x55;
+    switch (config_.bits_per_pixel) {
     case 16:
       colmod = 0x55;
       break;
@@ -76,9 +58,8 @@ public:
     default:
       break;
     }
-    // ST7123 vendor-specific init sequence (from Espressif driver)
-    using Cmd = display_drivers::DisplayInitCmd<>;
-    std::array<Cmd, 27> init_cmds = {{
+
+    auto init_commands = std::to_array<display_drivers::DisplayInitCmd<>>({
         {0x60, {0x71, 0x23, 0xa2}, 0},
         {0x60, {0x71, 0x23, 0xa3}, 0},
         {0x60, {0x71, 0x23, 0xa4}, 0},
@@ -143,53 +124,26 @@ public:
         {0x11, {0x00}, 100},
         {0x29, {0x00}, 0},
         {0x35, {0x00}, 100},
-    }};
+        {static_cast<uint8_t>(Command::MADCTL), {madctl}, 0},
+        {static_cast<uint8_t>(Command::COLMOD), {colmod}, 0},
+    });
 
-    // Send vendor-specific init sequence
-    for (const auto &cmd : init_cmds) {
-      write_command_(cmd.command, std::span<const uint8_t>(cmd.parameters), 0);
-      if (cmd.delay_ms > 0) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(cmd.delay_ms));
-      }
-      std::this_thread::sleep_for(std::chrono::milliseconds(5));
-    }
-
-    // Set MADCTL (mirror/color order)
-    write_command_(static_cast<uint8_t>(Command::MADCTL), std::span<const uint8_t>(&madctl, 1), 0);
-    // Set COLMOD (color depth)
-    write_command_(static_cast<uint8_t>(Command::COLMOD), std::span<const uint8_t>(&colmod, 1), 0);
-
+    send_commands(init_commands);
     return true;
   }
 
-  static constexpr const char *id() { return "ST7123"; }
+  void set_rotation(const DisplayRotation &rotation) override {
+    Controller::set_rotation(rotation);
+    auto data = std::array<uint8_t, 1>{make_madctl(rotation)};
+    std::scoped_lock lock(io_mutex_);
+    write_command(static_cast<uint8_t>(Command::MADCTL), data, 0);
+  }
 
-protected:
-  static display_drivers::write_command_fn write_command_;
-  static display_drivers::read_command_fn read_command_;
-  static display_drivers::send_lines_fn lcd_send_lines_;
-  static gpio_num_t reset_pin_;
-  static gpio_num_t dc_pin_;
-  static int offset_x_;
-  static int offset_y_;
-  static bool swap_xy_;
-  static bool mirror_x_;
-  static bool mirror_y_;
-  static bool mirror_portrait_;
-  static bool swap_color_order_;
+private:
+  uint8_t make_madctl(DisplayRotation rotation) const {
+    auto value = display_drivers::make_madctl_base(config_, BGR_BIT, GS_BIT, SS_BIT, 0);
+    return display_drivers::apply_standard_rotation(value, config_, rotation, GS_BIT, SS_BIT, 0);
+  }
 };
-
-inline display_drivers::write_command_fn St7123::write_command_{nullptr};
-inline display_drivers::read_command_fn St7123::read_command_{nullptr};
-inline display_drivers::send_lines_fn St7123::lcd_send_lines_{nullptr};
-inline gpio_num_t St7123::reset_pin_{GPIO_NUM_NC};
-inline gpio_num_t St7123::dc_pin_{GPIO_NUM_NC};
-inline int St7123::offset_x_{0};
-inline int St7123::offset_y_{0};
-inline bool St7123::swap_xy_{false};
-inline bool St7123::mirror_x_{false};
-inline bool St7123::mirror_y_{false};
-inline bool St7123::mirror_portrait_{false};
-inline bool St7123::swap_color_order_{false};
 
 } // namespace espp

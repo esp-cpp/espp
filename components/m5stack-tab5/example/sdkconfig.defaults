@@ -7,6 +7,11 @@ CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
 CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
 CONFIG_ESPTOOLPY_FLASHSIZE="16MB"
 
+# for ESP-IDF >= v6.0, we have to set this to allow older boards (e.g. m5stack
+# tab5) to work with the newer ESP-IDF since it's using an older p4 chip
+# revision
+CONFIG_ESP32P4_SELECTS_REV_LESS_V3=y
+
 # Memory configuration
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=32768
 CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=4096

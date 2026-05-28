@@ -2,11 +2,10 @@
 #include <sdkconfig.h>
 #include <vector>
 
-#include <driver/spi_master.h>
-
 #include "butterworth_filter.hpp"
 #include "i2c.hpp"
 #include "mt6701.hpp"
+#include "spi.hpp"
 #include "task.hpp"
 
 using namespace std::chrono_literals;
@@ -95,36 +94,30 @@ extern "C" void app_main(void) {
     //! [mt6701 ssi example]
     std::atomic<bool> quit_test = false;
 
-    // make the SSI (SPI) that we'll use to communicate
-
-    // create the spi host
-    spi_device_handle_t encoder_spi_handle;
-    spi_bus_config_t buscfg;
-    memset(&buscfg, 0, sizeof(buscfg));
-    buscfg.mosi_io_num = -1;
-    buscfg.miso_io_num = CONFIG_EXAMPLE_SPI_MISO_GPIO;
-    buscfg.sclk_io_num = CONFIG_EXAMPLE_SPI_SCLK_GPIO;
-    buscfg.quadwp_io_num = -1;
-    buscfg.quadhd_io_num = -1;
-    buscfg.max_transfer_sz = 32;
-
-    // create the spi device
-    spi_device_interface_config_t devcfg;
-    memset(&devcfg, 0, sizeof(devcfg));
-    devcfg.mode = 0;
-    devcfg.clock_speed_hz = CONFIG_EXAMPLE_SPI_CLOCK_SPEED; // Supports 64ns clock period, 15.625MHz
-    devcfg.input_delay_ns = 0;
-    devcfg.spics_io_num = CONFIG_EXAMPLE_SPI_CS_GPIO;
-    devcfg.queue_size = 1;
-
-    esp_err_t ret;
-    // Initialize the SPI bus
-    auto spi_num = SPI2_HOST;
-    ret = spi_bus_initialize(spi_num, &buscfg, SPI_DMA_CH_AUTO);
-    ESP_ERROR_CHECK(ret);
-    // Attach the LCD to the SPI bus
-    ret = spi_bus_add_device(spi_num, &devcfg, &encoder_spi_handle);
-    ESP_ERROR_CHECK(ret);
+    // make the SPI bus and SSI device that we'll use to communicate
+    espp::Spi spi({
+        .host = SPI2_HOST,
+        .sclk_io_num = static_cast<gpio_num_t>(CONFIG_EXAMPLE_SPI_SCLK_GPIO),
+        .mosi_io_num = GPIO_NUM_NC,
+        .miso_io_num = static_cast<gpio_num_t>(CONFIG_EXAMPLE_SPI_MISO_GPIO),
+        .max_transfer_sz = 32,
+        .log_level = espp::Logger::Verbosity::WARN,
+    });
+    std::error_code ec;
+    auto encoder_spi_device = spi.add_device(
+        {
+            .mode = 0,
+            .clock_speed_hz = CONFIG_EXAMPLE_SPI_CLOCK_SPEED, // Supports 64ns clock period,
+                                                              // 15.625MHz
+            .input_delay_ns = 0,
+            .cs_io_num = static_cast<gpio_num_t>(CONFIG_EXAMPLE_SPI_CS_GPIO),
+            .queue_size = 1,
+        },
+        ec);
+    if (ec || !encoder_spi_device) {
+      fmt::print("Failed to initialize SPI device: {}\n", ec.message());
+      return;
+    }
 
     // make the velocity filter
     static constexpr float filter_cutoff_hz = 10.0f;
@@ -136,34 +129,8 @@ extern "C" void app_main(void) {
     // now make the mt6701 which decodes the data
     using Mt6701 = espp::Mt6701<espp::Mt6701Interface::SSI>;
     Mt6701 mt6701({.read = [&](uint8_t *data, size_t len) -> bool {
-                     // we can use the SPI_TRANS_USE_RXDATA since our length is <= 4 bytes (32
-                     // bits), this means we can directly use the tarnsaction's rx_data field
-                     static constexpr uint8_t SPIBUS_READ = 0x80;
-                     spi_transaction_t t = {
-                         .flags = 0,
-                         .cmd = 0,
-                         .addr = SPIBUS_READ,
-                         .length = len * 8,
-                         .rxlength = len * 8,
-                         .user = nullptr,
-                         .tx_buffer = nullptr,
-                         .rx_buffer = data,
-                     };
-                     if (len <= 4) {
-                       t.flags = SPI_TRANS_USE_RXDATA;
-                       t.rx_buffer = nullptr;
-                     }
-                     esp_err_t err = spi_device_transmit(encoder_spi_handle, &t);
-                     if (err != ESP_OK) {
-                       return false;
-                     }
-                     if (len <= 4) {
-                       // copy the data from the rx_data field
-                       for (size_t i = 0; i < len; i++) {
-                         data[i] = t.rx_data[i];
-                       }
-                     }
-                     return true;
+                     std::error_code read_ec;
+                     return encoder_spi_device->read(std::span<uint8_t>(data, len), {}, read_ec);
                    },
                    .velocity_filter = filter_fn,
                    .update_period = std::chrono::duration<float>(encoder_update_period),

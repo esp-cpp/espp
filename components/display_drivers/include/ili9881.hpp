@@ -15,7 +15,7 @@ namespace espp {
  * with GIP (Gate In Panel) timing control, power management, and gamma correction
  * for optimal display quality.
  */
-class Ili9881 {
+class Ili9881 : public display_drivers::MipiDbiDisplayDriver {
   static constexpr uint8_t GS_BIT = 1 << 0;
   static constexpr uint8_t SS_BIT = 1 << 1;
 
@@ -91,73 +91,45 @@ public:
     nop_extended = 0xFE, ///< Extended NOP Command
   };
 
-  /**
-   * @brief Store config and send initialization commands to the controller.
-   * @param config display_drivers::Config
-   */
-  static bool initialize(const display_drivers::Config &config) {
-    write_command_ = config.write_command;
-    read_command_ = config.read_command;
-    lcd_send_lines_ = config.lcd_send_lines;
-    reset_pin_ = config.reset_pin;
-    dc_pin_ = config.data_command_pin;
-    offset_x_ = config.offset_x;
-    offset_y_ = config.offset_y;
-    mirror_x_ = config.mirror_x;
-    mirror_y_ = config.mirror_y;
-    mirror_portrait_ = config.mirror_portrait;
-    swap_xy_ = config.swap_xy;
-    swap_color_order_ = config.swap_color_order;
+  explicit Ili9881(const display_drivers::Config &config)
+      : MipiDbiDisplayDriver(config,
+                             {.column_address_command = static_cast<uint8_t>(Command::caset),
+                              .row_address_command = static_cast<uint8_t>(Command::raset),
+                              .memory_write_command = static_cast<uint8_t>(Command::ramwr)}) {}
 
-    // Initialize display pins
-    display_drivers::init_pins(reset_pin_, dc_pin_, config.reset_value);
+  bool initialize() override {
+    display_drivers::init_pins(config_.reset_pin, config_.data_command_pin, config_.reset_value);
 
-    uint8_t madctl = 0x00;
-    if (swap_color_order_) {
-      madctl |= LCD_CMD_BGR_BIT;
-    }
-    if (mirror_x_) {
-      madctl |= GS_BIT; // LCD_CMD_MX_BIT;
-    }
-    if (mirror_y_) {
-      madctl |= SS_BIT; // LCD_CMD_MY_BIT;
-    }
-    if (swap_xy_) {
-      madctl |= 0; // LCD_CMD_MV_BIT;
-    }
+    auto madctl = make_madctl(DisplayRotation::LANDSCAPE);
 
-    uint8_t colmod = 0x55; // default to 16 bits per pixel
-    switch (config.bits_per_pixel) {
-    case 16: // RGB565
+    uint8_t colmod = 0x55;
+    switch (config_.bits_per_pixel) {
+    case 16:
       colmod = 0x55;
       break;
-    case 18: // RGB666
+    case 18:
       colmod = 0x66;
       break;
-    case 24: // RGB888
+    case 24:
       colmod = 0x77;
       break;
     default:
       break;
     }
 
-    // first let's read the ID if we have a read_command function
-    if (config.read_command) {
-      uint8_t id[3] = {0};
-      // select cmd page 1
-      write_command_(static_cast<uint8_t>(Command::page_select),
-                     std::span<const uint8_t>{{0x98, 0x81, 0x01}}, 0);
-      // read ID registers
-      read_command_(static_cast<uint8_t>(0x00), {&id[0], 1}, 0); // ID1
-      read_command_(static_cast<uint8_t>(0x01), {&id[1], 1}, 0); // ID2
-      read_command_(static_cast<uint8_t>(0x02), {&id[2], 1}, 0); // ID3
+    if (config_.read_command) {
+      std::array<uint8_t, 3> page_1{0x98, 0x81, 0x01};
+      std::array<uint8_t, 3> id{0};
+      write_command(static_cast<uint8_t>(Command::page_select), page_1, 0);
+      read_command(static_cast<uint8_t>(0x00), {&id[0], 1}, 0);
+      read_command(static_cast<uint8_t>(0x01), {&id[1], 1}, 0);
+      read_command(static_cast<uint8_t>(0x02), {&id[2], 1}, 0);
 
       if (id[0] != 0x98 || id[1] != 0x81 || id[2] != 0x5C) {
         return false;
       }
     }
 
-    // Comprehensive ILI9881C initialization sequence (M5Stack Tab5 specific)
     auto init_commands = std::to_array<display_drivers::DisplayInitCmd<>>({
         // CMD_Page 1 - DSI and Basic Setup
         {static_cast<uint8_t>(Command::page_select),
@@ -393,207 +365,27 @@ public:
         // Final DCS commands
         {static_cast<uint8_t>(Command::sleep_out), {}, 120},  // Sleep Out (120ms delay)
         {static_cast<uint8_t>(Command::madctl), {madctl}, 0}, // Memory access control
-        {static_cast<uint8_t>(Command::colmod), {0x55}, 0},   // 16-bit/pixel (RGB565)
-        {static_cast<uint8_t>(Command::display_on), {}, 20},  // Display ON (20ms delay)
+        {static_cast<uint8_t>(Command::colmod), {colmod}, 0},
+        {static_cast<uint8_t>(Command::display_on), {}, 20}, // Display ON (20ms delay)
     });
 
     send_commands(init_commands);
-
     return true;
   }
 
-  /**
-   * @brief Set the display rotation.
-   */
-  static void rotate(const DisplayRotation &rotation) {
-    uint8_t data = 0x00;
-    if (swap_color_order_) {
-      data |= LCD_CMD_BGR_BIT;
-    }
-    if (mirror_x_) {
-      data |= GS_BIT; // LCD_CMD_MX_BIT;
-    }
-    if (mirror_y_) {
-      data |= SS_BIT; // LCD_CMD_MY_BIT;
-    }
-    if (swap_xy_) {
-      data |= 0; // LCD_CMD_MV_BIT;
-    }
-    switch (rotation) {
-    case DisplayRotation::LANDSCAPE:
-      break;
-    case DisplayRotation::PORTRAIT:
-      if (mirror_portrait_) {
-        data ^= GS_BIT; // (LCD_CMD_MX_BIT | LCD_CMD_MV_BIT);
-      } else {
-        data ^= SS_BIT; // (LCD_CMD_MY_BIT | LCD_CMD_MV_BIT);
-      }
-      break;
-    case DisplayRotation::LANDSCAPE_INVERTED:
-      data ^= GS_BIT | SS_BIT; // (LCD_CMD_MY_BIT | LCD_CMD_MX_BIT);
-      break;
-    case DisplayRotation::PORTRAIT_INVERTED:
-      if (mirror_portrait_) {
-        data ^= SS_BIT; // (LCD_CMD_MY_BIT | LCD_CMD_MV_BIT);
-      } else {
-        data ^= GS_BIT; // (LCD_CMD_MX_BIT | LCD_CMD_MV_BIT);
-      }
-      break;
-    }
-
-    auto lcd_commands = std::to_array<display_drivers::DisplayInitCmd<>>({
-        // CMD_Page 0 - User Commands
-        {static_cast<uint8_t>(Command::page_select),
-         {0x98, 0x81, 0x00},
-         0},                                                // Switch to Command Page 0
-        {static_cast<uint8_t>(Command::madctl), {data}, 0}, // Memory access control
-    });
-    send_commands(lcd_commands);
+  void set_rotation(const DisplayRotation &rotation) override {
+    Controller::set_rotation(rotation);
+    auto data = std::array<uint8_t, 1>{make_madctl(rotation)};
+    auto page_0 = std::array<uint8_t, 3>{0x98, 0x81, 0x00};
+    std::scoped_lock lock(io_mutex_);
+    write_command(static_cast<uint8_t>(Command::page_select), page_0, 0);
+    write_command(static_cast<uint8_t>(Command::madctl), data, 0);
   }
 
-  /**
-   * @brief Flush LVGL area to display.
-   */
-  static void flush(lv_display_t *disp, const lv_area_t *area, uint8_t *color_map) {
-    fill(disp, area, color_map, (1u << (int)display_drivers::Flags::FLUSH_BIT));
+private:
+  uint8_t make_madctl(DisplayRotation rotation) const {
+    auto value = display_drivers::make_madctl_base(config_, LCD_CMD_BGR_BIT, GS_BIT, SS_BIT, 0);
+    return display_drivers::apply_standard_rotation(value, config_, rotation, GS_BIT, SS_BIT, 0);
   }
-
-  /**
-   * @brief Set drawing area using an lv_area_t.
-   */
-  static void set_drawing_area(const lv_area_t *area) {
-    set_drawing_area(area->x1, area->y1, area->x2, area->y2);
-  }
-
-  /**
-   * @brief Set drawing area using coordinates.
-   */
-  static void set_drawing_area(size_t xs, size_t ys, size_t xe, size_t ye) {
-    std::array<uint8_t, 4> data;
-
-    int offset_x = 0;
-    int offset_y = 0;
-    get_offset_rotated(offset_x, offset_y);
-
-    uint16_t start_x = xs + offset_x;
-    uint16_t end_x = xe + offset_x;
-    uint16_t start_y = ys + offset_y;
-    uint16_t end_y = ye + offset_y;
-
-    // column (x)
-    data[0] = (start_x >> 8) & 0xFF;
-    data[1] = start_x & 0xFF;
-    data[2] = (end_x >> 8) & 0xFF;
-    data[3] = end_x & 0xFF;
-    write_command_(static_cast<uint8_t>(Command::caset), data, 0);
-
-    // row (y)
-    data[0] = (start_y >> 8) & 0xFF;
-    data[1] = start_y & 0xFF;
-    data[2] = (end_y >> 8) & 0xFF;
-    data[3] = end_y & 0xFF;
-    write_command_(static_cast<uint8_t>(Command::raset), data, 0);
-  }
-
-  /**
-   * @brief Fill an area with a color map.
-   */
-  static void fill(lv_display_t *disp, const lv_area_t *area, uint8_t *color_map,
-                   uint32_t flags = 0) {
-    std::scoped_lock lock{spi_mutex_};
-    lv_draw_sw_rgb565_swap(color_map, lv_area_get_width(area) * lv_area_get_height(area));
-    if (lcd_send_lines_) {
-      int offset_x = 0;
-      int offset_y = 0;
-      get_offset_rotated(offset_x, offset_y);
-      lcd_send_lines_(area->x1 + offset_x, area->y1 + offset_y, area->x2 + offset_x,
-                      area->y2 + offset_y, color_map, flags);
-    } else {
-      set_drawing_area(area);
-      uint32_t size = lv_area_get_width(area) * lv_area_get_height(area);
-      write_command_(static_cast<uint8_t>(Command::ramwr), {color_map, size * 2}, flags);
-    }
-  }
-
-  /**
-   * @brief Clear a rectangular region to a color.
-   */
-  static void clear(size_t x, size_t y, size_t width, size_t height, uint16_t color = 0x0000) {
-    set_drawing_area(x, y, x + width, y + height);
-
-    uint32_t size = width * height;
-    static constexpr int max_words = 1024;
-    uint16_t color_words[max_words];
-    for (int i = 0; i < max_words; i++)
-      color_words[i] = color;
-    for (uint32_t i = 0; i < size; i += max_words) {
-      uint32_t chunk = std::min<uint32_t>(size - i, max_words);
-      write_command_(static_cast<uint8_t>(Command::ramwr),
-                     {reinterpret_cast<uint8_t *>(color_words), chunk * 2}, 0);
-    }
-  }
-
-  /**
-   * @brief Send a list of initialization/display commands.
-   */
-  static void send_commands(std::span<const display_drivers::DisplayInitCmd<>> commands) {
-    using namespace std::chrono_literals;
-    for (const auto &[cmd, params, delay_ms] : commands) {
-      std::scoped_lock lock{spi_mutex_};
-      write_command_(cmd, params, 0);
-      std::this_thread::sleep_for(delay_ms * 1ms);
-    }
-  }
-
-  /**
-   * @brief Set top-left pixel offset.
-   */
-  static void set_offset(int x, int y) {
-    offset_x_ = x;
-    offset_y_ = y;
-  }
-
-  /**
-   * @brief Get offset.
-   */
-  static void get_offset(int &x, int &y) {
-    x = offset_x_;
-    y = offset_y_;
-  }
-
-  /**
-   * @brief Get offset, adjusted for rotation.
-   */
-  static void get_offset_rotated(int &x, int &y) {
-    auto rotation = lv_display_get_rotation(lv_display_get_default());
-    switch (rotation) {
-    case LV_DISPLAY_ROTATION_90:
-    case LV_DISPLAY_ROTATION_270:
-      x = offset_y_;
-      y = offset_x_;
-      break;
-    case LV_DISPLAY_ROTATION_0:
-    case LV_DISPLAY_ROTATION_180:
-    default:
-      x = offset_x_;
-      y = offset_y_;
-      break;
-    }
-  }
-
-protected:
-  static inline display_drivers::write_command_fn write_command_;
-  static inline display_drivers::read_command_fn read_command_;
-  static inline display_drivers::send_lines_fn lcd_send_lines_;
-  static inline gpio_num_t reset_pin_;
-  static inline gpio_num_t dc_pin_;
-  static inline int offset_x_;
-  static inline int offset_y_;
-  static inline bool mirror_x_;
-  static inline bool mirror_y_;
-  static inline bool mirror_portrait_;
-  static inline bool swap_xy_;
-  static inline bool swap_color_order_;
-  static inline std::mutex spi_mutex_;
 };
 } // namespace espp

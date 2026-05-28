@@ -31,6 +31,7 @@ set(EXTRA_COMPONENT_DIRS
   "../../../components/math"
   "../../../components/rx8130ce"
   "../../../components/pi4ioe5v"
+  "../../../components/spi"
   "../../../components/task"
 )
 
