@@ -20,10 +20,20 @@ extern "C" void app_main(void) {
         .sda_pullup_en = GPIO_PULLUP_ENABLE,
         .scl_pullup_en = GPIO_PULLUP_ENABLE,
     });
+    std::error_code ec;
+    auto tt21100_device =
+        i2c.add_device<uint8_t>({.device_address = espp::Tt21100::DEFAULT_ADDRESS,
+                                 .timeout_ms = static_cast<int>(i2c.config().timeout_ms),
+                                 .scl_speed_hz = i2c.config().clk_speed,
+                                 .log_level = espp::Logger::Verbosity::WARN},
+                                ec);
+    if (!tt21100_device) {
+      fmt::print("TT21100 I2C device initialization failed: {}\n", ec.message());
+      return;
+    }
     // now make the tt21100
     auto tt21100 = espp::Tt21100({
-        .read = std::bind(&espp::I2c::read, &i2c, std::placeholders::_1, std::placeholders::_2,
-                          std::placeholders::_3),
+        .read = espp::make_i2c_addressed_read(tt21100_device),
     });
 
     // and finally, make the task to periodically poll the tt21100 and print

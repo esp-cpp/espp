@@ -2,9 +2,6 @@
 
 #include <sdkconfig.h>
 
-// Only include this menu if the legacy API is selected
-#if defined(CONFIG_ESPP_I2C_USE_LEGACY_API) || defined(_DOXYGEN_)
-
 #include <functional>
 #include <memory>
 #include <vector>
@@ -48,10 +45,9 @@ public:
 
     // scan the bus for devices
     //
-    // NOTE: this will take a while to run, as it will probe all 128
-    // possible and the hard-coded timeout on the I2C (inside ESP-IDF) is 1
-    // second (I2C_CMD_ALIVE_INTERVAL_TICK within
-    // esp-idf/components/driver/i2c/i2c.c).
+    // NOTE: this will probe the full 7-bit address space, so it can still take
+    // noticeable time depending on the configured bus timeout and any missing
+    // pullups or disconnected devices.
     i2c_menu->Insert(
         "scan", [this](std::ostream &out) -> void { scan_bus(out); },
         "Scan the I2c bus for devices.");
@@ -146,13 +142,10 @@ protected:
 
   /// @brief Scan the I2c bus for devices.
   /// @param out The output stream to write to.
-  /// @note This will take a while to run, as it will probe all 128 possible
-  ///       addresses and the hard-coded timeout on the I2C (inside ESP-IDF) is
-  ///       1 second (I2C_CMD_ALIVE_INTERVAL_TICK within
-  ///       esp-idf/components/driver/i2c/i2c.c).
+  /// @note This probes the full 7-bit address space, so it can still take a
+  ///       while depending on the configured timeout and bus conditions.
   void scan_bus(std::ostream &out) {
-    out << "Scanning I2c bus. This may take a while if you have not updated your ESP-IDF's "
-           "I2C_CMD_ALIVE_INTERVAL_TICK.\n";
+    out << "Scanning I2c bus. This may take a while.\n";
     std::vector<uint8_t> found_addresses;
     for (uint8_t address = 1; address < 128; address++) {
       if (i2c_.get().probe_device(address)) {
@@ -213,5 +206,3 @@ protected:
   std::reference_wrapper<espp::I2c> i2c_;
 };
 } // namespace espp
-
-#endif // CONFIG_ESPP_I2C_USE_LEGACY_API

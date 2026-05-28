@@ -18,19 +18,28 @@ bool Byte90::initialize_accelerometer(const Byte90::accel_callback_t &callback) 
   // store the callback
   accel_callback_ = callback;
 
+  std::error_code ec;
+  auto accelerometer_device = internal_i2c_.add_device<uint8_t>(
+      {
+          .device_address = Accelerometer::DEFAULT_ADDRESS,
+          .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
+          .scl_speed_hz = internal_i2c_.config().clk_speed,
+          .log_level = espp::Logger::Verbosity::WARN,
+      },
+      ec);
+  if (!accelerometer_device) {
+    logger_.error("Could not initialize accelerometer I2C device: {}", ec.message());
+    return false;
+  }
   // create the accelerometer
   accelerometer_ = std::make_shared<Accelerometer>(Accelerometer::Config{
       .device_address = Accelerometer::DEFAULT_ADDRESS,
       .range = Accelerometer::RANGE_2G,
       .data_rate = Accelerometer::RATE_100_HZ,
-      .write = std::bind(&espp::I2c::write, &internal_i2c_, std::placeholders::_1,
-                         std::placeholders::_2, std::placeholders::_3),
-      .read = std::bind(&espp::I2c::read, &internal_i2c_, std::placeholders::_1,
-                        std::placeholders::_2, std::placeholders::_3),
+      .write = espp::make_i2c_addressed_write(accelerometer_device),
+      .read = espp::make_i2c_addressed_read(accelerometer_device),
       .log_level = espp::Logger::Verbosity::WARN,
   });
-
-  std::error_code ec;
 
   // Disable measurement mode initially, so we can configure interrupts and such
   accelerometer_->set_measurement_mode(false, ec);

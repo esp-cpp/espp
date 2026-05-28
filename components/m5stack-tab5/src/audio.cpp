@@ -24,15 +24,37 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
     return true;
   }
 
+  std::error_code ec;
+  auto es8388_device = internal_i2c_.add_device<uint8_t>(
+      {
+          .device_address = 0x10,
+          .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
+          .scl_speed_hz = internal_i2c_.config().clk_speed,
+          .log_level = espp::Logger::Verbosity::WARN,
+      },
+      ec);
+  if (!es8388_device) {
+    logger_.error("Could not initialize ES8388 I2C device: {}", ec.message());
+    return false;
+  }
+  auto es7210_device = internal_i2c_.add_device<uint8_t>(
+      {
+          .device_address = 0x40,
+          .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
+          .scl_speed_hz = internal_i2c_.config().clk_speed,
+          .log_level = espp::Logger::Verbosity::WARN,
+      },
+      ec);
+  if (!es7210_device) {
+    logger_.error("Could not initialize ES7210 I2C device: {}", ec.message());
+    return false;
+  }
+
   // Wire codec register access over internal I2C
-  set_es8388_write(std::bind(&espp::I2c::write, &internal_i2c_, std::placeholders::_1,
-                             std::placeholders::_2, std::placeholders::_3));
-  set_es8388_read(std::bind(&espp::I2c::read_at_register, &internal_i2c_, std::placeholders::_1,
-                            std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
-  set_es7210_write(std::bind(&espp::I2c::write, &internal_i2c_, std::placeholders::_1,
-                             std::placeholders::_2, std::placeholders::_3));
-  set_es7210_read(std::bind(&espp::I2c::read_at_register, &internal_i2c_, std::placeholders::_1,
-                            std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+  set_es8388_write(espp::make_i2c_addressed_write(es8388_device));
+  set_es8388_read(espp::make_i2c_addressed_read_register(es8388_device));
+  set_es7210_write(espp::make_i2c_addressed_write(es7210_device));
+  set_es7210_read(espp::make_i2c_addressed_read_register(es7210_device));
 
   // I2S standard channel for TX (playback)
   logger_.info("Creating I2S channel for playback (TX)");

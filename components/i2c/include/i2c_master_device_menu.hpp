@@ -4,6 +4,7 @@
 
 #if defined(CONFIG_ESPP_I2C_USE_NEW_API) || defined(_DOXYGEN_)
 
+#include <algorithm>
 #include <functional>
 #include <memory>
 #include <vector>
@@ -40,32 +41,33 @@ public:
   std::unique_ptr<cli::Menu> get(std::string_view name = "i2c_device",
                                  std::string_view description = "I2c Device menu") {
     auto menu = std::make_unique<cli::Menu>(std::string(name), std::string(description));
+    auto device = device_;
 
     // Set the log verbosity for the I2c device
     menu->Insert(
         "log", {"verbosity"},
-        [this](std::ostream &out, const std::string &verbosity) -> void {
-          set_log_level(out, verbosity);
+        [device](std::ostream &out, const std::string &verbosity) -> void {
+          set_log_level(out, device, verbosity);
         },
         "Set the log verbosity for the I2c device.");
 
     // Probe the device
     menu->Insert(
-        "probe", {}, [this](std::ostream &out) -> void { probe_device(out); },
+        "probe", {}, [device](std::ostream &out) -> void { probe_device(out, device); },
         "Probe for the device on the bus.");
 
     // Read from a register
     menu->Insert(
         "read", {"register", "length (number of bytes to read)"},
-        [this](std::ostream &out, RegisterType reg, uint8_t len) -> void {
-          read_register(out, reg, len);
+        [device](std::ostream &out, RegisterType reg, uint8_t len) -> void {
+          read_register(out, device, reg, len);
         },
         "Read len bytes from a register.");
 
     // Write to a register
     menu->Insert(
         "write", {"register", "data byte (hex)", "data byte (hex)", "..."},
-        [this](std::ostream &out, const std::vector<std::string> &args) -> void {
+        [device](std::ostream &out, const std::vector<std::string> &args) -> void {
           if (args.size() < 2) {
             out << "Not enough arguments.\n";
             return;
@@ -74,7 +76,7 @@ public:
           std::vector<uint8_t> data;
           std::transform(args.begin() + 1, args.end(), std::back_inserter(data),
                          [](const std::string &s) -> uint8_t { return std::stoi(s, nullptr, 0); });
-          write_register(out, reg, data);
+          write_register(out, device, reg, data);
         },
         "Write bytes to a register.");
 
@@ -85,21 +87,23 @@ protected:
   /// @brief Set the log level for the I2c device.
   /// @param out The output stream to write to.
   /// @param verbosity The verbosity level to set.
-  void set_log_level(std::ostream &out, const std::string &verbosity) {
-    if (!device_) {
+  static void set_log_level(std::ostream &out,
+                            const std::shared_ptr<espp::I2cMasterDevice<RegisterType>> &device,
+                            const std::string &verbosity) {
+    if (!device) {
       out << "Device not set.\n";
       return;
     }
     if (verbosity == "debug") {
-      device_->set_log_level(espp::Logger::Verbosity::DEBUG);
+      device->set_log_level(espp::Logger::Verbosity::DEBUG);
     } else if (verbosity == "info") {
-      device_->set_log_level(espp::Logger::Verbosity::INFO);
+      device->set_log_level(espp::Logger::Verbosity::INFO);
     } else if (verbosity == "warn") {
-      device_->set_log_level(espp::Logger::Verbosity::WARN);
+      device->set_log_level(espp::Logger::Verbosity::WARN);
     } else if (verbosity == "error") {
-      device_->set_log_level(espp::Logger::Verbosity::ERROR);
+      device->set_log_level(espp::Logger::Verbosity::ERROR);
     } else if (verbosity == "none") {
-      device_->set_log_level(espp::Logger::Verbosity::NONE);
+      device->set_log_level(espp::Logger::Verbosity::NONE);
     } else {
       out << "Invalid log level.\n";
       return;
@@ -109,13 +113,14 @@ protected:
 
   /// @brief Probe for the device on the bus.
   /// @param out The output stream to write to.
-  void probe_device(std::ostream &out) {
-    if (!device_) {
+  static void probe_device(std::ostream &out,
+                           const std::shared_ptr<espp::I2cMasterDevice<RegisterType>> &device) {
+    if (!device) {
       out << "Device not set.\n";
       return;
     }
     std::error_code ec;
-    if (device_->probe(ec)) {
+    if (device->probe(50, ec)) {
       out << "Device found on the bus.\n";
     } else {
       out << fmt::format("Device not found: {}\n", ec.message());
@@ -126,14 +131,16 @@ protected:
   /// @param out The output stream to write to.
   /// @param reg The register to read from.
   /// @param len The number of bytes to read.
-  void read_register(std::ostream &out, RegisterType reg, uint8_t len) {
-    if (!device_) {
+  static void read_register(std::ostream &out,
+                            const std::shared_ptr<espp::I2cMasterDevice<RegisterType>> &device,
+                            RegisterType reg, uint8_t len) {
+    if (!device) {
       out << "Device not set.\n";
       return;
     }
     std::error_code ec;
     std::vector<uint8_t> data(len);
-    bool ok = device_->read_register(reg, data, ec);
+    bool ok = device->read_register(reg, data, ec);
     if (ok) {
       out << fmt::format("Read {} bytes from register {:#x}: {::#02x}\n", data.size(), reg, data);
     } else {
@@ -145,13 +152,15 @@ protected:
   /// @param out The output stream to write to.
   /// @param reg The register to write to.
   /// @param data The data to write.
-  void write_register(std::ostream &out, RegisterType reg, const std::vector<uint8_t> &data) {
-    if (!device_) {
+  static void write_register(std::ostream &out,
+                             const std::shared_ptr<espp::I2cMasterDevice<RegisterType>> &device,
+                             RegisterType reg, const std::vector<uint8_t> &data) {
+    if (!device) {
       out << "Device not set.\n";
       return;
     }
     std::error_code ec;
-    bool ok = device_->write_register(reg, data, ec);
+    bool ok = device->write_register(reg, data, ec);
     if (ok) {
       out << fmt::format("Wrote {} bytes to register {:#x}: {::#02x}\n", data.size(), reg, data);
     } else {

@@ -5,6 +5,7 @@
 // Only include this menu if the new API is selected
 #if defined(CONFIG_ESPP_I2C_USE_NEW_API) || defined(_DOXYGEN_)
 
+#include <algorithm>
 #include <functional>
 #include <memory>
 #include <string>
@@ -19,16 +20,14 @@ namespace espp {
 
 /// @brief CLI menu for I2C Slave Device
 /// @details
-/// This class provides a command-line interface (CLI) menu for interacting with the I2C slave
-/// device using the new ESP-IDF I2C slave API.
-///
-/// \section i2c_slave_menu_ex1 Example
-/// \snippet i2c_example.cpp NEW SLAVE API MENU
+/// This class provides a command-line interface (CLI) menu for interacting with
+/// an I2C slave device using the new ESP-IDF I2C slave API.
 ///
 /// Usage:
 ///   - Construct with a shared pointer to an I2cSlaveDevice
-///   - Use add_to_menu() to add I2C slave commands to a CLI menu
-///   - Supports reading, writing, and callback registration
+///   - Use get() to add I2C slave commands to a CLI menu
+///   - Supports reading queued master-write transactions and staging slave
+///     responses back to the master
 ///
 /// \note This class is intended for use with the new ESP-IDF I2C slave API (>=5.4.0)
 class I2cSlaveMenu {
@@ -69,7 +68,10 @@ public:
 
     menu->Insert(
         "write", {"data byte", "data byte", "..."},
-        [this](std::ostream &out, const std::vector<uint8_t> &data) -> void {
+        [this](std::ostream &out, const std::vector<std::string> &args) -> void {
+          std::vector<uint8_t> data;
+          std::transform(args.begin(), args.end(), std::back_inserter(data),
+                         [](const std::string &s) -> uint8_t { return std::stoi(s, nullptr, 0); });
           std::error_code ec;
           bool success = device_->write(data.data(), data.size(), ec);
           if (success) {

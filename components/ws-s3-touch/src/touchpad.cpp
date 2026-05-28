@@ -13,12 +13,23 @@ bool WsS3Touch::initialize_touch(const WsS3Touch::touch_callback_t &callback) {
   }
 
   logger_.info("Initializing TouchDriver");
-  touch_driver_ = std::make_unique<TouchDriver>(TouchDriver::Config{
-      .write = std::bind(&espp::I2c::write, &internal_i2c_, std::placeholders::_1,
-                         std::placeholders::_2, std::placeholders::_3),
-      .read = std::bind(&espp::I2c::read, &internal_i2c_, std::placeholders::_1,
-                        std::placeholders::_2, std::placeholders::_3),
-      .log_level = espp::Logger::Verbosity::WARN});
+  std::error_code ec;
+  auto touch_device = internal_i2c_.add_device<uint8_t>(
+      {
+          .device_address = TouchDriver::DEFAULT_ADDRESS,
+          .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
+          .scl_speed_hz = internal_i2c_.config().clk_speed,
+          .log_level = espp::Logger::Verbosity::WARN,
+      },
+      ec);
+  if (!touch_device) {
+    logger_.error("Could not initialize touch I2C device: {}", ec.message());
+    return false;
+  }
+  touch_driver_ = std::make_unique<TouchDriver>(
+      TouchDriver::Config{.write = espp::make_i2c_addressed_write(touch_device),
+                          .read = espp::make_i2c_addressed_read(touch_device),
+                          .log_level = espp::Logger::Verbosity::WARN});
 
   // store the callback
   touch_callback_ = callback;

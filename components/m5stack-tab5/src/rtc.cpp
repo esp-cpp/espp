@@ -14,10 +14,23 @@ bool M5StackTab5::initialize_rtc() {
     return true;
   }
 
+  std::error_code ec;
+  auto rtc_device = internal_i2c_.add_device<uint8_t>(
+      {
+          .device_address = Rtc::DEFAULT_ADDRESS,
+          .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
+          .scl_speed_hz = internal_i2c_.config().clk_speed,
+          .log_level = Logger::Verbosity::WARN,
+      },
+      ec);
+  if (!rtc_device) {
+    logger_.error("Could not initialize RTC I2C device: {}", ec.message());
+    return false;
+  }
   rtc_ = std::make_shared<Rtc>(Rtc::Config{
       .device_address = Rtc::DEFAULT_ADDRESS,
-      .write = std::bind_front(&espp::I2c::write, &internal_i2c_),
-      .read = std::bind_front(&espp::I2c::read, &internal_i2c_),
+      .write = espp::make_i2c_addressed_write(rtc_device),
+      .read = espp::make_i2c_addressed_read(rtc_device),
       .auto_init = true,
       .log_level = Logger::Verbosity::WARN,
   });

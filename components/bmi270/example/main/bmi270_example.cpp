@@ -82,14 +82,23 @@ extern "C" void app_main(void) {
       logger.warn("No BMI270 found at address: 0x{:02X}", address);
     }
   }
+  std::error_code ec;
+  auto bmi270_device =
+      i2c.add_device<uint8_t>({.device_address = bmi270_address,
+                               .timeout_ms = static_cast<int>(i2c.config().timeout_ms),
+                               .scl_speed_hz = i2c.config().clk_speed,
+                               .log_level = espp::Logger::Verbosity::WARN},
+                              ec);
+  if (!bmi270_device) {
+    logger.error("Failed to initialize BMI270 I2C device: {}", ec.message());
+    return;
+  }
 
   // make the IMU config
   Imu::Config config{
       .device_address = bmi270_address,
-      .write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1, std::placeholders::_2,
-                         std::placeholders::_3),
-      .read = std::bind(&espp::I2c::read, &i2c, std::placeholders::_1, std::placeholders::_2,
-                        std::placeholders::_3),
+      .write = espp::make_i2c_addressed_write(bmi270_device),
+      .read = espp::make_i2c_addressed_read(bmi270_device),
       .imu_config =
           {
               .accelerometer_range = Imu::AccelerometerRange::RANGE_4G,
@@ -119,8 +128,6 @@ extern "C" void app_main(void) {
   // Note: This assumes the device is flat on a table (Z-axis = 1g)
   // For a real application, you might want to trigger this based on a user action
   // or store the offsets in NVS.
-  std::error_code ec;
-
   logger.info("Performing Accelerometer FOC...");
   Imu::AccelFocGValue accel_foc_target = {.x = 0, .y = 0, .z = 1, .sign = 0}; // 1g on Z axis
   if (imu.perform_accel_foc(accel_foc_target, ec)) {

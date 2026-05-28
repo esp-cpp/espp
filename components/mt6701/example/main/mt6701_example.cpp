@@ -25,6 +25,17 @@ extern "C" void app_main(void) {
         .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
         .clk_speed = 1 * 1000 * 1000, // MT6701 supports 1 MHz I2C
     });
+    std::error_code ec;
+    auto mt6701_device =
+        i2c.add_device<uint8_t>({.device_address = espp::Mt6701<>::DEFAULT_ADDRESS,
+                                 .timeout_ms = static_cast<int>(i2c.config().timeout_ms),
+                                 .scl_speed_hz = i2c.config().clk_speed,
+                                 .log_level = espp::Logger::Verbosity::WARN},
+                                ec);
+    if (!mt6701_device) {
+      fmt::print("MT6701 I2C device initialization failed: {}\n", ec.message());
+      return;
+    }
 
     // make the velocity filter
     static constexpr float filter_cutoff_hz = 10.0f;
@@ -36,10 +47,8 @@ extern "C" void app_main(void) {
     // now make the mt6701 which decodes the data
     using Mt6701 = espp::Mt6701<espp::Mt6701Interface::I2C>;
     Mt6701 mt6701(
-        Mt6701::Config{.write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1,
-                                          std::placeholders::_2, std::placeholders::_3),
-                       .read = std::bind(&espp::I2c::read, &i2c, std::placeholders::_1,
-                                         std::placeholders::_2, std::placeholders::_3),
+        Mt6701::Config{.write = espp::make_i2c_addressed_write(mt6701_device),
+                       .read = espp::make_i2c_addressed_read(mt6701_device),
                        .velocity_filter = filter_fn,
                        .update_period = std::chrono::duration<float>(encoder_update_period),
                        .run_task = true, // run a task which calls the update function at the update

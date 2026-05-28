@@ -23,21 +23,27 @@ extern "C" void app_main(void) {
         .sda_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SDA_GPIO,
         .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
     });
-
     using Driver = espp::Drv2605;
 
+    std::error_code ec;
+    auto drv2605_device =
+        i2c.add_device<uint8_t>({.device_address = Driver::DEFAULT_ADDRESS,
+                                 .timeout_ms = static_cast<int>(i2c.config().timeout_ms),
+                                 .scl_speed_hz = i2c.config().clk_speed,
+                                 .log_level = espp::Logger::Verbosity::INFO},
+                                ec);
+    if (!drv2605_device) {
+      logger.error("Could not initialize DRV2605 I2C device: {}", ec.message());
+      return;
+    }
     // make the actual drv2605 class
     Driver drv2605(Driver::Config{
         .device_address = Driver::DEFAULT_ADDRESS,
-        .write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1, std::placeholders::_2,
-                           std::placeholders::_3),
-        .read_register =
-            std::bind(&espp::I2c::read_at_register, &i2c, std::placeholders::_1,
-                      std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+        .write = espp::make_i2c_addressed_write(drv2605_device),
+        .read_register = espp::make_i2c_addressed_read_register(drv2605_device),
         .motor_type = Driver::MotorType::LRA,
         .log_level = espp::Logger::Verbosity::INFO,
     });
-    std::error_code ec;
     // we're using an ERM motor, so select an ERM library (1-5).
     // drv2605.select_library(1, ec);
     // we're using an LRA motor, so select an LRA library (6).

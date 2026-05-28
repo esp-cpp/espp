@@ -13,24 +13,45 @@ bool EspBox::initialize_touch(const EspBox::touch_callback_t &callback) {
   }
 
   switch (box_type_) {
-  case BoxType::BOX3:
+  case BoxType::BOX3: {
+    std::error_code ec;
+    auto touch_device = internal_i2c_.add_device<uint8_t>(
+        {
+            .device_address = espp::Gt911::DEFAULT_ADDRESS_1,
+            .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
+            .scl_speed_hz = internal_i2c_.config().clk_speed,
+            .log_level = espp::Logger::Verbosity::WARN,
+        },
+        ec);
+    if (!touch_device) {
+      logger_.error("Could not initialize GT911 I2C device: {}", ec.message());
+      return false;
+    }
     logger_.info("Initializing GT911");
-    gt911_ = std::make_unique<espp::Gt911>(espp::Gt911::Config{
-        .write = std::bind(&espp::I2c::write, &internal_i2c_, std::placeholders::_1,
-                           std::placeholders::_2, std::placeholders::_3),
-        .read = std::bind(&espp::I2c::read, &internal_i2c_, std::placeholders::_1,
-                          std::placeholders::_2, std::placeholders::_3),
-        .log_level = espp::Logger::Verbosity::WARN});
-    break;
-  case BoxType::BOX:
+    gt911_ = std::make_unique<espp::Gt911>(
+        espp::Gt911::Config{.write = espp::make_i2c_addressed_write(touch_device),
+                            .read = espp::make_i2c_addressed_read(touch_device),
+                            .log_level = espp::Logger::Verbosity::WARN});
+  } break;
+  case BoxType::BOX: {
+    std::error_code ec;
+    auto touch_device = internal_i2c_.add_device<uint8_t>(
+        {
+            .device_address = espp::Tt21100::DEFAULT_ADDRESS,
+            .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
+            .scl_speed_hz = internal_i2c_.config().clk_speed,
+            .log_level = espp::Logger::Verbosity::WARN,
+        },
+        ec);
+    if (!touch_device) {
+      logger_.error("Could not initialize TT21100 I2C device: {}", ec.message());
+      return false;
+    }
     logger_.info("Initializing TT21100");
-    tt21100_ = std::make_unique<espp::Tt21100>(espp::Tt21100::Config{
-        .write = std::bind(&espp::I2c::write, &internal_i2c_, std::placeholders::_1,
-                           std::placeholders::_2, std::placeholders::_3),
-        .read = std::bind(&espp::I2c::read, &internal_i2c_, std::placeholders::_1,
-                          std::placeholders::_2, std::placeholders::_3),
-        .log_level = espp::Logger::Verbosity::WARN});
-    break;
+    tt21100_ = std::make_unique<espp::Tt21100>(
+        espp::Tt21100::Config{.read = espp::make_i2c_addressed_read(touch_device),
+                              .log_level = espp::Logger::Verbosity::WARN});
+  } break;
   default:
     return false;
   }

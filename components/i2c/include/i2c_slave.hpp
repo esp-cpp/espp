@@ -5,6 +5,7 @@
 // Only include this header if the new API is selected
 #if defined(CONFIG_ESPP_I2C_USE_NEW_API) || defined(_DOXYGEN_)
 
+#include <atomic>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -12,9 +13,11 @@
 #include <vector>
 
 #include <freertos/FreeRTOS.h>
+#include <freertos/message_buffer.h>
 #include <freertos/queue.h>
 
 #include "base_component.hpp"
+#include "task.hpp"
 
 extern "C" {
 #include <driver/i2c_slave.h>
@@ -24,25 +27,31 @@ extern "C" {
 
 namespace espp {
 
-/// @brief I2C Slave Device (C++ wrapper for ESP-IDF new I2C slave API)
+/// @brief I2C slave device wrapper for ESP-IDF's callback-driven slave API.
 /// @details
-/// This class is a wrapper around the ESP-IDF I2C slave device API.
-/// It provides thread-safe, modern C++ access to I2C slave device operations.
+/// ESP-IDF's slave driver is event/callback based: master writes arrive through
+/// receive callbacks, and master reads can trigger request callbacks when the
+/// slave transmit FIFO needs more data. This wrapper provides:
 ///
-/// @note There is no example for this yet as this code is untested.
+/// - queued `read()` access to complete master-write transactions
+/// - blocking `write()` access for staging data back to the master
+/// - task-context request / receive callbacks so user code does not have to run
+///   inside the ISR callback context
+///
+/// @note No dedicated example exists yet.
 ///
 /// Usage:
-///   - Construct with a config
-///   - Use read, write, and callback registration methods
-///   - All methods are thread-safe
+///   - Construct with a config, then call `init()`
+///   - Call `read()` to receive the next complete master-write transaction
+///   - Call `write()` to stage response bytes for the next master read
+///   - Register callbacks if you want task-context notifications
 ///
 /// \note This class is intended for use with the new ESP-IDF I2C slave API (>=5.4.0)
 class I2cSlaveDevice : public BaseComponent {
 public:
-  using RequestCallback =
-      std::function<void(const uint8_t *data, size_t len)>; ///< Callback for data requests
+  using RequestCallback = std::function<void()>; ///< Callback for master read requests.
   using ReceiveCallback =
-      std::function<void(const uint8_t *data, size_t len)>; ///< Callback for data received
+      std::function<void(const uint8_t *data, size_t len)>; ///< Callback for master writes.
 
   /// @brief Callbacks for I2C slave events
   struct Callbacks {
@@ -52,14 +61,18 @@ public:
 
   /// @brief Configuration for I2C Slave Device
   struct Config {
-    int port = 0;                                          ///< I2C port number
-    int sda_io_num = -1;                                   ///< SDA pin
-    int scl_io_num = -1;                                   ///< SCL pin
-    uint16_t slave_address = 0;                            ///< I2C slave address
-    i2c_addr_bit_len_t addr_bit_len = I2C_ADDR_BIT_LEN_7;  ///< Address bit length
-    uint32_t clk_speed = 100000;                           ///< I2C clock speed in hertz
-    bool enable_internal_pullup = true;                    ///< Enable internal pullups
-    int intr_priority = 0;                                 ///< Interrupt priority
+    int port = 0;                                         ///< I2C port number
+    int sda_io_num = -1;                                  ///< SDA pin
+    int scl_io_num = -1;                                  ///< SCL pin
+    uint16_t slave_address = 0;                           ///< I2C slave address
+    i2c_addr_bit_len_t addr_bit_len = I2C_ADDR_BIT_LEN_7; ///< Address bit length
+    int timeout_ms = 10;                                  ///< Read/write timeout in milliseconds
+    uint32_t receive_buffer_depth = 256;                  ///< Max bytes per received transaction
+    uint32_t send_buffer_depth = 256;                     ///< Depth of driver TX buffer
+    size_t event_queue_depth = 8;       ///< Number of queued request/receive events
+    bool enable_internal_pullup = true; ///< Enable internal pullups
+    int intr_priority = 0;              ///< Interrupt priority
+    espp::Task::BaseConfig task_config = {.name = "I2C Slave Task"};
     Logger::Verbosity log_level = Logger::Verbosity::WARN; ///< Logger verbosity
   };
 
@@ -88,9 +101,9 @@ public:
   bool write(const uint8_t *data, size_t len, std::error_code &ec);
   /// @brief Read data from the master
   /// @param data Pointer to buffer
-  /// @param len Length to read
+  /// @param len Maximum transaction length to read
   /// @param ec Error code output
-  /// @return True if successful
+  /// @return True if a complete master-write transaction was received
   bool read(uint8_t *data, size_t len, std::error_code &ec);
 
   /// @brief Register callbacks for slave events
@@ -101,18 +114,40 @@ public:
 
   /// @brief Expose config for CLI menu
   /// @return Reference to config
-  const Config &config() const;
+  const Config &config() const { return config_; }
 
 protected:
+  enum class EventType : uint8_t { STOP, REQUEST, RECEIVE };
+
+  struct Event {
+    EventType type;
+  };
+
+  static bool IRAM_ATTR request_callback_trampoline(i2c_slave_dev_handle_t i2c_slave,
+                                                    const i2c_slave_request_event_data_t *evt_data,
+                                                    void *user_data);
+  static bool IRAM_ATTR receive_callback_trampoline(i2c_slave_dev_handle_t i2c_slave,
+                                                    const i2c_slave_rx_done_event_data_t *evt_data,
+                                                    void *user_data);
+
+  static size_t message_buffer_capacity(size_t max_message_size, size_t max_messages);
+  static TickType_t timeout_ticks(int timeout_ms);
+
+  bool event_task_callback(std::mutex &m, std::condition_variable &cv, bool &notified);
+  void log_pending_overflows();
+
   Config config_;
   i2c_slave_dev_handle_t dev_handle_ = nullptr;
   bool initialized_ = false;
   std::recursive_mutex mutex_;
   Callbacks callbacks_{};
-  // FreeRTOS queue for request/receive events
   QueueHandle_t event_queue_ = nullptr;
-  // TODO: create a espp::Task which waits on a queue to be notified from ISR
-  // for request/receive events
+  MessageBufferHandle_t read_buffer_ = nullptr;
+  MessageBufferHandle_t callback_buffer_ = nullptr;
+  std::unique_ptr<espp::Task> event_task_;
+  std::atomic<bool> read_buffer_overflowed_{false};
+  std::atomic<bool> callback_buffer_overflowed_{false};
+  std::atomic<bool> event_queue_overflowed_{false};
 };
 
 } // namespace espp

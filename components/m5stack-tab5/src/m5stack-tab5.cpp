@@ -15,7 +15,31 @@ M5StackTab5::M5StackTab5()
 
 bool M5StackTab5::initialize_io_expanders() {
   logger_.info("Initializing IO expanders (0x43, 0x44)");
-  // Create instances
+  std::error_code ec;
+  auto ioexp_0x43_device = internal_i2c_.add_device<uint8_t>(
+      {
+          .device_address = 0x43,
+          .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
+          .scl_speed_hz = internal_i2c_.config().clk_speed,
+          .log_level = Logger::Verbosity::INFO,
+      },
+      ec);
+  if (!ioexp_0x43_device) {
+    logger_.error("Could not initialize IO expander 0x43 I2C device: {}", ec.message());
+    return false;
+  }
+  auto ioexp_0x44_device = internal_i2c_.add_device<uint8_t>(
+      {
+          .device_address = 0x44,
+          .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
+          .scl_speed_hz = internal_i2c_.config().clk_speed,
+          .log_level = Logger::Verbosity::INFO,
+      },
+      ec);
+  if (!ioexp_0x44_device) {
+    logger_.error("Could not initialize IO expander 0x44 I2C device: {}", ec.message());
+    return false;
+  }
   ioexp_0x43_ = std::make_shared<IoExpander>(IoExpander::Config{
       .device_address = 0x43,
       .direction_mask = IOX_0x43_DIRECTION_MASK,
@@ -23,11 +47,8 @@ bool M5StackTab5::initialize_io_expanders() {
       .high_z_mask = IOX_0x43_HIGH_Z_MASK,
       .pull_up_mask = IOX_0x43_PULL_UPS,
       .pull_down_mask = IOX_0x43_PULL_DOWNS,
-      .write = std::bind(&I2c::write, &internal_i2c_, std::placeholders::_1, std::placeholders::_2,
-                         std::placeholders::_3),
-      .write_then_read =
-          std::bind(&I2c::write_read, &internal_i2c_, std::placeholders::_1, std::placeholders::_2,
-                    std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
+      .write = espp::make_i2c_addressed_write(ioexp_0x43_device),
+      .write_then_read = espp::make_i2c_addressed_write_then_read(ioexp_0x43_device),
       .log_level = Logger::Verbosity::INFO});
   ioexp_0x44_ = std::make_shared<IoExpander>(IoExpander::Config{
       .device_address = 0x44,
@@ -36,11 +57,8 @@ bool M5StackTab5::initialize_io_expanders() {
       .high_z_mask = IOX_0x44_HIGH_Z_MASK,
       .pull_up_mask = IOX_0x44_PULL_UPS,
       .pull_down_mask = IOX_0x44_PULL_DOWNS,
-      .write = std::bind(&I2c::write, &internal_i2c_, std::placeholders::_1, std::placeholders::_2,
-                         std::placeholders::_3),
-      .write_then_read =
-          std::bind(&I2c::write_read, &internal_i2c_, std::placeholders::_1, std::placeholders::_2,
-                    std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
+      .write = espp::make_i2c_addressed_write(ioexp_0x44_device),
+      .write_then_read = espp::make_i2c_addressed_write_then_read(ioexp_0x44_device),
       .log_level = Logger::Verbosity::INFO});
 
   logger_.info("IO expanders initialized");

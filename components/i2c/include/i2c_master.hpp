@@ -161,7 +161,7 @@ public:
 
   /// @brief Expose config for CLI menu
   /// @return Reference to config
-  const Config &config() const;
+  const Config &config() const { return config_; }
 
 protected:
   Config config_;

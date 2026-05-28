@@ -9,10 +9,22 @@ using namespace espp;
 bool EspBox::initialize_codec() {
   logger_.info("initializing codec");
 
-  set_es8311_write(std::bind(&espp::I2c::write, &internal_i2c_, std::placeholders::_1,
-                             std::placeholders::_2, std::placeholders::_3));
-  set_es8311_read(std::bind(&espp::I2c::read_at_register, &internal_i2c_, std::placeholders::_1,
-                            std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+  std::error_code ec;
+  auto codec_device = internal_i2c_.add_device<uint8_t>(
+      {
+          .device_address = 0x18,
+          .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
+          .scl_speed_hz = internal_i2c_.config().clk_speed,
+          .log_level = espp::Logger::Verbosity::WARN,
+      },
+      ec);
+  if (!codec_device) {
+    logger_.error("Could not initialize codec I2C device: {}", ec.message());
+    return false;
+  }
+
+  set_es8311_write(espp::make_i2c_addressed_write(codec_device));
+  set_es8311_read(espp::make_i2c_addressed_read_register(codec_device));
 
   esp_err_t ret_val = ESP_OK;
   audio_hal_codec_config_t cfg;

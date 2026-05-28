@@ -60,6 +60,17 @@ extern "C" void app_main(void) {
     }
 
     logger.info("Found TLA2528 at address {:#02x}", tla_address);
+    std::error_code ec;
+    auto tla_device =
+        i2c.add_device<uint8_t>({.device_address = tla_address,
+                                 .timeout_ms = static_cast<int>(i2c.config().timeout_ms),
+                                 .scl_speed_hz = i2c.config().clk_speed,
+                                 .log_level = espp::Logger::Verbosity::WARN},
+                                ec);
+    if (!tla_device) {
+      logger.error("Failed to initialize TLA2528 I2C device: {}", ec.message());
+      return;
+    }
 
     static std::vector<espp::Tla2528::Channel> channels = {
         espp::Tla2528::Channel::CH0, espp::Tla2528::Channel::CH1, espp::Tla2528::Channel::CH2,
@@ -75,10 +86,8 @@ extern "C" void app_main(void) {
         .digital_outputs = {},
         // enable oversampling / averaging
         .oversampling_ratio = espp::Tla2528::OversamplingRatio::NONE,
-        .write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1, std::placeholders::_2,
-                           std::placeholders::_3),
-        .read = std::bind(&espp::I2c::read, &i2c, std::placeholders::_1, std::placeholders::_2,
-                          std::placeholders::_3),
+        .write = espp::make_i2c_addressed_write(tla_device),
+        .read = espp::make_i2c_addressed_read(tla_device),
         .log_level = espp::Logger::Verbosity::WARN,
     });
 
@@ -87,7 +96,6 @@ extern "C" void app_main(void) {
     // NOTE: this is not strictly necessary, but improves the accuracy of the
     //       ADC.
     auto cal_start_us = esp_timer_get_time();
-    std::error_code ec;
     tla.calibrate(ec);
     auto cal_end_us = esp_timer_get_time();
     if (ec) {
