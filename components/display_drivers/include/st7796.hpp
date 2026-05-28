@@ -213,14 +213,12 @@ public:
 
     uint32_t size = width * height;
     static constexpr int max_pixels_to_send = 1024;
-    uint16_t color_data[max_pixels_to_send];
-    for (auto &pixel : color_data) {
-      pixel = color;
-    }
+    std::array<uint16_t, max_pixels_to_send> color_data;
+    std::fill(color_data.begin(), color_data.end(), color);
     for (int i = 0; i < size; i += max_pixels_to_send) {
       size_t num_pixels = std::min((int)(size - i), max_pixels_to_send);
       write_command_(static_cast<uint8_t>(Command::ramwr),
-                     {reinterpret_cast<uint8_t *>(color_data), num_pixels * 2}, 0);
+                     {reinterpret_cast<uint8_t *>(color_data.data()), num_pixels * 2}, 0);
     }
   }
 
