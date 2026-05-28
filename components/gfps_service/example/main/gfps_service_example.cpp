@@ -9,6 +9,16 @@
 
 using namespace std::chrono_literals;
 
+// useful for specifically configuring the tx power level in the advertising
+// data, which is required for Fast Pair certification.
+static void append_tx_power(espp::BleGattServer::AdvertisedData &data, int8_t tx_power_dbm) {
+  uint8_t tx_power_data[3];
+  tx_power_data[0] = 2;
+  tx_power_data[1] = 0x0A;
+  tx_power_data[2] = tx_power_dbm;
+  data.addData(tx_power_data, sizeof(tx_power_data));
+}
+
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = "Gfps Service Example", .level = espp::Logger::Verbosity::INFO});
   logger.info("Starting");
@@ -65,19 +75,6 @@ extern "C" void app_main(void) {
   gfps_service.init(ble_gatt_server.server());
   gfps_service.start();
 
-  // let's make a hid service so that the android phone will pair and stay connected
-  // HID Xbox controller
-  uint16_t vid = 0x045E; // Microsoft
-  uint16_t pid = 0x0B13; // Xbox One Controller (model 1708)
-  uint16_t product_version = 0x0100;
-  std::string software_version = "1.0.0";
-  std::string firmware_version = "5.9.2709.0";
-  std::string hardware_version = "1.0.0";
-  std::string advertised_name = device_name;
-  std::string manufacturer_name = "Microsoft";
-  std::string model_number = "1708";
-  std::string serial_number = "1234567890";
-
   using GamepadInput = espp::XboxGamepadInputReport<>;
   GamepadInput gamepad_input_report;
   static constexpr size_t num_buttons = GamepadInput::button_count;
@@ -102,13 +99,8 @@ extern "C" void app_main(void) {
   // now that we've made the input characteristic, we can start the service
   hid_service.start();
 
-  ble_gatt_server.start_services(); // starts the device info service and battery service
-  // NOTE: we could also directly start them ourselves if we wanted to
-  //      control the order of starting the services
-  // e.g.:
-  // ble_gatt_server.battery_service().start();
-  // ble_gatt_server.device_info_service().start();
-
+  // starts the device info service and battery service
+  ble_gatt_server.start_services();
   // now start the gatt server
   ble_gatt_server.start();
 
@@ -118,6 +110,9 @@ extern "C" void app_main(void) {
 
   auto &device_info_service = ble_gatt_server.device_info_service();
   uint8_t vendor_source = 0x02; // USB
+  uint16_t vid = 0xCafe;
+  uint16_t pid = 0xBabe;
+  uint16_t product_version = 0x0100; // version 1.0
   device_info_service.set_pnp_id(vendor_source, vid, pid, product_version);
   device_info_service.set_manufacturer_name("ESP-CPP");
   // NOTE: this is NOT required to be the same as the GFPS SKU Name
@@ -127,17 +122,36 @@ extern "C" void app_main(void) {
   device_info_service.set_firmware_version("1.0.0");
   device_info_service.set_hardware_version("1.0.0");
 
+  static constexpr int tx_power_dbm = -5;
+
   // now lets start advertising
   espp::BleGattServer::AdvertisedData adv_data;
-  // uint8_t flags = BLE_HS_ADV_F_DISC_LTD;
-  uint8_t flags = BLE_HS_ADV_F_DISC_GEN;
+  uint8_t flags = BLE_HS_ADV_F_DISC_LTD;
+  // uint8_t flags = BLE_HS_ADV_F_DISC_GEN;
   adv_data.setFlags(flags);
-  adv_data.setName(device_name);
-  adv_data.setAppearance((uint16_t)espp::BleAppearance::GENERIC_DISPLAY);
+  adv_data.setAppearance((uint16_t)espp::BleAppearance::GAMEPAD);
+  adv_data.setPartialServices16({hid_service.uuid()});
   adv_data.setServiceData(gfps_service.uuid(), gfps_service.get_service_data());
-  adv_data.addTxPower();
+  append_tx_power(adv_data, tx_power_dbm);
   ble_gatt_server.set_advertisement_data(adv_data);
-  ble_gatt_server.start_advertising();
+
+  // set scan response data to include the name
+  espp::BleGattServer::AdvertisedData scan_response_data;
+  // Ensure the name is set correctly in the scan response
+  // This is critical for proper device identification during scanning
+  scan_response_data.setName(device_name);
+  // Add appearance to scan response for consistency
+  scan_response_data.setAppearance((uint16_t)espp::BleAppearance::GAMEPAD);
+  // Add partial service list to scan response
+  scan_response_data.setPartialServices16({hid_service.uuid()});
+  append_tx_power(scan_response_data, tx_power_dbm);
+  ble_gatt_server.set_scan_response_data(scan_response_data);
+
+  espp::BleGattServer::AdvertisingParameters adv_params;
+  adv_params.duration_ms = 0; // never stop
+  // Ensure scan response is enabled
+  adv_params.scan_response = true;
+  ble_gatt_server.start_advertising(adv_params);
 
   // now lets update the battery level every second
   uint8_t battery_level = 99;
