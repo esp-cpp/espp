@@ -1,16 +1,14 @@
+#include <array>
 #include <chrono>
+#include <cstring>
 #include <memory>
 #include <vector>
 
-#include <driver/spi_master.h>
 #include <hal/spi_ll.h>
-#include <hal/spi_types.h>
 
 #include "display.hpp"
+#include "spi.hpp"
 
-// default, most displays use 16-bit coordinates
-#define DISPLAY_COORDINATES_16BIT 1
-#define DISPLAY_COORDINATES_8BIT 0
 #define DISPLAY_IS_OLED 0 // most displays are not OLEDs
 
 #if CONFIG_HARDWARE_WROVER_KIT
@@ -35,13 +33,13 @@ using Display = espp::Display<lv_color16_t>;
 using DisplayDriver = espp::Gc9a01;
 #elif CONFIG_T_ENCODER_PRO
 #include "sh8601.hpp"
+#undef DISPLAY_IS_OLED
 #define DISPLAY_IS_OLED 1 // T-Encoder Pro uses an OLED display
 using Display = espp::Display<lv_color16_t>;
 using DisplayDriver = espp::Sh8601;
 #elif CONFIG_HARDWARE_BYTE90
 #include "ssd1351.hpp"
-#define DISPLAY_COORDINATES_8BIT 1 // ssd1351 only supports 8-bit coordinates
-#define DISPLAY_COORDINATES_16BIT 0
+#undef DISPLAY_IS_OLED
 #define DISPLAY_IS_OLED 1 // Byte90 uses an OLED display
 static constexpr int DC_PIN_NUM = 43;
 using Display = espp::Display<lv_color16_t>;
@@ -55,10 +53,16 @@ using DisplayDriver = espp::Ssd1351;
 
 using namespace std::chrono_literals;
 
-static spi_device_handle_t spi;
-static const int spi_queue_size = 7;
+static std::unique_ptr<espp::Spi> spi_bus;
+static constexpr auto spi_num = SPI2_HOST;
+#ifdef CONFIG_DISPLAY_QUAD_SPI
+static std::shared_ptr<espp::Spi::Device> spi_device;
+static constexpr int spi_queue_size = 7;
 static size_t num_queued_trans = 0;
-static auto spi_num = SPI2_HOST;
+#else
+static std::unique_ptr<espp::SpiPanelIo> panel_io;
+static constexpr int spi_queue_size = 6;
+#endif
 
 // the user flag for the callbacks does two things:
 // 1. Provides the GPIO level for the data/command pin, and
@@ -66,108 +70,80 @@ static auto spi_num = SPI2_HOST;
 static constexpr int FLUSH_BIT = (1 << (int)espp::display_drivers::Flags::FLUSH_BIT);
 static constexpr int DC_LEVEL_BIT = (1 << (int)espp::display_drivers::Flags::DC_LEVEL_BIT);
 
-//! [pre_transfer_callback example]
-// This function is called (in irq context!) just before a transmission starts.
-// It will set the D/C line to the value indicated in the user field
-// (DC_LEVEL_BIT).
-// Except for the T-Encoder Pro, which does not have a D/C line.
+static void IRAM_ATTR lcd_spi_flush_ready(uint32_t) {
+  lv_display_t *disp = lv_display_get_default();
+  lv_display_flush_ready(disp);
+}
+
+#ifdef CONFIG_DISPLAY_QUAD_SPI
 #ifndef CONFIG_T_ENCODER_PRO
 // cppcheck-suppress constParameterCallback
 static void IRAM_ATTR lcd_spi_pre_transfer_callback(spi_transaction_t *t) {
-  uint32_t user_flags = (uint32_t)(t->user);
-  bool dc_level = user_flags & DC_LEVEL_BIT;
+  auto user_flags = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(t->user));
+  bool dc_level = (user_flags & DC_LEVEL_BIT) != 0;
   gpio_set_level((gpio_num_t)DC_PIN_NUM, dc_level);
 }
 #endif
-//! [pre_transfer_callback example]
 
-//! [post_transfer_callback example]
-// This function is called (in irq context!) just after a transmission ends. It
-// will indicate to lvgl that the next flush is ready to be done if the
-// FLUSH_BIT is set.
-//
 // cppcheck-suppress constParameterCallback
 static void IRAM_ATTR lcd_spi_post_transfer_callback(spi_transaction_t *t) {
-  uint16_t user_flags = (uint32_t)(t->user);
-  bool should_flush = user_flags & FLUSH_BIT;
-  if (should_flush) {
-    lv_display_t *disp = lv_display_get_default();
-    lv_display_flush_ready(disp);
+  auto user_flags = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(t->user));
+  if ((user_flags & FLUSH_BIT) != 0) {
+    lcd_spi_flush_ready(user_flags);
   }
 }
-//! [post_transfer_callback example]
 
-//! [polling_transmit example]
-#ifdef CONFIG_DISPLAY_QUAD_SPI
 extern "C" void IRAM_ATTR write_command(uint8_t command, std::span<const uint8_t> parameters,
                                         uint32_t user_data) {
   static spi_transaction_t t = {};
+  if (!spi_device) {
+    return;
+  }
+  std::memset(&t, 0, sizeof(t));
 
   t.cmd = static_cast<uint8_t>(DisplayDriver::TransferMode::SINGLE_LINE);
   t.addr = static_cast<uint32_t>(command) << 8;
   t.flags = SPI_TRANS_MULTILINE_CMD | SPI_TRANS_MULTILINE_ADDR;
   t.length = parameters.size() * 8;
-  t.user = reinterpret_cast<void *>(user_data);
+  t.user = reinterpret_cast<void *>(static_cast<uintptr_t>(user_data));
 
   if (!parameters.empty() && parameters.size() <= 4) {
-    memcpy(t.tx_data, parameters.data(), parameters.size());
+    std::memcpy(t.tx_data, parameters.data(), parameters.size());
     t.flags |= SPI_TRANS_USE_TXDATA;
   } else if (!parameters.empty()) {
     t.tx_buffer = parameters.data();
   }
 
-  auto ret = spi_device_acquire_bus(spi, portMAX_DELAY);
-  if (ret != ESP_OK) {
-    fmt::print("Failed to acquire bus: {}\n", esp_err_to_name(ret));
+  std::error_code ec;
+  auto lock = spi_device->acquire_bus(portMAX_DELAY, ec);
+  if (ec || !lock) {
+    fmt::print("Failed to acquire bus: {}\n", ec.message());
     return;
   }
 
-  ret = spi_device_polling_transmit(spi, &t);
-  if (ret != ESP_OK) {
-    fmt::print("Failed to send command: {}\n", esp_err_to_name(ret));
+  if (!spi_device->polling_transmit(t, ec)) {
+    fmt::print("Failed to send command: {}\n", ec.message());
   }
-  spi_device_release_bus(spi);
 }
-#else
-extern "C" void IRAM_ATTR write_command(uint8_t command, std::span<const uint8_t> parameters,
-                                        uint32_t user_data) {
-  static spi_transaction_t t = {};
-  t.length = 8;
-  t.tx_buffer = &command;
-  t.user = reinterpret_cast<void *>(user_data);
-  if (!parameters.empty()) {
-    spi_device_polling_transmit(spi, &t);
-    t.length = parameters.size() * 8;
-    t.tx_buffer = parameters.data();
-    t.user = reinterpret_cast<void *>(
-        user_data | (1 << static_cast<int>(espp::display_drivers::Flags::DC_LEVEL_BIT)));
-  }
-  spi_device_polling_transmit(spi, &t);
-}
-#endif
-//! [polling_transmit example]
 
-//! [queued_transmit example]
 static void lcd_wait_lines() {
-  spi_transaction_t *rtrans;
-  esp_err_t ret;
-  // Wait for all transactions to be done and get back the results.
+  if (!spi_device) {
+    return;
+  }
+  spi_transaction_t *rtrans = nullptr;
   while (num_queued_trans) {
-    // fmt::print("Waiting for {} lines\n", num_queued_trans);
-    ret = spi_device_get_trans_result(spi, &rtrans, portMAX_DELAY);
-    if (ret != ESP_OK) {
-      fmt::print("Could not get trans result: {} '{}'\n", ret, esp_err_to_name(ret));
+    std::error_code ec;
+    if (!spi_device->get_transaction_result(&rtrans, portMAX_DELAY, ec)) {
+      fmt::print("Could not get trans result: {}\n", ec.message());
+      return;
     }
     num_queued_trans--;
-    // We could inspect rtrans now if we received any info back. The LCD is treated as write-only,
-    // though.
   }
 }
 
-#ifdef CONFIG_DISPLAY_QUAD_SPI
 void IRAM_ATTR lcd_send_lines(const int xStart, const int yStart, const int xEnd, const int yEnd,
                               const uint8_t *data, const uint32_t user_data) {
-  if (data == nullptr) {
+  if (!spi_device || data == nullptr) {
     return;
   }
 
@@ -241,126 +217,33 @@ void IRAM_ATTR lcd_send_lines(const int xStart, const int yStart, const int xEnd
                                   SPI_TRANS_VARIABLE_CMD | SPI_TRANS_VARIABLE_ADDR |
                                   SPI_TRANS_VARIABLE_DUMMY;
     }
+    transactions[index].user = nullptr;
 
     remaining -= transfer_size;
     index++;
   }
 
   // Set the flush bit on the last transaction, index - 1 as index is already incremented
-  transactions[index - 1].user = reinterpret_cast<void *>(user_data);
+  transactions[index - 1].user = reinterpret_cast<void *>(static_cast<uintptr_t>(user_data));
   // Have the final pixel transaction stop asserting the CS line
   transactions[index - 1].flags &= ~SPI_TRANS_CS_KEEP_ACTIVE;
 
   // Acquire the SPI bus, required for the SPI_TRANS_CS_KEEP_ACTIVE flag
-  auto ret = spi_device_acquire_bus(spi, portMAX_DELAY);
-  if (ret != ESP_OK) {
-    fmt::print("Couldn't acquire bus: {}", esp_err_to_name(ret));
+  std::error_code ec;
+  auto lock = spi_device->acquire_bus(portMAX_DELAY, ec);
+  if (ec || !lock) {
+    fmt::print("Couldn't acquire bus: {}\n", ec.message());
     return;
   }
-
   // Queue all used transactions
   for (int i = 0; i < index; i++) {
-    esp_err_t ret = spi_device_queue_trans(spi, &transactions[i], portMAX_DELAY);
-    if (ret != ESP_OK) {
-      fmt::print("Couldn't queue transaction: {}", esp_err_to_name(ret));
+    if (!spi_device->queue_transaction(transactions[i], portMAX_DELAY, ec)) {
+      fmt::print("Couldn't queue transaction: {}\n", ec.message());
     } else {
       num_queued_trans++;
     }
   }
-  spi_device_release_bus(spi);
-  // When we are here, the SPI driver is busy (in the background) getting the
-  // transactions sent. That happens mostly using DMA, so the CPU doesn't have
-  // much to do here. We're not going to wait for the transaction to finish
-  // because we may as well spend the time calculating the next line. When that
-  // is done, we can call send_line_finish, which will wait for the transfers
-  // to be done and check their status.
 }
-#else
-void IRAM_ATTR lcd_send_lines(int xs, int ys, int xe, int ye, const uint8_t *data,
-                              uint32_t user_data) {
-  // if we haven't waited by now, wait here...
-  lcd_wait_lines();
-  esp_err_t ret;
-  // Transaction descriptors. Declared static so they're not allocated on the stack; we need this
-  // memory even when this function is finished because the SPI driver needs access to it even while
-  // we're already calculating the next line.
-  static spi_transaction_t trans[6];
-  // In theory, it's better to initialize trans and data only once and hang on to the initialized
-  // variables. We allocate them on the stack, so we need to re-init them each call.
-  for (int i = 0; i < 6; i++) {
-    memset(&trans[i], 0, sizeof(spi_transaction_t));
-    if ((i & 1) == 0) {
-      // Even transfers are commands
-      trans[i].length = 8;
-      trans[i].user = (void *)0;
-    } else {
-      // Odd transfers are data
-#if DISPLAY_COORDINATES_8BIT
-      trans[i].length = 8 * 2; // byte90 only has 2 byte per pixel address (1 byte for each axis)
-#else // other displays support 16-bit coordinates
-      trans[i].length = 8 * 4;
-#endif
-      trans[i].user = (void *)DC_LEVEL_BIT;
-    }
-    trans[i].flags = SPI_TRANS_USE_TXDATA;
-  }
-
-#ifdef CONFIG_HARDWARE_BYTE90
-  lv_display_t *disp = lv_disp_get_default();
-  auto rotation = lv_disp_get_rotation(disp);
-  if (rotation == lv_display_rotation_t::LV_DISPLAY_ROTATION_90 ||
-      rotation == lv_display_rotation_t::LV_DISPLAY_ROTATION_270) {
-    // swap x and y coordinates for 90/270 degree rotation
-    std::swap(xs, ys);
-    std::swap(xe, ye);
-  }
-#endif
-
-  size_t length = (xe - xs + 1) * (ye - ys + 1) * 2;
-  trans[0].tx_data[0] = (uint8_t)DisplayDriver::Command::caset;
-#if DISPLAY_COORDINATES_8BIT
-  trans[1].tx_data[0] = (xs)&0xff;
-  trans[1].tx_data[1] = (xe)&0xff;
-#else // other displays support 16-bit coordinates
-  trans[1].tx_data[0] = (xs) >> 8;
-  trans[1].tx_data[1] = (xs)&0xff;
-  trans[1].tx_data[2] = (xe) >> 8;
-  trans[1].tx_data[3] = (xe)&0xff;
-#endif
-  trans[2].tx_data[0] = (uint8_t)DisplayDriver::Command::raset;
-#if DISPLAY_COORDINATES_8BIT
-  trans[3].tx_data[0] = (ys)&0xff;
-  trans[3].tx_data[1] = (ye)&0xff;
-#else // other displays support 16-bit coordinates
-  trans[3].tx_data[0] = (ys) >> 8;
-  trans[3].tx_data[1] = (ys)&0xff;
-  trans[3].tx_data[2] = (ye) >> 8;
-  trans[3].tx_data[3] = (ye)&0xff;
-#endif
-  trans[4].tx_data[0] = (uint8_t)DisplayDriver::Command::ramwr;
-  trans[5].tx_buffer = data;
-  trans[5].length = length * 8;
-  // undo SPI_TRANS_USE_TXDATA flag
-  trans[5].flags = 0;
-  // we need to keep the dc bit set, but also add our flags
-  trans[5].user = (void *)(DC_LEVEL_BIT | user_data);
-  // Queue all transactions.
-  for (int i = 0; i < 6; i++) {
-    ret = spi_device_queue_trans(spi, &trans[i], portMAX_DELAY);
-    if (ret != ESP_OK) {
-      fmt::print("Couldn't queue trans: {} '{}'\n", ret, esp_err_to_name(ret));
-    } else {
-      num_queued_trans++;
-    }
-  }
-  // When we are here, the SPI driver is busy (in the background) getting the
-  // transactions sent. That happens mostly using DMA, so the CPU doesn't have
-  // much to do here. We're not going to wait for the transaction to finish
-  // because we may as well spend the time calculating the next line. When that
-  // is done, we can call send_line_finish, which will wait for the transfers
-  // to be done and check their status.
-}
-//! [queued_transmit example]
 #endif
 
 extern "C" void app_main(void) {
@@ -527,50 +410,86 @@ extern "C" void app_main(void) {
     gpio_set_level(enable, 1);
 #endif
     //! [display_drivers example]
-    // create the spi host
-    spi_bus_config_t buscfg;
-    memset(&buscfg, 0, sizeof(buscfg));
-    buscfg.mosi_io_num = mosi;
+    spi_bus = std::make_unique<espp::Spi>(espp::Spi::Config{
+        .host = spi_num,
+        .sclk_io_num = sclk,
+        .mosi_io_num = mosi,
 #ifdef CONFIG_DISPLAY_QUAD_SPI
-    buscfg.miso_io_num = miso;
-    buscfg.data2_io_num = data2;
-    buscfg.data3_io_num = data3;
+        .miso_io_num = miso,
+        .quadwp_io_num = data2,
+        .quadhd_io_num = data3,
 #else
-    buscfg.miso_io_num = -1;
-    buscfg.quadwp_io_num = -1;
-    buscfg.quadhd_io_num = -1;
+        .miso_io_num = GPIO_NUM_NC,
 #endif
-    buscfg.sclk_io_num = sclk;
-    buscfg.max_transfer_sz = SPI_MAX_TRANSFER_BYTES;
-    // create the spi device
-    spi_device_interface_config_t devcfg;
-    memset(&devcfg, 0, sizeof(devcfg));
-    devcfg.mode = 0;
-    devcfg.clock_speed_hz = clock_speed;
-    devcfg.input_delay_ns = 0;
-    devcfg.spics_io_num = spics;
-    devcfg.queue_size = spi_queue_size;
-#ifdef CONFIG_DISPLAY_QUAD_SPI
-    devcfg.flags = SPI_DEVICE_HALFDUPLEX;
-    devcfg.command_bits = 8;
-    devcfg.address_bits = 24;
-#endif
-#ifndef CONFIG_T_ENCODER_PRO
-    devcfg.pre_cb = lcd_spi_pre_transfer_callback;
-#endif
-    devcfg.post_cb = lcd_spi_post_transfer_callback;
-    esp_err_t ret;
-    // Initialize the SPI bus
-    ret = spi_bus_initialize(spi_num, &buscfg, SPI_DMA_CH_AUTO);
-    ESP_ERROR_CHECK(ret);
-    // Attach the LCD to the SPI bus
-    ret = spi_bus_add_device(spi_num, &devcfg, &spi);
-    ESP_ERROR_CHECK(ret);
+        .max_transfer_sz = SPI_MAX_TRANSFER_BYTES,
+    });
+    if (!spi_bus || !spi_bus->initialized()) {
+      fmt::print("Failed to initialize SPI bus\n");
+      return;
+    }
 
-    // initialize the controller
-    DisplayDriver::initialize(espp::display_drivers::Config{
+#ifdef CONFIG_DISPLAY_QUAD_SPI
+    std::error_code ec;
+    spi_device = spi_bus->add_device(
+        espp::Spi::DeviceConfig{
+            .command_bits = 8,
+            .address_bits = 24,
+            .mode = 0,
+            .clock_speed_hz = clock_speed,
+            .input_delay_ns = 0,
+            .cs_io_num = spics,
+            .queue_size = spi_queue_size,
+            .flags = SPI_DEVICE_HALFDUPLEX,
+#ifndef CONFIG_T_ENCODER_PRO
+            .pre_cb = lcd_spi_pre_transfer_callback,
+#endif
+            .post_cb = lcd_spi_post_transfer_callback,
+        },
+        ec);
+    if (ec || !spi_device) {
+      fmt::print("Failed to initialize SPI device: {}\n", ec.message());
+      return;
+    }
+#else
+    panel_io = std::make_unique<espp::SpiPanelIo>(espp::SpiPanelIo::Config{
+        .spi = spi_bus.get(),
+        .device_config =
+            {
+                .mode = 0,
+                .clock_speed_hz = clock_speed,
+                .input_delay_ns = 0,
+                .cs_io_num = spics,
+                .queue_size = spi_queue_size,
+#ifdef CONFIG_HARDWARE_BYTE90
+                .flags = SPI_DEVICE_NO_DUMMY | SPI_DEVICE_3WIRE,
+#endif
+            },
+        .data_command_io = dc_pin,
+        .data_command_bit_mask = DC_LEVEL_BIT,
+        .post_transaction_callback_bit_mask = FLUSH_BIT,
+        .post_transaction_callback = lcd_spi_flush_ready,
+    });
+    if (!panel_io || !panel_io->initialized()) {
+      fmt::print("Failed to initialize SPI panel I/O\n");
+      return;
+    }
+#endif
+
+    auto display_driver = std::make_shared<DisplayDriver>(espp::display_drivers::Config{
+        .panel_io =
+#ifdef CONFIG_DISPLAY_QUAD_SPI
+            nullptr,
         .write_command = write_command,
+#else
+            panel_io.get(),
+        .write_command = nullptr,
+#endif
+        .read_command = nullptr,
+#ifdef CONFIG_DISPLAY_QUAD_SPI
         .lcd_send_lines = lcd_send_lines,
+#else
+        .lcd_send_lines = nullptr,
+#endif
         .reset_pin = reset,
 #ifndef CONFIG_T_ENCODER_PRO
         .data_command_pin = dc_pin,
@@ -582,16 +501,27 @@ extern "C" void app_main(void) {
         .mirror_x = mirror_x,
         .mirror_y = mirror_y,
     });
+    display_driver->initialize();
     // initialize the display / lvgl
     auto display = std::make_shared<Display>(
-        Display::LvglConfig{.width = width,
-                            .height = height,
-                            .flush_callback = DisplayDriver::flush,
-                            .rotation_callback = DisplayDriver::rotate,
-                            .rotation = rotation},
+        Display::LvglConfig{
+            .width = width,
+            .height = height,
+            .flush_callback =
+                [display_driver](lv_display_t *disp, const lv_area_t *area, uint8_t *color_map) {
+                  display_driver->flush(disp, area, color_map);
+                },
+            .rotation_callback =
+                [display_driver](const espp::DisplayRotation &rotation) {
+                  display_driver->set_rotation(rotation);
+                },
+            .rotation = rotation},
 #if DISPLAY_IS_OLED
-        Display::OledConfig{.set_brightness_callback = DisplayDriver::set_brightness,
-                            .get_brightness_callback = DisplayDriver::get_brightness},
+        Display::OledConfig{
+            .set_brightness_callback =
+                [display_driver](float brightness) { display_driver->set_brightness(brightness); },
+            .get_brightness_callback =
+                [display_driver]() { return display_driver->get_brightness(); }},
 #else
         Display::LcdConfig{.backlight_pin = backlight, .backlight_on_value = backlight_on_value},
 #endif

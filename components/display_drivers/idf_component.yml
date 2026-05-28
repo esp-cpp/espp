@@ -13,6 +13,7 @@ tags:
   - Component
   - Display
   - Drivers
+  - SPI
   - GC9A01
   - ILI9341
   - SH8601
@@ -23,3 +24,4 @@ dependencies:
     version: '>=5.0'
   espp/display: '>=1.0'
   espp/led: '>=1.0'
+  espp/spi: '>=1.0'

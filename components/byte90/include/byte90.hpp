@@ -5,7 +5,6 @@
 #include <vector>
 
 #include <driver/gpio.h>
-#include <driver/spi_master.h>
 #include <hal/spi_ll.h>
 #include <hal/spi_types.h>
 
@@ -13,6 +12,7 @@
 #include "base_component.hpp"
 #include "i2c.hpp"
 #include "interrupt.hpp"
+#include "spi.hpp"
 #include "ssd1351.hpp"
 
 namespace espp {
@@ -196,15 +196,6 @@ public:
   /// \note This is null unless initialize_display() has been called
   uint8_t *frame_buffer1() const;
 
-  /// Write command and optional parameters to the LCD
-  /// \param command The command to write
-  /// \param parameters The command parameters to write
-  /// \param user_data User data to pass to the spi transaction callback
-  /// \note This method is designed to be used by the display driver
-  /// \note This method queues the data to be written to the LCD, only blocking
-  ///      if there is an ongoing SPI transaction
-  void write_command(uint8_t command, std::span<const uint8_t> parameters, uint32_t user_data);
-
   /// Write a frame to the LCD
   /// \param x The x coordinate
   /// \param y The y coordinate
@@ -216,21 +207,8 @@ public:
   void write_lcd_frame(const uint16_t x, const uint16_t y, const uint16_t width,
                        const uint16_t height, uint8_t *data);
 
-  /// Write lines to the LCD
-  /// \param xs The x start coordinate
-  /// \param ys The y start coordinate
-  /// \param xe The x end coordinate
-  /// \param ye The y end coordinate
-  /// \param data The data to write
-  /// \param user_data User data to pass to the spi transaction callback
-  /// \note This method queues the data to be written to the LCD, only blocking
-  ///      if there is an ongoing SPI transaction
-  void write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data);
-
 protected:
   Byte90();
-  bool init_spi_bus();
-  void lcd_wait_lines();
 
   // common:
   // internal i2c (adxl345)
@@ -274,9 +252,6 @@ protected:
                      .scl_io_num = internal_i2c_scl,
                      .sda_pullup_en = GPIO_PULLUP_ENABLE,
                      .scl_pullup_en = GPIO_PULLUP_ENABLE}};
-
-  // spi bus shared between sdcard and lcd
-  std::atomic<bool> spi_bus_initialized_{false};
 
   espp::Interrupt::PinConfig button_interrupt_pin_{
       .gpio_num = button_io,
@@ -346,12 +321,10 @@ protected:
 
   // display
   std::shared_ptr<Display<Pixel>> display_;
-  /// SPI bus for communication with the LCD
-  spi_device_interface_config_t lcd_config_;
-  spi_device_handle_t lcd_handle_{nullptr};
+  std::unique_ptr<DisplayDriver> display_driver_;
   static constexpr int spi_queue_size = 6;
-  spi_transaction_t trans[spi_queue_size];
-  std::atomic<int> num_queued_trans = 0;
+  std::unique_ptr<Spi> lcd_spi_;
+  std::unique_ptr<SpiPanelIo> lcd_;
   uint8_t *frame_buffer0_{nullptr};
   uint8_t *frame_buffer1_{nullptr};
 }; // class Byte90

@@ -1,6 +1,6 @@
 idf_component_register(
   INCLUDE_DIRS "include"
   SRC_DIRS "src"
-  REQUIRES driver base_component display display_drivers i2c input_drivers interrupt task chsc6x
+  REQUIRES driver base_component chsc6x display display_drivers i2c input_drivers interrupt spi task
   REQUIRED_IDF_TARGETS "esp32s3"
   )

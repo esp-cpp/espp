@@ -19,6 +19,7 @@
 #include "interrupt.hpp"
 #include "led.hpp"
 #include "neopixel.hpp"
+#include "spi.hpp"
 #include "st7789.hpp"
 
 namespace espp {
@@ -145,15 +146,6 @@ public:
   /// \note This is null unless initialize_display() has been called
   uint8_t *frame_buffer1() const;
 
-  /// Write command and optional parameters to the LCD
-  /// \param command The command to write
-  /// \param parameters The command parameters to write
-  /// \param user_data User data to pass to the spi transaction callback
-  /// \note This method is designed to be used by the display driver
-  /// \note This method queues the data to be written to the LCD, only blocking
-  ///      if there is an ongoing SPI transaction
-  void write_command(uint8_t command, std::span<const uint8_t> parameters, uint32_t user_data);
-
   /// Write a frame to the LCD
   /// \param x The x coordinate
   /// \param y The y coordinate
@@ -164,17 +156,6 @@ public:
   ///      if there is an ongoing SPI transaction
   void write_lcd_frame(const uint16_t x, const uint16_t y, const uint16_t width,
                        const uint16_t height, uint8_t *data);
-
-  /// Write lines to the LCD
-  /// \param xs The x start coordinate
-  /// \param ys The y start coordinate
-  /// \param xe The x end coordinate
-  /// \param ye The y end coordinate
-  /// \param data The data to write
-  /// \param user_data User data to pass to the spi transaction callback
-  /// \note This method queues the data to be written to the LCD, only blocking
-  ///      if there is an ongoing SPI transaction
-  void write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data);
 
   /////////////////////////////////////////////////////////////////////////////
   // uSD Card
@@ -292,15 +273,12 @@ protected:
 
   // display
   std::shared_ptr<Display<Pixel>> display_;
+  std::unique_ptr<DisplayDriver> display_driver_;
   std::vector<Led::ChannelConfig> backlight_channel_configs_{};
   std::shared_ptr<Led> backlight_{};
-  /// SPI bus for communication with the LCD
-  spi_bus_config_t lcd_spi_bus_config_;
-  spi_device_interface_config_t lcd_config_;
-  spi_device_handle_t lcd_handle_{nullptr};
   static constexpr int spi_queue_size = 6;
-  spi_transaction_t trans[spi_queue_size];
-  std::atomic<int> num_queued_trans = 0;
+  std::unique_ptr<Spi> lcd_spi_;
+  std::unique_ptr<SpiPanelIo> lcd_;
   uint8_t *frame_buffer0_{nullptr};
   uint8_t *frame_buffer1_{nullptr};
 }; // class WsS3Lcd147

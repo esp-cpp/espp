@@ -12,6 +12,7 @@
 #include <driver/spi_master.h>
 #include <esp_lcd_io_i80.h>
 #include <esp_lcd_panel_io.h>
+#include <freertos/FreeRTOS.h>
 #include <freertos/stream_buffer.h>
 #include <hal/spi_types.h>
 #include <sdmmc_cmd.h>
@@ -344,6 +345,7 @@ protected:
   touch_callback_t touch_callback_{nullptr};
 
   std::shared_ptr<Display<Pixel>> display_;
+  std::unique_ptr<DisplayDriver> display_driver_;
   std::shared_ptr<Led> backlight_;
   std::vector<Led::ChannelConfig> backlight_channel_configs_;
   esp_lcd_i80_bus_handle_t lcd_bus_{nullptr};

@@ -213,9 +213,11 @@ INPUT = \
   $(PROJECT_PATH)/components/cst816/include/cst816.hpp \
   $(PROJECT_PATH)/components/csv/include/csv.hpp \
   $(PROJECT_PATH)/components/display/include/display.hpp \
+  $(PROJECT_PATH)/components/display_drivers/include/display_drivers.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/gc9a01.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/ili9341.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/sh8601.hpp \
+  $(PROJECT_PATH)/components/display_drivers/include/spi_panel_io.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/ssd1351.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/st7789.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/st7796.hpp \

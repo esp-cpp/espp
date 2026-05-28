@@ -728,6 +728,7 @@ protected:
 
   // Display state
   std::shared_ptr<Display<Pixel>> display_;
+  std::unique_ptr<display_drivers::Controller> display_driver_;
   std::shared_ptr<Led> backlight_;
   std::vector<Led::ChannelConfig> backlight_channel_configs_;
   struct LcdHandles {

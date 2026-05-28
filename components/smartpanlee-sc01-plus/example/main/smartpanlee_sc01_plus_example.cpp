@@ -3,6 +3,8 @@
  * @brief Smart Panlee SC01 Plus BSP Example
  */
 
+#include <algorithm>
+#include <array>
 #include <chrono>
 #include <thread>
 #include <vector>
@@ -14,14 +16,26 @@
 using namespace std::chrono_literals;
 
 static constexpr size_t MAX_CIRCLES = 100;
-static std::vector<lv_obj_t *> circles;
+struct Circle {
+  int x{0};
+  int y{0};
+  int radius{0};
+  bool visible{false};
+};
+static std::array<Circle, MAX_CIRCLES> circles;
 static size_t next_circle_index = 0;
+static size_t visible_circle_count = 0;
 static std::vector<uint8_t> audio_bytes;
 static std::recursive_mutex lvgl_mutex;
 static lv_obj_t *background = nullptr;
+static lv_obj_t *circle_layer = nullptr;
+static lv_obj_t *info_label = nullptr;
+static bool initialize_circle_layer(int width, int height);
+static void draw_circle_layer(lv_event_t *event);
+static void invalidate_circle_area(const Circle &circle);
 static void draw_circle(int x0, int y0, int radius);
 static void clear_circles();
-static void initialize_circles();
+static void update_label_layout(int width);
 static void rotate_display();
 static bool load_audio(size_t &out_size, size_t &out_sample_rate);
 static void play_click(espp::SmartPanleeSc01Plus &board);
@@ -29,7 +43,6 @@ static void play_click(espp::SmartPanleeSc01Plus &board);
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = "SC01 Plus Example", .level = espp::Logger::Verbosity::INFO});
   logger.info("Starting example!");
-  circles.reserve(MAX_CIRCLES);
 
   //! [smartpanlee sc01 plus example]
   auto &board = espp::SmartPanleeSc01Plus::get();
@@ -56,10 +69,6 @@ extern "C" void app_main(void) {
       }
     }
   };
-
-  if (!board.initialize_touch(touch_callback)) {
-    logger.warn("Touch initialization did not complete cleanly");
-  }
 
   if (!board.initialize_audio()) {
     logger.warn("Audio initialization did not complete cleanly");
@@ -91,12 +100,13 @@ extern "C" void app_main(void) {
   lv_obj_set_size(bg, board.display_width(), board.display_height());
   lv_obj_set_style_bg_color(bg, lv_color_make(8, 12, 24), 0);
 
-  lv_obj_t *label = lv_label_create(lv_screen_active());
-  lv_label_set_text(label, "Smart Panlee SC01 Plus\n\nTouch the screen to draw and play a click.\n"
-                           "Press refresh to rotate.\nCheck serial output for SD card, pin, and "
-                           "audio info.");
-  lv_obj_align(label, LV_ALIGN_TOP_LEFT, 16, 16);
-  lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_LEFT, 0);
+  info_label = lv_label_create(lv_screen_active());
+  lv_label_set_text(info_label, "Smart Panlee SC01 Plus\n\nTouch the screen to draw and play a "
+                                "click.\nPress refresh to rotate.\nCheck serial output for SD "
+                                "card, pin, and audio info.");
+  lv_label_set_long_mode(info_label, LV_LABEL_LONG_WRAP);
+  lv_obj_set_style_text_align(info_label, LV_TEXT_ALIGN_LEFT, 0);
+  update_label_layout(static_cast<int>(board.display_width()));
 
   lv_obj_t *btn = lv_btn_create(lv_screen_active());
   lv_obj_set_size(btn, 56, 56);
@@ -105,7 +115,10 @@ extern "C" void app_main(void) {
   lv_label_set_text(btn_label, LV_SYMBOL_REFRESH);
   lv_obj_align(btn_label, LV_ALIGN_CENTER, 0, 0);
   background = bg;
-  initialize_circles();
+  if (!initialize_circle_layer(board.display_width(), board.display_height())) {
+    logger.error("Failed to initialize circle layer!");
+    return;
+  }
   lv_obj_add_event_cb(
       btn,
       [](lv_event_t *event) {
@@ -116,6 +129,11 @@ extern "C" void app_main(void) {
 
   lv_obj_set_scrollbar_mode(lv_screen_active(), LV_SCROLLBAR_MODE_OFF);
   lv_obj_clear_flag(lv_screen_active(), LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_move_foreground(circle_layer);
+
+  if (!board.initialize_touch(touch_callback)) {
+    logger.warn("Touch initialization did not complete cleanly");
+  }
 
   espp::Task lv_task({.callback = [](std::mutex &m, std::condition_variable &cv) -> bool {
                         {
@@ -145,44 +163,113 @@ extern "C" void app_main(void) {
   }
 }
 
-static void draw_circle(int x0, int y0, int radius) {
-  if (circles.empty()) {
+static bool initialize_circle_layer(int width, int height) {
+  if (circle_layer) {
+    return true;
+  }
+  circle_layer = lv_obj_create(lv_screen_active());
+  if (!circle_layer) {
+    return false;
+  }
+  lv_obj_remove_style_all(circle_layer);
+  lv_obj_set_size(circle_layer, width, height);
+  lv_obj_align(circle_layer, LV_ALIGN_CENTER, 0, 0);
+  lv_obj_clear_flag(circle_layer, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_clear_flag(circle_layer, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_style_bg_opa(circle_layer, LV_OPA_TRANSP, 0);
+  lv_obj_set_style_border_width(circle_layer, 0, 0);
+  lv_obj_set_style_outline_width(circle_layer, 0, 0);
+  lv_obj_set_style_shadow_width(circle_layer, 0, 0);
+  lv_obj_add_event_cb(circle_layer, draw_circle_layer, LV_EVENT_DRAW_MAIN, nullptr);
+  return true;
+}
+
+static void draw_circle_layer(lv_event_t *event) {
+  if (visible_circle_count == 0) {
     return;
   }
 
-  auto *circle = circles[next_circle_index];
-  lv_obj_set_size(circle, radius * 2, radius * 2);
-  lv_obj_align(circle, LV_ALIGN_TOP_LEFT, x0 - radius, y0 - radius);
-  lv_obj_clear_flag(circle, LV_OBJ_FLAG_HIDDEN);
+  auto *obj = static_cast<lv_obj_t *>(lv_event_get_current_target(event));
+  auto *layer = lv_event_get_layer(event);
+  lv_area_t obj_coords;
+  lv_obj_get_coords(obj, &obj_coords);
 
+  lv_draw_rect_dsc_t rect_dsc;
+  lv_draw_rect_dsc_init(&rect_dsc);
+  rect_dsc.base.layer = layer;
+  rect_dsc.radius = LV_RADIUS_CIRCLE;
+  rect_dsc.bg_opa = LV_OPA_70;
+  rect_dsc.bg_color = lv_color_make(0, 255, 255);
+  rect_dsc.border_width = 0;
+  rect_dsc.outline_width = 0;
+  rect_dsc.shadow_width = 0;
+
+  for (const auto &circle : circles) {
+    if (!circle.visible) {
+      continue;
+    }
+    lv_area_t coords = {
+        .x1 = static_cast<lv_coord_t>(obj_coords.x1 + circle.x - circle.radius),
+        .y1 = static_cast<lv_coord_t>(obj_coords.y1 + circle.y - circle.radius),
+        .x2 = static_cast<lv_coord_t>(obj_coords.x1 + circle.x + circle.radius - 1),
+        .y2 = static_cast<lv_coord_t>(obj_coords.y1 + circle.y + circle.radius - 1),
+    };
+    lv_draw_rect(layer, &rect_dsc, &coords);
+  }
+}
+
+static void invalidate_circle_area(const Circle &circle) {
+  if (!circle_layer || circle.radius <= 0) {
+    return;
+  }
+
+  lv_area_t obj_coords;
+  lv_obj_get_coords(circle_layer, &obj_coords);
+  lv_area_t coords = {
+      .x1 = static_cast<lv_coord_t>(obj_coords.x1 + circle.x - circle.radius),
+      .y1 = static_cast<lv_coord_t>(obj_coords.y1 + circle.y - circle.radius),
+      .x2 = static_cast<lv_coord_t>(obj_coords.x1 + circle.x + circle.radius - 1),
+      .y2 = static_cast<lv_coord_t>(obj_coords.y1 + circle.y + circle.radius - 1),
+  };
+  lv_obj_invalidate_area(circle_layer, &coords);
+}
+
+static void draw_circle(int x0, int y0, int radius) {
+  if (!circle_layer) {
+    return;
+  }
+  lv_obj_move_foreground(circle_layer);
+  Circle previous_circle = circles[next_circle_index];
+  circles[next_circle_index] = {.x = x0, .y = y0, .radius = radius, .visible = true};
   next_circle_index = (next_circle_index + 1) % circles.size();
+  if (visible_circle_count < circles.size()) {
+    visible_circle_count++;
+  }
+  if (previous_circle.visible) {
+    invalidate_circle_area(previous_circle);
+  }
+  invalidate_circle_area(circles[(next_circle_index + circles.size() - 1) % circles.size()]);
 }
 
 static void clear_circles() {
-  for (auto *circle : circles) {
-    lv_obj_add_flag(circle, LV_OBJ_FLAG_HIDDEN);
+  for (auto &circle : circles) {
+    if (circle.visible) {
+      invalidate_circle_area(circle);
+    }
+    circle.visible = false;
   }
   next_circle_index = 0;
+  visible_circle_count = 0;
 }
 
-static void initialize_circles() {
-  if (!circles.empty()) {
+static void update_label_layout(int width) {
+  if (!info_label) {
     return;
   }
 
-  circles.reserve(MAX_CIRCLES);
-  for (size_t i = 0; i < MAX_CIRCLES; ++i) {
-    auto *circle = lv_obj_create(lv_screen_active());
-    lv_obj_remove_style_all(circle);
-    lv_obj_set_size(circle, 20, 20);
-    lv_obj_set_style_radius(circle, LV_RADIUS_CIRCLE, 0);
-    lv_obj_set_style_bg_color(circle, lv_palette_main(LV_PALETTE_CYAN), 0);
-    lv_obj_set_style_bg_opa(circle, LV_OPA_70, 0);
-    lv_obj_set_style_border_width(circle, 0, 0);
-    lv_obj_clear_flag(circle, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_flag(circle, LV_OBJ_FLAG_HIDDEN);
-    circles.push_back(circle);
-  }
+  auto label_width = std::max(width - 96, 120);
+  lv_obj_set_width(info_label, label_width);
+  lv_obj_align(info_label, LV_ALIGN_TOP_LEFT, 16, 16);
 }
 
 static void rotate_display() {
@@ -195,6 +282,13 @@ static void rotate_display() {
   lv_disp_set_rotation(display, rotation);
   if (background) {
     lv_obj_set_size(background, board.rotated_display_width(), board.rotated_display_height());
+  }
+  update_label_layout(static_cast<int>(board.rotated_display_width()));
+  if (circle_layer) {
+    lv_obj_set_size(circle_layer, board.rotated_display_width(), board.rotated_display_height());
+    lv_obj_align(circle_layer, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_move_foreground(circle_layer);
+    lv_obj_invalidate(circle_layer);
   }
 }
 

@@ -201,6 +201,7 @@ bool M5StackTab5::initialize_lcd() {
   }
 
   espp::display_drivers::Config display_config{
+      .panel_io = nullptr,
       .write_command = std::bind_front(&M5StackTab5::dsi_write_command, this),
       .read_command = std::bind_front(&M5StackTab5::dsi_read_command, this),
       .lcd_send_lines = nullptr,
@@ -217,20 +218,31 @@ bool M5StackTab5::initialize_lcd() {
       .mirror_portrait = false,
   };
 
+  display_driver_.reset();
   if (detected_controller == DisplayController::ILI9881) {
     logger_.info("Initializing as ILI9881");
-    if (espp::Ili9881::initialize(display_config)) {
+    auto display_driver = std::make_unique<espp::Ili9881>(display_config);
+    if (display_driver->initialize()) {
       logger_.info("Successfully initialized ILI9881 display controller");
+      display_driver_ = std::move(display_driver);
       display_controller_ = DisplayController::ILI9881;
     }
   } else if (detected_controller == DisplayController::ST7123) {
     logger_.info("Initializing as ST7123");
-    if (espp::St7123::initialize(display_config)) {
+    auto display_driver = std::make_unique<espp::St7123>(display_config);
+    if (display_driver->initialize()) {
       logger_.info("Successfully initialized ST7123 display controller");
+      display_driver_ = std::move(display_driver);
       display_controller_ = DisplayController::ST7123;
     }
   } else {
     logger_.error("Failed to detect display controller");
+    return false;
+  }
+
+  if (!display_driver_) {
+    logger_.error("Failed to initialize {} display controller",
+                  get_display_controller_name(detected_controller));
     return false;
   }
 

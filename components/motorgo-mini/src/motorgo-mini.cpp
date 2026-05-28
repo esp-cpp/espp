@@ -150,47 +150,37 @@ void MotorGoMini::always_init() {
 }
 
 void MotorGoMini::init_spi() {
-  // Initialize the SPI bus for the encoders
-  memset(&encoder_spi_bus_config_, 0, sizeof(encoder_spi_bus_config_));
-  encoder_spi_bus_config_.mosi_io_num = -1;
-  encoder_spi_bus_config_.miso_io_num = ENCODER_SPI_MISO_PIN;
-  encoder_spi_bus_config_.sclk_io_num = ENCODER_SPI_SCLK_PIN;
-  encoder_spi_bus_config_.quadwp_io_num = -1;
-  encoder_spi_bus_config_.quadhd_io_num = -1;
-  encoder_spi_bus_config_.max_transfer_sz = 100;
-  // encoder_spi_bus_config_.isr_cpu_id = 0; // set to the same core as the esp-timer task (which
-  // runs the encoders)
-  auto err = spi_bus_initialize(ENCODER_SPI_HOST, &encoder_spi_bus_config_, SPI_DMA_CH_AUTO);
-  if (err != ESP_OK) {
-    logger_.error("Failed to initialize SPI bus for encoders: {}", esp_err_to_name(err));
+  encoder_spi_ = std::make_unique<Spi>(Spi::Config{
+      .host = ENCODER_SPI_HOST,
+      .sclk_io_num = ENCODER_SPI_SCLK_PIN,
+      .mosi_io_num = GPIO_NUM_NC,
+      .miso_io_num = ENCODER_SPI_MISO_PIN,
+      .max_transfer_sz = 100,
+      .log_level = get_log_level(),
+  });
+  std::error_code ec;
+  encoder1_spi_device_ = encoder_spi_->add_device(
+      Spi::DeviceConfig{
+          .mode = 0,
+          .clock_speed_hz = ENCODER_SPI_CLK_SPEED,
+          .cs_io_num = ENCODER_1_CS_PIN,
+          .queue_size = 1,
+      },
+      ec);
+  if (ec || !encoder1_spi_device_) {
+    logger_.error("Failed to initialize Encoder 1 SPI device: {}", ec.message());
     return;
   }
-
-  // Initialize the encoder 1
-  memset(&encoder1_config, 0, sizeof(encoder1_config));
-  encoder1_config.mode = 0;
-  encoder1_config.clock_speed_hz = ENCODER_SPI_CLK_SPEED;
-  encoder1_config.queue_size = 1;
-  encoder1_config.spics_io_num = ENCODER_1_CS_PIN;
-  // encoder1_config.cs_ena_pretrans = 2;
-  // encoder1_config.input_delay_ns = 30;
-  err = spi_bus_add_device(ENCODER_SPI_HOST, &encoder1_config, &encoder1_handle_);
-  if (err != ESP_OK) {
-    logger_.error("Failed to initialize Encoder 1: {}", esp_err_to_name(err));
-    return;
-  }
-
-  // Initialize the encoder 2
-  memset(&encoder2_config, 0, sizeof(encoder2_config));
-  encoder2_config.mode = 0;
-  encoder2_config.clock_speed_hz = ENCODER_SPI_CLK_SPEED;
-  encoder2_config.queue_size = 1;
-  encoder2_config.spics_io_num = ENCODER_2_CS_PIN;
-  // encoder2_config.cs_ena_pretrans = 2;
-  // encoder2_config.input_delay_ns = 30;
-  err = spi_bus_add_device(ENCODER_SPI_HOST, &encoder2_config, &encoder2_handle_);
-  if (err != ESP_OK) {
-    logger_.error("Failed to initialize Encoder 2: {}", esp_err_to_name(err));
+  encoder2_spi_device_ = encoder_spi_->add_device(
+      Spi::DeviceConfig{
+          .mode = 0,
+          .clock_speed_hz = ENCODER_SPI_CLK_SPEED,
+          .cs_io_num = ENCODER_2_CS_PIN,
+          .queue_size = 1,
+      },
+      ec);
+  if (ec || !encoder2_spi_device_) {
+    logger_.error("Failed to initialize Encoder 2 SPI device: {}", ec.message());
     return;
   }
 }
@@ -206,26 +196,11 @@ float MotorGoMini::breathe(float breathing_period, uint64_t start_us, bool resta
   return gaussian_(t);
 }
 
-bool IRAM_ATTR MotorGoMini::read_encoder(const auto &encoder_handle, uint8_t *data, size_t size) {
-  static constexpr uint8_t SPIBUS_READ = 0x80;
-  spi_transaction_t t{};
-  t.addr = SPIBUS_READ;
-  t.length = size * 8;
-  t.rxlength = size * 8;
-  t.rx_buffer = data;
-  if (size <= 4) {
-    t.flags = SPI_TRANS_USE_RXDATA;
-    t.rx_buffer = nullptr;
-  }
-  esp_err_t err = spi_device_transmit(encoder_handle, &t);
-  if (err != ESP_OK) {
+bool IRAM_ATTR MotorGoMini::read_encoder(const std::shared_ptr<Spi::Device> &encoder_device,
+                                         uint8_t *data, size_t size) {
+  if (!encoder_device) {
     return false;
   }
-  if (size <= 4) {
-    // copy the data from the rx_data field
-    for (size_t i = 0; i < size; i++) {
-      data[i] = t.rx_data[i];
-    }
-  }
-  return true;
+  std::error_code ec;
+  return encoder_device->read(std::span<uint8_t>(data, size), {}, ec);
 }

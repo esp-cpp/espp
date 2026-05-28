@@ -12,9 +12,9 @@ the `format` component to print the data to the console in CSV format.
 
 ### Hardware Required
 
-This requires a MT6701 magnetic encoder dev board with an diametric magnet and
-the MT6701 dev board should be connected to the ESP dev board you choose via
-I2C.
+This requires a MT6701 magnetic encoder dev board with an diametric magnet. The
+MT6701 dev board can be connected to the ESP dev board you choose via either
+I2C or SSI / SPI, depending on the example configuration you select.
 
 ### Build and Flash
 

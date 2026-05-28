@@ -56,10 +56,9 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 ## Example Breakdown
 
 The example has the following functionality:
-* SPI pre and post transfer callbacks for handling the data/command (DC_LEVEL)
-  GPIO for the screens and the lvgl flush flag management
-* `lcd_write` for polling (blocking) transmit example
-* `lcd_send_lines` and `lcd_wait_lines` for queued (non-blocking) transmit example
+* Uses the shared `espp::Spi` wrapper for the display bus on every supported board
+* Uses `espp::SpiPanelIo` for standard command/data SPI panels
+* Keeps the T-Encoder Pro quad-SPI path on `espp::Spi::Device`, since that panel needs custom
+  multi-line transactions
 * `Gui` class (contained in `main/gui.hpp`) which encapsulates some very basic
   LVGL components into an object that manages gui update task and synchronization.
-
