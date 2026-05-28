@@ -1,5 +1,13 @@
 #include "smartpanlee-sc01-plus.hpp"
 
+#include "esp_idf_version.h"
+#ifndef ESP_IDF_VERSION_VAL
+#define ESP_IDF_VERSION_VAL(major, minor, patch) (((major) << 16) | ((minor) << 8) | (patch))
+#endif
+#ifndef ESP_IDF_VERSION
+#define ESP_IDF_VERSION ESP_IDF_VERSION_VAL(0, 0, 0)
+#endif
+
 #include <algorithm>
 #include <array>
 #include <cstring>
@@ -167,34 +175,38 @@ bool SmartPanleeSc01Plus::initialize_lcd() {
   }
 
   esp_lcd_i80_bus_config_t bus_config = {
-      .dc_gpio_num = lcd_dc_io,
-      .wr_gpio_num = lcd_wr_io,
-      .clk_src = LCD_CLK_SRC_DEFAULT,
-      .data_gpio_nums = {lcd_d0_io, lcd_d1_io, lcd_d2_io, lcd_d3_io, lcd_d4_io, lcd_d5_io,
-                         lcd_d6_io, lcd_d7_io},
-      .bus_width = 8,
-      .max_transfer_bytes = lcd_max_transfer_bytes,
-      .dma_burst_size = 64,
-      .flags = {},
+    .dc_gpio_num = lcd_dc_io,
+    .wr_gpio_num = lcd_wr_io,
+    .clk_src = LCD_CLK_SRC_DEFAULT,
+    .data_gpio_nums = {lcd_d0_io, lcd_d1_io, lcd_d2_io, lcd_d3_io, lcd_d4_io, lcd_d5_io, lcd_d6_io,
+                       lcd_d7_io},
+    .bus_width = 8,
+    .max_transfer_bytes = lcd_max_transfer_bytes,
+    .dma_burst_size = 64,
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
+    .flags = {},
+#endif
   };
   ESP_ERROR_CHECK(esp_lcd_new_i80_bus(&bus_config, &lcd_bus_));
 
   esp_lcd_panel_io_i80_config_t io_config = {
-      .cs_gpio_num = lcd_cs_io,
-      .pclk_hz = lcd_clock_speed_hz,
-      .trans_queue_depth = 10,
-      .on_color_trans_done = nullptr,
-      .user_ctx = nullptr,
-      .lcd_cmd_bits = 8,
-      .lcd_param_bits = 8,
-      .dc_levels =
-          {
-              .dc_idle_level = 0,
-              .dc_cmd_level = 0,
-              .dc_dummy_level = 0,
-              .dc_data_level = 1,
-          },
-      .flags = {},
+    .cs_gpio_num = lcd_cs_io,
+    .pclk_hz = lcd_clock_speed_hz,
+    .trans_queue_depth = 10,
+    .on_color_trans_done = nullptr,
+    .user_ctx = nullptr,
+    .lcd_cmd_bits = 8,
+    .lcd_param_bits = 8,
+    .dc_levels =
+        {
+            .dc_idle_level = 0,
+            .dc_cmd_level = 0,
+            .dc_dummy_level = 0,
+            .dc_data_level = 1,
+        },
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
+    .flags = {},
+#endif
   };
   ESP_ERROR_CHECK(esp_lcd_new_panel_io_i80(lcd_bus_, &io_config, &panel_io_));
 
