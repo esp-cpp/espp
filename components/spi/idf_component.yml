@@ -1,0 +1,20 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "SPI component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/spi"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/spi.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - SPI
+  - DMA
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/base_component: '>=1.0'
+  espp/task: '>=1.0'

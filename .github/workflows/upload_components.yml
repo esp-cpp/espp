@@ -113,6 +113,7 @@ jobs:
             components/serialization
             components/smartpanlee-sc01-plus
             components/socket
+            components/spi
             components/st25dv
             components/state_machine
             components/t_keyboard

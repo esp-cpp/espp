@@ -67,6 +67,7 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    seeed_studio_round_display
    serialization
    smartpanlee_sc01_plus
+   spi
    state_machine
    t_deck
    t_dongle_s3
