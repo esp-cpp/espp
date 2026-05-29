@@ -21,13 +21,22 @@ extern "C" void app_main(void) {
         .sda_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SDA_GPIO, // pin 3 on the joybonnet
         .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO, // pin 5 on the joybonnet
     });
+    std::error_code ec;
+    auto ads_device =
+        i2c.add_device<uint8_t>({.device_address = espp::Ads1x15::DEFAULT_ADDRESS,
+                                 .timeout_ms = static_cast<int>(i2c.config().timeout_ms),
+                                 .scl_speed_hz = i2c.config().clk_speed,
+                                 .log_level = espp::Logger::Verbosity::WARN},
+                                ec);
+    if (!ads_device) {
+      logger.error("Failed to initialize ADS1x15 I2C device: {}", ec.message());
+      return;
+    }
     // make the actual ads class
     espp::Ads1x15 ads(espp::Ads1x15::Ads1015Config{
         .device_address = espp::Ads1x15::DEFAULT_ADDRESS,
-        .write = [&i2c](uint8_t addr, const uint8_t *data,
-                        size_t len) { return i2c.write(addr, data, len); },
-        .read = [&i2c](uint8_t addr, uint8_t *data,
-                       size_t len) { return i2c.read(addr, data, len); },
+        .write = espp::make_i2c_addressed_write(ads_device),
+        .read = espp::make_i2c_addressed_read(ads_device),
     });
     // make the task which will get the raw data from the I2C ADC
     auto ads_read_task_fn = [&ads](std::mutex &m, std::condition_variable &cv) {

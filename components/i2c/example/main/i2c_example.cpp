@@ -2,14 +2,13 @@
 #include <sdkconfig.h>
 #include <vector>
 
-#if defined(CONFIG_ESPP_I2C_USE_LEGACY_API)
 #include "i2c.hpp"
 #include "i2c_menu.hpp"
-#endif
 #if defined(CONFIG_ESPP_I2C_USE_NEW_API)
 #include "i2c_master.hpp"
 #include "i2c_master_device_menu.hpp"
 #include "i2c_master_menu.hpp"
+#include "i2c_slave_menu.hpp"
 #endif
 #include "logger.hpp"
 
@@ -19,10 +18,9 @@ extern "C" void app_main(void) {
   espp::Logger logger({.tag = "I2C Example", .level = espp::Logger::Verbosity::INFO});
   logger.info("Starting");
 
-//////////////////////////////////
-// I2C Master Bus/Device Example using the Legacy API
-//////////////////////////////////
-#if defined(CONFIG_ESPP_I2C_USE_LEGACY_API)
+  //////////////////////////////////
+  // I2C Example using the primary bus-compatible API
+  //////////////////////////////////
   {
     //! [i2c menu example]
     espp::I2c i2c({
@@ -34,9 +32,29 @@ extern "C" void app_main(void) {
         .clk_speed = CONFIG_EXAMPLE_I2C_CLOCK_SPEED_HZ,
         .log_level = espp::Logger::Verbosity::INFO,
     });
-    // now make a menu for it
+    auto root_menu = std::make_unique<cli::Menu>("main", "I2C Main Menu");
     espp::I2cMenu i2c_menu(i2c);
-    cli::Cli cli(i2c_menu.get());
+    root_menu->Insert(i2c_menu.get());
+#if defined(CONFIG_ESPP_I2C_USE_NEW_API)
+    std::error_code ec;
+    //! [i2c device creation example]
+    auto device = i2c.add_device<uint8_t>(
+        espp::I2c::DeviceConfig<uint8_t>{
+            .device_address = CONFIG_EXAMPLE_I2C_DEVICE_ADDR,
+            .timeout_ms = 50,
+            .scl_speed_hz = CONFIG_EXAMPLE_I2C_CLOCK_SPEED_HZ,
+            .log_level = espp::Logger::Verbosity::INFO,
+        },
+        ec);
+    //! [i2c device creation example]
+    if (!device) {
+      logger.error("Failed to add explicit I2C device: {}", ec.message());
+    } else {
+      espp::I2cMasterDeviceMenu<uint8_t> i2c_device_menu(device);
+      root_menu->Insert(i2c_device_menu.get());
+    }
+#endif
+    cli::Cli cli(std::move(root_menu));
     cli::SetColor();
     cli.ExitAction([](auto &out) { out << "Goodbye and thanks for all the fish.\n"; });
     espp::Cli input(cli);
@@ -81,8 +99,33 @@ extern "C" void app_main(void) {
       logger.error("Could not find device with address {:#02x}", device_address);
     }
     //! [i2c example]
+
+#if defined(CONFIG_ESPP_I2C_USE_NEW_API)
+    std::error_code ec;
+    auto device = i2c.add_device<uint8_t>(
+        espp::I2c::DeviceConfig<uint8_t>{
+            .device_address = device_address,
+            .timeout_ms = 50,
+            .scl_speed_hz = CONFIG_EXAMPLE_I2C_CLOCK_SPEED_HZ,
+            .log_level = espp::Logger::Verbosity::INFO,
+        },
+        ec);
+    if (!device) {
+      logger.error("Could not create explicit device with address {:#02x}: {}", device_address,
+                   ec.message());
+    } else {
+      //! [i2c device read example]
+      std::vector<uint8_t> read_data(CONFIG_EXAMPLE_I2C_DEVICE_REG_SIZE, 0);
+      bool success = device->read_register(register_address, read_data, ec);
+      if (success) {
+        logger.info("explicit device read data: {::#02x}", read_data);
+      } else {
+        logger.error("explicit device read failed: {}", ec.message());
+      }
+      //! [i2c device read example]
+    }
+#endif
   }
-#endif // CONFIG_ESPP_I2C_USE_LEGACY_API
 
 //////////////////////////////////
 // I2C Master Bus/Device Example using the New API
@@ -95,7 +138,7 @@ extern "C" void app_main(void) {
     using espp::I2cMasterDevice;
     std::error_code ec;
     I2cMasterBus bus({
-        .port = -1, // auto-select
+        .port = I2C_NUM_0,
         .sda_io_num = CONFIG_EXAMPLE_I2C_SDA_GPIO,
         .scl_io_num = CONFIG_EXAMPLE_I2C_SCL_GPIO,
         .clk_speed = CONFIG_EXAMPLE_I2C_CLOCK_SPEED_HZ,
@@ -112,6 +155,7 @@ extern "C" void app_main(void) {
     auto dev = bus.add_device<uint8_t>(
         espp::I2cMasterDevice<uint8_t>::Config{
             .device_address = CONFIG_EXAMPLE_I2C_DEVICE_ADDR,
+            .timeout_ms = 50,
             .scl_speed_hz = CONFIG_EXAMPLE_I2C_CLOCK_SPEED_HZ,
             .log_level = espp::Logger::Verbosity::DEBUG,
         },

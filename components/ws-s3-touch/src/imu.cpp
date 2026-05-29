@@ -9,12 +9,24 @@ bool WsS3Touch::initialize_imu(const WsS3Touch::Imu::filter_fn &orientation_filt
     return false;
   }
 
+  std::error_code ec;
+  imu_i2c_device_ = internal_i2c_.add_device<uint8_t>(
+      {
+          .device_address = Imu::DEFAULT_ADDRESS,
+          .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
+          .scl_speed_hz = internal_i2c_.config().clk_speed,
+          .log_level = espp::Logger::Verbosity::WARN,
+      },
+      ec);
+  if (!imu_i2c_device_) {
+    logger_.error("Could not initialize IMU I2C device: {}", ec.message());
+    return false;
+  }
+
   Imu::Config config{
       .device_address = Imu::DEFAULT_ADDRESS,
-      .write = std::bind(&espp::I2c::write, &internal_i2c_, std::placeholders::_1,
-                         std::placeholders::_2, std::placeholders::_3),
-      .read = std::bind(&espp::I2c::read, &internal_i2c_, std::placeholders::_1,
-                        std::placeholders::_2, std::placeholders::_3),
+      .write = espp::make_i2c_addressed_write(imu_i2c_device_),
+      .read = espp::make_i2c_addressed_read(imu_i2c_device_),
       .imu_config = imu_config,
       .orientation_filter = orientation_filter,
       .auto_init = true,

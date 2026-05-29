@@ -87,6 +87,17 @@ extern "C" void app_main(void) {
         .sda_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SDA_GPIO,
         .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
     });
+    std::error_code ec;
+    auto ads_device =
+        i2c.add_device<uint8_t>({.device_address = espp::Ads7138::DEFAULT_ADDRESS,
+                                 .timeout_ms = static_cast<int>(i2c.config().timeout_ms),
+                                 .scl_speed_hz = i2c.config().clk_speed,
+                                 .log_level = espp::Logger::Verbosity::WARN},
+                                ec);
+    if (!ads_device) {
+      logger.error("Failed to initialize ADS7138 I2C device: {}", ec.message());
+      return;
+    }
 
     // make the actual ads class
     static int select_bit_mask = (1 << 5);
@@ -101,15 +112,12 @@ extern "C" void app_main(void) {
         .digital_output_values = {{espp::Ads7138::Channel::CH7, 1}}, // start the LED off
         // enable oversampling / averaging
         .oversampling_ratio = espp::Ads7138::OversamplingRatio::OSR_32,
-        .write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1, std::placeholders::_2,
-                           std::placeholders::_3),
-        .read = std::bind(&espp::I2c::read, &i2c, std::placeholders::_1, std::placeholders::_2,
-                          std::placeholders::_3),
+        .write = espp::make_i2c_addressed_write(ads_device),
+        .read = espp::make_i2c_addressed_read(ads_device),
         .log_level = espp::Logger::Verbosity::WARN,
     });
 
     // calibrate the ADC
-    std::error_code ec;
     ads.calibrate(ec);
     if (ec) {
       logger.error("error calibrating: {}", ec.message());

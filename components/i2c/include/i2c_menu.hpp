@@ -2,9 +2,7 @@
 
 #include <sdkconfig.h>
 
-// Only include this menu if the legacy API is selected
-#if defined(CONFIG_ESPP_I2C_USE_LEGACY_API) || defined(_DOXYGEN_)
-
+#include <algorithm>
 #include <functional>
 #include <memory>
 #include <vector>
@@ -48,52 +46,51 @@ public:
 
     // scan the bus for devices
     //
-    // NOTE: this will take a while to run, as it will probe all 128
-    // possible and the hard-coded timeout on the I2C (inside ESP-IDF) is 1
-    // second (I2C_CMD_ALIVE_INTERVAL_TICK within
-    // esp-idf/components/driver/i2c/i2c.c).
+    // NOTE: this will probe the full 7-bit address space, so it can still take
+    // noticeable time depending on the configured bus timeout and any missing
+    // pullups or disconnected devices.
     i2c_menu->Insert(
         "scan", [this](std::ostream &out) -> void { scan_bus(out); },
         "Scan the I2c bus for devices.");
 
-    // probe for a device (hexadecimal address string)
+    // probe for a device (hex or decimal address string)
     i2c_menu->Insert(
-        "probe", {"address (hex)"},
+        "probe", {"address (hex/dec)"},
         [this](std::ostream &out, const std::string &address_string) -> void {
           // convert address_string to a uint8_t
-          uint8_t address = std::stoi(address_string, nullptr, 16);
+          uint8_t address = std::stoi(address_string, nullptr, 0);
           probe_device(out, address);
         },
-        "Probe for a device at a specific address, given as a hexadecimal string.");
+        "Probe for a device at a specific address, given as a hex or decimal string.");
 
     // read from a device
     i2c_menu->Insert(
-        "read", {"address (hex)", "register"},
+        "read", {"address (hex/dec)", "register"},
         [this](std::ostream &out, const std::string &address_string, uint8_t reg) -> void {
           // convert address_string to a uint8_t
-          uint8_t address = std::stoi(address_string, nullptr, 16);
+          uint8_t address = std::stoi(address_string, nullptr, 0);
           read_device(out, address, reg, 1);
         },
         "Read a byte from a device at a specific address and register.");
 
     // read from a device
     i2c_menu->Insert(
-        "read", {"address (hex)", "register", "length (number of bytes to read)"},
+        "read", {"address (hex/dec)", "register", "length (number of bytes to read)"},
         [this](std::ostream &out, const std::string &address_string, uint8_t reg,
                uint8_t len) -> void {
           // convert address_string to a uint8_t
-          uint8_t address = std::stoi(address_string, nullptr, 16);
+          uint8_t address = std::stoi(address_string, nullptr, 0);
           read_device(out, address, reg, len);
         },
         "Read len bytes from a device at a specific address and register.");
 
     // write to a device
     i2c_menu->Insert(
-        "write", {"address (hex)", "register", "data byte"},
+        "write", {"address (hex/dec)", "register", "data byte"},
         [this](std::ostream &out, const std::string &address_string, uint8_t reg,
                uint8_t data) -> void {
           // convert address_string to a uint8_t
-          uint8_t address = std::stoi(address_string, nullptr, 16);
+          uint8_t address = std::stoi(address_string, nullptr, 0);
           std::vector<uint8_t> data_vector = {reg, data};
           write_device(out, address, data_vector);
         },
@@ -101,7 +98,9 @@ public:
 
     // write to a device
     i2c_menu->Insert(
-        "write", {"address (hex)", "register (hex)", "data byte (hex)", "data byte (hex)", "..."},
+        "write",
+        {"address (hex/dec)", "register (hex/dec)", "data byte (hex/dec)", "data byte (hex/dec)",
+         "..."},
         [this](std::ostream &out, const std::vector<std::string> &args) -> void {
           // parse the args into address, reg, and data
           if (args.size() < 3) {
@@ -109,7 +108,7 @@ public:
             return;
           }
           // convert address_string to a uint8_t
-          uint8_t address = std::stoi(args[0], nullptr, 16);
+          uint8_t address = std::stoi(args[0], nullptr, 0);
           // remove the address byte (first element) and convert the rest of the
           // vector of strings into a vector of bytes
           std::vector<uint8_t> data;
@@ -146,13 +145,10 @@ protected:
 
   /// @brief Scan the I2c bus for devices.
   /// @param out The output stream to write to.
-  /// @note This will take a while to run, as it will probe all 128 possible
-  ///       addresses and the hard-coded timeout on the I2C (inside ESP-IDF) is
-  ///       1 second (I2C_CMD_ALIVE_INTERVAL_TICK within
-  ///       esp-idf/components/driver/i2c/i2c.c).
+  /// @note This probes the full 7-bit address space, so it can still take a
+  ///       while depending on the configured timeout and bus conditions.
   void scan_bus(std::ostream &out) {
-    out << "Scanning I2c bus. This may take a while if you have not updated your ESP-IDF's "
-           "I2C_CMD_ALIVE_INTERVAL_TICK.\n";
+    out << "Scanning I2c bus. This may take a while.\n";
     std::vector<uint8_t> found_addresses;
     for (uint8_t address = 1; address < 128; address++) {
       if (i2c_.get().probe_device(address)) {
@@ -213,5 +209,3 @@ protected:
   std::reference_wrapper<espp::I2c> i2c_;
 };
 } // namespace espp
-
-#endif // CONFIG_ESPP_I2C_USE_LEGACY_API

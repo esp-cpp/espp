@@ -292,6 +292,7 @@ protected:
                            CONFIG_SEEED_STUDIO_ROUND_DISPLAY_INTERRUPT_STACK_SIZE}}};
 
   // touch
+  std::shared_ptr<I2c::Device<uint8_t>> touch_i2c_device_;
   std::shared_ptr<TouchDriver> touch_;
   std::shared_ptr<TouchpadInput> touchpad_input_;
   std::recursive_mutex touchpad_data_mutex_;

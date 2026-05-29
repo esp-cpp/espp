@@ -20,12 +20,20 @@ extern "C" void app_main(void) {
         .sda_pullup_en = GPIO_PULLUP_ENABLE,
         .scl_pullup_en = GPIO_PULLUP_ENABLE,
     });
+    std::error_code ec;
+    auto ft5x06_device =
+        i2c.add_device<uint8_t>({.device_address = espp::Ft5x06::DEFAULT_ADDRESS,
+                                 .timeout_ms = static_cast<int>(i2c.config().timeout_ms),
+                                 .scl_speed_hz = i2c.config().clk_speed,
+                                 .log_level = espp::Logger::Verbosity::WARN},
+                                ec);
+    if (!ft5x06_device) {
+      fmt::print("ft5x06 I2C device initialization failed: {}\n", ec.message());
+      return;
+    }
     // now make the ft5x06 which decodes the data
-    espp::Ft5x06 ft5x06({.write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1,
-                                            std::placeholders::_2, std::placeholders::_3),
-                         .read_register = std::bind(&espp::I2c::read_at_register, &i2c,
-                                                    std::placeholders::_1, std::placeholders::_2,
-                                                    std::placeholders::_3, std::placeholders::_4),
+    espp::Ft5x06 ft5x06({.write = espp::make_i2c_addressed_write(ft5x06_device),
+                         .read_register = espp::make_i2c_addressed_read_register(ft5x06_device),
                          .log_level = espp::Logger::Verbosity::WARN});
     // and finally, make the task to periodically poll the ft5x06 and print
     // the state

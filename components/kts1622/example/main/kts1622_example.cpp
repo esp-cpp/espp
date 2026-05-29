@@ -25,6 +25,17 @@ extern "C" void app_main(void) {
       .scl_pullup_en = GPIO_PULLUP_ENABLE,
       .clk_speed = 1000 * 1000, // 1MHz
   });
+  std::error_code ec;
+  auto kts1622_device =
+      i2c.add_device<uint8_t>({.device_address = espp::Kts1622::DEFAULT_ADDRESS,
+                               .timeout_ms = static_cast<int>(i2c.config().timeout_ms),
+                               .scl_speed_hz = i2c.config().clk_speed,
+                               .log_level = espp::Logger::Verbosity::INFO},
+                              ec);
+  if (!kts1622_device) {
+    logger.error("kts1622 I2C device initialization failed: {}", ec.message());
+    return;
+  }
 
   // now make the kts1622 which handles GPIO
   espp::Kts1622 kts1622(
@@ -33,14 +44,10 @@ extern "C" void app_main(void) {
        .port_0_direction_mask = 0b11111111,
        // set P1_0 - P1_7 to be inputs
        .port_1_direction_mask = 0b11111111,
-       .write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1, std::placeholders::_2,
-                          std::placeholders::_3),
-       .write_then_read =
-           std::bind(&espp::I2c::write_read, &i2c, std::placeholders::_1, std::placeholders::_2,
-                     std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
+       .write = espp::make_i2c_addressed_write(kts1622_device),
+       .write_then_read = espp::make_i2c_addressed_write_then_read(kts1622_device),
        .auto_init = false,
        .log_level = espp::Logger::Verbosity::INFO});
-  std::error_code ec;
   // Initialized separately from the constructor since we set auto_init to false
   if (!kts1622.initialize(ec)) {
     logger.error("kts1622 initialization failed: {}", ec.message());

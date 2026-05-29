@@ -678,12 +678,14 @@ protected:
                        .stack_size_bytes = CONFIG_M5STACK_TAB5_INTERRUPT_STACK_SIZE}}};
 
   // Component instances
+  std::shared_ptr<I2c::Device<uint8_t>> touch_i2c_device_;
   std::shared_ptr<TouchDriver> touch_driver_;
   std::shared_ptr<TouchpadInput> touchpad_input_;
   std::recursive_mutex touchpad_data_mutex_;
   TouchpadData touchpad_data_;
   touch_callback_t touch_callback_{nullptr};
 
+  std::shared_ptr<I2c::Device<uint8_t>> imu_i2c_device_;
   std::shared_ptr<Imu> imu_;
 
   // Button callbacks
@@ -693,6 +695,8 @@ protected:
   std::atomic<bool> audio_initialized_{false};
   std::atomic<float> volume_{50.0f};
   std::atomic<bool> mute_{false};
+  std::shared_ptr<I2c::Device<uint8_t>> es8388_i2c_device_;
+  std::shared_ptr<I2c::Device<uint8_t>> es7210_i2c_device_;
   std::unique_ptr<espp::Task> audio_task_{nullptr};
   i2s_chan_handle_t audio_tx_handle{nullptr};
   i2s_chan_handle_t audio_rx_handle{nullptr};
@@ -711,8 +715,11 @@ protected:
   std::atomic<bool> battery_monitoring_initialized_{false};
   BatteryStatus battery_status_;
   std::mutex battery_mutex_;
+  std::shared_ptr<I2c::Device<uint8_t>> battery_monitor_i2c_device_;
   std::shared_ptr<BatteryMonitor> battery_monitor_;
   // IO expanders on the internal I2C (addresses 0x43 and 0x44 per Tab5 design)
+  std::shared_ptr<I2c::Device<uint8_t>> ioexp_0x43_i2c_device_;
+  std::shared_ptr<I2c::Device<uint8_t>> ioexp_0x44_i2c_device_;
   std::shared_ptr<IoExpander> ioexp_0x43_;
   std::shared_ptr<IoExpander> ioexp_0x44_;
 
@@ -724,6 +731,7 @@ protected:
 
   // RTC
   std::atomic<bool> rtc_initialized_{false};
+  std::shared_ptr<I2c::Device<uint8_t>> rtc_i2c_device_;
   std::shared_ptr<Rtc> rtc_;
 
   // Display state

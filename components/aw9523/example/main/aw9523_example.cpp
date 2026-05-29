@@ -25,22 +25,28 @@ extern "C" void app_main(void) {
       .sda_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SDA_GPIO,
       .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
   });
-  // now make the aw9523 which handles GPIO
-  espp::Aw9523 aw9523(
-      {// since this uses LEDs, both of the address pins are pulled up in
-       // hardware to have the LEDs default to off
-       .device_address = espp::Aw9523::DEFAULT_ADDRESS | 0b11,
-       // set P0_0 - P0_5 to be inputs
-       .port_0_direction_mask = 0b00111111,
-       // set P1_0 - P1_1 to be inputs
-       .port_1_direction_mask = 0b00000011,
-       .write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1, std::placeholders::_2,
-                          std::placeholders::_3),
-       .write_then_read =
-           std::bind(&espp::I2c::write_read, &i2c, std::placeholders::_1, std::placeholders::_2,
-                     std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
-       .log_level = espp::Logger::Verbosity::WARN});
   std::error_code ec;
+  auto aw9523_device =
+      i2c.add_device<uint8_t>({.device_address = espp::Aw9523::DEFAULT_ADDRESS | 0b11,
+                               .timeout_ms = static_cast<int>(i2c.config().timeout_ms),
+                               .scl_speed_hz = i2c.config().clk_speed,
+                               .log_level = espp::Logger::Verbosity::WARN},
+                              ec);
+  if (!aw9523_device) {
+    fmt::print("aw9523 I2C device initialization failed: {}\n", ec.message());
+    return;
+  }
+  // now make the aw9523 which handles GPIO
+  espp::Aw9523 aw9523({// since this uses LEDs, both of the address pins are pulled up in
+                       // hardware to have the LEDs default to off
+                       .device_address = espp::Aw9523::DEFAULT_ADDRESS | 0b11,
+                       // set P0_0 - P0_5 to be inputs
+                       .port_0_direction_mask = 0b00111111,
+                       // set P1_0 - P1_1 to be inputs
+                       .port_1_direction_mask = 0b00000011,
+                       .write = espp::make_i2c_addressed_write(aw9523_device),
+                       .write_then_read = espp::make_i2c_addressed_write_then_read(aw9523_device),
+                       .log_level = espp::Logger::Verbosity::WARN});
   aw9523.initialize(ec); // Initialized separately from the constructor.
   if (ec) {
     fmt::print("aw9523 initialization failed: {}\n", ec.message());

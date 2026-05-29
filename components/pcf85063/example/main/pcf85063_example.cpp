@@ -24,11 +24,22 @@ extern "C" void app_main(void) {
                  .sda_pullup_en = GPIO_PULLUP_ENABLE,
                  .scl_pullup_en = GPIO_PULLUP_ENABLE,
                  .clk_speed = i2c_clock_speed});
+  std::error_code ec;
+  auto rtc_device =
+      i2c.add_device<uint8_t>({.device_address = espp::Pcf85063::DEFAULT_ADDRESS,
+                               .timeout_ms = static_cast<int>(i2c.config().timeout_ms),
+                               .scl_speed_hz = i2c.config().clk_speed,
+                               .log_level = espp::Logger::Verbosity::WARN},
+                              ec);
+  if (!rtc_device) {
+    logger.error("Failed to initialize PCF85063 I2C device: {}", ec.message());
+    return;
+  }
 
   // now make the pcf85063
   espp::Pcf85063 rtc({.device_address = espp::Pcf85063::DEFAULT_ADDRESS,
-                      .write = std::bind_front(&espp::I2c::write, &i2c),
-                      .read = std::bind_front(&espp::I2c::read, &i2c)});
+                      .write = espp::make_i2c_addressed_write(rtc_device),
+                      .read = espp::make_i2c_addressed_read(rtc_device)});
 
   // set the time
   std::tm time;
@@ -38,7 +49,6 @@ extern "C" void app_main(void) {
   time.tm_mday = 1;
   time.tm_mon = 0;
   time.tm_year = 2023 - 1900;
-  std::error_code ec;
   rtc.set_time(time, ec);
   if (ec) {
     logger.error("Failed to set time: {}", ec.message());

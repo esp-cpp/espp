@@ -12,7 +12,7 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py i2c bmi270 filters"
+  "main esptool_py i2c bmi270 filters task"
   CACHE STRING
   "List of components to include"
   )

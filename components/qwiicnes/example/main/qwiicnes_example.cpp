@@ -19,13 +19,21 @@ extern "C" void app_main(void) {
         .sda_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SDA_GPIO,
         .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
     });
+    std::error_code ec;
+    auto qwiicnes_device =
+        i2c.add_device<uint8_t>({.device_address = espp::QwiicNes::DEFAULT_ADDRESS,
+                                 .timeout_ms = static_cast<int>(i2c.config().timeout_ms),
+                                 .scl_speed_hz = i2c.config().clk_speed,
+                                 .log_level = espp::Logger::Verbosity::WARN},
+                                ec);
+    if (!qwiicnes_device) {
+      fmt::print("QwiicNes I2C device initialization failed: {}\n", ec.message());
+      return;
+    }
     // now make the qwiicnes which decodes the data
     espp::QwiicNes qwiicnes(
-        {.write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1, std::placeholders::_2,
-                            std::placeholders::_3),
-         .read_register =
-             std::bind(&espp::I2c::read_at_register, &i2c, std::placeholders::_1,
-                       std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+        {.write = espp::make_i2c_addressed_write(qwiicnes_device),
+         .read_register = espp::make_i2c_addressed_read_register(qwiicnes_device),
          .log_level = espp::Logger::Verbosity::WARN});
     // and finally, make the task to periodically poll the qwiicnes and print
     // the state

@@ -23,6 +23,17 @@ extern "C" void app_main(void) {
       .sda_pullup_en = GPIO_PULLUP_ENABLE,
       .scl_pullup_en = GPIO_PULLUP_ENABLE,
   });
+  std::error_code ec;
+  auto exp_device =
+      i2c.add_device<uint8_t>({.device_address = espp::Pi4ioe5v::DEFAULT_ADDRESS,
+                               .timeout_ms = static_cast<int>(i2c.config().timeout_ms),
+                               .scl_speed_hz = i2c.config().clk_speed,
+                               .log_level = espp::Logger::Verbosity::INFO},
+                              ec);
+  if (!exp_device) {
+    logger.error("PI4IOE5V I2C device initialization failed: {}", ec.message());
+    return;
+  }
 
   // Configure PI4IOE5V: 8-bit port with mixed inputs/outputs
   espp::Pi4ioe5v exp({
@@ -30,13 +41,12 @@ extern "C" void app_main(void) {
       .direction_mask = 0xF0, // upper 4 bits as outputs, lower 4 bits as inputs
       .interrupt_mask = 0xFF, // all interrupts disabled for now
       .initial_output = 0xA0, // initial pattern for outputs
-      .write = std::bind_front(&espp::I2c::write, &i2c),
-      .write_then_read = std::bind_front(&espp::I2c::write_read, &i2c),
+      .write = espp::make_i2c_addressed_write(exp_device),
+      .write_then_read = espp::make_i2c_addressed_write_then_read(exp_device),
       .auto_init = false,
       .log_level = espp::Logger::Verbosity::INFO,
   });
 
-  std::error_code ec;
   // Initialize separately from the constructor since we set auto_init to false
   if (!exp.initialize(ec)) {
     logger.error("PI4IOE5V initialization failed: {}", ec.message());

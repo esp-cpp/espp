@@ -338,6 +338,7 @@ protected:
        .task_config = {.name = "sc01+ interrupts",
                        .stack_size_bytes = CONFIG_SMARTPANLEE_SC01_PLUS_INTERRUPT_STACK_SIZE}}};
 
+  std::shared_ptr<I2c::Device<uint8_t>> touch_i2c_device_;
   std::shared_ptr<TouchDriver> touch_driver_;
   std::shared_ptr<TouchpadInput> touchpad_input_;
   mutable std::recursive_mutex touchpad_data_mutex_;

@@ -22,10 +22,24 @@ bool M5StackTab5::initialize_touch(const touch_callback_t &callback) {
   touch_reset(false);
   std::this_thread::sleep_for(50ms);
 
+  std::error_code ec;
+  touch_i2c_device_ = internal_i2c_.add_device<uint8_t>(
+      {
+          .device_address = TouchDriver::DEFAULT_ADDRESS_2,
+          .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
+          .scl_speed_hz = internal_i2c_.config().clk_speed,
+          .log_level = espp::Logger::Verbosity::WARN,
+      },
+      ec);
+  if (!touch_i2c_device_) {
+    logger_.error("Could not initialize touch I2C device: {}", ec.message());
+    return false;
+  }
+
   // Create touch driver instance
   touch_driver_ = std::make_shared<TouchDriver>(
-      TouchDriver::Config{.write = std::bind_front(&I2c::write, &internal_i2c_),
-                          .read = std::bind_front(&I2c::read, &internal_i2c_),
+      TouchDriver::Config{.write = espp::make_i2c_addressed_write(touch_i2c_device_),
+                          .read = espp::make_i2c_addressed_read(touch_i2c_device_),
                           .address = TouchDriver::DEFAULT_ADDRESS_2, // GT911 0x14 address
                           .log_level = espp::Logger::Verbosity::WARN});
 

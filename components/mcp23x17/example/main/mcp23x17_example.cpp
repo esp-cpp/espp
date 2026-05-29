@@ -19,20 +19,27 @@ extern "C" void app_main(void) {
         .sda_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SDA_GPIO,
         .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
     });
+    std::error_code ec;
+    auto mcp23x17_device =
+        i2c.add_device<uint8_t>({.device_address = espp::Mcp23x17::DEFAULT_ADDRESS,
+                                 .timeout_ms = static_cast<int>(i2c.config().timeout_ms),
+                                 .scl_speed_hz = i2c.config().clk_speed,
+                                 .log_level = espp::Logger::Verbosity::WARN},
+                                ec);
+    if (!mcp23x17_device) {
+      fmt::print("MCP23X17 I2C device initialization failed: {}\n", ec.message());
+      return;
+    }
     // now make the mcp23x17 which handles GPIO
     espp::Mcp23x17 mcp23x17(
         {.port_0_direction_mask = (1 << 0), // input on A0
          .port_0_interrupt_mask = (1 << 0), // interrupt on A0
          .port_1_direction_mask = (1 << 7), // input on B7
          .port_1_interrupt_mask = (1 << 7), // interrupt on B7
-         .write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1, std::placeholders::_2,
-                            std::placeholders::_3),
-         .read_register =
-             std::bind(&espp::I2c::read_at_register, &i2c, std::placeholders::_1,
-                       std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+         .write = espp::make_i2c_addressed_write(mcp23x17_device),
+         .read_register = espp::make_i2c_addressed_read_register(mcp23x17_device),
          .log_level = espp::Logger::Verbosity::WARN});
     // set pull up on the input pins
-    std::error_code ec;
     mcp23x17.set_pull_up(espp::Mcp23x17::Port::PORT0, (1 << 0), ec);
     if (ec) {
       fmt::print("set_pull_up failed: {}\n", ec.message());

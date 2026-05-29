@@ -10,10 +10,24 @@ bool M5StackTab5::initialize_imu(const Imu::filter_fn &orientation_filter) {
 
   logger_.info("Initializing BMI270 6-axis IMU");
 
+  std::error_code ec;
+  imu_i2c_device_ = internal_i2c_.add_device<uint8_t>(
+      {
+          .device_address = Imu::DEFAULT_ADDRESS,
+          .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
+          .scl_speed_hz = internal_i2c_.config().clk_speed,
+          .log_level = espp::Logger::Verbosity::WARN,
+      },
+      ec);
+  if (!imu_i2c_device_) {
+    logger_.error("Could not initialize IMU I2C device: {}", ec.message());
+    return false;
+  }
+
   // Create BMI270 instance
   imu_ = std::make_shared<Imu>(Imu::Config{
-      .write = std::bind_front(&I2c::write, &internal_i2c_),
-      .read = std::bind_front(&I2c::read, &internal_i2c_),
+      .write = espp::make_i2c_addressed_write(imu_i2c_device_),
+      .read = espp::make_i2c_addressed_read(imu_i2c_device_),
       .imu_config =
           {
               .accelerometer_range = Imu::AccelerometerRange::RANGE_4G,

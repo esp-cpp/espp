@@ -25,12 +25,21 @@ extern "C" void app_main(void) {
 
     bool has_cst816 = i2c.probe_device(espp::Cst816::DEFAULT_ADDRESS);
     fmt::print("Touchpad probe: {}\n", has_cst816);
+    std::error_code ec;
+    auto cst816_device =
+        i2c.add_device<uint8_t>({.device_address = espp::Cst816::DEFAULT_ADDRESS,
+                                 .timeout_ms = static_cast<int>(i2c.config().timeout_ms),
+                                 .scl_speed_hz = i2c.config().clk_speed,
+                                 .log_level = espp::Logger::Verbosity::WARN},
+                                ec);
+    if (!cst816_device) {
+      fmt::print("CST816 I2C device initialization failed: {}\n", ec.message());
+      return;
+    }
 
     // now make the cst816 which decodes the data
-    espp::Cst816 cst816({.write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1,
-                                            std::placeholders::_2, std::placeholders::_3),
-                         .read = std::bind(&espp::I2c::read, &i2c, std::placeholders::_1,
-                                           std::placeholders::_2, std::placeholders::_3),
+    espp::Cst816 cst816({.write = espp::make_i2c_addressed_write(cst816_device),
+                         .read = espp::make_i2c_addressed_read(cst816_device),
                          .log_level = espp::Logger::Verbosity::WARN});
 
     // and finally, make the task to periodically poll the cst816 and print

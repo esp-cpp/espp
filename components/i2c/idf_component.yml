@@ -1,6 +1,6 @@
 ## IDF Component Manager Manifest File
 license: "MIT"
-description: "I2C (Legacy) component for ESP-IDF"
+description: "I2C bus and device wrappers for ESP-IDF"
 url: "https://github.com/esp-cpp/espp/tree/main/components/i2c"
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:

@@ -20,6 +20,17 @@ extern "C" void app_main(void) {
         .sda_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SDA_GPIO,
         .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
     });
+    std::error_code ec;
+    auto as5600_device =
+        i2c.add_device<uint8_t>({.device_address = espp::As5600::DEFAULT_ADDRESS,
+                                 .timeout_ms = static_cast<int>(i2c.config().timeout_ms),
+                                 .scl_speed_hz = i2c.config().clk_speed,
+                                 .log_level = espp::Logger::Verbosity::WARN},
+                                ec);
+    if (!as5600_device) {
+      fmt::print("AS5600 I2C device initialization failed: {}\n", ec.message());
+      return;
+    }
 
     // make the velocity filter
     static constexpr float filter_cutoff_hz = 4.0f;
@@ -31,13 +42,10 @@ extern "C" void app_main(void) {
     auto filter_fn = [&filter](float raw) -> float { return filter.update(raw); };
 
     // now make the as5600 which decodes the data
-    espp::As5600 as5600(
-        {.write_then_read =
-             std::bind(&espp::I2c::write_read, &i2c, std::placeholders::_1, std::placeholders::_2,
-                       std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
-         .velocity_filter = filter_fn,
-         .update_period = std::chrono::duration<float>(encoder_update_period),
-         .log_level = espp::Logger::Verbosity::WARN});
+    espp::As5600 as5600({.write_then_read = espp::make_i2c_addressed_write_then_read(as5600_device),
+                         .velocity_filter = filter_fn,
+                         .update_period = std::chrono::duration<float>(encoder_update_period),
+                         .log_level = espp::Logger::Verbosity::WARN});
 
     // and finally, make the task to periodically poll the as5600 and print the
     // state. NOTE: the As5600 runs its own task to maintain state, so we're

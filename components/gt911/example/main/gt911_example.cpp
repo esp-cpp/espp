@@ -28,12 +28,21 @@ extern "C" void app_main(void) {
     uint8_t address = has_gt911_5d ? 0x5d : 0x14;
     fmt::print("Touchpad probe: {}\n", has_gt911_5d || has_gt911_14);
     fmt::print("       address: {:#02x}\n", address);
+    std::error_code ec;
+    auto gt911_device =
+        i2c.add_device<uint8_t>({.device_address = address,
+                                 .timeout_ms = static_cast<int>(i2c.config().timeout_ms),
+                                 .scl_speed_hz = i2c.config().clk_speed,
+                                 .log_level = espp::Logger::Verbosity::WARN},
+                                ec);
+    if (!gt911_device) {
+      fmt::print("GT911 I2C device initialization failed: {}\n", ec.message());
+      return;
+    }
 
     // now make the gt911 which decodes the data
-    espp::Gt911 gt911({.write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1,
-                                          std::placeholders::_2, std::placeholders::_3),
-                       .read = std::bind(&espp::I2c::read, &i2c, std::placeholders::_1,
-                                         std::placeholders::_2, std::placeholders::_3),
+    espp::Gt911 gt911({.write = espp::make_i2c_addressed_write(gt911_device),
+                       .read = espp::make_i2c_addressed_read(gt911_device),
                        .address = address,
                        .log_level = espp::Logger::Verbosity::WARN});
 
