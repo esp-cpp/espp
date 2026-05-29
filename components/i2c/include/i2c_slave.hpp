@@ -174,6 +174,7 @@ protected:
   MessageBufferHandle_t callback_buffer_ = nullptr;
   std::unique_ptr<espp::Task> event_task_;
   std::vector<uint8_t> legacy_receive_buffer_;
+  std::vector<uint8_t> callback_dispatch_buffer_;
   std::atomic<size_t> legacy_receive_length_{0};
   std::atomic<bool> legacy_receive_armed_{false};
   std::atomic<bool> read_buffer_overflowed_{false};

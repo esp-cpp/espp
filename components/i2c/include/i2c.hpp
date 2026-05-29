@@ -615,6 +615,7 @@ public:
         ec.clear();
         return;
       }
+      initialized_ = false;
       compatibility_devices.swap(compatibility_devices_);
     }
 
@@ -634,9 +635,6 @@ public:
 
     std::error_code bus_ec;
     master_bus_.deinit(bus_ec);
-
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
-    initialized_ = bus_ec ? true : false;
     if (bus_ec) {
       ec = bus_ec;
       return;
@@ -663,6 +661,12 @@ public:
   template <typename RegisterType = uint8_t>
   std::shared_ptr<Device<RegisterType>> add_device(const DeviceConfig<RegisterType> &dev_config,
                                                    std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    if (!initialized_) {
+      logger_.error("not initialized");
+      ec = std::make_error_code(std::errc::not_connected);
+      return nullptr;
+    }
     return master_bus_.add_device<RegisterType>(dev_config, ec);
   }
 

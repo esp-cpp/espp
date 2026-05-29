@@ -171,6 +171,7 @@ bool I2cSlaveDevice::init(std::error_code &ec) {
   callback_buffer_overflowed_ = false;
   event_queue_overflowed_ = false;
   legacy_receive_buffer_.assign(config_.receive_buffer_depth, 0);
+  callback_dispatch_buffer_.assign(config_.receive_buffer_depth, 0);
   legacy_receive_length_ = 0;
   legacy_receive_armed_ = false;
   initialized_ = true;
@@ -220,6 +221,7 @@ bool I2cSlaveDevice::deinit(std::error_code &ec) {
   }
   callbacks_ = {};
   legacy_receive_buffer_.clear();
+  callback_dispatch_buffer_.clear();
   legacy_receive_length_ = 0;
   legacy_receive_armed_ = false;
   ec.clear();
@@ -298,8 +300,8 @@ bool I2cSlaveDevice::read(uint8_t *data, size_t len, size_t &received_len, std::
     size_t next_length = xMessageBufferNextLengthBytes(read_buffer_);
     if (next_length == 0 && !legacy_receive_armed_) {
       if (len > config_.receive_buffer_depth) {
-        logger_.error("I2C slave read request ({}) exceeds configured receive_buffer_depth ({})", len,
-                      config_.receive_buffer_depth);
+        logger_.error("I2C slave read request ({}) exceeds configured receive_buffer_depth ({})",
+                      len, config_.receive_buffer_depth);
         ec = std::make_error_code(std::errc::message_size);
         return false;
       }
@@ -490,19 +492,24 @@ bool I2cSlaveDevice::event_task_callback(std::mutex &m, std::condition_variable 
     break;
   }
   case EventType::RECEIVE: {
-    std::vector<uint8_t> data(config_.receive_buffer_depth);
-    size_t length =
-        callback_buffer ? xMessageBufferReceive(callback_buffer, data.data(), data.size(), 0) : 0;
-    if (length == 0) {
-      break;
-    }
+    uint8_t *data = nullptr;
+    size_t capacity = 0;
     ReceiveCallback callback;
     {
       std::lock_guard<std::recursive_mutex> lock(mutex_);
       callback = callbacks_.on_receive;
+      if (!callback_buffer_ || callback_dispatch_buffer_.empty()) {
+        break;
+      }
+      data = callback_dispatch_buffer_.data();
+      capacity = callback_dispatch_buffer_.size();
+    }
+    size_t length = callback_buffer ? xMessageBufferReceive(callback_buffer, data, capacity, 0) : 0;
+    if (length == 0) {
+      break;
     }
     if (callback) {
-      callback(data.data(), length);
+      callback(data, length);
     }
     break;
   }
