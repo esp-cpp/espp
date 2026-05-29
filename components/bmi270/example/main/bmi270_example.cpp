@@ -5,6 +5,7 @@
 #include "i2c.hpp"
 #include "kalman_filter.hpp"
 #include "madgwick_filter.hpp"
+#include "task.hpp"
 
 using namespace std::chrono_literals;
 

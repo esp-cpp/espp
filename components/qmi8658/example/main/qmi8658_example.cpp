@@ -5,6 +5,7 @@
 #include "kalman_filter.hpp"
 #include "madgwick_filter.hpp"
 #include "qmi8658.hpp"
+#include "task.hpp"
 
 using namespace std::chrono_literals;
 

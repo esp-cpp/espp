@@ -7,6 +7,7 @@
 #include "logger.hpp"
 #include "lsm6dso.hpp"
 #include "madgwick_filter.hpp"
+#include "task.hpp"
 
 using namespace std::chrono_literals;
 
