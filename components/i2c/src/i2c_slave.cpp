@@ -101,12 +101,16 @@ bool I2cSlaveDevice::init(std::error_code &ec) {
   slave_cfg.scl_io_num = static_cast<gpio_num_t>(config_.scl_io_num);
   slave_cfg.clk_source = I2C_CLK_SRC_DEFAULT;
   slave_cfg.send_buf_depth = config_.send_buffer_depth;
+#if ESPP_I2C_SLAVE_V2_API
   slave_cfg.receive_buf_depth = config_.receive_buffer_depth;
+#endif
   slave_cfg.slave_addr = config_.slave_address;
   slave_cfg.addr_bit_len = config_.addr_bit_len;
   slave_cfg.intr_priority = config_.intr_priority;
   slave_cfg.flags.allow_pd = 0;
+#if ESPP_I2C_SLAVE_V2_API
   slave_cfg.flags.enable_internal_pullup = config_.enable_internal_pullup;
+#endif
 
   esp_err_t err = i2c_new_slave_device(&slave_cfg, &dev_handle_);
   if (err != ESP_OK) {
@@ -122,8 +126,12 @@ bool I2cSlaveDevice::init(std::error_code &ec) {
   }
 
   i2c_slave_event_callbacks_t cbs = {};
+#if ESPP_I2C_SLAVE_V2_API
   cbs.on_request = &I2cSlaveDevice::request_callback_trampoline;
   cbs.on_receive = &I2cSlaveDevice::receive_callback_trampoline;
+#else
+  cbs.on_recv_done = &I2cSlaveDevice::receive_callback_trampoline;
+#endif
   err = i2c_slave_register_event_callbacks(dev_handle_, &cbs, this);
   if (err != ESP_OK) {
     logger_.error("could not register I2C slave callbacks: {}", esp_err_to_name(err));
@@ -162,6 +170,9 @@ bool I2cSlaveDevice::init(std::error_code &ec) {
   read_buffer_overflowed_ = false;
   callback_buffer_overflowed_ = false;
   event_queue_overflowed_ = false;
+  legacy_receive_buffer_.assign(config_.receive_buffer_depth, 0);
+  legacy_receive_length_ = 0;
+  legacy_receive_armed_ = false;
   initialized_ = true;
   ec.clear();
   return true;
@@ -215,6 +226,9 @@ bool I2cSlaveDevice::deinit(std::error_code &ec) {
     callback_buffer_ = nullptr;
   }
   callbacks_ = {};
+  legacy_receive_buffer_.clear();
+  legacy_receive_length_ = 0;
+  legacy_receive_armed_ = false;
   ec.clear();
   return true;
 }
@@ -234,6 +248,7 @@ bool I2cSlaveDevice::write(const uint8_t *data, size_t len, std::error_code &ec)
     return false;
   }
 
+#if ESPP_I2C_SLAVE_V2_API
   uint32_t write_len = 0;
   esp_err_t err = i2c_slave_write(dev_handle_, data, len, &write_len, config_.timeout_ms);
   if (err != ESP_OK) {
@@ -249,6 +264,17 @@ bool I2cSlaveDevice::write(const uint8_t *data, size_t len, std::error_code &ec)
 
   ec.clear();
   return true;
+#else
+  esp_err_t err = i2c_slave_transmit(dev_handle_, data, len, config_.timeout_ms);
+  if (err != ESP_OK) {
+    logger_.error("I2C slave write failed: {}", esp_err_to_name(err));
+    ec = make_error_code(err);
+    return false;
+  }
+
+  ec.clear();
+  return true;
+#endif
 }
 
 bool I2cSlaveDevice::read(uint8_t *data, size_t len, std::error_code &ec) {
@@ -268,6 +294,30 @@ bool I2cSlaveDevice::read(uint8_t *data, size_t len, std::error_code &ec) {
 
   log_pending_overflows();
 
+#if !ESPP_I2C_SLAVE_V2_API
+  size_t next_length = xMessageBufferNextLengthBytes(read_buffer_);
+  if (next_length == 0 && !legacy_receive_armed_) {
+    if (len > config_.receive_buffer_depth) {
+      logger_.error(
+          "I2C slave read buffer too small for configured receive depth (need {}, have {})",
+          config_.receive_buffer_depth, len);
+      ec = std::make_error_code(std::errc::message_size);
+      return false;
+    }
+    std::fill(legacy_receive_buffer_.begin(), legacy_receive_buffer_.end(), 0);
+    legacy_receive_length_ = len;
+    legacy_receive_armed_ = true;
+    esp_err_t err = i2c_slave_receive(dev_handle_, legacy_receive_buffer_.data(), len);
+    if (err != ESP_OK) {
+      legacy_receive_armed_ = false;
+      legacy_receive_length_ = 0;
+      logger_.error("I2C slave read failed to arm receive: {}", esp_err_to_name(err));
+      ec = make_error_code(err);
+      return false;
+    }
+  }
+#endif
+
   size_t read_len =
       xMessageBufferReceive(read_buffer_, data, len, timeout_ticks(config_.timeout_ms));
   if (read_len == 0) {
@@ -276,6 +326,10 @@ bool I2cSlaveDevice::read(uint8_t *data, size_t len, std::error_code &ec) {
       logger_.error("I2C slave read buffer too small for next transaction (need {}, have {})",
                     next_length, len);
       ec = std::make_error_code(std::errc::message_size);
+#if !ESPP_I2C_SLAVE_V2_API
+    } else if (legacy_receive_armed_) {
+      ec = std::make_error_code(std::errc::timed_out);
+#endif
     } else if (read_buffer_overflowed_.exchange(false)) {
       logger_.error("I2C slave dropped received data because the read queue overflowed");
       ec = std::make_error_code(std::errc::no_buffer_space);
@@ -296,6 +350,7 @@ bool I2cSlaveDevice::register_callbacks(const Callbacks &cb, std::error_code &ec
   return true;
 }
 
+#if ESPP_I2C_SLAVE_V2_API
 bool IRAM_ATTR I2cSlaveDevice::request_callback_trampoline(i2c_slave_dev_handle_t,
                                                            const i2c_slave_request_event_data_t *,
                                                            void *user_data) {
@@ -311,24 +366,34 @@ bool IRAM_ATTR I2cSlaveDevice::request_callback_trampoline(i2c_slave_dev_handle_
   }
   return task_woken == pdTRUE;
 }
+#endif
 
 bool IRAM_ATTR I2cSlaveDevice::receive_callback_trampoline(
     i2c_slave_dev_handle_t, const i2c_slave_rx_done_event_data_t *evt_data, void *user_data) {
   auto *device = static_cast<I2cSlaveDevice *>(user_data);
-  if (!device || !device->event_queue_ || !evt_data || !evt_data->buffer || evt_data->length == 0) {
+  if (!device || !device->event_queue_ || !evt_data || !evt_data->buffer) {
     return false;
   }
 
   BaseType_t task_woken = pdFALSE;
-  size_t sent = xMessageBufferSendFromISR(device->read_buffer_, evt_data->buffer, evt_data->length,
-                                          &task_woken);
-  if (sent != evt_data->length) {
+#if ESPP_I2C_SLAVE_V2_API
+  size_t length = evt_data->length;
+#else
+  size_t length = device->legacy_receive_length_.exchange(0);
+  device->legacy_receive_armed_ = false;
+#endif
+  if (length == 0) {
+    return false;
+  }
+
+  size_t sent =
+      xMessageBufferSendFromISR(device->read_buffer_, evt_data->buffer, length, &task_woken);
+  if (sent != length) {
     device->read_buffer_overflowed_ = true;
   }
 
-  sent = xMessageBufferSendFromISR(device->callback_buffer_, evt_data->buffer, evt_data->length,
-                                   &task_woken);
-  if (sent != evt_data->length) {
+  sent = xMessageBufferSendFromISR(device->callback_buffer_, evt_data->buffer, length, &task_woken);
+  if (sent != length) {
     device->callback_buffer_overflowed_ = true;
   }
 

@@ -62,6 +62,11 @@ the next complete master-write transaction buffered by the receive callback
 path, ``write()`` stages bytes for the next master read, and optional request /
 receive callbacks run in task context instead of the ISR callback itself.
 
+On ESP-IDF v5.5's default slave driver, the receive callback does not expose the
+exact byte count. ESPP still supports buffered reads and receive callbacks in
+that configuration, but trailing unread bytes are zero-filled and the reported
+receive length matches the requested read size.
+
 There is not yet a dedicated slave example.
 
 .. ------------------------------- Example -------------------------------------

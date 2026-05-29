@@ -12,6 +12,7 @@
 #include <system_error>
 #include <vector>
 
+#include <esp_idf_version.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/message_buffer.h>
 #include <freertos/queue.h>
@@ -27,6 +28,12 @@ extern "C" {
 
 namespace espp {
 
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0) || CONFIG_I2C_ENABLE_SLAVE_DRIVER_VERSION_2
+#define ESPP_I2C_SLAVE_V2_API 1
+#else
+#define ESPP_I2C_SLAVE_V2_API 0
+#endif
+
 /// @brief I2C slave device wrapper for ESP-IDF's callback-driven slave API.
 /// @details
 /// ESP-IDF's slave driver is event/callback based: master writes arrive through
@@ -37,6 +44,11 @@ namespace espp {
 /// - blocking `write()` access for staging data back to the master
 /// - task-context request / receive callbacks so user code does not have to run
 ///   inside the ISR callback context
+///
+/// When built against ESP-IDF v5.5's default slave driver, the receive callback
+/// API does not expose the actual transaction length. In that configuration this
+/// wrapper buffers the requested receive length and zero-fills any trailing bytes
+/// the master did not write so `read()` and `on_receive` still behave consistently.
 ///
 /// @note No dedicated example exists yet.
 ///
@@ -123,9 +135,11 @@ protected:
     EventType type;
   };
 
+#if ESPP_I2C_SLAVE_V2_API
   static bool IRAM_ATTR request_callback_trampoline(i2c_slave_dev_handle_t i2c_slave,
                                                     const i2c_slave_request_event_data_t *evt_data,
                                                     void *user_data);
+#endif
   static bool IRAM_ATTR receive_callback_trampoline(i2c_slave_dev_handle_t i2c_slave,
                                                     const i2c_slave_rx_done_event_data_t *evt_data,
                                                     void *user_data);
@@ -145,6 +159,9 @@ protected:
   MessageBufferHandle_t read_buffer_ = nullptr;
   MessageBufferHandle_t callback_buffer_ = nullptr;
   std::unique_ptr<espp::Task> event_task_;
+  std::vector<uint8_t> legacy_receive_buffer_;
+  std::atomic<size_t> legacy_receive_length_{0};
+  std::atomic<bool> legacy_receive_armed_{false};
   std::atomic<bool> read_buffer_overflowed_{false};
   std::atomic<bool> callback_buffer_overflowed_{false};
   std::atomic<bool> event_queue_overflowed_{false};
