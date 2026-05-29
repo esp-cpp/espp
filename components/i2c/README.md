@@ -4,11 +4,12 @@
 
 The `i2c` component provides C++ wrappers around ESP-IDF's I2C drivers.
 
-For ESP-IDF v6.x and newer ESPP defaults to the new master/slave bus API. The
-primary `espp::I2c` class keeps the familiar address-based helper methods
-(`probe_device`, `read`, `write`, `write_read`, `read_at_register`, etc.) for
-backwards compatibility, while also allowing explicit per-device handles via
-`add_device()`.
+The new master/slave bus API is available on ESP-IDF >= 5.4.0 and is required
+on ESP-IDF v6.x and newer. ESPP defaults to that driver family where it is
+required, while the primary `espp::I2c` class keeps the familiar address-based
+helper methods (`probe_device`, `read`, `write`, `write_read`,
+`read_at_register`, etc.) for backwards compatibility and also allows explicit
+per-device handles via `add_device()`.
 
 If you want direct access to the bus/device model, the component also exposes:
 

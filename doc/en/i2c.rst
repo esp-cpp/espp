@@ -6,7 +6,8 @@ The `i2c` component provides C++ wrappers built on ESP-IDF's I2C drivers.
 There are two driver families available:
 
 - the deprecated legacy driver
-- the new master/slave bus API used by ESP-IDF v6.x
+- the new master/slave bus API available on ESP-IDF >= 5.4.0 and required on
+  ESP-IDF v6.x and newer
 
 Only one family can be selected at a time via Kconfig.
 
@@ -18,8 +19,9 @@ API. It preserves the familiar address-based helper methods for backwards
 compatibility while internally using ESP-IDF's new master bus/device model.
 
 That means existing code using methods such as ``probe_device()``, ``read()``,
-``write()``, ``write_read()``, and ``read_at_register()`` can keep working on
-ESP-IDF v6.x without being rewritten around the raw ESP-IDF handles.
+``write()``, ``write_read()``, and ``read_at_register()`` can keep working when
+the new driver family is selected, without being rewritten around the raw
+ESP-IDF handles.
 
 For code that wants explicit per-device ownership, ``espp::I2c`` also exposes
 ``add_device()`` which returns an ``I2cMasterDevice``.
