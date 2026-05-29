@@ -298,9 +298,8 @@ bool I2cSlaveDevice::read(uint8_t *data, size_t len, size_t &received_len, std::
     size_t next_length = xMessageBufferNextLengthBytes(read_buffer_);
     if (next_length == 0 && !legacy_receive_armed_) {
       if (len > config_.receive_buffer_depth) {
-        logger_.error(
-            "I2C slave read buffer too small for configured receive depth (need {}, have {})",
-            config_.receive_buffer_depth, len);
+        logger_.error("I2C slave read request ({}) exceeds configured receive_buffer_depth ({})", len,
+                      config_.receive_buffer_depth);
         ec = std::make_error_code(std::errc::message_size);
         return false;
       }
