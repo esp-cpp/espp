@@ -294,25 +294,27 @@ bool I2cSlaveDevice::read(uint8_t *data, size_t len, size_t &received_len, std::
   log_pending_overflows();
 
 #if !ESPP_I2C_SLAVE_V2_API
-  size_t next_length = xMessageBufferNextLengthBytes(read_buffer_);
-  if (next_length == 0 && !legacy_receive_armed_) {
-    if (len > config_.receive_buffer_depth) {
-      logger_.error(
-          "I2C slave read buffer too small for configured receive depth (need {}, have {})",
-          config_.receive_buffer_depth, len);
-      ec = std::make_error_code(std::errc::message_size);
-      return false;
-    }
-    std::fill(legacy_receive_buffer_.begin(), legacy_receive_buffer_.end(), 0);
-    legacy_receive_length_ = len;
-    legacy_receive_armed_ = true;
-    esp_err_t err = i2c_slave_receive(dev_handle_, legacy_receive_buffer_.data(), len);
-    if (err != ESP_OK) {
-      legacy_receive_armed_ = false;
-      legacy_receive_length_ = 0;
-      logger_.error("I2C slave read failed to arm receive: {}", esp_err_to_name(err));
-      ec = make_error_code(err);
-      return false;
+  {
+    size_t next_length = xMessageBufferNextLengthBytes(read_buffer_);
+    if (next_length == 0 && !legacy_receive_armed_) {
+      if (len > config_.receive_buffer_depth) {
+        logger_.error(
+            "I2C slave read buffer too small for configured receive depth (need {}, have {})",
+            config_.receive_buffer_depth, len);
+        ec = std::make_error_code(std::errc::message_size);
+        return false;
+      }
+      std::fill(legacy_receive_buffer_.begin(), legacy_receive_buffer_.end(), 0);
+      legacy_receive_length_ = len;
+      legacy_receive_armed_ = true;
+      esp_err_t err = i2c_slave_receive(dev_handle_, legacy_receive_buffer_.data(), len);
+      if (err != ESP_OK) {
+        legacy_receive_armed_ = false;
+        legacy_receive_length_ = 0;
+        logger_.error("I2C slave read failed to arm receive: {}", esp_err_to_name(err));
+        ec = make_error_code(err);
+        return false;
+      }
     }
   }
 #endif

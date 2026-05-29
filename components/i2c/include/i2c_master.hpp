@@ -242,7 +242,7 @@ public:
       return nullptr;
     }
     auto device = std::make_shared<I2cMasterDevice<RegisterType>>(bus_handle_, dev_config);
-    if (dev_config.auto_init && device && !device->initialized()) {
+    if (dev_config.auto_init && !device->initialized()) {
       logger_.error("I2C device auto-init failed at address 0x{:02x}", dev_config.device_address);
       ec = std::make_error_code(std::errc::io_error);
       return nullptr;
