@@ -153,8 +153,9 @@ protected:
   /// @param address The address to read from.
   /// @param reg The register to read from.
   /// @param len The number of bytes to read.
-  static void read_device(std::ostream &out, espp::I2cMasterBus &bus, uint16_t address, uint8_t reg,
-                          uint8_t len) {
+  static void read_device(std::ostream &out,
+                          espp::I2cMasterBus &bus, // cppcheck-suppress constParameterReference
+                          uint16_t address, uint8_t reg, uint8_t len) {
     std::error_code ec;
     auto dev = bus.add_device<uint8_t>({.device_address = address, .timeout_ms = 50}, ec);
     if (!dev) {
@@ -176,8 +177,9 @@ protected:
   /// @param out The output stream to write to.
   /// @param address The address to write to.
   /// @param data The data to write (first byte is register, rest is data).
-  static void write_device(std::ostream &out, espp::I2cMasterBus &bus, uint16_t address,
-                           const std::vector<uint8_t> &data) {
+  static void write_device(std::ostream &out,
+                           espp::I2cMasterBus &bus, // cppcheck-suppress constParameterReference
+                           uint16_t address, const std::vector<uint8_t> &data) {
     if (data.empty()) {
       out << "No register/data provided.\n";
       return;
