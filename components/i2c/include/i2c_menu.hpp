@@ -52,44 +52,44 @@ public:
         "scan", [this](std::ostream &out) -> void { scan_bus(out); },
         "Scan the I2c bus for devices.");
 
-    // probe for a device (hexadecimal address string)
+    // probe for a device (hex or decimal address string)
     i2c_menu->Insert(
-        "probe", {"address (hex)"},
+        "probe", {"address (hex/dec)"},
         [this](std::ostream &out, const std::string &address_string) -> void {
           // convert address_string to a uint8_t
-          uint8_t address = std::stoi(address_string, nullptr, 16);
+          uint8_t address = std::stoi(address_string, nullptr, 0);
           probe_device(out, address);
         },
-        "Probe for a device at a specific address, given as a hexadecimal string.");
+        "Probe for a device at a specific address, given as a hex or decimal string.");
 
     // read from a device
     i2c_menu->Insert(
-        "read", {"address (hex)", "register"},
+        "read", {"address (hex/dec)", "register"},
         [this](std::ostream &out, const std::string &address_string, uint8_t reg) -> void {
           // convert address_string to a uint8_t
-          uint8_t address = std::stoi(address_string, nullptr, 16);
+          uint8_t address = std::stoi(address_string, nullptr, 0);
           read_device(out, address, reg, 1);
         },
         "Read a byte from a device at a specific address and register.");
 
     // read from a device
     i2c_menu->Insert(
-        "read", {"address (hex)", "register", "length (number of bytes to read)"},
+        "read", {"address (hex/dec)", "register", "length (number of bytes to read)"},
         [this](std::ostream &out, const std::string &address_string, uint8_t reg,
                uint8_t len) -> void {
           // convert address_string to a uint8_t
-          uint8_t address = std::stoi(address_string, nullptr, 16);
+          uint8_t address = std::stoi(address_string, nullptr, 0);
           read_device(out, address, reg, len);
         },
         "Read len bytes from a device at a specific address and register.");
 
     // write to a device
     i2c_menu->Insert(
-        "write", {"address (hex)", "register", "data byte"},
+        "write", {"address (hex/dec)", "register", "data byte"},
         [this](std::ostream &out, const std::string &address_string, uint8_t reg,
                uint8_t data) -> void {
           // convert address_string to a uint8_t
-          uint8_t address = std::stoi(address_string, nullptr, 16);
+          uint8_t address = std::stoi(address_string, nullptr, 0);
           std::vector<uint8_t> data_vector = {reg, data};
           write_device(out, address, data_vector);
         },
@@ -97,7 +97,9 @@ public:
 
     // write to a device
     i2c_menu->Insert(
-        "write", {"address (hex)", "register (hex)", "data byte (hex)", "data byte (hex)", "..."},
+        "write",
+        {"address (hex/dec)", "register (hex/dec)", "data byte (hex/dec)", "data byte (hex/dec)",
+         "..."},
         [this](std::ostream &out, const std::vector<std::string> &args) -> void {
           // parse the args into address, reg, and data
           if (args.size() < 3) {
@@ -105,7 +107,7 @@ public:
             return;
           }
           // convert address_string to a uint8_t
-          uint8_t address = std::stoi(args[0], nullptr, 16);
+          uint8_t address = std::stoi(args[0], nullptr, 0);
           // remove the address byte (first element) and convert the rest of the
           // vector of strings into a vector of bytes
           std::vector<uint8_t> data;

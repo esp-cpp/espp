@@ -52,18 +52,18 @@ public:
         "scan", [bus](std::ostream &out) -> void { scan_bus(out, *bus); },
         "Scan the I2c master bus for devices.");
 
-    // Probe for a device (hexadecimal address string)
+    // Probe for a device (hex or decimal address string)
     menu->Insert(
-        "probe", {"address (hex)"},
+        "probe", {"address (hex/dec)"},
         [bus](std::ostream &out, const std::string &address_string) -> void {
           uint16_t address = std::stoi(address_string, nullptr, 0);
           probe_device(out, *bus, address);
         },
-        "Probe for a device at a specific address, given as a hexadecimal string.");
+        "Probe for a device at a specific address, given as a hex or decimal string.");
 
     // Read from a device
     menu->Insert(
-        "read", {"address (hex)", "register", "length (number of bytes to read)"},
+        "read", {"address (hex/dec)", "register", "length (number of bytes to read)"},
         [bus](std::ostream &out, const std::string &address_string, uint8_t reg,
               uint8_t len) -> void {
           uint16_t address = std::stoi(address_string, nullptr, 0);
@@ -73,7 +73,9 @@ public:
 
     // Write to a device
     menu->Insert(
-        "write", {"address (hex)", "register (hex)", "data byte (hex)", "data byte (hex)", "..."},
+        "write",
+        {"address (hex/dec)", "register (hex/dec)", "data byte (hex/dec)", "data byte (hex/dec)",
+         "..."},
         [bus](std::ostream &out, const std::vector<std::string> &args) -> void {
           if (args.size() < 3) {
             out << "Not enough arguments.\n";

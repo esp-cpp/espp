@@ -66,7 +66,7 @@ public:
 
     // Write to a register
     menu->Insert(
-        "write", {"register", "data byte (hex)", "data byte (hex)", "..."},
+        "write", {"register", "data byte (hex/dec)", "data byte (hex/dec)", "..."},
         [device](std::ostream &out, const std::vector<std::string> &args) -> void {
           if (args.size() < 2) {
             out << "Not enough arguments.\n";
