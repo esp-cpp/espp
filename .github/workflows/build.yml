@@ -21,6 +21,8 @@ jobs:
         test:
         - path: 'components/adc/example'
           target: esp32
+        - path: 'components/adrc/example'
+          target: esp32
         - path: 'components/ads1x15/example'
           target: esp32
         - path: 'components/ads7138/example'
