@@ -2,20 +2,20 @@
 
 #include <sdkconfig.h>
 
-#if defined(CONFIG_ESPP_I2C_USE_LEGACY_API)
-
 #include <cstring>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <system_error>
 #include <vector>
 
-#include <driver/i2c.h>
-
 #include "base_component.hpp"
+#include "i2c_format_helpers.hpp"
 #include "run_on_core.hpp"
 
-#include "i2c_format_helpers.hpp"
+#if defined(CONFIG_ESPP_I2C_USE_LEGACY_API)
+
+#include <driver/i2c.h>
 
 #if CONFIG_ESPP_I2C_LEGACY_API_DISABLE_DEPRECATION_WARNINGS
 #define ESPP_I2C_LEGACY_API_DEPRECATED_ATTR
@@ -503,14 +503,6 @@ protected:
 
 #elif defined(CONFIG_ESPP_I2C_USE_NEW_API) || defined(_DOXYGEN_)
 
-#include <map>
-#include <memory>
-#include <mutex>
-#include <system_error>
-#include <vector>
-
-#include "base_component.hpp"
-#include "i2c_format_helpers.hpp"
 #include "i2c_master.hpp"
 
 namespace espp {
