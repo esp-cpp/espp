@@ -48,7 +48,7 @@ extern "C" void app_main(void) {
         ec);
     //! [i2c device creation example]
     if (!device) {
-      logger.error("Failed to add compatibility device: {}", ec.message());
+      logger.error("Failed to add explicit I2C device: {}", ec.message());
     } else {
       espp::I2cMasterDeviceMenu<uint8_t> i2c_device_menu(device);
       root_menu->Insert(i2c_device_menu.get());
