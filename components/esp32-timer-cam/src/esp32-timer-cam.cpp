@@ -118,7 +118,7 @@ bool EspTimerCam::initialize_rtc() {
     return false;
   }
   std::error_code ec;
-  auto rtc_device = internal_i2c_.add_device<uint8_t>(
+  rtc_i2c_device_ = internal_i2c_.add_device<uint8_t>(
       {
           .device_address = EspTimerCam::Rtc::DEFAULT_ADDRESS,
           .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
@@ -126,13 +126,13 @@ bool EspTimerCam::initialize_rtc() {
           .log_level = espp::Logger::Verbosity::WARN,
       },
       ec);
-  if (!rtc_device) {
+  if (!rtc_i2c_device_) {
     logger_.error("Could not initialize RTC I2C device: {}", ec.message());
     return false;
   }
   rtc_ = std::make_shared<EspTimerCam::Rtc>(EspTimerCam::Rtc::Config{
-      .write = espp::make_i2c_addressed_write(rtc_device),
-      .write_then_read = espp::make_i2c_addressed_write_then_read(rtc_device),
+      .write = espp::make_i2c_addressed_write(rtc_i2c_device_),
+      .write_then_read = espp::make_i2c_addressed_write_then_read(rtc_i2c_device_),
       .log_level = espp::Logger::Verbosity::WARN});
   return true;
 }

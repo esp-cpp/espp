@@ -86,7 +86,7 @@ bool MatouchRotaryDisplay::initialize_touch(
   logger_.info("Initializing touch input");
 
   std::error_code ec;
-  auto touch_device = internal_i2c_.add_device<uint8_t>(
+  touch_i2c_device_ = internal_i2c_.add_device<uint8_t>(
       {
           .device_address = espp::Cst816::DEFAULT_ADDRESS,
           .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
@@ -94,13 +94,13 @@ bool MatouchRotaryDisplay::initialize_touch(
           .log_level = espp::Logger::Verbosity::WARN,
       },
       ec);
-  if (!touch_device) {
+  if (!touch_i2c_device_) {
     logger_.error("Could not initialize touch I2C device: {}", ec.message());
     return false;
   }
   cst816_ = std::make_shared<espp::Cst816>(
-      espp::Cst816::Config{.write = espp::make_i2c_addressed_write(touch_device),
-                           .read = espp::make_i2c_addressed_read(touch_device),
+      espp::Cst816::Config{.write = espp::make_i2c_addressed_write(touch_i2c_device_),
+                           .read = espp::make_i2c_addressed_read(touch_i2c_device_),
                            .log_level = espp::Logger::Verbosity::WARN});
 
   // save the callback

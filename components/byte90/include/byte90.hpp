@@ -322,6 +322,7 @@ protected:
   button_callback_t button_callback_{nullptr};
 
   // accelerometer
+  std::shared_ptr<I2c::Device<uint8_t>> accelerometer_i2c_device_{nullptr};
   std::shared_ptr<Accelerometer> accelerometer_{nullptr};
   accel_callback_t accel_callback_{nullptr};
   std::recursive_mutex accel_data_mutex_;

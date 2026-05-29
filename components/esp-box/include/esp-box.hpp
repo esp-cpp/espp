@@ -490,6 +490,7 @@ protected:
   button_callback_t mute_button_callback_{nullptr};
 
   // touch
+  std::shared_ptr<I2c::Device<uint8_t>> touch_i2c_device_;
   std::shared_ptr<Gt911> gt911_;     // only used on ESP32-S3-BOX-3
   std::shared_ptr<Tt21100> tt21100_; // only used on ESP32-S3-BOX
   std::shared_ptr<TouchpadInput> touchpad_input_;
@@ -508,6 +509,7 @@ protected:
   uint8_t *frame_buffer1_{nullptr};
 
   // sound
+  std::shared_ptr<I2c::Device<uint8_t>> codec_i2c_device_;
   std::atomic<bool> sound_initialized_{false};
   std::atomic<float> volume_{50.0f};
   std::atomic<bool> mute_{false};
@@ -520,6 +522,7 @@ protected:
   i2s_std_config_t audio_std_cfg;
 
   // IMU
+  std::shared_ptr<I2c::Device<uint8_t>> imu_i2c_device_;
   std::shared_ptr<Imu> imu_;
 }; // class EspBox
 } // namespace espp

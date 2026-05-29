@@ -626,6 +626,7 @@ protected:
                        .priority = 20}}};
 
   // keyboard
+  std::shared_ptr<I2c::Device<uint8_t>> keyboard_i2c_device_{nullptr};
   std::shared_ptr<TKeyboard> keyboard_{nullptr};
 
   // trackball
@@ -636,6 +637,7 @@ protected:
   trackball_callback_t trackball_callback_{nullptr};
 
   // touch
+  std::shared_ptr<I2c::Device<uint8_t>> touch_i2c_device_;
   std::shared_ptr<Gt911> gt911_;
   std::shared_ptr<TouchpadInput> touchpad_input_;
   std::recursive_mutex touchpad_data_mutex_;

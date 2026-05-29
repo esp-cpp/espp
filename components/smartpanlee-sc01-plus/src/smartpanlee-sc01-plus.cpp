@@ -33,7 +33,7 @@ bool SmartPanleeSc01Plus::initialize_touch(const SmartPanleeSc01Plus::touch_call
   }
 
   std::error_code ec;
-  auto touch_device = internal_i2c_.add_device<uint8_t>(
+  touch_i2c_device_ = internal_i2c_.add_device<uint8_t>(
       {
           .device_address = TouchDriver::DEFAULT_ADDRESS,
           .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
@@ -41,14 +41,14 @@ bool SmartPanleeSc01Plus::initialize_touch(const SmartPanleeSc01Plus::touch_call
           .log_level = espp::Logger::Verbosity::WARN,
       },
       ec);
-  if (!touch_device) {
+  if (!touch_i2c_device_) {
     logger_.error("Could not initialize touch I2C device: {}", ec.message());
     return false;
   }
-  touch_driver_ = std::make_shared<TouchDriver>(
-      TouchDriver::Config{.write = espp::make_i2c_addressed_write(touch_device),
-                          .read_register = espp::make_i2c_addressed_read_register(touch_device),
-                          .log_level = espp::Logger::Verbosity::WARN});
+  touch_driver_ = std::make_shared<TouchDriver>(TouchDriver::Config{
+      .write = espp::make_i2c_addressed_write(touch_i2c_device_),
+      .read_register = espp::make_i2c_addressed_read_register(touch_i2c_device_),
+      .log_level = espp::Logger::Verbosity::WARN});
 
   touch_callback_ = callback;
   interrupts_.add_interrupt(touch_interrupt_pin_);

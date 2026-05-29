@@ -10,7 +10,7 @@ bool EspBox::initialize_codec() {
   logger_.info("initializing codec");
 
   std::error_code ec;
-  auto codec_device = internal_i2c_.add_device<uint8_t>(
+  codec_i2c_device_ = internal_i2c_.add_device<uint8_t>(
       {
           .device_address = 0x18,
           .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
@@ -18,13 +18,13 @@ bool EspBox::initialize_codec() {
           .log_level = espp::Logger::Verbosity::WARN,
       },
       ec);
-  if (!codec_device) {
+  if (!codec_i2c_device_) {
     logger_.error("Could not initialize codec I2C device: {}", ec.message());
     return false;
   }
 
-  set_es8311_write(espp::make_i2c_addressed_write(codec_device));
-  set_es8311_read(espp::make_i2c_addressed_read_register(codec_device));
+  set_es8311_write(espp::make_i2c_addressed_write(codec_i2c_device_));
+  set_es8311_read(espp::make_i2c_addressed_read_register(codec_i2c_device_));
 
   esp_err_t ret_val = ESP_OK;
   audio_hal_codec_config_t cfg;

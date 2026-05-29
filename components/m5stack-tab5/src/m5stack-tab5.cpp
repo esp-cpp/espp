@@ -16,7 +16,7 @@ M5StackTab5::M5StackTab5()
 bool M5StackTab5::initialize_io_expanders() {
   logger_.info("Initializing IO expanders (0x43, 0x44)");
   std::error_code ec;
-  auto ioexp_0x43_device = internal_i2c_.add_device<uint8_t>(
+  ioexp_0x43_i2c_device_ = internal_i2c_.add_device<uint8_t>(
       {
           .device_address = 0x43,
           .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
@@ -24,11 +24,11 @@ bool M5StackTab5::initialize_io_expanders() {
           .log_level = Logger::Verbosity::INFO,
       },
       ec);
-  if (!ioexp_0x43_device) {
+  if (!ioexp_0x43_i2c_device_) {
     logger_.error("Could not initialize IO expander 0x43 I2C device: {}", ec.message());
     return false;
   }
-  auto ioexp_0x44_device = internal_i2c_.add_device<uint8_t>(
+  ioexp_0x44_i2c_device_ = internal_i2c_.add_device<uint8_t>(
       {
           .device_address = 0x44,
           .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
@@ -36,7 +36,7 @@ bool M5StackTab5::initialize_io_expanders() {
           .log_level = Logger::Verbosity::INFO,
       },
       ec);
-  if (!ioexp_0x44_device) {
+  if (!ioexp_0x44_i2c_device_) {
     logger_.error("Could not initialize IO expander 0x44 I2C device: {}", ec.message());
     return false;
   }
@@ -47,8 +47,8 @@ bool M5StackTab5::initialize_io_expanders() {
       .high_z_mask = IOX_0x43_HIGH_Z_MASK,
       .pull_up_mask = IOX_0x43_PULL_UPS,
       .pull_down_mask = IOX_0x43_PULL_DOWNS,
-      .write = espp::make_i2c_addressed_write(ioexp_0x43_device),
-      .write_then_read = espp::make_i2c_addressed_write_then_read(ioexp_0x43_device),
+      .write = espp::make_i2c_addressed_write(ioexp_0x43_i2c_device_),
+      .write_then_read = espp::make_i2c_addressed_write_then_read(ioexp_0x43_i2c_device_),
       .log_level = Logger::Verbosity::INFO});
   ioexp_0x44_ = std::make_shared<IoExpander>(IoExpander::Config{
       .device_address = 0x44,
@@ -57,8 +57,8 @@ bool M5StackTab5::initialize_io_expanders() {
       .high_z_mask = IOX_0x44_HIGH_Z_MASK,
       .pull_up_mask = IOX_0x44_PULL_UPS,
       .pull_down_mask = IOX_0x44_PULL_DOWNS,
-      .write = espp::make_i2c_addressed_write(ioexp_0x44_device),
-      .write_then_read = espp::make_i2c_addressed_write_then_read(ioexp_0x44_device),
+      .write = espp::make_i2c_addressed_write(ioexp_0x44_i2c_device_),
+      .write_then_read = espp::make_i2c_addressed_write_then_read(ioexp_0x44_i2c_device_),
       .log_level = Logger::Verbosity::INFO});
 
   logger_.info("IO expanders initialized");

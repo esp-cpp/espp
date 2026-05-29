@@ -58,7 +58,7 @@ bool TDeck::initialize_keyboard(bool start_task, const TDeck::keypress_callback_
   }
   logger_.info("Initializing keyboard input");
   std::error_code ec;
-  auto keyboard_device = internal_i2c_.add_device<uint8_t>(
+  keyboard_i2c_device_ = internal_i2c_.add_device<uint8_t>(
       {
           .device_address = espp::TKeyboard::DEFAULT_ADDRESS,
           .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
@@ -66,13 +66,13 @@ bool TDeck::initialize_keyboard(bool start_task, const TDeck::keypress_callback_
           .log_level = espp::Logger::Verbosity::WARN,
       },
       ec);
-  if (!keyboard_device) {
+  if (!keyboard_i2c_device_) {
     logger_.error("Could not initialize keyboard I2C device: {}", ec.message());
     return false;
   }
   keyboard_ = std::make_shared<espp::TKeyboard>(
-      espp::TKeyboard::Config{.write = espp::make_i2c_addressed_write(keyboard_device),
-                              .read = espp::make_i2c_addressed_read(keyboard_device),
+      espp::TKeyboard::Config{.write = espp::make_i2c_addressed_write(keyboard_i2c_device_),
+                              .read = espp::make_i2c_addressed_read(keyboard_i2c_device_),
                               .key_cb = key_cb,
                               .polling_interval = poll_interval,
                               .auto_start = start_task,
@@ -160,7 +160,7 @@ bool TDeck::initialize_touch(const TDeck::touch_callback_t &touch_cb) {
 
   logger_.info("Initializing touch input");
   std::error_code ec;
-  auto touch_device = internal_i2c_.add_device<uint8_t>(
+  touch_i2c_device_ = internal_i2c_.add_device<uint8_t>(
       {
           .device_address = espp::Gt911::DEFAULT_ADDRESS_1,
           .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
@@ -168,14 +168,14 @@ bool TDeck::initialize_touch(const TDeck::touch_callback_t &touch_cb) {
           .log_level = espp::Logger::Verbosity::WARN,
       },
       ec);
-  if (!touch_device) {
+  if (!touch_i2c_device_) {
     logger_.error("Could not initialize touch I2C device: {}", ec.message());
     return false;
   }
 
   gt911_ = std::make_unique<espp::Gt911>(
-      espp::Gt911::Config{.write = espp::make_i2c_addressed_write(touch_device),
-                          .read = espp::make_i2c_addressed_read(touch_device),
+      espp::Gt911::Config{.write = espp::make_i2c_addressed_write(touch_i2c_device_),
+                          .read = espp::make_i2c_addressed_read(touch_i2c_device_),
                           .log_level = espp::Logger::Verbosity::WARN});
 
   // store the callback

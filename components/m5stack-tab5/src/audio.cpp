@@ -25,7 +25,7 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
   }
 
   std::error_code ec;
-  auto es8388_device = internal_i2c_.add_device<uint8_t>(
+  es8388_i2c_device_ = internal_i2c_.add_device<uint8_t>(
       {
           .device_address = 0x10,
           .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
@@ -33,11 +33,11 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
           .log_level = espp::Logger::Verbosity::WARN,
       },
       ec);
-  if (!es8388_device) {
+  if (!es8388_i2c_device_) {
     logger_.error("Could not initialize ES8388 I2C device: {}", ec.message());
     return false;
   }
-  auto es7210_device = internal_i2c_.add_device<uint8_t>(
+  es7210_i2c_device_ = internal_i2c_.add_device<uint8_t>(
       {
           .device_address = 0x40,
           .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
@@ -45,16 +45,16 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
           .log_level = espp::Logger::Verbosity::WARN,
       },
       ec);
-  if (!es7210_device) {
+  if (!es7210_i2c_device_) {
     logger_.error("Could not initialize ES7210 I2C device: {}", ec.message());
     return false;
   }
 
   // Wire codec register access over internal I2C
-  set_es8388_write(espp::make_i2c_addressed_write(es8388_device));
-  set_es8388_read(espp::make_i2c_addressed_read_register(es8388_device));
-  set_es7210_write(espp::make_i2c_addressed_write(es7210_device));
-  set_es7210_read(espp::make_i2c_addressed_read_register(es7210_device));
+  set_es8388_write(espp::make_i2c_addressed_write(es8388_i2c_device_));
+  set_es8388_read(espp::make_i2c_addressed_read_register(es8388_i2c_device_));
+  set_es7210_write(espp::make_i2c_addressed_write(es7210_i2c_device_));
+  set_es7210_read(espp::make_i2c_addressed_read_register(es7210_i2c_device_));
 
   // I2S standard channel for TX (playback)
   logger_.info("Creating I2S channel for playback (TX)");

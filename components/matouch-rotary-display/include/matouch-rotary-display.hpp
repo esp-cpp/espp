@@ -329,6 +329,7 @@ protected:
 
   // touch
   touch_callback_t touch_callback_{nullptr};
+  std::shared_ptr<I2c::Device<uint8_t>> touch_i2c_device_;
   std::shared_ptr<Cst816> cst816_;
   std::shared_ptr<TouchpadInput> touchpad_input_;
   std::recursive_mutex touchpad_data_mutex_;

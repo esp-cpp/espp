@@ -10,7 +10,7 @@ bool M5StackTab5::initialize_battery_monitoring() {
   logger_.info("Initializing battery monitoring (INA226)");
 
   std::error_code ec;
-  auto battery_device = internal_i2c_.add_device<uint8_t>(
+  battery_monitor_i2c_device_ = internal_i2c_.add_device<uint8_t>(
       {
           .device_address = 0x41,
           .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
@@ -18,7 +18,7 @@ bool M5StackTab5::initialize_battery_monitoring() {
           .log_level = espp::Logger::Verbosity::WARN,
       },
       ec);
-  if (!battery_device) {
+  if (!battery_monitor_i2c_device_) {
     logger_.error("Could not initialize battery monitor I2C device: {}", ec.message());
     return false;
   }
@@ -32,10 +32,10 @@ bool M5StackTab5::initialize_battery_monitoring() {
       .mode = BatteryMonitor::Mode::SHUNT_BUS_CONT,
       .current_lsb = 0.0005f,          // 0.5 mA / LSB
       .shunt_resistance_ohms = 0.005f, // 5 mΩ (adjust if different on board)
-      .probe = espp::make_i2c_addressed_probe(battery_device),
-      .write = espp::make_i2c_addressed_write(battery_device),
-      .read_register = espp::make_i2c_addressed_read_register(battery_device),
-      .write_then_read = espp::make_i2c_addressed_write_then_read(battery_device),
+      .probe = espp::make_i2c_addressed_probe(battery_monitor_i2c_device_),
+      .write = espp::make_i2c_addressed_write(battery_monitor_i2c_device_),
+      .read_register = espp::make_i2c_addressed_read_register(battery_monitor_i2c_device_),
+      .write_then_read = espp::make_i2c_addressed_write_then_read(battery_monitor_i2c_device_),
       .auto_init = true,
       .log_level = espp::Logger::Verbosity::WARN,
   };

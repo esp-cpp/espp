@@ -392,6 +392,7 @@ protected:
   button_callback_t boot_button_callback_{nullptr};
 
   // touch
+  std::shared_ptr<I2c::Device<uint8_t>> touch_i2c_device_;
   std::shared_ptr<TouchDriver> touch_driver_;
   std::shared_ptr<TouchpadInput> touchpad_input_;
   std::recursive_mutex touchpad_data_mutex_;
@@ -416,7 +417,9 @@ protected:
   };
 
   // IMU
+  std::shared_ptr<I2c::Device<uint8_t>> imu_i2c_device_;
   std::shared_ptr<Imu> imu_;
+  std::shared_ptr<I2c::Device<uint8_t>> rtc_i2c_device_;
   std::shared_ptr<Rtc> rtc_;
 }; // class WsS3Touch
 } // namespace espp
