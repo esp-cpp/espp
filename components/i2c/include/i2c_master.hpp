@@ -162,6 +162,9 @@ public:
   /// @brief Expose config for CLI menu
   /// @return Reference to config
   const Config &config() const { return config_; }
+  /// @brief Check whether the device is initialized
+  /// @return True if initialized
+  bool initialized() const { return initialized_; }
 
 protected:
   Config config_;
@@ -239,8 +242,14 @@ public:
       return nullptr;
     }
     auto device = std::make_shared<I2cMasterDevice<RegisterType>>(bus_handle_, dev_config);
+    if (dev_config.auto_init && device && !device->initialized()) {
+      logger_.error("I2C device auto-init failed at address 0x{:02x}", dev_config.device_address);
+      ec = std::make_error_code(std::errc::io_error);
+      return nullptr;
+    }
     logger_.info("I2C device added at address 0x{:02x} on bus {}", dev_config.device_address,
                  config_.port);
+    ec.clear();
     return device;
   }
 

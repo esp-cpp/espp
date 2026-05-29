@@ -26,6 +26,10 @@ the driver callback path, `write()` stages bytes for the next master read, and
 optional request / receive callbacks are dispatched in task context rather than
 directly from the ISR callback.
 
+If you need the exact transaction size, use the `read()` overload that returns
+the received length by reference. The original boolean `read()` API remains for
+compatibility.
+
 On ESP-IDF v5.5's default slave driver, the underlying receive callback does
 not report the exact transaction length. In that configuration ESPP still
 supports buffered slave reads and receive callbacks, but trailing unread bytes

@@ -56,10 +56,12 @@ public:
         "read", {"length"},
         [this](std::ostream &out, size_t len) -> void {
           std::vector<uint8_t> data(len);
+          size_t received_len = 0;
           std::error_code ec;
-          bool success = device_->read(data.data(), data.size(), ec);
+          bool success = device_->read(data.data(), data.size(), received_len, ec);
           if (success) {
-            out << fmt::format("Read {} bytes from slave: {::#02x}\n", len, data);
+            data.resize(received_len);
+            out << fmt::format("Read {} bytes from slave: {::#02x}\n", received_len, data);
           } else {
             out << fmt::format("Error reading from slave: {}\n", ec.message());
           }

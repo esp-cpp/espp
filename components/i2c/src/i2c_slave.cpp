@@ -200,13 +200,6 @@ bool I2cSlaveDevice::deinit(std::error_code &ec) {
     }
   }
 
-  if (event_queue_) {
-    Event stop_event{EventType::STOP};
-    xQueueReset(event_queue_);
-    if (xQueueSend(event_queue_, &stop_event, timeout_ticks(config_.timeout_ms)) != pdPASS) {
-      logger_.warn("failed to queue I2C slave stop event during deinit");
-    }
-  }
   if (event_task_) {
     event_task_->stop();
     event_task_.reset();
@@ -278,7 +271,13 @@ bool I2cSlaveDevice::write(const uint8_t *data, size_t len, std::error_code &ec)
 }
 
 bool I2cSlaveDevice::read(uint8_t *data, size_t len, std::error_code &ec) {
+  size_t received_len = 0;
+  return read(data, len, received_len, ec);
+}
+
+bool I2cSlaveDevice::read(uint8_t *data, size_t len, size_t &received_len, std::error_code &ec) {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
+  received_len = 0;
   if (!initialized_ || !read_buffer_) {
     ec = std::make_error_code(std::errc::not_connected);
     return false;
@@ -339,6 +338,7 @@ bool I2cSlaveDevice::read(uint8_t *data, size_t len, std::error_code &ec) {
     return false;
   }
 
+  received_len = read_len;
   ec.clear();
   return true;
 }
@@ -355,13 +355,17 @@ bool IRAM_ATTR I2cSlaveDevice::request_callback_trampoline(i2c_slave_dev_handle_
                                                            const i2c_slave_request_event_data_t *,
                                                            void *user_data) {
   auto *device = static_cast<I2cSlaveDevice *>(user_data);
-  if (!device || !device->event_queue_) {
+  if (!device) {
+    return false;
+  }
+  auto event_queue = device->event_queue_;
+  if (!event_queue) {
     return false;
   }
 
   BaseType_t task_woken = pdFALSE;
   Event event{EventType::REQUEST};
-  if (xQueueSendFromISR(device->event_queue_, &event, &task_woken) != pdPASS) {
+  if (xQueueSendFromISR(event_queue, &event, &task_woken) != pdPASS) {
     device->event_queue_overflowed_ = true;
   }
   return task_woken == pdTRUE;
@@ -371,7 +375,15 @@ bool IRAM_ATTR I2cSlaveDevice::request_callback_trampoline(i2c_slave_dev_handle_
 bool IRAM_ATTR I2cSlaveDevice::receive_callback_trampoline(
     i2c_slave_dev_handle_t, const i2c_slave_rx_done_event_data_t *evt_data, void *user_data) {
   auto *device = static_cast<I2cSlaveDevice *>(user_data);
-  if (!device || !device->event_queue_ || !evt_data || !evt_data->buffer) {
+  if (!device || !evt_data || !evt_data->buffer) {
+    return false;
+  }
+
+  auto event_queue = device->event_queue_;
+  auto read_buffer = device->read_buffer_;
+  auto callback_buffer = device->callback_buffer_;
+  if (!event_queue || !read_buffer || !callback_buffer) {
+    device->event_queue_overflowed_ = true;
     return false;
   }
 
@@ -386,19 +398,18 @@ bool IRAM_ATTR I2cSlaveDevice::receive_callback_trampoline(
     return false;
   }
 
-  size_t sent =
-      xMessageBufferSendFromISR(device->read_buffer_, evt_data->buffer, length, &task_woken);
+  size_t sent = xMessageBufferSendFromISR(read_buffer, evt_data->buffer, length, &task_woken);
   if (sent != length) {
     device->read_buffer_overflowed_ = true;
   }
 
-  sent = xMessageBufferSendFromISR(device->callback_buffer_, evt_data->buffer, length, &task_woken);
+  sent = xMessageBufferSendFromISR(callback_buffer, evt_data->buffer, length, &task_woken);
   if (sent != length) {
     device->callback_buffer_overflowed_ = true;
   }
 
   Event event{EventType::RECEIVE};
-  if (xQueueSendFromISR(device->event_queue_, &event, &task_woken) != pdPASS) {
+  if (xQueueSendFromISR(event_queue, &event, &task_woken) != pdPASS) {
     device->event_queue_overflowed_ = true;
   }
   return task_woken == pdTRUE;
@@ -427,10 +438,15 @@ bool I2cSlaveDevice::event_task_callback(std::mutex &m, std::condition_variable 
 
   Event event{};
   static constexpr TickType_t stop_poll_ticks = pdMS_TO_TICKS(50);
-  if (!event_queue_) {
+  QueueHandle_t event_queue = nullptr;
+  {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    event_queue = event_queue_;
+  }
+  if (!event_queue) {
     return true;
   }
-  if (!xQueueReceive(event_queue_, &event, stop_poll_ticks)) {
+  if (!xQueueReceive(event_queue, &event, stop_poll_ticks)) {
     std::lock_guard<std::mutex> lock(m);
     bool stop_requested = notified;
     notified = false;
@@ -445,7 +461,14 @@ bool I2cSlaveDevice::event_task_callback(std::mutex &m, std::condition_variable 
     }
   }
 
-  if (!initialized_ && event.type != EventType::STOP) {
+  bool initialized = false;
+  MessageBufferHandle_t callback_buffer = nullptr;
+  {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    initialized = initialized_;
+    callback_buffer = callback_buffer_;
+  }
+  if (!initialized && event.type != EventType::STOP) {
     return false;
   }
 
@@ -468,7 +491,7 @@ bool I2cSlaveDevice::event_task_callback(std::mutex &m, std::condition_variable 
   case EventType::RECEIVE: {
     std::vector<uint8_t> data(config_.receive_buffer_depth);
     size_t length =
-        callback_buffer_ ? xMessageBufferReceive(callback_buffer_, data.data(), data.size(), 0) : 0;
+        callback_buffer ? xMessageBufferReceive(callback_buffer, data.data(), data.size(), 0) : 0;
     if (length == 0) {
       break;
     }

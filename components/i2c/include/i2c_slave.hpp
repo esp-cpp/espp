@@ -13,6 +13,13 @@
 #include <vector>
 
 #include <esp_idf_version.h>
+#ifndef ESP_IDF_VERSION_VAL
+#define ESP_IDF_VERSION_VAL(major, minor, patch) (((major) << 16) | ((minor) << 8) | (patch))
+#endif
+#ifndef ESP_IDF_VERSION
+#define ESP_IDF_VERSION ESP_IDF_VERSION_VAL(0, 0, 0)
+#endif
+
 #include <freertos/FreeRTOS.h>
 #include <freertos/message_buffer.h>
 #include <freertos/queue.h>
@@ -111,6 +118,13 @@ public:
   /// @param ec Error code output
   /// @return True if successful
   bool write(const uint8_t *data, size_t len, std::error_code &ec);
+  /// @brief Read data from the master
+  /// @param data Pointer to buffer
+  /// @param len Maximum transaction length to read
+  /// @param received_len Actual number of bytes received for the transaction
+  /// @param ec Error code output
+  /// @return True if a complete master-write transaction was received
+  bool read(uint8_t *data, size_t len, size_t &received_len, std::error_code &ec);
   /// @brief Read data from the master
   /// @param data Pointer to buffer
   /// @param len Maximum transaction length to read
