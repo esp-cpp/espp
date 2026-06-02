@@ -44,8 +44,8 @@ TCP sockets cannot be used with multicast (many to one, one to many).
 ## Example
 
 The [example](./example) shows the use of the classes provided by the `socket`
-component, including:
+component and runs a scenario-driven self-test which covers teardown, timeout,
+and reconnect behavior, including:
 
 * `UdpSocket` (as both `client` and `server`, including unicast and multicast configurations)
 * `TcpSocket` (as both `client` and `server`)
-

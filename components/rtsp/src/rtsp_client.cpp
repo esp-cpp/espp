@@ -1,6 +1,136 @@
 #include "rtsp_client.hpp"
 
+#include <algorithm>
+#include <cctype>
+#include <sstream>
+
+#include "generic_depacketizer.hpp"
+#include "h264_depacketizer.hpp"
+
 using namespace espp;
+
+namespace {
+
+std::string trim_copy(std::string_view value) {
+  auto is_space = [](unsigned char c) { return std::isspace(c) != 0; };
+  while (!value.empty() && is_space(static_cast<unsigned char>(value.front()))) {
+    value.remove_prefix(1);
+  }
+  while (!value.empty() && is_space(static_cast<unsigned char>(value.back()))) {
+    value.remove_suffix(1);
+  }
+  return std::string(value);
+}
+
+std::string normalize_rtsp_path(std::string_view path) {
+  if (path.empty()) {
+    return "/";
+  }
+  if (path.starts_with("rtsp://")) {
+    return std::string(path);
+  }
+
+  while (!path.empty() && path.front() == '/') {
+    path.remove_prefix(1);
+  }
+  if (path.empty()) {
+    return "/";
+  }
+  return "/" + std::string(path);
+}
+
+std::string make_rtsp_url(std::string_view server_address, int port, std::string_view path) {
+  if (path.starts_with("rtsp://")) {
+    return std::string(path);
+  }
+  return "rtsp://" + std::string(server_address) + ":" + std::to_string(port) +
+         normalize_rtsp_path(path);
+}
+
+std::string get_response_header(std::string_view response, std::string_view header_name) {
+  auto header = std::string(header_name) + ": ";
+  auto pos = response.find(header);
+  if (pos == std::string_view::npos) {
+    return {};
+  }
+  pos += header.size();
+  auto end = response.find("\r\n", pos);
+  if (end == std::string_view::npos) {
+    return {};
+  }
+  return trim_copy(response.substr(pos, end - pos));
+}
+
+std::string get_response_body(std::string_view response) {
+  auto body_pos = response.find("\r\n\r\n");
+  if (body_pos == std::string_view::npos) {
+    return {};
+  }
+  return std::string(response.substr(body_pos + 4));
+}
+
+std::string get_rtsp_origin(std::string_view url) {
+  if (!url.starts_with("rtsp://")) {
+    return {};
+  }
+  auto path_pos = url.find('/', 7);
+  if (path_pos == std::string_view::npos) {
+    return std::string(url);
+  }
+  return std::string(url.substr(0, path_pos));
+}
+
+std::string join_rtsp_url(std::string_view base, std::string_view suffix) {
+  auto trimmed_suffix = trim_copy(suffix);
+  if (trimmed_suffix.empty()) {
+    return std::string(base);
+  }
+  if (trimmed_suffix.starts_with("rtsp://")) {
+    return trimmed_suffix;
+  }
+  if (trimmed_suffix.front() == '/') {
+    auto origin = get_rtsp_origin(base);
+    if (!origin.empty()) {
+      return origin + trimmed_suffix;
+    }
+    return trimmed_suffix;
+  }
+
+  std::string joined(base);
+  while (!joined.empty() && joined.back() == '/') {
+    joined.pop_back();
+  }
+  return joined + "/" + trimmed_suffix;
+}
+
+bool iequals(std::string_view lhs, std::string_view rhs) {
+  if (lhs.size() != rhs.size()) {
+    return false;
+  }
+  for (size_t i = 0; i < lhs.size(); ++i) {
+    if (std::tolower(static_cast<unsigned char>(lhs[i])) !=
+        std::tolower(static_cast<unsigned char>(rhs[i]))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+int parse_track_id(std::string_view control_path, int fallback_track_id) {
+  auto pos = control_path.find("trackID=");
+  if (pos == std::string_view::npos) {
+    return fallback_track_id;
+  }
+  pos += 8;
+  auto end = control_path.find_first_not_of("0123456789", pos);
+  auto id_string = control_path.substr(pos, end == std::string_view::npos ? end : end - pos);
+  if (id_string.empty()) {
+    return fallback_track_id;
+  }
+  return std::stoi(std::string(id_string));
+}
+
+} // namespace
 
 RtspClient::RtspClient(const Config &config)
     : BaseComponent("RtspClient", config.log_level)
@@ -12,15 +142,20 @@ RtspClient::RtspClient(const Config &config)
     , on_jpeg_frame_(config.on_jpeg_frame)
     , on_frame_(config.on_frame)
     , cseq_(0)
-    , path_("rtsp://" + server_address_ + ":" + std::to_string(rtsp_port_) + config.path) {
-  // If on_jpeg_frame is set, auto-create an MjpegDepacketizer for PT 26
-  if (on_jpeg_frame_) {
+    , path_(make_rtsp_url(server_address_, rtsp_port_, config.path))
+    , base_path_(path_) {
+  if (on_jpeg_frame_ || on_frame_) {
     auto mjpeg_depacker = std::make_shared<MjpegDepacketizer>(MjpegDepacketizer::Config{});
-    mjpeg_depacker->set_jpeg_frame_callback(on_jpeg_frame_);
+    if (on_jpeg_frame_) {
+      mjpeg_depacker->set_jpeg_frame_callback(on_jpeg_frame_);
+    }
     if (on_frame_) {
       mjpeg_depacker->set_frame_callback([this](std::vector<uint8_t> &&data) {
-        if (on_frame_)
-          on_frame_(0, std::move(data));
+        int track_id = 0;
+        if (auto it = payload_type_to_track_id_.find(26); it != payload_type_to_track_id_.end()) {
+          track_id = it->second;
+        }
+        on_frame_(track_id, std::move(data));
       });
     }
     depacketizers_[26] = mjpeg_depacker;
@@ -39,10 +174,9 @@ std::string
 RtspClient::send_request(const std::string &method, const std::string &path,
                          const std::unordered_map<std::string, std::string> &extra_headers,
                          std::error_code &ec) {
-  // send the request
   std::string request = method + " " + path + " RTSP/1.0\r\n";
   request += "CSeq: " + std::to_string(cseq_) + "\r\n";
-  if (session_id_.size() > 0) {
+  if (!session_id_.empty()) {
     request += "Session: " + session_id_ + "\r\n";
   }
   for (auto &[key, value] : extra_headers) {
@@ -51,17 +185,18 @@ RtspClient::send_request(const std::string &method, const std::string &path,
   request += "User-Agent: rtsp-client\r\n";
   request += "Accept: application/sdp\r\n";
   request += "\r\n";
+
   std::string response;
   auto transmit_config = espp::TcpSocket::TransmitConfig{
       .wait_for_response = true,
-      .response_size = 1024,
+      .response_size = 16 * 1024,
       .on_response_callback =
           [&response](auto &response_vector) {
             response.assign(response_vector.begin(), response_vector.end());
           },
       .response_timeout = std::chrono::seconds(5),
   };
-  // NOTE: now this call blocks until the response is received
+
   logger_.debug("Request:\n{}", request);
   if (!rtsp_socket_.transmit(request, transmit_config)) {
     ec = std::make_error_code(std::errc::io_error);
@@ -69,12 +204,6 @@ RtspClient::send_request(const std::string &method, const std::string &path,
     return {};
   }
 
-  // TODO: how to keep receiving until we get the full response?
-  // if (response.find("\r\n\r\n") != std::string::npos) {
-  //   break;
-  // }
-
-  // parse the response
   logger_.debug("Response:\n{}", response);
   if (parse_response(response, ec)) {
     return response;
@@ -83,7 +212,6 @@ RtspClient::send_request(const std::string &method, const std::string &path,
 }
 
 void RtspClient::connect(std::error_code &ec) {
-  // exit early if error code is already set
   if (ec) {
     return;
   }
@@ -99,71 +227,185 @@ void RtspClient::connect(std::error_code &ec) {
     return;
   }
 
-  // send the options request
   send_request("OPTIONS", "*", {}, ec);
 }
 
 void RtspClient::disconnect(std::error_code &ec) {
-  // send the teardown request
-  teardown(ec);
+  std::error_code teardown_ec;
+  if (rtsp_socket_.is_connected()) {
+    teardown(teardown_ec);
+  }
+
+  rtp_socket_.stop_receiving();
+  rtcp_socket_.stop_receiving();
+  rtsp_socket_.close();
   rtsp_socket_.reinit();
+  session_id_.clear();
+  tracks_.clear();
+  payload_type_to_track_id_.clear();
+  base_path_ = path_;
+
+  if (!ec && teardown_ec) {
+    ec = teardown_ec;
+  }
 }
 
 void RtspClient::describe(std::error_code &ec) {
-  // exit early if the error code is set
   if (ec) {
     return;
   }
-  // send the describe request
+
   auto response = send_request("DESCRIBE", path_, {}, ec);
   if (ec) {
     return;
   }
-  // sdp response is of the form:
-  //     std::regex sdp_regex("m=video (\\d+) RTP/AVP (\\d+)");
-  // parse the sdp response and get the video port without using regex
-  // this is a very simple sdp parser that only works for this specific case
-  auto sdp_start = response.find("m=video");
-  if (sdp_start == std::string::npos) {
+
+  tracks_.clear();
+  payload_type_to_track_id_.clear();
+  base_path_ = path_;
+
+  auto content_base = get_response_header(response, "Content-Base");
+  if (!content_base.empty()) {
+    base_path_ = content_base;
+  }
+
+  auto sdp = get_response_body(response);
+  if (sdp.empty()) {
     ec = std::make_error_code(std::errc::wrong_protocol_type);
     logger_.error("Invalid sdp");
     return;
   }
-  auto sdp_end = response.find("\r\n", sdp_start);
-  if (sdp_end == std::string::npos) {
-    ec = std::make_error_code(std::errc::protocol_error);
-    logger_.error("Incomplete sdp");
+
+  std::istringstream stream(sdp);
+  std::string line;
+  TrackInfo *current_track = nullptr;
+  int next_track_id = 0;
+
+  while (std::getline(stream, line)) {
+    auto trimmed = trim_copy(line);
+    if (trimmed.empty()) {
+      continue;
+    }
+
+    if (trimmed.starts_with("m=")) {
+      auto first_space = trimmed.find(' ');
+      auto last_space = trimmed.rfind(' ');
+      if (first_space == std::string::npos || last_space == std::string::npos ||
+          first_space == last_space) {
+        continue;
+      }
+
+      TrackInfo track;
+      track.media_type = trimmed.substr(2, first_space - 2);
+      track.payload_type = std::stoi(trimmed.substr(last_space + 1));
+      track.track_id = next_track_id++;
+      tracks_.push_back(std::move(track));
+      current_track = &tracks_.back();
+      continue;
+    }
+
+    if (trimmed.starts_with("a=control:")) {
+      auto control_value = trimmed.substr(10);
+      auto resolved_path = join_rtsp_url(base_path_, control_value);
+      if (current_track) {
+        current_track->control_path = resolved_path;
+        current_track->track_id = parse_track_id(resolved_path, current_track->track_id);
+      } else {
+        base_path_ = resolved_path;
+      }
+      continue;
+    }
+
+    if (trimmed.starts_with("a=rtpmap:") && current_track) {
+      auto payload_space = trimmed.find(' ');
+      if (payload_space == std::string::npos) {
+        continue;
+      }
+      auto slash = trimmed.find('/', payload_space + 1);
+      if (slash == std::string::npos) {
+        continue;
+      }
+      auto payload_type = std::stoi(trimmed.substr(9, payload_space - 9));
+      if (payload_type != current_track->payload_type) {
+        continue;
+      }
+      current_track->encoding_name = trimmed.substr(payload_space + 1, slash - payload_space - 1);
+    }
+  }
+
+  if (tracks_.empty()) {
+    ec = std::make_error_code(std::errc::wrong_protocol_type);
+    logger_.error("Invalid sdp");
     return;
   }
-  auto sdp = response.substr(sdp_start, sdp_end - sdp_start);
-  auto port_start = sdp.find(" ");
-  if (port_start == std::string::npos) {
-    ec = std::make_error_code(std::errc::protocol_error);
-    logger_.error("Could not find port start");
-    return;
+
+  for (auto &track : tracks_) {
+    if (track.control_path.empty()) {
+      track.control_path = base_path_;
+    }
+    payload_type_to_track_id_[track.payload_type] = track.track_id;
   }
-  auto port_end = sdp.find(" ", port_start + 1);
-  if (port_end == std::string::npos) {
-    ec = std::make_error_code(std::errc::protocol_error);
-    logger_.error("Could not find port end");
-    return;
+
+  video_port_ = 0;
+  video_payload_type_ = tracks_.front().payload_type;
+  for (const auto &track : tracks_) {
+    if (iequals(track.media_type, "video")) {
+      video_payload_type_ = track.payload_type;
+      break;
+    }
   }
-  auto port = sdp.substr(port_start + 1, port_end - port_start - 1);
-  video_port_ = std::stoi(port);
-  logger_.debug("Video port: {}", video_port_);
-  auto payload_type_start = sdp.find(" ", port_end + 1);
-  if (payload_type_start == std::string::npos) {
-    ec = std::make_error_code(std::errc::protocol_error);
-    logger_.error("Could not find payload type start");
-    return;
+
+  for (const auto &track : tracks_) {
+    if (depacketizers_.contains(track.payload_type)) {
+      continue;
+    }
+
+    if ((track.payload_type == 26 || iequals(track.encoding_name, "JPEG")) &&
+        (on_jpeg_frame_ || on_frame_)) {
+      auto mjpeg_depacketizer = std::make_shared<MjpegDepacketizer>(MjpegDepacketizer::Config{});
+      if (on_jpeg_frame_) {
+        mjpeg_depacketizer->set_jpeg_frame_callback(on_jpeg_frame_);
+      }
+      if (on_frame_) {
+        auto payload_type = track.payload_type;
+        mjpeg_depacketizer->set_frame_callback([this, payload_type](std::vector<uint8_t> &&data) {
+          int track_id = 0;
+          if (auto it = payload_type_to_track_id_.find(payload_type);
+              it != payload_type_to_track_id_.end()) {
+            track_id = it->second;
+          }
+          on_frame_(track_id, std::move(data));
+        });
+      }
+      depacketizers_[track.payload_type] = std::move(mjpeg_depacketizer);
+      continue;
+    }
+
+    if (!on_frame_) {
+      continue;
+    }
+
+    std::shared_ptr<RtpDepacketizer> depacketizer;
+    if (iequals(track.encoding_name, "H264")) {
+      depacketizer = std::make_shared<H264Depacketizer>(H264Depacketizer::Config{});
+    } else {
+      depacketizer = std::make_shared<GenericDepacketizer>(GenericDepacketizer::Config{});
+    }
+
+    auto payload_type = track.payload_type;
+    depacketizer->set_frame_callback([this, payload_type](std::vector<uint8_t> &&data) {
+      int track_id = 0;
+      if (auto it = payload_type_to_track_id_.find(payload_type);
+          it != payload_type_to_track_id_.end()) {
+        track_id = it->second;
+      }
+      on_frame_(track_id, std::move(data));
+    });
+    depacketizers_[track.payload_type] = std::move(depacketizer);
   }
-  auto payload_type = sdp.substr(payload_type_start + 1, sdp.size() - payload_type_start - 1);
-  video_payload_type_ = std::stoi(payload_type);
-  logger_.debug("Video payload type: {}", video_payload_type_);
 }
 
 void RtspClient::setup(std::error_code &ec) {
-  // default to rtp and rtcp client ports 5000 and 5001
   using namespace std::chrono_literals;
   static constexpr size_t rtp_port = 5000;
   static constexpr size_t rtcp_port = 5001;
@@ -173,17 +415,24 @@ void RtspClient::setup(std::error_code &ec) {
 
 void RtspClient::setup(size_t rtp_port, size_t rtcp_port,
                        const std::chrono::duration<float> &receive_timeout, std::error_code &ec) {
-  // exit early if the error code is set
   if (ec) {
     return;
   }
 
-  // set up the transport header with the rtp and rtcp ports
   auto transport_header =
       "RTP/AVP;unicast;client_port=" + std::to_string(rtp_port) + "-" + std::to_string(rtcp_port);
 
-  // send the setup request (no response is expected)
-  send_request("SETUP", path_, {{"Transport", transport_header}}, ec);
+  if (tracks_.empty()) {
+    send_request("SETUP", path_, {{"Transport", transport_header}}, ec);
+  } else {
+    for (const auto &track : tracks_) {
+      auto setup_path = track.control_path.empty() ? base_path_ : track.control_path;
+      send_request("SETUP", setup_path, {{"Transport", transport_header}}, ec);
+      if (ec) {
+        return;
+      }
+    }
+  }
   if (ec) {
     return;
   }
@@ -197,34 +446,27 @@ void RtspClient::add_depacketizer(int payload_type, std::shared_ptr<RtpDepacketi
 }
 
 void RtspClient::play(std::error_code &ec) {
-  // exit early if the error code is set
   if (ec) {
     return;
   }
-  // send the play request
-  send_request("PLAY", path_, {}, ec);
+  send_request("PLAY", base_path_, {}, ec);
 }
 
 void RtspClient::pause(std::error_code &ec) {
-  // exit early if the error code is set
   if (ec) {
     return;
   }
-  // send the pause request
-  send_request("PAUSE", path_, {}, ec);
+  send_request("PAUSE", base_path_, {}, ec);
 }
 
 void RtspClient::teardown(std::error_code &ec) {
-  // exit early if the error code is set
-  if (ec) {
+  if (!rtsp_socket_.is_connected()) {
     return;
   }
-  // send the teardown request
-  send_request("TEARDOWN", path_, {}, ec);
+  send_request("TEARDOWN", base_path_, {}, ec);
 }
 
 bool RtspClient::parse_response(const std::string &response_data, std::error_code &ec) {
-  // exit early if the error code is set
   if (ec) {
     return false;
   }
@@ -233,16 +475,12 @@ bool RtspClient::parse_response(const std::string &response_data, std::error_cod
     logger_.error("Empty response");
     return false;
   }
-  // RTP response is of the form:
-  //   std::regex response_regex("RTSP/1.0 (\\d+) (.*)\r\n(.*)\r\n\r\n");
-  // parse the response but don't use regex since it may be slow on embedded platforms
-  // make sure it matches the expected response format
   if (!response_data.starts_with("RTSP/1.0")) {
     ec = std::make_error_code(std::errc::protocol_error);
     logger_.error("Invalid response: '{}'", response_data);
     return false;
   }
-  // parse the status code and message
+
   int status_code = std::stoi(response_data.substr(9, 3));
   std::string status_message = response_data.substr(13, response_data.find("\r\n") - 13);
   if (status_code != 200) {
@@ -250,20 +488,19 @@ bool RtspClient::parse_response(const std::string &response_data, std::error_cod
     logger_.error(std::string("Request failed: ") + status_message);
     return false;
   }
-  // parse the session id
+
   auto session_pos = response_data.find("Session: ");
   if (session_pos != std::string::npos) {
     session_id_ = response_data.substr(session_pos + 9,
                                        response_data.find("\r\n", session_pos) - session_pos - 9);
   }
-  // increment the cseq
+
   cseq_++;
   return true;
 }
 
 void RtspClient::init_rtp(size_t rtp_port, const std::chrono::duration<float> &receive_timeout,
                           std::error_code &ec) {
-  // exit early if the error code is set
   if (ec) {
     return;
   }
@@ -288,7 +525,6 @@ void RtspClient::init_rtp(size_t rtp_port, const std::chrono::duration<float> &r
 
 void RtspClient::init_rtcp(size_t rtcp_port, const std::chrono::duration<float> &receive_timeout,
                            std::error_code &ec) {
-  // exit early if the error code is set
   if (ec) {
     return;
   }
@@ -330,9 +566,6 @@ RtspClient::handle_rtp_packet(std::vector<uint8_t> &data, const espp::Socket::In
 
 std::optional<std::vector<uint8_t>>
 RtspClient::handle_rtcp_packet(std::vector<uint8_t> &data, const espp::Socket::Info &sender_info) {
-  // receive the rtcp packet
   [[maybe_unused]] std::string_view packet(reinterpret_cast<char *>(data.data()), data.size());
-  // TODO: parse the rtcp packet
-  // return an empty vector to indicate that we don't want to send a response
   return {};
 }

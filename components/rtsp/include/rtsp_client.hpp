@@ -192,6 +192,15 @@ protected:
   /// \return Optional data to send back to the sender
   std::optional<std::vector<uint8_t>> handle_rtcp_packet(std::vector<uint8_t> &data,
                                                          const espp::Socket::Info &sender_info);
+
+  struct TrackInfo {
+    int track_id{0};
+    int payload_type{0};
+    std::string media_type;
+    std::string encoding_name;
+    std::string control_path;
+  };
+
   std::string server_address_;
   int rtsp_port_;
 
@@ -207,7 +216,10 @@ protected:
   int video_port_ = 0;
   int video_payload_type_ = 0;
   std::string path_;
+  std::string base_path_;
   std::string session_id_;
+  std::vector<TrackInfo> tracks_;
+  std::unordered_map<int, int> payload_type_to_track_id_;
 };
 
 } // namespace espp

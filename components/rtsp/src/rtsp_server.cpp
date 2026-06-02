@@ -2,11 +2,47 @@
 
 using namespace espp;
 
+namespace {
+
+std::string normalize_rtsp_path(std::string_view path) {
+  if (path.empty()) {
+    return {};
+  }
+  while (!path.empty() && path.front() == '/') {
+    path.remove_prefix(1);
+  }
+  return std::string(path);
+}
+
+std::string make_legacy_mjpeg_sdp(std::string_view session_path, uint32_t session_id,
+                                  std::string_view server_address) {
+  return "v=0\r\n"
+         "o=- " +
+         std::to_string(session_id) + " 1 IN IP4 " + std::string(server_address) +
+         "\r\n"
+         "s=MJPEG Stream\r\n"
+         "i=MJPEG Stream\r\n"
+         "t=0 0\r\n"
+         "a=control:" +
+         std::string(session_path) +
+         "\r\n"
+         "a=mimetype:string;\"video/x-motion-jpeg\"\r\n"
+         "m=video 0 RTP/AVP 26\r\n"
+         "c=IN IP4 0.0.0.0\r\n"
+         "b=AS:256\r\n"
+         "a=control:" +
+         std::string(session_path) +
+         "\r\n"
+         "a=udp-only\r\n";
+}
+
+} // namespace
+
 RtspServer::RtspServer(const Config &config)
     : BaseComponent("RTSP Server", config.log_level)
     , server_address_(config.server_address)
     , port_(config.port)
-    , path_(config.path)
+    , path_(normalize_rtsp_path(config.path))
     , rtsp_socket_({.log_level = espp::Logger::Verbosity::WARN})
     , max_data_size_(config.max_data_size) {}
 
@@ -24,9 +60,7 @@ bool RtspServer::start(const std::chrono::duration<float> &accept_timeout) {
 
   logger_.info("Starting RTSP server on port {}", port_);
 
-  // ensure the receive timeout is set so that the accept will not block
-  // indefinitely and the accept task can be stopped.
-  rtsp_socket_.set_receive_timeout(accept_timeout);
+  accept_timeout_ = std::chrono::duration_cast<std::chrono::microseconds>(accept_timeout);
 
   if (!rtsp_socket_.bind(port_)) {
     logger_.error("Failed to bind to port {}", port_);
@@ -55,6 +89,8 @@ bool RtspServer::start(const std::chrono::duration<float> &accept_timeout) {
 
 void RtspServer::stop() {
   logger_.info("Stopping RTSP server");
+  // close the listening socket first so any blocking accept() returns
+  rtsp_socket_.close();
   // stop the accept task
   if (accept_task_) {
     accept_task_->stop();
@@ -65,8 +101,6 @@ void RtspServer::stop() {
   }
   // clear the list of sessions
   sessions_.clear();
-  // close the RTSP socket
-  rtsp_socket_.close();
 }
 
 void RtspServer::add_track(const TrackConfig &config) {
@@ -156,9 +190,15 @@ void RtspServer::send_frame(const espp::JpegFrame &frame) {
   auto q0 = frame_header.get_quantization_table(0);
   auto q1 = frame_header.get_quantization_table(1);
 
+  if (frame_data.empty()) {
+    logger_.warn("Skipping empty JPEG frame");
+    return;
+  }
+
   // if the frame data is larger than the MTU, then we need to break it up
   // into multiple RTP packets
-  size_t num_packets = frame_data.size() / max_data_size_ + 1;
+  size_t num_packets =
+      std::max<size_t>(1, (frame_data.size() + max_data_size_ - 1) / max_data_size_);
   logger_.debug("Frame data is {} bytes, breaking into {} packets", frame_data.size(), num_packets);
 
   // create num_packets RtpJpegPackets
@@ -225,6 +265,10 @@ void RtspServer::send_frame(const espp::JpegFrame &frame) {
 
 std::string RtspServer::generate_sdp(const std::string &session_path, uint32_t session_id,
                                      const std::string &server_address) const {
+  if (tracks_.empty()) {
+    return make_legacy_mjpeg_sdp(session_path, session_id, server_address);
+  }
+
   std::string sdp;
   sdp += "v=0\r\n";
   sdp += fmt::format("o=- {} 1 IN IP4 {}\r\n", session_id, server_address);
@@ -245,9 +289,28 @@ std::string RtspServer::generate_sdp(const std::string &session_path, uint32_t s
 
 bool RtspServer::accept_task_function(std::mutex &m, std::condition_variable &cv,
                                       bool &task_notified) {
+  if (!rtsp_socket_.is_valid()) {
+    return true;
+  }
+
+  auto num_ready = rtsp_socket_.select(accept_timeout_);
+  if (num_ready <= 0) {
+    if (!rtsp_socket_.is_valid()) {
+      return true;
+    }
+    if (task_notified) {
+      task_notified = false;
+      return true;
+    }
+    return false;
+  }
+
   // accept a new connection
   auto control_socket = rtsp_socket_.accept();
   if (!control_socket) {
+    if (!rtsp_socket_.is_valid()) {
+      return true;
+    }
     logger_.info("Failed to accept new connection");
     // if we were notified, then we should stop the task
     if (task_notified) {

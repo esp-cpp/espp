@@ -143,6 +143,7 @@ protected:
   std::string server_address_; ///< the address of the server
   int port_;                   ///< the port of the RTSP server
   std::string path_; ///< the path of the RTSP server, e.g. rtsp:://\<ip\>:\<port\>/\<path\>
+  std::chrono::microseconds accept_timeout_{std::chrono::seconds(5)};
 
   espp::TcpSocket rtsp_socket_;
 

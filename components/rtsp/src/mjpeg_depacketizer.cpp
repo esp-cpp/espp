@@ -23,6 +23,7 @@ void MjpegDepacketizer::process_packet(const RtpPacket &packet) {
       q1_table_.assign(q1.begin(), q1.end());
     }
 
+    raw_jpeg_mode_ = jpeg_data.size() >= 2 && jpeg_data[0] == 0xff && jpeg_data[1] == 0xd8;
     scan_buffer_.assign(jpeg_data.begin(), jpeg_data.end());
     assembling_frame_ = true;
   } else if (assembling_frame_) {
@@ -47,15 +48,18 @@ void MjpegDepacketizer::process_packet(const RtpPacket &packet) {
     logger_.debug("Frame complete: {}x{}, scan={} bytes", frame_width_, frame_height_,
                   scan_buffer_.size());
 
-    // Reconstruct the full JPEG: header + scan data
-    JpegHeader header(frame_width_, frame_height_, std::span<const uint8_t>(q0_table_),
-                      std::span<const uint8_t>(q1_table_));
-    auto header_data = header.get_data();
-
     std::vector<uint8_t> jpeg_bytes;
-    jpeg_bytes.reserve(header_data.size() + scan_buffer_.size());
-    jpeg_bytes.insert(jpeg_bytes.end(), header_data.begin(), header_data.end());
-    jpeg_bytes.insert(jpeg_bytes.end(), scan_buffer_.begin(), scan_buffer_.end());
+    if (raw_jpeg_mode_) {
+      jpeg_bytes = scan_buffer_;
+    } else {
+      // Reconstruct the full JPEG: header + scan data
+      JpegHeader header(frame_width_, frame_height_, std::span<const uint8_t>(q0_table_),
+                        std::span<const uint8_t>(q1_table_));
+      auto header_data = header.get_data();
+      jpeg_bytes.reserve(header_data.size() + scan_buffer_.size());
+      jpeg_bytes.insert(jpeg_bytes.end(), header_data.begin(), header_data.end());
+      jpeg_bytes.insert(jpeg_bytes.end(), scan_buffer_.begin(), scan_buffer_.end());
+    }
 
     if (on_jpeg_frame_) {
       auto frame = std::make_shared<JpegFrame>(jpeg_bytes);

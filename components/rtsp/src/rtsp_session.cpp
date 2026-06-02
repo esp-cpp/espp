@@ -2,6 +2,20 @@
 
 using namespace espp;
 
+namespace {
+
+std::string make_rtsp_url(std::string_view server_address, std::string_view path) {
+  while (!path.empty() && path.front() == '/') {
+    path.remove_prefix(1);
+  }
+  if (path.empty()) {
+    return "rtsp://" + std::string(server_address);
+  }
+  return "rtsp://" + std::string(server_address) + "/" + std::string(path);
+}
+
+} // namespace
+
 RtspSession::RtspSession(std::shared_ptr<TcpSocket> control_socket, const Config &config)
     : BaseComponent("RtspSession", config.log_level)
     , control_socket_(std::move(control_socket))
@@ -30,6 +44,9 @@ RtspSession::RtspSession(std::shared_ptr<TcpSocket> control_socket, const Config
 
 RtspSession::~RtspSession() {
   teardown();
+  if (control_socket_) {
+    control_socket_->close();
+  }
   // stop the session task
   if (control_task_ && control_task_->is_started()) {
     logger_.info("Stopping control task");
@@ -133,7 +150,7 @@ bool RtspSession::handle_rtsp_describe(std::string_view request) {
   // create a response
   int code = 200;
   std::string message = "OK";
-  std::string rtsp_path = "rtsp://" + server_address_ + "/" + rtsp_path_;
+  std::string rtsp_path = make_rtsp_url(server_address_, rtsp_path_);
 
   std::string body;
   if (sdp_generator_) {

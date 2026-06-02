@@ -21,10 +21,11 @@ std::vector<RtpPayloadChunk> MjpegPacketizer::packetize(std::span<const uint8_t>
   auto q0 = header.get_quantization_table(0);
   auto q1 = header.get_quantization_table(1);
 
-  // Get scan data (everything after the JPEG header)
+  // Keep the original JPEG bytes in the payload so the depacketizer can
+  // preserve encoder-specific headers/tables when needed.
   size_t header_size = header.size();
-  auto scan_data = frame_data.subspan(header_size);
-  size_t data_size = scan_data.size();
+  auto payload_data = frame_data;
+  size_t data_size = payload_data.size();
 
   logger_.debug("Packetizing JPEG frame: {}x{}, header={} bytes, scan={} bytes", width, height,
                 header_size, data_size);
@@ -78,7 +79,7 @@ std::vector<RtpPayloadChunk> MjpegPacketizer::packetize(std::span<const uint8_t>
       pos += Q_TABLE_SIZE;
 
       // Scan data
-      std::memcpy(chunk.data.data() + pos, scan_data.data() + data_offset, first_chunk_size);
+      std::memcpy(chunk.data.data() + pos, payload_data.data() + data_offset, first_chunk_size);
       data_offset += first_chunk_size;
     } else {
       // Subsequent packets: MJPEG header + scan data (no Q tables)
@@ -99,7 +100,7 @@ std::vector<RtpPayloadChunk> MjpegPacketizer::packetize(std::span<const uint8_t>
       chunk.data[pos++] = static_cast<uint8_t>(height / 8);                 // height / 8
 
       // Scan data
-      std::memcpy(chunk.data.data() + pos, scan_data.data() + data_offset, chunk_data_size);
+      std::memcpy(chunk.data.data() + pos, payload_data.data() + data_offset, chunk_data_size);
       data_offset += chunk_data_size;
     }
 

@@ -48,6 +48,7 @@ private:
   bool has_missing_sequence_numbers();
 
   bool assembling_frame_{false};
+  bool raw_jpeg_mode_{false};
   std::vector<uint8_t> scan_buffer_;
   int frame_width_{0};
   int frame_height_{0};
