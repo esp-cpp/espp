@@ -164,11 +164,17 @@ public:
 
   /// Get the most recently computed state.
   /// @return Current differentiator state.
-  const State &get_state() const { return state_; }
+  const State &get_state() const {
+    std::lock_guard<std::recursive_mutex> lk(mutex_);
+    return state_;
+  }
 
   /// Get the active differentiator configuration.
   /// @return Current configuration.
-  const Config &get_config() const { return config_; }
+  const Config &get_config() const {
+    std::lock_guard<std::recursive_mutex> lk(mutex_);
+    return config_;
+  }
 
 protected:
   Config config_;
@@ -295,11 +301,17 @@ public:
 
   /// Get the current controller state.
   /// @return Current state.
-  const State &get_state() const { return state_; }
+  const State &get_state() const {
+    std::lock_guard<std::recursive_mutex> lk(mutex_);
+    return state_;
+  }
 
   /// Get the active configuration.
   /// @return Current configuration.
-  const Config &get_config() const { return config_; }
+  const Config &get_config() const {
+    std::lock_guard<std::recursive_mutex> lk(mutex_);
+    return config_;
+  }
 
 protected:
   Config config_;
@@ -445,11 +457,17 @@ public:
 
   /// Get the current controller state.
   /// @return Current state.
-  const State &get_state() const { return state_; }
+  const State &get_state() const {
+    std::lock_guard<std::recursive_mutex> lk(mutex_);
+    return state_;
+  }
 
   /// Get the active configuration.
   /// @return Current configuration.
-  const Config &get_config() const { return config_; }
+  const Config &get_config() const {
+    std::lock_guard<std::recursive_mutex> lk(mutex_);
+    return config_;
+  }
 
 protected:
   Config config_;
@@ -589,15 +607,22 @@ public:
 
   /// Get the current controller state.
   /// @return Current state.
-  const State &get_state() const { return state_; }
+  const State &get_state() const {
+    std::lock_guard<std::recursive_mutex> lk(mutex_);
+    return state_;
+  }
 
   /// Get the active configuration.
   /// @return Current configuration.
-  const Config &get_config() const { return config_; }
+  const Config &get_config() const {
+    std::lock_guard<std::recursive_mutex> lk(mutex_);
+    return config_;
+  }
 
   /// Get the current tracking differentiator state.
   /// @return Tracking differentiator state.
   HanTrackingDifferentiator::State get_tracking_state() const {
+    std::lock_guard<std::recursive_mutex> lk(mutex_);
     return tracking_differentiator_.get_state();
   }
 
@@ -780,15 +805,22 @@ public:
 
   /// Get the current controller state.
   /// @return Current state.
-  const State &get_state() const { return state_; }
+  const State &get_state() const {
+    std::lock_guard<std::recursive_mutex> lk(mutex_);
+    return state_;
+  }
 
   /// Get the active configuration.
   /// @return Current configuration.
-  const Config &get_config() const { return config_; }
+  const Config &get_config() const {
+    std::lock_guard<std::recursive_mutex> lk(mutex_);
+    return config_;
+  }
 
   /// Get the current tracking differentiator state.
   /// @return Tracking differentiator state.
   HanTrackingDifferentiator::State get_tracking_state() const {
+    std::lock_guard<std::recursive_mutex> lk(mutex_);
     return tracking_differentiator_.get_state();
   }
 
