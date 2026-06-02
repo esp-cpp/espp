@@ -98,14 +98,6 @@ inline float fst(float x1, float x2, float r, float h) {
  * motion. `filter_factor` scales the internal `h0` term and can be increased to
  * further soften the commanded trajectory.
  *
- * \section adrc_ex1 Linear First-Order ADRC Example
- * \snippet adrc_example.cpp adrc linear first order example
- * \section adrc_ex2 Linear Second-Order ADRC Example
- * \snippet adrc_example.cpp adrc linear second order example
- * \section adrc_ex3 Han First-Order ADRC Example
- * \snippet adrc_example.cpp adrc han first order example
- * \section adrc_ex4 Han Second-Order ADRC Example
- * \snippet adrc_example.cpp adrc han second order example
  */
 class HanTrackingDifferentiator : public BaseComponent {
 public:
@@ -210,6 +202,9 @@ protected:
  * controller. `b0` should match the sign of the actuator path and roughly scale
  * command to output-rate change. If the controller saturates immediately,
  * reduce the bandwidth or improve the `b0` estimate before increasing gains.
+ *
+ * \section adrc_ex1 Linear First-Order ADRC Example
+ * \snippet adrc_example.cpp adrc linear first order example
  */
 class LinearAdrcFirstOrder : public BaseComponent {
 public:
@@ -280,7 +275,7 @@ public:
 
     state_.measurement = measurement;
     state_.reference = reference;
-    state_.z1 += dt * (state_.z2 - beta1 * error + config_.b0 * state_.output);
+    state_.z1 += dt * (state_.z2 - beta1 * error + b0 * state_.output);
     state_.z2 += dt * (-beta2 * error);
 
     auto k1 = std::max(config_.controller_bandwidth, detail::adrc_epsilon);
@@ -337,6 +332,9 @@ protected:
  * it dominates the motion. If a trajectory generator already provides a
  * velocity feedforward term, pass it through the four-argument `update()`
  * overload as `reference_rate`.
+ *
+ * \section adrc_ex2 Linear Second-Order ADRC Example
+ * \snippet adrc_example.cpp adrc linear second order example
  */
 class LinearAdrcSecondOrder : public BaseComponent {
 public:
@@ -416,7 +414,7 @@ public:
     state_.reference = reference;
     state_.reference_rate = reference_rate;
     state_.z1 += dt * (state_.z2 - beta1 * error);
-    state_.z2 += dt * (state_.z3 - beta2 * error + config_.b0 * state_.output);
+    state_.z2 += dt * (state_.z3 - beta2 * error + b0 * state_.output);
     state_.z3 += dt * (-beta3 * error);
 
     auto wc = std::max(config_.controller_bandwidth, detail::adrc_epsilon);
@@ -481,6 +479,9 @@ protected:
  * small-error behavior and nonlinear large-error behavior. Increase
  * `fal_delta` if the loop is too twitchy around the setpoint, especially with
  * noisy sensors.
+ *
+ * \section adrc_ex3 Han First-Order ADRC Example
+ * \snippet adrc_example.cpp adrc han first order example
  */
 class HanAdrcFirstOrder : public BaseComponent {
 public:
@@ -567,7 +568,7 @@ public:
     state_.measurement = measurement;
     state_.reference = reference;
     state_.td_reference = td_state.position;
-    state_.z1 += dt * (state_.z2 - beta1 * error + config_.b0 * state_.output);
+    state_.z1 += dt * (state_.z2 - beta1 * error + b0 * state_.output);
     state_.z2 += dt * (-beta2 * detail::fal(error, config_.observer_alpha, config_.fal_delta));
 
     auto feedback =
@@ -630,6 +631,14 @@ protected:
  * differentiator to keep the reference smooth. `controller_alpha1` and
  * `controller_alpha2` change how strongly large position and rate errors are
  * amplified relative to small errors.
+ *
+ * @note When `use_tracking_differentiator` is true, the explicit
+ * `reference_rate` argument passed to the four-argument `update()` overload is
+ * ignored. In that mode the controller uses the tracking differentiator's
+ * internally generated rate estimate instead.
+ *
+ * \section adrc_ex4 Han Second-Order ADRC Example
+ * \snippet adrc_example.cpp adrc han second order example
  */
 class HanAdrcSecondOrder : public BaseComponent {
 public:
@@ -703,6 +712,9 @@ public:
 
   /// Update the controller using an externally supplied reference rate when the
   /// tracking differentiator is disabled.
+  /// @note If `use_tracking_differentiator` is true, `reference_rate` is
+  /// ignored and the tracking differentiator's internally estimated rate is
+  /// used instead.
   /// @param reference Desired position reference.
   /// @param reference_rate Desired reference rate.
   /// @param measurement Measured position.
@@ -734,7 +746,7 @@ public:
     state_.z1 += dt * (state_.z2 - beta1 * error);
     state_.z2 +=
         dt * (state_.z3 - beta2 * detail::fal(error, config_.observer_alpha1, config_.fal_delta) +
-              config_.b0 * state_.output);
+              b0 * state_.output);
     state_.z3 += dt * (-beta3 * detail::fal(error, config_.observer_alpha2, config_.fal_delta));
 
     auto e1 = td_state.position - state_.z1;
