@@ -172,7 +172,7 @@ public:
 
   /// Get the most recently computed state.
   /// @return Current differentiator state.
-  State get_state() const { return state_; }
+  const State &get_state() const { return state_; }
 
   /// Get the active differentiator configuration.
   /// @return Current configuration.
@@ -300,7 +300,7 @@ public:
 
   /// Get the current controller state.
   /// @return Current state.
-  State get_state() const { return state_; }
+  const State &get_state() const { return state_; }
 
   /// Get the active configuration.
   /// @return Current configuration.
@@ -447,7 +447,7 @@ public:
 
   /// Get the current controller state.
   /// @return Current state.
-  State get_state() const { return state_; }
+  const State &get_state() const { return state_; }
 
   /// Get the active configuration.
   /// @return Current configuration.
@@ -588,7 +588,7 @@ public:
 
   /// Get the current controller state.
   /// @return Current state.
-  State get_state() const { return state_; }
+  const State &get_state() const { return state_; }
 
   /// Get the active configuration.
   /// @return Current configuration.
@@ -768,7 +768,7 @@ public:
 
   /// Get the current controller state.
   /// @return Current state.
-  State get_state() const { return state_; }
+  const State &get_state() const { return state_; }
 
   /// Get the active configuration.
   /// @return Current configuration.
