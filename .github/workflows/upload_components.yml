@@ -28,6 +28,7 @@ jobs:
           #
           components: |
             components/adc
+            components/adrc
             components/ads1x15
             components/ads7138
             components/adxl345
