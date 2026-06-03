@@ -164,14 +164,14 @@ public:
 
   /// Get the most recently computed state.
   /// @return Current differentiator state.
-  const State &get_state() const {
+  State get_state() const {
     std::lock_guard<std::recursive_mutex> lk(mutex_);
     return state_;
   }
 
   /// Get the active differentiator configuration.
   /// @return Current configuration.
-  const Config &get_config() const {
+  Config get_config() const {
     std::lock_guard<std::recursive_mutex> lk(mutex_);
     return config_;
   }
@@ -301,14 +301,14 @@ public:
 
   /// Get the current controller state.
   /// @return Current state.
-  const State &get_state() const {
+  State get_state() const {
     std::lock_guard<std::recursive_mutex> lk(mutex_);
     return state_;
   }
 
   /// Get the active configuration.
   /// @return Current configuration.
-  const Config &get_config() const {
+  Config get_config() const {
     std::lock_guard<std::recursive_mutex> lk(mutex_);
     return config_;
   }
@@ -457,14 +457,14 @@ public:
 
   /// Get the current controller state.
   /// @return Current state.
-  const State &get_state() const {
+  State get_state() const {
     std::lock_guard<std::recursive_mutex> lk(mutex_);
     return state_;
   }
 
   /// Get the active configuration.
   /// @return Current configuration.
-  const Config &get_config() const {
+  Config get_config() const {
     std::lock_guard<std::recursive_mutex> lk(mutex_);
     return config_;
   }
@@ -607,14 +607,14 @@ public:
 
   /// Get the current controller state.
   /// @return Current state.
-  const State &get_state() const {
+  State get_state() const {
     std::lock_guard<std::recursive_mutex> lk(mutex_);
     return state_;
   }
 
   /// Get the active configuration.
   /// @return Current configuration.
-  const Config &get_config() const {
+  Config get_config() const {
     std::lock_guard<std::recursive_mutex> lk(mutex_);
     return config_;
   }
@@ -805,14 +805,14 @@ public:
 
   /// Get the current controller state.
   /// @return Current state.
-  const State &get_state() const {
+  State get_state() const {
     std::lock_guard<std::recursive_mutex> lk(mutex_);
     return state_;
   }
 
   /// Get the active configuration.
   /// @return Current configuration.
-  const Config &get_config() const {
+  Config get_config() const {
     std::lock_guard<std::recursive_mutex> lk(mutex_);
     return config_;
   }
