@@ -12,8 +12,12 @@ tags:
   - cpp
   - Component
   - BSP
-  - Smart Panlee
-  - SC01 Plus
+  - Smart-Panlee
+  - SC01-Plus
+  - Smart
+  - Panlee
+  - SC01
+  - Plus
 dependencies:
   idf:
     version: ">=5.0"

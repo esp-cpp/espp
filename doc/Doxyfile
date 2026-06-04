@@ -69,6 +69,7 @@ MARKDOWN_SUPPORT       = NO
 #       what's here and what's not
 EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/adc/example/main/adc_example.cpp \
+  $(PROJECT_PATH)/components/adrc/example/main/adrc_example.cpp \
   $(PROJECT_PATH)/components/ads1x15/example/main/ads1x15_example.cpp \
   $(PROJECT_PATH)/components/ads7138/example/main/ads7138_example.cpp \
   $(PROJECT_PATH)/components/adxl345/example/main/adxl345_example.cpp \
@@ -176,6 +177,7 @@ INPUT = \
   $(PROJECT_PATH)/components/adc/include/adc_types.hpp \
   $(PROJECT_PATH)/components/adc/include/oneshot_adc.hpp \
   $(PROJECT_PATH)/components/adc/include/continuous_adc.hpp \
+  $(PROJECT_PATH)/components/adrc/include/adrc.hpp \
   $(PROJECT_PATH)/components/ads1x15/include/ads1x15.hpp \
   $(PROJECT_PATH)/components/ads7138/include/ads7138.hpp \
   $(PROJECT_PATH)/components/adxl345/include/adxl345.hpp \
