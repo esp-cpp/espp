@@ -172,6 +172,7 @@ extern "C" void app_main(void) {
                       },
                       .task_config = {
                           .name = "lv_task",
+                          .stack_size_bytes = 6 * 1024,
                       }});
   lv_task.start();
 
