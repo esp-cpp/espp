@@ -30,6 +30,9 @@ public:
   /// Alias for the pixel type used by the wrover-kit display
   using Pixel = lv_color16_t;
 
+  /// Alias for the display driver
+  using DisplayDriver = espp::Ili9341;
+
   /// Maximum number of bytes that can be transferred in a single SPI
   /// transaction to the Display. 2MB on ESP32.
   static constexpr size_t SPI_MAX_TRANSFER_BYTES = SPI_LL_DMA_MAX_BIT_LEN / 8;
@@ -97,6 +100,10 @@ public:
   /// \return A shared pointer to the display
   std::shared_ptr<Display<Pixel>> display() const;
 
+  /// Get a shared pointer to the low-level display driver
+  /// \return A shared pointer to the display driver
+  const std::shared_ptr<DisplayDriver> &display_driver() const { return display_driver_; }
+
   /// Set the brightness of the backlight
   /// \param brightness The brightness of the backlight as a percentage (0 - 100)
   /// \note This function will only work after initialize_lcd() has been called
@@ -144,6 +151,15 @@ public:
   void write_lcd_frame(const uint16_t x, const uint16_t y, const uint16_t width,
                        const uint16_t height, uint8_t *data);
 
+  /// Write lines to the LCD
+  /// \param xs The x start coordinate
+  /// \param ys The y start coordinate
+  /// \param xe The x end coordinate
+  /// \param ye The y end coordinate
+  /// \param data The data to write
+  /// \param user_data User data to pass to the SPI transaction callback
+  void write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data);
+
 protected:
   WroverKit();
   void lcd_wait_lines();
@@ -169,13 +185,12 @@ protected:
   static constexpr bool mirror_x = false;
   static constexpr bool mirror_y = false;
   static constexpr bool swap_xy = true;
-  using DisplayDriver = espp::Ili9341;
 
   // display
   std::shared_ptr<Display<Pixel>> display_;
   std::vector<Led::ChannelConfig> backlight_channel_configs_{};
   std::shared_ptr<Led> backlight_{};
-  std::unique_ptr<DisplayDriver> display_driver_;
+  std::shared_ptr<DisplayDriver> display_driver_{static_cast<DisplayDriver *>(nullptr)};
   std::unique_ptr<Spi> lcd_spi_;
   std::unique_ptr<SpiPanelIo> lcd_;
   uint8_t *frame_buffer0_{nullptr};

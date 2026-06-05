@@ -221,7 +221,7 @@ bool M5StackTab5::initialize_lcd() {
   display_driver_.reset();
   if (detected_controller == DisplayController::ILI9881) {
     logger_.info("Initializing as ILI9881");
-    auto display_driver = std::make_unique<espp::Ili9881>(display_config);
+    auto display_driver = std::make_shared<espp::Ili9881>(display_config);
     if (display_driver->initialize()) {
       logger_.info("Successfully initialized ILI9881 display controller");
       display_driver_ = std::move(display_driver);
@@ -229,7 +229,7 @@ bool M5StackTab5::initialize_lcd() {
     }
   } else if (detected_controller == DisplayController::ST7123) {
     logger_.info("Initializing as ST7123");
-    auto display_driver = std::make_unique<espp::St7123>(display_config);
+    auto display_driver = std::make_shared<espp::St7123>(display_config);
     if (display_driver->initialize()) {
       logger_.info("Successfully initialized ST7123 display controller");
       display_driver_ = std::move(display_driver);
@@ -331,6 +331,20 @@ size_t M5StackTab5::rotated_display_height() const {
   default:
     return display_height_;
   }
+}
+
+void M5StackTab5::write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data,
+                                  uint32_t user_data) {
+  (void)user_data;
+  if (lcd_handles_.panel == nullptr || data == nullptr) {
+    return;
+  }
+  if (xe < xs || ye < ys) {
+    logger_.error("write_lcd_lines: Bad region: ({},{}) to ({},{})", xs, ys, xe, ye);
+    return;
+  }
+  esp_lcd_panel_draw_bitmap(lcd_handles_.panel, xs, ys, xe + 1, ye + 1,
+                            const_cast<uint8_t *>(data));
 }
 
 void M5StackTab5::brightness(float brightness) {

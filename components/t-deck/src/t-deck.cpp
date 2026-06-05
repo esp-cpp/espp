@@ -316,7 +316,7 @@ bool TDeck::initialize_lcd() {
     return false;
   }
 
-  display_driver_ = std::make_unique<DisplayDriver>(
+  display_driver_ = std::make_shared<DisplayDriver>(
       espp::display_drivers::Config{.panel_io = lcd_.get(),
                                     .write_command = nullptr,
                                     .read_command = nullptr,

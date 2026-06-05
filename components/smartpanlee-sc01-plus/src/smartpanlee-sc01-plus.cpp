@@ -221,7 +221,7 @@ bool SmartPanleeSc01Plus::initialize_lcd() {
   ESP_ERROR_CHECK(esp_lcd_new_panel_io_i80(lcd_bus_, &io_config, &panel_io_));
 
   using namespace std::placeholders;
-  display_driver_ = std::make_unique<DisplayDriver>(espp::display_drivers::Config{
+  display_driver_ = std::make_shared<DisplayDriver>(espp::display_drivers::Config{
       .write_command = std::bind(&SmartPanleeSc01Plus::write_command, this, _1, _2, _3),
       .lcd_send_lines =
           std::bind(&SmartPanleeSc01Plus::write_lcd_lines, this, _1, _2, _3, _4, _5, _6),

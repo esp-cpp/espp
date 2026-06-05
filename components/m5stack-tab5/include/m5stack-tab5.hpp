@@ -76,6 +76,9 @@ public:
   /// Alias for the pixel type used by the Tab5 display
   using Pixel = lv_color16_t;
 
+  /// Alias for the low-level display driver interface
+  using DisplayDriver = espp::display_drivers::Controller;
+
   /// Enum for display controller type
   enum class DisplayController { UNKNOWN, ILI9881, ST7123 };
 
@@ -239,6 +242,19 @@ public:
   /// Get the display height in pixels, according to the current orientation
   /// \return The display height in pixels, according to the current orientation
   size_t rotated_display_height() const;
+
+  /// Get a shared pointer to the low-level display driver
+  /// \return A shared pointer to the display driver
+  const std::shared_ptr<DisplayDriver> &display_driver() const { return display_driver_; }
+
+  /// Write lines to the LCD
+  /// \param xs The x start coordinate
+  /// \param ys The y start coordinate
+  /// \param xe The x end coordinate
+  /// \param ye The y end coordinate
+  /// \param data The data to write
+  /// \param user_data User data to pass to the lower-level transport
+  void write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data);
 
   /////////////////////////////////////////////////////////////////////////////
   // Audio System
@@ -736,7 +752,7 @@ protected:
 
   // Display state
   std::shared_ptr<Display<Pixel>> display_;
-  std::unique_ptr<display_drivers::Controller> display_driver_;
+  std::shared_ptr<DisplayDriver> display_driver_{static_cast<DisplayDriver *>(nullptr)};
   std::shared_ptr<Led> backlight_;
   std::vector<Led::ChannelConfig> backlight_channel_configs_;
   struct LcdHandles {
