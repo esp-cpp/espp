@@ -329,11 +329,17 @@ void SsRoundDisplay::write_lcd_lines(int xs, int ys, int xe, int ye, const uint8
   if (!lcd_) {
     return;
   }
-  size_t length = (xe - xs + 1) * (ye - ys + 1) * lcd_bytes_per_pixel;
-  if (length == 0) {
-    logger_.error("lcd_send_lines: Bad length: ({},{}) to ({},{})", xs, ys, xe, ye);
+  if (data == nullptr) {
+    logger_.error("lcd_send_lines: Null data for ({},{}) to ({},{})", xs, ys, xe, ye);
     return;
   }
+  if (xs < 0 || ys < 0 || xe < xs || ye < ys) {
+    logger_.error("lcd_send_lines: Bad region: ({},{}) to ({},{})", xs, ys, xe, ye);
+    return;
+  }
+  size_t width = static_cast<size_t>(xe - xs + 1);
+  size_t height = static_cast<size_t>(ye - ys + 1);
+  size_t length = width * height * lcd_bytes_per_pixel;
   lcd_->wait();
   std::array<uint8_t, 4> window = {
       static_cast<uint8_t>((xs >> 8) & 0xff),

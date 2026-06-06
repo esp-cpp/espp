@@ -339,7 +339,7 @@ void M5StackTab5::write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t 
   if (lcd_handles_.panel == nullptr || data == nullptr) {
     return;
   }
-  if (xe < xs || ye < ys) {
+  if (xs < 0 || ys < 0 || xe < xs || ye < ys) {
     logger_.error("write_lcd_lines: Bad region: ({},{}) to ({},{})", xs, ys, xe, ye);
     return;
   }
