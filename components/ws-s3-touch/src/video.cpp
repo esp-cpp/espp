@@ -1,5 +1,7 @@
 #include "ws-s3-touch.hpp"
 
+#include <array>
+
 using namespace espp;
 
 ////////////////////////

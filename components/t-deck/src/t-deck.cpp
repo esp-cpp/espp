@@ -1,5 +1,7 @@
 #include "t-deck.hpp"
 
+#include <array>
+
 using namespace espp;
 
 TDeck::TDeck()

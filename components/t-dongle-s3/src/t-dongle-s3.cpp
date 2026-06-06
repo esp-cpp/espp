@@ -1,5 +1,7 @@
 #include "t-dongle-s3.hpp"
 
+#include <array>
+
 using namespace espp;
 
 TDongleS3::TDongleS3()

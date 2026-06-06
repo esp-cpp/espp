@@ -1,5 +1,7 @@
 #include "esp-box.hpp"
 
+#include <array>
+
 using namespace espp;
 
 ////////////////////////
