@@ -405,8 +405,8 @@ public:
   /// \param ye The y end coordinate
   /// \param data The data to write
   /// \param user_data User data to pass to the spi transaction callback
-  /// \note This method queues the data to be written to the LCD, only blocking
-  ///      if there is an ongoing SPI transaction
+  /// \note This method queues the panel transfer asynchronously and may return
+  ///       before the write has completed.
   void write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data);
 
   /////////////////////////////////////////////////////////////////////////////

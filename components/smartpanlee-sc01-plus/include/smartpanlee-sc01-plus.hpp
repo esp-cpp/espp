@@ -208,6 +208,8 @@ public:
   /// \param ye Inclusive end Y coordinate.
   /// \param data Pointer to pixel payload data.
   /// \param user_data Opaque user data passed by the caller.
+  /// \note This method queues the panel transfer asynchronously and may return
+  ///       before the write has completed.
   void write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data);
 
   /// Initialize the speaker audio path using the board's published I2S pins.

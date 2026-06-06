@@ -343,8 +343,7 @@ void M5StackTab5::write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t 
     logger_.error("write_lcd_lines: Bad region: ({},{}) to ({},{})", xs, ys, xe, ye);
     return;
   }
-  esp_lcd_panel_draw_bitmap(lcd_handles_.panel, xs, ys, xe + 1, ye + 1,
-                            const_cast<uint8_t *>(data));
+  esp_lcd_panel_draw_bitmap(lcd_handles_.panel, xs, ys, xe + 1, ye + 1, data);
 }
 
 void M5StackTab5::brightness(float brightness) {
