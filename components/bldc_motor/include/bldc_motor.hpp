@@ -482,28 +482,16 @@ public:
   }
 
   /**
-   * @brief Return the shaft angle, in radians.
-   * @return Motor shaft angle in radians.
+   * @brief Return the most recently sampled shaft angle, in radians.
+   * @return Cached motor shaft angle in radians.
    */
-  float get_shaft_angle() {
-    // if no sensor linked return previous value ( for open loop )
-    if (!sensor_)
-      return shaft_angle_;
-    auto sensed = angle_filter_ ? angle_filter_(sensor_->get_radians()) : sensor_->get_radians();
-    return (float)sensor_direction_ * sensed - sensor_offset_;
-  }
+  float get_shaft_angle() { return shaft_angle_; }
 
   /**
-   * @brief Return the shaft velocity, in radians per second (rad/s).
-   * @return Motor shaft velocity (rad/s).
+   * @brief Return the most recently sampled shaft velocity, in radians per second (rad/s).
+   * @return Cached motor shaft velocity (rad/s).
    */
-  float get_shaft_velocity() {
-    // if no sensor linked return previous value ( for open loop )
-    if (!sensor_)
-      return shaft_velocity_;
-    auto sensed = velocity_filter_ ? velocity_filter_(sensor_->get_rpm()) : sensor_->get_rpm();
-    return (float)sensor_direction_ * sensed * RPM_TO_RADS;
-  }
+  float get_shaft_velocity() { return shaft_velocity_; }
 
   /**
    * @brief Get the electrical angle of the motor - using the mechanical
@@ -612,13 +600,13 @@ public:
     //                        representation.
     if (motion_control_type_ != detail::MotionControlType::ANGLE_OPENLOOP &&
         motion_control_type_ != detail::MotionControlType::VELOCITY_OPENLOOP) {
-      shaft_angle_ = get_shaft_angle();
+      this->sample_shaft_angle();
     }
 
     // get angular velocity TODO the velocity reading probably also shouldn't
     // happen in open loop modes?
 
-    shaft_velocity_ = get_shaft_velocity();
+    this->sample_shaft_velocity();
 
     // set internal target variable
     target_ = new_target;
@@ -738,7 +726,8 @@ protected:
     bool success = align_sensor();
     if (run_sensor_update_)
       sensor_->update(ec);
-    shaft_angle_ = get_shaft_angle();
+    this->sample_shaft_angle();
+    this->sample_shaft_velocity();
 
     if (current_sense_) {
       success &= align_current_sense();
@@ -746,6 +735,24 @@ protected:
 
     status_ = success ? Status::READY : Status::FAILED_CALIBRATION;
     logger_.debug("Init FOC completed: {}", success);
+  }
+
+  float sample_shaft_angle() {
+    if (!sensor_) {
+      return shaft_angle_;
+    }
+    auto sensed = angle_filter_ ? angle_filter_(sensor_->get_radians()) : sensor_->get_radians();
+    shaft_angle_ = (float)sensor_direction_ * sensed - sensor_offset_;
+    return shaft_angle_;
+  }
+
+  float sample_shaft_velocity() {
+    if (!sensor_) {
+      return shaft_velocity_;
+    }
+    auto sensed = velocity_filter_ ? velocity_filter_(sensor_->get_rpm()) : sensor_->get_rpm();
+    shaft_velocity_ = (float)sensor_direction_ * sensed * RPM_TO_RADS;
+    return shaft_velocity_;
   }
 
   bool align_sensor() {
@@ -773,6 +780,7 @@ protected:
           sensor_->update(ec);
         std::this_thread::sleep_for(1ms * 2);
       }
+
       // take an angle in the middle
       if (run_sensor_update_)
         sensor_->update(ec);
