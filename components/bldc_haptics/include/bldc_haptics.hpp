@@ -20,11 +20,11 @@ concept MotorConcept = requires {
       &FOO::move); ///< Move the motor to a new target (position, velocity, or torque depending on
                    ///< the motor control type)
   static_cast<void (FOO::*)(detail::MotionControlType)>(
-      &FOO::set_motion_control_type);                            ///< Set the motion control type
-  static_cast<void (FOO::*)(void)>(&FOO::loop_foc);              ///< Run the FOC loop
-  static_cast<float (FOO::*)(void)>(&FOO::get_shaft_angle);      ///< Get the shaft angle
-  static_cast<float (FOO::*)(void)>(&FOO::get_shaft_velocity);   ///< Get the shaft velocity
-  static_cast<float (FOO::*)(void)>(&FOO::get_electrical_angle); ///< Get the electrical angle
+      &FOO::set_motion_control_type);                             ///< Set the motion control type
+  static_cast<void (FOO::*)(void)>(&FOO::loop_foc);               ///< Run the FOC loop
+  static_cast<float (FOO::*)(void) const>(&FOO::get_shaft_angle); ///< Get the shaft angle
+  static_cast<float (FOO::*)(void) const>(&FOO::get_shaft_velocity); ///< Get the shaft velocity
+  static_cast<float (FOO::*)(void)>(&FOO::get_electrical_angle);     ///< Get the electrical angle
 };
 
 /// @brief Class which creates haptic feedback for the user by vibrating the
