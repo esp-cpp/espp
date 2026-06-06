@@ -482,16 +482,18 @@ public:
   }
 
   /**
-   * @brief Return the most recently sampled shaft angle, in radians.
+   * @brief Return the most recently sampled (or estimated in open-loop) shaft
+   *        angle, in radians.
    * @return Cached motor shaft angle in radians.
    */
-  float get_shaft_angle() { return shaft_angle_; }
+  float get_shaft_angle() const { return shaft_angle_; }
 
   /**
-   * @brief Return the most recently sampled shaft velocity, in radians per second (rad/s).
+   * @brief Return the most recently sampled (or estimated in open-loop) shaft
+   *        velocity, in radians per second (rad/s).
    * @return Cached motor shaft velocity (rad/s).
    */
-  float get_shaft_velocity() { return shaft_velocity_; }
+  float get_shaft_velocity() const { return shaft_velocity_; }
 
   /**
    * @brief Get the electrical angle of the motor - using the mechanical
@@ -724,8 +726,14 @@ protected:
     }
     // align sensor and motor
     bool success = align_sensor();
-    if (run_sensor_update_)
+    if (run_sensor_update_) {
       sensor_->update(ec);
+      if (ec) {
+        logger_.error("Sensor update failed during init_foc: {}", ec.message());
+        status_ = Status::FAILED_CALIBRATION;
+        return;
+      }
+    }
     this->sample_shaft_angle();
     this->sample_shaft_velocity();
 
