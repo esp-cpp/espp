@@ -221,7 +221,7 @@ bool SmartPanleeSc01Plus::initialize_lcd() {
   ESP_ERROR_CHECK(esp_lcd_new_panel_io_i80(lcd_bus_, &io_config, &panel_io_));
 
   using namespace std::placeholders;
-  display_driver_ = std::make_unique<DisplayDriver>(espp::display_drivers::Config{
+  display_driver_ = std::make_shared<DisplayDriver>(espp::display_drivers::Config{
       .write_command = std::bind(&SmartPanleeSc01Plus::write_command, this, _1, _2, _3),
       .lcd_send_lines =
           std::bind(&SmartPanleeSc01Plus::write_lcd_lines, this, _1, _2, _3, _4, _5, _6),
@@ -556,6 +556,17 @@ void SmartPanleeSc01Plus::write_command(uint8_t command, std::span<const uint8_t
 void SmartPanleeSc01Plus::write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data,
                                           uint32_t user_data) {
   (void)user_data;
+  if (panel_io_ == nullptr) {
+    return;
+  }
+  if (data == nullptr) {
+    logger_.error("lcd_send_lines: Null data for ({},{}) to ({},{})", xs, ys, xe, ye);
+    return;
+  }
+  if (xs < 0 || ys < 0 || xe < xs || ye < ys) {
+    logger_.error("lcd_send_lines: Bad region: ({},{}) to ({},{})", xs, ys, xe, ye);
+    return;
+  }
   std::array<uint8_t, 4> window = {
       static_cast<uint8_t>((xs >> 8) & 0xFF),
       static_cast<uint8_t>(xs & 0xFF),
@@ -574,8 +585,9 @@ void SmartPanleeSc01Plus::write_lcd_lines(int xs, int ys, int xe, int ye, const 
   ESP_ERROR_CHECK(esp_lcd_panel_io_tx_param(panel_io_,
                                             static_cast<uint8_t>(DisplayDriver::Command::raset),
                                             window.data(), window.size()));
-  size_t num_bytes =
-      static_cast<size_t>(xe - xs + 1) * static_cast<size_t>(ye - ys + 1) * sizeof(Pixel);
+  size_t width = static_cast<size_t>(xe - xs + 1);
+  size_t height = static_cast<size_t>(ye - ys + 1);
+  size_t num_bytes = width * height * sizeof(Pixel);
   ESP_ERROR_CHECK(esp_lcd_panel_io_tx_color(
       panel_io_, static_cast<int>(DisplayDriver::Command::ramwr), data, num_bytes));
 }

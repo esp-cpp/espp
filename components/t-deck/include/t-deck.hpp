@@ -338,6 +338,10 @@ public:
   /// \return A shared pointer to the display
   std::shared_ptr<Display<Pixel>> display() const;
 
+  /// Get a shared pointer to the low-level display driver
+  /// \return A shared pointer to the display driver
+  const std::shared_ptr<DisplayDriver> &display_driver() const { return display_driver_; }
+
   /// Set the brightness of the backlight
   /// \param brightness The brightness of the backlight as a percentage (0 - 100)
   /// \note This function will only work after initialize_lcd() has been called
@@ -401,8 +405,8 @@ public:
   /// \param ye The y end coordinate
   /// \param data The data to write
   /// \param user_data User data to pass to the spi transaction callback
-  /// \note This method queues the data to be written to the LCD, only blocking
-  ///      if there is an ongoing SPI transaction
+  /// \note This method queues the panel transfer asynchronously and may return
+  ///       before the write has completed.
   void write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data);
 
   /////////////////////////////////////////////////////////////////////////////
@@ -646,7 +650,7 @@ protected:
 
   // display
   std::shared_ptr<Display<Pixel>> display_;
-  std::unique_ptr<DisplayDriver> display_driver_;
+  std::shared_ptr<DisplayDriver> display_driver_{static_cast<DisplayDriver *>(nullptr)};
   std::vector<Led::ChannelConfig> backlight_channel_configs_{};
   std::shared_ptr<Led> backlight_{};
   static constexpr int spi_queue_size = 6;

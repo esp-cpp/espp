@@ -1,5 +1,7 @@
 #include "seeed-studio-round-display.hpp"
 
+#include <array>
+
 using namespace espp;
 
 SsRoundDisplay::PinConfig SsRoundDisplay::pin_config_;
@@ -206,7 +208,7 @@ bool SsRoundDisplay::initialize_lcd() {
     lcd_spi_.reset();
     return false;
   }
-  display_driver_ = std::make_unique<DisplayDriver>(
+  display_driver_ = std::make_shared<DisplayDriver>(
       espp::display_drivers::Config{.panel_io = lcd_.get(),
                                     .write_command = nullptr,
                                     .read_command = nullptr,
@@ -320,6 +322,43 @@ void SsRoundDisplay::write_lcd_frame(const uint16_t xs, const uint16_t ys, const
     // don't have data, so clear the area (set to 0)
     display_driver_->clear(xs, ys, width, height);
   }
+}
+
+void SsRoundDisplay::write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data,
+                                     uint32_t user_data) {
+  if (!lcd_) {
+    return;
+  }
+  if (data == nullptr) {
+    logger_.error("lcd_send_lines: Null data for ({},{}) to ({},{})", xs, ys, xe, ye);
+    return;
+  }
+  if (xs < 0 || ys < 0 || xe < xs || ye < ys) {
+    logger_.error("lcd_send_lines: Bad region: ({},{}) to ({},{})", xs, ys, xe, ye);
+    return;
+  }
+  size_t width = static_cast<size_t>(xe - xs + 1);
+  size_t height = static_cast<size_t>(ye - ys + 1);
+  size_t length = width * height * lcd_bytes_per_pixel;
+  lcd_->wait();
+  std::array<uint8_t, 4> window = {
+      static_cast<uint8_t>((xs >> 8) & 0xff),
+      static_cast<uint8_t>(xs & 0xff),
+      static_cast<uint8_t>((xe >> 8) & 0xff),
+      static_cast<uint8_t>(xe & 0xff),
+  };
+  lcd_->queue_command(static_cast<uint8_t>(DisplayDriver::Command::caset));
+  lcd_->queue_data(window);
+  window = {
+      static_cast<uint8_t>((ys >> 8) & 0xff),
+      static_cast<uint8_t>(ys & 0xff),
+      static_cast<uint8_t>((ye >> 8) & 0xff),
+      static_cast<uint8_t>(ye & 0xff),
+  };
+  lcd_->queue_command(static_cast<uint8_t>(DisplayDriver::Command::raset));
+  lcd_->queue_data(window);
+  lcd_->queue_command(static_cast<uint8_t>(DisplayDriver::Command::ramwr));
+  lcd_->queue_pixels(data, length, user_data);
 }
 
 SsRoundDisplay::Pixel *SsRoundDisplay::vram0() const {

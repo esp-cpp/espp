@@ -170,6 +170,10 @@ public:
   /// \return A shared pointer to the display
   std::shared_ptr<Display<Pixel>> display() const;
 
+  /// Get a shared pointer to the low-level display driver
+  /// \return A shared pointer to the display driver
+  const std::shared_ptr<DisplayDriver> &display_driver() const { return display_driver_; }
+
   /// Set the brightness of the backlight
   /// \param brightness The brightness of the backlight as a percentage (0 - 100)
   void brightness(float brightness);
@@ -214,6 +218,17 @@ public:
   ///      if there is an ongoing SPI transaction
   void write_lcd_frame(const uint16_t x, const uint16_t y, const uint16_t width,
                        const uint16_t height, uint8_t *data);
+
+  /// Write lines to the LCD
+  /// \param xs The x start coordinate
+  /// \param ys The y start coordinate
+  /// \param xe The x end coordinate
+  /// \param ye The y end coordinate
+  /// \param data The data to write
+  /// \param user_data User data to pass to the SPI transaction callback
+  /// \note This method queues the panel transfer asynchronously and may return
+  ///       before the write has completed.
+  void write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data);
 
 protected:
   Byte90();
@@ -330,7 +345,7 @@ protected:
 
   // display
   std::shared_ptr<Display<Pixel>> display_;
-  std::unique_ptr<DisplayDriver> display_driver_;
+  std::shared_ptr<DisplayDriver> display_driver_{static_cast<DisplayDriver *>(nullptr)};
   static constexpr int spi_queue_size = 6;
   std::unique_ptr<Spi> lcd_spi_;
   std::unique_ptr<SpiPanelIo> lcd_;
