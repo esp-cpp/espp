@@ -41,9 +41,10 @@ void MjpegDepacketizer::process_packet(const RtpPacket &packet) {
 
   received_sequence_numbers_.push_back(jpeg_packet.get_sequence_number());
 
-  if (jpeg_packet.get_marker() && !has_missing_sequence_numbers()) {
+  if (jpeg_packet.get_marker()) {
     // Frame is complete
     assembling_frame_ = false;
+    bool has_missing_packets = has_missing_sequence_numbers();
 
     logger_.debug("Frame complete: {}x{}, scan={} bytes", frame_width_, frame_height_,
                   scan_buffer_.size());
@@ -59,6 +60,10 @@ void MjpegDepacketizer::process_packet(const RtpPacket &packet) {
       jpeg_bytes.reserve(header_data.size() + scan_buffer_.size());
       jpeg_bytes.insert(jpeg_bytes.end(), header_data.begin(), header_data.end());
       jpeg_bytes.insert(jpeg_bytes.end(), scan_buffer_.begin(), scan_buffer_.end());
+    }
+
+    if (has_missing_packets) {
+      logger_.debug("Delivering best-effort MJPEG frame with missing RTP packets");
     }
 
     if (on_jpeg_frame_) {

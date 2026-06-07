@@ -10,6 +10,9 @@
 using namespace espp;
 
 namespace {
+constexpr auto monitor_poll_interval = std::chrono::milliseconds(250);
+
+auto now_tick() { return std::chrono::steady_clock::now().time_since_epoch().count(); }
 
 std::string trim_copy(std::string_view value) {
   auto is_space = [](unsigned char c) { return std::isspace(c) != 0; };
@@ -141,6 +144,7 @@ RtspClient::RtspClient(const Config &config)
     , rtcp_socket_({.log_level = espp::Logger::Verbosity::WARN})
     , on_jpeg_frame_(config.on_jpeg_frame)
     , on_frame_(config.on_frame)
+    , on_connection_lost_(config.on_connection_lost)
     , cseq_(0)
     , path_(make_rtsp_url(server_address_, rtsp_port_, config.path))
     , base_path_(path_) {
@@ -167,6 +171,99 @@ RtspClient::~RtspClient() {
   disconnect(ec);
   if (ec) {
     logger_.error("Error disconnecting: {}", ec.message());
+  }
+}
+
+void RtspClient::reset_transport_state() {
+  playing_ = false;
+  rtp_socket_.stop_receiving();
+  rtcp_socket_.stop_receiving();
+  rtsp_socket_.close();
+  rtsp_socket_.reinit();
+  session_id_.clear();
+  tracks_.clear();
+  payload_type_to_track_id_.clear();
+  base_path_ = path_;
+  video_port_ = 0;
+  video_payload_type_ = 0;
+  cseq_ = 0;
+  play_started_tick_.store(0, std::memory_order_relaxed);
+  last_rtp_packet_tick_.store(0, std::memory_order_relaxed);
+}
+
+void RtspClient::start_monitor_task() {
+  stop_monitor_task();
+  using namespace std::placeholders;
+  monitor_task_ = std::make_unique<Task>(Task::Config{
+      .callback = std::bind(&RtspClient::monitor_task_fn, this, _1, _2, _3),
+      .task_config =
+          {
+              .name = "RtspClientMon",
+              .stack_size_bytes = 4 * 1024,
+          },
+      .log_level = Logger::Verbosity::WARN,
+  });
+  monitor_task_->start();
+}
+
+void RtspClient::stop_monitor_task() {
+  if (monitor_task_ && monitor_task_->is_started()) {
+    monitor_task_->stop();
+  }
+  monitor_task_.reset();
+}
+
+bool RtspClient::monitor_task_fn(std::mutex &m, std::condition_variable &cv, bool &task_notified) {
+  {
+    std::unique_lock<std::mutex> lk(m);
+    auto stop_requested =
+        cv.wait_for(lk, monitor_poll_interval, [&task_notified] { return task_notified; });
+    task_notified = false;
+    if (stop_requested) {
+      return true;
+    }
+  }
+
+  if (disconnecting_.load(std::memory_order_relaxed) || !playing_.load(std::memory_order_relaxed)) {
+    return false;
+  }
+
+  if (!rtsp_socket_.is_connected()) {
+    notify_connection_lost("RTSP control socket disconnected");
+    return true;
+  }
+
+  auto last_tick = last_rtp_packet_tick_.load(std::memory_order_relaxed);
+  if (last_tick == 0) {
+    auto play_start_tick = play_started_tick_.load(std::memory_order_relaxed);
+    if (play_start_tick != 0) {
+      auto now = std::chrono::steady_clock::now().time_since_epoch().count();
+      auto timeout_ticks = initial_rtp_receive_timeout_.count();
+      if (timeout_ticks > 0 && now - play_start_tick > timeout_ticks) {
+        notify_connection_lost("Timed out waiting for initial RTP packets");
+        return true;
+      }
+    }
+    return false;
+  }
+  auto now = std::chrono::steady_clock::now().time_since_epoch().count();
+  auto timeout_ticks = rtp_receive_timeout_.count();
+  if (timeout_ticks > 0 && now - last_tick > timeout_ticks) {
+    notify_connection_lost("Timed out waiting for RTP packets");
+    return true;
+  }
+  return false;
+}
+
+void RtspClient::notify_connection_lost(std::string_view reason) {
+  if (disconnecting_.load(std::memory_order_relaxed) ||
+      connection_lost_reported_.exchange(true, std::memory_order_relaxed)) {
+    return;
+  }
+  logger_.warn("{}", reason);
+  reset_transport_state();
+  if (on_connection_lost_) {
+    on_connection_lost_();
   }
 }
 
@@ -216,6 +313,11 @@ void RtspClient::connect(std::error_code &ec) {
     return;
   }
 
+  disconnecting_ = false;
+  connection_lost_reported_ = false;
+  playing_ = false;
+  play_started_tick_.store(0, std::memory_order_relaxed);
+  last_rtp_packet_tick_.store(0, std::memory_order_relaxed);
   rtsp_socket_.reinit();
   auto did_connect = rtsp_socket_.connect({
       .ip_address = server_address_,
@@ -231,19 +333,15 @@ void RtspClient::connect(std::error_code &ec) {
 }
 
 void RtspClient::disconnect(std::error_code &ec) {
+  disconnecting_ = true;
+  stop_monitor_task();
   std::error_code teardown_ec;
   if (rtsp_socket_.is_connected()) {
     teardown(teardown_ec);
   }
-
-  rtp_socket_.stop_receiving();
-  rtcp_socket_.stop_receiving();
-  rtsp_socket_.close();
-  rtsp_socket_.reinit();
-  session_id_.clear();
-  tracks_.clear();
-  payload_type_to_track_id_.clear();
-  base_path_ = path_;
+  reset_transport_state();
+  disconnecting_ = false;
+  connection_lost_reported_ = false;
 
   if (!ec && teardown_ec) {
     ec = teardown_ec;
@@ -450,6 +548,13 @@ void RtspClient::play(std::error_code &ec) {
     return;
   }
   send_request("PLAY", base_path_, {}, ec);
+  if (!ec) {
+    playing_ = true;
+    connection_lost_reported_ = false;
+    play_started_tick_.store(now_tick(), std::memory_order_relaxed);
+    last_rtp_packet_tick_.store(0, std::memory_order_relaxed);
+    start_monitor_task();
+  }
 }
 
 void RtspClient::pause(std::error_code &ec) {
@@ -457,9 +562,15 @@ void RtspClient::pause(std::error_code &ec) {
     return;
   }
   send_request("PAUSE", base_path_, {}, ec);
+  if (!ec) {
+    playing_ = false;
+    stop_monitor_task();
+  }
 }
 
 void RtspClient::teardown(std::error_code &ec) {
+  playing_ = false;
+  stop_monitor_task();
   if (!rtsp_socket_.is_connected()) {
     return;
   }
@@ -505,6 +616,12 @@ void RtspClient::init_rtp(size_t rtp_port, const std::chrono::duration<float> &r
     return;
   }
   logger_.debug("Starting rtp socket");
+  auto timeout =
+      std::chrono::duration_cast<std::chrono::steady_clock::duration>(receive_timeout * 3);
+  auto minimum_timeout =
+      std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::seconds(15));
+  rtp_receive_timeout_ = std::max(timeout, minimum_timeout);
+  initial_rtp_receive_timeout_ = rtp_receive_timeout_;
   rtp_socket_.set_receive_timeout(receive_timeout);
   auto rtp_task_config = espp::Task::BaseConfig{
       .name = "Rtp",
@@ -550,6 +667,8 @@ void RtspClient::init_rtcp(size_t rtcp_port, const std::chrono::duration<float> 
 std::optional<std::vector<uint8_t>>
 RtspClient::handle_rtp_packet(std::vector<uint8_t> &data, const espp::Socket::Info &sender_info) {
   logger_.debug("Got RTP packet of size: {}", data.size());
+  play_started_tick_.store(0, std::memory_order_relaxed);
+  last_rtp_packet_tick_.store(now_tick(), std::memory_order_relaxed);
 
   RtpPacket packet(std::span<const uint8_t>(data.data(), data.size()));
   int pt = packet.get_payload_type();

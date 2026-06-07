@@ -1,5 +1,7 @@
 #include "rtsp_server.hpp"
 
+#include <thread>
+
 using namespace espp;
 
 namespace {
@@ -34,6 +36,52 @@ std::string make_legacy_mjpeg_sdp(std::string_view session_path, uint32_t sessio
          std::string(session_path) +
          "\r\n"
          "a=udp-only\r\n";
+}
+
+#if defined(ESP_PLATFORM)
+constexpr size_t rtp_send_burst_size = 4;
+constexpr auto rtp_send_burst_delay = std::chrono::milliseconds(1);
+constexpr auto initial_backpressure_cooldown = std::chrono::milliseconds(100);
+constexpr auto max_backpressure_cooldown = std::chrono::milliseconds(1000);
+constexpr auto base_capture_period = std::chrono::milliseconds(100);
+constexpr auto max_capture_period = std::chrono::milliseconds(2000);
+constexpr size_t rtsp_accept_task_stack_size = 4 * 1024;
+constexpr size_t rtsp_session_task_stack_size = 4 * 1024;
+#else
+constexpr size_t rtsp_accept_task_stack_size = 6 * 1024;
+constexpr size_t rtsp_session_task_stack_size = 6 * 1024;
+#endif
+
+constexpr size_t rtp_header_size = 12;
+constexpr size_t mjpeg_header_size = 8;
+constexpr size_t quant_header_size = 4;
+constexpr size_t num_q_tables = 2;
+constexpr size_t q_table_size = 64;
+constexpr size_t first_packet_overhead =
+    mjpeg_header_size + quant_header_size + num_q_tables * q_table_size;
+constexpr size_t other_packet_overhead = mjpeg_header_size;
+
+void serialize_rtp_header(std::vector<uint8_t> &packet, int payload_type, uint16_t sequence_number,
+                          uint32_t timestamp, uint32_t ssrc, bool marker) {
+  packet[0] = 0x80; // version 2
+  packet[1] = static_cast<uint8_t>((marker ? 0x80 : 0x00) | (payload_type & 0x7f));
+  packet[2] = static_cast<uint8_t>((sequence_number >> 8) & 0xff);
+  packet[3] = static_cast<uint8_t>(sequence_number & 0xff);
+  packet[4] = static_cast<uint8_t>((timestamp >> 24) & 0xff);
+  packet[5] = static_cast<uint8_t>((timestamp >> 16) & 0xff);
+  packet[6] = static_cast<uint8_t>((timestamp >> 8) & 0xff);
+  packet[7] = static_cast<uint8_t>(timestamp & 0xff);
+  packet[8] = static_cast<uint8_t>((ssrc >> 24) & 0xff);
+  packet[9] = static_cast<uint8_t>((ssrc >> 16) & 0xff);
+  packet[10] = static_cast<uint8_t>((ssrc >> 8) & 0xff);
+  packet[11] = static_cast<uint8_t>(ssrc & 0xff);
+}
+
+uint32_t get_elapsed_timestamp(uint32_t clock_rate) {
+  static auto start_time = std::chrono::steady_clock::now();
+  auto now = std::chrono::steady_clock::now();
+  auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - start_time).count();
+  return static_cast<uint32_t>(elapsed_ms * clock_rate / 1000);
 }
 
 } // namespace
@@ -79,11 +127,16 @@ bool RtspServer::start(const std::chrono::duration<float> &accept_timeout) {
       .task_config =
           {
               .name = "RTSP Accept Task",
-              .stack_size_bytes = 6 * 1024,
+              .stack_size_bytes = rtsp_accept_task_stack_size,
           },
       .log_level = espp::Logger::Verbosity::WARN,
   });
-  accept_task_->start();
+  if (!accept_task_->start()) {
+    logger_.error("Failed to start RTSP accept task");
+    accept_task_.reset();
+    rtsp_socket_.close();
+    return false;
+  }
   return true;
 }
 
@@ -112,7 +165,53 @@ void RtspServer::add_track(const TrackConfig &config) {
   logger_.info("Added track {} with SSRC {}", config.track_id, state->ssrc);
 }
 
+bool RtspServer::has_active_sessions() {
+  std::lock_guard<std::mutex> lk(session_mutex_);
+  for (const auto &[sid, session_ptr] : sessions_) {
+    if (session_ptr && session_ptr->is_active() && !session_ptr->is_closed()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+std::chrono::milliseconds RtspServer::get_capture_cooldown() {
+  std::lock_guard<std::mutex> lk(session_mutex_);
+#if defined(ESP_PLATFORM)
+  auto now = std::chrono::steady_clock::now();
+  if (backpressure_until_ > now) {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(backpressure_until_ - now);
+  }
+#endif
+  return std::chrono::milliseconds(0);
+}
+
+std::chrono::milliseconds RtspServer::get_recommended_capture_period() {
+  std::lock_guard<std::mutex> lk(session_mutex_);
+#if defined(ESP_PLATFORM)
+  auto period = base_capture_period;
+  for (size_t i = 0; i < consecutive_backpressure_failures_; i++) {
+    period = std::min(period * 2, max_capture_period);
+    if (period == max_capture_period) {
+      break;
+    }
+  }
+  auto now = std::chrono::steady_clock::now();
+  if (backpressure_until_ > now) {
+    period = std::max(
+        period, std::chrono::duration_cast<std::chrono::milliseconds>(backpressure_until_ - now));
+  }
+  return period;
+#else
+  return std::chrono::milliseconds(0);
+#endif
+}
+
 void RtspServer::send_frame(int track_id, std::span<const uint8_t> frame_data) {
+  if (!has_active_sessions()) {
+    return;
+  }
+
   // Find the track
   std::shared_ptr<TrackState> track;
   for (auto &t : tracks_) {
@@ -128,38 +227,46 @@ void RtspServer::send_frame(int track_id, std::span<const uint8_t> frame_data) {
 
   // Packetize the frame using the track's codec-specific packetizer
   auto chunks = track->packetizer->packetize(frame_data);
-
-  // Wrap each chunk in an RtpPacket
-  std::vector<std::unique_ptr<RtpPacket>> packets;
-  packets.reserve(chunks.size());
-
-  static auto start_time = std::chrono::steady_clock::now();
-  auto now = std::chrono::steady_clock::now();
-  auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - start_time).count();
-  uint32_t timestamp =
-      static_cast<uint32_t>(elapsed_ms * track->packetizer->get_clock_rate() / 1000);
-
-  for (auto &chunk : chunks) {
-    auto pkt = std::make_unique<RtpPacket>(chunk.data.size());
-    pkt->set_version(2);
-    pkt->set_marker(chunk.marker);
-    pkt->set_payload_type(track->packetizer->get_payload_type());
-    pkt->set_sequence_number(track->sequence_number++);
-    pkt->set_timestamp(timestamp);
-    pkt->set_ssrc(track->ssrc);
-    pkt->set_payload(std::span<const uint8_t>(chunk.data.data(), chunk.data.size()));
-    pkt->serialize();
-    packets.emplace_back(std::move(pkt));
-  }
-
-  // Store pending packets for the session task to pick up
+  auto timestamp = get_elapsed_timestamp(track->packetizer->get_clock_rate());
+  std::shared_ptr<TrackState::PacketBatch> batch;
   {
     std::lock_guard<std::mutex> lock(track->packets_mutex);
-    track->pending_packets = std::move(packets);
+    if (track->recycled_batch) {
+      batch = std::move(track->recycled_batch);
+    } else {
+      batch = std::make_shared<TrackState::PacketBatch>();
+    }
+  }
+  if (batch->packets.size() < chunks.size()) {
+    batch->packets.resize(chunks.size());
+  }
+  batch->count = chunks.size();
+
+  for (size_t i = 0; i < chunks.size(); ++i) {
+    auto &chunk = chunks[i];
+    auto &packet = batch->packets[i];
+    packet.resize(rtp_header_size + chunk.data.size());
+    serialize_rtp_header(packet, track->packetizer->get_payload_type(), track->sequence_number++,
+                         timestamp, track->ssrc, chunk.marker);
+    std::memcpy(packet.data() + rtp_header_size, chunk.data.data(), chunk.data.size());
+  }
+
+  {
+    std::lock_guard<std::mutex> lock(track->packets_mutex);
+    if (!track->recycled_batch && track->pending_batch) {
+      track->recycled_batch = std::move(track->pending_batch);
+    }
+    track->pending_batch = std::move(batch);
   }
 }
 
-void RtspServer::send_frame(const espp::JpegFrame &frame) {
+void RtspServer::send_frame(const espp::JpegFrame &frame) { send_frame(frame.get_data()); }
+
+void RtspServer::send_frame(std::span<const uint8_t> frame_data) {
+  if (!has_active_sessions()) {
+    return;
+  }
+
   // Lazily create default MJPEG track for backward compatibility
   if (!default_mjpeg_track_created_) {
     MjpegPacketizer::Config mjpeg_config;
@@ -182,8 +289,7 @@ void RtspServer::send_frame(const espp::JpegFrame &frame) {
 
   // Use the legacy RtpJpegPacket-based packetization to preserve the
   // exact wire format for existing MJPEG users
-  auto frame_header = frame.get_header();
-  auto frame_data = frame.get_data();
+  JpegHeader frame_header(frame_data);
 
   auto width = frame_header.get_width();
   auto height = frame_header.get_height();
@@ -200,66 +306,63 @@ void RtspServer::send_frame(const espp::JpegFrame &frame) {
   size_t num_packets =
       std::max<size_t>(1, (frame_data.size() + max_data_size_ - 1) / max_data_size_);
   logger_.debug("Frame data is {} bytes, breaking into {} packets", frame_data.size(), num_packets);
-
-  // create num_packets RtpJpegPackets
-  // The first packet will have the quantization tables, and the last packet
-  // will have the end of image marker and the marker bit set
-  std::vector<std::unique_ptr<RtpPacket>> packets;
-  packets.reserve(num_packets);
-  for (size_t i = 0; i < num_packets; i++) {
-    // get the start and end indices for the current packet
-    size_t start_index = i * max_data_size_;
-    size_t end_index = std::min<size_t>(start_index + max_data_size_, frame_data.size());
-
-    static const int type_specific = 0;
-    static const int fragment_type = 0;
-    int offset = start_index;
-
-    std::unique_ptr<RtpJpegPacket> packet;
-    // if this is the first packet, it has the quantization tables
-    if (i == 0) {
-      // use the original q value and include the quantization tables
-      packet = std::make_unique<espp::RtpJpegPacket>(
-          type_specific, fragment_type, 128, width, height, q0, q1,
-          frame_data.subspan(start_index, end_index - start_index));
-    } else {
-      // use a different q value (less than 128) and don't include the
-      // quantization tables
-      packet = std::make_unique<espp::RtpJpegPacket>(
-          type_specific, offset, fragment_type, 96, width, height,
-          frame_data.subspan(start_index, end_index - start_index));
-    }
-
-    // set the payload type to 26 (JPEG)
-    packet->set_payload_type(26);
-    // set the sequence number
-    packet->set_sequence_number(track->sequence_number++);
-    // set the timestamp
-    static auto start_time = std::chrono::steady_clock::now();
-    auto now = std::chrono::steady_clock::now();
-    auto timestamp =
-        std::chrono::duration_cast<std::chrono::milliseconds>(now - start_time).count();
-    packet->set_timestamp(timestamp * 90);
-
-    // set the ssrc
-    packet->set_ssrc(track->ssrc);
-
-    // if it's the last packet, set the marker bit
-    if (i == num_packets - 1) {
-      packet->set_marker(true);
-    }
-
-    // make sure the packet header has been serialized
-    packet->serialize();
-
-    // add the packet to the list of packets
-    packets.emplace_back(std::move(packet));
-  }
-
-  // store the packets in the track's pending list
+  auto timestamp = get_elapsed_timestamp(90000);
+  std::shared_ptr<TrackState::PacketBatch> batch;
   {
     std::lock_guard<std::mutex> lock(track->packets_mutex);
-    track->pending_packets = std::move(packets);
+    if (track->recycled_batch) {
+      batch = std::move(track->recycled_batch);
+    } else {
+      batch = std::make_shared<TrackState::PacketBatch>();
+    }
+  }
+  if (batch->packets.size() < num_packets) {
+    batch->packets.resize(num_packets);
+  }
+  batch->count = num_packets;
+
+  for (size_t i = 0; i < num_packets; i++) {
+    size_t start_index = i * max_data_size_;
+    size_t end_index = std::min<size_t>(start_index + max_data_size_, frame_data.size());
+    size_t scan_size = end_index - start_index;
+    bool include_q_tables = i == 0;
+    size_t payload_size =
+        (include_q_tables ? first_packet_overhead : other_packet_overhead) + scan_size;
+    auto &packet = batch->packets[i];
+    packet.resize(rtp_header_size + payload_size);
+    serialize_rtp_header(packet, 26, track->sequence_number++, timestamp, track->ssrc,
+                         i == num_packets - 1);
+
+    size_t pos = rtp_header_size;
+    packet[pos++] = 0; // type_specific
+    packet[pos++] = static_cast<uint8_t>((start_index >> 16) & 0xff);
+    packet[pos++] = static_cast<uint8_t>((start_index >> 8) & 0xff);
+    packet[pos++] = static_cast<uint8_t>(start_index & 0xff);
+    packet[pos++] = 0; // fragment type
+    packet[pos++] = static_cast<uint8_t>(include_q_tables ? 128 : 96);
+    packet[pos++] = static_cast<uint8_t>(width / 8);
+    packet[pos++] = static_cast<uint8_t>(height / 8);
+
+    if (include_q_tables) {
+      packet[pos++] = 0;
+      packet[pos++] = 0;
+      packet[pos++] = 0;
+      packet[pos++] = static_cast<uint8_t>(num_q_tables * q_table_size);
+      std::memcpy(packet.data() + pos, q0.data(), q_table_size);
+      pos += q_table_size;
+      std::memcpy(packet.data() + pos, q1.data(), q_table_size);
+      pos += q_table_size;
+    }
+
+    std::memcpy(packet.data() + pos, frame_data.data() + start_index, scan_size);
+  }
+
+  {
+    std::lock_guard<std::mutex> lock(track->packets_mutex);
+    if (!track->recycled_batch && track->pending_batch) {
+      track->recycled_batch = std::move(track->pending_batch);
+    }
+    track->pending_batch = std::move(batch);
   }
 }
 
@@ -285,6 +388,19 @@ std::string RtspServer::generate_sdp(const std::string &session_path, uint32_t s
   }
 
   return sdp;
+}
+
+void RtspServer::reap_closed_sessions() {
+  std::lock_guard<std::mutex> lk(session_mutex_);
+  for (auto it = sessions_.begin(); it != sessions_.end();) {
+    auto &session = it->second;
+    if (session->is_closed()) {
+      logger_.info("Removing session {}", session->get_session_id());
+      it = sessions_.erase(it);
+    } else {
+      ++it;
+    }
+  }
 }
 
 bool RtspServer::accept_task_function(std::mutex &m, std::condition_variable &cv,
@@ -322,6 +438,7 @@ bool RtspServer::accept_task_function(std::mutex &m, std::condition_variable &cv
   }
 
   logger_.info("Accepted new connection");
+  reap_closed_sessions();
 
   // create a new session
   auto session = std::make_unique<RtspSession>(
@@ -334,6 +451,10 @@ bool RtspServer::accept_task_function(std::mutex &m, std::condition_variable &cv
                                 return generate_sdp(session_path, session_id, server_address);
                               },
                           .log_level = session_log_level_});
+  if (session->is_closed()) {
+    logger_.error("Failed to initialize RTSP session {}", session->get_session_id());
+    return false;
+  }
 
   // add the session to the list of sessions
   auto session_id = session->get_session_id();
@@ -351,11 +472,23 @@ bool RtspServer::accept_task_function(std::mutex &m, std::condition_variable &cv
         .task_config =
             {
                 .name = "RtspSessionTask",
-                .stack_size_bytes = 6 * 1024,
+                .stack_size_bytes = rtsp_session_task_stack_size,
             },
         .log_level = espp::Logger::Verbosity::WARN,
     });
-    session_task_->start();
+    if (!session_task_->start()) {
+      logger_.error("Failed to start RTSP session task");
+      session_task_.reset();
+      {
+        std::lock_guard<std::mutex> lk(session_mutex_);
+        auto it = sessions_.find(session_id);
+        if (it != sessions_.end()) {
+          it->second->teardown();
+          sessions_.erase(it);
+        }
+      }
+      return false;
+    }
   }
   // we do not want to stop the task
   return task_notified;
@@ -374,18 +507,21 @@ bool RtspServer::session_task_function(std::mutex &m, std::condition_variable &c
     }
   }
 
+  reap_closed_sessions();
+
   // Collect pending packets from all tracks
   struct TrackPackets {
+    std::shared_ptr<TrackState> track;
     int track_id;
-    std::vector<std::unique_ptr<RtpPacket>> packets;
+    std::shared_ptr<TrackState::PacketBatch> batch;
   };
   std::vector<TrackPackets> all_track_packets;
 
   for (auto &track : tracks_) {
     std::lock_guard<std::mutex> lock(track->packets_mutex);
-    if (track->pending_packets.empty())
+    if (!track->pending_batch || track->pending_batch->count == 0)
       continue;
-    all_track_packets.push_back({track->track_id, std::move(track->pending_packets)});
+    all_track_packets.push_back({track, track->track_id, std::move(track->pending_batch)});
   }
 
   if (all_track_packets.empty()) {
@@ -393,31 +529,84 @@ bool RtspServer::session_task_function(std::mutex &m, std::condition_variable &c
     return false;
   }
 
+#if defined(ESP_PLATFORM)
+  auto now = std::chrono::steady_clock::now();
+  if (now < backpressure_until_) {
+    logger_.warn("Skipping {} pending track packet batches while recovering from RTP backpressure",
+                 all_track_packets.size());
+    return false;
+  }
+#endif
+
   logger_.debug("Sending frame data to clients");
 
   // for each session in sessions_
   // if the session is active
   // send the latest frame to the client
-  std::lock_guard<std::mutex> lk(session_mutex_);
-  for (auto &[sid, session_ptr] : sessions_) {
-    if (!session_ptr->is_active() || session_ptr->is_closed())
-      continue;
-    for (auto &tp : all_track_packets) {
-      for (auto &packet : tp.packets) {
-        session_ptr->send_rtp_packet(tp.track_id, *packet);
+  bool saw_backpressure = false;
+  bool sent_packets = false;
+  {
+    std::lock_guard<std::mutex> lk(session_mutex_);
+    for (auto &[sid, session_ptr] : sessions_) {
+      if (!session_ptr->is_active() || session_ptr->is_closed())
+        continue;
+      bool send_failed = false;
+#if defined(ESP_PLATFORM)
+      size_t burst_packets_sent = 0;
+#endif
+      for (auto &tp : all_track_packets) {
+        for (size_t i = 0; i < tp.batch->count; ++i) {
+          auto &packet = tp.batch->packets[i];
+          if (!session_ptr->send_rtp_packet(
+                  tp.track_id, std::span<const uint8_t>(packet.data(), packet.size()))) {
+            logger_.warn("Dropping remaining RTP packets for session {} after send backpressure",
+                         session_ptr->get_session_id());
+            send_failed = true;
+            saw_backpressure = true;
+            break;
+          }
+          sent_packets = true;
+#if defined(ESP_PLATFORM)
+          if (++burst_packets_sent >= rtp_send_burst_size) {
+            burst_packets_sent = 0;
+            std::this_thread::sleep_for(rtp_send_burst_delay);
+          }
+#endif
+        }
+        if (send_failed)
+          break;
       }
     }
+#if defined(ESP_PLATFORM)
+    if (saw_backpressure) {
+      consecutive_backpressure_failures_++;
+      auto cooldown = initial_backpressure_cooldown;
+      for (size_t i = 1; i < consecutive_backpressure_failures_; i++) {
+        cooldown = std::min(cooldown * 2, max_backpressure_cooldown);
+        if (cooldown == max_backpressure_cooldown) {
+          break;
+        }
+      }
+      backpressure_until_ = std::chrono::steady_clock::now() + cooldown;
+      logger_.warn("Applying RTP backpressure cooldown of {} ms", cooldown.count());
+    } else if (sent_packets) {
+      if (consecutive_backpressure_failures_ > 0) {
+        consecutive_backpressure_failures_--;
+      }
+      if (consecutive_backpressure_failures_ == 0) {
+        backpressure_until_ = {};
+      }
+    }
+#endif
   }
-  // loop over the sessions and erase ones which are closed
-  for (auto it = sessions_.begin(); it != sessions_.end();) {
-    auto &session = it->second;
-    if (session->is_closed()) {
-      logger_.info("Removing session {}", session->get_session_id());
-      it = sessions_.erase(it);
-    } else {
-      ++it;
+  for (auto &tp : all_track_packets) {
+    std::lock_guard<std::mutex> lock(tp.track->packets_mutex);
+    if (!tp.track->recycled_batch) {
+      tp.batch->count = 0;
+      tp.track->recycled_batch = std::move(tp.batch);
     }
   }
+  reap_closed_sessions();
 
   // we do not want to stop the task
   return false;

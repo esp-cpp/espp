@@ -4,6 +4,7 @@
 
 #include <functional>
 #include <memory>
+#include <span>
 #include <string>
 #include <system_error>
 #include <unordered_map>
@@ -108,10 +109,21 @@ public:
   /// @return True if the packet was sent successfully, false otherwise
   bool send_rtp_packet(int track_id, const espp::RtpPacket &packet);
 
+  /// Send a serialized RTP packet on a specific track.
+  /// @param track_id The track to send on
+  /// @param packet_data Serialized RTP packet bytes
+  /// @return True if the packet was sent successfully, false otherwise
+  bool send_rtp_packet(int track_id, std::span<const uint8_t> packet_data);
+
   /// Send an RTP packet to the client (backward compat — sends on default track 0)
   /// @param packet The RTP packet to send
   /// @return True if the packet was sent successfully, false otherwise
   bool send_rtp_packet(const espp::RtpPacket &packet);
+
+  /// Send a serialized RTP packet to the client (default track 0).
+  /// @param packet_data Serialized RTP packet bytes
+  /// @return True if the packet was sent successfully, false otherwise
+  bool send_rtp_packet(std::span<const uint8_t> packet_data);
 
   /// Send an RTCP packet on a specific track
   /// @param track_id The track to send on

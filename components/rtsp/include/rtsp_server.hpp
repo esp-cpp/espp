@@ -2,6 +2,7 @@
 
 #include "socket_msvc.hpp"
 
+#include <chrono>
 #include <memory>
 #include <span>
 #include <string>
@@ -89,6 +90,18 @@ public:
   /// @param config Track configuration including the packetizer.
   void add_track(const TrackConfig &config);
 
+  /// @brief Returns true when at least one session is actively playing.
+  /// @return True if an active RTSP session is ready to receive RTP packets.
+  bool has_active_sessions();
+
+  /// @brief Returns how long capture should wait before queueing another frame.
+  /// @return Remaining RTP backpressure cooldown, or zero if sending may resume.
+  std::chrono::milliseconds get_capture_cooldown();
+
+  /// @brief Returns the minimum recommended period between captured frames.
+  /// @return Recommended capture period based on recent RTP backpressure history.
+  std::chrono::milliseconds get_recommended_capture_period();
+
   /// @brief Send a frame on a specific track.
   /// The track's packetizer splits the frame into RTP payload chunks,
   /// which are then wrapped with RTP headers and queued for delivery.
@@ -105,19 +118,33 @@ public:
   /// @param frame The frame to send.
   void send_frame(const espp::JpegFrame &frame);
 
+  /// @brief Send raw JPEG bytes over the default MJPEG track.
+  /// Uses the legacy MJPEG RTP packetization path without copying the frame
+  /// into an intermediate JpegFrame object.
+  /// @note Overwrites any existing frame that has not been sent.
+  /// @param frame_data Complete JPEG bytes, including header and EOI marker.
+  void send_frame(std::span<const uint8_t> frame_data);
+
 protected:
   /// Per-track state holding packetizer, RTP sequencing, and pending packets
   struct TrackState {
+    struct PacketBatch {
+      std::vector<std::vector<uint8_t>> packets;
+      size_t count{0};
+    };
+
     int track_id{0};
     std::shared_ptr<RtpPacketizer> packetizer;
     uint32_t ssrc{0};
     uint16_t sequence_number{0};
     std::mutex packets_mutex;
-    std::vector<std::unique_ptr<RtpPacket>> pending_packets;
+    std::shared_ptr<PacketBatch> pending_batch;
+    std::shared_ptr<PacketBatch> recycled_batch;
   };
 
   bool accept_task_function(std::mutex &m, std::condition_variable &cv, bool &task_notified);
   bool session_task_function(std::mutex &m, std::condition_variable &cv, bool &task_notified);
+  void reap_closed_sessions();
 
   /// Generate combined SDP from all registered tracks.
   /// @param session_path Full RTSP URL path
@@ -151,6 +178,8 @@ protected:
 
   std::vector<std::shared_ptr<TrackState>> tracks_;
   bool default_mjpeg_track_created_{false};
+  std::chrono::steady_clock::time_point backpressure_until_{};
+  size_t consecutive_backpressure_failures_{0};
 
   espp::Logger::Verbosity session_log_level_{espp::Logger::Verbosity::WARN};
   std::mutex session_mutex_;

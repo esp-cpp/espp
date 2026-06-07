@@ -21,6 +21,15 @@ bool is_transient_send_error(int err) {
 
 constexpr int transient_send_retry_count = 5;
 constexpr auto transient_send_retry_delay = std::chrono::milliseconds(2);
+
+int transient_send_retry_limit(int err) {
+#if defined(ESP_PLATFORM)
+  if (err == ENOBUFS || err == ENOMEM) {
+    return 0;
+  }
+#endif
+  return transient_send_retry_count;
+}
 } // namespace
 
 UdpSocket::UdpSocket(const UdpSocket::Config &config)
@@ -80,14 +89,27 @@ bool UdpSocket::send(std::span<const uint8_t> data, const UdpSocket::SendConfig 
       break;
     }
     int err = last_socket_error();
-    if (!is_transient_send_error(err) || attempt == transient_send_retry_count) {
+    int retry_limit = transient_send_retry_limit(err);
+    if (!is_transient_send_error(err)) {
+      logger_.error("Error occurred during sending {} bytes to {}:{}: {}", data.size(),
+                    send_config.ip_address, send_config.port, error_string(err));
+      return false;
+    }
+    if (attempt >= retry_limit) {
+#if defined(ESP_PLATFORM)
+      if (err == ENOBUFS || err == ENOMEM) {
+        logger_.warn("Dropping UDP send of {} bytes to {}:{} due to TX backpressure: {}",
+                     data.size(), send_config.ip_address, send_config.port, error_string(err));
+        return false;
+      }
+#endif
       logger_.error("Error occurred during sending {} bytes to {}:{}: {}", data.size(),
                     send_config.ip_address, send_config.port, error_string(err));
       return false;
     }
     logger_.warn("Transient send failure sending {} bytes to {}:{} (attempt {}/{}): {}",
                  data.size(), send_config.ip_address, send_config.port, attempt + 1,
-                 transient_send_retry_count + 1, error_string(err));
+                 retry_limit + 1, error_string(err));
     std::this_thread::sleep_for(transient_send_retry_delay);
   }
   if (num_bytes_sent < 0) {

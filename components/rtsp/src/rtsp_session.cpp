@@ -14,6 +14,12 @@ std::string make_rtsp_url(std::string_view server_address, std::string_view path
   return "rtsp://" + std::string(server_address) + "/" + std::string(path);
 }
 
+#if defined(ESP_PLATFORM)
+constexpr size_t rtsp_control_task_stack_size = 4 * 1024;
+#else
+constexpr size_t rtsp_control_task_stack_size = 6 * 1024;
+#endif
+
 } // namespace
 
 RtspSession::RtspSession(std::shared_ptr<TcpSocket> control_socket, const Config &config)
@@ -35,11 +41,15 @@ RtspSession::RtspSession(std::shared_ptr<TcpSocket> control_socket, const Config
       .task_config =
           {
               .name = "RtspSession " + std::to_string(session_id_),
-              .stack_size_bytes = 6 * 1024,
+              .stack_size_bytes = rtsp_control_task_stack_size,
           },
       .log_level = Logger::Verbosity::WARN,
   });
-  control_task_->start();
+  if (!control_task_->start()) {
+    logger_.error("Failed to start RTSP control task");
+    teardown();
+    control_socket_->close();
+  }
 }
 
 RtspSession::~RtspSession() {
@@ -74,6 +84,10 @@ void RtspSession::teardown() {
 }
 
 bool RtspSession::send_rtp_packet(int track_id, const RtpPacket &packet) {
+  return send_rtp_packet(track_id, packet.get_data());
+}
+
+bool RtspSession::send_rtp_packet(int track_id, std::span<const uint8_t> packet_data) {
   auto it = tracks_.find(track_id);
   if (it == tracks_.end() || !it->second) {
     logger_.error("No track with id {} found", track_id);
@@ -81,13 +95,17 @@ bool RtspSession::send_rtp_packet(int track_id, const RtpPacket &packet) {
   }
   auto &track = *it->second;
   logger_.debug("Sending RTP packet on track {}", track_id);
-  return track.rtp_socket.send(packet.get_data(), {
-                                                      .ip_address = client_address_,
-                                                      .port = (size_t)track.client_rtp_port,
-                                                  });
+  return track.rtp_socket.send(packet_data, {
+                                                .ip_address = client_address_,
+                                                .port = (size_t)track.client_rtp_port,
+                                            });
 }
 
 bool RtspSession::send_rtp_packet(const RtpPacket &packet) { return send_rtp_packet(0, packet); }
+
+bool RtspSession::send_rtp_packet(std::span<const uint8_t> packet_data) {
+  return send_rtp_packet(0, packet_data);
+}
 
 bool RtspSession::send_rtcp_packet(int track_id, const RtcpPacket &packet) {
   auto it = tracks_.find(track_id);

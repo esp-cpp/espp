@@ -2,6 +2,8 @@
 
 #include "socket_msvc.hpp"
 
+#include <atomic>
+#include <chrono>
 #include <memory>
 #include <string>
 #include <system_error>
@@ -38,6 +40,9 @@ public:
   /// Generic frame callback — called for any track/codec with raw frame data
   using frame_callback_t = std::function<void(int track_id, std::vector<uint8_t> &&data)>;
 
+  /// Callback invoked when the RTSP server disappears after playback starts.
+  using disconnect_callback_t = std::function<void(void)>;
+
   /// Configuration for the RTSP client
   struct Config {
     std::string server_address;   ///< The server IP Address to connect to
@@ -53,6 +58,11 @@ public:
     /// If set and no depacketizer is registered for PT 26, an MjpegDepacketizer
     /// is automatically created.
     jpeg_frame_callback_t on_jpeg_frame{nullptr};
+
+    /// Called once if the client loses the server after playback starts.
+    /// This callback is intended for applications that want to stop playback
+    /// and re-enter service discovery or reconnect logic automatically.
+    disconnect_callback_t on_connection_lost{nullptr};
 
     espp::Logger::Verbosity log_level =
         espp::Logger::Verbosity::INFO; ///< The verbosity of the logger
@@ -147,6 +157,12 @@ public:
   void teardown(std::error_code &ec);
 
 protected:
+  void reset_transport_state();
+  void start_monitor_task();
+  void stop_monitor_task();
+  bool monitor_task_fn(std::mutex &m, std::condition_variable &cv, bool &task_notified);
+  void notify_connection_lost(std::string_view reason);
+
   /// Parse the RTSP response
   /// \note Parses response data for the following fields:
   ///  - Status code
@@ -210,7 +226,17 @@ protected:
 
   jpeg_frame_callback_t on_jpeg_frame_{nullptr};
   frame_callback_t on_frame_{nullptr};
+  disconnect_callback_t on_connection_lost_{nullptr};
   std::unordered_map<int, std::shared_ptr<RtpDepacketizer>> depacketizers_;
+
+  std::unique_ptr<Task> monitor_task_;
+  std::chrono::steady_clock::duration rtp_receive_timeout_{std::chrono::seconds(15)};
+  std::chrono::steady_clock::duration initial_rtp_receive_timeout_{std::chrono::seconds(15)};
+  std::atomic<std::chrono::steady_clock::duration::rep> play_started_tick_{0};
+  std::atomic<std::chrono::steady_clock::duration::rep> last_rtp_packet_tick_{0};
+  std::atomic<bool> playing_{false};
+  std::atomic<bool> disconnecting_{false};
+  std::atomic<bool> connection_lost_reported_{false};
 
   int cseq_ = 0;
   int video_port_ = 0;
