@@ -34,6 +34,16 @@ namespace espp {
 /// \snippet rtsp_example.cpp rtsp_client_example
 class RtspClient : public BaseComponent {
 public:
+  struct TrackInfo {
+    int track_id{0};
+    int payload_type{0};
+    int clock_rate{0};
+    int channels{1};
+    std::string media_type;
+    std::string encoding_name;
+    std::string control_path;
+  };
+
   /// Function type for the callback to call when a JPEG frame is received
   typedef std::function<void(std::shared_ptr<espp::JpegFrame> jpeg_frame)> jpeg_frame_callback_t;
 
@@ -156,6 +166,10 @@ public:
   /// \param ec The error code to set if an error occurs
   void teardown(std::error_code &ec);
 
+  /// Get the parsed SDP track descriptions from the most recent DESCRIBE call.
+  /// \return The ordered set of discovered media tracks.
+  const std::vector<TrackInfo> &tracks() const { return tracks_; }
+
 protected:
   void reset_transport_state();
   void start_monitor_task();
@@ -208,14 +222,6 @@ protected:
   /// \return Optional data to send back to the sender
   std::optional<std::vector<uint8_t>> handle_rtcp_packet(std::vector<uint8_t> &data,
                                                          const espp::Socket::Info &sender_info);
-
-  struct TrackInfo {
-    int track_id{0};
-    int payload_type{0};
-    std::string media_type;
-    std::string encoding_name;
-    std::string control_path;
-  };
 
   std::string server_address_;
   int rtsp_port_;

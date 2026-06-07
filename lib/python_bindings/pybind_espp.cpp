@@ -3126,6 +3126,25 @@ void py_init_module_espp(py::module &m) {
       "rtsp_client_ex1 RtspClient Example\n/ \\snippet rtsp_example.cpp rtsp_client_example");
 
   { // inner classes & enums of RtspClient
+    auto pyClassRtspClient_ClassTrackInfo =
+        py::class_<espp::RtspClient::TrackInfo>(pyClassRtspClient, "TrackInfo", py::dynamic_attr(),
+                                                "/ Parsed SDP metadata for a discovered RTSP track")
+            .def(py::init<>())
+            .def_readwrite("track_id", &espp::RtspClient::TrackInfo::track_id,
+                           "/< Track identifier (matches trackID=N in SDP)")
+            .def_readwrite("payload_type", &espp::RtspClient::TrackInfo::payload_type,
+                           "/< RTP payload type")
+            .def_readwrite("clock_rate", &espp::RtspClient::TrackInfo::clock_rate,
+                           "/< RTP clock rate in Hz")
+            .def_readwrite("channels", &espp::RtspClient::TrackInfo::channels,
+                           "/< Number of audio channels")
+            .def_readwrite("media_type", &espp::RtspClient::TrackInfo::media_type,
+                           "/< SDP media type (audio/video)")
+            .def_readwrite("encoding_name", &espp::RtspClient::TrackInfo::encoding_name,
+                           "/< Codec / encoding name from a=rtpmap")
+            .def_readwrite("control_path", &espp::RtspClient::TrackInfo::control_path,
+                           "/< Resolved control path used for SETUP");
+
     auto pyClassRtspClient_ClassConfig =
         py::class_<espp::RtspClient::Config>(pyClassRtspClient, "Config", py::dynamic_attr(),
                                              "/ Configuration for the RTSP client")
@@ -3192,6 +3211,10 @@ void py_init_module_espp(py::module &m) {
       .def("describe", &espp::RtspClient::describe, py::arg("ec"),
            "/ Describe the RTSP stream\n/ Sends the DESCRIBE request to the RTSP server and parses "
            "the response.\n/ \\param ec The error code to set if an error occurs")
+      .def(
+          "tracks", [](const espp::RtspClient &self) { return self.tracks(); },
+          "/ Get the parsed SDP track descriptions from the most recent DESCRIBE call.\n/ "
+          "\\return The ordered set of discovered media tracks")
       .def("setup", py::overload_cast<std::error_code &>(&espp::RtspClient::setup), py::arg("ec"),
            "/ Setup the RTSP stream\n/ \note Starts the RTP and RTCP threads.\n/ Sends the SETUP "
            "request to the RTSP server and parses the response.\n/ \note The default ports are "

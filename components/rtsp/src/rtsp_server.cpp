@@ -45,11 +45,6 @@ constexpr auto initial_backpressure_cooldown = std::chrono::milliseconds(100);
 constexpr auto max_backpressure_cooldown = std::chrono::milliseconds(1000);
 constexpr auto base_capture_period = std::chrono::milliseconds(100);
 constexpr auto max_capture_period = std::chrono::milliseconds(2000);
-constexpr size_t rtsp_accept_task_stack_size = 4 * 1024;
-constexpr size_t rtsp_session_task_stack_size = 4 * 1024;
-#else
-constexpr size_t rtsp_accept_task_stack_size = 6 * 1024;
-constexpr size_t rtsp_session_task_stack_size = 6 * 1024;
 #endif
 
 constexpr size_t rtp_header_size = 12;
@@ -92,7 +87,17 @@ RtspServer::RtspServer(const Config &config)
     , port_(config.port)
     , path_(normalize_rtsp_path(config.path))
     , rtsp_socket_({.log_level = espp::Logger::Verbosity::WARN})
-    , max_data_size_(config.max_data_size) {}
+    , max_data_size_(config.max_data_size)
+    , accept_task_stack_size_bytes_(config.accept_task_stack_size_bytes == 0
+                                        ? Config::default_accept_task_stack_size_bytes
+                                        : config.accept_task_stack_size_bytes)
+    , session_task_stack_size_bytes_(config.session_task_stack_size_bytes == 0
+                                         ? Config::default_session_task_stack_size_bytes
+                                         : config.session_task_stack_size_bytes)
+    , control_task_stack_size_bytes_(
+          config.control_task_stack_size_bytes == 0
+              ? RtspSession::Config::default_control_task_stack_size_bytes
+              : config.control_task_stack_size_bytes) {}
 
 RtspServer::~RtspServer() { stop(); }
 
@@ -127,7 +132,7 @@ bool RtspServer::start(const std::chrono::duration<float> &accept_timeout) {
       .task_config =
           {
               .name = "RTSP Accept Task",
-              .stack_size_bytes = rtsp_accept_task_stack_size,
+              .stack_size_bytes = accept_task_stack_size_bytes_,
           },
       .log_level = espp::Logger::Verbosity::WARN,
   });
@@ -445,6 +450,7 @@ bool RtspServer::accept_task_function(std::mutex &m, std::condition_variable &cv
       std::move(control_socket),
       RtspSession::Config{.server_address = fmt::format("{}:{}", server_address_, port_),
                           .rtsp_path = path_,
+                          .control_task_stack_size_bytes = control_task_stack_size_bytes_,
                           .sdp_generator =
                               [this](const std::string &session_path, uint32_t session_id,
                                      const std::string &server_address) {
@@ -472,7 +478,7 @@ bool RtspServer::accept_task_function(std::mutex &m, std::condition_variable &cv
         .task_config =
             {
                 .name = "RtspSessionTask",
-                .stack_size_bytes = rtsp_session_task_stack_size,
+                .stack_size_bytes = session_task_stack_size_bytes_,
             },
         .log_level = espp::Logger::Verbosity::WARN,
     });

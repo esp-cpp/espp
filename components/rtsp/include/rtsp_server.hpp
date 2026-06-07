@@ -43,6 +43,14 @@ class RtspServer : public BaseComponent {
 public:
   /// @brief Configuration for the RTSP server
   struct Config {
+#if defined(ESP_PLATFORM)
+    static constexpr size_t default_accept_task_stack_size_bytes = 4 * 1024;
+    static constexpr size_t default_session_task_stack_size_bytes = 4 * 1024;
+#else
+    static constexpr size_t default_accept_task_stack_size_bytes = 6 * 1024;
+    static constexpr size_t default_session_task_stack_size_bytes = 6 * 1024;
+#endif
+
     std::string server_address; ///< The ip address of the server
     int port;                   ///< The port to listen on
     std::string path;           ///< The path to the RTSP stream
@@ -53,6 +61,14 @@ public:
               ///< properly.
     espp::Logger::Verbosity log_level =
         espp::Logger::Verbosity::WARN; ///< The log level for the RTSP server
+    size_t accept_task_stack_size_bytes =
+        default_accept_task_stack_size_bytes; ///< RTSP accept-task stack size, in bytes
+    size_t session_task_stack_size_bytes =
+        default_session_task_stack_size_bytes; ///< RTSP session-dispatch task stack size, in bytes
+    size_t control_task_stack_size_bytes =
+        RtspSession::Config::default_control_task_stack_size_bytes; ///< Per-session RTSP
+                                                                    ///< control-task stack size, in
+                                                                    ///< bytes
   };
 
   /// Configuration for a media track to be registered with the server
@@ -180,6 +196,9 @@ protected:
   bool default_mjpeg_track_created_{false};
   std::chrono::steady_clock::time_point backpressure_until_{};
   size_t consecutive_backpressure_failures_{0};
+  size_t accept_task_stack_size_bytes_;
+  size_t session_task_stack_size_bytes_;
+  size_t control_task_stack_size_bytes_;
 
   espp::Logger::Verbosity session_log_level_{espp::Logger::Verbosity::WARN};
   std::mutex session_mutex_;

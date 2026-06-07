@@ -46,10 +46,18 @@ public:
 
   /// Configuration for the RTSP session
   struct Config {
+#if defined(ESP_PLATFORM)
+    static constexpr size_t default_control_task_stack_size_bytes = 4 * 1024;
+#else
+    static constexpr size_t default_control_task_stack_size_bytes = 6 * 1024;
+#endif
+
     std::string server_address; ///< The address of the server
     std::string rtsp_path;      ///< The RTSP path of the session
     std::chrono::duration<float> receive_timeout =
         std::chrono::seconds(5); ///< The timeout for receiving data. Should be > 0.
+    size_t control_task_stack_size_bytes =
+        default_control_task_stack_size_bytes; ///< RTSP control-task stack size, in bytes
     /// SDP generator callback. If set, called during DESCRIBE to produce the SDP body.
     /// If not set, a default MJPEG SDP is generated for backward compatibility.
     /// @param session_path Full RTSP path (e.g., "rtsp://ip:port/path")

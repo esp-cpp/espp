@@ -428,6 +428,21 @@ void RtspClient::describe(std::error_code &ec) {
         continue;
       }
       current_track->encoding_name = trimmed.substr(payload_space + 1, slash - payload_space - 1);
+      auto clock_rate_start = slash + 1;
+      auto channels_slash = trimmed.find('/', clock_rate_start);
+      auto clock_rate_length = channels_slash == std::string::npos
+                                   ? std::string::npos
+                                   : channels_slash - clock_rate_start;
+      auto clock_rate_text = trimmed.substr(clock_rate_start, clock_rate_length);
+      if (!clock_rate_text.empty()) {
+        current_track->clock_rate = std::stoi(clock_rate_text);
+      }
+      if (channels_slash != std::string::npos) {
+        auto channels_text = trimmed.substr(channels_slash + 1);
+        if (!channels_text.empty()) {
+          current_track->channels = std::stoi(channels_text);
+        }
+      }
     }
   }
 

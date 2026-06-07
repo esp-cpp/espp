@@ -14,12 +14,6 @@ std::string make_rtsp_url(std::string_view server_address, std::string_view path
   return "rtsp://" + std::string(server_address) + "/" + std::string(path);
 }
 
-#if defined(ESP_PLATFORM)
-constexpr size_t rtsp_control_task_stack_size = 4 * 1024;
-#else
-constexpr size_t rtsp_control_task_stack_size = 6 * 1024;
-#endif
-
 } // namespace
 
 RtspSession::RtspSession(std::shared_ptr<TcpSocket> control_socket, const Config &config)
@@ -41,7 +35,9 @@ RtspSession::RtspSession(std::shared_ptr<TcpSocket> control_socket, const Config
       .task_config =
           {
               .name = "RtspSession " + std::to_string(session_id_),
-              .stack_size_bytes = rtsp_control_task_stack_size,
+              .stack_size_bytes = config.control_task_stack_size_bytes == 0
+                                      ? RtspSession::Config::default_control_task_stack_size_bytes
+                                      : config.control_task_stack_size_bytes,
           },
       .log_level = Logger::Verbosity::WARN,
   });

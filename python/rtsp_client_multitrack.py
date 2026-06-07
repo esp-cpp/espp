@@ -62,6 +62,8 @@ display_video_frames = True
 expected_audio_bytes = 320
 min_audio_peak = 0
 audio_player = None
+audio_sample_rate = 8000
+audio_channels = 1
 
 
 class AudioPlayer:
@@ -158,7 +160,7 @@ def as_frame_bytes(data):
 
 
 def validate_audio_frame(frame_bytes):
-    global min_audio_peak
+    global min_audio_peak, expected_audio_bytes
     if len(frame_bytes) != expected_audio_bytes:
         return False, f"unexpected audio frame size: {len(frame_bytes)}"
     if len(frame_bytes) % 2 != 0:
@@ -220,6 +222,7 @@ def main(argv=None):
     global audio_frame_count, audio_valid_frame_count, audio_invalid_frame_count
     global video_frame_count, decoded_video_frame_count
     global display_video_frames, expected_audio_bytes, min_audio_peak, audio_player
+    global audio_sample_rate, audio_channels
 
     parser = argparse.ArgumentParser(description='Multi-track RTSP Client')
     parser.add_argument('--path', type=str, default='/stream',
@@ -240,8 +243,8 @@ def main(argv=None):
                         help='Minimum number of video frames expected before success')
     parser.add_argument('--min-audio-frames', type=int, default=1,
                         help='Minimum number of valid audio frames expected before success')
-    parser.add_argument('--expected-audio-bytes', type=int, default=320,
-                        help='Expected bytes per audio frame (default: 320 for 160 s16 samples)')
+    parser.add_argument('--expected-audio-bytes', type=int, default=None,
+                        help='Expected bytes per audio frame (default: derive from SDP or fall back to 320)')
     parser.add_argument('--min-audio-peak', type=int, default=0,
                         help='Minimum absolute sample peak required to treat audio as valid')
     parser.add_argument('--play-audio', dest='play_audio', action='store_true',
@@ -265,16 +268,8 @@ def main(argv=None):
     video_frame_count = 0
     decoded_video_frame_count = 0
     audio_player = None
-
-    if args.play_audio:
-        audio_player = AudioPlayer(
-            sample_rate=8000,
-            channels=1,
-            block_samples=max(1, expected_audio_bytes // 2),
-            device=args.audio_device,
-        )
-        if not audio_player.start():
-            audio_player = None
+    audio_sample_rate = 8000
+    audio_channels = 1
 
     # Discover RTSP server via mDNS
     print("Discovering RTSP service via mDNS...")
@@ -332,6 +327,30 @@ def main(argv=None):
     if ec:
         print(f"Error describing: {ec}")
         return 1
+
+    tracks = rtsp_client.tracks()
+    audio_track = next((track for track in tracks if track.media_type.lower() == 'audio'), None)
+    if audio_track is not None:
+        audio_sample_rate = audio_track.clock_rate or audio_sample_rate
+        audio_channels = audio_track.channels or audio_channels
+        if args.expected_audio_bytes is None:
+            expected_audio_bytes = max(2 * audio_channels,
+                                       (audio_sample_rate * audio_channels * 2) // 50)
+        print(f"Discovered audio track: PT={audio_track.payload_type}, "
+              f"{audio_track.encoding_name}/{audio_sample_rate}/{audio_channels}, "
+              f"expecting {expected_audio_bytes} bytes per frame")
+    elif expected_audio_bytes is None:
+        expected_audio_bytes = 320
+
+    if args.play_audio and audio_track is not None:
+        audio_player = AudioPlayer(
+            sample_rate=audio_sample_rate,
+            channels=audio_channels,
+            block_samples=max(1, expected_audio_bytes // max(1, 2 * audio_channels)),
+            device=args.audio_device,
+        )
+        if not audio_player.start():
+            audio_player = None
 
     print("Setting up...")
     rtsp_client.setup(ec)
