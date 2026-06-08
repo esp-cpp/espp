@@ -175,6 +175,12 @@ def validate_audio_frame(frame_bytes):
     return True, f"{samples.size} samples, peak {peak}"
 
 
+def error_message(ec):
+    if ec is None or not bool(ec):
+        return ""
+    return str(ec)
+
+
 def on_receive_jpeg_frame(frame):
     """Legacy JPEG frame callback."""
     global video_frame_count, decoded_video_frame_count
@@ -319,14 +325,14 @@ def main(argv=None):
     # Connect and setup
     print("Connecting...")
     rtsp_client.connect(ec)
-    connect_error = str(ec) if ec is not None else ""
+    connect_error = error_message(ec)
     if connect_error:
         print(f"Error connecting: {connect_error}")
         return 1
 
     print("Describing...")
     rtsp_client.describe(ec)
-    describe_error = str(ec) if ec is not None else ""
+    describe_error = error_message(ec)
     if describe_error:
         print(f"Error describing: {describe_error}")
         return 1
@@ -357,14 +363,14 @@ def main(argv=None):
 
     print("Setting up...")
     rtsp_client.setup(ec)
-    setup_error = str(ec) if ec is not None else ""
+    setup_error = error_message(ec)
     if setup_error:
         print(f"Error setting up: {setup_error}")
         return 1
 
     print("Playing...")
     rtsp_client.play(ec)
-    play_error = str(ec) if ec is not None else ""
+    play_error = error_message(ec)
     if play_error:
         print(f"Error playing: {play_error}")
         return 1
