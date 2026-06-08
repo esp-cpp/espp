@@ -16,6 +16,11 @@ The covered scenarios include:
 * TCP blocked-accept teardown
 * TCP connect failure to an unused port
 
+At startup the example creates a small open Wi-Fi AP so the network stack is
+initialized, but the actual test traffic stays local to the device using
+loopback (`127.0.0.1`) and a local multicast group (`239.1.1.1`). No second
+device or external server is required.
+
 ## How to use example
 
 ### Build and Flash
@@ -35,4 +40,4 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 ## Example Output
 
 The serial log shows each scenario as it starts, a per-scenario pass/fail line,
-and a final summary reporting how many scenarios completed successfully.
+and a final summary such as `Socket example summary: 9/9 scenarios passed`.

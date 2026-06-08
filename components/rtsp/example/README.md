@@ -1,9 +1,9 @@
 # RTSP Example
 
-This example shows the use of the `espp::RtspServer` and `espp::RtspClient`
-classes provided by the `rtsp` component for performing streaming of JPEG images
-(`espp::JpegFrame`) using the `MJPEG` format over the Real Time Streaming
-Protocol (RTSP) / Real Time Protocol (RTP) packets.
+This example demonstrates several `rtsp` component workflows, ranging from the
+legacy MJPEG API to the newer multi-track server API. The example can run as a
+server, client, or combined self-check depending on the selected menuconfig
+mode.
 
 For more complete example use, see the
 [camera-streamer](https://github.com/esp-cpp/camera-streamer) and
@@ -13,26 +13,37 @@ For more complete example use, see the
 
 ### Hardware Required
 
-This example is designed to be run on an M5Stack ESP32 Timer Cam module (server) or a
-ESP32-S3-Box (client).
+Any supported ESP32 board with Wi-Fi can run this example. The bundled test
+content uses an embedded JPEG image and synthetic audio data, so no camera,
+microphone, or display hardware is required.
 
 ### Configure the project
 
-```
+```sh
 idf.py menuconfig
 ```
 
-You need to configure the `WiFi` network in the `RTSP Example Configuration`
-menuconfig and you can optionally configure the `RTSP Server Port` (default
-8554).
+The `RTSP Example Configuration` menu includes:
+
+* `Example Mode`
+  * `Legacy MJPEG (server + client)` - runs the original MJPEG server and
+    client on the same device
+  * `MJPEG Server only` - serves the embedded JPEG on `/mjpeg/1`
+  * `MJPEG Client only` - connects to a remote MJPEG RTSP server
+  * `Multi-track server (MJPEG + audio)` - serves MJPEG video on track 0 and
+    generic `L16/16000` mono audio on track 1 at `/stream`
+* `Run API tests at startup` - exercises packetizers, depacketizers, and basic
+  client/server construction before networking starts
+* Wi-Fi credentials and retry count
+* `RTSP Server Port`
+* `Remote RTSP server address` when client-only mode is selected
 
 ### Build and Flash
 
-NOTE: this example is designed to be modified into client only or server-only operation depending on the hardware it is deployed to.
+Build the project and flash it to the board, then run monitor tool to view
+serial output:
 
-Build the project and flash it to the board, then run monitor tool to view serial output:
-
-```
+```sh
 idf.py -p PORT flash monitor
 ```
 
@@ -40,19 +51,19 @@ idf.py -p PORT flash monitor
 
 (To exit the serial monitor, type ``Ctrl-]``.)
 
-See the Getting Started Guide for full steps to configure and use ESP-IDF to build projects.
+See the Getting Started Guide for full steps to configure and use ESP-IDF to
+build projects.
 
 ## Example Output
 
-Example showing the server (camera), the client (handheld display), and the python client, with both clients connected simultaneously:
+The serial log reports the selected mode, the local IP address after Wi-Fi
+connects, and the RTSP URI for server modes. Typical output includes:
 
-https://user-images.githubusercontent.com/213467/236601258-c334e1ba-5e18-4452-b48d-e792ec2ed4fb.mp4
+* `All API tests passed!` when startup API tests are enabled
+* `RTSP URI: rtsp://<ip>:8554/mjpeg/1` in legacy and server-only modes
+* `RTSP URI: rtsp://<ip>:8554/stream` in multi-track mode
+* `Got JPEG frame: <width>x<height>` in client-only mode
+* `Streaming MJPEG video (track 0) + audio (track 1)...` in multi-track mode
 
-Screenshot showing the server running for a very long time (all day, see timestamp in log > 33,000 seconds):
-![all_day_test](https://user-images.githubusercontent.com/213467/236601320-0d9139d7-0333-4c63-b26f-da4078e141b7.png)
-
-Screenshot showing the received framerate on the camera-display:
-<img width="638" alt="CleanShot 2023-05-06 at 10 27 21@2x" src="https://user-images.githubusercontent.com/213467/236633241-a2aba704-e10f-4855-b07b-766a8f8d8658.png">
-
-Screenshot of main code for camera-streamer output:
-<img width="799" alt="CleanShot 2023-05-06 at 10 29 31@2x" src="https://user-images.githubusercontent.com/213467/236633321-abdd2551-0a53-4be2-b90e-a693dfa89c12.png">
+For host-side end-to-end testing, build the host library in `lib/` with
+`./build.sh` and use the scripts in the repository-root `python/` directory.
