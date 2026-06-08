@@ -1,0 +1,29 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "Seeed Studio XIAO ESP32S3 Sense Board Support Package (BSP) component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/xiao-esp32s3-sense"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/xiao_esp32s3_sense.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - ESP32S3
+  - XIAO
+  - Sense
+  - BSP
+  - Camera
+  - Microphone
+  - PDM
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/base_component: '>=1.0'
+  espp/led: '>=1.0'
+  espp/math: '>=1.0'
+  espp/task: '>=1.0'
+targets:
+  - esp32s3
