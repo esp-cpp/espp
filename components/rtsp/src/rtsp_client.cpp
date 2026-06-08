@@ -461,11 +461,11 @@ void RtspClient::describe(std::error_code &ec) {
 
   video_port_ = 0;
   video_payload_type_ = tracks_.front().payload_type;
-  for (const auto &track : tracks_) {
-    if (iequals(track.media_type, "video")) {
-      video_payload_type_ = track.payload_type;
-      break;
-    }
+  if (auto video_track_it =
+          std::find_if(tracks_.begin(), tracks_.end(),
+                       [](const auto &track) { return iequals(track.media_type, "video"); });
+      video_track_it != tracks_.end()) {
+    video_payload_type_ = video_track_it->payload_type;
   }
 
   for (const auto &track : tracks_) {

@@ -1,5 +1,7 @@
 #include "h264_depacketizer.hpp"
 
+#include <numeric>
+
 using namespace espp;
 
 /// Annex B start code: 0x00 0x00 0x00 0x01
@@ -102,10 +104,9 @@ void H264Depacketizer::deliver_frame() {
   }
 
   // Build Annex B frame: each NAL prefixed with 0x00 0x00 0x00 0x01.
-  size_t total_size = 0;
-  for (const auto &nal : nal_buffer_) {
-    total_size += kStartCodeSize + nal.size();
-  }
+  size_t total_size = std::accumulate(
+      nal_buffer_.begin(), nal_buffer_.end(), size_t{0},
+      [](size_t acc, const auto &nal) { return acc + kStartCodeSize + nal.size(); });
 
   std::vector<uint8_t> frame;
   frame.reserve(total_size);

@@ -122,8 +122,6 @@ uint32_t MjpegPacketizer::get_clock_rate() const { return 90000; }
 
 std::string MjpegPacketizer::get_sdp_media_line() const { return "m=video 0 RTP/AVP 26"; }
 
-std::string MjpegPacketizer::get_sdp_media_attributes() const {
-  return "a=rtpmap:26 JPEG/90000\r\n";
-}
+std::string MjpegPacketizer::get_sdp_media_attributes() const { return "a=rtpmap:26 JPEG/90000"; }
 
 } // namespace espp

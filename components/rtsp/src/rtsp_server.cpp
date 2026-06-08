@@ -218,13 +218,9 @@ void RtspServer::send_frame(int track_id, std::span<const uint8_t> frame_data) {
   }
 
   // Find the track
-  std::shared_ptr<TrackState> track;
-  for (auto &t : tracks_) {
-    if (t->track_id == track_id) {
-      track = t;
-      break;
-    }
-  }
+  auto track_it = std::find_if(tracks_.begin(), tracks_.end(),
+                               [track_id](const auto &t) { return t->track_id == track_id; });
+  std::shared_ptr<TrackState> track = track_it != tracks_.end() ? *track_it : nullptr;
   if (!track) {
     logger_.error("No track with id {} found", track_id);
     return;
@@ -282,13 +278,9 @@ void RtspServer::send_frame(std::span<const uint8_t> frame_data) {
   }
 
   // Find track 0
-  std::shared_ptr<TrackState> track;
-  for (auto &t : tracks_) {
-    if (t->track_id == 0) {
-      track = t;
-      break;
-    }
-  }
+  auto track_it =
+      std::find_if(tracks_.begin(), tracks_.end(), [](const auto &t) { return t->track_id == 0; });
+  std::shared_ptr<TrackState> track = track_it != tracks_.end() ? *track_it : nullptr;
   if (!track)
     return;
 

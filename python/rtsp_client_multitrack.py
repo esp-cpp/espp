@@ -121,6 +121,7 @@ class AudioPlayer:
             try:
                 self.frame_queue.get_nowait()
             except queue.Empty:
+                # Another consumer/drain path already emptied the queue.
                 pass
             self.dropped_frames += 1
             try:
@@ -318,14 +319,16 @@ def main(argv=None):
     # Connect and setup
     print("Connecting...")
     rtsp_client.connect(ec)
-    if ec:
-        print(f"Error connecting: {ec}")
+    connect_error = str(ec) if ec is not None else ""
+    if connect_error:
+        print(f"Error connecting: {connect_error}")
         return 1
 
     print("Describing...")
     rtsp_client.describe(ec)
-    if ec:
-        print(f"Error describing: {ec}")
+    describe_error = str(ec) if ec is not None else ""
+    if describe_error:
+        print(f"Error describing: {describe_error}")
         return 1
 
     tracks = rtsp_client.tracks()
@@ -354,14 +357,16 @@ def main(argv=None):
 
     print("Setting up...")
     rtsp_client.setup(ec)
-    if ec:
-        print(f"Error setting up: {ec}")
+    setup_error = str(ec) if ec is not None else ""
+    if setup_error:
+        print(f"Error setting up: {setup_error}")
         return 1
 
     print("Playing...")
     rtsp_client.play(ec)
-    if ec:
-        print(f"Error playing: {ec}")
+    play_error = str(ec) if ec is not None else ""
+    if play_error:
+        print(f"Error playing: {play_error}")
         return 1
 
     window_name = 'RTSP Multi-Track Client'
@@ -378,6 +383,7 @@ def main(argv=None):
                 if not args.headless:
                     cv2.imshow(window_name, frame)
             except queue.Empty:
+                # No decoded frame is ready yet from the non-blocking queue.
                 pass
             if args.duration > 0 and (time.time() - start_time) >= args.duration:
                 break
@@ -388,6 +394,7 @@ def main(argv=None):
             else:
                 time.sleep(0.01)
     except KeyboardInterrupt:
+        # Ctrl+C should fall through to the normal teardown path below.
         pass
 
     elapsed = time.time() - start_time

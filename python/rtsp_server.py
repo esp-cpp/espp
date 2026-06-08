@@ -14,10 +14,6 @@ from rtsp_server_multitrack import main as multitrack_main
 
 def build_argv(argv):
     forwarded = list(argv)
-    enable_audio = True
-    if "--no-audio" in forwarded:
-        forwarded.remove("--no-audio")
-        enable_audio = False
 
     if "--codec" not in forwarded:
         forwarded.extend(["--codec", "mjpeg"])
@@ -25,7 +21,7 @@ def build_argv(argv):
         forwarded.extend(["--path", "/mjpeg/1"])
     if "--service-name" not in forwarded:
         forwarded.extend(["--service-name", "python rtsp server"])
-    if enable_audio and "--audio" not in forwarded:
+    if "--audio" not in forwarded and "--no-audio" not in forwarded:
         forwarded.append("--audio")
     return forwarded
 

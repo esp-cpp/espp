@@ -104,11 +104,11 @@ ScenarioResult run_udp_unicast_teardown_scenario() {
     //! [UDP Server example]
     espp::UdpSocket server_socket({.log_level = espp::Logger::Verbosity::WARN});
     auto server_task_config = make_task_config("UdpServer");
-    auto server_config =
-        espp::UdpSocket::ReceiveConfig{.port = port,
-                                       .buffer_size = kMaxPacketSize,
-                                       .on_receive_callback = [&received_messages](
-                                           auto &data, auto &source) -> auto{received_messages++;
+    auto server_config = espp::UdpSocket::ReceiveConfig{
+        .port = port,
+        .buffer_size = kMaxPacketSize,
+        .on_receive_callback = [&received_messages](const auto &data,
+                                                    const auto &source) -> auto{received_messages++;
     fmt::print("UDP server received {} bytes from {}\n", data.size(), source);
     return std::nullopt;
   }
@@ -161,7 +161,7 @@ ScenarioResult run_udp_response_scenario() {
     auto server_task_config = make_task_config("UdpResponseServer");
     auto server_config = espp::UdpSocket::ReceiveConfig{
         .port = port, .buffer_size = kMaxPacketSize, .on_receive_callback = [
-        ](auto &data, auto &) -> auto{return std::optional<ByteVector>(reversed(data));
+        ](const auto &data, auto &) -> auto{return std::optional<ByteVector>(reversed(data));
   }
   ,
 };
@@ -176,7 +176,7 @@ auto send_config = espp::UdpSocket::SendConfig{
     .wait_for_response = true,
     .response_size = kMaxPacketSize,
     .on_response_callback =
-        [&response, &callback_invoked](auto &received_response) {
+        [&response, &callback_invoked](const auto &received_response) {
           response = received_response;
           callback_invoked = true;
         },
@@ -216,7 +216,7 @@ ScenarioResult run_udp_multicast_scenario() {
         .is_multicast_endpoint = true,
         .multicast_group = kMulticastGroup,
         .on_receive_callback =
-            [](auto &data, auto &) -> auto{return std::optional<ByteVector>(reversed(data));
+            [](const auto &data, auto &) -> auto{return std::optional<ByteVector>(reversed(data));
   }
   ,
 };
@@ -231,7 +231,8 @@ auto send_config = espp::UdpSocket::SendConfig{
     .is_multicast_endpoint = true,
     .wait_for_response = true,
     .response_size = kMaxPacketSize,
-    .on_response_callback = [&response](auto &received_response) { response = received_response; },
+    .on_response_callback =
+        [&response](const auto &received_response) { response = received_response; },
     .response_timeout = 500ms,
 };
 auto ok = client_socket.send(request, send_config);
@@ -415,7 +416,7 @@ ScenarioResult run_tcp_response_reconnect_scenario() {
           .wait_for_response = true,
           .response_size = kMaxPacketSize,
           .on_response_callback =
-              [&response](auto &received_response) { response = received_response; },
+              [&response](const auto &received_response) { response = received_response; },
           .response_timeout = 500ms,
       };
       return client_socket.transmit(request, transmit_config);

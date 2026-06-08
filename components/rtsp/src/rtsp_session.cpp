@@ -86,10 +86,14 @@ bool RtspSession::send_rtp_packet(int track_id, const RtpPacket &packet) {
 bool RtspSession::send_rtp_packet(int track_id, std::span<const uint8_t> packet_data) {
   auto it = tracks_.find(track_id);
   if (it == tracks_.end() || !it->second) {
-    logger_.error("No track with id {} found", track_id);
-    return false;
+    logger_.debug("Skipping RTP packet for unconfigured track {}", track_id);
+    return true;
   }
   auto &track = *it->second;
+  if (track.client_rtp_port <= 0) {
+    logger_.debug("Skipping RTP packet for track {} without RTP transport", track_id);
+    return true;
+  }
   logger_.debug("Sending RTP packet on track {}", track_id);
   return track.rtp_socket.send(packet_data, {
                                                 .ip_address = client_address_,
@@ -106,10 +110,14 @@ bool RtspSession::send_rtp_packet(std::span<const uint8_t> packet_data) {
 bool RtspSession::send_rtcp_packet(int track_id, const RtcpPacket &packet) {
   auto it = tracks_.find(track_id);
   if (it == tracks_.end() || !it->second) {
-    logger_.error("No track with id {} found", track_id);
-    return false;
+    logger_.debug("Skipping RTCP packet for unconfigured track {}", track_id);
+    return true;
   }
   auto &track = *it->second;
+  if (track.client_rtcp_port <= 0) {
+    logger_.debug("Skipping RTCP packet for track {} without RTCP transport", track_id);
+    return true;
+  }
   logger_.debug("Sending RTCP packet on track {}", track_id);
   return track.rtcp_socket.send(packet.get_data(), {
                                                        .ip_address = client_address_,

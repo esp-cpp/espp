@@ -494,21 +494,20 @@ extern "C" void app_main(void) {
     std::this_thread::sleep_for(100ms);
   }
 
-  const int server_port = CONFIG_RTSP_SERVER_PORT;
-
   // --------------------------------------------------------------------------
   // Mode: Legacy MJPEG (server + client on the same device)
   // --------------------------------------------------------------------------
 #if CONFIG_RTSP_EXAMPLE_MODE_LEGACY
 
   //! [rtsp_server_example]
-  const std::string server_uri = fmt::format("rtsp://{}:{}/mjpeg/1", ip_address, server_port);
-  logger.info("Starting RTSP Server on port {}", server_port);
+  const std::string server_uri =
+      fmt::format("rtsp://{}:{}/mjpeg/1", ip_address, CONFIG_RTSP_SERVER_PORT);
+  logger.info("Starting RTSP Server on port {}", CONFIG_RTSP_SERVER_PORT);
   logger.info("RTSP URI: {}", server_uri);
 
   espp::RtspServer rtsp_server({
       .server_address = ip_address,
-      .port = server_port,
+      .port = CONFIG_RTSP_SERVER_PORT,
       .path = "/mjpeg/1",
       .log_level = espp::Logger::Verbosity::INFO,
   });
@@ -574,13 +573,14 @@ extern "C" void app_main(void) {
   // --------------------------------------------------------------------------
 #elif CONFIG_RTSP_EXAMPLE_MODE_SERVER_ONLY
 
-  const std::string server_uri = fmt::format("rtsp://{}:{}/mjpeg/1", ip_address, server_port);
-  logger.info("Starting RTSP Server (server-only mode) on port {}", server_port);
+  const std::string server_uri =
+      fmt::format("rtsp://{}:{}/mjpeg/1", ip_address, CONFIG_RTSP_SERVER_PORT);
+  logger.info("Starting RTSP Server (server-only mode) on port {}", CONFIG_RTSP_SERVER_PORT);
   logger.info("RTSP URI: {}", server_uri);
 
   espp::RtspServer rtsp_server({
       .server_address = ip_address,
-      .port = server_port,
+      .port = CONFIG_RTSP_SERVER_PORT,
       .path = "/mjpeg/1",
       .log_level = espp::Logger::Verbosity::INFO,
   });
@@ -604,7 +604,7 @@ extern "C" void app_main(void) {
 #elif CONFIG_RTSP_EXAMPLE_MODE_CLIENT_ONLY
 
   logger.info("Starting RTSP Client (client-only mode)");
-  logger.info("Connecting to {}:{}", CONFIG_RTSP_CLIENT_SERVER_ADDRESS, server_port);
+  logger.info("Connecting to {}:{}", CONFIG_RTSP_CLIENT_SERVER_ADDRESS, CONFIG_RTSP_SERVER_PORT);
 
   espp::RtspClient rtsp_client({
       .server_address = CONFIG_RTSP_CLIENT_SERVER_ADDRESS,
@@ -655,13 +655,14 @@ extern "C" void app_main(void) {
 #elif CONFIG_RTSP_EXAMPLE_MODE_MULTITRACK
 
   //! [rtsp_server_multitrack_example]
-  const std::string server_uri = fmt::format("rtsp://{}:{}/stream", ip_address, server_port);
-  logger.info("Starting multi-track RTSP Server on port {}", server_port);
+  const std::string server_uri =
+      fmt::format("rtsp://{}:{}/stream", ip_address, CONFIG_RTSP_SERVER_PORT);
+  logger.info("Starting multi-track RTSP Server on port {}", CONFIG_RTSP_SERVER_PORT);
   logger.info("RTSP URI: {}", server_uri);
 
   espp::RtspServer rtsp_server({
       .server_address = ip_address,
-      .port = server_port,
+      .port = CONFIG_RTSP_SERVER_PORT,
       .path = "/stream",
       .log_level = espp::Logger::Verbosity::INFO,
   });

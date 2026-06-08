@@ -151,6 +151,7 @@ def microphone_capture_worker(sample_rate, frame_samples, channels, device, fram
                 try:
                     frame_queue.get_nowait()
                 except queue.Empty:
+                    # The queue was drained before we could drop the oldest frame.
                     pass
                 dropped_frames += 1
                 try:
@@ -169,6 +170,7 @@ def microphone_capture_worker(sample_rate, frame_samples, channels, device, fram
         try:
             status_queue.put({"ok": False, "error": str(exc)})
         except Exception:
+            # If status reporting fails during teardown, preserve the original failure path.
             pass
     finally:
         if stream is not None:
@@ -343,11 +345,14 @@ async def main(argv=None):
     if resolved_audio_source == 'auto':
         resolved_audio_source = 'microphone' if video_source == 'camera' else 'synthetic'
 
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(("8.8.8.8", 80))
-    print(s.getsockname()[0])
-    ip_addr = s.getsockname()[0]
-    s.close()
+    ip_addr = ""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("8.8.8.8", 80))
+            ip_addr = s.getsockname()[0]
+            print(ip_addr)
+    except OSError as exc:
+        print(f"UDP IP discovery unavailable, falling back to hostname lookup: {exc}")
 
     fqdn = socket.gethostname()
     print(f"Fully qualified domain name: {fqdn}")
@@ -528,8 +533,8 @@ async def main(argv=None):
     if service_registered:
         await zeroconf.async_unregister_service(info)
     zeroconf.close()
-    sys.exit(0)
+    return 0
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    sys.exit(asyncio.run(main()))

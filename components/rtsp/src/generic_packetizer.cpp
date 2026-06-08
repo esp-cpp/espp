@@ -50,14 +50,14 @@ std::string GenericPacketizer::get_sdp_media_attributes() const {
   std::string attrs;
 
   if (media_type_ == MediaType::VIDEO || channels_ <= 1) {
-    attrs += fmt::format("a=rtpmap:{} {}/{}\r\n", payload_type_, encoding_name_, clock_rate_);
+    attrs += fmt::format("a=rtpmap:{} {}/{}", payload_type_, encoding_name_, clock_rate_);
   } else {
-    attrs += fmt::format("a=rtpmap:{} {}/{}/{}\r\n", payload_type_, encoding_name_, clock_rate_,
-                         channels_);
+    attrs +=
+        fmt::format("a=rtpmap:{} {}/{}/{}", payload_type_, encoding_name_, clock_rate_, channels_);
   }
 
   if (!fmtp_.empty()) {
-    attrs += fmt::format("a=fmtp:{} {}\r\n", payload_type_, fmtp_);
+    attrs += fmt::format("\r\na=fmtp:{} {}", payload_type_, fmtp_);
   }
 
   return attrs;
