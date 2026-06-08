@@ -31,11 +31,14 @@ std::vector<RtpPayloadChunk> MjpegPacketizer::packetize(std::span<const uint8_t>
                 header_size, data_size);
 
   // Calculate how much scan data fits in each packet
-  size_t first_data_capacity =
-      max_payload_size_ > FIRST_PACKET_OVERHEAD ? max_payload_size_ - FIRST_PACKET_OVERHEAD : 0;
+  if (max_payload_size_ < FIRST_PACKET_OVERHEAD) {
+    logger_.error("max_payload_size ({}) is smaller than MJPEG first-packet overhead ({})", max_payload_size_,
+                  FIRST_PACKET_OVERHEAD);
+    return {};
+  }
+  size_t first_data_capacity = max_payload_size_ - FIRST_PACKET_OVERHEAD;
   size_t other_data_capacity =
       max_payload_size_ > OTHER_PACKET_OVERHEAD ? max_payload_size_ - OTHER_PACKET_OVERHEAD : 0;
-
   size_t first_chunk_size = std::min(data_size, first_data_capacity);
   size_t remaining = data_size - first_chunk_size;
   size_t num_additional = (other_data_capacity > 0 && remaining > 0)
