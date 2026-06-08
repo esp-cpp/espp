@@ -73,7 +73,7 @@ bool MotorGoPlink::initialize_motors(size_t pwm_frequency_hz) {
         .pwm_frequency_hz = pwm_frequency_hz,
         .log_level = get_log_level(),
     });
-    if (!driver || !driver->initialized()) {
+    if (!driver->initialized()) {
       logger_.error("Failed to initialize motor driver {}", i + 1);
       stop_all_motors();
       motor_drivers_ = {};
