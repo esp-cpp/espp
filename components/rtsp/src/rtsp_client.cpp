@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <limits>
 #include <sstream>
 
 #include "generic_depacketizer.hpp"
@@ -119,6 +120,25 @@ bool iequals(std::string_view lhs, std::string_view rhs) {
   return true;
 }
 
+bool parse_decimal_int(std::string_view text, int &value) {
+  if (text.empty()) {
+    return false;
+  }
+  int parsed = 0;
+  for (char c : text) {
+    if (c < '0' || c > '9') {
+      return false;
+    }
+    int digit = c - '0';
+    if (parsed > (std::numeric_limits<int>::max() - digit) / 10) {
+      return false;
+    }
+    parsed = parsed * 10 + digit;
+  }
+  value = parsed;
+  return true;
+}
+
 int parse_track_id(std::string_view control_path, int fallback_track_id) {
   auto pos = control_path.find("trackID=");
   if (pos == std::string_view::npos) {
@@ -130,7 +150,11 @@ int parse_track_id(std::string_view control_path, int fallback_track_id) {
   if (id_string.empty()) {
     return fallback_track_id;
   }
-  return std::stoi(std::string(id_string));
+  int track_id = 0;
+  if (!parse_decimal_int(id_string, track_id)) {
+    return fallback_track_id;
+  }
+  return track_id;
 }
 
 } // namespace
@@ -395,7 +419,10 @@ void RtspClient::describe(std::error_code &ec) {
 
       TrackInfo track;
       track.media_type = trimmed.substr(2, first_space - 2);
-      track.payload_type = std::stoi(trimmed.substr(last_space + 1));
+      if (!parse_decimal_int(trimmed.substr(last_space + 1), track.payload_type)) {
+        logger_.warn("Skipping SDP media line with invalid payload type: {}", trimmed);
+        continue;
+      }
       track.track_id = next_track_id++;
       tracks_.push_back(std::move(track));
       current_track = &tracks_.back();
@@ -423,7 +450,11 @@ void RtspClient::describe(std::error_code &ec) {
       if (slash == std::string::npos) {
         continue;
       }
-      auto payload_type = std::stoi(trimmed.substr(9, payload_space - 9));
+      int payload_type = 0;
+      if (!parse_decimal_int(trimmed.substr(9, payload_space - 9), payload_type)) {
+        logger_.warn("Skipping malformed rtpmap payload type: {}", trimmed);
+        continue;
+      }
       if (payload_type != current_track->payload_type) {
         continue;
       }
@@ -434,13 +465,14 @@ void RtspClient::describe(std::error_code &ec) {
                                    ? std::string::npos
                                    : channels_slash - clock_rate_start;
       auto clock_rate_text = trimmed.substr(clock_rate_start, clock_rate_length);
-      if (!clock_rate_text.empty()) {
-        current_track->clock_rate = std::stoi(clock_rate_text);
+      if (!clock_rate_text.empty() &&
+          !parse_decimal_int(clock_rate_text, current_track->clock_rate)) {
+        logger_.warn("Ignoring malformed clock rate in rtpmap: {}", trimmed);
       }
       if (channels_slash != std::string::npos) {
         auto channels_text = trimmed.substr(channels_slash + 1);
-        if (!channels_text.empty()) {
-          current_track->channels = std::stoi(channels_text);
+        if (!channels_text.empty() && !parse_decimal_int(channels_text, current_track->channels)) {
+          logger_.warn("Ignoring malformed channel count in rtpmap: {}", trimmed);
         }
       }
     }
@@ -607,7 +639,13 @@ bool RtspClient::parse_response(const std::string &response_data, std::error_cod
     return false;
   }
 
-  int status_code = std::stoi(response_data.substr(9, 3));
+  int status_code = 0;
+  if (response_data.size() < 12 ||
+      !parse_decimal_int(std::string_view(response_data).substr(9, 3), status_code)) {
+    ec = std::make_error_code(std::errc::protocol_error);
+    logger_.error("Invalid RTSP status line: '{}'", response_data);
+    return false;
+  }
   std::string status_message = response_data.substr(13, response_data.find("\r\n") - 13);
   if (status_code != 200) {
     ec = std::make_error_code(std::errc::protocol_error);

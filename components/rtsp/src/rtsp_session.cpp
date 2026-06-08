@@ -1,5 +1,7 @@
 #include "rtsp_session.hpp"
 
+#include <limits>
+
 using namespace espp;
 
 namespace {
@@ -12,6 +14,25 @@ std::string make_rtsp_url(std::string_view server_address, std::string_view path
     return "rtsp://" + std::string(server_address);
   }
   return "rtsp://" + std::string(server_address) + "/" + std::string(path);
+}
+
+bool parse_decimal_int(std::string_view text, int &value) {
+  if (text.empty()) {
+    return false;
+  }
+  int parsed = 0;
+  for (char c : text) {
+    if (c < '0' || c > '9') {
+      return false;
+    }
+    int digit = c - '0';
+    if (parsed > (std::numeric_limits<int>::max() - digit) / 10) {
+      return false;
+    }
+    parsed = parsed * 10 + digit;
+  }
+  value = parsed;
+  return true;
 }
 
 } // namespace
@@ -233,8 +254,11 @@ bool RtspSession::handle_rtsp_setup(std::string_view request) {
     if (end_pos != std::string_view::npos) {
       track_id_str = track_id_str.substr(0, end_pos);
     }
-    if (!track_id_str.empty()) {
-      track_id = std::stoi(std::string{track_id_str});
+    int parsed_track_id = 0;
+    if (!track_id_str.empty() && parse_decimal_int(track_id_str, parsed_track_id)) {
+      track_id = parsed_track_id;
+    } else if (!track_id_str.empty()) {
+      logger_.warn("Invalid track ID '{}', defaulting to track 0", track_id_str);
     }
   }
 
@@ -425,8 +449,7 @@ bool RtspSession::parse_rtsp_command_sequence(std::string_view request, int &cse
     return false;
   }
   // convert the cseq to an integer
-  cseq = std::stoi(std::string{cseq_str});
-  return true;
+  return parse_decimal_int(cseq_str, cseq);
 }
 
 std::string_view RtspSession::parse_rtsp_path(std::string_view request) {
@@ -477,7 +500,17 @@ bool RtspSession::parse_rtsp_setup_request(std::string_view request, std::string
 
   // parse the rtp port from the request
   auto client_port_index = request.find("client_port=");
+  if (client_port_index == std::string::npos) {
+    logger_.error("Failed to parse client_port from request");
+    handle_rtsp_invalid_request(request);
+    return false;
+  }
   auto dash_index = request.find('-', client_port_index);
+  if (dash_index == std::string::npos || dash_index <= client_port_index + 12) {
+    logger_.error("Failed to parse client RTP/RTCP ports from request");
+    handle_rtsp_invalid_request(request);
+    return false;
+  }
   std::string_view rtp_port =
       request.substr(client_port_index + 12, dash_index - client_port_index - 12);
   if (rtp_port.empty()) {
@@ -486,15 +519,24 @@ bool RtspSession::parse_rtsp_setup_request(std::string_view request, std::string
     return false;
   }
   // parse the rtcp port from the request
-  std::string_view rtcp_port =
-      request.substr(dash_index + 1, request.find('\r', client_port_index) - dash_index - 1);
+  auto rtcp_end_index = request.find('\r', client_port_index);
+  if (rtcp_end_index == std::string::npos || rtcp_end_index <= dash_index + 1) {
+    logger_.error("Failed to parse client RTCP port from request");
+    handle_rtsp_invalid_request(request);
+    return false;
+  }
+  std::string_view rtcp_port = request.substr(dash_index + 1, rtcp_end_index - dash_index - 1);
   if (rtcp_port.empty()) {
     logger_.error("Empty client RTCP port in request");
     handle_rtsp_invalid_request(request);
     return false;
   }
   // convert the rtp and rtcp ports to integers
-  client_rtp_port = std::stoi(std::string{rtp_port});
-  client_rtcp_port = std::stoi(std::string{rtcp_port});
+  if (!parse_decimal_int(rtp_port, client_rtp_port) ||
+      !parse_decimal_int(rtcp_port, client_rtcp_port)) {
+    logger_.error("Failed to parse client RTP/RTCP ports from request");
+    handle_rtsp_invalid_request(request);
+    return false;
+  }
   return true;
 }

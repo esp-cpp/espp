@@ -12,16 +12,20 @@ import sys
 from rtsp_server_multitrack import main as multitrack_main
 
 
+def has_option(argv, option):
+    return any(arg == option or arg.startswith(f"{option}=") for arg in argv)
+
+
 def build_argv(argv):
     forwarded = list(argv)
 
-    if "--codec" not in forwarded:
+    if not has_option(forwarded, "--codec"):
         forwarded.extend(["--codec", "mjpeg"])
-    if "--path" not in forwarded:
+    if not has_option(forwarded, "--path"):
         forwarded.extend(["--path", "/mjpeg/1"])
-    if "--service-name" not in forwarded:
+    if not has_option(forwarded, "--service-name"):
         forwarded.extend(["--service-name", "python rtsp server"])
-    if "--audio" not in forwarded and "--no-audio" not in forwarded:
+    if not has_option(forwarded, "--audio") and not has_option(forwarded, "--no-audio"):
         forwarded.append("--audio")
     return forwarded
 

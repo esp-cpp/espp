@@ -55,6 +55,7 @@ constexpr size_t q_table_size = 64;
 constexpr size_t first_packet_overhead =
     mjpeg_header_size + quant_header_size + num_q_tables * q_table_size;
 constexpr size_t other_packet_overhead = mjpeg_header_size;
+constexpr int max_rfc2435_dimension = 255 * 8;
 
 void serialize_rtp_header(std::vector<uint8_t> &packet, int payload_type, uint16_t sequence_number,
                           uint32_t timestamp, uint32_t ssrc, bool marker) {
@@ -284,6 +285,11 @@ void RtspServer::send_frame(std::span<const uint8_t> frame_data) {
   if (!track)
     return;
 
+  if (frame_data.size() < 2) {
+    logger_.warn("Skipping short JPEG frame ({} bytes)", frame_data.size());
+    return;
+  }
+
   // Use the legacy RtpJpegPacket-based packetization to preserve the
   // exact wire format for existing MJPEG users
   JpegHeader frame_header(frame_data);
@@ -293,8 +299,10 @@ void RtspServer::send_frame(std::span<const uint8_t> frame_data) {
   auto q0 = frame_header.get_quantization_table(0);
   auto q1 = frame_header.get_quantization_table(1);
 
-  if (frame_data.empty()) {
-    logger_.warn("Skipping empty JPEG frame");
+  if (!frame_header.is_valid() || width <= 0 || height <= 0 || width > max_rfc2435_dimension ||
+      height > max_rfc2435_dimension || q0.size() != q_table_size || q1.size() != q_table_size) {
+    logger_.warn("Skipping invalid JPEG frame: valid={}, size={} bytes, {}x{}, q0={}, q1={}",
+                 frame_header.is_valid(), frame_data.size(), width, height, q0.size(), q1.size());
     return;
   }
 

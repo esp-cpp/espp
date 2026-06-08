@@ -69,6 +69,12 @@ def test_mjpeg_packetizer_sdp():
     assert "rtpmap" in attrs.lower(), f"Expected rtpmap in attrs: {attrs}"
 
 
+def test_mjpeg_packetizer_rejects_invalid_frame():
+    p = espp.MjpegPacketizer(espp.MjpegPacketizer.Config())
+    chunks = p.packetize(b"\xff\xd8")
+    assert chunks == [], f"Expected invalid/truncated JPEG to be rejected, got {len(chunks)} chunk(s)"
+
+
 # ---------------------------------------------------------------------------
 # H264 Packetizer
 # ---------------------------------------------------------------------------
@@ -246,6 +252,7 @@ def main():
     print("\n--- MJPEG Packetizer ---")
     test("Construction", test_mjpeg_packetizer_construction)
     test("SDP generation", test_mjpeg_packetizer_sdp)
+    test("Reject invalid frame", test_mjpeg_packetizer_rejects_invalid_frame)
 
     print("\n--- H264 Packetizer ---")
     test("Construction", test_h264_packetizer_construction)

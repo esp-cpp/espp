@@ -12,14 +12,25 @@ static constexpr size_t Q_TABLE_SIZE = 64;
 static constexpr size_t FIRST_PACKET_OVERHEAD =
     MJPEG_HEADER_SIZE + QUANT_HEADER_SIZE + NUM_Q_TABLES * Q_TABLE_SIZE;
 static constexpr size_t OTHER_PACKET_OVERHEAD = MJPEG_HEADER_SIZE;
+static constexpr int MAX_RFC2435_DIMENSION = 255 * 8;
 
 std::vector<RtpPayloadChunk> MjpegPacketizer::packetize(std::span<const uint8_t> frame_data) {
+  if (frame_data.size() < 2) {
+    logger_.warn("Skipping short JPEG frame ({} bytes)", frame_data.size());
+    return {};
+  }
   // Parse the JPEG header to extract width, height, and quantization tables
   JpegHeader header(frame_data);
   int width = header.get_width();
   int height = header.get_height();
   auto q0 = header.get_quantization_table(0);
   auto q1 = header.get_quantization_table(1);
+  if (!header.is_valid() || width <= 0 || height <= 0 || width > MAX_RFC2435_DIMENSION ||
+      height > MAX_RFC2435_DIMENSION || q0.size() != Q_TABLE_SIZE || q1.size() != Q_TABLE_SIZE) {
+    logger_.warn("Skipping invalid JPEG frame: valid={}, size={} bytes, {}x{}, q0={}, q1={}",
+                 header.is_valid(), frame_data.size(), width, height, q0.size(), q1.size());
+    return {};
+  }
 
   // Keep the original JPEG bytes in the payload so the depacketizer can
   // preserve encoder-specific headers/tables when needed.
@@ -32,8 +43,8 @@ std::vector<RtpPayloadChunk> MjpegPacketizer::packetize(std::span<const uint8_t>
 
   // Calculate how much scan data fits in each packet
   if (max_payload_size_ < FIRST_PACKET_OVERHEAD) {
-    logger_.error("max_payload_size ({}) is smaller than MJPEG first-packet overhead ({})", max_payload_size_,
-                  FIRST_PACKET_OVERHEAD);
+    logger_.error("max_payload_size ({}) is smaller than MJPEG first-packet overhead ({})",
+                  max_payload_size_, FIRST_PACKET_OVERHEAD);
     return {};
   }
   size_t first_data_capacity = max_payload_size_ - FIRST_PACKET_OVERHEAD;

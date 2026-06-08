@@ -53,6 +53,9 @@ public:
   /// @note This is the size of the serialized JPEG header, not the image size.
   size_t size() const { return data_.size(); }
 
+  /// Returns whether this header parsed or serialized successfully.
+  bool is_valid() const { return valid_; }
+
   /// Get the JPEG header data.
   /// @return The JPEG header data.
   std::span<const uint8_t> get_data() const {
@@ -73,6 +76,10 @@ public:
 protected:
   static constexpr int SOF0_SIZE = 19;
   static constexpr int DQT_HEADER_SIZE = 5;
+
+  bool has_bytes(size_t offset, size_t count) const {
+    return offset <= data_.size() && count <= data_.size() - offset;
+  }
 
   // JFIF APP0 Marker for version 1.2 with 72 DPI and no thumbnail
   static constexpr uint8_t JFIF_APP0_DATA[] = {
@@ -619,9 +626,15 @@ protected:
     // add the SOS marker
     memcpy(data_.data() + offset, SOS, sizeof(SOS));
     // offset += sizeof(SOS);
+    valid_ = true;
   }
 
-  uint16_t get_marker(size_t offset) const { return (data_[offset] << 8) | data_[offset + 1]; }
+  uint16_t get_marker(size_t offset) const {
+    if (!has_bytes(offset, 2)) {
+      return 0;
+    }
+    return (data_[offset] << 8) | data_[offset + 1];
+  }
 
   static constexpr uint16_t SOI_MARKER = 0xFFD8;
   static constexpr uint16_t APP0_MARKER = 0xFFE0;
@@ -633,10 +646,11 @@ protected:
 
   void parse() {
     constexpr size_t debug_data_size = 50;
+    valid_ = false;
     // parse the jpeg header from the data_ vector
     int offset = 0;
     // check the SOI marker
-    if (get_marker(offset) != SOI_MARKER) {
+    if (!has_bytes(offset, 2) || get_marker(offset) != SOI_MARKER) {
       std::span<const uint8_t> debug_data(data_.data() + offset,
                                           std::min<size_t>(data_.size(), debug_data_size));
       fmt::print("Invalid SOI marker: {::02x}\n", debug_data);
@@ -646,6 +660,10 @@ protected:
 
     // check the JFIF APP0 marker
     if (get_marker(offset) == APP0_MARKER) {
+      if (!has_bytes(offset, JFIF_APP0_SIZE)) {
+        fmt::print("Incomplete JFIF APP0 marker\n");
+        return;
+      }
       if (memcmp(data_.data() + offset, JFIF_APP0_DATA, JFIF_APP0_CMP_LEN) != 0) {
         std::span<const uint8_t> debug_data(data_.data() + offset,
                                             std::min<size_t>(data_.size(), debug_data_size));
@@ -658,12 +676,20 @@ protected:
     size_t num_huffman_tables = 0;
     size_t num_dqt_tables = 0;
     bool found_sos = false;
-    while (!found_sos && offset < data_.size()) {
+    while (!found_sos && has_bytes(offset, 2)) {
       uint16_t marker = (data_[offset] << 8) | data_[offset + 1];
       offset += 2;
       if (marker == DQT_MARKER) {
+        if (!has_bytes(offset, 3)) {
+          fmt::print("Incomplete DQT marker\n");
+          return;
+        }
         // next two bytes are length, so read them out and then skip ahead
         size_t dqt_length = (data_[offset] << 8) | data_[offset + 1];
+        if (dqt_length < 3 || !has_bytes(offset, dqt_length)) {
+          fmt::print("Invalid DQT marker length: {}\n", dqt_length);
+          return;
+        }
         size_t dqt_table_id = data_[offset + 2];
         size_t dqt_table_length = dqt_length - 3; // length includes the marker and table ID
         const char *table_ptr = (const char *)data_.data() + offset + 3;
@@ -682,21 +708,46 @@ protected:
         offset += dqt_length;
         num_dqt_tables++;
       } else if (marker == DHT_MARKER) {
+        if (!has_bytes(offset, 2)) {
+          fmt::print("Incomplete DHT marker\n");
+          return;
+        }
         size_t huffman_tables_length = (data_[offset] << 8) | data_[offset + 1];
+        if (huffman_tables_length < 2 || !has_bytes(offset, huffman_tables_length)) {
+          fmt::print("Invalid DHT marker length: {}\n", huffman_tables_length);
+          return;
+        }
         offset += huffman_tables_length; // skip the length and the table
         num_huffman_tables++;
       } else if (marker == SOF0_MARKER) {
+        if (!has_bytes(offset, 7)) {
+          fmt::print("Incomplete SOF0 marker\n");
+          return;
+        }
         size_t sof0_length = (data_[offset] << 8) | data_[offset + 1];
+        if (sof0_length < 7 || !has_bytes(offset, sof0_length)) {
+          fmt::print("Invalid SOF0 marker length: {}\n", sof0_length);
+          return;
+        }
         [[maybe_unused]] uint8_t precision = data_[offset + 2];
         height_ = (data_[offset + 3] << 8) | data_[offset + 4];
         width_ = (data_[offset + 5] << 8) | data_[offset + 6];
         offset += sof0_length;
       } else if (marker == SOS_MARKER) {
+        if (!has_bytes(offset, 2)) {
+          fmt::print("Incomplete SOS marker\n");
+          return;
+        }
         size_t sos_length = (data_[offset] << 8) | data_[offset + 1];
+        if (sos_length < 2 || !has_bytes(offset, sos_length)) {
+          fmt::print("Invalid SOS marker length: {}\n", sos_length);
+          return;
+        }
         offset += sos_length;
         found_sos = true;
       } else {
         fmt::print("Unknown marker: {:04x}\n", marker);
+        return;
       }
     }
 
@@ -708,8 +759,14 @@ protected:
       fmt::print("Did not find SOS marker\n");
       return;
     }
+    if (width_ <= 0 || height_ <= 0 || q0_table_.empty() || q1_table_.empty()) {
+      fmt::print("Incomplete JPEG header: width={}, height={}, q0={}, q1={}\n", width_, height_,
+                 q0_table_.size(), q1_table_.size());
+      return;
+    }
 
     data_.resize(offset);
+    valid_ = true;
   }
 
   int width_{0};
@@ -718,5 +775,6 @@ protected:
   std::string_view q1_table_;
 
   std::vector<uint8_t> data_;
+  bool valid_{false};
 };
 } // namespace espp
