@@ -32,10 +32,21 @@ This section gives a brief overview of what the scripts in this folder do.
   incoming UDP packets and prints them to the console, while the client sends
   UDP packets to the server.
 - `rtsp_client.py` and `rtsp_server.py`: These scripts demonstrate how to use the
-  `espp` library to create an RTSP client and server. The server streams video
-  from a webcam or display capture, while the client receives the stream and
-  displays it in a window. Note: these scripts require additional 3rd party
-  libraries such as `opencv`, `mss`, and `zeroconf`.
+  `espp` library to create an RTSP client and server. The server streams MJPEG
+  video from a webcam or display capture. The camera path captures live
+  microphone audio by default, while display capture keeps the simulated audio
+  tone unless `--audio-source microphone` is selected. The client receives the
+  stream, validates audio delivery, plays the audio in real time, and displays
+  the video in a window. Note: these scripts require additional 3rd party
+  libraries such as `opencv`, `mss`, `zeroconf`, and `sounddevice`.
+- `rtsp_client_multitrack.py` and `rtsp_server_multitrack.py`: These scripts
+  exercise the generic multitrack RTSP APIs. The multitrack server includes
+  audio by default; camera mode uses live microphone capture and the other video
+  sources use the simulated tone unless `--audio-source microphone` is selected.
+  Pass `--no-audio` to disable the audio track. The multitrack client plays
+  audio by default when running with a UI; use `--no-audio-playback` to disable
+  it or `--play-audio --headless` to exercise playback without opening the video
+  window.
 - `cobs_demo.py`: Demonstration of ESPP COBS functionality with native Python data types.
   Shows ESPP encoding/decoding, cross-library compatibility with the cobs-python library,
   and practical usage examples. Includes design differences explanation and validation
@@ -62,9 +73,9 @@ README for more details.
 ### Install Python Requirements
 
 Some tests (e.g. `rtsp_client.py`, `rtsp_server.py`) make use of 3rd party
-libraries such as `zeroconf, opencv, mss` to facilitate mDNS discovery, image
-display / webcam capture, and display capture. For these tests, you will need to
-install the `requirements.txt`:
+libraries such as `zeroconf, opencv, mss, sounddevice` to facilitate mDNS
+discovery, image display / webcam capture, display capture, and audio
+playback. For these tests, you will need to install the `requirements.txt`:
 
 ```console
 # create the virtual environment
@@ -103,4 +114,3 @@ another terminal:
 ```console
 python3 udp_server.py
 ```
-

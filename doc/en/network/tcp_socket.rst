@@ -7,6 +7,11 @@ transmission speed / bandwidth adjustment.
 
 TCP sockets cannot be used with multicast (many to one, one to many).
 
+The implementation supports both client-style request/response flows and
+server-style ``bind(...)`` / ``listen(...)`` / ``accept()`` loops. ``close()``
+and ``reinit()`` are used by the updated teardown and reconnect paths to ensure
+connection state is reset cleanly.
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

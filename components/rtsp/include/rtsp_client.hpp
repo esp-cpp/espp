@@ -2,6 +2,8 @@
 
 #include "socket_msvc.hpp"
 
+#include <atomic>
+#include <chrono>
 #include <memory>
 #include <string>
 #include <system_error>
@@ -13,6 +15,8 @@
 #include "udp_socket.hpp"
 
 #include "jpeg_frame.hpp"
+#include "mjpeg_depacketizer.hpp"
+#include "rtp_depacketizer.hpp"
 
 namespace espp {
 
@@ -30,8 +34,24 @@ namespace espp {
 /// \snippet rtsp_example.cpp rtsp_client_example
 class RtspClient : public BaseComponent {
 public:
+  struct TrackInfo {
+    int track_id{0};
+    int payload_type{0};
+    int clock_rate{0};
+    int channels{1};
+    std::string media_type;
+    std::string encoding_name;
+    std::string control_path;
+  };
+
   /// Function type for the callback to call when a JPEG frame is received
   typedef std::function<void(std::shared_ptr<espp::JpegFrame> jpeg_frame)> jpeg_frame_callback_t;
+
+  /// Generic frame callback — called for any track/codec with raw frame data
+  using frame_callback_t = std::function<void(int track_id, std::vector<uint8_t> &&data)>;
+
+  /// Callback invoked when the RTSP server disappears after playback starts.
+  using disconnect_callback_t = std::function<void(void)>;
 
   /// Configuration for the RTSP client
   struct Config {
@@ -40,8 +60,20 @@ public:
     std::string path{"/mjpeg/1"}; ///< The path to the RTSP stream on the server. Will be appended
                                   ///< to the server address and port to form the full path of the
                                   ///< form "rtsp://<server_address>:<rtsp_port><path>"
-    espp::RtspClient::jpeg_frame_callback_t
-        on_jpeg_frame; ///< The callback to call when a JPEG frame is received
+
+    /// Generic frame callback for any codec (track_id, raw frame data)
+    frame_callback_t on_frame{nullptr};
+
+    /// JPEG-specific frame callback (backward compatible).
+    /// If set and no depacketizer is registered for PT 26, an MjpegDepacketizer
+    /// is automatically created.
+    jpeg_frame_callback_t on_jpeg_frame{nullptr};
+
+    /// Called once if the client loses the server after playback starts.
+    /// This callback is intended for applications that want to stop playback
+    /// and re-enter service discovery or reconnect logic automatically.
+    disconnect_callback_t on_connection_lost{nullptr};
+
     espp::Logger::Verbosity log_level =
         espp::Logger::Verbosity::INFO; ///< The verbosity of the logger
   };
@@ -112,6 +144,13 @@ public:
   void setup(size_t rtp_port, size_t rtcp_port, const std::chrono::duration<float> &receive_timeout,
              std::error_code &ec);
 
+  /// Register a depacketizer for a specific RTP payload type.
+  /// When RTP packets with this payload type are received, they are
+  /// dispatched to the registered depacketizer.
+  /// @param payload_type The RTP payload type (e.g., 26 for MJPEG, 96 for H264)
+  /// @param depacketizer The depacketizer to handle packets of this type
+  void add_depacketizer(int payload_type, std::shared_ptr<RtpDepacketizer> depacketizer);
+
   /// Play the RTSP stream
   /// Sends the PLAY request to the RTSP server and parses the response.
   /// \param ec The error code to set if an error occurs
@@ -127,7 +166,17 @@ public:
   /// \param ec The error code to set if an error occurs
   void teardown(std::error_code &ec);
 
+  /// Get the parsed SDP track descriptions from the most recent DESCRIBE call.
+  /// \return The ordered set of discovered media tracks.
+  const std::vector<TrackInfo> &tracks() const { return tracks_; }
+
 protected:
+  void reset_transport_state();
+  void start_monitor_task();
+  void stop_monitor_task();
+  bool monitor_task_fn(std::mutex &m, std::condition_variable &cv, bool &task_notified);
+  void notify_connection_lost(std::string_view reason);
+
   /// Parse the RTSP response
   /// \note Parses response data for the following fields:
   ///  - Status code
@@ -156,11 +205,12 @@ protected:
                  std::error_code &ec);
 
   /// Handle an RTP packet
-  /// \note Parses the RTP packet and appends it to the current JPEG frame.
-  /// \note If the packet is the last fragment of the JPEG frame, the frame is sent to the
-  /// on_jpeg_frame callback. \note This function is called by the RTP socket task. \param data The
-  /// data to handle \param sender_info The sender info \return Optional data to send back to the
-  /// sender
+  /// \note Parses the RTP packet header, determines the payload type, and
+  /// dispatches to the appropriate registered depacketizer.
+  /// \note This function is called by the RTP socket task.
+  /// \param data The data to handle
+  /// \param sender_info The sender info
+  /// \return Optional data to send back to the sender
   std::optional<std::vector<uint8_t>> handle_rtp_packet(std::vector<uint8_t> &data,
                                                         const espp::Socket::Info &sender_info);
 
@@ -172,6 +222,7 @@ protected:
   /// \return Optional data to send back to the sender
   std::optional<std::vector<uint8_t>> handle_rtcp_packet(std::vector<uint8_t> &data,
                                                          const espp::Socket::Info &sender_info);
+
   std::string server_address_;
   int rtsp_port_;
 
@@ -180,12 +231,27 @@ protected:
   espp::UdpSocket rtcp_socket_;
 
   jpeg_frame_callback_t on_jpeg_frame_{nullptr};
+  frame_callback_t on_frame_{nullptr};
+  disconnect_callback_t on_connection_lost_{nullptr};
+  std::unordered_map<int, std::shared_ptr<RtpDepacketizer>> depacketizers_;
+
+  std::unique_ptr<Task> monitor_task_;
+  std::chrono::steady_clock::duration rtp_receive_timeout_{std::chrono::seconds(15)};
+  std::chrono::steady_clock::duration initial_rtp_receive_timeout_{std::chrono::seconds(15)};
+  std::atomic<std::chrono::steady_clock::duration::rep> play_started_tick_{0};
+  std::atomic<std::chrono::steady_clock::duration::rep> last_rtp_packet_tick_{0};
+  std::atomic<bool> playing_{false};
+  std::atomic<bool> disconnecting_{false};
+  std::atomic<bool> connection_lost_reported_{false};
 
   int cseq_ = 0;
   int video_port_ = 0;
   int video_payload_type_ = 0;
   std::string path_;
+  std::string base_path_;
   std::string session_id_;
+  std::vector<TrackInfo> tracks_;
+  std::unordered_map<int, int> payload_type_to_track_id_;
 };
 
 } // namespace espp

@@ -1,10 +1,25 @@
 # Socket Example
 
-This example shows the use of the classes provided by the `socket` component,
-including:
+This example now acts as both a usage demo and a lightweight regression test for
+the `socket` component. It runs a sequence of UDP and TCP scenarios and prints a
+pass/fail summary at the end.
 
-* `UdpSocket` (as both `client` and `server`, including unicast and multicast configurations)
-* `TcpSocket` (as both `client` and `server`)
+The covered scenarios include:
+
+* UDP unicast client/server messaging with scope-based teardown
+* UDP request/response with a larger payload
+* UDP multicast request/response
+* UDP response timeout when no server is listening
+* UDP blocked-receive teardown
+* TCP unicast client/server messaging with scope-based teardown
+* TCP request/response followed by reconnect
+* TCP blocked-accept teardown
+* TCP connect failure to an unused port
+
+At startup the example creates a small open Wi-Fi AP so the network stack is
+initialized, but the actual test traffic stays local to the device using
+loopback (`127.0.0.1`) and a local multicast group (`239.1.1.1`). No second
+device or external server is required.
 
 ## How to use example
 
@@ -24,4 +39,5 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 ## Example Output
 
-![output](https://user-images.githubusercontent.com/213467/235313443-d745261e-3e3c-4a7e-87ae-ef525a380e21.png)
+The serial log shows each scenario as it starts, a per-scenario pass/fail line,
+and a final summary such as `Socket example summary: 9/9 scenarios passed`.

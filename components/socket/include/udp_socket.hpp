@@ -81,6 +81,9 @@ public:
    */
   ~UdpSocket();
 
+  /// Stop the receive task, if one is running, and close the socket.
+  void stop_receiving();
+
   /**
    * @brief Send data to the endpoint specified by the send_config.
    *        Can be configured to multicast (within send_config) and can be

@@ -250,33 +250,27 @@ bool Socket::add_multicast_group(const std::string &multicast_group) {
 
 int Socket::select(const std::chrono::microseconds &timeout) {
   fd_set readfds;
-  fd_set writefds;
   fd_set exceptfds;
   FD_ZERO(&readfds);
-  FD_ZERO(&writefds);
   FD_ZERO(&exceptfds);
   FD_SET(socket_, &readfds);
-  FD_SET(socket_, &writefds);
   FD_SET(socket_, &exceptfds);
   int nfds = socket_ + 1;
   // convert timeout to timeval
   struct timeval tv;
   tv.tv_sec = std::chrono::duration_cast<std::chrono::seconds>(timeout).count();
   tv.tv_usec = std::chrono::duration_cast<std::chrono::microseconds>(timeout).count() % 1000000;
-  int retval = ::select(nfds, &readfds, &writefds, &exceptfds, &tv);
+  int retval = ::select(nfds, &readfds, nullptr, &exceptfds, &tv);
   if (retval < 0) {
     logger_.error("select failed: {}", error_string());
     return -1;
   }
   if (retval == 0) {
-    logger_.warn("select timed out");
+    logger_.debug("select timed out");
     return 0;
   }
   if (FD_ISSET(socket_, &readfds)) {
     logger_.debug("select read");
-  }
-  if (FD_ISSET(socket_, &writefds)) {
-    logger_.debug("select write");
   }
   if (FD_ISSET(socket_, &exceptfds)) {
     logger_.debug("select except");
@@ -335,19 +329,31 @@ std::string Socket::error_string(int err) const {
 
 void Socket::cleanup() {
   if (is_valid()) {
-    int status = 0;
+    auto socket_fd = socket_;
 #ifdef _MSC_VER
-    status = shutdown(socket_, SD_BOTH);
-    if (status == 0) {
-      closesocket(socket_);
-    }
     socket_ = INVALID_SOCKET;
-#else
-    status = shutdown(socket_, SHUT_RDWR);
-    if (status == 0) {
-      close(socket_);
+    int status = shutdown(socket_fd, SD_BOTH);
+    if (status != 0) {
+      int err = WSAGetLastError();
+      if (err != WSAENOTCONN && err != WSAENOTSOCK) {
+        logger_.debug("shutdown failed before close: {}", error_string(err));
+      }
     }
+    if (closesocket(socket_fd) != 0) {
+      logger_.debug("close failed: {}", error_string(WSAGetLastError()));
+    }
+#else
     socket_ = -1;
+    int status = shutdown(socket_fd, SHUT_RDWR);
+    if (status != 0) {
+      int err = errno;
+      if (err != ENOTCONN) {
+        logger_.debug("shutdown failed before close: {}", error_string(err));
+      }
+    }
+    if (close(socket_fd) != 0) {
+      logger_.debug("close failed: {}", error_string(errno));
+    }
 #endif
 
     logger_.info("Closed socket");
