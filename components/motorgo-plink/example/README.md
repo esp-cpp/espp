@@ -6,13 +6,18 @@ initialize the hardware on the MotorGo Plink board.
 By default the example is intentionally safe:
 
 - it logs the documented motor, encoder, servo, I2C, and LED pin mappings
-- it starts the user and status LEDs breathing
-- it initializes the motor PWM outputs and keeps all four motors stopped
+- it starts the user and status LEDs breathing out of phase
+- it leaves the motor PWM outputs disabled unless the motor sweep demo is enabled
 
 Optional `menuconfig` flags let you also:
 
 - initialize and poll the four encoder inputs
-- run a slow sinusoidal motor sweep across the four channels
+- run a stronger sinusoidal motor sweep across the four channels, with a zero
+  crossing window and an active command range chosen to push past typical motor
+  deadband
+
+The indicator LEDs continue pulsing while the motor sweep is active because the
+motor outputs use MCPWM instead of LEDC.
 
 ## How to use example
 

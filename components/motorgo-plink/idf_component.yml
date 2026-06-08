@@ -22,6 +22,7 @@ dependencies:
   idf:
     version: '>=5.0'
   espp/base_component: '>=1.0'
+  espp/bdc_driver: '>=1.0'
   espp/i2c: '>=1.0'
   espp/led: '>=1.0'
   espp/lsm6dso: '>=1.0'

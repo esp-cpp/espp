@@ -10,6 +10,7 @@
 #include <driver/gpio.h>
 
 #include "base_component.hpp"
+#include "bdc_driver.hpp"
 #include "gaussian.hpp"
 #include "i2c.hpp"
 #include "led.hpp"
@@ -39,6 +40,8 @@ public:
   /// Alias for the SSI-based magnetic encoder helper used on each motor
   /// channel.
   using Encoder = espp::Mt6701<espp::Mt6701Interface::SSI>;
+  /// Alias for the brushed DC motor driver helper used on each motor channel.
+  using MotorDriver = espp::BdcDriver;
   /// Alias for the onboard hidden-bus IMU helper.
   using Imu = espp::Lsm6dso<espp::lsm6dso::Interface::I2C>;
 
@@ -144,11 +147,10 @@ public:
   /// \return The documented user and status LED GPIOs.
   LedPins led_pins() const;
 
-  /// Initialize the eight PWM outputs used by the four motor channels.
+  /// Initialize the four MCPWM-backed motor driver helpers.
   /// \param pwm_frequency_hz PWM carrier frequency for all four motor channels.
-  /// \return True if the motor PWM helper was initialized;
-  ///         false if the PWM frequency is invalid or the motor outputs were
-  ///         already initialized.
+  /// \return True if the motor driver helpers were initialized; false if the PWM
+  ///         frequency is invalid or any motor channel could not be configured.
   bool initialize_motors(size_t pwm_frequency_hz = motor_default_pwm_frequency_hz());
 
   /// Set a normalized motor speed in the range [-1, 1].
@@ -176,10 +178,11 @@ public:
   ///          values are simply reset to zero.
   void stop_all_motors();
 
-  /// Get the LEDC wrapper used for the eight motor PWM outputs.
-  /// \return Shared pointer to the motor PWM helper, or `nullptr` if
-  ///         initialize_motors() has not been called yet.
-  std::shared_ptr<espp::Led> motor_pwm();
+  /// Get one motor driver helper.
+  /// \param index Zero-based motor index in the range [0, num_motor_channels()).
+  /// \return Shared pointer to the requested motor driver helper, or `nullptr`
+  ///         if the index is invalid or that motor has not been initialized yet.
+  std::shared_ptr<MotorDriver> motor_driver(size_t index) const;
 
   /// Initialize the shared encoder bus and create the four MT6701 SSI helpers.
   /// \param run_tasks If true, each encoder starts its own update task after
@@ -227,7 +230,8 @@ public:
   /// \param breathing_period Default breathing period in seconds for
   ///                         start_led_breathing().
   /// \return True if the indicator LED PWM helper and breathing task were
-  ///         created successfully; false if they were already initialized.
+  ///         created successfully; false if they were already initialized or the
+  ///         LEDs could not be driven after setup.
   bool initialize_leds(float breathing_period = 3.5f);
 
   /// Start breathing both indicator LEDs.
@@ -308,7 +312,7 @@ protected:
 
   bool initialize_encoder_spi();
   bool read_encoder(size_t index, uint8_t *data, size_t size);
-  float led_breathe();
+  float led_breathe(float phase_offset = 0.0f);
   bool led_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
 
   static constexpr std::array<MotorPins, 4> motor_pin_map_{{
@@ -349,6 +353,7 @@ protected:
   static constexpr size_t motor_default_pwm_frequency_hz_ = 20 * 1000;
   static constexpr size_t indicator_led_pwm_frequency_hz_ = 5 * 1000;
   static constexpr float encoder_update_period_seconds_ = 0.001f;
+  static constexpr std::array<int, 4> motor_driver_group_ids_{0, 0, 0, 1};
 
   I2c qwiic_i2c_{{.port = I2C_NUM_0,
                   .sda_io_num = qwiic_pin_map_.sda,
@@ -367,22 +372,12 @@ protected:
   std::shared_ptr<I2c::Device<uint8_t>> imu_i2c_device_;
   std::shared_ptr<Imu> imu_;
 
-  std::array<espp::Led::ChannelConfig, 8> motor_channels_{{
-      {static_cast<size_t>(motor_pin_map_[0].pwm_a), LEDC_CHANNEL_0, LEDC_TIMER_0},
-      {static_cast<size_t>(motor_pin_map_[0].pwm_b), LEDC_CHANNEL_1, LEDC_TIMER_0},
-      {static_cast<size_t>(motor_pin_map_[1].pwm_a), LEDC_CHANNEL_2, LEDC_TIMER_0},
-      {static_cast<size_t>(motor_pin_map_[1].pwm_b), LEDC_CHANNEL_3, LEDC_TIMER_0},
-      {static_cast<size_t>(motor_pin_map_[2].pwm_a), LEDC_CHANNEL_4, LEDC_TIMER_0},
-      {static_cast<size_t>(motor_pin_map_[2].pwm_b), LEDC_CHANNEL_5, LEDC_TIMER_0},
-      {static_cast<size_t>(motor_pin_map_[3].pwm_a), LEDC_CHANNEL_6, LEDC_TIMER_0},
-      {static_cast<size_t>(motor_pin_map_[3].pwm_b), LEDC_CHANNEL_7, LEDC_TIMER_0},
-  }};
   std::array<espp::Led::ChannelConfig, 2> led_channels_{{
       {static_cast<size_t>(user_led_pin_), LEDC_CHANNEL_4, LEDC_TIMER_1},
       {static_cast<size_t>(status_led_pin_), LEDC_CHANNEL_5, LEDC_TIMER_1},
   }};
 
-  std::shared_ptr<espp::Led> motor_pwm_;
+  std::array<std::shared_ptr<MotorDriver>, 4> motor_drivers_{};
   std::shared_ptr<espp::Led> indicator_leds_;
   std::array<float, 4> motor_speeds_{0.0f, 0.0f, 0.0f, 0.0f};
   std::unique_ptr<espp::Task> led_task_;

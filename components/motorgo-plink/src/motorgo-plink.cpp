@@ -55,53 +55,48 @@ MotorGoPlink::LedPins MotorGoPlink::led_pins() const {
 }
 
 bool MotorGoPlink::initialize_motors(size_t pwm_frequency_hz) {
-  if (motor_pwm_) {
-    logger_.error("Motor PWM already initialized");
+  if (std::any_of(motor_drivers_.begin(), motor_drivers_.end(),
+                  [](const auto &driver) { return static_cast<bool>(driver); })) {
+    logger_.error("Motor drivers already initialized");
     return false;
   }
   if (pwm_frequency_hz == 0) {
     logger_.error("Motor PWM frequency must be greater than zero");
     return false;
   }
-  motor_pwm_ = std::make_shared<espp::Led>(espp::Led::Config{
-      .timer = LEDC_TIMER_0,
-      .frequency_hz = pwm_frequency_hz,
-      .channels =
-          std::vector<espp::Led::ChannelConfig>(motor_channels_.begin(), motor_channels_.end()),
-      .duty_resolution = LEDC_TIMER_13_BIT,
-      .log_level = get_log_level(),
-  });
+  for (size_t i = 0; i < motor_drivers_.size(); i++) {
+    auto pins = motor_pin_map_[i];
+    auto driver = std::make_shared<MotorDriver>(MotorDriver::Config{
+        .gpio_a = pins.pwm_a,
+        .gpio_b = pins.pwm_b,
+        .group_id = motor_driver_group_ids_[i],
+        .pwm_frequency_hz = pwm_frequency_hz,
+        .log_level = get_log_level(),
+    });
+    if (!driver || !driver->initialized()) {
+      logger_.error("Failed to initialize motor driver {}", i + 1);
+      stop_all_motors();
+      motor_drivers_ = {};
+      motor_speeds_.fill(0.0f);
+      return false;
+    }
+    motor_drivers_[i] = driver;
+  }
   stop_all_motors();
   return true;
 }
 
 bool MotorGoPlink::set_motor_speed(size_t index, float speed) {
-  if (!motor_pwm_) {
-    logger_.error("Motor PWM not initialized");
-    return false;
-  }
   if (index >= motor_pin_map_.size()) {
     logger_.error("Invalid motor index: {}", index);
     return false;
   }
-  speed = std::clamp(speed, -1.0f, 1.0f);
-  float duty = 100.0f * std::abs(speed);
-  size_t pwm_a_index = index * 2;
-  size_t pwm_b_index = pwm_a_index + 1;
-
-  bool ok_a = true;
-  bool ok_b = true;
-  if (speed > 0.0f) {
-    ok_b = motor_pwm_->set_duty(motor_channels_[pwm_b_index].channel, 0.0f);
-    ok_a = motor_pwm_->set_duty(motor_channels_[pwm_a_index].channel, duty);
-  } else if (speed < 0.0f) {
-    ok_a = motor_pwm_->set_duty(motor_channels_[pwm_a_index].channel, 0.0f);
-    ok_b = motor_pwm_->set_duty(motor_channels_[pwm_b_index].channel, duty);
-  } else {
-    ok_a = motor_pwm_->set_duty(motor_channels_[pwm_a_index].channel, 0.0f);
-    ok_b = motor_pwm_->set_duty(motor_channels_[pwm_b_index].channel, 0.0f);
+  if (!motor_drivers_[index]) {
+    logger_.error("Motor driver {} not initialized", index + 1);
+    return false;
   }
-  bool ok = ok_a && ok_b;
+  speed = std::clamp(speed, -1.0f, 1.0f);
+  bool ok = motor_drivers_[index]->set_speed(speed);
   if (ok) {
     motor_speeds_[index] = speed;
   }
@@ -119,16 +114,21 @@ float MotorGoPlink::motor_speed(size_t index) const {
 void MotorGoPlink::stop_motor(size_t index) { set_motor_speed(index, 0.0f); }
 
 void MotorGoPlink::stop_all_motors() {
-  if (!motor_pwm_) {
-    motor_speeds_.fill(0.0f);
-    return;
-  }
-  for (size_t i = 0; i < motor_pin_map_.size(); i++) {
-    set_motor_speed(i, 0.0f);
+  for (size_t i = 0; i < motor_drivers_.size(); i++) {
+    if (motor_drivers_[i]) {
+      motor_drivers_[i]->stop();
+    }
+    motor_speeds_[i] = 0.0f;
   }
 }
 
-std::shared_ptr<espp::Led> MotorGoPlink::motor_pwm() { return motor_pwm_; }
+std::shared_ptr<MotorGoPlink::MotorDriver> MotorGoPlink::motor_driver(size_t index) const {
+  if (index >= motor_drivers_.size()) {
+    logger_.error("Invalid motor index: {}", index);
+    return nullptr;
+  }
+  return motor_drivers_[index];
+}
 
 bool MotorGoPlink::initialize_encoders(bool run_tasks) {
   if (!initialize_encoder_spi()) {
@@ -203,12 +203,18 @@ bool MotorGoPlink::initialize_imu(const Imu::filter_fn &orientation_filter,
       .read = espp::make_i2c_addressed_read(imu_i2c_device_),
       .imu_config = imu_config,
       .orientation_filter = orientation_filter,
-      .auto_init = true,
+      .auto_init = false,
       .log_level = get_log_level(),
   };
 
   logger_.info("Initializing hidden-bus IMU");
   imu_ = std::make_shared<Imu>(config);
+  if (!imu_ || !imu_->init(ec)) {
+    logger_.error("Failed to initialize hidden-bus IMU: {}", ec.message());
+    imu_.reset();
+    imu_i2c_device_.reset();
+    return false;
+  }
   return true;
 }
 
@@ -230,9 +236,23 @@ bool MotorGoPlink::initialize_leds(float breathing_period) {
   led_task_ = espp::Task::make_unique(
       {.callback = std::bind(&MotorGoPlink::led_task_callback, this, _1, _2, _3),
        .task_config = {.name = "motorgo_plink_led"}});
-  set_led_breathing_period(breathing_period);
-  set_user_led_brightness(0.0f);
-  set_status_led_brightness(0.0f);
+  if (!led_task_) {
+    logger_.error("Failed to create indicator LED task");
+    indicator_leds_.reset();
+    return false;
+  }
+  if (!set_led_breathing_period(breathing_period)) {
+    led_task_.reset();
+    indicator_leds_.reset();
+    return false;
+  }
+  if (!indicator_leds_->set_duty(led_channels_[0].channel, 0.0f) ||
+      !indicator_leds_->set_duty(led_channels_[1].channel, 0.0f)) {
+    logger_.error("Failed to initialize indicator LED channels");
+    led_task_.reset();
+    indicator_leds_.reset();
+    return false;
+  }
   return true;
 }
 
@@ -361,19 +381,21 @@ bool IRAM_ATTR MotorGoPlink::read_encoder(size_t index, uint8_t *data, size_t si
   return encoder_spi_devices_[index]->read(std::span<uint8_t>(data, size), {}, ec);
 }
 
-float MotorGoPlink::led_breathe() {
+float MotorGoPlink::led_breathe(float phase_offset) {
   auto now = std::chrono::high_resolution_clock::now();
   auto elapsed = std::chrono::duration<float>(now - breathing_start_).count();
   float t = std::fmod(elapsed, breathing_period_) / breathing_period_;
+  t = std::fmod(t + phase_offset, 1.0f);
   return gaussian_(t);
 }
 
 bool MotorGoPlink::led_task_callback(std::mutex &m, std::condition_variable &cv,
                                      bool &task_notified) {
   using namespace std::chrono_literals;
-  float brightness = led_breathe();
-  indicator_leds_->set_duty(led_channels_[0].channel, 100.0f * brightness);
-  indicator_leds_->set_duty(led_channels_[1].channel, 100.0f * brightness);
+  float user_brightness = led_breathe(0.0f);
+  float status_brightness = led_breathe(0.5f);
+  indicator_leds_->set_duty(led_channels_[0].channel, 100.0f * user_brightness);
+  indicator_leds_->set_duty(led_channels_[1].channel, 100.0f * status_brightness);
   std::unique_lock<std::mutex> lk(m);
   cv.wait_for(lk, 10ms, [&task_notified] { return task_notified; });
   task_notified = false;

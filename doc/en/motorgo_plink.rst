@@ -12,9 +12,9 @@ buses, and user/status LEDs.
 
 It also provides helper methods for:
 
-- initializing the four dual-PWM motor channels and commanding normalized motor
-  speeds, where positive commands drive ``pwm_a`` and negative commands drive
-  ``pwm_b``
+- initializing the four dual-PWM motor channels via ``espp::BdcDriver`` on
+  MCPWM and commanding normalized motor speeds, where positive commands drive
+  ``pwm_a`` and negative commands drive ``pwm_b``
 - initializing the shared SSI/SPI encoder bus and creating four
   `espp::Mt6701<SSI>` helpers
 - initializing the onboard LSM6DS33 IMU on the hidden I2C bus via the
