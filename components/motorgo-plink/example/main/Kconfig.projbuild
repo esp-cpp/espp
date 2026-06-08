@@ -1,0 +1,14 @@
+menu "MotorGo Plink Example Configuration"
+    config MOTORGO_PLINK_EXAMPLE_ENABLE_ENCODER_POLLING
+        bool "Enable encoder polling"
+        default n
+        help
+            Initialize the four encoder inputs and log their measured angles.
+
+    config MOTORGO_PLINK_EXAMPLE_ENABLE_MOTOR_SWEEP
+        bool "Enable motor sweep demo"
+        default n
+        help
+            Drive all four motors with a slow sinusoidal speed command. Keep
+            this disabled unless the board is connected to a safe test setup.
+endmenu

@@ -36,6 +36,7 @@ jobs:
             components/aw9523
             components/base_component
             components/base_peripheral
+            components/bdc_driver
             components/binary-log
             components/bldc_driver
             components/bldc_haptics
@@ -92,6 +93,7 @@ jobs:
             components/mcp23x17
             components/monitor
             components/motorgo-mini
+            components/motorgo-plink
             components/mt6701
             components/ndef
             components/neopixel

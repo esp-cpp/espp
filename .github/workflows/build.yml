@@ -33,6 +33,8 @@ jobs:
           target: esp32s3
         - path: 'components/aw9523/example'
           target: esp32
+        - path: 'components/bdc_driver/example'
+          target: esp32s3
         - path: 'components/binary-log/example'
           target: esp32s3
         - path: 'components/bldc_haptics/example'
@@ -140,6 +142,8 @@ jobs:
         - path: 'components/monitor/example'
           target: esp32
         - path: 'components/motorgo-mini/example'
+          target: esp32s3
+        - path: 'components/motorgo-plink/example'
           target: esp32s3
         - path: 'components/mcp23x17/example'
           target: esp32s3
