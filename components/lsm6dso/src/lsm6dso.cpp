@@ -21,8 +21,14 @@ Lsm6dso<Interface>::Lsm6dso(const Config &config)
 template <lsm6dso::Interface Interface> bool Lsm6dso<Interface>::init(std::error_code &ec) {
   std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   auto device_id = get_device_id(ec);
-  if (device_id != 0x6C && device_id != 0x6A) { // LSM6DSO IDs
+  if (ec) {
+    logger_.error("Failed to read device ID: {}", ec.message());
+    return false;
+  }
+  if (device_id != LSM6DSO_DEVICE_ID && device_id != LSM6DSOX_DEVICE_ID &&
+      device_id != LSM6DS33_DEVICE_ID) {
     logger_.error("Invalid device ID: 0x{:02X}", device_id);
+    ec = std::make_error_code(std::errc::no_such_device);
     return false;
   }
   // configure the accel / gyro
