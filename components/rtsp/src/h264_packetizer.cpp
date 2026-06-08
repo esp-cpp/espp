@@ -80,6 +80,7 @@ std::vector<RtpPayloadChunk> H264Packetizer::packetize(std::span<const uint8_t> 
 
 std::vector<RtpPayloadChunk> H264Packetizer::packetize_nal(std::span<const uint8_t> nal_data,
                                                            bool is_last_nal) {
+  constexpr size_t kFuHeaderSize = 2;
   std::vector<RtpPayloadChunk> chunks;
 
   if (nal_data.empty()) {
@@ -101,6 +102,13 @@ std::vector<RtpPayloadChunk> H264Packetizer::packetize_nal(std::span<const uint8
                    nal_data.size(), max_payload_size_);
       return chunks;
     }
+    if (max_payload_size_ <= kFuHeaderSize) {
+      logger_.error("NAL unit ({} bytes) exceeds max_payload_size ({}) but FU-A "
+                    "fragmentation requires room for the 2-byte FU header plus "
+                    "fragment payload; dropping",
+                    nal_data.size(), max_payload_size_);
+      return chunks;
+    }
 
     uint8_t nal_header = nal_data[0];
     uint8_t nri = nal_header & 0x60;      // NRI bits (bits 5-6)
@@ -109,7 +117,7 @@ std::vector<RtpPayloadChunk> H264Packetizer::packetize_nal(std::span<const uint8
 
     // Fragment the NAL body (everything after the NAL header byte).
     // Each FU-A packet has: FU indicator (1) + FU header (1) + fragment data.
-    size_t max_fragment_size = max_payload_size_ - 2; // 2 bytes for FU indicator + FU header
+    size_t max_fragment_size = max_payload_size_ - kFuHeaderSize;
     const uint8_t *body = nal_data.data() + 1;
     size_t body_size = nal_data.size() - 1;
     size_t offset = 0;

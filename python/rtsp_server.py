@@ -27,4 +27,4 @@ def build_argv(argv):
 
 
 if __name__ == "__main__":
-    asyncio.run(multitrack_main(build_argv(sys.argv[1:])))
+    sys.exit(asyncio.run(multitrack_main(build_argv(sys.argv[1:]))))

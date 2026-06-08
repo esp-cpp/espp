@@ -125,6 +125,17 @@ def test_h264_packetizer_fua_fragmentation():
     assert chunks[-1].marker, "Last FU-A chunk should have marker"
 
 
+def test_h264_packetizer_rejects_too_small_fua_payload():
+    cfg = espp.H264Packetizer.Config()
+    cfg.max_payload_size = 2
+    cfg.payload_type = 96
+    cfg.packetization_mode = 1
+    p = espp.H264Packetizer(cfg)
+    nal = bytes([0x00, 0x00, 0x00, 0x01, 0x65] + [0xCD] * 10)
+    chunks = p.packetize(nal)
+    assert chunks == [], f"Expected oversized NAL to be dropped when max_payload_size is too small, got {len(chunks)} chunk(s)"
+
+
 # ---------------------------------------------------------------------------
 # Generic Packetizer (audio)
 # ---------------------------------------------------------------------------
@@ -241,6 +252,7 @@ def main():
     test("SDP generation", test_h264_packetizer_sdp)
     test("Packetize small NAL", test_h264_packetizer_packetize)
     test("FU-A fragmentation", test_h264_packetizer_fua_fragmentation)
+    test("Reject undersized FU-A MTU", test_h264_packetizer_rejects_too_small_fua_payload)
 
     print("\n--- Generic Packetizer (Audio) ---")
     test("Construction", test_generic_packetizer_construction)
