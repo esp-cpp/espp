@@ -75,6 +75,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/adxl345/example/main/adxl345_example.cpp \
   $(PROJECT_PATH)/components/as5600/example/main/as5600_example.cpp \
   $(PROJECT_PATH)/components/aw9523/example/main/aw9523_example.cpp \
+  $(PROJECT_PATH)/components/bdc_driver/example/main/bdc_driver_example.cpp \
   $(PROJECT_PATH)/components/lp5817/example/main/lp5817_example.cpp \
   $(PROJECT_PATH)/components/binary-log/example/main/binary_log_example.cpp \
   $(PROJECT_PATH)/components/ble_gatt_server/example/main/ble_gatt_server_example.cpp \
@@ -126,6 +127,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/max1704x/example/main/max1704x_example.cpp \
   $(PROJECT_PATH)/components/monitor/example/main/monitor_example.cpp \
   $(PROJECT_PATH)/components/motorgo-mini/example/main/motorgo_mini_example.cpp \
+  $(PROJECT_PATH)/components/motorgo-plink/example/main/motorgo_plink_example.cpp \
   $(PROJECT_PATH)/components/mcp23x17/example/main/mcp23x17_example.cpp \
   $(PROJECT_PATH)/components/mt6701/example/main/mt6701_example.cpp \
   $(PROJECT_PATH)/components/neopixel/example/main/neopixel_example.cpp \
@@ -186,6 +188,7 @@ INPUT = \
   $(PROJECT_PATH)/components/aw9523/include/aw9523.hpp \
   $(PROJECT_PATH)/components/base_component/include/base_component.hpp \
   $(PROJECT_PATH)/components/base_peripheral/include/base_peripheral.hpp \
+  $(PROJECT_PATH)/components/bdc_driver/include/bdc_driver.hpp \
   $(PROJECT_PATH)/components/binary-log/include/binary-log.hpp \
   $(PROJECT_PATH)/components/ble_gatt_server/include/battery_service.hpp \
   $(PROJECT_PATH)/components/ble_gatt_server/include/ble_appearances.hpp \
@@ -299,6 +302,7 @@ INPUT = \
   $(PROJECT_PATH)/components/monitor/include/heap_monitor.hpp \
   $(PROJECT_PATH)/components/monitor/include/task_monitor.hpp \
   $(PROJECT_PATH)/components/motorgo-mini/include/motorgo-mini.hpp \
+  $(PROJECT_PATH)/components/motorgo-plink/include/motorgo-plink.hpp \
   $(PROJECT_PATH)/components/ndef/include/ndef.hpp \
   $(PROJECT_PATH)/components/neopixel/include/neopixel.hpp \
   $(PROJECT_PATH)/components/nvs/include/nvs.hpp \

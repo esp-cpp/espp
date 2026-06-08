@@ -4,7 +4,8 @@
 #include "lsm6dso_detail.hpp"
 
 namespace espp {
-/// @brief Class for the LSM6DSO 6-axis IMU (Accel + Gyro)
+/// @brief Class for the LSM6DSO / compatible LSM6DS-family 6-axis IMUs (Accel
+///        + Gyro)
 /// @tparam Interface The interface type (I2C or SPI)
 ///
 /// The LSM6DSO is a 6-axis IMU with a 3-axis accelerometer and 3-axis gyroscope.
@@ -24,7 +25,10 @@ namespace espp {
 ///   - Use get_orientation(), get_gravity_vector() for orientation and gravity vector if filter is
 ///   set
 ///
-/// \note This class is intended for use with the LSM6DSO and compatible variants.
+/// \note This class is intended for use with the LSM6DSO and compatible
+///       variants. The currently supported WHO_AM_I values include the
+///       LSM6DSO/LSM6DSOX family IDs and the LSM6DS33 ID used on the MotorGo
+///       Plink.
 template <lsm6dso::Interface Interface = lsm6dso::Interface::I2C>
 class Lsm6dso : public BasePeripheral<uint8_t, Interface == lsm6dso::Interface::I2C> {
   using BasePeripheral<uint8_t, Interface == lsm6dso::Interface::I2C>::set_address;
@@ -43,6 +47,9 @@ class Lsm6dso : public BasePeripheral<uint8_t, Interface == lsm6dso::Interface::
 
 public:
   static constexpr uint8_t DEFAULT_I2C_ADDRESS = 0x6A; ///< Default I2C address (can be 0x6B)
+  static constexpr uint8_t LSM6DS33_DEVICE_ID = 0x69;  ///< WHO_AM_I value for the LSM6DS33
+  static constexpr uint8_t LSM6DSOX_DEVICE_ID = 0x6A;  ///< WHO_AM_I value for compatible LSM6DSOX
+  static constexpr uint8_t LSM6DSO_DEVICE_ID = 0x6C;   ///< WHO_AM_I value for the LSM6DSO
 
   using AccelRange = lsm6dso::AccelRange;   ///< Alias for accelerometer range
   using AccelODR = lsm6dso::AccelODR;       ///< Alias for accelerometer output data rate (ODR)
