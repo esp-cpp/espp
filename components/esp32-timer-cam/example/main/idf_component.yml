@@ -1,0 +1,14 @@
+## IDF Component Manager Manifest File
+dependencies:
+  ## Required IDF version
+  idf:
+    version: '>=5.0'
+  espressif/mdns: '>=1.8'
+  espressif/esp32-camera: '>=2.0'
+  espp/rtsp: '>=1.0'
+  espp/wifi: '>=1.0'
+  espp/monitor: '>=1.0'
+  espp/socket: '>=1.0'
+  espp/nvs: '>=1.0'
+  espp/task: '>=1.0'
+  espp/esp32-timer-cam: '>=1.0'

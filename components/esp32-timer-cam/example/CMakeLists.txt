@@ -2,17 +2,25 @@
 # in this exact order for cmake to work correctly
 cmake_minimum_required(VERSION 3.20)
 
-set(ENV{IDF_COMPONENT_MANAGER} "0")
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
 # add the component directories that we want to use
 set(EXTRA_COMPONENT_DIRS
-  "../../../components/"
+  "../../../components/base_component"
+  "../../../components/esp32-timer-cam"
+  "../../../components/format"
+  "../../../components/i2c"
+  "../../../components/logger"
+  "../../../components/nvs"
+  "../../../components/rtsp"
+  "../../../components/socket"
+  "../../../components/task"
+  "../../../components/wifi"
 )
 
 set(
   COMPONENTS
-  "main esptool_py esp32-timer-cam"
+  "main esptool_py esp32-camera esp32-timer-cam mdns monitor nvs rtsp socket task wifi"
   CACHE STRING
   "List of components to include"
   )
