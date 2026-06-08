@@ -75,6 +75,7 @@ extern "C" void app_main(void) {
   err = initialize_camera();
   if (err != ESP_OK) {
     logger.error("Could not initialize camera: {} '{}'", err, esp_err_to_name(err));
+    return;
   }
 
   logger.info("Starting memory monitors");
@@ -296,15 +297,17 @@ bool camera_task_fn(std::mutex &m, std::condition_variable &cv) {
     std::unique_lock<std::mutex> lk(m);
     cv.wait_until(lk, deadline);
   };
+  std::shared_ptr<espp::RtspServer> server_snapshot;
 
   {
     std::lock_guard<std::recursive_mutex> lock(server_mutex);
-    if (!rtsp_server || !rtsp_server->has_active_sessions()) {
+    server_snapshot = rtsp_server;
+    if (!server_snapshot || !server_snapshot->has_active_sessions()) {
       wait_until(start + idle_capture_poll_period);
       return false;
     }
-    auto recommended_capture_period = rtsp_server->get_recommended_capture_period();
-    auto capture_cooldown = rtsp_server->get_capture_cooldown();
+    auto recommended_capture_period = server_snapshot->get_recommended_capture_period();
+    auto capture_cooldown = server_snapshot->get_capture_cooldown();
     if (capture_cooldown > 0ms) {
       wait_until(start + std::max(recommended_capture_period, capture_cooldown));
       return false;
@@ -340,15 +343,21 @@ bool camera_task_fn(std::mutex &m, std::condition_variable &cv) {
   _jpg_buf_len = fb->len;
   _jpg_buf = fb->buf;
 
-  if (!(_jpg_buf[_jpg_buf_len - 1] != 0xd9 || _jpg_buf[_jpg_buf_len - 2] != 0xd9)) {
+  if (_jpg_buf_len < 2 || _jpg_buf[_jpg_buf_len - 2] != 0xFF ||
+      _jpg_buf[_jpg_buf_len - 1] != 0xD9) {
     esp_camera_fb_return(fb);
     return false;
   }
 
   std::span<const uint8_t> jpg_buf(_jpg_buf, _jpg_buf_len);
-  std::lock_guard<std::recursive_mutex> lock(server_mutex);
-  rtsp_server->send_frame(jpg_buf);
-  frames_streamed++;
+  {
+    std::lock_guard<std::recursive_mutex> lock(server_mutex);
+    server_snapshot = rtsp_server;
+  }
+  if (server_snapshot) {
+    server_snapshot->send_frame(jpg_buf);
+    frames_streamed++;
+  }
 
   esp_camera_fb_return(fb);
 
@@ -357,8 +366,10 @@ bool camera_task_fn(std::mutex &m, std::condition_variable &cv) {
     auto capture_period = target_stream_period;
     {
       std::lock_guard<std::recursive_mutex> lock(server_mutex);
-      if (rtsp_server) {
-        capture_period = std::max(capture_period, rtsp_server->get_recommended_capture_period());
+      server_snapshot = rtsp_server;
+      if (server_snapshot) {
+        capture_period =
+            std::max(capture_period, server_snapshot->get_recommended_capture_period());
       }
     }
     wait_until(start + capture_period);

@@ -7,10 +7,12 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 # add the component directories that we want to use
 set(EXTRA_COMPONENT_DIRS
   "../../../components/base_component"
+  "../../../components/cli"
   "../../../components/esp32-timer-cam"
   "../../../components/format"
   "../../../components/i2c"
   "../../../components/logger"
+  "../../../components/monitor"
   "../../../components/nvs"
   "../../../components/rtsp"
   "../../../components/socket"
