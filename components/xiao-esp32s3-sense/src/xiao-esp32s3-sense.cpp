@@ -59,19 +59,38 @@ bool XiaoEsp32S3Sense::initialize_led(float breathing_period) {
   led_task_ = espp::Task::make_unique(
       {.callback = std::bind(&XiaoEsp32S3Sense::led_task_callback, this, _1, _2, _3),
        .task_config = {.name = "xiao_led_breathe"}});
-  set_led_breathing_period(breathing_period);
+  if (!led_task_) {
+    logger_.error("Could not create LED breathing task");
+    led_.reset();
+    return false;
+  }
+  if (!set_led_breathing_period(breathing_period)) {
+    led_task_.reset();
+    led_.reset();
+    return false;
+  }
   return true;
 }
 
 void XiaoEsp32S3Sense::start_led_breathing() {
+  if (led_ == nullptr || led_task_ == nullptr) {
+    logger_.error("LED not initialized");
+    return;
+  }
   breathing_start_ = std::chrono::high_resolution_clock::now();
   led_task_->start();
 }
 
-void XiaoEsp32S3Sense::stop_led_breathing() { led_task_->stop(); }
+void XiaoEsp32S3Sense::stop_led_breathing() {
+  if (led_ == nullptr || led_task_ == nullptr) {
+    logger_.error("LED not initialized");
+    return;
+  }
+  led_task_->stop();
+}
 
 bool XiaoEsp32S3Sense::set_led_brightness(float brightness) {
-  if (led_ == nullptr) {
+  if (led_ == nullptr || led_task_ == nullptr) {
     logger_.error("LED not initialized");
     return false;
   }

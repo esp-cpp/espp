@@ -100,9 +100,13 @@ public:
   bool initialize_led(float breathing_period = 3.5f);
 
   /// @brief Start the user-LED breathing effect.
+  /// @details Logs an error and does nothing if the LED helper has not been
+  ///          initialized yet.
   void start_led_breathing();
 
   /// @brief Stop the user-LED breathing effect.
+  /// @details Logs an error and does nothing if the LED helper has not been
+  ///          initialized yet.
   void stop_led_breathing();
 
   /// @brief Set the user-LED brightness.

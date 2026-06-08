@@ -33,6 +33,7 @@ static espp::Logger logger({.tag = "XIAO Camera Streamer", .level = espp::Logger
 namespace {
 constexpr auto idle_capture_poll_period = 250ms;
 constexpr auto dma_pressure_backoff = 250ms;
+constexpr auto camera_capture_error_backoff = 100ms;
 constexpr auto target_video_period = 100ms;
 constexpr auto audio_capture_timeout = 50ms;
 constexpr size_t min_dma_free_bytes_for_streaming = 12 * 1024;
@@ -455,7 +456,8 @@ bool camera_task_fn(std::mutex &m, std::condition_variable &cv, bool &task_notif
   auto *frame_buffer = esp_camera_fb_get();
   if (frame_buffer == nullptr) {
     logger.error("Camera capture failed");
-    return false;
+    return wait_until_or_stop(m, cv, task_notified,
+                              std::chrono::steady_clock::now() + camera_capture_error_backoff);
   }
 
   if (frame_buffer->len < 2 || frame_buffer->buf[frame_buffer->len - 2] != 0xFF ||
@@ -467,7 +469,8 @@ bool camera_task_fn(std::mutex &m, std::condition_variable &cv, bool &task_notif
       last_bad_frame_log = now;
     }
     esp_camera_fb_return(frame_buffer);
-    return false;
+    return wait_until_or_stop(m, cv, task_notified,
+                              std::chrono::steady_clock::now() + camera_capture_error_backoff);
   }
 
   std::span<const uint8_t> jpg_buf(frame_buffer->buf, frame_buffer->len);
@@ -526,10 +529,10 @@ bool audio_task_fn(std::mutex &m, std::condition_variable &cv, bool &task_notifi
   }
 
   auto *audio_bytes = reinterpret_cast<const uint8_t *>(audio_samples.data());
-  std::span<const uint8_t> audio_frame(audio_bytes, bytes_read);
   {
     std::lock_guard<std::recursive_mutex> lock(server_mutex);
     if (rtsp_server) {
+      std::span<const uint8_t> audio_frame(audio_bytes, bytes_read);
       rtsp_server->send_frame(audio_track_id, audio_frame);
       audio_frames_streamed++;
     }
