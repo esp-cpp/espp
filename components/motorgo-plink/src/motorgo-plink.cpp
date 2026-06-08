@@ -367,6 +367,8 @@ bool MotorGoPlink::initialize_encoder_spi() {
         ec);
     if (ec || !encoder_spi_devices_[i]) {
       logger_.error("Failed to initialize encoder {} SPI device: {}", i + 1, ec.message());
+      encoder_spi_devices_ = {};
+      encoder_spi_.reset();
       return false;
     }
   }
