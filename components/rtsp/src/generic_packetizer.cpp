@@ -21,6 +21,10 @@ std::vector<RtpPayloadChunk> GenericPacketizer::packetize(std::span<const uint8_
   if (frame_data.empty()) {
     return chunks;
   }
+  if (max_payload_size_ == 0) {
+    logger_.error("max_payload_size is 0; cannot packetize {} bytes", frame_data.size());
+    return chunks;
+  }
 
   size_t offset = 0;
   size_t remaining = frame_data.size();
