@@ -6,6 +6,9 @@
 #include <memory>
 #include <vector>
 
+#include <esp_vfs_fat.h>
+#include <sdmmc_cmd.h>
+
 #include <driver/gpio.h>
 #include <driver/i2s_pdm.h>
 
@@ -66,6 +69,9 @@ public:
     gpio_num_t cs{GPIO_NUM_NC};   ///< SPI chip-select pin.
   };
 
+  /// Mount point for the microSD card.
+  static constexpr char mount_point[] = "/sdcard";
+
   /// @brief Access the singleton instance of the XiaoEsp32S3Sense class.
   /// @return Reference to the singleton instance of the XiaoEsp32S3Sense class.
   static XiaoEsp32S3Sense &get() {
@@ -89,6 +95,33 @@ public:
   /// Get the documented SPI microSD pin mapping.
   /// \return The microSD pin mapping for the XIAO ESP32S3 Sense.
   SdCardPins sd_card_pins() const;
+
+  /////////////////////////////////////////////////////////////////////////////
+  // uSD Card
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// Configuration for the microSD card.
+  struct SdCardConfig {
+    bool format_if_mount_failed = false;    ///< Format the card if mount fails.
+    int max_files = 5;                      ///< Maximum number of open files.
+    size_t allocation_unit_size = 2 * 1024; ///< FAT allocation unit size in bytes.
+  };
+
+  /// Initialize the microSD card and mount it at mount_point.
+  /// \return True if the card was initialized and mounted successfully; false
+  ///         otherwise.
+  bool initialize_sdcard();
+
+  /// Initialize the microSD card and mount it at mount_point.
+  /// \param config Mount configuration for the card.
+  /// \return True if the card was initialized and mounted successfully; false
+  ///         otherwise.
+  bool initialize_sdcard(const SdCardConfig &config);
+
+  /// Get the mounted microSD card handle.
+  /// \return Pointer to the mounted card, or `nullptr` if the card has not been
+  ///         initialized successfully.
+  sdmmc_card_t *sdcard() const { return sdcard_; }
 
   /////////////////////////////////////////////////////////////////////////////
   // LED
@@ -280,6 +313,8 @@ protected:
   static constexpr gpio_num_t sd_card_miso_pin_ = GPIO_NUM_8;
   static constexpr gpio_num_t sd_card_sck_pin_ = GPIO_NUM_7;
   static constexpr gpio_num_t sd_card_cs_pin_ = GPIO_NUM_3;
+  static constexpr spi_host_device_t sd_card_spi_num_ = SPI2_HOST;
+  static constexpr size_t sd_card_spi_max_transfer_bytes_ = 4 * 1024;
 
   std::vector<espp::Led::ChannelConfig> led_channels_{{
       .gpio = static_cast<size_t>(user_led_pin_),
@@ -287,6 +322,7 @@ protected:
       .timer = LEDC_TIMER_1,
       .output_invert = true,
   }};
+  sdmmc_card_t *sdcard_{nullptr};
   std::shared_ptr<espp::Led> led_;
   std::unique_ptr<espp::Task> led_task_;
   std::atomic<float> breathing_period_{3.5f};

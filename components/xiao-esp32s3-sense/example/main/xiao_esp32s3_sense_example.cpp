@@ -4,6 +4,7 @@
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <cstdio>
 #include <string_view>
 
 #include <freertos/FreeRTOS.h>
@@ -73,6 +74,7 @@ esp_err_t initialize_microphone(void);
 void deinitialize_microphone(void);
 bool start_rtsp_server(std::string_view server_address, int server_port);
 void stop_streaming(void);
+bool initialize_and_test_sdcard(void);
 bool camera_task_fn(std::mutex &m, std::condition_variable &cv, bool &task_notified);
 bool audio_task_fn(std::mutex &m, std::condition_variable &cv, bool &task_notified);
 bool memory_monitor_task_fn(std::mutex &m, std::condition_variable &cv, bool &task_notified);
@@ -99,6 +101,8 @@ extern "C" void app_main(void) {
     return;
   }
   sense.start_led_breathing();
+
+  initialize_and_test_sdcard();
 
   logger.info("Initializing camera");
   auto err = initialize_camera();
@@ -312,6 +316,54 @@ void deinitialize_microphone(void) {
   i2s_channel_disable(microphone_rx_channel);
   i2s_del_channel(microphone_rx_channel);
   microphone_rx_channel = nullptr;
+}
+
+bool initialize_and_test_sdcard(void) {
+  auto &sense = espp::XiaoEsp32S3Sense::get();
+  if (!sense.initialize_sdcard()) {
+    logger.warn("Could not initialize microSD card, continuing without storage");
+    return false;
+  }
+
+  constexpr char test_file_path[] = "/sdcard/xiao_sdcard_smoke_test.txt";
+  constexpr std::string_view test_payload = "xiao-esp32s3-sense sdcard smoke test\n";
+
+  auto *file = std::fopen(test_file_path, "wb");
+  if (file == nullptr) {
+    logger.error("Could not open '{}' for writing", test_file_path);
+    return false;
+  }
+
+  size_t bytes_written = std::fwrite(test_payload.data(), 1, test_payload.size(), file);
+  std::fclose(file);
+  if (bytes_written != test_payload.size()) {
+    logger.error("microSD smoke test short write: wrote {} of {} bytes", bytes_written,
+                 test_payload.size());
+    std::remove(test_file_path);
+    return false;
+  }
+
+  std::array<char, 128> readback{};
+  file = std::fopen(test_file_path, "rb");
+  if (file == nullptr) {
+    logger.error("Could not reopen '{}' for reading", test_file_path);
+    std::remove(test_file_path);
+    return false;
+  }
+
+  size_t bytes_read = std::fread(readback.data(), 1, readback.size() - 1, file);
+  std::fclose(file);
+  std::remove(test_file_path);
+
+  std::string_view readback_view(readback.data(), bytes_read);
+  if (readback_view != test_payload) {
+    logger.error("microSD smoke test readback mismatch: expected '{}', got '{}'", test_payload,
+                 readback_view);
+    return false;
+  }
+
+  logger.info("microSD smoke test passed using '{}'", test_file_path);
+  return true;
 }
 
 bool start_rtsp_server(std::string_view server_address, int server_port) {

@@ -11,14 +11,17 @@ for the board's documented camera, microphone, user-LED, and microSD pin
 mappings.
 
 It also provides helper methods for creating default ESP-IDF PDM RX I2S
-configuration structures for the onboard microphone, plus TimerCam-style user
-LED control helpers including Gaussian breathing.
+configuration structures for the onboard microphone, TimerCam-style user LED
+control helpers including Gaussian breathing, and a T-Deck / T-Dongle-S3 style
+microSD mount helper.
 
 Published helpers include:
 
 - `camera_pins()`
 - `microphone_pins()`
 - `sd_card_pins()`
+- `initialize_sdcard()`
+- `sdcard()`
 - `user_led_pin()`
 - `initialize_led()`
 - `start_led_breathing()`
@@ -31,4 +34,5 @@ Published helpers include:
 The [example](./example) shows how to use the `espp::XiaoEsp32S3Sense`
 component in a streamer-style application that serves OV2640 MJPEG video and
 PDM-microphone PCM audio over RTSP while driving the onboard user LED with the
-same breathing behavior used by the ESP32 Timer-Cam example.
+same breathing behavior used by the ESP32 Timer-Cam example, and performing a
+simple microSD mount/write/read smoke test when a card is present.

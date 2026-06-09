@@ -11,7 +11,8 @@ microSD card slot.
 The `espp::XiaoEsp32S3Sense` component provides a singleton hardware abstraction
 for the board's documented camera, microphone, user-LED, and microSD pin
 mappings, as well as helpers for building the default ESP-IDF PDM RX microphone
-configuration and controlling the onboard LED with a Gaussian breathing effect.
+configuration, mounting the onboard microSD card over SDSPI, and controlling the
+onboard LED with a Gaussian breathing effect.
 
 .. ------------------------------- Example -------------------------------------
 

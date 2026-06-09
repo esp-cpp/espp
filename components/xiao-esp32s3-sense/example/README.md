@@ -10,6 +10,7 @@ It mirrors the newer ESP32-TimerCam streamer-style example:
 - starts an RTSP server and advertises it over mDNS
 - captures MJPEG video from the onboard OV2640 camera
 - captures 16 kHz mono PCM audio from the onboard PDM microphone
+- mounts the onboard microSD card and performs a simple file write/read smoke test when present
 - serves both tracks from a single RTSP session
 - exposes a simple serial CLI with Wi-Fi and memory-monitor commands
 
