@@ -86,6 +86,7 @@ public:
 protected:
   /// @brief Set the log level for the I2c device.
   /// @param out The output stream to write to.
+  /// @param device The I2C master device whose log level will be updated.
   /// @param verbosity The verbosity level to set.
   static void set_log_level(std::ostream &out,
                             const std::shared_ptr<espp::I2cMasterDevice<RegisterType>> &device,
@@ -113,6 +114,7 @@ protected:
 
   /// @brief Probe for the device on the bus.
   /// @param out The output stream to write to.
+  /// @param device The I2C master device to probe.
   static void probe_device(std::ostream &out,
                            const std::shared_ptr<espp::I2cMasterDevice<RegisterType>> &device) {
     if (!device) {
@@ -129,6 +131,7 @@ protected:
 
   /// @brief Read from a register.
   /// @param out The output stream to write to.
+  /// @param device The I2C master device to read from.
   /// @param reg The register to read from.
   /// @param len The number of bytes to read.
   static void read_register(std::ostream &out,
@@ -150,6 +153,7 @@ protected:
 
   /// @brief Write to a register.
   /// @param out The output stream to write to.
+  /// @param device The I2C master device to write to.
   /// @param reg The register to write to.
   /// @param data The data to write.
   static void write_register(std::ostream &out,

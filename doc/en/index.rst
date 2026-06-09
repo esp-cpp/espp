@@ -82,3 +82,4 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    ws_s3_geek
    ws_s3_lcd_1_47
    ws_s3_touch
+   xiao_esp32s3_sense

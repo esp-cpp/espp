@@ -17,7 +17,7 @@ namespace espp {
 /// format that uses simple marker-based framing.
 ///
 /// \section generic_depacketizer_ex1 Example
-/// \snippet generic_depacketizer_example.cpp generic_depacketizer example
+/// \snippet rtsp_example.cpp generic_depacketizer_test
 class GenericDepacketizer : public RtpDepacketizer {
 public:
   /// Configuration for GenericDepacketizer.

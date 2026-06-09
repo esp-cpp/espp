@@ -23,7 +23,7 @@ namespace espp {
 ///       SSRC). The caller wraps each returned chunk into an RtpPacket.
 ///
 /// \section h264_packetizer_ex1 Example
-/// \snippet h264_packetizer_example.cpp h264_packetizer example
+/// \snippet rtsp_example.cpp h264_packetizer_test
 class H264Packetizer : public RtpPacketizer {
 public:
   /// Configuration for the H264Packetizer.

@@ -13,7 +13,7 @@ namespace espp {
 /// chunk with the RTP marker bit.
 ///
 /// \section generic_packetizer_ex1 Example
-/// \snippet generic_packetizer_example.cpp generic_packetizer example
+/// \snippet rtsp_example.cpp generic_packetizer_test
 class GenericPacketizer : public RtpPacketizer {
 public:
   /// Configuration for GenericPacketizer.

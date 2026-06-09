@@ -9,6 +9,7 @@
 using namespace std::chrono_literals;
 
 extern "C" void app_main(void) {
+  //! [dns server example]
   espp::Logger logger({.tag = "DNS Server Example", .level = espp::Logger::Verbosity::INFO});
 
   logger.info("Starting DNS Server Example");
@@ -58,4 +59,5 @@ extern "C" void app_main(void) {
   while (true) {
     std::this_thread::sleep_for(1s);
   }
+  //! [dns server example]
 }

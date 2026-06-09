@@ -85,6 +85,7 @@ extern "C" void app_main(void) {
   static constexpr float disconnected_led_breathing_period = 1.0f;
   static constexpr float connected_led_breathing_period = 3.5f;
 
+  //! [xiao esp32s3 sense example]
   auto &sense = espp::XiaoEsp32S3Sense::get();
   auto microphone = sense.microphone_pins();
   auto sd_card = sense.sd_card_pins();
@@ -118,6 +119,7 @@ extern "C" void app_main(void) {
     deinitialize_microphone();
     return;
   }
+  //! [xiao esp32s3 sense example]
 
   logger.info("Starting memory monitors");
   task_monitor = std::make_unique<espp::TaskMonitor>(espp::TaskMonitor::Config{.period = 30s});

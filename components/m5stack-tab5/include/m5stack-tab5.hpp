@@ -419,12 +419,12 @@ public:
   bool initialize_io_expanders();
 
   /// Control the LCD reset (active-low) routed via IO expander (0x43 P4)
-  /// \param assert_reset=true drives reset low; false releases reset high.
+  /// \param assert_reset True drives reset low; false releases reset high.
   /// \return true on success
   bool lcd_reset(bool assert_reset);
 
   /// Control the GT911 touch reset (active-low) via IO expander (0x43 P5)
-  /// \param assert_reset=true drives reset low; false releases reset high.
+  /// \param assert_reset True drives reset low; false releases reset high.
   /// \return true on success
   bool touch_reset(bool assert_reset);
 

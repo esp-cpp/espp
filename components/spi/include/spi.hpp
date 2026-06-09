@@ -121,13 +121,13 @@ public:
   Spi(Spi &&) = delete;
   Spi &operator=(Spi &&) = delete;
 
-  /// @brief Convert a `Spi::Config` into an ESP-IDF `spi_bus_config_t`.
-  /// @param config High-level SPI bus configuration.
+  /// @brief Convert high-level SPI bus settings into an ESP-IDF `spi_bus_config_t`.
+  /// @param config High-level SPI bus settings.
   /// @return Equivalent ESP-IDF bus configuration.
   static spi_bus_config_t make_bus_config(const Config &config);
 
-  /// @brief Convert a `Spi::DeviceConfig` into an ESP-IDF device config.
-  /// @param config High-level SPI device configuration.
+  /// @brief Convert high-level SPI device settings into an ESP-IDF device config.
+  /// @param config High-level SPI device settings.
   /// @return Equivalent ESP-IDF device interface configuration.
   static spi_device_interface_config_t make_device_config(const DeviceConfig &config);
 

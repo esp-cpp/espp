@@ -132,6 +132,7 @@ void log_motor_outputs(espp::MotorGoPlink &board) {
 } // namespace
 
 extern "C" void app_main() {
+  //! [motorgo-plink example]
   auto &board = espp::MotorGoPlink::get();
 
   if (!board.initialize_leds()) {
@@ -191,6 +192,8 @@ extern "C" void app_main() {
 
     log_imu_data(board);
 
-    vTaskDelay(pdMS_TO_TICKS(500));
+    using namespace std::chrono_literals;
+    std::this_thread::sleep_for(500ms);
   }
+  //! [motorgo-plink example]
 }
