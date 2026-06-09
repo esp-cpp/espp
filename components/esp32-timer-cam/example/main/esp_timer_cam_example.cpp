@@ -349,12 +349,12 @@ bool camera_task_fn(std::mutex &m, std::condition_variable &cv) {
     return false;
   }
 
-  std::span<const uint8_t> jpg_buf(_jpg_buf, _jpg_buf_len);
   {
     std::lock_guard<std::recursive_mutex> lock(server_mutex);
     server_snapshot = rtsp_server;
   }
   if (server_snapshot) {
+    std::span<const uint8_t> jpg_buf(_jpg_buf, _jpg_buf_len);
     server_snapshot->send_frame(jpg_buf);
     frames_streamed++;
   }
