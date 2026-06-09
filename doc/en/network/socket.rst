@@ -56,7 +56,7 @@ The ``TcpSocket`` API covers both client and server patterns:
 Example
 -------
 
-The :doc:`socket_example <network/socket_example>` page shows the use of the
+The ``network/socket_example`` page shows the use of the
 classes provided by the ``socket`` component and runs a scenario-driven
 self-test which covers teardown, timeout, and reconnect behavior, including:
 
