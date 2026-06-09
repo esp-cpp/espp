@@ -227,6 +227,8 @@ jobs:
           target: esp32s3
         - path: 'components/ws-s3-touch/example'
           target: esp32s3
+        - path: 'components/xiao-esp32s3-sense/example'
+          target: esp32s3
 
     steps:
     - name: Checkout repo

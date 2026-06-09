@@ -1,0 +1,51 @@
+menu "Camera Streamer Configuration"
+
+    config RTSP_SERVER_PORT
+        int "RTSP Server Port"
+        default 8554
+        help
+            The port number of the RTSP server.
+
+    config RTSP_ACCEPT_TASK_STACK_SIZE
+        int "RTSP accept task stack size (bytes)"
+        range 2048 32768
+        default 4096
+        help
+            Stack size for the RTSP server accept task.
+
+    config RTSP_SESSION_TASK_STACK_SIZE
+        int "RTSP session task stack size (bytes)"
+        range 2048 32768
+        default 4096
+        help
+            Stack size for the RTSP server session-dispatch task.
+
+    config RTSP_CONTROL_TASK_STACK_SIZE
+        int "RTSP control task stack size (bytes)"
+        range 2048 32768
+        default 8192
+        help
+            Stack size for each per-client RTSP control task. Increase this if
+            the board reports a stack overflow in a task named like
+            "RtspSession <id>".
+
+    config ESP_WIFI_SSID
+        string "WiFi SSID"
+        default ""
+        help
+            SSID (network name) for the camera streamer to connect to.
+
+    config ESP_WIFI_PASSWORD
+        string "WiFi Password"
+        default ""
+        help
+            WiFi password (WPA or WPA2) for the camera streamer to use.
+
+    config ESP_MAXIMUM_RETRY
+        int "Maximum retry"
+        default 5
+        help
+            Set the Maximum retry to avoid station reconnecting to the AP unlimited when the AP is
+            really inexistent.
+
+endmenu

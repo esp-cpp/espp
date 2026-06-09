@@ -135,6 +135,7 @@ jobs:
             components/ws-s3-geek
             components/ws-s3-lcd-1-47
             components/ws-s3-touch
+            components/xiao-esp32s3-sense
           namespace: "espp"
           # use old version if this isn't a release for testing
           version: ${{ github.event.release && github.event.release.tag_name || 'v0.20.2' }}
