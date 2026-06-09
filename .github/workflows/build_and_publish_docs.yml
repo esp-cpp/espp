@@ -72,9 +72,8 @@ jobs:
           path: doc/_build/en/esp32/latex/espp_documentation.pdf
 
       - name: Attach files to release
-        if: env.PDF_GENERATED == 'true'
         uses: softprops/action-gh-release@v2
-        if: ${{ github.event.release && github.event.action == 'published' }}
+        if: ${{ github.event.release && github.event.action == 'published' && env.PDF_GENERATED == 'true' }}
         with:
           files: |
             doc/_build/en/esp32/latex/espp_documentation.pdf
