@@ -22,3 +22,9 @@ versions_url = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js'
 
 idf_targets = ['esp32', 'esp32s2', 'esp32c3']
 languages = ['en']
+
+# The generated API/README content includes Unicode characters such as Ω, π,
+# emoji, and other symbols that pdflatex cannot handle reliably. Use xelatex so
+# the PDF docs build stays aligned with the HTML sources instead of requiring
+# per-character LaTeX escape maintenance.
+latex_engine = 'xelatex'

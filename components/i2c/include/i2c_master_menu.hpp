@@ -95,6 +95,7 @@ public:
 protected:
   /// @brief Set the log level for the I2c master bus.
   /// @param out The output stream to write to.
+  /// @param bus The I2C master bus whose log level will be updated.
   /// @param verbosity The verbosity level to set.
   static void set_log_level(std::ostream &out, espp::I2cMasterBus &bus,
                             const std::string &verbosity) {
@@ -117,6 +118,7 @@ protected:
 
   /// @brief Scan the I2c master bus for devices.
   /// @param out The output stream to write to.
+  /// @param bus The I2C master bus to scan.
   static void scan_bus(std::ostream &out, espp::I2cMasterBus &bus) {
     out << "Scanning I2c master bus. This may take a while.\n";
     auto prev_log_level = bus.get_log_level();
@@ -140,6 +142,7 @@ protected:
 
   /// @brief Probe for a device at a specific address.
   /// @param out The output stream to write to.
+  /// @param bus The I2C master bus to probe on.
   /// @param address The address to probe for.
   static void probe_device(std::ostream &out, espp::I2cMasterBus &bus, uint16_t address) {
     std::error_code ec;
@@ -152,6 +155,7 @@ protected:
 
   /// @brief Read from a device at a specific address and register.
   /// @param out The output stream to write to.
+  /// @param bus The I2C master bus used to create the temporary device handle.
   /// @param address The address to read from.
   /// @param reg The register to read from.
   /// @param len The number of bytes to read.
@@ -177,6 +181,7 @@ protected:
 
   /// @brief Write to a device at a specific address and register.
   /// @param out The output stream to write to.
+  /// @param bus The I2C master bus used to create the temporary device handle.
   /// @param address The address to write to.
   /// @param data The data to write (first byte is register, rest is data).
   static void write_device(std::ostream &out,

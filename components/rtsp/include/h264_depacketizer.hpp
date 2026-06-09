@@ -22,7 +22,7 @@ namespace espp {
 /// via the frame callback set with set_frame_callback().
 ///
 /// \section h264_depacketizer_ex1 Example
-/// \snippet h264_depacketizer_example.cpp h264_depacketizer example
+/// \snippet rtsp_example.cpp h264_depacketizer_test
 class H264Depacketizer : public RtpDepacketizer {
 public:
   /// Configuration for the H264Depacketizer.

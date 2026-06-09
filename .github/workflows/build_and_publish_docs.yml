@@ -39,12 +39,24 @@ jobs:
           cp -r _build/en/esp32/html/* ../docs/.
           # go to the latex output
           cd _build/en/esp32/latex/
-          # build once (ignore if command fails)
-          pdflatex -interaction=batchmode refman || true
+          # use xelatex because the generated docs include Unicode characters
+          # that pdflatex cannot render reliably
+          xelatex -interaction=batchmode refman || true
           # build again to make sure page numbers and refs and such work (ignore if command fails)
-          pdflatex -interaction=batchmode refman || true
-          # rename refman to espp_documentation.pdf
-          mv refman.pdf espp_documentation.pdf
+          xelatex -interaction=batchmode refman || true
+          if [ -f refman.pdf ]; then
+            mv refman.pdf espp_documentation.pdf
+          fi
+          # set a variable to indicate whether the PDF was generated successfully
+          if [ -f espp_documentation.pdf ]; then
+            echo "PDF_GENERATED=true" >> $GITHUB_ENV
+          else
+            echo "PDF_GENERATED=false" >> $GITHUB_ENV
+          fi
+          # warn if the PDF was not generated successfully
+          if [ "$PDF_GENERATED" = "false" ]; then
+            echo "Warning: PDF documentation was not generated successfully."
+          fi
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
@@ -54,13 +66,14 @@ jobs:
           force_orphan: true
 
       - uses: actions/upload-artifact@v4
+        if: env.PDF_GENERATED == 'true'
         with:
           name: espp_documentation.pdf
           path: doc/_build/en/esp32/latex/espp_documentation.pdf
 
       - name: Attach files to release
         uses: softprops/action-gh-release@v2
-        if: ${{ github.event.release && github.event.action == 'published' }}
+        if: ${{ github.event.release && github.event.action == 'published' && env.PDF_GENERATED == 'true' }}
         with:
           files: |
             doc/_build/en/esp32/latex/espp_documentation.pdf
