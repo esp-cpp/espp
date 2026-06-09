@@ -28,21 +28,25 @@ This component includes:
 Choosing a controller
 ---------------------
 
-+--------------------------+----------------------------------------------+---------------------------------------------+
-| Controller               | Best fit                                     | Typical robotics example                     |
-+==========================+==============================================+=============================================+
-| Linear first-order ADRC  | Output behaves roughly like a one-pole loop  | Motor velocity loop above an inner current  |
-|                          |                                              | or torque loop                               |
-+--------------------------+----------------------------------------------+---------------------------------------------+
-| Linear second-order ADRC | Input primarily affects acceleration         | Servo position loop, gimbal angle loop,     |
-|                          |                                              | heading loop                                 |
-+--------------------------+----------------------------------------------+---------------------------------------------+
-| Han first-order ADRC     | First-order loop needing nonlinear shaping   | Velocity loop with stiction, load steps,    |
-|                          | or better large-error behavior               | or wide operating range                      |
-+--------------------------+----------------------------------------------+---------------------------------------------+
-| Han second-order ADRC    | Second-order loop with large disturbances    | Motor-driven joint position control or      |
-|                          | and aggressive setpoint changes              | heading control on variable terrain          |
-+--------------------------+----------------------------------------------+---------------------------------------------+
+.. list-table::
+   :header-rows: 1
+   :widths: 24 38 38
+
+   * - Controller
+     - Best fit
+     - Typical robotics example
+   * - Linear first-order ADRC
+     - Output behaves roughly like a one-pole loop
+     - Motor velocity loop above an inner current or torque loop
+   * - Linear second-order ADRC
+     - Input primarily affects acceleration
+     - Servo position loop, gimbal angle loop, heading loop
+   * - Han first-order ADRC
+     - First-order loop needing nonlinear shaping or better large-error behavior
+     - Velocity loop with stiction, load steps, or wide operating range
+   * - Han second-order ADRC
+     - Second-order loop with large disturbances and aggressive setpoint changes
+     - Motor-driven joint position control or heading control on variable terrain
 
 For many motor-control applications, a good starting point is:
 
