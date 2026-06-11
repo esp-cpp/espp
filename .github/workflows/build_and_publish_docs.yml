@@ -35,15 +35,14 @@ jobs:
           cd doc
           # ignore if the following command fails
           build-docs -bs html -t esp32 -l en --project-path ../ --source-dir ./ --doxyfile_dir ./ || true
+          python3 patch_doxygen_latex.py _build/en/esp32/latex
           mkdir -p ../docs
           cp -r _build/en/esp32/html/* ../docs/.
           # go to the latex output
           cd _build/en/esp32/latex/
-          # use xelatex because the generated docs include Unicode characters
-          # that pdflatex cannot render reliably
-          xelatex -interaction=batchmode refman || true
+          pdflatex -interaction=batchmode refman || true
           # build again to make sure page numbers and refs and such work (ignore if command fails)
-          xelatex -interaction=batchmode refman || true
+          pdflatex -interaction=batchmode refman || true
           if [ -f refman.pdf ]; then
             mv refman.pdf espp_documentation.pdf
           fi

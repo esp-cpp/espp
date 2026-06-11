@@ -23,7 +23,11 @@ PROJECT_NAME = "Espressif++ (ESPP), an ESP C++ Library"
 ##
 QUIET = YES
 
-INLINE_SOURCES = YES
+# Keep inline sources out of the generated LaTeX/PDF output. Some example/source
+# listings contain rich Unicode that is fine in code and HTML, but makes the
+# standalone Doxygen PDF build unreliable.
+INLINE_SOURCES = NO
+
 
 # If the INLINE_INHERITED_MEMB tag is set to YES, doxygen will show all
 # inherited members of a class in the documentation of that class as if those
