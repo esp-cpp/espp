@@ -13,9 +13,9 @@ class Hsv;
  */
 class Rgb {
 public:
-  float r{0}; ///< Red value in [0, 1]
-  float g{0}; ///< Green value in [0, 1]
-  float b{0}; ///< Blue value in [0, 1]
+  float r{0}; ///< Red value ∈ [0, 1]
+  float g{0}; ///< Green value ∈ [0, 1]
+  float b{0}; ///< Blue value ∈ [0, 1]
 
   Rgb() = default;
 
@@ -106,9 +106,9 @@ public:
  */
 class Hsv {
 public:
-  float h{0}; ///< Hue in [0, 360]
-  float s{0}; ///< Saturation in [0, 1]
-  float v{0}; ///< Value in [0, 1]
+  float h{0}; ///< Hue ∈ [0, 360]
+  float s{0}; ///< Saturation ∈ [0, 1]
+  float v{0}; ///< Value ∈ [0, 1]
 
   Hsv() = default;
 
