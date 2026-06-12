@@ -11,6 +11,9 @@ if [ ! -d "$latex_dir" ]; then
   echo "latex directory not found: $latex_dir" >&2
   exit 1
 fi
+latex_dir=$(
+  CDPATH= cd -- "$latex_dir" && pwd
+)
 
 script_dir=$(
   CDPATH= cd -- "$(dirname -- "$0")" && pwd
