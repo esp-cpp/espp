@@ -86,7 +86,6 @@ def main() -> int:
 
     text = style_path.read_text()
     if NEW_NEWDOCUMENT_BLOCK in text or NEW_NEWENV_BLOCK in text:
-      replacements = 0
       updated_text = text
     else:
       updated_text, replacements = OLD_NEWDOCUMENT_PATTERN.subn(
