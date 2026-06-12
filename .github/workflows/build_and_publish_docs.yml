@@ -30,11 +30,18 @@ jobs:
           sudo apt-get install doxygen graphviz texlive-full pandoc
           pip install -r doc/requirements.txt
 
-      - name: Build Documentation
+      - name: Build Documentation (HTML)
         run: |
           cd doc
           # ignore if the following command fails
           build-docs -bs html -t esp32 -l en --project-path ../ --source-dir ./ --doxyfile_dir ./ || true
+          # copy the generated HTML files to the docs directory for GitHub Pages
+          mkdir -p ../docs
+          cp -r _build/en/esp32/html/* ../docs/.
+
+      - name: Build Documentation (PDF)
+        run: |
+          cd doc
           if sh ./build_latex_pdf.sh _build/en/esp32/latex; then
             echo "PDF_GENERATED=true" >> $GITHUB_ENV
           else
@@ -42,8 +49,6 @@ jobs:
             rm -f _build/en/esp32/latex/espp_documentation.pdf
             echo "PDF_GENERATED=false" >> $GITHUB_ENV
           fi
-          mkdir -p ../docs
-          cp -r _build/en/esp32/html/* ../docs/.
           # warn if the PDF was not generated successfully
           if [ "$PDF_GENERATED" = "false" ]; then
             echo "Warning: PDF documentation was not generated successfully."
