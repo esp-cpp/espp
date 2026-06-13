@@ -126,6 +126,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/matouch-rotary-display/example/main/matouch_rotary_display_example.cpp \
   $(PROJECT_PATH)/components/max1704x/example/main/max1704x_example.cpp \
   $(PROJECT_PATH)/components/monitor/example/main/monitor_example.cpp \
+  $(PROJECT_PATH)/components/motorgo-axis/example/main/motorgo_axis_example.cpp \
   $(PROJECT_PATH)/components/motorgo-mini/example/main/motorgo_mini_example.cpp \
   $(PROJECT_PATH)/components/motorgo-plink/example/main/motorgo_plink_example.cpp \
   $(PROJECT_PATH)/components/mcp23x17/example/main/mcp23x17_example.cpp \
@@ -301,6 +302,7 @@ INPUT = \
   $(PROJECT_PATH)/components/max1704x/include/max1704x.hpp \
   $(PROJECT_PATH)/components/monitor/include/heap_monitor.hpp \
   $(PROJECT_PATH)/components/monitor/include/task_monitor.hpp \
+  $(PROJECT_PATH)/components/motorgo-axis/include/motorgo-axis.hpp \
   $(PROJECT_PATH)/components/motorgo-mini/include/motorgo-mini.hpp \
   $(PROJECT_PATH)/components/motorgo-plink/include/motorgo-plink.hpp \
   $(PROJECT_PATH)/components/ndef/include/ndef.hpp \

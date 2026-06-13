@@ -92,6 +92,7 @@ jobs:
             components/max1704x
             components/mcp23x17
             components/monitor
+            components/motorgo-axis
             components/motorgo-mini
             components/motorgo-plink
             components/mt6701

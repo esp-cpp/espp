@@ -1,0 +1,34 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "MotorGo Axis Board Support Package (BSP) component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/motorgo-axis"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/motorgo_axis.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - ESP32S3
+  - MotorGo
+  - Axis
+  - BSP
+  - BLDC
+  - Encoder
+  - IMU
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/base_component: '>=1.0'
+  espp/bldc_driver: '>=1.0'
+  espp/i2c: '>=1.0'
+  espp/led: '>=1.0'
+  espp/lsm6dso: '>=1.0'
+  espp/math: '>=1.0'
+  espp/mt6701: '>=1.0'
+  espp/spi: '>=1.0'
+  espp/task: '>=1.0'
+targets:
+  - esp32s3

@@ -50,6 +50,7 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    math/index
    matouch_rotary_display
    monitor
+   motorgo_axis
    motorgo_mini
    motorgo_plink
    neopixel
