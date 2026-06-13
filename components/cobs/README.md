@@ -7,7 +7,7 @@ The COBS component provides efficient encoding and decoding for the Consistent O
 ## Features
 
 - **Zero-byte elimination**: Removes all zero bytes from data, using them as packet delimiters
-- **Consistent overhead**: Maximum overhead of ⌈n/254⌉ + 1 bytes per packet
+- **Consistent overhead**: Maximum overhead of ceil(n/254) + 1 bytes per packet
 - **Simple framing**: Uses zero bytes as reliable packet delimiters
 - **Streaming support**: Handle fragmented data streams and batch multiple packets
 - **Thread-safe**: Streaming classes are thread-safe with internal locking
@@ -170,7 +170,7 @@ decoder.clear();
 
 
 **Buffer Size Formulas:**
-- **`max_encoded_size(payload_len)`**: `payload_len + ⌈payload_len/254⌉ + 2`
+- **`max_encoded_size(payload_len)`**: `payload_len + ceil(payload_len/254) + 2`
 - **`max_decoded_size(encoded_len)`**: `encoded_len - 1` (accounts for delimiter)
 
 ## COBS Algorithm Details
@@ -179,7 +179,7 @@ COBS works by:
 1. **Eliminating zeros**: All zero bytes are removed from the data
 2. **Adding overhead bytes**: Each block of non-zero data gets a length prefix
 3. **Using zero as delimiter**: A single zero byte marks the end of each packet
-4. **Consistent overhead**: Maximum overhead is ⌈n/254⌉ + 1 bytes per packet
+4. **Consistent overhead**: Maximum overhead is ceil(n/254) + 1 bytes per packet
 
 ### Example Encoding
 ```
@@ -197,7 +197,7 @@ Output: [0x03, 0x01, 0x02, 0x02, 0x03, 0x04, 0x00]
 
 ## Performance Characteristics
 
-- **Encoding overhead**: At most ⌈n/254⌉ + 1 bytes per packet
+- **Encoding overhead**: At most ceil(n/254) + 1 bytes per packet
 - **Decoding complexity**: O(n) where n is packet size
 - **Speed**: Optimized for embedded systems with minimal overhead
 - **Large packet support**: Tested and verified with packets up to 1000+ bytes
