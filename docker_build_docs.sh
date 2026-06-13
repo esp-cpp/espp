@@ -5,6 +5,11 @@ export PYTHONPATH=$PYTHONPATH:/project/doc
 git config --global --add safe.directory /project
 # build the docs
 build-docs -bs html -t esp32 -l en --project-path /project/ --source-dir /project/doc/ --doxyfile_dir /project/doc/
+if ! sh /project/doc/build_latex_pdf.sh /project/_build/en/esp32/latex; then
+  rm -f /project/_build/en/esp32/latex/refman.pdf
+  rm -f /project/_build/en/esp32/latex/espp_documentation.pdf
+  echo "Warning: PDF documentation was not generated successfully." >&2
+fi
 mkdir -p /project/docs
 # copy the docs to the docs folder
 cp -rf /project/_build/en/esp32/html/* /project/docs/.

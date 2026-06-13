@@ -6,7 +6,7 @@ Overhead Byte Stuffing algorithm, a packet framing protocol that ensures reliabl
 packet boundaries in communication streams.
 
 Key features:
-* Zero-byte elimination with consistent overhead (max ⌈n/254⌉ + 1 bytes)
+* Zero-byte elimination with consistent overhead (max ceil(n/254) + 1 bytes)
 * Single packet API for basic encoding/decoding
 * Streaming API with thread-safe encoder/decoder classes
 * Support for fragmented data streams and packet batching
