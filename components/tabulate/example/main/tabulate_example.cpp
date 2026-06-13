@@ -21,16 +21,16 @@ extern "C" void app_main(void) {
   Table universal_constants;
 
   universal_constants.add_row({"Quantity", "Value"});
-  universal_constants.add_row({"Characteristic impedance of vacuum", "376.730 313 461... Ohm"});
+  universal_constants.add_row({"Characteristic impedance of vacuum", "376.730 313 461... Ω"});
   universal_constants.add_row(
-      {"Electric constant (permittivity of free space)", "8.854 187 817... x 10^-12 F*m^-1"});
+      {"Electric constant (permittivity of free space)", "8.854 187 817... × 10⁻¹²F·m⁻¹"});
   universal_constants.add_row({"Magnetic constant (permeability of free space)",
-                               "4*pi x 10^-7 N*A^-2 = 1.2566 370 614... x 10^-6 N*A^-2"});
+                               "4π × 10⁻⁷ N·A⁻² = 1.2566 370 614... × 10⁻⁶ N·A⁻²"});
   universal_constants.add_row({"Gravitational constant (Newtonian constant of gravitation)",
-                               "6.6742(10) x 10^-11 m^3*kg^-1*s^-2"});
-  universal_constants.add_row({"Planck's constant", "6.626 0693(11) x 10^-34 J*s"});
-  universal_constants.add_row({"Dirac's constant", "1.054 571 68(18) x 10^-34 J*s"});
-  universal_constants.add_row({"Speed of light in vacuum", "299 792 458 m*s^-1"});
+                               "6.6742(10) × 10⁻¹¹m³·kg⁻¹·s⁻²"});
+  universal_constants.add_row({"Planck's constant", "6.626 0693(11) × 10⁻³⁴ J·s"});
+  universal_constants.add_row({"Dirac's constant", "1.054 571 68(18) × 10⁻³⁴ J·s"});
+  universal_constants.add_row({"Speed of light in vacuum", "299 792 458 m·s⁻¹"});
 
   universal_constants.format()
       .font_style({FontStyle::bold})
@@ -99,7 +99,7 @@ extern "C" void app_main(void) {
   Table readme;
   readme.format().border_color(Color::yellow);
 
-  readme.add_row(Row_t{"tabulate for Modern C++"});
+  readme.add_row(Row_t{"🔥tabulate for Modern C++🔥"});
   readme[0].format().font_align(FontAlign::center).font_color(Color::yellow);
 
   readme.add_row(Row_t{"https://github.com/p-ranav/tabulate"});
@@ -182,7 +182,9 @@ extern "C" void app_main(void) {
 
   readme[9].format().hide_border_top().border_color(Color::white).font_color(Color::yellow);
 
-  readme.add_row(Row_t{"Multi-byte sample text rendered in a PDF-friendly ASCII form."});
+  readme.add_row(Row_t{"ᚠ ᚡ ᚢ ᚣ ᚤ ᚥ ᚦ ᚧ ᚨ ᚩ ᚪ ᚫ ᚬ ᚭ ᚮ ᚯ ᚰ ᚱ ᚲ ᚳ ᚴ ᚵ ᚶ ᚷ ᚸ ᚹ ᚺ "
+                       "ᚻ ᚼ ᚽ ᚾ ᚿ ᛀ ᛁ ᛂ ᛃ ᛄ ᛅ ᛆ ᛇ "
+                       "ᛈ ᛉ ᛊ ᛋ ᛌ ᛍ ᛎ ᛏ ᛐ ᛑ ᛒ ᛓ"});
   readme[10]
       .format()
       .font_background_color(Color::red)
@@ -299,7 +301,7 @@ extern "C" void app_main(void) {
   chart[8][17].set_text("This one's yellow and right-aligned");
   chart[8][17].format().color(Color::yellow).font_align(FontAlign::right);
 
-  chart[9][17].set_text("This one's on fire!");
+  chart[9][17].set_text("This one's on 🔥🔥🔥");
 
   std::cout << chart;
   std::cout << legend << "\n\n";

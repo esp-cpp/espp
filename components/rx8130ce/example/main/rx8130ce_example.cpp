@@ -124,13 +124,13 @@ extern "C" void app_main(void) {
 
     // Check alarm
     if (rtc.is_alarm_triggered(ec) && !ec) {
-      logger.info("ALARM TRIGGERED!");
+      logger.info("🚨 ALARM TRIGGERED!");
       rtc.clear_alarm_flag(ec);
     }
 
     // Check timer
     if (rtc.is_timer_expired(ec) && !ec) {
-      logger.info("TIMER EXPIRED!");
+      logger.info("⏰ TIMER EXPIRED!");
       rtc.clear_timer_flag(ec);
 
       // Restart timer for another 5 seconds

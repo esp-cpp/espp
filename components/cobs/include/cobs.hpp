@@ -13,8 +13,7 @@ namespace espp {
  *
  * Provides single-packet encoding and decoding using the COBS algorithm
  * with 0 as the delimiter.
- * COBS encoding can add at most ceil(n/254) + 1 bytes overhead, plus 1 byte
- * for the delimiter.
+ * COBS encoding can add at most ⌈n/254⌉ + 1 bytes overhead. Plus 1 byte for the delimiter
  * COBS changes the size of the packet by at least 1 byte, so it's not possible to encode in
  * place. MAX_BLOCK_SIZE = 254 is the maximum number of non-zero bytes in an encoded block.
  *
