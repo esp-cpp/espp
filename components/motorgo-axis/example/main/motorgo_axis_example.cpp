@@ -23,7 +23,7 @@ void log_board_info(espp::MotorGoAxis &board) {
   logger.info("Qwiic I2C: SDA={}, SCL={}", qwiic.sda, qwiic.scl);
   logger.info("Hidden I2C: SDA={}, SCL={}", hidden_i2c.sda, hidden_i2c.scl);
   logger.info("LEDs: user={}, status={}", leds.user, leds.status);
-  logger.info("Encoder bus: SCLK={}, MISO={}, MOSI={}", enc_bus.sclk, enc_bus.miso, enc_bus.mosi);
+  logger.info("Encoder bus: SCLK={}, MISO={}", enc_bus.sclk, enc_bus.miso);
   logger.info("Encoder CS: [{}, {}]", encoder_cs[0], encoder_cs[1]);
   for (size_t i = 0; i < espp::MotorGoAxis::num_motor_channels(); i++) {
     auto pins = board.motor_pins(i);

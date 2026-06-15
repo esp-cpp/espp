@@ -347,7 +347,7 @@ bool MotorGoAxis::initialize_encoder_spi() {
   encoder_spi_ = std::make_unique<Spi>(Spi::Config{
       .host = encoder_spi_host_,
       .sclk_io_num = encoder_bus_pin_map_.sclk,
-      .mosi_io_num = encoder_bus_pin_map_.mosi,
+      .mosi_io_num = GPIO_NUM_NC,
       .miso_io_num = encoder_bus_pin_map_.miso,
       .max_transfer_sz = 32,
       .log_level = get_log_level(),

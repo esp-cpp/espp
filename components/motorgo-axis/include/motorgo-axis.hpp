@@ -29,7 +29,7 @@ namespace espp {
 /// - two encoder chip-selects on a shared SSI/SPI bus
 /// - one onboard LSM6DS33 IMU on the hidden I2C bus
 /// - Qwiic and hidden I2C buses
-/// - user and status LEDs
+/// - user (green) and status (blue) LEDs
 ///
 /// The class is a singleton and can be accessed with get().
 ///
@@ -59,7 +59,6 @@ public:
   struct EncoderBusPins {
     gpio_num_t sclk{GPIO_NUM_NC}; ///< Shared encoder clock pin.
     gpio_num_t miso{GPIO_NUM_NC}; ///< Shared encoder data pin.
-    gpio_num_t mosi{GPIO_NUM_NC}; ///< Dummy MOSI pin used to satisfy the SPI host.
   };
 
   /// I2C pin mapping.
@@ -113,8 +112,7 @@ public:
   MotorPins motor_pins(size_t index) const;
 
   /// Get the shared encoder bus pin mapping.
-  /// \return The shared SCLK, MISO, and dummy MOSI pins used for the encoder
-  ///         bus.
+  /// \return The shared SCLK and MISO pins used for the encoder bus.
   EncoderBusPins encoder_bus_pins() const;
 
   /// Get the two encoder chip-select pins.
@@ -331,11 +329,7 @@ protected:
       GPIO_NUM_6,
       GPIO_NUM_7,
   };
-  static constexpr EncoderBusPins encoder_bus_pin_map_{
-      .sclk = GPIO_NUM_5,
-      .miso = GPIO_NUM_4,
-      .mosi = GPIO_NUM_45,
-  };
+  static constexpr EncoderBusPins encoder_bus_pin_map_{.sclk = GPIO_NUM_5, .miso = GPIO_NUM_4};
   static constexpr I2cPins qwiic_pin_map_{
       .sda = GPIO_NUM_1,
       .scl = GPIO_NUM_2,
