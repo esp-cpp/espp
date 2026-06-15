@@ -207,12 +207,8 @@ public:
   template <typename T, size_t N>
   requires(std::is_integral_v<T> ||
            std::is_floating_point_v<T>) bool write_array(const std::array<T, N> &values) {
-    for (const auto &value : values) {
-      if (!write<T>(value)) {
-        return false;
-      }
-    }
-    return true;
+    return std::all_of(values.begin(), values.end(),
+                       [this](const auto &value) { return write<T>(value); });
   }
 
   /// @brief Append a variable-length CDR sequence of primitive values.
@@ -376,7 +372,14 @@ public:
   /// @return True if a complete value was decoded, false otherwise.
   template <typename T>
   requires(std::is_integral_v<T> || std::is_floating_point_v<T>) bool read(T &value) {
-    if (!align(detail::cdr_alignment<T>()) || remaining() < sizeof(T)) {
+    constexpr size_t alignment = detail::cdr_alignment<T>();
+    if constexpr (alignment > 1) {
+      if (!align(alignment)) {
+        valid_ = false;
+        return false;
+      }
+    }
+    if (remaining() < sizeof(T)) {
       valid_ = false;
       return false;
     }

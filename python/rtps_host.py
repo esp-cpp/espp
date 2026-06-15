@@ -47,6 +47,8 @@ DATA_SUBMESSAGE_OCTETS_TO_INLINE_QOS = 16
 
 RELIABILITY_BEST_EFFORT = 1
 RELIABILITY_RELIABLE = 2
+USER_DATA_RELIABILITY_BEST_EFFORT = 0
+USER_DATA_RELIABILITY_RELIABLE = 1
 
 KIND_UDP_V4 = 1
 VENDOR_ID = b"\xca\xfe"
@@ -490,6 +492,8 @@ class RtpsHostHarness:
             try:
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
             except OSError:
+                # Some platforms expose SO_REUSEPORT but reject setting it; this is
+                # a best-effort optimization and is not required for correctness.
                 pass
         sock.bind((self.args.bind_address, port))
         sock.setblocking(False)
@@ -502,8 +506,15 @@ class RtpsHostHarness:
             try:
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
             except OSError:
+                # Some platforms expose SO_REUSEPORT but reject setting it; this is
+                # a best-effort optimization and is not required for correctness.
                 pass
-        sock.bind(("", self.ports.metatraffic_multicast))
+        try:
+            sock.bind((self.args.multicast_group, self.ports.metatraffic_multicast))
+        except OSError:
+            # Not all platforms allow binding directly to the multicast group
+            # address, so fall back to the selected local interface address.
+            sock.bind((self.args.bind_address, self.ports.metatraffic_multicast))
         interface_ip = self.args.multicast_interface or self.args.advertised_address
         membership = socket.inet_aton(self.args.multicast_group) + socket.inet_aton(interface_ip)
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, membership)
@@ -636,7 +647,7 @@ class RtpsHostHarness:
         payload = bytearray()
         payload.extend(USER_DATA_MAGIC)
         payload.append(USER_DATA_VERSION)
-        payload.append(RELIABILITY_RELIABLE if writer.reliable else RELIABILITY_BEST_EFFORT)
+        payload.append(USER_DATA_RELIABILITY_RELIABLE if writer.reliable else USER_DATA_RELIABILITY_BEST_EFFORT)
         topic_name = writer.topic_name.encode("utf-8")
         payload.extend(struct.pack("<H", len(topic_name)))
         payload.extend(topic_name)
@@ -808,7 +819,9 @@ class RtpsHostHarness:
             maybe_value = deserialize_uint32_cdr(serialized_payload[offset : offset + payload_length])
             if maybe_value is None:
                 continue
-            reliability_name = "reliable" if reliability == RELIABILITY_RELIABLE else "best-effort"
+            reliability_name = (
+                "reliable" if reliability == USER_DATA_RELIABILITY_RELIABLE else "best-effort"
+            )
             log(
                 f"[data] topic='{topic_name}' value={maybe_value} reliability={reliability_name} "
                 f"from {sender_ip}:{sender_port} writer={hex_string(writer_id)}"
@@ -890,8 +903,8 @@ class RtpsHostHarness:
         ):
             try:
                 sock.close()
-            except OSError:
-                pass
+            except OSError as exc:
+                log(f"[close] ignoring socket close failure for {sock!r}: {exc}")
 
 
 def parse_rtps_data_messages(packet: bytes) -> List[tuple[bytes, bytes]]:
@@ -932,7 +945,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--node-name", default="python_rtps_host", help="Local participant name")
     parser.add_argument("--domain-id", type=int, default=0, help="RTPS domain id")
     parser.add_argument("--participant-id", type=int, default=10, help="Local participant id")
-    parser.add_argument("--bind-address", default="0.0.0.0", help="Local bind address")
+    parser.add_argument(
+        "--bind-address",
+        default=None,
+        help="Local bind address (defaults to the advertised address rather than all interfaces)",
+    )
     parser.add_argument(
         "--advertised-address",
         default=None,
@@ -998,7 +1015,10 @@ def parse_args() -> argparse.Namespace:
         args.publish_topic = DEFAULT_RESPONSE_TOPIC
     if args.advertised_address is None:
         args.advertised_address = guess_local_ipv4()
+    if args.bind_address is None:
+        args.bind_address = args.advertised_address
     try:
+        ipaddress.IPv4Address(args.bind_address)
         ipaddress.IPv4Address(args.advertised_address)
         ipaddress.IPv4Address(args.multicast_interface or args.advertised_address)
         ipaddress.IPv4Address(args.multicast_group)

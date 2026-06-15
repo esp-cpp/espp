@@ -96,7 +96,6 @@ extern "C" void app_main(void) {
   std::atomic<uint32_t> response_count{0};
   std::atomic<uint32_t> next_request_value{1};
   std::atomic<uint32_t> last_sent_request{0};
-  espp::RtpsParticipant *participant_ptr = nullptr;
 
   espp::RtpsParticipant participant({
       .node_name = node_name,
@@ -117,7 +116,6 @@ extern "C" void app_main(void) {
           },
       .log_level = espp::Logger::Verbosity::INFO,
   });
-  participant_ptr = &participant;
 
 #if CONFIG_RTPS_EXAMPLE_ROLE_INITIATOR
   participant.add_writer({
@@ -138,6 +136,7 @@ extern "C" void app_main(void) {
           },
   });
 #else
+  auto *participant_ptr = &participant;
   participant.add_writer({
       .topic_name = response_topic,
       .type_name = std::string(kTypeName),

@@ -13,7 +13,7 @@ mermaid_d3_zoom = True
 mermaid_dark_theme = 'neutral'
 mermaid_light_theme = 'neutral'
 
-exclude_paterns = ['build', '_build', 'detail']
+exclude_patterns = ['build', '_build', 'detail']
 
 # link roles config
 github_repo = 'esp-cpp/espp'

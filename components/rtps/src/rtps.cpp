@@ -4,6 +4,7 @@
 #include <cctype>
 #include <cstring>
 #include <iomanip>
+#include <numeric>
 #include <optional>
 #include <sstream>
 
@@ -1039,7 +1040,10 @@ bool RtpsParticipant::publish_uint32(std::string_view topic_name, uint32_t value
     logger_.warn("Reliable user-data retransmission is not implemented yet; sending best-effort");
   }
 
-  auto payload = build_uint32_data_message(topic_name, value, writer_config.reliability);
+  auto encoded_reliability = writer_config.reliability == ReliabilityKind::RELIABLE
+                                 ? ReliabilityKind::BEST_EFFORT
+                                 : writer_config.reliability;
+  auto payload = build_uint32_data_message(topic_name, value, encoded_reliability);
   auto participants = discovered_participants();
   if (participants.empty()) {
     logger_.warn("No discovered participants available for topic '{}'", topic_name);
@@ -1393,12 +1397,11 @@ bool RtpsParticipant::send_sedp_announcements_to(const ParticipantProxy &partici
 }
 
 bool RtpsParticipant::send_discovery_now() {
-  auto sent = send_spdp_announce_now();
   auto participants = discovered_participants();
-  for (const auto &participant : participants) {
-    sent = send_sedp_announcements_to(participant) || sent;
-  }
-  return sent;
+  return std::accumulate(participants.begin(), participants.end(), send_spdp_announce_now(),
+                         [this](bool sent, const auto &participant) {
+                           return send_sedp_announcements_to(participant) || sent;
+                         });
 }
 
 RtpsParticipant::ParticipantProxy RtpsParticipant::make_local_participant_proxy() const {
