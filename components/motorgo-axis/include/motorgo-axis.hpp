@@ -27,7 +27,7 @@ namespace espp {
 /// It exposes the documented pin mapping for the board's:
 /// - two 6-PWM BLDC motor outputs
 /// - two encoder chip-selects on a shared SSI/SPI bus
-/// - one onboard LSM6DS33 IMU on the hidden I2C bus
+/// - one onboard LSM6DS3TR IMU on the hidden I2C bus
 /// - Qwiic and hidden I2C buses
 /// - user (green) and status (blue) LEDs
 ///
