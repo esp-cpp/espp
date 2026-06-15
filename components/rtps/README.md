@@ -22,6 +22,60 @@ standards-shaped, but the reliable RTPS state machines (`HEARTBEAT`,
 `ACKNACK`, resend windows) and ROS 2 endpoint/user-data interoperability are
 still incomplete.
 
+## How RTPS Works
+
+RTPS separates *metatraffic* from *user traffic*.
+
+- **Metatraffic** carries discovery and endpoint metadata. In this component,
+  that means SPDP participant announcements plus SEDP publication and
+  subscription announcements.
+- **User traffic** carries application samples. The current ESPP scaffold has a
+  temporary best-effort `UInt32` user-data path while the standards-based
+  ROS 2 data plane is still being completed.
+
+The current `RtpsParticipant` implementation opens three UDP sockets when
+`start()` is called:
+
+1. metatraffic multicast receive on the well-known SPDP multicast port
+2. metatraffic unicast receive on the participant-specific discovery port
+3. user unicast receive on the participant-specific user-data port
+
+It then starts a periodic announce task which multicasts SPDP and unicasts SEDP
+endpoint announcements to each discovered peer.
+
+```mermaid
+flowchart LR
+  App["Application code"] --> Participant["RtpsParticipant"]
+  Participant --> SPDP["SPDP participant DATA"]
+  Participant --> SEDP["SEDP publication/subscription DATA"]
+  Participant --> User["User DATA submessages"]
+  SPDP --> MetaMC["Metatraffic multicast"]
+  SEDP --> MetaUC["Metatraffic unicast"]
+  User --> UserUC["User unicast"]
+  MetaMC --> Peer["Remote participant"]
+  MetaUC --> Peer
+  UserUC --> Peer
+```
+
+## Discovery Flow
+
+At a high level, discovery proceeds like this:
+
+```mermaid
+sequenceDiagram
+  participant A as Local participant
+  participant MC as 239.255.0.1
+  participant B as Remote participant
+  A->>MC: SPDP DATA(participant GUID, locators, enclave, builtin endpoints)
+  MC-->>B: multicast delivery
+  B->>MC: SPDP DATA(its participant metadata)
+  MC-->>A: multicast delivery
+  A->>B: SEDP publication DATA(topic/type/reliability)
+  A->>B: SEDP subscription DATA(topic/type/reliability)
+  B->>A: SEDP publication/subscription DATA
+  Note over A,B: Matching user-data traffic can then use the user-unicast ports
+```
+
 ## Expected Compatibility
 
 The table below is intentionally conservative: **expected** means "this is the
