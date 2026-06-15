@@ -6,7 +6,7 @@ The `tabulate` component provides a nice and easy way to perform pretty-printing
 of tabular data to the console or file.
 
 The `tabulate.hpp` header provides a convenience include / wrapper around
-[p-ranav/tabulate](https://github.com/p-pranav/tabulate). It also exposes
+[p-ranav/tabulate](https://github.com/p-ranav/tabulate). It also exposes
 `tabulate`'s include folder, so including `tabulate.hpp` is completely
 equivalent to including both `tabulate/table.hpp`. Please see the documentation
 for tabulate if you have any questions about usage beyond the examples provided
