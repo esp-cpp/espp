@@ -1,0 +1,7 @@
+menu "MotorGo Axis Example Configuration"
+    config MOTORGO_AXIS_EXAMPLE_ENABLE_ENCODER_POLLING
+        bool "Enable encoder polling"
+        default n
+        help
+            Initialize the two encoder inputs and log their measured angles.
+endmenu

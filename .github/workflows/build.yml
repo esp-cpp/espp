@@ -141,6 +141,8 @@ jobs:
           target: esp32
         - path: 'components/monitor/example'
           target: esp32
+        - path: 'components/motorgo-axis/example'
+          target: esp32s3
         - path: 'components/motorgo-mini/example'
           target: esp32s3
         - path: 'components/motorgo-plink/example'
