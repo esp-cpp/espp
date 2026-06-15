@@ -5,7 +5,13 @@ extensions += ['sphinx_copybutton',
                'esp_docs.esp_extensions.dummy_build_system',
                'esp_docs.esp_extensions.run_doxygen',
                'myst_parser',
+               'sphinxcontrib.mermaid',
                ]
+
+mermaid_output_format = 'raw'
+mermaid_d3_zoom = True
+mermaid_dark_theme = 'neutral'
+mermaid_light_theme = 'neutral'
 
 exclude_paterns = ['build', '_build', 'detail']
 

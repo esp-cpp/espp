@@ -4,3 +4,4 @@
 cairosvg
 esp-docs
 myst-parser
+sphinxcontrib-mermaid

@@ -47,6 +47,7 @@ jobs:
             components/button
             components/byte90
             components/chsc6x
+            components/cdr
             components/cli
             components/cobs
             components/codec
@@ -109,6 +110,7 @@ jobs:
             components/qwiicnes
             components/remote_debug
             components/rmt
+            components/rtps
             components/rtsp
             components/runqueue
             components/rx8130ce

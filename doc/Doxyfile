@@ -90,6 +90,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/button/example/main/button_example.cpp \
   $(PROJECT_PATH)/components/byte90/example/main/byte90_example.cpp \
   $(PROJECT_PATH)/components/chsc6x/example/main/chsc6x_example.cpp \
+  $(PROJECT_PATH)/components/cdr/example/main/cdr_example.cpp \
   $(PROJECT_PATH)/components/cli/example/main/cli_example.cpp \
   $(PROJECT_PATH)/components/cobs/example/main/cobs_example.cpp \
   $(PROJECT_PATH)/components/color/example/main/color_example.cpp \
@@ -145,6 +146,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/qwiicnes/example/main/qwiicnes_example.cpp \
   $(PROJECT_PATH)/components/remote_debug/example/main/remote_debug_example.cpp \
   $(PROJECT_PATH)/components/rmt/example/main/rmt_example.cpp \
+  $(PROJECT_PATH)/components/rtps/example/main/rtps_example.cpp \
   $(PROJECT_PATH)/components/rtsp/example/main/rtsp_example.cpp \
   $(PROJECT_PATH)/components/ping/example/main/ping_example.cpp \
   $(PROJECT_PATH)/components/runqueue/example/main/runqueue_example.cpp \
@@ -214,6 +216,7 @@ INPUT = \
   $(PROJECT_PATH)/components/button/include/button.hpp \
   $(PROJECT_PATH)/components/byte90/include/byte90.hpp \
   $(PROJECT_PATH)/components/chsc6x/include/chsc6x.hpp \
+  $(PROJECT_PATH)/components/cdr/include/cdr.hpp \
   $(PROJECT_PATH)/components/cli/include/cli.hpp \
   $(PROJECT_PATH)/components/cli/include/line_input.hpp \
   $(PROJECT_PATH)/components/cobs/include/cobs.hpp \
@@ -325,6 +328,7 @@ INPUT = \
   $(PROJECT_PATH)/components/remote_debug/include/remote_debug.hpp \
   $(PROJECT_PATH)/components/rmt/include/rmt.hpp \
   $(PROJECT_PATH)/components/rmt/include/rmt_encoder.hpp \
+  $(PROJECT_PATH)/components/rtps/include/rtps.hpp \
   $(PROJECT_PATH)/components/rtsp/include/generic_depacketizer.hpp \
   $(PROJECT_PATH)/components/rtsp/include/generic_packetizer.hpp \
   $(PROJECT_PATH)/components/rtsp/include/h264_depacketizer.hpp \

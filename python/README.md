@@ -47,6 +47,10 @@ This section gives a brief overview of what the scripts in this folder do.
   audio by default when running with a UI; use `--no-audio-playback` to disable
   it or `--play-audio --headless` to exercise playback without opening the video
   window.
+- `rtps_host.py`: A pure-stdlib host-side RTPS harness for discovering an ESPP
+  `RtpsParticipant`, printing SPDP/SEDP metadata, and optionally publishing or
+  receiving the current temporary `UInt32` user-data payloads without needing
+  Python bindings.
 - `cobs_demo.py`: Demonstration of ESPP COBS functionality with native Python data types.
   Shows ESPP encoding/decoding, cross-library compatibility with the cobs-python library,
   and practical usage examples. Includes design differences explanation and validation
@@ -105,7 +109,9 @@ python3 <test_name>.py
 python3 task.py
 # or 
 python3 udp_client.py
-``` 
+# or discover / test RTPS from a host machine
+python3 rtps_host.py --advertised-address <your-host-ip>
+```
 
 Note: the `udp_client.py` script requires a running instance of the
 `udp_server.py` script. To run the server, use the following command from
@@ -113,4 +119,24 @@ another terminal:
 
 ```console
 python3 udp_server.py
+```
+
+For the default ESP RTPS example, the host harness now defaults to the
+**responder** side of the request/response test, so it will subscribe to
+``espp/rtps_example/request`` and echo values back on
+``espp/rtps_example/response``:
+
+```console
+python3 rtps_host.py --advertised-address 192.168.1.50
+```
+
+To act as the initiator instead, swap the topics and enable periodic publishing:
+
+```console
+python3 rtps_host.py --advertised-address 192.168.1.50 \
+  --subscribe-topic espp/rtps_example/response \
+  --publish-topic espp/rtps_example/request \
+  --publish-value 42 \
+  --publish-interval 1.0 \
+  --no-echo-received
 ```

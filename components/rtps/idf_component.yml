@@ -1,0 +1,26 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "Cross-platform RTPS protocol foundation component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/rtps"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/rtps.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - RTPS
+  - DDS
+  - ROS2
+  - UDP
+  - Discovery
+  - PubSub
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/base_component: '>=1.0'
+  espp/cdr: '>=1.0'
+  espp/socket: '>=1.0'
+  espp/task: '>=1.0'

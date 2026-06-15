@@ -1,0 +1,21 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "Common Data Representation (CDR) read/write helpers for ESP-IDF and cross-platform use."
+url: "https://github.com/esp-cpp/espp/tree/main/components/cdr"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/cdr.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - CDR
+  - DDS
+  - RTPS
+  - Serialization
+  - XCDR
+dependencies:
+  idf:
+    version: '>=5.0'
