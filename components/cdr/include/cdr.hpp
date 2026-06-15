@@ -149,13 +149,16 @@ public:
 
   /// @brief Pad the buffer with zeros until it satisfies the requested alignment.
   /// @param alignment Required alignment in bytes. Values less than or equal to 1 are ignored.
-  void align(size_t alignment) {
+  /// @return Always returns true. This matches the reader API even though writer-side alignment
+  /// cannot currently fail.
+  bool align(size_t alignment) {
     if (alignment <= 1) {
-      return;
+      return true;
     }
     while (data_.size() % alignment != 0) {
       data_.push_back(0);
     }
+    return true;
   }
 
   /// @brief Append a primitive scalar using CDR alignment and endianness rules.

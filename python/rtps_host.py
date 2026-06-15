@@ -45,8 +45,8 @@ DATA_SUBMESSAGE_KIND = 0x15
 DATA_SUBMESSAGE_FLAGS = 0x01 | 0x04
 DATA_SUBMESSAGE_OCTETS_TO_INLINE_QOS = 16
 
-RELIABILITY_BEST_EFFORT = 1
-RELIABILITY_RELIABLE = 2
+RTPS_QOS_RELIABILITY_BEST_EFFORT = 1
+RTPS_QOS_RELIABILITY_RELIABLE = 2
 USER_DATA_RELIABILITY_BEST_EFFORT = 0
 USER_DATA_RELIABILITY_RELIABLE = 1
 
@@ -177,6 +177,14 @@ def reliability_to_name(reliable: bool) -> str:
     return "reliable" if reliable else "best-effort"
 
 
+def encode_user_data_reliability(reliable: bool) -> int:
+    return USER_DATA_RELIABILITY_RELIABLE if reliable else USER_DATA_RELIABILITY_BEST_EFFORT
+
+
+def decode_user_data_reliability(encoded: int) -> str:
+    return "reliable" if encoded == USER_DATA_RELIABILITY_RELIABLE else "best-effort"
+
+
 def compute_port_mapping(domain_id: int, participant_id: int) -> PortMapping:
     base = PORT_BASE + DOMAIN_GAIN * domain_id
     participant_offset = PARTICIPANT_GAIN * participant_id
@@ -286,7 +294,7 @@ def append_parameter_octet_sequence(buffer: bytearray, pid: int, payload: bytes)
 
 def append_parameter_reliability(buffer: bytearray, reliable: bool) -> None:
     append_parameter_header(buffer, PID_RELIABILITY, 12)
-    kind = RELIABILITY_RELIABLE if reliable else RELIABILITY_BEST_EFFORT
+    kind = RTPS_QOS_RELIABILITY_RELIABLE if reliable else RTPS_QOS_RELIABILITY_BEST_EFFORT
     buffer.extend(struct.pack("<I", kind))
     buffer.extend(struct.pack("<iI", DEFAULT_MAX_BLOCKING_SECONDS, DEFAULT_MAX_BLOCKING_NANOSECONDS))
 
@@ -419,7 +427,7 @@ def parse_locator(value: Optional[bytes]) -> tuple[str, int]:
 
 def parse_reliability(value: Optional[bytes]) -> str:
     kind = parse_u32_le(value)
-    return "reliable" if kind == RELIABILITY_RELIABLE else "best-effort"
+    return "reliable" if kind == RTPS_QOS_RELIABILITY_RELIABLE else "best-effort"
 
 
 def extract_enclave(value: Optional[bytes]) -> str:
@@ -647,7 +655,7 @@ class RtpsHostHarness:
         payload = bytearray()
         payload.extend(USER_DATA_MAGIC)
         payload.append(USER_DATA_VERSION)
-        payload.append(USER_DATA_RELIABILITY_RELIABLE if writer.reliable else USER_DATA_RELIABILITY_BEST_EFFORT)
+        payload.append(encode_user_data_reliability(writer.reliable))
         topic_name = writer.topic_name.encode("utf-8")
         payload.extend(struct.pack("<H", len(topic_name)))
         payload.extend(topic_name)
@@ -819,9 +827,7 @@ class RtpsHostHarness:
             maybe_value = deserialize_uint32_cdr(serialized_payload[offset : offset + payload_length])
             if maybe_value is None:
                 continue
-            reliability_name = (
-                "reliable" if reliability == USER_DATA_RELIABILITY_RELIABLE else "best-effort"
-            )
+            reliability_name = decode_user_data_reliability(reliability)
             log(
                 f"[data] topic='{topic_name}' value={maybe_value} reliability={reliability_name} "
                 f"from {sender_ip}:{sender_port} writer={hex_string(writer_id)}"
