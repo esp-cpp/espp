@@ -377,7 +377,7 @@ public:
   requires(std::is_integral_v<T> || std::is_floating_point_v<T>) bool read(T &value) {
     constexpr size_t alignment = detail::cdr_alignment<T>();
     if constexpr (alignment > 1) {
-      if (!align(alignment)) {
+      if (!align(alignment)) { // cppcheck-suppress knownConditionTrueFalse
         valid_ = false;
         return false;
       }
