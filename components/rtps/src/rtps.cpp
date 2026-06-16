@@ -982,8 +982,9 @@ std::vector<uint8_t> RtpsParticipant::build_spdp_announce_message() const {
   append_parameter_sentinel(parameters);
 
   auto payload = build_parameter_list_payload(parameters);
-  return build_message(guid_prefix_, {.value = kEntityIdUnknown}, {.value = kSpdpWriterEntityId}, 1,
-                       payload)
+  static std::atomic<int64_t> sequence_number{1};
+  return build_message(guid_prefix_, {.value = kEntityIdUnknown}, {.value = kSpdpWriterEntityId},
+                       sequence_number.fetch_add(1), payload)
       .serialize();
 }
 
