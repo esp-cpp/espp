@@ -477,11 +477,8 @@ std::optional<ParameterView> find_parameter(std::span<const ParameterView> param
 std::vector<ParameterView> find_parameters(std::span<const ParameterView> parameters,
                                            ParameterId id) {
   std::vector<ParameterView> matches;
-  for (const auto &parameter : parameters) {
-    if (parameter.id == id) {
-      matches.push_back(parameter);
-    }
-  }
+  std::copy_if(parameters.begin(), parameters.end(), std::back_inserter(matches),
+               [id](const auto &parameter) { return parameter.id == id; });
   return matches;
 }
 
@@ -562,7 +559,9 @@ std::optional<espp::RtpsParticipant::Locator> parse_locator(std::span<const uint
 }
 
 bool has_valid_locator(const espp::RtpsParticipant::Locator &locator) {
-  return locator.kind == espp::RtpsParticipant::Locator::Kind::UDP_V4 && locator.port != 0;
+  return locator.kind == espp::RtpsParticipant::Locator::Kind::UDP_V4 && locator.port != 0 &&
+         std::any_of(locator.address.begin() + 12, locator.address.end(),
+                     [](uint8_t octet) { return octet != 0; });
 }
 
 std::optional<espp::RtpsParticipant::ReliabilityKind>
@@ -982,9 +981,8 @@ std::vector<uint8_t> RtpsParticipant::build_spdp_announce_message() const {
   append_parameter_sentinel(parameters);
 
   auto payload = build_parameter_list_payload(parameters);
-  static std::atomic<int64_t> sequence_number{1};
   return build_message(guid_prefix_, {.value = kEntityIdUnknown}, {.value = kSpdpWriterEntityId},
-                       sequence_number.fetch_add(1), payload)
+                       next_spdp_sequence_number(), payload)
       .serialize();
 }
 
@@ -1015,10 +1013,9 @@ RtpsParticipant::build_sedp_publication_message(const WriterConfig &writer_confi
   append_parameter_sentinel(parameters);
 
   auto payload = build_parameter_list_payload(parameters);
-  static std::atomic<int64_t> sequence_number{1};
   return build_message(guid_prefix_, {.value = kSedpPublicationsReaderEntityId},
                        {.value = kSedpPublicationsWriterEntityId},
-                       sequence_number.fetch_add(1), payload)
+                       next_sedp_publication_sequence_number(), payload)
       .serialize();
 }
 
@@ -1048,10 +1045,9 @@ RtpsParticipant::build_sedp_subscription_message(const ReaderConfig &reader_conf
   append_parameter_sentinel(parameters);
 
   auto payload = build_parameter_list_payload(parameters);
-  static std::atomic<int64_t> sequence_number{1};
   return build_message(guid_prefix_, {.value = kSedpSubscriptionsReaderEntityId},
                        {.value = kSedpSubscriptionsWriterEntityId},
-                       sequence_number.fetch_add(1), payload)
+                       next_sedp_subscription_sequence_number(), payload)
       .serialize();
 }
 
@@ -1068,9 +1064,9 @@ std::vector<uint8_t> RtpsParticipant::build_uint32_data_message(const WriterConf
   payload_writer.append_bytes(cdr);
 
   auto guid = writer_guid(writer_config.entity_index);
-  static std::atomic<int64_t> sequence_number{1};
   return build_message(guid_prefix_, {.value = kEntityIdUnknown}, guid.entity_id,
-                       sequence_number.fetch_add(1), payload_writer.take())
+                       next_user_data_sequence_number(writer_config.entity_index),
+                       payload_writer.take())
       .serialize();
 }
 
@@ -1112,6 +1108,27 @@ bool RtpsParticipant::publish_uint32(std::string_view topic_name, uint32_t value
     sent = user_unicast_receiver_->send(payload, send_config) || sent;
   }
   return sent;
+}
+
+int64_t RtpsParticipant::next_spdp_sequence_number() const {
+  return spdp_sequence_number_.fetch_add(1, std::memory_order_relaxed);
+}
+
+int64_t RtpsParticipant::next_sedp_publication_sequence_number() const {
+  return sedp_publications_sequence_number_.fetch_add(1, std::memory_order_relaxed);
+}
+
+int64_t RtpsParticipant::next_sedp_subscription_sequence_number() const {
+  return sedp_subscriptions_sequence_number_.fetch_add(1, std::memory_order_relaxed);
+}
+
+int64_t RtpsParticipant::next_user_data_sequence_number(uint32_t entity_index) const {
+  std::lock_guard<std::mutex> lock(sequence_mutex_);
+  auto iterator = user_data_sequence_numbers_.try_emplace(entity_index, 1).first;
+  auto &sequence_number = iterator->second;
+  int64_t current = sequence_number;
+  sequence_number++;
+  return current;
 }
 
 std::vector<uint8_t> RtpsParticipant::serialize_uint32_cdr(uint32_t value) {

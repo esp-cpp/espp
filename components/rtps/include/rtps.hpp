@@ -11,6 +11,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 #include "base_component.hpp"
@@ -367,6 +368,10 @@ private:
   bool ensure_user_multicast_receivers_started();
   std::vector<UdpSocket::SendConfig>
   build_user_send_configs(std::string_view topic_name, const WriterConfig &writer_config) const;
+  int64_t next_spdp_sequence_number() const;
+  int64_t next_sedp_publication_sequence_number() const;
+  int64_t next_sedp_subscription_sequence_number() const;
+  int64_t next_user_data_sequence_number(uint32_t entity_index) const;
   bool send_spdp_announce_now();
   bool send_sedp_announcements_to(const ParticipantProxy &participant);
   bool send_discovery_now();
@@ -383,6 +388,11 @@ private:
   std::unique_ptr<Task> announce_task_;
 
   mutable std::mutex mutex_;
+  mutable std::mutex sequence_mutex_;
+  mutable std::atomic<int64_t> spdp_sequence_number_{1};
+  mutable std::atomic<int64_t> sedp_publications_sequence_number_{1};
+  mutable std::atomic<int64_t> sedp_subscriptions_sequence_number_{1};
+  mutable std::unordered_map<uint32_t, int64_t> user_data_sequence_numbers_;
   std::vector<WriterConfig> writers_;
   std::vector<ReaderConfig> readers_;
   std::vector<ParticipantProxy> discovered_participants_;
