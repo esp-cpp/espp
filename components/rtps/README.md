@@ -15,6 +15,7 @@ This component now includes the first real RTPS discovery slice:
 - SEDP publication and subscription announcements for local endpoints
 - parsing and tracking of discovered remote participants, writers, and readers
 - integration with the shared `cdr` component for CDR/PL_CDR payload handling
+- optional best-effort user-data multicast transport, including endpoint-specific groups
 
 The long-term goal for this component is DDS/RTPS interoperability with ROS 2
 nodes, including best-effort and reliable user-data flows. Discovery is now
@@ -100,6 +101,7 @@ against every stack".
 | SEDP publication / subscription announce send/receive | **Implemented** | Local endpoints are announced and remote endpoints are cached. |
 | Participant / endpoint discovery callbacks | **Implemented** | Exposed through `on_participant_discovered` and `on_endpoint_discovered`. |
 | Temporary `UInt32` user-data path | **Implemented** | Uses the current ESPP-specific `ESPPDATA` payload, not a standards-based DDS sample representation. |
+| Best-effort user-data multicast transport | **Implemented** | Supports shared participant-level multicast or endpoint-specific multicast locators advertised in SEDP; local readers only join the multicast groups configured for their topics. |
 | QoS fields emitted in discovery | **Partial** | Reliability, durability, liveliness, and history parameters are advertised in SEDP. |
 | QoS matching / policy enforcement | **Not implemented** | Remote QoS is parsed, but full writer/reader matching logic is still missing. |
 | Standards-based DDS user-data serialization | **Not implemented** | The current data path is a temporary ESPP scaffold for `std_msgs/msg/UInt32`. |

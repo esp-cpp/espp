@@ -26,7 +26,18 @@ For both boards:
 
 1. Set the same `RTPS domain ID`, `Topic prefix`, `WiFi SSID`, and `WiFi password`.
 2. Give each board a unique `RTPS participant ID`.
-3. Optionally set distinct `Participant node name` values to make discovery logs easier to read.
+3. Give each board a distinct `Participant node name` or keep the role-specific defaults.
+4. If you want to exercise multicast user data, enable `Use best-effort user-data multicast`
+   on both boards and keep the same request/response multicast groups on each node.
+
+Fresh example configurations now default to:
+
+* initiator: participant ID `1`, node name `espp_rtps_initiator`
+* responder: participant ID `2`, node name `espp_rtps_responder`
+
+If you are reusing an older build directory or `sdkconfig`, rerun `idf.py menuconfig`
+or delete the stale generated config so the old shared defaults (`participant ID = 1`,
+`node name = espp_rtps_node`) do not persist on both boards.
 
 For one board only:
 
@@ -59,3 +70,8 @@ Expected signs of success:
 * both boards log RTPS participant and endpoint discovery
 * the initiator logs `Published request N` followed by `Received response N`
 * the responder logs `Received request N, sending response`
+
+When multicast user data is enabled, discovery still uses the normal RTPS
+metatraffic sockets, but request samples are published to the configured request
+multicast group and response samples are published to the configured response
+multicast group. Each node only joins the group for the topic it subscribes to.

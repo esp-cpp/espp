@@ -17,6 +17,7 @@ This version now implements the first RTPS discovery layer on top of the ESPP
 - integration with the shared ``cdr`` component for CDR/PL_CDR payload handling
 - a participant transport layer that uses ``UdpSocket`` for metatraffic and
   user-traffic channels
+- optional best-effort user-data multicast transport, including endpoint-specific groups
 
 The long-term target is interoperability with ROS 2 nodes over DDS/RTPS,
 including best-effort and reliable data flows. Discovery messages are now
@@ -197,6 +198,11 @@ Feature Status
      - **Implemented**
      - Uses the current ESPP-specific ``ESPPDATA`` payload, not a
        standards-based DDS sample representation.
+   * - Best-effort user-data multicast transport
+     - **Implemented**
+     - Supports shared participant-level multicast or endpoint-specific
+       multicast locators advertised in SEDP; local readers only join the
+       multicast groups configured for their topics.
    * - QoS fields emitted in discovery
      - **Partial**
      - Reliability, durability, liveliness, and history parameters are

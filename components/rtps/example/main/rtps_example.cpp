@@ -58,8 +58,8 @@ bool run_local_protocol_checks(espp::Logger &logger, const espp::RtpsParticipant
   return true;
 }
 
-bool has_endpoint(std::span<const espp::RtpsParticipant::EndpointProxy> endpoints,
-                  std::string_view topic_name, bool is_reader) {
+[[maybe_unused]] bool has_endpoint(std::span<const espp::RtpsParticipant::EndpointProxy> endpoints,
+                                   std::string_view topic_name, bool is_reader) {
   return std::any_of(endpoints.begin(), endpoints.end(),
                      [topic_name, is_reader](const auto &endpoint) {
                        return endpoint.topic_name == topic_name && endpoint.is_reader == is_reader;
@@ -92,6 +92,22 @@ extern "C" void app_main(void) {
   const std::string topic_prefix = CONFIG_RTPS_EXAMPLE_TOPIC_PREFIX;
   const std::string request_topic = topic_prefix + "/request";
   const std::string response_topic = topic_prefix + "/response";
+#if CONFIG_RTPS_EXAMPLE_USE_USER_MULTICAST
+#if defined(CONFIG_RTPS_EXAMPLE_REQUEST_MULTICAST_GROUP) &&                                        \
+    defined(CONFIG_RTPS_EXAMPLE_RESPONSE_MULTICAST_GROUP)
+  const std::string request_multicast_group = CONFIG_RTPS_EXAMPLE_REQUEST_MULTICAST_GROUP;
+  const std::string response_multicast_group = CONFIG_RTPS_EXAMPLE_RESPONSE_MULTICAST_GROUP;
+#elif defined(CONFIG_RTPS_EXAMPLE_USER_MULTICAST_GROUP)
+  const std::string request_multicast_group = CONFIG_RTPS_EXAMPLE_USER_MULTICAST_GROUP;
+  const std::string response_multicast_group = CONFIG_RTPS_EXAMPLE_USER_MULTICAST_GROUP;
+#else
+  const std::string request_multicast_group = "239.255.0.11";
+  const std::string response_multicast_group = "239.255.0.12";
+#endif
+#else
+  const std::string request_multicast_group;
+  const std::string response_multicast_group;
+#endif
 
   std::atomic<uint32_t> request_count{0};
   std::atomic<uint32_t> response_count{0};
@@ -123,12 +139,14 @@ extern "C" void app_main(void) {
       .topic_name = request_topic,
       .type_name = std::string(kTypeName),
       .reliability = espp::RtpsParticipant::ReliabilityKind::BEST_EFFORT,
+      .multicast_group = request_multicast_group,
       .entity_index = 0,
   });
   participant.add_reader({
       .topic_name = response_topic,
       .type_name = std::string(kTypeName),
       .reliability = espp::RtpsParticipant::ReliabilityKind::BEST_EFFORT,
+      .multicast_group = response_multicast_group,
       .entity_index = 0,
       .on_uint32_sample =
           [&logger, &response_count, &last_sent_request](uint32_t value) {
@@ -142,12 +160,14 @@ extern "C" void app_main(void) {
       .topic_name = response_topic,
       .type_name = std::string(kTypeName),
       .reliability = espp::RtpsParticipant::ReliabilityKind::BEST_EFFORT,
+      .multicast_group = response_multicast_group,
       .entity_index = 0,
   });
   participant.add_reader({
       .topic_name = request_topic,
       .type_name = std::string(kTypeName),
       .reliability = espp::RtpsParticipant::ReliabilityKind::BEST_EFFORT,
+      .multicast_group = request_multicast_group,
       .entity_index = 0,
       .on_uint32_sample =
           [&logger, &request_count, &response_topic, &participant_ptr](uint32_t value) {
@@ -176,6 +196,10 @@ extern "C" void app_main(void) {
   logger.info("Request topic: {}, Response topic: {}", request_topic, response_topic);
   logger.info("Ports: meta mc={}, meta uc={}, user mc={}, user uc={}", ports.metatraffic_multicast,
               ports.metatraffic_unicast, ports.user_multicast, ports.user_unicast);
+#if CONFIG_RTPS_EXAMPLE_USE_USER_MULTICAST
+  logger.info("User-data multicast enabled: request group {}, response group {}",
+              request_multicast_group, response_multicast_group);
+#endif
 
   if (!run_local_protocol_checks(logger, participant)) {
     return;

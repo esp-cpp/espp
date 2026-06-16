@@ -474,6 +474,17 @@ std::optional<ParameterView> find_parameter(std::span<const ParameterView> param
   return *iterator;
 }
 
+std::vector<ParameterView> find_parameters(std::span<const ParameterView> parameters,
+                                           ParameterId id) {
+  std::vector<ParameterView> matches;
+  for (const auto &parameter : parameters) {
+    if (parameter.id == id) {
+      matches.push_back(parameter);
+    }
+  }
+  return matches;
+}
+
 std::optional<espp::RtpsParticipant::Guid> parse_guid(std::span<const uint8_t> value) {
   if (value.size() != 16) {
     return std::nullopt;
@@ -506,11 +517,15 @@ std::optional<std::string> parse_cdr_string(std::span<const uint8_t> value) {
   if (!reader.valid()) {
     return std::nullopt;
   }
-  std::string text;
-  if (!reader.read_string(text)) {
+  uint32_t length = 0;
+  if (!reader.read<uint32_t>(length) || length == 0) {
     return std::nullopt;
   }
-  return text;
+  auto text_bytes = reader.read_span(length);
+  if (text_bytes.size() != length || text_bytes.back() != 0) {
+    return std::nullopt;
+  }
+  return std::string(reinterpret_cast<const char *>(text_bytes.data()), text_bytes.size() - 1);
 }
 
 std::optional<std::vector<uint8_t>> parse_octet_sequence(std::span<const uint8_t> value) {
@@ -544,6 +559,10 @@ std::optional<espp::RtpsParticipant::Locator> parse_locator(std::span<const uint
   locator.kind = static_cast<espp::RtpsParticipant::Locator::Kind>(static_cast<int32_t>(kind));
   locator.port = port;
   return locator;
+}
+
+bool has_valid_locator(const espp::RtpsParticipant::Locator &locator) {
+  return locator.kind == espp::RtpsParticipant::Locator::Kind::UDP_V4 && locator.port != 0;
 }
 
 std::optional<espp::RtpsParticipant::ReliabilityKind>
@@ -817,6 +836,11 @@ bool RtpsParticipant::start() {
     return false;
   }
 
+  if (!ensure_user_multicast_receivers_started()) {
+    stop();
+    return false;
+  }
+
   announce_task_ = Task::make_unique({
       .callback = [this](std::mutex &mutex, std::condition_variable &cv, bool &notified) -> bool {
         send_discovery_now();
@@ -848,6 +872,12 @@ void RtpsParticipant::stop() {
     metatraffic_unicast_receiver_->stop_receiving();
     metatraffic_unicast_receiver_.reset();
   }
+  for (auto &receiver : user_multicast_receivers_) {
+    if (receiver.socket) {
+      receiver.socket->stop_receiving();
+    }
+  }
+  user_multicast_receivers_.clear();
   if (user_unicast_receiver_) {
     user_unicast_receiver_->stop_receiving();
     user_unicast_receiver_.reset();
@@ -863,8 +893,15 @@ bool RtpsParticipant::add_writer(const WriterConfig &writer_config) {
 }
 
 bool RtpsParticipant::add_reader(const ReaderConfig &reader_config) {
-  std::lock_guard<std::mutex> lock(mutex_);
-  readers_.push_back(reader_config);
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    readers_.push_back(reader_config);
+  }
+  if (started_.load() && !reader_config.multicast_group.empty() &&
+      !ensure_user_multicast_receivers_started()) {
+    logger_.error("Failed to start multicast receiver for topic '{}'", reader_config.topic_name);
+    return false;
+  }
   return true;
 }
 
@@ -929,9 +966,10 @@ std::vector<uint8_t> RtpsParticipant::build_spdp_announce_message() const {
       Locator::udp_v4(config_.advertised_address, ports().metatraffic_unicast));
   append_parameter_locator(parameters, ParameterId::PID_DEFAULT_UNICAST_LOCATOR,
                            Locator::udp_v4(config_.advertised_address, ports().user_unicast));
-  append_parameter_locator(
-      parameters, ParameterId::PID_DEFAULT_MULTICAST_LOCATOR,
-      Locator::udp_v4(config_.metatraffic_multicast_group, ports().user_multicast));
+  if (config_.use_multicast_for_user_data) {
+    append_parameter_locator(parameters, ParameterId::PID_DEFAULT_MULTICAST_LOCATOR,
+                             Locator::udp_v4(config_.user_multicast_group, ports().user_multicast));
+  }
   append_parameter_duration(parameters, ParameterId::PID_PARTICIPANT_LEASE_DURATION,
                             kDefaultLeaseDurationSeconds, kDefaultLeaseDurationNanoseconds);
   append_parameter_u32(parameters, ParameterId::PID_BUILTIN_ENDPOINT_SET, kBuiltinEndpointSet);
@@ -956,6 +994,11 @@ RtpsParticipant::build_sedp_publication_message(const WriterConfig &writer_confi
   append_parameter_guid(parameters, ParameterId::PID_ENDPOINT_GUID, guid);
   append_parameter_locator(parameters, ParameterId::PID_UNICAST_LOCATOR,
                            Locator::udp_v4(config_.advertised_address, ports().user_unicast));
+  if (!writer_config.multicast_group.empty()) {
+    append_parameter_locator(
+        parameters, ParameterId::PID_MULTICAST_LOCATOR,
+        Locator::udp_v4(writer_config.multicast_group, ports().user_multicast));
+  }
   append_parameter_guid(parameters, ParameterId::PID_PARTICIPANT_GUID, participant_guid());
   append_parameter_string_cdr(parameters, ParameterId::PID_TOPIC_NAME, writer_config.topic_name);
   append_parameter_string_cdr(parameters, ParameterId::PID_TYPE_NAME, writer_config.type_name);
@@ -984,6 +1027,11 @@ RtpsParticipant::build_sedp_subscription_message(const ReaderConfig &reader_conf
   append_parameter_guid(parameters, ParameterId::PID_ENDPOINT_GUID, guid);
   append_parameter_locator(parameters, ParameterId::PID_UNICAST_LOCATOR,
                            Locator::udp_v4(config_.advertised_address, ports().user_unicast));
+  if (!reader_config.multicast_group.empty()) {
+    append_parameter_locator(
+        parameters, ParameterId::PID_MULTICAST_LOCATOR,
+        Locator::udp_v4(reader_config.multicast_group, ports().user_multicast));
+  }
   append_parameter_bool(parameters, ParameterId::PID_EXPECTS_INLINE_QOS, false);
   append_parameter_guid(parameters, ParameterId::PID_PARTICIPANT_GUID, participant_guid());
   append_parameter_string_cdr(parameters, ParameterId::PID_TOPIC_NAME, reader_config.topic_name);
@@ -1004,19 +1052,19 @@ RtpsParticipant::build_sedp_subscription_message(const ReaderConfig &reader_conf
       .serialize();
 }
 
-std::vector<uint8_t> RtpsParticipant::build_uint32_data_message(std::string_view topic_name,
+std::vector<uint8_t> RtpsParticipant::build_uint32_data_message(const WriterConfig &writer_config,
                                                                 uint32_t value,
                                                                 ReliabilityKind reliability) const {
   ByteWriter payload_writer;
   payload_writer.append_chars(kUserDataMagic);
   payload_writer.append_u8(kUserDataVersion);
   payload_writer.append_u8(static_cast<uint8_t>(reliability));
-  append_string(payload_writer, topic_name);
+  append_string(payload_writer, writer_config.topic_name);
   auto cdr = serialize_uint32_cdr(value);
   payload_writer.append_u16_le(static_cast<uint16_t>(cdr.size()));
   payload_writer.append_bytes(cdr);
 
-  auto guid = writers_.empty() ? writer_guid(0) : writer_guid(writers_.front().entity_index);
+  auto guid = writer_guid(writer_config.entity_index);
   return build_message(guid_prefix_, {.value = kEntityIdUnknown}, guid.entity_id, 1,
                        payload_writer.take())
       .serialize();
@@ -1043,23 +1091,20 @@ bool RtpsParticipant::publish_uint32(std::string_view topic_name, uint32_t value
   auto encoded_reliability = writer_config.reliability == ReliabilityKind::RELIABLE
                                  ? ReliabilityKind::BEST_EFFORT
                                  : writer_config.reliability;
-  auto payload = build_uint32_data_message(topic_name, value, encoded_reliability);
-  auto participants = discovered_participants();
-  if (participants.empty()) {
-    logger_.warn("No discovered participants available for topic '{}'", topic_name);
-    return false;
-  }
+  auto payload = build_uint32_data_message(writer_config, value, encoded_reliability);
 
   if (!user_unicast_receiver_) {
     return false;
   }
 
+  auto send_configs = build_user_send_configs(topic_name, writer_config);
+  if (send_configs.empty()) {
+    logger_.warn("No send destinations available for topic '{}'", topic_name);
+    return false;
+  }
+
   bool sent = false;
-  for (const auto &participant : participants) {
-    auto send_config = UdpSocket::SendConfig{
-        .ip_address = participant.address,
-        .port = participant.ports.user_unicast,
-    };
+  for (const auto &send_config : send_configs) {
     sent = user_unicast_receiver_->send(payload, send_config) || sent;
   }
   return sent;
@@ -1192,12 +1237,12 @@ bool RtpsParticipant::handle_metatraffic_message(std::vector<uint8_t> &data,
         callback = config_.on_participant_discovered;
       }
 
-      logger_.info("SPDP discovered participant '{}' at {} (meta {}, user {})",
-                   participant.name.empty() ? participant.guid_prefix.to_string()
-                                            : participant.name,
-                   participant.address, participant.ports.metatraffic_unicast,
-                   participant.ports.user_unicast);
       if (is_new_participant) {
+        logger_.info("SPDP discovered participant '{}' at {} (meta {}, user {})",
+                     participant.name.empty() ? participant.guid_prefix.to_string()
+                                              : participant.name,
+                     participant.address, participant.ports.metatraffic_unicast,
+                     participant.ports.user_unicast);
         send_sedp_announcements_to(participant);
         if (callback) {
           callback(participant);
@@ -1254,6 +1299,12 @@ bool RtpsParticipant::handle_metatraffic_message(std::vector<uint8_t> &data,
         endpoint.unicast_locator = *maybe_locator;
       }
     }
+    for (const auto &locator_parameter :
+         find_parameters(parameters, ParameterId::PID_MULTICAST_LOCATOR)) {
+      if (auto maybe_locator = parse_locator(locator_parameter.value)) {
+        endpoint.multicast_locators.push_back(*maybe_locator);
+      }
+    }
     if (auto maybe_reliability_parameter =
             find_parameter(parameters, ParameterId::PID_RELIABILITY)) {
       if (auto maybe_reliability = parse_reliability(maybe_reliability_parameter->value)) {
@@ -1284,11 +1335,13 @@ bool RtpsParticipant::handle_metatraffic_message(std::vector<uint8_t> &data,
       endpoint_callback = config_.on_endpoint_discovered;
     }
 
-    logger_.info("SEDP discovered {} '{}' [{}] from participant {}",
-                 endpoint.is_reader ? "reader" : "writer", endpoint.topic_name, endpoint.type_name,
-                 endpoint.participant_guid.to_string());
-    if (is_new_endpoint && endpoint_callback) {
-      endpoint_callback(endpoint);
+    if (is_new_endpoint) {
+      logger_.info("SEDP discovered {} '{}' [{}] from participant {}",
+                   endpoint.is_reader ? "reader" : "writer", endpoint.topic_name,
+                   endpoint.type_name, endpoint.participant_guid.to_string());
+      if (endpoint_callback) {
+        endpoint_callback(endpoint);
+      }
     }
   }
   return false;
@@ -1299,16 +1352,20 @@ bool RtpsParticipant::handle_user_message(std::vector<uint8_t> &data, const Sock
   if (!message) {
     return false;
   }
+  if (message->header.guid_prefix == guid_prefix_) {
+    return false;
+  }
 
   for (const auto &submessage : message->submessages) {
-    if (submessage.kind != SubmessageKind::DATA ||
-        submessage.payload.size() < kUserDataMagic.size() + 2 ||
-        !std::equal(kUserDataMagic.begin(), kUserDataMagic.end(), submessage.payload.begin())) {
+    bool valid_data = false;
+    auto data_view = parse_data_submessage(submessage, valid_data);
+    if (!valid_data || data_view.serialized_payload.size() < kUserDataMagic.size() + 2 ||
+        !std::equal(kUserDataMagic.begin(), kUserDataMagic.end(),
+                    data_view.serialized_payload.begin())) {
       continue;
     }
 
-    ByteReader reader(
-        std::span<const uint8_t>{submessage.payload.data(), submessage.payload.size()});
+    ByteReader reader(data_view.serialized_payload);
     std::array<uint8_t, kUserDataMagic.size()> magic{};
     uint8_t version = 0;
     uint8_t reliability = 0;
@@ -1347,6 +1404,137 @@ bool RtpsParticipant::handle_user_message(std::vector<uint8_t> &data, const Sock
     }
   }
   return false;
+}
+
+bool RtpsParticipant::ensure_user_multicast_receivers_started() {
+  if (!started_.load()) {
+    return true;
+  }
+
+  std::vector<std::string> desired_groups;
+  if (config_.use_multicast_for_user_data && !config_.user_multicast_group.empty()) {
+    desired_groups.push_back(config_.user_multicast_group);
+  }
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    for (const auto &reader_config : readers_) {
+      if (!reader_config.multicast_group.empty() &&
+          std::find(desired_groups.begin(), desired_groups.end(), reader_config.multicast_group) ==
+              desired_groups.end()) {
+        desired_groups.push_back(reader_config.multicast_group);
+      }
+    }
+  }
+
+  auto port_mapping = ports();
+  for (const auto &group : desired_groups) {
+    auto existing =
+        std::find_if(user_multicast_receivers_.begin(), user_multicast_receivers_.end(),
+                     [&group](const auto &receiver) { return receiver.multicast_group == group; });
+    if (existing != user_multicast_receivers_.end()) {
+      continue;
+    }
+
+    auto socket = std::make_unique<UdpSocket>(UdpSocket::Config{.log_level = get_log_level()});
+    auto task_config = config_.receive_task_config;
+    task_config.name = fmt::format("{}_user_mc_{}", config_.receive_task_config.name,
+                                   user_multicast_receivers_.size());
+    auto receive_config = UdpSocket::ReceiveConfig{
+        .port = port_mapping.user_multicast,
+        .buffer_size = 4096,
+        .is_multicast_endpoint = true,
+        .multicast_group = group,
+        .on_receive_callback = [this](auto &data,
+                                      const auto &sender) -> std::optional<std::vector<uint8_t>> {
+          handle_user_message(data, sender);
+          return std::nullopt;
+        },
+    };
+    if (!socket->start_receiving(task_config, receive_config)) {
+      logger_.error("Failed to start user multicast receiver for group {}", group);
+      return false;
+    }
+    user_multicast_receivers_.push_back({
+        .multicast_group = group,
+        .socket = std::move(socket),
+    });
+  }
+  return true;
+}
+
+std::vector<UdpSocket::SendConfig>
+RtpsParticipant::build_user_send_configs(std::string_view topic_name,
+                                         const WriterConfig &writer_config) const {
+  std::vector<UdpSocket::SendConfig> send_configs;
+  auto add_send_config = [&send_configs](std::string ip_address, uint16_t port, bool is_multicast) {
+    if (ip_address.empty() || port == 0) {
+      return;
+    }
+    auto existing =
+        std::find_if(send_configs.begin(), send_configs.end(), [&](const auto &send_config) {
+          return send_config.ip_address == ip_address && send_config.port == port &&
+                 send_config.is_multicast_endpoint == is_multicast;
+        });
+    if (existing == send_configs.end()) {
+      send_configs.push_back({
+          .ip_address = std::move(ip_address),
+          .port = port,
+          .is_multicast_endpoint = is_multicast,
+      });
+    }
+  };
+
+  if (!writer_config.multicast_group.empty()) {
+    add_send_config(writer_config.multicast_group, ports().user_multicast, true);
+    return send_configs;
+  }
+
+  if (config_.use_multicast_for_user_data) {
+    add_send_config(config_.user_multicast_group, ports().user_multicast, true);
+    return send_configs;
+  }
+
+  std::vector<EndpointProxy> remote_readers;
+  std::vector<ParticipantProxy> participants;
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    remote_readers = discovered_readers_;
+    participants = discovered_participants_;
+  }
+
+  for (const auto &reader : remote_readers) {
+    if (!reader.is_reader || reader.topic_name != topic_name) {
+      continue;
+    }
+
+    bool used_multicast = false;
+    for (const auto &locator : reader.multicast_locators) {
+      if (!has_valid_locator(locator)) {
+        continue;
+      }
+      add_send_config(locator.address_string(), static_cast<uint16_t>(locator.port), true);
+      used_multicast = true;
+    }
+    if (used_multicast) {
+      continue;
+    }
+
+    if (has_valid_locator(reader.unicast_locator)) {
+      add_send_config(reader.unicast_locator.address_string(),
+                      static_cast<uint16_t>(reader.unicast_locator.port), false);
+      continue;
+    }
+
+    auto participant =
+        std::find_if(participants.begin(), participants.end(), [&](const auto &proxy) {
+          return proxy.guid_prefix == reader.participant_guid.prefix;
+        });
+    if (participant != participants.end()) {
+      add_send_config(participant->address, participant->ports.user_unicast, false);
+    }
+  }
+
+  return send_configs;
 }
 
 bool RtpsParticipant::send_spdp_announce_now() {

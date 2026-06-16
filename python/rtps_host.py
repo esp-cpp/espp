@@ -25,7 +25,7 @@ import struct
 import sys
 import time
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 
 RTPS_MAGIC = b"RTPS"
@@ -86,6 +86,7 @@ PID_RELIABILITY = 0x001A
 PID_LIVELINESS = 0x001B
 PID_DURABILITY = 0x001D
 PID_USER_DATA = 0x002C
+PID_MULTICAST_LOCATOR = 0x0030
 PID_UNICAST_LOCATOR = 0x002F
 PID_DEFAULT_UNICAST_LOCATOR = 0x0031
 PID_METATRAFFIC_UNICAST_LOCATOR = 0x0032
@@ -139,6 +140,7 @@ class EndpointProxy:
     expects_inline_qos: bool
     unicast_address: str
     unicast_port: int
+    multicast_locators: List[Tuple[str, int]]
 
 
 @dataclass
@@ -375,6 +377,10 @@ def find_parameter(parameters: Iterable[tuple[int, bytes]], pid: int) -> Optiona
     return None
 
 
+def find_parameters(parameters: Iterable[tuple[int, bytes]], pid: int) -> List[bytes]:
+    return [candidate_value for candidate_pid, candidate_value in parameters if candidate_pid == pid]
+
+
 def parse_guid(value: Optional[bytes]) -> Optional[bytes]:
     if value is None or len(value) != 16:
         return None
@@ -465,6 +471,7 @@ class RtpsHostHarness:
         self.discovered_participants: Dict[bytes, ParticipantProxy] = {}
         self.discovered_writers: Dict[bytes, EndpointProxy] = {}
         self.discovered_readers: Dict[bytes, EndpointProxy] = {}
+        self.joined_user_multicast_groups: Set[str] = set()
 
         self.local_writers = [
             WriterConfig(
@@ -487,7 +494,9 @@ class RtpsHostHarness:
         self.metatraffic_multicast_sock = self._create_metatraffic_multicast_socket()
         self.metatraffic_unicast_sock = self._create_bound_udp_socket(self.ports.metatraffic_unicast)
         self.user_unicast_sock = self._create_bound_udp_socket(self.ports.user_unicast)
+        self.user_multicast_sock = self._create_user_multicast_socket()
         self._configure_multicast_sender(self.metatraffic_unicast_sock)
+        self._configure_multicast_sender(self.user_unicast_sock)
 
         self.next_discovery_send = 0.0
         self.next_publish_send = 0.0
@@ -528,6 +537,27 @@ class RtpsHostHarness:
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, membership)
         sock.setblocking(False)
         return sock
+
+    def _create_user_multicast_socket(self) -> socket.socket:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        if hasattr(socket, "SO_REUSEPORT"):
+            try:
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+            except OSError:
+                pass
+        sock.bind((self.args.bind_address, self.ports.user_multicast))
+        sock.setblocking(False)
+        return sock
+
+    def _join_user_multicast_group(self, group: str) -> None:
+        if group in self.joined_user_multicast_groups:
+            return
+        interface_ip = self.args.multicast_interface or self.args.advertised_address
+        membership = socket.inet_aton(group) + socket.inet_aton(interface_ip)
+        self.user_multicast_sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, membership)
+        self.joined_user_multicast_groups.add(group)
+        log(f"[multicast] joined user-data group {group}:{self.ports.user_multicast}")
 
     def _configure_multicast_sender(self, sock: socket.socket) -> None:
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 1)
@@ -706,18 +736,42 @@ class RtpsHostHarness:
         else:
             log(
                 f"[publish] sent {self.args.publish_value} on '{self.local_writers[0].topic_name}' "
-                f"to {len(self.discovered_participants)} discovered participant(s)"
+                f"using {len(self._build_user_targets(self.local_writers[0]))} discovered target(s)"
             )
+
+    def _build_user_targets(self, writer: WriterConfig) -> List[Tuple[str, int]]:
+        targets: List[Tuple[str, int]] = []
+        for reader in self.discovered_readers.values():
+            if reader.topic_name != writer.topic_name:
+                continue
+            if reader.multicast_locators:
+                for multicast_address, multicast_port in reader.multicast_locators:
+                    target = (multicast_address, multicast_port)
+                    if target not in targets:
+                        targets.append(target)
+                continue
+            if reader.unicast_port > 0 and reader.unicast_address:
+                target = (reader.unicast_address, reader.unicast_port)
+                if target not in targets:
+                    targets.append(target)
+        if targets:
+            return targets
+        for participant in self.discovered_participants.values():
+            target = (participant.address, participant.ports.user_unicast)
+            if participant.address and participant.ports.user_unicast > 0 and target not in targets:
+                targets.append(target)
+        return targets
 
     def _publish_value(self, writer: WriterConfig, value: int, target: Optional[tuple[str, int]] = None) -> bool:
         payload = self.build_uint32_data_message(writer, value)
         if target is not None:
             self.user_unicast_sock.sendto(payload, target)
             return True
-        if not self.discovered_participants:
+        targets = self._build_user_targets(writer)
+        if not targets:
             return False
-        for participant in self.discovered_participants.values():
-            self.user_unicast_sock.sendto(payload, (participant.address, participant.ports.user_unicast))
+        for destination in targets:
+            self.user_unicast_sock.sendto(payload, destination)
         return True
 
     def handle_metatraffic_packet(self, packet: bytes, sender_ip: str) -> None:
@@ -779,6 +833,15 @@ class RtpsHostHarness:
             participant_guid = endpoint_guid[:12] + PARTICIPANT_ENTITY_ID
 
         endpoint_ip, endpoint_port = parse_locator(find_parameter(parameters, PID_UNICAST_LOCATOR))
+        multicast_locators = [
+            parse_locator(value)
+            for value in find_parameters(parameters, PID_MULTICAST_LOCATOR)
+        ]
+        multicast_locators = [
+            (multicast_address, multicast_port)
+            for multicast_address, multicast_port in multicast_locators
+            if multicast_address != "0.0.0.0" and multicast_port > 0
+        ]
         endpoint = EndpointProxy(
             guid=endpoint_guid,
             participant_guid=participant_guid,
@@ -789,10 +852,17 @@ class RtpsHostHarness:
             expects_inline_qos=parse_bool(find_parameter(parameters, PID_EXPECTS_INLINE_QOS)) or False,
             unicast_address=endpoint_ip if endpoint_ip != "0.0.0.0" else sender_ip,
             unicast_port=endpoint_port,
+            multicast_locators=multicast_locators,
         )
         endpoint_map = self.discovered_readers if is_reader else self.discovered_writers
         is_new = endpoint_guid not in endpoint_map
         endpoint_map[endpoint_guid] = endpoint
+        if not is_reader:
+            subscribed_topics = {reader.topic_name for reader in self.local_readers}
+            if endpoint.topic_name in subscribed_topics:
+                for multicast_address, multicast_port in endpoint.multicast_locators:
+                    if multicast_port == self.ports.user_multicast:
+                        self._join_user_multicast_group(multicast_address)
         if is_new:
             kind = "reader" if is_reader else "writer"
             log(
@@ -836,11 +906,14 @@ class RtpsHostHarness:
                 subscribed_topics = {reader.topic_name for reader in self.local_readers}
                 if topic_name in subscribed_topics:
                     writer = self.local_writers[0]
-                    self._publish_value(writer, maybe_value, (sender_ip, sender_port))
-                    log(
-                        f"[echo] responded with value={maybe_value} on '{writer.topic_name}' "
-                        f"to {sender_ip}:{sender_port}"
-                    )
+                    if self._publish_value(writer, maybe_value):
+                        log(f"[echo] responded with value={maybe_value} on '{writer.topic_name}'")
+                    else:
+                        self._publish_value(writer, maybe_value, (sender_ip, sender_port))
+                        log(
+                            f"[echo] responded with value={maybe_value} on '{writer.topic_name}' "
+                            f"to {sender_ip}:{sender_port}"
+                        )
 
     def run(self) -> None:
         start_time = time.monotonic()
@@ -884,6 +957,7 @@ class RtpsHostHarness:
                         self.metatraffic_multicast_sock,
                         self.metatraffic_unicast_sock,
                         self.user_unicast_sock,
+                        self.user_multicast_sock,
                     ],
                     [],
                     [],
@@ -892,7 +966,7 @@ class RtpsHostHarness:
                 for sock in readable:
                     packet, sender = sock.recvfrom(4096)
                     sender_ip, sender_port = sender[0], sender[1]
-                    if sock is self.user_unicast_sock:
+                    if sock is self.user_unicast_sock or sock is self.user_multicast_sock:
                         self.handle_user_packet(packet, sender_ip, sender_port)
                     else:
                         self.handle_metatraffic_packet(packet, sender_ip)
@@ -906,6 +980,7 @@ class RtpsHostHarness:
             self.metatraffic_multicast_sock,
             self.metatraffic_unicast_sock,
             self.user_unicast_sock,
+            self.user_multicast_sock,
         ):
             try:
                 sock.close()

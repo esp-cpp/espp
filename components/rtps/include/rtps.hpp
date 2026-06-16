@@ -166,7 +166,9 @@ public:
     std::string type_name{"std_msgs/msg/UInt32"}; ///< Type name advertised through SEDP.
     ReliabilityKind reliability{
         ReliabilityKind::BEST_EFFORT}; ///< Reliability QoS advertised for the writer.
-    uint32_t entity_index{0};          ///< Local entity slot used to derive the RTPS entity ID.
+    std::string multicast_group{}; ///< Optional multicast group advertised for this writer and used
+                                   ///< by `publish_uint32()` when set.
+    uint32_t entity_index{0};      ///< Local entity slot used to derive the RTPS entity ID.
   };
 
   /// @brief Configuration for a locally advertised reader endpoint.
@@ -175,7 +177,9 @@ public:
     std::string type_name{"std_msgs/msg/UInt32"}; ///< Type name advertised through SEDP.
     ReliabilityKind reliability{
         ReliabilityKind::BEST_EFFORT}; ///< Reliability QoS advertised for the reader.
-    uint32_t entity_index{0};          ///< Local entity slot used to derive the RTPS entity ID.
+    std::string multicast_group{};     ///< Optional multicast group advertised for this reader and
+                                   ///< joined on the standard RTPS user-multicast port when set.
+    uint32_t entity_index{0}; ///< Local entity slot used to derive the RTPS entity ID.
     std::function<void(uint32_t)> on_uint32_sample{
         nullptr}; ///< Callback invoked when a matching temporary UInt32 sample is received.
   };
@@ -201,6 +205,8 @@ public:
     bool is_reader{false};          ///< True for discovered readers, false for discovered writers.
     bool expects_inline_qos{false}; ///< Whether the remote endpoint requested inline QoS.
     Locator unicast_locator{};      ///< Preferred unicast locator advertised by the endpoint.
+    std::vector<Locator> multicast_locators{}; ///< Multicast locators advertised by the endpoint
+                                               ///< for user-data traffic.
   };
 
   /// @brief Top-level participant configuration.
@@ -213,6 +219,10 @@ public:
         "127.0.0.1"}; ///< IPv4 address advertised to peers for unicast traffic.
     std::string metatraffic_multicast_group{
         "239.255.0.1"}; ///< Multicast group used for RTPS metatraffic discovery.
+    std::string user_multicast_group{
+        "239.255.0.1"}; ///< Multicast group used for best-effort user-data multicast when enabled.
+    bool use_multicast_for_user_data{false}; ///< If true, join the user multicast group and publish
+                                             ///< temporary user-data samples via multicast.
     Task::BaseConfig receive_task_config{
         .name = "RtpsRx",
         .stack_size_bytes = 6 * 1024}; ///< Base task configuration for receive sockets.
@@ -317,14 +327,14 @@ public:
   std::vector<uint8_t> build_sedp_subscription_message(const ReaderConfig &reader_config) const;
 
   /// @brief Build a temporary ESPP UInt32 user-data message.
-  /// @param topic_name Topic name to embed in the message payload.
+  /// @param writer_config Local writer configuration used for the topic and writer entity ID.
   /// @param value UInt32 sample value to serialize.
   /// @param reliability Reliability flag to encode in the temporary payload header.
   /// @return Serialized RTPS DATA message containing the temporary ESPP UInt32 payload.
-  std::vector<uint8_t> build_uint32_data_message(std::string_view topic_name, uint32_t value,
+  std::vector<uint8_t> build_uint32_data_message(const WriterConfig &writer_config, uint32_t value,
                                                  ReliabilityKind reliability) const;
 
-  /// @brief Publish a temporary ESPP UInt32 sample to discovered participants.
+  /// @brief Publish a temporary ESPP UInt32 sample using the configured user-data transport.
   /// @param topic_name Topic name to publish on. Must match a registered local writer.
   /// @param value UInt32 sample value to send.
   /// @return True if at least one send call succeeded, false otherwise.
@@ -347,8 +357,16 @@ public:
   static PortMapping compute_port_mapping(uint16_t domain_id, uint16_t participant_id);
 
 private:
+  struct UserMulticastReceiver {
+    std::string multicast_group{};
+    std::unique_ptr<UdpSocket> socket{};
+  };
+
   bool handle_metatraffic_message(std::vector<uint8_t> &data, const Socket::Info &sender);
   bool handle_user_message(std::vector<uint8_t> &data, const Socket::Info &sender);
+  bool ensure_user_multicast_receivers_started();
+  std::vector<UdpSocket::SendConfig>
+  build_user_send_configs(std::string_view topic_name, const WriterConfig &writer_config) const;
   bool send_spdp_announce_now();
   bool send_sedp_announcements_to(const ParticipantProxy &participant);
   bool send_discovery_now();
@@ -360,6 +378,7 @@ private:
 
   std::unique_ptr<UdpSocket> metatraffic_multicast_receiver_;
   std::unique_ptr<UdpSocket> metatraffic_unicast_receiver_;
+  std::vector<UserMulticastReceiver> user_multicast_receivers_;
   std::unique_ptr<UdpSocket> user_unicast_receiver_;
   std::unique_ptr<Task> announce_task_;
 

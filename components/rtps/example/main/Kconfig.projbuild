@@ -23,7 +23,8 @@ menu "RTPS Example Configuration"
 
     config RTPS_EXAMPLE_NODE_NAME
         string "Participant node name"
-        default "espp_rtps_node"
+        default "espp_rtps_initiator" if RTPS_EXAMPLE_ROLE_INITIATOR
+        default "espp_rtps_responder" if RTPS_EXAMPLE_ROLE_RESPONDER
         help
             Logical RTPS participant name announced during discovery.
 
@@ -37,7 +38,8 @@ menu "RTPS Example Configuration"
     config RTPS_EXAMPLE_PARTICIPANT_ID
         int "RTPS participant ID"
         range 0 119
-        default 1
+        default 1 if RTPS_EXAMPLE_ROLE_INITIATOR
+        default 2 if RTPS_EXAMPLE_ROLE_RESPONDER
         help
             Each board should use a unique participant ID within the same domain.
 
@@ -62,6 +64,28 @@ menu "RTPS Example Configuration"
         help
             Period between request messages sent by the initiator after a
             responder has been discovered.
+
+    config RTPS_EXAMPLE_USE_USER_MULTICAST
+        bool "Use best-effort user-data multicast"
+        default n
+        help
+            If enabled, the example advertises and uses topic-specific
+            multicast groups for the request and response topics instead of
+            per-participant unicast delivery.
+
+    config RTPS_EXAMPLE_REQUEST_MULTICAST_GROUP
+        string "Request topic multicast group"
+        default "239.255.0.11"
+        depends on RTPS_EXAMPLE_USE_USER_MULTICAST
+        help
+            IPv4 multicast group used for the <topic-prefix>/request topic.
+
+    config RTPS_EXAMPLE_RESPONSE_MULTICAST_GROUP
+        string "Response topic multicast group"
+        default "239.255.0.12"
+        depends on RTPS_EXAMPLE_USE_USER_MULTICAST
+        help
+            IPv4 multicast group used for the <topic-prefix>/response topic.
 
     config ESP_WIFI_SSID
         string "WiFi SSID"
