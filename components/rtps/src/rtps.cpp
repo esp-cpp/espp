@@ -1048,9 +1048,10 @@ RtpsParticipant::build_sedp_subscription_message(const ReaderConfig &reader_conf
   append_parameter_sentinel(parameters);
 
   auto payload = build_parameter_list_payload(parameters);
+  static std::atomic<int64_t> sequence_number{1};
   return build_message(guid_prefix_, {.value = kSedpSubscriptionsReaderEntityId},
                        {.value = kSedpSubscriptionsWriterEntityId},
-                       static_cast<int64_t>(reader_config.entity_index + 1), payload)
+                       sequence_number.fetch_add(1), payload)
       .serialize();
 }
 
