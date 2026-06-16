@@ -1065,8 +1065,9 @@ std::vector<uint8_t> RtpsParticipant::build_uint32_data_message(const WriterConf
   payload_writer.append_bytes(cdr);
 
   auto guid = writer_guid(writer_config.entity_index);
-  return build_message(guid_prefix_, {.value = kEntityIdUnknown}, guid.entity_id, 1,
-                       payload_writer.take())
+  static std::atomic<int64_t> sequence_number{1};
+  return build_message(guid_prefix_, {.value = kEntityIdUnknown}, guid.entity_id,
+                       sequence_number.fetch_add(1), payload_writer.take())
       .serialize();
 }
 
