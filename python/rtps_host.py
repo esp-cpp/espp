@@ -545,6 +545,8 @@ class RtpsHostHarness:
             try:
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
             except OSError:
+                # Some platforms expose SO_REUSEPORT but reject setting it; this is
+                # a best-effort optimization and is not required for correctness.
                 pass
         sock.bind((self.args.bind_address, self.ports.user_multicast))
         sock.setblocking(False)
