@@ -75,6 +75,11 @@ public:
   /// @brief Create a writer configured for a headerless/body-only CDR payload.
   /// @param encapsulation Endianness/encapsulation rules to use for the body payload.
   /// @return A ready-to-use writer with no encapsulation header in its output.
+  /// @note CDR alignment is measured from the start of the buffer. Because a body-only writer has
+  /// no 4-byte encapsulation header, 8-byte-aligned members (e.g. int64/double) land at different
+  /// offsets than in an encapsulated writer. A body produced here and later wrapped with
+  /// encapsulate() is therefore not byte-compatible with a directly-encapsulated buffer when it
+  /// contains 8-byte-aligned types. Current RTPS usage only emits <= 4-byte-aligned types.
   [[nodiscard]] static CdrWriter
   make_body_writer(CdrEncapsulation encapsulation = CdrEncapsulation::CDR_LE) {
     return CdrWriter(body_config(encapsulation));
@@ -424,6 +429,12 @@ public:
       span = span.first(span.size() - 1);
     }
     text.assign(reinterpret_cast<const char *>(span.data()), span.size());
+    // Re-align for any following element. CDR only inserts padding before an aligned element, so a
+    // trailing string at the end of the buffer may legitimately have no padding bytes; only align
+    // when there are bytes left to consume so a valid final string is not rejected.
+    if (remaining() == 0) {
+      return true;
+    }
     return align(4);
   }
 
@@ -500,7 +511,9 @@ public:
       return false;
     }
     values.clear();
-    values.reserve(length);
+    // Cap the reservation against the bytes actually available so a malformed length cannot trigger
+    // a huge allocation. The element loop below still validates each read.
+    values.reserve(std::min<size_t>(length, remaining() / sizeof(T)));
     for (uint32_t i = 0; i < length; i++) {
       T value{};
       if (!read<T>(value)) {

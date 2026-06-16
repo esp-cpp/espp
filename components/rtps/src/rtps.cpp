@@ -176,6 +176,20 @@ public:
     return true;
   }
 
+  bool read_u16_be(uint16_t &value) {
+    if (remaining() < 2) {
+      return false;
+    }
+    value = static_cast<uint16_t>(static_cast<uint16_t>(data_[offset_]) << 8) |
+            static_cast<uint16_t>(data_[offset_ + 1]);
+    offset_ += 2;
+    return true;
+  }
+
+  bool read_u16(uint16_t &value, bool little_endian) {
+    return little_endian ? read_u16_le(value) : read_u16_be(value);
+  }
+
   bool read_u32_le(uint32_t &value) {
     if (remaining() < 4) {
       return false;
@@ -209,13 +223,27 @@ public:
     return true;
   }
 
-  bool read_sequence_number_le(int64_t &value) {
-    int32_t high = 0;
+  bool read_sequence_number(int64_t &value, bool little_endian) {
+    uint32_t high = 0;
     uint32_t low = 0;
-    if (!read_i32_le(high) || !read_u32_le(low)) {
+    if (little_endian) {
+      if (!read_u32_le(high) || !read_u32_le(low)) {
+        return false;
+      }
+    } else {
+      if (!read_u32_be(high) || !read_u32_be(low)) {
+        return false;
+      }
+    }
+    value = (static_cast<int64_t>(static_cast<int32_t>(high)) << 32) | low;
+    return true;
+  }
+
+  bool skip(size_t length) {
+    if (remaining() < length) {
       return false;
     }
-    value = (static_cast<int64_t>(high) << 32) | low;
+    offset_ += length;
     return true;
   }
 
@@ -378,22 +406,27 @@ void append_parameter_locator(ByteWriter &writer, ParameterId id,
 }
 
 void append_parameter_string_cdr(ByteWriter &writer, ParameterId id, std::string_view text) {
-  uint16_t raw_length = static_cast<uint16_t>(4 + text.size() + 1);
-  append_parameter_header(writer, id, raw_length);
   auto cdr_writer = espp::CdrWriter::make_body_writer(espp::CdrEncapsulation::CDR_LE);
   cdr_writer.write_string(text);
-  writer.append_bytes(cdr_writer.payload());
+  auto cdr_payload = cdr_writer.payload();
+  // The RTPS PL_CDR encoding requires parameterLength to be a multiple of 4 so the next
+  // parameter starts 4-byte aligned. write_string() already trailing-aligns the body to 4, so the
+  // payload length is the padded length we must declare.
+  append_parameter_header(writer, id, static_cast<uint16_t>(cdr_payload.size()));
+  writer.append_bytes(cdr_payload);
 }
 
 void append_parameter_octet_sequence(ByteWriter &writer, ParameterId id,
                                      std::span<const uint8_t> bytes) {
-  uint16_t raw_length = static_cast<uint16_t>(4 + bytes.size());
-  append_parameter_header(writer, id, raw_length);
   auto cdr_writer = espp::CdrWriter::make_body_writer(espp::CdrEncapsulation::CDR_LE);
   cdr_writer.write<uint32_t>(static_cast<uint32_t>(bytes.size()));
   cdr_writer.write_bytes(bytes);
   cdr_writer.align(4);
-  writer.append_bytes(cdr_writer.payload());
+  auto cdr_payload = cdr_writer.payload();
+  // parameterLength must be a multiple of 4 (see append_parameter_string_cdr); the align(4) above
+  // padded the payload to that length, so declare the padded length.
+  append_parameter_header(writer, id, static_cast<uint16_t>(cdr_payload.size()));
+  writer.append_bytes(cdr_payload);
 }
 
 void append_parameter_reliability(ByteWriter &writer,
@@ -437,6 +470,11 @@ void append_parameter_sentinel(ByteWriter &writer) {
 std::vector<ParameterView> parse_parameter_list(std::span<const uint8_t> payload) {
   std::vector<ParameterView> parameters;
   espp::CdrReader cdr_reader(payload);
+  // Limitation: only little-endian parameter lists (PL_CDR_LE) are decoded. The parameter value
+  // parsers below (parse_u32_le, parse_locator, parse_guid, ...) assume little-endian contents, so
+  // a big-endian (PL_CDR_BE) list is intentionally rejected rather than misparsed. In practice DDS
+  // and ROS 2 implementations emit PL_CDR_LE for SPDP/SEDP discovery, so this is a discovery-only
+  // gap.
   if (!cdr_reader.valid() || cdr_reader.encapsulation() != espp::CdrEncapsulation::PL_CDR_LE) {
     return parameters;
   }
@@ -600,6 +638,25 @@ bool is_same_guid_prefix(const espp::RtpsParticipant::Guid &guid,
   return guid.prefix == prefix;
 }
 
+// Skip an inline-QoS parameter list (a raw ParameterList without an encapsulation header) up to and
+// including its PID_SENTINEL terminator. Returns false if the list is malformed/truncated.
+bool skip_inline_qos(ByteReader &reader, bool little_endian) {
+  while (reader.remaining() >= 4) {
+    uint16_t pid = 0;
+    uint16_t length = 0;
+    if (!reader.read_u16(pid, little_endian) || !reader.read_u16(length, little_endian)) {
+      return false;
+    }
+    if (pid == static_cast<uint16_t>(ParameterId::PID_SENTINEL)) {
+      return true;
+    }
+    if (!reader.skip(length)) {
+      return false;
+    }
+  }
+  return false;
+}
+
 DataSubmessageView parse_data_submessage(const espp::RtpsParticipant::Submessage &submessage,
                                          bool &ok) {
   DataSubmessageView view;
@@ -609,21 +666,35 @@ DataSubmessageView parse_data_submessage(const espp::RtpsParticipant::Submessage
     return view;
   }
 
+  const bool little_endian = (submessage.flags & kSubmessageFlagLittleEndian) != 0;
   ByteReader reader(std::span<const uint8_t>{submessage.payload.data(), submessage.payload.size()});
   uint16_t extra_flags = 0;
   uint16_t octets_to_inline_qos = 0;
-  if (!reader.read_u16_le(extra_flags) || !reader.read_u16_le(octets_to_inline_qos) ||
+  if (!reader.read_u16(extra_flags, little_endian) ||
+      !reader.read_u16(octets_to_inline_qos, little_endian) ||
       !reader.read_bytes(
           std::span<uint8_t>{view.reader_id.value.data(), view.reader_id.value.size()}) ||
       !reader.read_bytes(
           std::span<uint8_t>{view.writer_id.value.data(), view.writer_id.value.size()}) ||
-      !reader.read_sequence_number_le(view.writer_sn)) {
+      !reader.read_sequence_number(view.writer_sn, little_endian)) {
     return view;
   }
 
   view.inline_qos_present = (submessage.flags & kSubmessageFlagInlineQos) != 0;
   view.data_present = true;
-  if (view.inline_qos_present || octets_to_inline_qos != kDataSubmessageOctetsToInlineQos) {
+
+  // octetsToInlineQos counts from the byte after the octetsToInlineQos field to the start of the
+  // inline QoS (or the serialized payload when no inline QoS is present). We have already consumed
+  // the standard 16-byte readerId+writerId+writerSN block; honor any additional header octets a
+  // sender may have included instead of assuming the fixed layout.
+  if (octets_to_inline_qos < kDataSubmessageOctetsToInlineQos ||
+      !reader.skip(octets_to_inline_qos - kDataSubmessageOctetsToInlineQos)) {
+    return view;
+  }
+
+  // When inline QoS is present, skip past the inline QoS parameter list to reach the serialized
+  // payload rather than dropping the sample.
+  if (view.inline_qos_present && !skip_inline_qos(reader, little_endian)) {
     return view;
   }
 
@@ -919,11 +990,13 @@ std::vector<RtpsParticipant::EndpointProxy> RtpsParticipant::discovered_readers(
   return discovered_readers_;
 }
 
-const std::vector<RtpsParticipant::WriterConfig> &RtpsParticipant::writers() const {
+std::vector<RtpsParticipant::WriterConfig> RtpsParticipant::writers() const {
+  std::lock_guard<std::mutex> lock(mutex_);
   return writers_;
 }
 
-const std::vector<RtpsParticipant::ReaderConfig> &RtpsParticipant::readers() const {
+std::vector<RtpsParticipant::ReaderConfig> RtpsParticipant::readers() const {
+  std::lock_guard<std::mutex> lock(mutex_);
   return readers_;
 }
 
@@ -1616,13 +1689,4 @@ bool RtpsParticipant::send_discovery_now() {
                          });
 }
 
-RtpsParticipant::ParticipantProxy RtpsParticipant::make_local_participant_proxy() const {
-  return {.participant_guid = participant_guid(),
-          .guid_prefix = guid_prefix_,
-          .name = config_.node_name,
-          .enclave = config_.enclave,
-          .address = config_.advertised_address,
-          .ports = ports(),
-          .builtin_endpoints = kBuiltinEndpointSet};
-}
 } // namespace espp

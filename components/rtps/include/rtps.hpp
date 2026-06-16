@@ -283,12 +283,12 @@ public:
   std::vector<EndpointProxy> discovered_readers() const;
 
   /// @brief Access the registered local writer configurations.
-  /// @return A const reference to the local writer list.
-  const std::vector<WriterConfig> &writers() const;
+  /// @return A snapshot copy of the local writer list.
+  std::vector<WriterConfig> writers() const;
 
   /// @brief Access the registered local reader configurations.
-  /// @return A const reference to the local reader list.
-  const std::vector<ReaderConfig> &readers() const;
+  /// @return A snapshot copy of the local reader list.
+  std::vector<ReaderConfig> readers() const;
 
   /// @brief Compute the standard RTPS UDP port mapping for this participant.
   /// @return The derived metatraffic and user-data ports for the configured domain and participant
@@ -375,7 +375,6 @@ private:
   bool send_spdp_announce_now();
   bool send_sedp_announcements_to(const ParticipantProxy &participant);
   bool send_discovery_now();
-  ParticipantProxy make_local_participant_proxy() const;
 
   Config config_;
   GuidPrefix guid_prefix_{};
