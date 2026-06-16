@@ -1213,7 +1213,10 @@ bool RtpsParticipant::handle_metatraffic_message(std::vector<uint8_t> &data,
               find_parameter(parameters, ParameterId::PID_DEFAULT_UNICAST_LOCATOR)) {
         if (auto maybe_locator = parse_locator(maybe_default_unicast_parameter->value)) {
           participant.ports.user_unicast = static_cast<uint16_t>(maybe_locator->port);
-          participant.address = maybe_locator->address_string();
+          const auto advertised_address = maybe_locator->address_string();
+          if (advertised_address != "0.0.0.0") {
+            participant.address = advertised_address;
+          }
         }
       }
       if (auto maybe_default_multicast_parameter =
