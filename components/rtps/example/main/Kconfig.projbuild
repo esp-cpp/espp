@@ -30,7 +30,7 @@ menu "RTPS Example Configuration"
 
     config RTPS_EXAMPLE_DOMAIN_ID
         int "RTPS domain ID"
-        range 0 232
+        range 0 231
         default 0
         help
             Both boards must use the same domain ID to discover each other.
