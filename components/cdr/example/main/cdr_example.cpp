@@ -12,12 +12,11 @@ extern "C" void app_main(void) {
   std::array<uint8_t, 4> input_magic{'C', 'D', 'R', '!'};
   std::array<uint16_t, 3> input_values{10, 20, 30};
 
+  //! [cdr example]
   espp::CdrWriter writer({
       .encapsulation = espp::CdrEncapsulation::CDR_LE,
       .include_encapsulation = true,
   });
-
-  // cdr example
   writer.write<uint32_t>(42);
   writer.write<float>(3.25f);
   writer.write_string("hello cdr");
@@ -46,6 +45,7 @@ extern "C" void app_main(void) {
   bool inline_ok = inline_reader.encapsulation() == espp::CdrEncapsulation::PL_CDR_LE &&
                    inline_reader.read_array(decoded_magic) &&
                    inline_reader.read_string(decoded_inline_text);
+  //! [cdr example]
 
   if (!ok || !inline_ok) {
     logger.error("Failed to decode CDR payload");

@@ -19,6 +19,9 @@
 
 namespace espp {
 /// Cross-platform RTPS protocol foundation built on top of the socket component.
+///
+/// \section rtps_ex1 RTPS Example
+/// \snippet rtps_example.cpp rtps example
 class RtpsParticipant : public BaseComponent {
 public:
   /// @brief Delivery semantics advertised for a writer or reader endpoint.

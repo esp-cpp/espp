@@ -70,6 +70,7 @@ bool has_endpoint(std::span<const espp::RtpsParticipant::EndpointProxy> endpoint
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = "rtps_example", .level = espp::Logger::Verbosity::INFO});
 
+  //! [rtps example]
   std::string ip_address;
   espp::WifiSta wifi_sta({.ssid = CONFIG_ESP_WIFI_SSID,
                           .password = CONFIG_ESP_WIFI_PASSWORD,
@@ -184,6 +185,7 @@ extern "C" void app_main(void) {
     logger.error("Failed to start RTPS participant");
     return;
   }
+  //! [rtps example]
 
 #if CONFIG_RTPS_EXAMPLE_ROLE_INITIATOR
   logger.info("Initiator is waiting for a responder on the same domain/topic prefix...");
