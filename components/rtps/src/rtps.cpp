@@ -813,6 +813,10 @@ RtpsParticipant::Message::parse(std::span<const uint8_t> data) {
     Submessage submessage;
     uint8_t kind = 0;
     uint16_t length = 0;
+    // Limitation: submessageLength is read little-endian regardless of the submessage E-flag (bit 0
+    // of flags). Big-endian submessages are not supported; in practice DDS/ROS 2 peers emit
+    // little-endian framing. Endianness of the DATA submessage body itself is honored separately in
+    // parse_data_submessage().
     if (!reader.read_u8(kind) || !reader.read_u8(submessage.flags) || !reader.read_u16_le(length)) {
       return std::nullopt;
     }
@@ -946,12 +950,15 @@ void RtpsParticipant::stop() {
     metatraffic_unicast_receiver_->stop_receiving();
     metatraffic_unicast_receiver_.reset();
   }
-  for (auto &receiver : user_multicast_receivers_) {
-    if (receiver.socket) {
-      receiver.socket->stop_receiving();
+  {
+    std::lock_guard<std::mutex> receivers_lock(receivers_mutex_);
+    for (auto &receiver : user_multicast_receivers_) {
+      if (receiver.socket) {
+        receiver.socket->stop_receiving();
+      }
     }
+    user_multicast_receivers_.clear();
   }
-  user_multicast_receivers_.clear();
   if (user_unicast_receiver_) {
     user_unicast_receiver_->stop_receiving();
     user_unicast_receiver_.reset();
@@ -1533,6 +1540,9 @@ bool RtpsParticipant::ensure_user_multicast_receivers_started(const std::string 
   }
 
   auto port_mapping = ports();
+  // receivers_mutex_ (not mutex_) guards user_multicast_receivers_; desired_groups was built above
+  // under mutex_, which has already been released, so the two locks are never held nested.
+  std::lock_guard<std::mutex> receivers_lock(receivers_mutex_);
   for (const auto &group : desired_groups) {
     auto existing =
         std::find_if(user_multicast_receivers_.begin(), user_multicast_receivers_.end(),

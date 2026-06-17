@@ -392,6 +392,8 @@ private:
   std::unique_ptr<Task> announce_task_;
 
   mutable std::mutex mutex_;
+  mutable std::mutex receivers_mutex_; ///< Guards user_multicast_receivers_ against concurrent
+                                       ///< add_reader()/stop() access.
   mutable std::mutex sequence_mutex_;
   mutable std::atomic<int64_t> spdp_sequence_number_{1};
   mutable std::atomic<int64_t> sedp_publications_sequence_number_{1};
