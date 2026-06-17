@@ -62,6 +62,9 @@ constexpr int32_t kDefaultLeaseDurationSeconds = 20;
 constexpr uint32_t kDefaultLeaseDurationNanoseconds = 0;
 constexpr int32_t kDefaultMaxBlockingSeconds = 0;
 constexpr uint32_t kDefaultMaxBlockingNanoseconds = 100000000;
+// PID_TYPE_MAX_SIZE_SERIALIZED carries the max CDR-serialized size of the type *including* the
+// 4-byte encapsulation header (matching FastDDS: getMaxCdrSerializedSize() + 4). A UInt32 body is
+// 4 bytes, so the spec-exact advertised value is 4 + 4 = 8.
 constexpr uint32_t kUInt32SerializedSize = 8;
 
 enum class ParameterId : uint16_t {
@@ -113,11 +116,6 @@ public:
     data_.push_back(static_cast<uint8_t>((value >> 8) & 0xff));
   }
 
-  void append_u16_be(uint16_t value) {
-    data_.push_back(static_cast<uint8_t>((value >> 8) & 0xff));
-    data_.push_back(static_cast<uint8_t>(value & 0xff));
-  }
-
   void append_u32_le(uint32_t value) {
     for (int i = 0; i < 4; i++) {
       data_.push_back(static_cast<uint8_t>((value >> (8 * i)) & 0xff));
@@ -125,12 +123,6 @@ public:
   }
 
   void append_i32_le(int32_t value) { append_u32_le(static_cast<uint32_t>(value)); }
-
-  void append_u32_be(uint32_t value) {
-    for (int i = 3; i >= 0; i--) {
-      data_.push_back(static_cast<uint8_t>((value >> (8 * i)) & 0xff));
-    }
-  }
 
   void append_sequence_number_le(int64_t value) {
     auto high = static_cast<int32_t>(value >> 32);
@@ -390,18 +382,28 @@ void append_parameter_bool(ByteWriter &writer, ParameterId id, bool value) {
   writer.append_u8(0);
 }
 
+// RTPS Duration_t/Time_t use the NTP representation {int32 seconds, uint32 fraction} where the
+// fraction is in units of 1/2^32 of a second (see DDSI-RTPS; OpenDDS RtpsCore.idl references RFC
+// 1305). Convert a nanosecond count to that fraction so durations are encoded spec-exactly.
+constexpr uint32_t ntp_fraction_from_nanoseconds(uint32_t nanoseconds) {
+  return static_cast<uint32_t>((static_cast<uint64_t>(nanoseconds) << 32) / 1000000000ULL);
+}
+
 void append_parameter_duration(ByteWriter &writer, ParameterId id, int32_t seconds,
                                uint32_t nanoseconds) {
   append_parameter_header(writer, id, 8);
   writer.append_i32_le(seconds);
-  writer.append_u32_le(nanoseconds);
+  writer.append_u32_le(ntp_fraction_from_nanoseconds(nanoseconds));
 }
 
 void append_parameter_locator(ByteWriter &writer, ParameterId id,
                               const espp::RtpsParticipant::Locator &locator) {
   append_parameter_header(writer, id, 24);
-  writer.append_u32_be(static_cast<uint32_t>(locator.kind));
-  writer.append_u32_be(locator.port);
+  // Locator_t.kind and .port are CDR long/unsigned long encoded in the parameter list endianness
+  // (little-endian for PL_CDR_LE); only the 16-byte address is a raw per-byte (network-order)
+  // field.
+  writer.append_u32_le(static_cast<uint32_t>(locator.kind));
+  writer.append_u32_le(locator.port);
   writer.append_bytes(locator.address);
 }
 
@@ -436,7 +438,7 @@ void append_parameter_reliability(ByteWriter &writer,
                            ? kReliabilityReliable
                            : kReliabilityBestEffort);
   writer.append_i32_le(kDefaultMaxBlockingSeconds);
-  writer.append_u32_le(kDefaultMaxBlockingNanoseconds);
+  writer.append_u32_le(ntp_fraction_from_nanoseconds(kDefaultMaxBlockingNanoseconds));
 }
 
 void append_parameter_durability(ByteWriter &writer) {
@@ -448,7 +450,7 @@ void append_parameter_liveliness(ByteWriter &writer) {
   append_parameter_header(writer, ParameterId::PID_LIVELINESS, 12);
   writer.append_u32_le(kLivelinessAutomatic);
   writer.append_i32_le(kDefaultLeaseDurationSeconds);
-  writer.append_u32_le(kDefaultLeaseDurationNanoseconds);
+  writer.append_u32_le(ntp_fraction_from_nanoseconds(kDefaultLeaseDurationNanoseconds));
 }
 
 void append_parameter_history(ByteWriter &writer) {
@@ -587,7 +589,9 @@ std::optional<espp::RtpsParticipant::Locator> parse_locator(std::span<const uint
   uint32_t kind = 0;
   uint32_t port = 0;
   espp::RtpsParticipant::Locator locator;
-  if (!reader.read_u32_be(kind) || !reader.read_u32_be(port) ||
+  // kind and port are little-endian in PL_CDR_LE (see append_parameter_locator); the address is a
+  // raw 16-byte field read verbatim.
+  if (!reader.read_u32_le(kind) || !reader.read_u32_le(port) ||
       !reader.read_bytes(std::span<uint8_t>{locator.address.data(), locator.address.size()})) {
     return std::nullopt;
   }
