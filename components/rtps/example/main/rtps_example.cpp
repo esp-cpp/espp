@@ -132,6 +132,9 @@ extern "C" void app_main(void) {
                         endpoint.topic_name, endpoint.type_name);
           },
       .log_level = espp::Logger::Verbosity::INFO,
+      // Keep the underlying UDP sockets quieter than the participant so routine socket activity
+      // does not clutter the logs. Raise this to debug transport issues independently.
+      .socket_log_level = espp::Logger::Verbosity::WARN,
   });
 
 #if CONFIG_RTPS_EXAMPLE_ROLE_INITIATOR

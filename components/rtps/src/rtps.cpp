@@ -845,11 +845,11 @@ bool RtpsParticipant::start() {
 
   auto port_mapping = ports();
   metatraffic_multicast_receiver_ =
-      std::make_unique<UdpSocket>(UdpSocket::Config{.log_level = get_log_level()});
+      std::make_unique<UdpSocket>(UdpSocket::Config{.log_level = config_.socket_log_level});
   metatraffic_unicast_receiver_ =
-      std::make_unique<UdpSocket>(UdpSocket::Config{.log_level = get_log_level()});
+      std::make_unique<UdpSocket>(UdpSocket::Config{.log_level = config_.socket_log_level});
   user_unicast_receiver_ =
-      std::make_unique<UdpSocket>(UdpSocket::Config{.log_level = get_log_level()});
+      std::make_unique<UdpSocket>(UdpSocket::Config{.log_level = config_.socket_log_level});
 
   auto multicast_task_config = config_.receive_task_config;
   multicast_task_config.name = config_.receive_task_config.name + "_spdp_mc";
@@ -1532,7 +1532,8 @@ bool RtpsParticipant::ensure_user_multicast_receivers_started() {
       continue;
     }
 
-    auto socket = std::make_unique<UdpSocket>(UdpSocket::Config{.log_level = get_log_level()});
+    auto socket =
+        std::make_unique<UdpSocket>(UdpSocket::Config{.log_level = config_.socket_log_level});
     auto task_config = config_.receive_task_config;
     task_config.name = fmt::format("{}_user_mc_{}", config_.receive_task_config.name,
                                    user_multicast_receivers_.size());

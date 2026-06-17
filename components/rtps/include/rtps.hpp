@@ -238,6 +238,11 @@ public:
         nullptr}; ///< Callback invoked when a remote endpoint is first discovered.
     espp::Logger::Verbosity log_level{
         espp::Logger::Verbosity::INFO}; ///< Participant log verbosity.
+    espp::Logger::Verbosity socket_log_level{
+        espp::Logger::Verbosity::WARN}; ///< Log verbosity for the participant's underlying UDP
+                                        ///< sockets. Defaults to WARN so routine socket activity
+                                        ///< does not clutter the logs; raise it to debug transport
+                                        ///< issues independently of the participant log level.
   };
 
   /// @brief Construct an RTPS participant.
