@@ -626,6 +626,10 @@ std::string extract_enclave(std::span<const uint8_t> user_data_bytes) {
   if (end == std::string::npos) {
     end = text.size();
   }
+  // Normalize an empty enclave (e.g. "enclave=;") to the default "/" rather than returning "".
+  if (end == position) {
+    return "/";
+  }
   return text.substr(position, end - position);
 }
 
@@ -963,15 +967,15 @@ bool RtpsParticipant::add_writer(const WriterConfig &writer_config) {
 }
 
 bool RtpsParticipant::add_reader(const ReaderConfig &reader_config) {
-  {
-    std::lock_guard<std::mutex> lock(mutex_);
-    readers_.push_back(reader_config);
-  }
+  // Bring up the reader's multicast receiver (if any) before persisting the reader, so a failure
+  // does not leave the participant with a registered reader that has no working receiver.
   if (started_.load() && !reader_config.multicast_group.empty() &&
-      !ensure_user_multicast_receivers_started()) {
+      !ensure_user_multicast_receivers_started(reader_config.multicast_group)) {
     logger_.error("Failed to start multicast receiver for topic '{}'", reader_config.topic_name);
     return false;
   }
+  std::lock_guard<std::mutex> lock(mutex_);
+  readers_.push_back(reader_config);
   return true;
 }
 
@@ -1503,23 +1507,28 @@ bool RtpsParticipant::handle_user_message(std::vector<uint8_t> &data, const Sock
   return false;
 }
 
-bool RtpsParticipant::ensure_user_multicast_receivers_started() {
+bool RtpsParticipant::ensure_user_multicast_receivers_started(const std::string &extra_group) {
   if (!started_.load()) {
     return true;
   }
 
   std::vector<std::string> desired_groups;
-  if (config_.use_multicast_for_user_data && !config_.user_multicast_group.empty()) {
-    desired_groups.push_back(config_.user_multicast_group);
+  auto add_group = [&desired_groups](const std::string &group) {
+    if (!group.empty() &&
+        std::find(desired_groups.begin(), desired_groups.end(), group) == desired_groups.end()) {
+      desired_groups.push_back(group);
+    }
+  };
+  if (config_.use_multicast_for_user_data) {
+    add_group(config_.user_multicast_group);
   }
+  // Include the group of a reader being added before it is persisted in readers_, so the receiver
+  // can be brought up (and any failure surfaced) without leaving the reader half-registered.
+  add_group(extra_group);
   {
     std::lock_guard<std::mutex> lock(mutex_);
     for (const auto &reader_config : readers_) {
-      if (!reader_config.multicast_group.empty() &&
-          std::find(desired_groups.begin(), desired_groups.end(), reader_config.multicast_group) ==
-              desired_groups.end()) {
-        desired_groups.push_back(reader_config.multicast_group);
-      }
+      add_group(reader_config.multicast_group);
     }
   }
 

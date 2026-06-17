@@ -370,7 +370,7 @@ private:
 
   bool handle_metatraffic_message(std::vector<uint8_t> &data, const Socket::Info &sender);
   bool handle_user_message(std::vector<uint8_t> &data, const Socket::Info &sender);
-  bool ensure_user_multicast_receivers_started();
+  bool ensure_user_multicast_receivers_started(const std::string &extra_group = {});
   std::vector<UdpSocket::SendConfig>
   build_user_send_configs(std::string_view topic_name, const WriterConfig &writer_config) const;
   int64_t next_spdp_sequence_number() const;

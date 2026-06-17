@@ -425,9 +425,13 @@ public:
     }
     auto span = data_.subspan(offset_, length);
     offset_ += length;
-    if (span.back() == 0) {
-      span = span.first(span.size() - 1);
+    // CDR strings are length-prefixed and null-terminated; a missing terminator is a malformed
+    // payload, so reject it rather than silently accepting the bytes.
+    if (span.back() != 0) {
+      valid_ = false;
+      return false;
     }
+    span = span.first(span.size() - 1);
     text.assign(reinterpret_cast<const char *>(span.data()), span.size());
     // Re-align for any following element. CDR only inserts padding before an aligned element, so a
     // trailing string at the end of the buffer may legitimately have no padding bytes; only align
@@ -510,10 +514,16 @@ public:
     if (!read<uint32_t>(length)) {
       return false;
     }
+    // Bound the declared length against the bytes actually available before reserving so a
+    // malformed/malicious payload cannot request an enormous allocation (or OOM) on a
+    // memory-constrained target. Each element occupies at least sizeof(T) bytes, so a length larger
+    // than remaining() / sizeof(T) cannot possibly be satisfied; reject it up front.
+    if (length > remaining() / sizeof(T)) {
+      valid_ = false;
+      return false;
+    }
     values.clear();
-    // Cap the reservation against the bytes actually available so a malformed length cannot trigger
-    // a huge allocation. The element loop below still validates each read.
-    values.reserve(std::min<size_t>(length, remaining() / sizeof(T)));
+    values.reserve(length);
     for (uint32_t i = 0; i < length; i++) {
       T value{};
       if (!read<T>(value)) {
