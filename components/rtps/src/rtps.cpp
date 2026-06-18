@@ -93,6 +93,19 @@ enum class ParameterId : uint16_t {
   PID_HISTORY = 0x0040,
 };
 
+// 64-bit FNV-1a hash. Used to derive the node-name portion of the GUID prefix with a full 64 bits
+// of entropy regardless of the platform's size_t width. std::hash<std::string> is only 32-bit on
+// the 32-bit ESP32, which made bytes 8..11 of the prefix a repeated copy of bytes 4..7 (the shift
+// `hash >> (8 * i)` for i >= 4 was undefined behavior on a 32-bit value).
+uint64_t fnv1a_64(std::string_view text) {
+  uint64_t hash = 1469598103934665603ull; // FNV-1a 64-bit offset basis
+  for (unsigned char c : text) {
+    hash ^= c;
+    hash *= 1099511628211ull; // FNV-1a 64-bit prime
+  }
+  return hash;
+}
+
 class ByteWriter {
 public:
   void append_bytes(std::span<const uint8_t> bytes) {
@@ -818,7 +831,10 @@ RtpsParticipant::Message::parse(std::span<const uint8_t> data) {
 RtpsParticipant::RtpsParticipant(const Config &config)
     : BaseComponent({.tag = "RtpsParticipant", .level = config.log_level})
     , config_(config) {
-  auto hash = std::hash<std::string>{}(config_.node_name);
+  // GUID prefix layout: bytes 0..1 = participant_id, 2..3 = domain_id, 4..11 = 64-bit node-name
+  // hash. Uniqueness across participants on one host relies on distinct participant_ids; the
+  // node-name hash distinguishes different nodes/applications.
+  uint64_t hash = fnv1a_64(config_.node_name);
   guid_prefix_.value[0] = config_.participant_id & 0xff;
   guid_prefix_.value[1] = (config_.participant_id >> 8) & 0xff;
   guid_prefix_.value[2] = config_.domain_id & 0xff;
