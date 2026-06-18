@@ -49,9 +49,11 @@ This section gives a brief overview of what the scripts in this folder do.
   window.
 - `rtps_host.py`: A pure-stdlib host-side RTPS harness for discovering an ESPP
   `RtpsParticipant`, printing SPDP/SEDP metadata, and optionally publishing or
-  receiving the current temporary `UInt32` user-data payloads without needing
-  Python bindings. It now follows endpoint-advertised user-data multicast
-  locators, joining matching subscribed-topic multicast groups dynamically.
+  receiving standard CDR-over-RTPS `UInt32` user-data samples (routed by writer
+  GUID via SEDP) without needing Python bindings. It follows endpoint-advertised
+  user-data multicast locators, joining matching subscribed-topic multicast
+  groups dynamically. Run `python rtps_host.py --self-test` to validate the
+  wire-format encoders/decoders against the firmware with no network I/O.
 - `cobs_demo.py`: Demonstration of ESPP COBS functionality with native Python data types.
   Shows ESPP encoding/decoding, cross-library compatibility with the cobs-python library,
   and practical usage examples. Includes design differences explanation and validation

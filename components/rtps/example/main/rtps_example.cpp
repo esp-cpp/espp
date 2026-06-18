@@ -1,8 +1,13 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cstdint>
+#include <optional>
+#include <span>
 #include <thread>
+#include <vector>
 
+#include "cdr.hpp"
 #include "logger.hpp"
 #include "rtps.hpp"
 #include "wifi_sta.hpp"
@@ -11,6 +16,24 @@ using namespace std::chrono_literals;
 
 namespace {
 constexpr std::string_view kTypeName = "std_msgs/msg/UInt32";
+
+// Thin wrappers over the `cdr` component for the std_msgs/msg/UInt32 payload used by this example.
+// The rtps `publish()` / `on_sample` API works with any CDR-encoded type, so serialization lives in
+// the application rather than the participant.
+std::vector<uint8_t> serialize_uint32(uint32_t value) {
+  espp::CdrWriter writer;
+  writer.write<uint32_t>(value);
+  return writer.take_buffer();
+}
+
+std::optional<uint32_t> deserialize_uint32(std::span<const uint8_t> cdr) {
+  espp::CdrReader reader(cdr);
+  uint32_t value = 0;
+  if (!reader.valid() || !reader.read<uint32_t>(value)) {
+    return std::nullopt;
+  }
+  return value;
+}
 
 bool run_local_protocol_checks(espp::Logger &logger, const espp::RtpsParticipant &participant) {
   auto announce_message = participant.build_announce_message();
@@ -48,8 +71,8 @@ bool run_local_protocol_checks(espp::Logger &logger, const espp::RtpsParticipant
                 parsed_subscription_message->submessages.size());
   }
 
-  auto uint32_payload = espp::RtpsParticipant::serialize_uint32_cdr(42);
-  auto maybe_value = espp::RtpsParticipant::deserialize_uint32_cdr(uint32_payload);
+  auto uint32_payload = serialize_uint32(42);
+  auto maybe_value = deserialize_uint32(uint32_payload);
   if (!maybe_value || *maybe_value != 42) {
     logger.error("UInt32 CDR round trip failed");
     return false;
@@ -153,7 +176,7 @@ extern "C" void app_main(void) {
       .entity_index = 0,
       .on_sample =
           [&logger, &response_count, &last_sent_request](std::span<const uint8_t> cdr) {
-            auto value = espp::RtpsParticipant::deserialize_uint32_cdr(cdr);
+            auto value = deserialize_uint32(cdr);
             if (!value) {
               return;
             }
@@ -179,14 +202,13 @@ extern "C" void app_main(void) {
       .on_sample =
           [&logger, &request_count, &response_topic,
            &participant_ptr](std::span<const uint8_t> cdr) {
-            auto value = espp::RtpsParticipant::deserialize_uint32_cdr(cdr);
+            auto value = deserialize_uint32(cdr);
             if (!value) {
               return;
             }
             request_count++;
             logger.info("Received request {}, sending response", *value);
-            if (!participant_ptr->publish(response_topic,
-                                          espp::RtpsParticipant::serialize_uint32_cdr(*value))) {
+            if (!participant_ptr->publish(response_topic, serialize_uint32(*value))) {
               logger.warn("Failed to publish response {}", *value);
             }
           },
@@ -240,7 +262,7 @@ extern "C" void app_main(void) {
 
     auto value = next_request_value.fetch_add(1);
     last_sent_request = value;
-    if (participant.publish(request_topic, espp::RtpsParticipant::serialize_uint32_cdr(value))) {
+    if (participant.publish(request_topic, serialize_uint32(value))) {
       logger.info("Published request {} on '{}'", value, request_topic);
     } else {
       logger.warn("Failed to publish request {}", value);

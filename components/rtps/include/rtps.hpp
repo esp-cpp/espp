@@ -348,18 +348,6 @@ public:
   /// @return True if at least one send call succeeded, false otherwise.
   bool publish(std::string_view topic_name, std::span<const uint8_t> cdr_payload);
 
-  /// @brief Serialize a UInt32 value into a standalone CDR payload.
-  /// @param value Value to serialize.
-  /// @return Encapsulated little-endian CDR payload containing the value.
-  /// @note Convenience helper for the common ROS 2 `std_msgs/msg/UInt32` case; pair it with
-  /// `publish()` and `deserialize_uint32_cdr()`. Any CDR-encoded type can be published directly.
-  static std::vector<uint8_t> serialize_uint32_cdr(uint32_t value);
-
-  /// @brief Parse a standalone CDR payload containing a UInt32 value.
-  /// @param data Encapsulated CDR payload bytes.
-  /// @return Parsed UInt32 value on success, or `std::nullopt` if the payload is invalid.
-  static std::optional<uint32_t> deserialize_uint32_cdr(std::span<const uint8_t> data);
-
   /// @brief Compute the standard RTPS UDP port mapping for a domain/participant pair.
   /// @param domain_id RTPS domain ID.
   /// @param participant_id RTPS participant ID.

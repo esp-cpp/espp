@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 """Simple host-side RTPS test harness for the ESPP RTPS component.
 
-This script speaks the current ESPP RTPS discovery wire format plus the
-temporary ``UInt32`` user-data payload used by ``RtpsParticipant`` today. It is
-useful for:
+This script speaks the ESPP RTPS discovery wire format plus the standard
+CDR-over-RTPS user-data path used by ``RtpsParticipant``. It is useful for:
 
 1. discovering an embedded ESPP RTPS participant from a PC/host,
 2. inspecting SPDP/SEDP announcements, and
-3. sending or receiving ``std_msgs/msg/UInt32``-style test samples over the
-   temporary ESPP user-data path.
+3. sending or receiving ``std_msgs/msg/UInt32``-style test samples. User samples
+   are standard RTPS ``DATA`` submessages whose serializedPayload is the raw
+   CDR-encapsulated sample; the topic is identified by the writer GUID resolved
+   through SEDP discovery (no ESPP-specific payload framing).
+
+Run ``python rtps_host.py --self-test`` to validate the wire-format encoders and
+decoders against the firmware's expectations without any network I/O.
 
 It uses only the Python standard library, so it does not require Python
 bindings or a rebuilt host ``lib/`` tree.
@@ -30,8 +34,6 @@ from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 RTPS_MAGIC = b"RTPS"
 PL_CDR_LE = b"\x00\x03\x00\x00"
-USER_DATA_MAGIC = b"ESPPDATA"
-USER_DATA_VERSION = 1
 
 PORT_BASE = 7400
 DOMAIN_GAIN = 250
@@ -47,8 +49,6 @@ DATA_SUBMESSAGE_OCTETS_TO_INLINE_QOS = 16
 
 RTPS_QOS_RELIABILITY_BEST_EFFORT = 1
 RTPS_QOS_RELIABILITY_RELIABLE = 2
-USER_DATA_RELIABILITY_BEST_EFFORT = 0
-USER_DATA_RELIABILITY_RELIABLE = 1
 
 KIND_UDP_V4 = 1
 VENDOR_ID = b"\xca\xfe"
@@ -179,12 +179,14 @@ def reliability_to_name(reliable: bool) -> str:
     return "reliable" if reliable else "best-effort"
 
 
-def encode_user_data_reliability(reliable: bool) -> int:
-    return USER_DATA_RELIABILITY_RELIABLE if reliable else USER_DATA_RELIABILITY_BEST_EFFORT
+def ntp_fraction_from_nanoseconds(nanoseconds: int) -> int:
+    # RTPS Duration_t/Time_t use NTP fraction units of 1/2^32 s, not nanoseconds.
+    return (nanoseconds << 32) // 1_000_000_000
 
 
-def decode_user_data_reliability(encoded: int) -> str:
-    return "reliable" if encoded == USER_DATA_RELIABILITY_RELIABLE else "best-effort"
+def padded_parameter_length(length: int) -> int:
+    # RTPS PL_CDR requires each parameterLength to be a multiple of 4.
+    return (length + 3) & ~3
 
 
 def compute_port_mapping(domain_id: int, participant_id: int) -> PortMapping:
@@ -262,13 +264,14 @@ def append_parameter_bool(buffer: bytearray, pid: int, value: bool) -> None:
 
 def append_parameter_duration(buffer: bytearray, pid: int, seconds: int, nanoseconds: int) -> None:
     append_parameter_header(buffer, pid, 8)
-    buffer.extend(struct.pack("<iI", seconds, nanoseconds))
+    buffer.extend(struct.pack("<iI", seconds, ntp_fraction_from_nanoseconds(nanoseconds)))
 
 
 def locator_bytes(ip_address: str, port: int) -> bytes:
+    # Locator_t.kind/.port are little-endian in PL_CDR_LE; only the 16-byte address is raw bytes.
     locator = bytearray(24)
-    struct.pack_into(">I", locator, 0, KIND_UDP_V4)
-    struct.pack_into(">I", locator, 4, port)
+    struct.pack_into("<I", locator, 0, KIND_UDP_V4)
+    struct.pack_into("<I", locator, 4, port)
     locator[20:24] = socket.inet_aton(ip_address)
     return bytes(locator)
 
@@ -280,7 +283,8 @@ def append_parameter_locator(buffer: bytearray, pid: int, ip_address: str, port:
 
 def append_parameter_string_cdr(buffer: bytearray, pid: int, text: str) -> None:
     encoded = text.encode("utf-8")
-    append_parameter_header(buffer, pid, 4 + len(encoded) + 1)
+    # parameterLength must be a multiple of 4 and includes the trailing CDR padding.
+    append_parameter_header(buffer, pid, padded_parameter_length(4 + len(encoded) + 1))
     buffer.extend(struct.pack("<I", len(encoded) + 1))
     buffer.extend(encoded)
     buffer.append(0)
@@ -288,7 +292,7 @@ def append_parameter_string_cdr(buffer: bytearray, pid: int, text: str) -> None:
 
 
 def append_parameter_octet_sequence(buffer: bytearray, pid: int, payload: bytes) -> None:
-    append_parameter_header(buffer, pid, 4 + len(payload))
+    append_parameter_header(buffer, pid, padded_parameter_length(4 + len(payload)))
     buffer.extend(struct.pack("<I", len(payload)))
     buffer.extend(payload)
     align4(buffer)
@@ -298,7 +302,13 @@ def append_parameter_reliability(buffer: bytearray, reliable: bool) -> None:
     append_parameter_header(buffer, PID_RELIABILITY, 12)
     kind = RTPS_QOS_RELIABILITY_RELIABLE if reliable else RTPS_QOS_RELIABILITY_BEST_EFFORT
     buffer.extend(struct.pack("<I", kind))
-    buffer.extend(struct.pack("<iI", DEFAULT_MAX_BLOCKING_SECONDS, DEFAULT_MAX_BLOCKING_NANOSECONDS))
+    buffer.extend(
+        struct.pack(
+            "<iI",
+            DEFAULT_MAX_BLOCKING_SECONDS,
+            ntp_fraction_from_nanoseconds(DEFAULT_MAX_BLOCKING_NANOSECONDS),
+        )
+    )
 
 
 def append_parameter_durability(buffer: bytearray) -> None:
@@ -309,7 +319,13 @@ def append_parameter_durability(buffer: bytearray) -> None:
 def append_parameter_liveliness(buffer: bytearray) -> None:
     append_parameter_header(buffer, PID_LIVELINESS, 12)
     buffer.extend(struct.pack("<I", 0))
-    buffer.extend(struct.pack("<iI", DEFAULT_LEASE_DURATION_SECONDS, DEFAULT_LEASE_DURATION_NANOSECONDS))
+    buffer.extend(
+        struct.pack(
+            "<iI",
+            DEFAULT_LEASE_DURATION_SECONDS,
+            ntp_fraction_from_nanoseconds(DEFAULT_LEASE_DURATION_NANOSECONDS),
+        )
+    )
 
 
 def append_parameter_history(buffer: bytearray) -> None:
@@ -423,10 +439,10 @@ def parse_octet_sequence(value: Optional[bytes]) -> Optional[bytes]:
 def parse_locator(value: Optional[bytes]) -> tuple[str, int]:
     if value is None or len(value) != 24:
         return ("0.0.0.0", 0)
-    kind = struct.unpack_from(">I", value, 0)[0]
+    kind = struct.unpack_from("<I", value, 0)[0]
     if kind != KIND_UDP_V4:
         return ("0.0.0.0", 0)
-    port = struct.unpack_from(">I", value, 4)[0]
+    port = struct.unpack_from("<I", value, 4)[0]
     ip_address = socket.inet_ntoa(value[20:24])
     return (ip_address, port)
 
@@ -501,6 +517,7 @@ class RtpsHostHarness:
         self.next_discovery_send = 0.0
         self.next_publish_send = 0.0
         self.last_no_participant_log = 0.0
+        self.last_unknown_writer_log = 0.0
 
     def _create_bound_udp_socket(self, port: int) -> socket.socket:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
@@ -548,7 +565,12 @@ class RtpsHostHarness:
                 # Some platforms expose SO_REUSEPORT but reject setting it; this is
                 # a best-effort optimization and is not required for correctness.
                 pass
-        sock.bind((self.args.bind_address, self.ports.user_multicast))
+        # Bind to INADDR_ANY, not a unicast address: multicast datagrams are addressed to the group
+        # (e.g. 239.255.0.11), so a socket bound to a specific unicast interface address will not
+        # receive them on Linux (and unreliably on macOS). Delivery is decided by the joined
+        # group(s) + port. This socket may join several user-data groups, so binding to a single
+        # group address is not an option.
+        sock.bind(("", self.ports.user_multicast))
         sock.setblocking(False)
         return sock
 
@@ -683,24 +705,15 @@ class RtpsHostHarness:
             payload,
         )
 
-    def build_uint32_data_message(self, writer: WriterConfig, value: int) -> bytes:
-        payload = bytearray()
-        payload.extend(USER_DATA_MAGIC)
-        payload.append(USER_DATA_VERSION)
-        payload.append(encode_user_data_reliability(writer.reliable))
-        topic_name = writer.topic_name.encode("utf-8")
-        payload.extend(struct.pack("<H", len(topic_name)))
-        payload.extend(topic_name)
-        cdr_payload = serialize_uint32_cdr(value)
-        payload.extend(struct.pack("<H", len(cdr_payload)))
-        payload.extend(cdr_payload)
+    def build_data_message(self, writer: WriterConfig, cdr_payload: bytes) -> bytes:
+        # Standard RTPS: the DATA serializedPayload is exactly the CDR-encapsulated sample.
         writer_entity_id = entity_id_for_index(writer.entity_index, USER_WRITER_NO_KEY_KIND)
         return build_rtps_message(
             self.guid_prefix,
             ENTITY_ID_UNKNOWN,
             writer_entity_id,
             self._next_sequence(writer_entity_id),
-            bytes(payload),
+            cdr_payload,
         )
 
     def send_spdp_announce_now(self) -> None:
@@ -765,7 +778,7 @@ class RtpsHostHarness:
         return targets
 
     def _publish_value(self, writer: WriterConfig, value: int, target: Optional[tuple[str, int]] = None) -> bool:
-        payload = self.build_uint32_data_message(writer, value)
+        payload = self.build_data_message(writer, serialize_uint32_cdr(value))
         if target is not None:
             self.user_unicast_sock.sendto(payload, target)
             return True
@@ -777,7 +790,7 @@ class RtpsHostHarness:
         return True
 
     def handle_metatraffic_packet(self, packet: bytes, sender_ip: str) -> None:
-        for writer_id, serialized_payload in parse_rtps_data_messages(packet):
+        for _guid_prefix, writer_id, serialized_payload in parse_rtps_data_messages(packet):
             parameters = parse_parameter_list(serialized_payload)
             if not parameters:
                 continue
@@ -873,49 +886,43 @@ class RtpsHostHarness:
             )
 
     def handle_user_packet(self, packet: bytes, sender_ip: str, sender_port: int) -> None:
-        for writer_id, serialized_payload in parse_rtps_data_messages(packet):
-            if not serialized_payload.startswith(USER_DATA_MAGIC) or len(serialized_payload) < len(USER_DATA_MAGIC) + 2:
+        subscribed_topics = {reader.topic_name for reader in self.local_readers}
+        for guid_prefix, writer_id, serialized_payload in parse_rtps_data_messages(packet):
+            # Standard RTPS: resolve the topic from the writer GUID via SEDP discovery state.
+            writer_guid = guid_prefix + writer_id
+            writer = self.discovered_writers.get(writer_guid)
+            if writer is None:
+                # Sample arrived before its writer was discovered via SEDP; drop it (best-effort).
+                # Surface it (rate-limited) so a missing SEDP exchange is visible rather than silent.
+                now = time.monotonic()
+                if now - self.last_unknown_writer_log > 2.0:
+                    log(
+                        f"[data] received {len(serialized_payload)}-byte sample from UNDISCOVERED "
+                        f"writer {guid_to_string(writer_guid)} at {sender_ip}:{sender_port}; cannot "
+                        f"route without SEDP (discovered_writers={len(self.discovered_writers)})"
+                    )
+                    self.last_unknown_writer_log = now
                 continue
-            offset = len(USER_DATA_MAGIC)
-            version = serialized_payload[offset]
-            reliability = serialized_payload[offset + 1]
-            offset += 2
-            if version != USER_DATA_VERSION:
+            topic_name = writer.topic_name
+            if topic_name not in subscribed_topics:
                 continue
-            if offset + 2 > len(serialized_payload):
-                continue
-            topic_length = struct.unpack_from("<H", serialized_payload, offset)[0]
-            offset += 2
-            if offset + topic_length > len(serialized_payload):
-                continue
-            topic_name = serialized_payload[offset : offset + topic_length].decode("utf-8", errors="replace")
-            offset += topic_length
-            if offset + 2 > len(serialized_payload):
-                continue
-            payload_length = struct.unpack_from("<H", serialized_payload, offset)[0]
-            offset += 2
-            if offset + payload_length > len(serialized_payload):
-                continue
-            maybe_value = deserialize_uint32_cdr(serialized_payload[offset : offset + payload_length])
+            maybe_value = deserialize_uint32_cdr(serialized_payload)
             if maybe_value is None:
                 continue
-            reliability_name = decode_user_data_reliability(reliability)
             log(
-                f"[data] topic='{topic_name}' value={maybe_value} reliability={reliability_name} "
+                f"[data] topic='{topic_name}' value={maybe_value} reliability={writer.reliability} "
                 f"from {sender_ip}:{sender_port} writer={hex_string(writer_id)}"
             )
             if self.args.echo_received and self.local_writers:
-                subscribed_topics = {reader.topic_name for reader in self.local_readers}
-                if topic_name in subscribed_topics:
-                    writer = self.local_writers[0]
-                    if self._publish_value(writer, maybe_value):
-                        log(f"[echo] responded with value={maybe_value} on '{writer.topic_name}'")
-                    else:
-                        self._publish_value(writer, maybe_value, (sender_ip, sender_port))
-                        log(
-                            f"[echo] responded with value={maybe_value} on '{writer.topic_name}' "
-                            f"to {sender_ip}:{sender_port}"
-                        )
+                out_writer = self.local_writers[0]
+                if self._publish_value(out_writer, maybe_value):
+                    log(f"[echo] responded with value={maybe_value} on '{out_writer.topic_name}'")
+                else:
+                    self._publish_value(out_writer, maybe_value, (sender_ip, sender_port))
+                    log(
+                        f"[echo] responded with value={maybe_value} on '{out_writer.topic_name}' "
+                        f"to {sender_ip}:{sender_port}"
+                    )
 
     def run(self) -> None:
         start_time = time.monotonic()
@@ -990,11 +997,13 @@ class RtpsHostHarness:
                 log(f"[close] ignoring socket close failure for {sock!r}: {exc}")
 
 
-def parse_rtps_data_messages(packet: bytes) -> List[tuple[bytes, bytes]]:
+def parse_rtps_data_messages(packet: bytes) -> List[tuple[bytes, bytes, bytes]]:
+    """Return (guid_prefix, writer_id, serialized_payload) for each DATA submessage."""
     if len(packet) < 20 or not packet.startswith(RTPS_MAGIC):
         return []
+    guid_prefix = packet[8:20]
     offset = 20
-    messages: List[tuple[bytes, bytes]] = []
+    messages: List[tuple[bytes, bytes, bytes]] = []
     while offset + 4 <= len(packet):
         kind = packet[offset]
         flags = packet[offset + 1]
@@ -1014,8 +1023,73 @@ def parse_rtps_data_messages(packet: bytes) -> List[tuple[bytes, bytes]]:
             continue
         writer_id = payload[8:12]
         serialized_payload = payload[20:]
-        messages.append((writer_id, serialized_payload))
+        messages.append((guid_prefix, writer_id, serialized_payload))
     return messages
+
+
+def run_self_test() -> int:
+    """Validate the wire-format encoders/decoders against firmware expectations (no network I/O)."""
+    failures: List[str] = []
+
+    def check(name: str, condition: bool) -> None:
+        log(f"  [{'PASS' if condition else 'FAIL'}] {name}")
+        if not condition:
+            failures.append(name)
+
+    # Locators: kind/port are little-endian, address is raw network-order bytes; round-trips.
+    loc = locator_bytes("192.168.1.5", 7411)
+    check("locator kind is little-endian", loc[:4] == struct.pack("<I", KIND_UDP_V4))
+    check("locator port is little-endian", loc[4:8] == struct.pack("<I", 7411))
+    check("locator round-trips", parse_locator(loc) == ("192.168.1.5", 7411))
+
+    # Durations are encoded as NTP fraction (1/2^32 s), not nanoseconds.
+    expected_fraction = (DEFAULT_MAX_BLOCKING_NANOSECONDS << 32) // 1_000_000_000
+    rel = bytearray()
+    append_parameter_reliability(rel, reliable=False)
+    fraction = struct.unpack_from("<I", rel, 4 + 4 + 4)[0]  # header(4) + kind(4) + max_blocking_sec(4)
+    check("reliability max_blocking is NTP fraction", fraction == expected_fraction)
+    check("100ms fraction ~= 0.1 * 2^32", abs(fraction - (1 << 32) // 10) <= 1)
+
+    # Every emitted parameterLength is a multiple of 4 (PL_CDR requirement).
+    params = bytearray()
+    append_parameter_string_cdr(params, PID_TOPIC_NAME, "rt/chatter")  # body 4+10+1=15 -> 16
+    append_parameter_string_cdr(params, PID_TYPE_NAME, "std_msgs::msg::dds_::UInt32_")
+    append_parameter_octet_sequence(params, PID_USER_DATA, b"enclave=/;")  # body 4+10=14 -> 16
+    offset = 0
+    aligned = True
+    while offset + 4 <= len(params):
+        pid, length = struct.unpack_from("<HH", params, offset)
+        offset += 4
+        if pid == PID_SENTINEL:
+            break
+        if length % 4 != 0:
+            aligned = False
+        offset += length
+    check("all parameterLengths are multiples of 4", aligned)
+
+    # PL_CDR round-trips the strings through the standard parser.
+    parsed_params = parse_parameter_list(build_parameter_list_payload(params))
+    check("topic name round-trips", parse_cdr_string(find_parameter(parsed_params, PID_TOPIC_NAME)) == "rt/chatter")
+
+    # Standard CDR-over-RTPS DATA: payload is exactly the CDR sample, routed by writer GUID.
+    prefix = make_guid_prefix("selftest", 0, 10)
+    writer_id = entity_id_for_index(0, USER_WRITER_NO_KEY_KIND)
+    cdr = serialize_uint32_cdr(0xDEADBEEF)
+    message = build_rtps_message(prefix, ENTITY_ID_UNKNOWN, writer_id, 1, cdr)
+    parsed = parse_rtps_data_messages(message)
+    check("one DATA submessage parsed", len(parsed) == 1)
+    if parsed:
+        got_prefix, got_writer_id, payload = parsed[0]
+        check("guid_prefix recovered", got_prefix == prefix)
+        check("writer_id recovered", got_writer_id == writer_id)
+        check("serializedPayload is raw CDR (no framing)", payload == cdr)
+        check("uint32 round-trips", deserialize_uint32_cdr(payload) == 0xDEADBEEF)
+
+    if failures:
+        log(f"SELF-TEST FAILED ({len(failures)} check(s)): {', '.join(failures)}")
+        return 1
+    log("SELF-TEST PASSED")
+    return 0
 
 
 def parse_args() -> argparse.Namespace:
@@ -1115,6 +1189,9 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    # Handle --self-test before full argument parsing so it needs no network/address configuration.
+    if "--self-test" in sys.argv:
+        return run_self_test()
     args = parse_args()
     harness = RtpsHostHarness(args)
     harness.run()

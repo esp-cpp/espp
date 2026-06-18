@@ -1189,27 +1189,6 @@ int64_t RtpsParticipant::next_user_data_sequence_number(uint32_t entity_index) c
   return current;
 }
 
-std::vector<uint8_t> RtpsParticipant::serialize_uint32_cdr(uint32_t value) {
-  espp::CdrWriter writer({
-      .encapsulation = espp::CdrEncapsulation::CDR_LE,
-      .include_encapsulation = true,
-  });
-  writer.write<uint32_t>(value);
-  return writer.take_buffer();
-}
-
-std::optional<uint32_t> RtpsParticipant::deserialize_uint32_cdr(std::span<const uint8_t> data) {
-  espp::CdrReader reader(data);
-  if (!reader.valid()) {
-    return std::nullopt;
-  }
-  uint32_t value = 0;
-  if (!reader.read<uint32_t>(value)) {
-    return std::nullopt;
-  }
-  return value;
-}
-
 RtpsParticipant::PortMapping RtpsParticipant::compute_port_mapping(uint16_t domain_id,
                                                                    uint16_t participant_id) {
   auto base = static_cast<uint32_t>(kPortBase) + static_cast<uint32_t>(kDomainGain) * domain_id;
