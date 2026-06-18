@@ -151,10 +151,14 @@ extern "C" void app_main(void) {
       .reliability = espp::RtpsParticipant::ReliabilityKind::BEST_EFFORT,
       .multicast_group = response_multicast_group,
       .entity_index = 0,
-      .on_uint32_sample =
-          [&logger, &response_count, &last_sent_request](uint32_t value) {
+      .on_sample =
+          [&logger, &response_count, &last_sent_request](std::span<const uint8_t> cdr) {
+            auto value = espp::RtpsParticipant::deserialize_uint32_cdr(cdr);
+            if (!value) {
+              return;
+            }
             response_count++;
-            logger.info("Received response {} (expected {})", value, last_sent_request.load());
+            logger.info("Received response {} (expected {})", *value, last_sent_request.load());
           },
   });
 #else
@@ -172,12 +176,18 @@ extern "C" void app_main(void) {
       .reliability = espp::RtpsParticipant::ReliabilityKind::BEST_EFFORT,
       .multicast_group = request_multicast_group,
       .entity_index = 0,
-      .on_uint32_sample =
-          [&logger, &request_count, &response_topic, &participant_ptr](uint32_t value) {
+      .on_sample =
+          [&logger, &request_count, &response_topic,
+           &participant_ptr](std::span<const uint8_t> cdr) {
+            auto value = espp::RtpsParticipant::deserialize_uint32_cdr(cdr);
+            if (!value) {
+              return;
+            }
             request_count++;
-            logger.info("Received request {}, sending response", value);
-            if (!participant_ptr->publish_uint32(response_topic, value)) {
-              logger.warn("Failed to publish response {}", value);
+            logger.info("Received request {}, sending response", *value);
+            if (!participant_ptr->publish(response_topic,
+                                          espp::RtpsParticipant::serialize_uint32_cdr(*value))) {
+              logger.warn("Failed to publish response {}", *value);
             }
           },
   });
@@ -230,7 +240,7 @@ extern "C" void app_main(void) {
 
     auto value = next_request_value.fetch_add(1);
     last_sent_request = value;
-    if (participant.publish_uint32(request_topic, value)) {
+    if (participant.publish(request_topic, espp::RtpsParticipant::serialize_uint32_cdr(value))) {
       logger.info("Published request {} on '{}'", value, request_topic);
     } else {
       logger.warn("Failed to publish request {}", value);

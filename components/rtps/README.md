@@ -30,9 +30,12 @@ RTPS separates *metatraffic* from *user traffic*.
 - **Metatraffic** carries discovery and endpoint metadata. In this component,
   that means SPDP participant announcements plus SEDP publication and
   subscription announcements.
-- **User traffic** carries application samples. The current ESPP scaffold has a
-  temporary best-effort `UInt32` user-data path while the standards-based
-  ROS 2 data plane is still being completed.
+- **User traffic** carries application samples. Samples are sent as standard
+  RTPS `DATA` submessages whose `serializedPayload` is the raw CDR-encapsulated
+  sample (no ESPP-specific framing); the topic is identified by the writer GUID
+  resolved through SEDP discovery. The `publish()` / `on_sample` API works with
+  any CDR-encoded type. Reliable delivery (`HEARTBEAT`/`ACKNACK`) is not yet
+  implemented, so user traffic is currently best-effort.
 
 The current `RtpsParticipant` implementation opens three UDP sockets when
 `start()` is called:
@@ -85,9 +88,9 @@ against every stack".
 
 | Peer implementation | Expected compatibility | Notes |
 | --- | --- | --- |
-| ESPP `rtps` component / `python/rtps_host.py` | **Yes** for current scaffold | Intended smoke-test path for SPDP, SEDP, and the temporary `UInt32` `ESPPDATA` user-data payload. |
-| Generic DDSI-RTPS 2.3 implementations | **Partial** | SPDP and SEDP messages are standards-shaped, but only the discovery slice is implemented today. |
-| ROS 2 nodes backed by Fast DDS | **Partial / discovery-targeted** | The current discovery messages include ROS 2-relevant participant user data such as `enclave=...;`, but standards-based ROS 2 topic data exchange is not finished yet. |
+| ESPP `rtps` component / `python/rtps_host.py` | **Yes** for current scaffold | Intended smoke-test path for SPDP, SEDP, and the standard CDR-over-RTPS best-effort user-data path. |
+| Generic DDSI-RTPS 2.3 implementations | **Partial** | SPDP, SEDP, and best-effort `DATA` samples are standards-shaped; reliable delivery is not implemented today. |
+| ROS 2 nodes backed by Fast DDS | **Partial / discovery-targeted** | Discovery includes ROS 2-relevant participant user data such as `enclave=...;`, and user samples are standard CDR-over-RTPS. Full ROS 2 topic interop additionally needs ROS 2 topic/type name mangling (`rt/...`, `std_msgs::msg::dds_::UInt32_`). |
 | ROS 2 nodes backed by Cyclone DDS or other DDS vendors | **Partial / unverified** | Expected to be limited to the minimal discovery subset if the peer accepts the currently emitted parameter set; not validated yet. |
 | Reliable DDS/RTPS endpoints | **No** | `HEARTBEAT`, `ACKNACK`, retransmission windows, and other reliable state-machine pieces are not implemented. |
 
@@ -100,12 +103,12 @@ against every stack".
 | SPDP participant announce send/receive | **Implemented** | Multicast announce plus participant cache updates. |
 | SEDP publication / subscription announce send/receive | **Implemented** | Local endpoints are announced and remote endpoints are cached. |
 | Participant / endpoint discovery callbacks | **Implemented** | Exposed through `on_participant_discovered` and `on_endpoint_discovered`. |
-| Temporary `UInt32` user-data path | **Implemented** | Uses the current ESPP-specific `ESPPDATA` payload, not a standards-based DDS sample representation. |
+| Standard CDR-over-RTPS user-data path | **Implemented** | `DATA` `serializedPayload` is the raw CDR sample; the `publish()` / `on_sample` API carries any CDR-encoded type, routed by writer GUID via SEDP. |
 | Best-effort user-data multicast transport | **Implemented** | Supports shared participant-level multicast or endpoint-specific multicast locators advertised in SEDP; local readers only join the multicast groups configured for their topics. |
 | QoS fields emitted in discovery | **Partial** | Reliability, durability, liveliness, and history parameters are advertised in SEDP. |
 | QoS matching / policy enforcement | **Not implemented** | Remote QoS is parsed, but full writer/reader matching logic is still missing. |
-| Standards-based DDS user-data serialization | **Not implemented** | The current data path is a temporary ESPP scaffold for `std_msgs/msg/UInt32`. |
-| Inline QoS handling | **Not implemented** | Discovery and user-data handling assume no inline QoS. |
+| ROS 2 topic/type name mangling | **Not implemented** | Topic/type names are emitted verbatim; ROS 2 interop needs `rt/...` topic and `std_msgs::msg::dds_::UInt32_` type mangling. |
+| Inline QoS handling | **Partial** | Inline QoS is skipped on receive to reach the payload; it is not emitted or interpreted. |
 | Reliable RTPS (`HEARTBEAT`, `ACKNACK`, resend`) | **Not implemented** | Reliable delivery is not interoperable yet. |
 | Full ROS 2 topic interoperability | **Not implemented** | Discovery is the current milestone; ROS 2-compatible data writers/readers are still pending. |
 

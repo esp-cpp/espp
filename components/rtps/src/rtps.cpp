@@ -12,8 +12,6 @@
 
 namespace {
 constexpr std::array<char, 4> kRtpsMagic{'R', 'T', 'P', 'S'};
-constexpr std::array<char, 8> kUserDataMagic{'E', 'S', 'P', 'P', 'D', 'A', 'T', 'A'};
-constexpr uint8_t kUserDataVersion = 1;
 
 constexpr uint16_t kPortBase = 7400;
 constexpr uint16_t kDomainGain = 250;
@@ -320,24 +318,6 @@ bool parse_ipv4(std::string_view address, std::array<uint8_t, 4> &octets) {
   }
   octets = parsed;
   return true;
-}
-
-void append_string(ByteWriter &writer, std::string_view text) {
-  writer.append_u16_le(static_cast<uint16_t>(text.size()));
-  writer.append_bytes(
-      std::span<const uint8_t>{reinterpret_cast<const uint8_t *>(text.data()), text.size()});
-}
-
-std::optional<std::string> read_string(ByteReader &reader) {
-  uint16_t length = 0;
-  if (!reader.read_u16_le(length)) {
-    return std::nullopt;
-  }
-  auto span = reader.read_span(length);
-  if (span.size() != length) {
-    return std::nullopt;
-  }
-  return std::string(reinterpret_cast<const char *>(span.data()), span.size());
 }
 
 void append_parameter_header(ByteWriter &writer, ParameterId id, uint16_t length) {
@@ -1139,26 +1119,19 @@ RtpsParticipant::build_sedp_subscription_message(const ReaderConfig &reader_conf
       .serialize();
 }
 
-std::vector<uint8_t> RtpsParticipant::build_uint32_data_message(const WriterConfig &writer_config,
-                                                                uint32_t value,
-                                                                ReliabilityKind reliability) const {
-  ByteWriter payload_writer;
-  payload_writer.append_chars(kUserDataMagic);
-  payload_writer.append_u8(kUserDataVersion);
-  payload_writer.append_u8(static_cast<uint8_t>(reliability));
-  append_string(payload_writer, writer_config.topic_name);
-  auto cdr = serialize_uint32_cdr(value);
-  payload_writer.append_u16_le(static_cast<uint16_t>(cdr.size()));
-  payload_writer.append_bytes(cdr);
-
+std::vector<uint8_t>
+RtpsParticipant::build_data_message(const WriterConfig &writer_config,
+                                    std::span<const uint8_t> cdr_payload) const {
+  // Standard RTPS: the DATA submessage serializedPayload is exactly the CDR-encapsulated sample.
+  // The topic is identified by the writer GUID (resolved by the receiver via SEDP discovery), so no
+  // topic name or other framing is embedded in the payload.
   auto guid = writer_guid(writer_config.entity_index);
   return build_message(guid_prefix_, {.value = kEntityIdUnknown}, guid.entity_id,
-                       next_user_data_sequence_number(writer_config.entity_index),
-                       payload_writer.take())
+                       next_user_data_sequence_number(writer_config.entity_index), cdr_payload)
       .serialize();
 }
 
-bool RtpsParticipant::publish_uint32(std::string_view topic_name, uint32_t value) {
+bool RtpsParticipant::publish(std::string_view topic_name, std::span<const uint8_t> cdr_payload) {
   WriterConfig writer_config;
   {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -1176,10 +1149,7 @@ bool RtpsParticipant::publish_uint32(std::string_view topic_name, uint32_t value
     logger_.warn("Reliable user-data retransmission is not implemented yet; sending best-effort");
   }
 
-  auto encoded_reliability = writer_config.reliability == ReliabilityKind::RELIABLE
-                                 ? ReliabilityKind::BEST_EFFORT
-                                 : writer_config.reliability;
-  auto payload = build_uint32_data_message(writer_config, value, encoded_reliability);
+  auto payload = build_data_message(writer_config, cdr_payload);
 
   if (!user_unicast_receiver_) {
     return false;
@@ -1471,48 +1441,48 @@ bool RtpsParticipant::handle_user_message(std::vector<uint8_t> &data, const Sock
   for (const auto &submessage : message->submessages) {
     bool valid_data = false;
     auto data_view = parse_data_submessage(submessage, valid_data);
-    if (!valid_data || data_view.serialized_payload.size() < kUserDataMagic.size() + 2 ||
-        !std::equal(kUserDataMagic.begin(), kUserDataMagic.end(),
-                    data_view.serialized_payload.begin())) {
+    if (!valid_data) {
       continue;
     }
 
-    ByteReader reader(data_view.serialized_payload);
-    std::array<uint8_t, kUserDataMagic.size()> magic{};
-    uint8_t version = 0;
-    uint8_t reliability = 0;
-    if (!reader.read_bytes(std::span<uint8_t>{magic.data(), magic.size()}) ||
-        !reader.read_u8(version) || !reader.read_u8(reliability)) {
-      continue;
-    }
-    auto topic_name = read_string(reader);
-    uint16_t payload_length = 0;
-    if (version != kUserDataVersion || !topic_name || !reader.read_u16_le(payload_length)) {
-      continue;
-    }
-    auto payload = reader.read_span(payload_length);
-    auto maybe_value = deserialize_uint32_cdr(payload);
-    if (!maybe_value) {
-      continue;
-    }
-
-    if (static_cast<ReliabilityKind>(reliability) == ReliabilityKind::RELIABLE) {
-      logger_.warn(
-          "Received reliable topic '{}' from {}, but ACKNACK/HEARTBEAT is not implemented yet",
-          *topic_name, sender);
-    }
-
-    std::vector<std::function<void(uint32_t)>> callbacks;
+    // Standard RTPS: the sample's topic is identified by the writer GUID, which we resolve through
+    // SEDP discovery state. Build the remote writer GUID from the message prefix + DATA writerId,
+    // then look up its topic and reliability among discovered writers, and collect the matching
+    // local reader callbacks under a single lock.
+    Guid remote_writer_guid{.prefix = message->header.guid_prefix,
+                            .entity_id = data_view.writer_id};
+    std::string topic_name;
+    bool writer_is_reliable = false;
+    std::vector<std::function<void(std::span<const uint8_t>)>> callbacks;
     {
       std::lock_guard<std::mutex> lock(mutex_);
+      auto writer = std::find_if(
+          discovered_writers_.begin(), discovered_writers_.end(),
+          [&remote_writer_guid](const auto &w) { return w.guid == remote_writer_guid; });
+      if (writer == discovered_writers_.end()) {
+        // Sample arrived before the writer was discovered via SEDP; drop it (best-effort).
+        continue;
+      }
+      topic_name = writer->topic_name;
+      writer_is_reliable = writer->reliability == ReliabilityKind::RELIABLE;
       for (const auto &reader_config : readers_) {
-        if (reader_config.topic_name == *topic_name && reader_config.on_uint32_sample) {
-          callbacks.push_back(reader_config.on_uint32_sample);
+        if (reader_config.topic_name == topic_name && reader_config.on_sample) {
+          callbacks.push_back(reader_config.on_sample);
         }
       }
     }
+
+    if (callbacks.empty()) {
+      continue;
+    }
+    if (writer_is_reliable) {
+      logger_.warn("Received sample on reliable topic '{}' from {}, but ACKNACK/HEARTBEAT is not "
+                   "implemented "
+                   "yet",
+                   topic_name, sender);
+    }
     for (const auto &callback : callbacks) {
-      callback(*maybe_value);
+      callback(data_view.serialized_payload);
     }
   }
   return false;

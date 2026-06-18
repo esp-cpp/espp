@@ -168,7 +168,7 @@ public:
     ReliabilityKind reliability{
         ReliabilityKind::BEST_EFFORT}; ///< Reliability QoS advertised for the writer.
     std::string multicast_group{}; ///< Optional multicast group advertised for this writer and used
-                                   ///< by `publish_uint32()` when set.
+                                   ///< by `publish()` when set.
     uint32_t entity_index{0};      ///< Local entity slot used to derive the RTPS entity ID.
   };
 
@@ -181,8 +181,10 @@ public:
     std::string multicast_group{};     ///< Optional multicast group advertised for this reader and
                                    ///< joined on the standard RTPS user-multicast port when set.
     uint32_t entity_index{0}; ///< Local entity slot used to derive the RTPS entity ID.
-    std::function<void(uint32_t)> on_uint32_sample{
-        nullptr}; ///< Callback invoked when a matching temporary UInt32 sample is received.
+    std::function<void(std::span<const uint8_t>)> on_sample{
+        nullptr}; ///< Callback invoked with the raw CDR-encapsulated serialized payload
+                  ///< (encapsulation header + body) of a matching received sample. The span is only
+                  ///< valid for the duration of the callback.
   };
 
   /// @brief Cached information about a discovered remote participant.
@@ -332,23 +334,25 @@ public:
   /// @return Serialized SEDP subscription message for the reader.
   std::vector<uint8_t> build_sedp_subscription_message(const ReaderConfig &reader_config) const;
 
-  /// @brief Build a temporary ESPP UInt32 user-data message.
+  /// @brief Build a standard RTPS user-data DATA message carrying a CDR-encoded sample.
   /// @param writer_config Local writer configuration used for the topic and writer entity ID.
-  /// @param value UInt32 sample value to serialize.
-  /// @param reliability Reliability flag to encode in the temporary payload header.
-  /// @return Serialized RTPS DATA message containing the temporary ESPP UInt32 payload.
-  std::vector<uint8_t> build_uint32_data_message(const WriterConfig &writer_config, uint32_t value,
-                                                 ReliabilityKind reliability) const;
+  /// @param cdr_payload CDR-encapsulated serialized payload (encapsulation header + body) to carry
+  /// as the DATA submessage serializedPayload.
+  /// @return Serialized RTPS DATA message containing the sample.
+  std::vector<uint8_t> build_data_message(const WriterConfig &writer_config,
+                                          std::span<const uint8_t> cdr_payload) const;
 
-  /// @brief Publish a temporary ESPP UInt32 sample using the configured user-data transport.
+  /// @brief Publish a CDR-encoded sample on a topic using the configured user-data transport.
   /// @param topic_name Topic name to publish on. Must match a registered local writer.
-  /// @param value UInt32 sample value to send.
+  /// @param cdr_payload CDR-encapsulated serialized payload (encapsulation header + body) to send.
   /// @return True if at least one send call succeeded, false otherwise.
-  bool publish_uint32(std::string_view topic_name, uint32_t value);
+  bool publish(std::string_view topic_name, std::span<const uint8_t> cdr_payload);
 
   /// @brief Serialize a UInt32 value into a standalone CDR payload.
   /// @param value Value to serialize.
   /// @return Encapsulated little-endian CDR payload containing the value.
+  /// @note Convenience helper for the common ROS 2 `std_msgs/msg/UInt32` case; pair it with
+  /// `publish()` and `deserialize_uint32_cdr()`. Any CDR-encoded type can be published directly.
   static std::vector<uint8_t> serialize_uint32_cdr(uint32_t value);
 
   /// @brief Parse a standalone CDR payload containing a UInt32 value.
