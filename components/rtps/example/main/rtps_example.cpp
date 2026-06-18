@@ -21,13 +21,23 @@ constexpr std::string_view kTypeName = "std_msgs/msg/UInt32";
 // The rtps `publish()` / `on_sample` API works with any CDR-encoded type, so serialization lives in
 // the application rather than the participant.
 std::vector<uint8_t> serialize_uint32(uint32_t value) {
-  espp::CdrWriter writer;
+  // The encapsulation options below are the CdrWriter defaults (little-endian CDR with a 4-byte
+  // encapsulation header); shown explicitly for clarity about the on-the-wire format.
+  espp::CdrWriter writer({
+      .encapsulation = espp::CdrEncapsulation::CDR_LE,
+      .include_encapsulation = true,
+  });
   writer.write<uint32_t>(value);
   return writer.take_buffer();
 }
 
 std::optional<uint32_t> deserialize_uint32(std::span<const uint8_t> cdr) {
-  espp::CdrReader reader(cdr);
+  // The config below matches the CdrReader defaults (expects a little-endian CDR encapsulation
+  // header); shown explicitly to mirror serialize_uint32() above.
+  espp::CdrReader reader(cdr, {
+                                  .expect_encapsulation = true,
+                                  .default_encapsulation = espp::CdrEncapsulation::CDR_LE,
+                              });
   uint32_t value = 0;
   if (!reader.valid() || !reader.read<uint32_t>(value)) {
     return std::nullopt;
