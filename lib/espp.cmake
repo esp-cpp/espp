@@ -19,6 +19,7 @@ set(ESPP_EXTERNAL_INCLUDES_SEPARATE
 set(ESPP_INCLUDES
   ${ESPP_COMPONENTS}/base_component/include
   ${ESPP_COMPONENTS}/base_peripheral/include
+  ${ESPP_COMPONENTS}/cdr/include
   ${ESPP_COMPONENTS}/cobs/include
   ${ESPP_COMPONENTS}/color/include
   ${ESPP_COMPONENTS}/csv/include
@@ -33,6 +34,7 @@ set(ESPP_INCLUDES
   ${ESPP_COMPONENTS}/math/include
   ${ESPP_COMPONENTS}/ndef/include
   ${ESPP_COMPONENTS}/pid/include
+  ${ESPP_COMPONENTS}/rtps/include
   ${ESPP_COMPONENTS}/rtsp/include
   ${ESPP_COMPONENTS}/serialization/include
   ${ESPP_COMPONENTS}/tabulate/include
@@ -44,6 +46,7 @@ set(ESPP_INCLUDES
 )
 
 set(ESPP_SOURCES
+  ${ESPP_COMPONENTS}/cdr/src/cdr.cpp
   ${ESPP_COMPONENTS}/cobs/src/cobs.cpp
   ${ESPP_COMPONENTS}/cobs/src/cobs_stream.cpp
   ${ESPP_COMPONENTS}/color/src/color.cpp
@@ -53,6 +56,7 @@ set(ESPP_SOURCES
   ${ESPP_COMPONENTS}/filters/src/lowpass_filter.cpp
   ${ESPP_COMPONENTS}/filters/src/simple_lowpass_filter.cpp
   ${ESPP_COMPONENTS}/joystick/src/joystick.cpp
+  ${ESPP_COMPONENTS}/rtps/src/rtps.cpp
   ${ESPP_COMPONENTS}/rtsp/src/rtcp_packet.cpp
   ${ESPP_COMPONENTS}/rtsp/src/rtp_packet.cpp
   ${ESPP_COMPONENTS}/rtsp/src/rtsp_client.cpp
