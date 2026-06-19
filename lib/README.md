@@ -92,32 +92,33 @@ pip install -r requirements.txt
 ```console
 # start the environment
 source env/bin/activate
-# configure the build once so the qualification fixer has the exact compile flags:
-cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -S . -B build
 python autogenerate_bindings.py
 ```
 
-**No manual editing of the generated file is required.** The fixups that used to
-be applied by hand are now fully automated:
+**No manual editing of the generated file is required, and no build/compile step
+is needed to fix it.** `autogenerate_bindings.py` strips C++20 `requires`-clauses
+at parse time (so `Vector2d` and friends parse), then post-processes the
+generated `pybind_espp.cpp` entirely with static string/regex passes
+(`_postprocess_generated`) to fix every litgen/srcmlcpp bug that used to be fixed
+by hand:
 
-- `autogenerate_bindings.py` strips C++20 `requires`-clauses at parse time (so
-  `Vector2d` and friends parse), then post-processes the generated
-  `pybind_espp.cpp` to fix the litgen/srcmlcpp bugs: bogus implicit default
-  constructors (`Logger`, `Task`, the RTSP packetizers, ...), template-class
-  nested args (`RangeMapper<int>`, `Bezier<espp::Vector2f>`, `Vector2d<float>`),
-  static/instance method duplicates (`Task::get_id`), and `std::shared_ptr`
-  holders (the RTP packetizer hierarchy, `JpegFrame`).
-- It then runs [`fix_generated_bindings.py`](./fix_generated_bindings.py), which
-  compiles the generated file and applies clang's own
-  `'Y'; did you mean 'espp::X::Y'?` nested-scope qualifications (the previously
-  *undocumented* RTSP/rtps edits) plus `def_readwrite` → `def_readonly` for
-  non-copyable members, iterating until the file compiles cleanly. It needs the
-  `build/compile_commands.json` from the cmake step above; if it is missing,
-  generation prints a hint and you can run `python fix_generated_bindings.py`
-  after configuring the build.
+- bogus implicit default constructors (`Logger`, `Task`, the RTSP packetizers, ...),
+- template-class nested args (`RangeMapper<int>`, `Bezier<espp::Vector2f>`, `Vector2d<float>`),
+- static/instance method duplicates (`Task::get_id`),
+- `std::shared_ptr` holders + bases (the RTP packetizer hierarchy, `JpegFrame`),
+- unqualified RTSP nested types / nested-struct statics in named-ctor defaults
+  (`espp::RtspClient::frame_callback_t`, `espp::RtspServer::Config::default_*`, ...),
+- `def_readwrite` → `def_readonly` for non-copyable members (`RtspSession::Track` sockets).
 
 The litgen dependency is unpinned and recent versions (0.20–0.22) regressed
 nested-scope/template generation, which is why this automation is needed.
+
+[`fix_generated_bindings.py`](./fix_generated_bindings.py) is kept only as an
+optional diagnostic: if a future litgen version introduces *new* unqualified
+names, configure the build with
+`cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -S . -B build` and run it — it compiles
+the generated file and reports clang's `'Y'; did you mean 'espp::X::Y'?`
+suggestions so you can extend the static maps in `autogenerate_bindings.py`.
 
 ### Hand-written components (`cdr`, `rtps`)
 

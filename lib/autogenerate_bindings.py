@@ -197,11 +197,41 @@ def _fix_class_holders(code: str) -> str:
     return code
 
 
+# litgen emits some RTSP nested type names / nested-struct static members unqualified inside the
+# named-constructor lambda default arguments (e.g. `frame_callback_t`, `default_accept_task_stack_size_bytes`,
+# `RtspSession::Config::...`), which do not resolve at namespace scope. Each bare name below is unique
+# to one class in the generated output, so a guarded global replacement is safe. `(?<!::)` / `(?<![:\w])`
+# avoid re-qualifying an already-qualified use. (These were previously fixed by a compile-error pass.)
+_RTSP_QUALIFICATIONS = [
+    (r"(?<!::)\b(frame_callback_t|jpeg_frame_callback_t|disconnect_callback_t)\b",
+     r"espp::RtspClient::\1"),
+    (r"(?<!::)\b(default_accept_task_stack_size_bytes|default_session_task_stack_size_bytes)\b",
+     r"espp::RtspServer::Config::\1"),
+    (r"(?<!::)\bdefault_control_task_stack_size_bytes\b",
+     r"espp::RtspSession::Config::default_control_task_stack_size_bytes"),
+    # RtspServer's ctor default references RtspSession::Config::... unqualified; prepend espp::.
+    (r"(?<![:\w])RtspSession::Config::", r"espp::RtspSession::Config::"),
+]
+
+
+def _fix_rtsp_qualifications(code: str) -> str:
+    for pattern, replacement in _RTSP_QUALIFICATIONS:
+        code = re.sub(pattern, replacement, code)
+    # A def_readwrite on the non-copyable UdpSocket Track members won't compile; make them read-only.
+    for member in ("rtp_socket", "rtcp_socket"):
+        code = code.replace(
+            f'.def_readwrite("{member}", &espp::RtspSession::Track::{member}',
+            f'.def_readonly("{member}", &espp::RtspSession::Track::{member}',
+        )
+    return code
+
+
 def _postprocess_generated(code: str) -> str:
     code = _fix_implicit_default_ctors(code)
     code = _fix_template_class_nested(code)
     code = _remove_static_instance_dups(code)
     code = _fix_class_holders(code)
+    code = _fix_rtsp_qualifications(code)
     return code
 
 
@@ -412,23 +442,10 @@ def autogenerate() -> None:
     with open(pydef_file, "w") as f:
         f.write(code)
     print(f"Post-processed {pydef_file}")
-
-    # Apply the compiler-driven nested-scope qualification fixes (RTSP/rtps), so the generated file
-    # compiles with zero manual edits. Requires a configured build (compile_commands.json); if that
-    # is missing, skip with a hint rather than failing.
-    try:
-        import fix_generated_bindings
-        if os.path.exists(fix_generated_bindings.COMPILE_DB):
-            print("Applying compiler-driven qualification fixes...")
-            fix_generated_bindings.main()
-        else:
-            print(
-                "Skipping qualification fixer: no build/compile_commands.json. Configure once with\n"
-                "  cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON .. (from lib/build), then run\n"
-                "  python fix_generated_bindings.py"
-            )
-    except Exception as exc:  # noqa: BLE001 - generation should not hard-fail on the optional fixer
-        print(f"Qualification fixer did not run ({exc}); run python fix_generated_bindings.py manually.")
+    # NOTE: all fixups are applied statically in _postprocess_generated() above, so the generated
+    # file compiles with no manual edits and without a build step. fix_generated_bindings.py is kept
+    # as an optional diagnostic: if a future litgen version introduces *new* unqualified names, run
+    # it to have clang's "did you mean ..." suggestions point them out (and to extend the static maps).
 
 
 if __name__ == "__main__":
