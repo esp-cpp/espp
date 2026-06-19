@@ -35,7 +35,8 @@ def _compile_command() -> list[str]:
             f"  cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..\n"
             f"from lib/build so the exact compile flags are available."
         )
-    db = json.load(open(COMPILE_DB))
+    with open(COMPILE_DB) as f:
+        db = json.load(f)
     entry = next(c for c in db if c["file"].endswith("pybind_espp.cpp"))
     argv = shlex.split(entry["command"])
     # Drop output (-o x.o) and the input file; add syntax-only + all-errors.
