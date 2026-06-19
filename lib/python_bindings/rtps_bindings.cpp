@@ -10,14 +10,15 @@
 //
 // It is kept out of the generated pybind_espp.cpp so regeneration never clobbers it.
 
+#include <chrono>
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <span>
 #include <string>
 #include <vector>
 
 #include <pybind11/chrono.h>
-#include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -35,6 +36,24 @@ py::bytes to_bytes(std::span<const uint8_t> s) {
 std::vector<uint8_t> bytes_to_vec(const py::bytes &data) {
   std::string s = data;
   return std::vector<uint8_t>(s.begin(), s.end());
+}
+
+// Wrap a Python callable into a C++ std::function that is safe for the rtps component to copy and
+// invoke from its background (receive / discovery) threads. The rtps component copies these
+// std::functions on threads that do not hold the GIL; capturing the py::function directly would
+// inc_ref the Python object without the GIL (a crash). Capturing a shared_ptr instead keeps the
+// std::function copies GIL-free, and the callable is invoked / destroyed only under the GIL.
+template <typename Arg>
+std::function<void(Arg)> wrap_callback(const py::function &fn,
+                                       std::function<py::object(Arg)> to_py) {
+  if (!fn) {
+    return {};
+  }
+  auto cb = std::make_shared<py::function>(fn);
+  return [cb, to_py = std::move(to_py)](Arg arg) {
+    py::gil_scoped_acquire gil;
+    (*cb)(to_py(arg));
+  };
 }
 
 // Reader config exposed to Python: like Rtps::ReaderConfig but `on_sample` is a Python callable
@@ -55,15 +74,51 @@ Rtps::ReaderConfig to_reader_config(const PyReaderConfig &pc) {
   rc.reliability = pc.reliability;
   rc.multicast_group = pc.multicast_group;
   rc.entity_index = pc.entity_index;
-  if (pc.on_sample) {
-    py::function cb = pc.on_sample;
-    rc.on_sample = [cb](std::span<const uint8_t> data) {
-      // Runs on an rtps receive thread; take the GIL before touching Python.
-      py::gil_scoped_acquire gil;
-      cb(to_bytes(data));
-    };
-  }
+  rc.on_sample = wrap_callback<std::span<const uint8_t>>(
+      pc.on_sample, [](std::span<const uint8_t> data) -> py::object { return to_bytes(data); });
   return rc;
+}
+
+// Participant config exposed to Python. The discovery callbacks are Python callables (adapted the
+// same GIL-safe way as on_sample). Task configs are left at their espp defaults.
+struct PyRtpsConfig {
+  std::string node_name{"espp_rtps"};
+  uint16_t domain_id{0};
+  uint16_t participant_id{0};
+  std::string bind_address{"0.0.0.0"};
+  std::string advertised_address{"127.0.0.1"};
+  std::string metatraffic_multicast_group{"239.255.0.1"};
+  std::string user_multicast_group{"239.255.0.1"};
+  bool use_multicast_for_user_data{false};
+  std::chrono::milliseconds announce_period{1000};
+  std::string enclave{"/"};
+  py::function on_participant_discovered{};
+  py::function on_endpoint_discovered{};
+  espp::Logger::Verbosity log_level{espp::Logger::Verbosity::INFO};
+  espp::Logger::Verbosity socket_log_level{espp::Logger::Verbosity::WARN};
+};
+
+Rtps::Config to_config(const PyRtpsConfig &pc) {
+  Rtps::Config c;
+  c.node_name = pc.node_name;
+  c.domain_id = pc.domain_id;
+  c.participant_id = pc.participant_id;
+  c.bind_address = pc.bind_address;
+  c.advertised_address = pc.advertised_address;
+  c.metatraffic_multicast_group = pc.metatraffic_multicast_group;
+  c.user_multicast_group = pc.user_multicast_group;
+  c.use_multicast_for_user_data = pc.use_multicast_for_user_data;
+  c.announce_period = pc.announce_period;
+  c.enclave = pc.enclave;
+  c.log_level = pc.log_level;
+  c.socket_log_level = pc.socket_log_level;
+  c.on_participant_discovered = wrap_callback<const Rtps::ParticipantProxy &>(
+      pc.on_participant_discovered,
+      [](const Rtps::ParticipantProxy &p) -> py::object { return py::cast(p); });
+  c.on_endpoint_discovered = wrap_callback<const Rtps::EndpointProxy &>(
+      pc.on_endpoint_discovered,
+      [](const Rtps::EndpointProxy &e) -> py::object { return py::cast(e); });
+  return c;
 }
 
 } // namespace
@@ -151,26 +206,27 @@ void py_init_rtps(py::module &m) {
       .def_readwrite("on_sample", &PyReaderConfig::on_sample,
                      "Callable invoked with the raw CDR sample (bytes) on a matching topic.");
 
-  // Config: expose the host-relevant fields. Task configs are left at their defaults. The discovery
-  // callbacks deliver bound proxy objects (pybind handles the GIL for these std::function casts).
-  py::class_<Rtps::Config>(rtps, "Config")
+  // Config: host-relevant fields. The discovery callbacks are Python callables receiving bound
+  // proxy objects, adapted GIL-safely (see wrap_callback / PyRtpsConfig).
+  py::class_<PyRtpsConfig>(rtps, "Config")
       .def(py::init<>())
-      .def_readwrite("node_name", &Rtps::Config::node_name)
-      .def_readwrite("domain_id", &Rtps::Config::domain_id)
-      .def_readwrite("participant_id", &Rtps::Config::participant_id)
-      .def_readwrite("bind_address", &Rtps::Config::bind_address)
-      .def_readwrite("advertised_address", &Rtps::Config::advertised_address)
-      .def_readwrite("metatraffic_multicast_group", &Rtps::Config::metatraffic_multicast_group)
-      .def_readwrite("user_multicast_group", &Rtps::Config::user_multicast_group)
-      .def_readwrite("use_multicast_for_user_data", &Rtps::Config::use_multicast_for_user_data)
-      .def_readwrite("announce_period", &Rtps::Config::announce_period)
-      .def_readwrite("enclave", &Rtps::Config::enclave)
-      .def_readwrite("on_participant_discovered", &Rtps::Config::on_participant_discovered)
-      .def_readwrite("on_endpoint_discovered", &Rtps::Config::on_endpoint_discovered)
-      .def_readwrite("log_level", &Rtps::Config::log_level)
-      .def_readwrite("socket_log_level", &Rtps::Config::socket_log_level);
+      .def_readwrite("node_name", &PyRtpsConfig::node_name)
+      .def_readwrite("domain_id", &PyRtpsConfig::domain_id)
+      .def_readwrite("participant_id", &PyRtpsConfig::participant_id)
+      .def_readwrite("bind_address", &PyRtpsConfig::bind_address)
+      .def_readwrite("advertised_address", &PyRtpsConfig::advertised_address)
+      .def_readwrite("metatraffic_multicast_group", &PyRtpsConfig::metatraffic_multicast_group)
+      .def_readwrite("user_multicast_group", &PyRtpsConfig::user_multicast_group)
+      .def_readwrite("use_multicast_for_user_data", &PyRtpsConfig::use_multicast_for_user_data)
+      .def_readwrite("announce_period", &PyRtpsConfig::announce_period)
+      .def_readwrite("enclave", &PyRtpsConfig::enclave)
+      .def_readwrite("on_participant_discovered", &PyRtpsConfig::on_participant_discovered)
+      .def_readwrite("on_endpoint_discovered", &PyRtpsConfig::on_endpoint_discovered)
+      .def_readwrite("log_level", &PyRtpsConfig::log_level)
+      .def_readwrite("socket_log_level", &PyRtpsConfig::socket_log_level);
 
-  rtps.def(py::init<const Rtps::Config &>(), py::arg("config"))
+  rtps.def(py::init([](const PyRtpsConfig &pc) { return std::make_unique<Rtps>(to_config(pc)); }),
+           py::arg("config"))
       .def("start", &Rtps::start, py::call_guard<py::gil_scoped_release>())
       .def("stop", &Rtps::stop, py::call_guard<py::gil_scoped_release>())
       .def("is_started", &Rtps::is_started)
