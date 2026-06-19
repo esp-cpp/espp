@@ -90,7 +90,8 @@ def _fix_once() -> tuple[int, int]:
     """Apply one round of fixes. Returns (remaining_error_count, edits_applied)."""
     err = _compile_errors()
     error_count = err.count(": error:")
-    lines = open(PYDEF).read().split("\n")
+    with open(PYDEF) as f:
+        lines = f.read().split("\n")
 
     # Learn the bare->qualified map from clang's suggestions (only accept espp:: scope suggestions
     # that genuinely qualify the same identifier, e.g. Y -> espp::X::Y; skip noise like
@@ -131,7 +132,8 @@ def _fix_once() -> tuple[int, int]:
             applied += 1
 
     if applied:
-        open(PYDEF, "w").write("\n".join(lines))
+        with open(PYDEF, "w") as f:
+            f.write("\n".join(lines))
     return error_count, applied
 
 
