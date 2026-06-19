@@ -97,6 +97,8 @@ endif()
 set(ESPP_PYTHON_SOURCES
   ${CMAKE_CURRENT_LIST_DIR}/python_bindings/module.cpp
   ${CMAKE_CURRENT_LIST_DIR}/python_bindings/pybind_espp.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/python_bindings/cdr_bindings.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/python_bindings/rtps_bindings.cpp
   ${ESPP_SOURCES}
 )
 

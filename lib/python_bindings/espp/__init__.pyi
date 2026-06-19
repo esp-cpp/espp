@@ -87,7 +87,8 @@ class Cobs:
      *
      * Provides single-packet encoding and decoding using the COBS algorithm
      * with 0 as the delimiter.
-     * COBS encoding can add at most ⌈n/254⌉ + 1 bytes overhead. Plus 1 byte for the delimiter
+     * COBS encoding can add at most ceil(n/254) + 1 bytes overhead, plus 1 byte
+     * for the delimiter.
      * COBS changes the size of the packet by at least 1 byte, so it's not possible to encode in
      * place. MAX_BLOCK_SIZE = 254 is the maximum number of non-zero bytes in an encoded block.
      *
@@ -338,9 +339,9 @@ class Rgb:
      * @brief Class representing a color using RGB color space.
 
     """
-    r: float = float(0)  #/< Red value ∈ [0, 1]
-    g: float = float(0)  #/< Green value ∈ [0, 1]
-    b: float = float(0)  #/< Blue value ∈ [0, 1]
+    r: float = float(0)  #/< Red value in [0, 1]
+    g: float = float(0)  #/< Green value in [0, 1]
+    b: float = float(0)  #/< Blue value in [0, 1]
 
     @overload
     def __init__(self) -> None:
@@ -443,9 +444,9 @@ class Hsv:
      * @brief Class representing a color using HSV color space.
 
     """
-    h: float = float(0)  #/< Hue ∈ [0, 360]
-    s: float = float(0)  #/< Saturation ∈ [0, 1]
-    v: float = float(0)  #/< Value ∈ [0, 1]
+    h: float = float(0)  #/< Hue in [0, 360]
+    s: float = float(0)  #/< Saturation in [0, 1]
+    v: float = float(0)  #/< Value in [0, 1]
 
     @overload
     def __init__(self) -> None:
@@ -1618,36 +1619,572 @@ class RangeMapper_float:  # Python specialization for RangeMapper<float>
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def dot(other: Vector2d) -> T:
+#  ------------------------------------------------------------------------
+#      <template specializations for class Vector2d>
+class Vector2d_int:  # Python specialization for Vector2d<int>
     """*
-       * @brief Dot product of this vector with another vector.
-       * @param other The second vector
-       * @return The dot product (x1*x2 + y1*y2)
+     * @brief Container representing a 2 dimensional vector.
+     *
+     * Provides getters/setters, index operator, and vector / scalar math
+     * utilities.
+     *
+     * \section vector_ex1 Example
+     * \snippet math_example.cpp vector2 example
 
     """
-    pass
+    @overload
+    def __init__(self, x: int = 0, y: int = 0) -> None:
+        """*
+           * @brief Constructor for the vector, defaults to 0,0.
+           * @param x The starting X value.
+           * @param y The starting Y value.
+
+        """
+        pass
+
+    @overload
+    def __init__(self, other: Vector2d) -> None:
+        """*
+           * @brief Vector copy constructor.
+           * @param other Vector to copy.
+
+        """
+        pass
+
+
+
+    def magnitude(self) -> int:
+        """*
+           * @brief Returns vector magnitude: ||v||.
+           * @return The magnitude.
+
+        """
+        pass
+
+    def magnitude_squared(self) -> int:
+        """*
+           * @brief Returns vector magnitude squared: ||v||^2.
+           * @return The magnitude squared.
+
+        """
+        pass
+
+    @overload
+    def x(self) -> int:
+        """*
+           * @brief Getter for the x value.
+           * @return The current x value.
+
+        """
+        pass
+
+    @overload
+    def x(self, v: int) -> None:
+        """*
+           * @brief Setter for the x value.
+           * @param v New value for \c x.
+
+        """
+        pass
+
+    @overload
+    def y(self) -> int:
+        """*
+           * @brief Getter for the y value.
+           * @return The current y value.
+
+        """
+        pass
+
+    @overload
+    def y(self, v: int) -> None:
+        """*
+           * @brief Setter for the y value.
+           * @param v New value for \c y.
+
+        """
+        pass
+
+    def __lt__(self, other: Vector2d) -> bool:
+        """*
+           * @brief Spaceship operator for comparing two vectors.
+           * @param other The vector to compare against.
+           * @return -1 if this vector is less than \p other, 0 if they are equal, 1 if
+           *         this vector is greater than \p other.
+
+        """
+        pass
+    def __le__(self, other: Vector2d) -> bool:
+        """*
+           * @brief Spaceship operator for comparing two vectors.
+           * @param other The vector to compare against.
+           * @return -1 if this vector is less than \p other, 0 if they are equal, 1 if
+           *         this vector is greater than \p other.
+
+        """
+        pass
+    def __eq__(self, other: Vector2d) -> bool:
+        """*
+           * @brief Spaceship operator for comparing two vectors.
+           * @param other The vector to compare against.
+           * @return -1 if this vector is less than \p other, 0 if they are equal, 1 if
+           *         this vector is greater than \p other.
+
+        """
+        pass
+    def __ge__(self, other: Vector2d) -> bool:
+        """*
+           * @brief Spaceship operator for comparing two vectors.
+           * @param other The vector to compare against.
+           * @return -1 if this vector is less than \p other, 0 if they are equal, 1 if
+           *         this vector is greater than \p other.
+
+        """
+        pass
+    def __gt__(self, other: Vector2d) -> bool:
+        """*
+           * @brief Spaceship operator for comparing two vectors.
+           * @param other The vector to compare against.
+           * @return -1 if this vector is less than \p other, 0 if they are equal, 1 if
+           *         this vector is greater than \p other.
+
+        """
+        pass
+
+    def __eq__(self, other: Vector2d) -> bool:
+        """*
+           * @brief Equality operator for comparing two vectors.
+           * @param other The vector to compare against.
+           * @return True if the vectors are equal, False otherwise.
+
+        """
+        pass
+
+    def __getitem__(self, index: int) -> int:
+        """*
+           * @brief Index operator for vector elements.
+           * @note Returns a mutable reference to the element.
+           * @param index The index to return.
+           * @return Mutable reference to the element at \p index.
+
+        """
+        pass
+
+    @overload
+    def __neg__(self) -> Vector2d:
+        """*
+           * @brief Negate the vector.
+           * @return The new vector which is the negative.
+
+        """
+        pass
+
+    @overload
+    def __sub__(self, rhs: Vector2d) -> Vector2d:
+        """*
+           * @brief Return a new vector which is the provided vector subtracted from
+           *        this vector.
+           * @param rhs The vector to subtract from this vector.
+           * @return Resultant vector subtraction.
+
+        """
+        pass
+
+    def __isub__(self, rhs: Vector2d) -> Vector2d:
+        """*
+           * @brief Return the provided vector subtracted from this vector.
+           * @param rhs The vector to subtract from this vector.
+           * @return Resultant vector subtraction.
+
+        """
+        pass
+
+    def __add__(self, rhs: Vector2d) -> Vector2d:
+        """*
+           * @brief Return a new vector, which is the addition of this vector and the
+           *        provided vector.
+           * @param rhs The vector to add to this vector.
+           * @return Resultant vector addition.
+
+        """
+        pass
+
+    def __iadd__(self, rhs: Vector2d) -> Vector2d:
+        """*
+           * @brief Return the vector added with the provided vector.
+           * @param rhs The vector to add to this vector.
+           * @return Resultant vector addition.
+
+        """
+        pass
+
+    def __mul__(self, v: int) -> Vector2d:
+        """*
+           * @brief Return a scaled version of the vector, multiplied by the provided
+           *        value.
+           * @param v Value the vector should be multiplied by.
+           * @return Resultant scaled vector.
+
+        """
+        pass
+
+    def __imul__(self, v: int) -> Vector2d:
+        """*
+           * @brief Return the vector multiplied by the provided value.
+           * @param v Value the vector should be scaled by.
+           * @return Resultant scaled vector.
+
+        """
+        pass
+
+    @overload
+    def __truediv__(self, v: int) -> Vector2d:
+        """*
+           * @brief Return a scaled version of the vector, divided by the provided
+           *        value.
+           * @param v Value the vector should be divided by.
+           * @return Resultant scaled vector.
+
+        """
+        pass
+
+    @overload
+    def __itruediv__(self, v: int) -> Vector2d:
+        """*
+           * @brief Return the vector divided by the provided value.
+           * @param v Value the vector should be divided by.
+           * @return Resultant scaled vector.
+
+        """
+        pass
+
+    @overload
+    def __truediv__(self, v: Vector2d) -> Vector2d:
+        """*
+           * @brief Return a scaled version of the vector, divided by the provided
+           *        vector value. Scales x and y independently.
+           * @param v Vector values the vector should be divided by.
+           * @return Resultant scaled vector.
+
+        """
+        pass
+
+    @overload
+    def __itruediv__(self, v: Vector2d) -> Vector2d:
+        """*
+           * @brief Return the vector divided by the provided vector values.
+           * @param v Vector of values the vector should be divided by.
+           * @return Resultant scaled vector.
+
+        """
+        pass
+
+    def dot(self, other: Vector2d) -> T:
+        """*
+           * @brief Dot product of this vector with another vector.
+           * @param other The second vector
+           * @return The dot product (x1*x2 + y1*y2)
+
+        """
+        pass
+
+
+
+    def normalized(self) -> Vector2d:
+        """*
+           * @brief Return normalized (unit length) version of the vector.
+           * @return The normalized vector.
+
+        """
+        pass
 
 
 
 
+class Vector2d_float:  # Python specialization for Vector2d<float>
+    """*
+     * @brief Container representing a 2 dimensional vector.
+     *
+     * Provides getters/setters, index operator, and vector / scalar math
+     * utilities.
+     *
+     * \section vector_ex1 Example
+     * \snippet math_example.cpp vector2 example
+
+    """
+    @overload
+    def __init__(self, x: float = 0, y: float = 0) -> None:
+        """*
+           * @brief Constructor for the vector, defaults to 0,0.
+           * @param x The starting X value.
+           * @param y The starting Y value.
+
+        """
+        pass
+
+    @overload
+    def __init__(self, other: Vector2d) -> None:
+        """*
+           * @brief Vector copy constructor.
+           * @param other Vector to copy.
+
+        """
+        pass
 
 
-# namespace espp
+
+    def magnitude(self) -> float:
+        """*
+           * @brief Returns vector magnitude: ||v||.
+           * @return The magnitude.
+
+        """
+        pass
+
+    def magnitude_squared(self) -> float:
+        """*
+           * @brief Returns vector magnitude squared: ||v||^2.
+           * @return The magnitude squared.
+
+        """
+        pass
+
+    @overload
+    def x(self) -> float:
+        """*
+           * @brief Getter for the x value.
+           * @return The current x value.
+
+        """
+        pass
+
+    @overload
+    def x(self, v: float) -> None:
+        """*
+           * @brief Setter for the x value.
+           * @param v New value for \c x.
+
+        """
+        pass
+
+    @overload
+    def y(self) -> float:
+        """*
+           * @brief Getter for the y value.
+           * @return The current y value.
+
+        """
+        pass
+
+    @overload
+    def y(self, v: float) -> None:
+        """*
+           * @brief Setter for the y value.
+           * @param v New value for \c y.
+
+        """
+        pass
+
+    def __lt__(self, other: Vector2d) -> bool:
+        """*
+           * @brief Spaceship operator for comparing two vectors.
+           * @param other The vector to compare against.
+           * @return -1 if this vector is less than \p other, 0 if they are equal, 1 if
+           *         this vector is greater than \p other.
+
+        """
+        pass
+    def __le__(self, other: Vector2d) -> bool:
+        """*
+           * @brief Spaceship operator for comparing two vectors.
+           * @param other The vector to compare against.
+           * @return -1 if this vector is less than \p other, 0 if they are equal, 1 if
+           *         this vector is greater than \p other.
+
+        """
+        pass
+    def __eq__(self, other: Vector2d) -> bool:
+        """*
+           * @brief Spaceship operator for comparing two vectors.
+           * @param other The vector to compare against.
+           * @return -1 if this vector is less than \p other, 0 if they are equal, 1 if
+           *         this vector is greater than \p other.
+
+        """
+        pass
+    def __ge__(self, other: Vector2d) -> bool:
+        """*
+           * @brief Spaceship operator for comparing two vectors.
+           * @param other The vector to compare against.
+           * @return -1 if this vector is less than \p other, 0 if they are equal, 1 if
+           *         this vector is greater than \p other.
+
+        """
+        pass
+    def __gt__(self, other: Vector2d) -> bool:
+        """*
+           * @brief Spaceship operator for comparing two vectors.
+           * @param other The vector to compare against.
+           * @return -1 if this vector is less than \p other, 0 if they are equal, 1 if
+           *         this vector is greater than \p other.
+
+        """
+        pass
+
+    def __eq__(self, other: Vector2d) -> bool:
+        """*
+           * @brief Equality operator for comparing two vectors.
+           * @param other The vector to compare against.
+           * @return True if the vectors are equal, False otherwise.
+
+        """
+        pass
+
+    def __getitem__(self, index: int) -> float:
+        """*
+           * @brief Index operator for vector elements.
+           * @note Returns a mutable reference to the element.
+           * @param index The index to return.
+           * @return Mutable reference to the element at \p index.
+
+        """
+        pass
+
+    @overload
+    def __neg__(self) -> Vector2d:
+        """*
+           * @brief Negate the vector.
+           * @return The new vector which is the negative.
+
+        """
+        pass
+
+    @overload
+    def __sub__(self, rhs: Vector2d) -> Vector2d:
+        """*
+           * @brief Return a new vector which is the provided vector subtracted from
+           *        this vector.
+           * @param rhs The vector to subtract from this vector.
+           * @return Resultant vector subtraction.
+
+        """
+        pass
+
+    def __isub__(self, rhs: Vector2d) -> Vector2d:
+        """*
+           * @brief Return the provided vector subtracted from this vector.
+           * @param rhs The vector to subtract from this vector.
+           * @return Resultant vector subtraction.
+
+        """
+        pass
+
+    def __add__(self, rhs: Vector2d) -> Vector2d:
+        """*
+           * @brief Return a new vector, which is the addition of this vector and the
+           *        provided vector.
+           * @param rhs The vector to add to this vector.
+           * @return Resultant vector addition.
+
+        """
+        pass
+
+    def __iadd__(self, rhs: Vector2d) -> Vector2d:
+        """*
+           * @brief Return the vector added with the provided vector.
+           * @param rhs The vector to add to this vector.
+           * @return Resultant vector addition.
+
+        """
+        pass
+
+    def __mul__(self, v: float) -> Vector2d:
+        """*
+           * @brief Return a scaled version of the vector, multiplied by the provided
+           *        value.
+           * @param v Value the vector should be multiplied by.
+           * @return Resultant scaled vector.
+
+        """
+        pass
+
+    def __imul__(self, v: float) -> Vector2d:
+        """*
+           * @brief Return the vector multiplied by the provided value.
+           * @param v Value the vector should be scaled by.
+           * @return Resultant scaled vector.
+
+        """
+        pass
+
+    @overload
+    def __truediv__(self, v: float) -> Vector2d:
+        """*
+           * @brief Return a scaled version of the vector, divided by the provided
+           *        value.
+           * @param v Value the vector should be divided by.
+           * @return Resultant scaled vector.
+
+        """
+        pass
+
+    @overload
+    def __itruediv__(self, v: float) -> Vector2d:
+        """*
+           * @brief Return the vector divided by the provided value.
+           * @param v Value the vector should be divided by.
+           * @return Resultant scaled vector.
+
+        """
+        pass
+
+    @overload
+    def __truediv__(self, v: Vector2d) -> Vector2d:
+        """*
+           * @brief Return a scaled version of the vector, divided by the provided
+           *        vector value. Scales x and y independently.
+           * @param v Vector values the vector should be divided by.
+           * @return Resultant scaled vector.
+
+        """
+        pass
+
+    @overload
+    def __itruediv__(self, v: Vector2d) -> Vector2d:
+        """*
+           * @brief Return the vector divided by the provided vector values.
+           * @param v Vector of values the vector should be divided by.
+           * @return Resultant scaled vector.
+
+        """
+        pass
+
+    def dot(self, other: Vector2d) -> T:
+        """*
+           * @brief Dot product of this vector with another vector.
+           * @param other The second vector
+           * @return The dot product (x1*x2 + y1*y2)
+
+        """
+        pass
+
+
+
+    def normalized(self) -> Vector2d:
+        """*
+           * @brief Return normalized (unit length) version of the vector.
+           * @return The normalized vector.
+
+        """
+        pass
+
+
+#      </template specializations for class Vector2d>
+#  ------------------------------------------------------------------------
+
+
+
+
 
 ####################    </generated_from:vector2d.hpp>    ####################
 
@@ -2750,6 +3287,10 @@ class UdpSocket:
 
 
 
+    def stop_receiving(self) -> None:
+        """/ Stop the receive task, if one is running, and close the socket."""
+        pass
+
     @overload
     def send(self, data: List[int], send_config: UdpSocket.SendConfig) -> bool:
         """*
@@ -3463,6 +4004,499 @@ class RtpPayloadChunk:
 ####################    </generated_from:rtp_types.hpp>    ####################
 
 
+####################    <generated_from:rtp_depacketizer.hpp>    ####################
+
+
+
+
+class RtpDepacketizer:
+    """/ Abstract base class for reassembling media frames from incoming RTP packets.
+    / Concrete depacketizers (e.g. MJPEG, H.264) override process_packet() to
+    / accumulate payload data and invoke the frame callback when a complete frame
+    / has been assembled.
+    """
+
+    class Config:
+        """/ Configuration for RtpDepacketizer."""
+        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #/< Log verbosity level
+        def __init__(
+            self,
+            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
+            ) -> None:
+            """Auto-generated default constructor with named params"""
+            pass
+
+
+
+    def process_packet(self, packet: RtpPacket) -> None:
+        """/ Process an incoming RTP packet, accumulating payload data.
+        / When a complete frame is assembled the frame callback is invoked.
+        / @param packet The RTP packet to process.
+        """
+        pass
+
+    def set_frame_callback(self, cb: frame_callback_t) -> None:
+        """/ Set the callback for completed frames.
+        / @param cb The callback to invoke when a full frame is ready.
+        """
+        pass
+
+    def __init__(self) -> None:
+        """Auto-generated default constructor"""
+        pass
+
+
+####################    </generated_from:rtp_depacketizer.hpp>    ####################
+
+
+####################    <generated_from:rtp_packetizer.hpp>    ####################
+
+
+
+
+class RtpPacketizer:
+    """/ Abstract base class for splitting media frames into RTP payload chunks.
+    / Concrete packetizers (e.g. MJPEG, H.264) override the pure-virtual methods
+    / to produce codec-specific payloads. The RTSP server wraps each returned
+    / RtpPayloadChunk with an RTP header before sending.
+    """
+    class Config:
+        """/ Configuration for RtpPacketizer."""
+        max_payload_size: int = int(1400)                                      #/< Maximum payload bytes per RTP packet
+        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #/< Log verbosity level
+        def __init__(
+            self,
+            max_payload_size: int = int(1400),
+            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
+            ) -> None:
+            """Auto-generated default constructor with named params"""
+            pass
+
+
+
+    def packetize(self, frame_data: std.span[ int]) -> List[RtpPayloadChunk]:
+        """/ Packetize a complete media frame into RTP payload chunks.
+        / @param frame_data The raw frame bytes to packetize.
+        / @return A vector of RtpPayloadChunk ready to be wrapped in RTP packets.
+        """
+        pass
+
+    def get_payload_type(self) -> int:
+        """/ Get the RTP payload type number for this codec.
+        / @return The RTP payload type (e.g. 26 for MJPEG, 96 for dynamic).
+        """
+        pass
+
+    def get_clock_rate(self) -> int:
+        """/ Get the RTP clock rate for timestamp calculation.
+        / @return The clock rate in Hz (e.g. 90000 for video, 8000 for audio).
+        """
+        pass
+
+    def get_sdp_media_attributes(self) -> str:
+        """/ Generate the SDP media-level attributes for this codec.
+        / @return A string containing SDP a= lines (without trailing CRLF).
+        """
+        pass
+
+    def get_sdp_media_line(self) -> str:
+        """/ Generate the SDP m= line for this codec.
+        / @return A string containing the SDP m= line (without trailing CRLF).
+        """
+        pass
+
+    def __init__(self) -> None:
+        """Auto-generated default constructor"""
+        pass
+
+
+####################    </generated_from:rtp_packetizer.hpp>    ####################
+
+
+####################    <generated_from:generic_depacketizer.hpp>    ####################
+
+
+
+
+class GenericDepacketizer:
+    """/ A generic RTP depacketizer that reassembles media frames from incoming RTP
+    / packets. It accumulates payload data until a packet with the marker bit set
+    / is received, then delivers the complete frame via the frame callback. If a
+    / packet arrives with a different RTP timestamp than the current accumulation
+    / buffer, the old buffer is discarded and a new one is started.
+    /
+    / This is suitable for audio codecs (PCM, G.711, Opus, etc.) or any payload
+    / format that uses simple marker-based framing.
+    /
+    / \section generic_depacketizer_ex1 Example
+    / \snippet rtsp_example.cpp generic_depacketizer_test
+    """
+    class Config:
+        """/ Configuration for GenericDepacketizer."""
+        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #/< Log verbosity level
+        def __init__(
+            self,
+            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
+            ) -> None:
+            """Auto-generated default constructor with named params"""
+            pass
+
+
+
+    def process_packet(self, packet: RtpPacket) -> None:
+        """/ Process an incoming RTP packet.
+        / Payload data is accumulated until a packet with the marker bit set is
+        / received. At that point the assembled frame is delivered via the frame
+        / callback and the buffer is reset.
+        / @param packet The RTP packet to process.
+        """
+        pass
+
+    def __init__(self) -> None:
+        """Auto-generated default constructor"""
+        pass
+
+
+####################    </generated_from:generic_depacketizer.hpp>    ####################
+
+
+####################    <generated_from:generic_packetizer.hpp>    ####################
+
+
+
+
+class GenericPacketizer:
+    """/ A generic RTP packetizer suitable for audio codecs (PCM, G.711, Opus, etc.)
+    / or any pre-formatted data that simply needs MTU-based chunking. It splits
+    / frame data into chunks of at most max_payload_size bytes and marks the last
+    / chunk with the RTP marker bit.
+    /
+    / \section generic_packetizer_ex1 Example
+    / \snippet rtsp_example.cpp generic_packetizer_test
+    """
+    class Config:
+        """/ Configuration for GenericPacketizer."""
+        max_payload_size: int = int(1400)                                      #/< Maximum payload bytes per RTP packet
+        payload_type: int = int(96)                                            #/< RTP payload type number
+        clock_rate: int = int(48000)                                           #/< Clock rate in Hz for RTP timestamps
+        encoding_name: str = str("L16")                                        #/< Encoding name for SDP rtpmap line
+        channels: int = int(1)                                                 #/< Number of audio channels
+        fmtp: str                                                              #/< Optional format parameters for SDP fmtp line
+        media_type: MediaType = MediaType(MediaType.audio)                     #/< Media type for the SDP m= line
+        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #/< Log verbosity level
+        def __init__(
+            self,
+            max_payload_size: int = int(1400),
+            payload_type: int = int(96),
+            clock_rate: int = int(48000),
+            encoding_name: str = str("L16"),
+            channels: int = int(1),
+            fmtp: str = "",
+            media_type: MediaType = MediaType(MediaType.audio),
+            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
+            ) -> None:
+            """Auto-generated default constructor with named params"""
+            pass
+
+
+
+    def packetize(self, frame_data: std.span[ int]) -> List[RtpPayloadChunk]:
+        """/ Split frame data into RTP payload chunks of at most max_payload_size.
+        / The last (or only) chunk has its marker flag set.
+        / @param frame_data The raw frame bytes to packetize.
+        / @return A vector of RtpPayloadChunk ready to be wrapped in RTP packets.
+        """
+        pass
+
+    def get_payload_type(self) -> int:
+        """/ Get the RTP payload type number.
+        / @return The configured RTP payload type.
+        """
+        pass
+
+    def get_clock_rate(self) -> int:
+        """/ Get the RTP clock rate.
+        / @return The configured clock rate in Hz.
+        """
+        pass
+
+    def get_sdp_media_attributes(self) -> str:
+        """/ Generate the SDP media-level attribute lines for this codec.
+        / Produces an a=rtpmap line and, if fmtp is non-empty, an a=fmtp line.
+        / @return A string containing the SDP a= lines.
+        """
+        pass
+
+    def get_sdp_media_line(self) -> str:
+        """/ Generate the SDP m= line for this codec.
+        / @return A string such as "m=audio 0 RTP/AVP 96".
+        """
+        pass
+
+    def __init__(self) -> None:
+        """Auto-generated default constructor"""
+        pass
+
+
+####################    </generated_from:generic_packetizer.hpp>    ####################
+
+
+####################    <generated_from:h264_depacketizer.hpp>    ####################
+
+
+
+
+class H264Depacketizer:
+    """/ @brief RTP depacketizer for H.264 video per RFC 6184.
+    /
+    / Reassembles H.264 access units from incoming RTP packets. Supports:
+    /   - **Single NAL unit** packets (NAL type 1–23)
+    /   - **STAP-A** aggregation packets (NAL type 24)
+    /   - **FU-A** fragmentation packets (NAL type 28)
+    /
+    / When the RTP marker bit is set, the accumulated NAL units are delivered
+    / as one Annex B byte-stream (each NAL prefixed with 0x00 0x00 0x00 0x01)
+    / via the frame callback set with set_frame_callback().
+    /
+    / \section h264_depacketizer_ex1 Example
+    / \snippet rtsp_example.cpp h264_depacketizer_test
+    """
+    class Config:
+        """/ Configuration for the H264Depacketizer."""
+        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #/< Log verbosity level
+        def __init__(
+            self,
+            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
+            ) -> None:
+            """Auto-generated default constructor with named params"""
+            pass
+
+
+
+    def process_packet(self, packet: RtpPacket) -> None:
+        """/ Process an incoming RTP packet containing H.264 payload.
+        /
+        / Handles single NAL, STAP-A, and FU-A packet types. NAL units are
+        / buffered until the RTP marker bit indicates the end of an access unit,
+        / at which point the complete Annex B frame is delivered via the callback.
+        /
+        / @param packet The RTP packet to process.
+        """
+        pass
+
+    def __init__(self) -> None:
+        """Auto-generated default constructor"""
+        pass
+
+
+####################    </generated_from:h264_depacketizer.hpp>    ####################
+
+
+####################    <generated_from:h264_packetizer.hpp>    ####################
+
+
+
+
+class H264Packetizer:
+    """/ @brief RTP packetizer for H.264 video per RFC 6184.
+    /
+    / Accepts H.264 access units in Annex B byte-stream format (NAL units
+    / separated by 0x00000001 or 0x000001 start codes) and produces a sequence
+    / of RTP payload chunks suitable for transmission.
+    /
+    / Supports two NAL-unit packetization strategies:
+    /   - **Single NAL unit mode** — NAL fits within max_payload_size.
+    /   - **FU-A fragmentation** — NAL exceeds max_payload_size (packetization_mode >= 1).
+    /
+    / @note This class does not manage RTP headers (sequence numbers, timestamps,
+    /       SSRC). The caller wraps each returned chunk into an RtpPacket.
+    /
+    / \section h264_packetizer_ex1 Example
+    / \snippet rtsp_example.cpp h264_packetizer_test
+    """
+    class Config:
+        """/ Configuration for the H264Packetizer."""
+        max_payload_size: int = int(1400)                                      #/< Maximum payload bytes per RTP packet
+        payload_type: int = int(96)                                            #/< Dynamic RTP payload type (typically 96–127).
+        profile_level_id: str                                                  #/< H.264 profile-level-id hex string, e.g. "42C01E".
+        packetization_mode: int = int(1)                                       #/< 0 = single NAL only, 1 = non-interleaved (FU-A allowed).
+        sps: List[int]                                                         #/< Sequence Parameter Set raw bytes (without start code).
+        pps: List[int]                                                         #/< Picture Parameter Set raw bytes (without start code).
+        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #/< Log verbosity level
+        def __init__(
+            self,
+            max_payload_size: int = int(1400),
+            payload_type: int = int(96),
+            profile_level_id: str = "",
+            packetization_mode: int = int(1),
+            sps: List[int] = List[int](),
+            pps: List[int] = List[int](),
+            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
+            ) -> None:
+            """Auto-generated default constructor with named params"""
+            pass
+
+
+
+    def packetize(self, frame_data: std.span[ int]) -> List[RtpPayloadChunk]:
+        """/ Packetize a complete H.264 access unit (Annex B format).
+        /
+        / The input may contain multiple NAL units separated by 3-byte or 4-byte
+        / start codes. Each NAL is individually packetized (single NAL or FU-A).
+        / The marker bit is set on the last chunk of the last NAL unit in the
+        / access unit.
+        /
+        / @param frame_data Raw Annex B byte-stream of one access unit.
+        / @return Vector of RTP payload chunks ready for transmission.
+        """
+        pass
+
+    def packetize_nal(
+        self,
+        nal_data: std.span[ int],
+        is_last_nal: bool = True
+        ) -> List[RtpPayloadChunk]:
+        """/ Packetize a single pre-parsed NAL unit (no start code prefix).
+        /
+        / @param nal_data The raw NAL unit bytes (including NAL header byte).
+        / @param is_last_nal If True, the marker bit is set on the last chunk.
+        / @return Vector of RTP payload chunks for this NAL.
+        """
+        pass
+
+    def set_sps_pps(self, sps: std.span[ int], pps: std.span[ int]) -> None:
+        """/ Update the SPS and PPS used for SDP generation.
+        / @param sps Sequence Parameter Set raw bytes.
+        / @param pps Picture Parameter Set raw bytes.
+        """
+        pass
+
+    def get_payload_type(self) -> int:
+        """/ Get the RTP payload type.
+        / @return The dynamic payload type configured for H.264.
+        """
+        pass
+
+    def get_clock_rate(self) -> int:
+        """/ Get the RTP clock rate for H.264 video.
+        / @return 90000 (fixed for H.264).
+        """
+        pass
+
+    def get_sdp_media_attributes(self) -> str:
+        """/ Get the SDP attribute lines for H.264.
+        / @return SDP a= lines (rtpmap and fmtp) without trailing CRLF.
+        """
+        pass
+
+    def get_sdp_media_line(self) -> str:
+        """/ Get the SDP m= media line for H.264.
+        / @return SDP m= line without trailing CRLF.
+        """
+        pass
+
+    def __init__(self) -> None:
+        """Auto-generated default constructor"""
+        pass
+
+
+####################    </generated_from:h264_packetizer.hpp>    ####################
+
+
+####################    <generated_from:mjpeg_depacketizer.hpp>    ####################
+
+
+
+
+class MjpegDepacketizer:
+    """/ MJPEG depacketizer that reassembles JPEG frames from RTP packets.
+    /
+    / This class receives individual RTP packets containing RFC 2435 MJPEG
+    / payloads, reassembles the scan data fragments, reconstructs the JPEG
+    / header from the MJPEG header fields, and delivers complete JPEG frames
+    / through callbacks.
+    """
+
+    class Config:
+        """/ Configuration for the MJPEG depacketizer."""
+        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #/< Log verbosity level
+        def __init__(
+            self,
+            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
+            ) -> None:
+            """Auto-generated default constructor with named params"""
+            pass
+
+
+    def set_jpeg_frame_callback(self, cb: jpeg_frame_callback_t) -> None:
+        """/ Set callback for receiving complete JPEG frames.
+        / @param cb Callback receiving a shared pointer to the completed JpegFrame.
+        """
+        pass
+
+    def __init__(self) -> None:
+        """Auto-generated default constructor"""
+        pass
+
+
+####################    </generated_from:mjpeg_depacketizer.hpp>    ####################
+
+
+####################    <generated_from:mjpeg_packetizer.hpp>    ####################
+
+
+
+class MjpegPacketizer:
+    """/ MJPEG packetizer that fragments JPEG frames into RFC 2435 RTP payloads.
+    /
+    / This class takes complete JPEG frames and produces RTP payload chunks
+    / suitable for MJPEG streaming. Each chunk contains an RFC 2435 MJPEG
+    / header, and the first chunk additionally includes quantization tables.
+    """
+    class Config:
+        """/ Configuration for the MJPEG packetizer."""
+        max_payload_size: int = int(1400)                                      #/< Maximum payload bytes per RTP packet
+        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #/< Log verbosity level
+        def __init__(
+            self,
+            max_payload_size: int = int(1400),
+            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
+            ) -> None:
+            """Auto-generated default constructor with named params"""
+            pass
+
+
+    def get_payload_type(self) -> int:
+        """/ Get the RTP payload type for MJPEG.
+        / @return 26 (static JPEG payload type).
+        """
+        pass
+
+    def get_clock_rate(self) -> int:
+        """/ Get the RTP clock rate for MJPEG.
+        / @return 90000 Hz.
+        """
+        pass
+
+    def get_sdp_media_attributes(self) -> str:
+        """/ Get the SDP media attributes for MJPEG.
+        / @return SDP rtpmap attribute string.
+        """
+        pass
+
+    def get_sdp_media_line(self) -> str:
+        """/ Get the SDP media line for MJPEG.
+        / @return SDP media description line.
+        """
+        pass
+    def __init__(self) -> None:
+        """Auto-generated default constructor"""
+        pass
+
+
+####################    </generated_from:mjpeg_packetizer.hpp>    ####################
+
+
 ####################    <generated_from:rtp_jpeg_packet.hpp>    ####################
 
 
@@ -3770,6 +4804,10 @@ class JpegHeader:
         """
         pass
 
+    def is_valid(self) -> bool:
+        """/ Returns whether this header parsed or serialized successfully."""
+        pass
+
     def get_data(self) -> std.span[ int]:
         """/ Get the JPEG header data.
         / @return The JPEG header data.
@@ -4036,6 +5074,28 @@ class RtspClient:
     / \section rtsp_client_ex1 RtspClient Example
     / \snippet rtsp_example.cpp rtsp_client_example
     """
+    class TrackInfo:
+        track_id: int = int(0)
+        payload_type: int = int(0)
+        clock_rate: int = int(0)
+        channels: int = int(1)
+        media_type: str
+        encoding_name: str
+        control_path: str
+        def __init__(
+            self,
+            track_id: int = int(0),
+            payload_type: int = int(0),
+            clock_rate: int = int(0),
+            channels: int = int(1),
+            media_type: str = "",
+            encoding_name: str = "",
+            control_path: str = ""
+            ) -> None:
+            """Auto-generated default constructor with named params"""
+            pass
+
+
 
 
     class Config:
@@ -4054,6 +5114,11 @@ class RtspClient:
         #/ is automatically created.
         on_jpeg_frame: jpeg_frame_callback_t = jpeg_frame_callback_t(None)
 
+        #/ Called once if the client loses the server after playback starts.
+        #/ This callback is intended for applications that want to stop playback
+        #/ and re-enter service discovery or reconnect logic automatically.
+        on_connection_lost: disconnect_callback_t = disconnect_callback_t(None)
+
         log_level: Logger.Verbosity = Logger.Verbosity.info  #/< The verbosity of the logger
         def __init__(
             self,
@@ -4062,6 +5127,7 @@ class RtspClient:
             path: str = str("/mjpeg/1"),
             on_frame: frame_callback_t = frame_callback_t(None),
             on_jpeg_frame: jpeg_frame_callback_t = jpeg_frame_callback_t(None),
+            on_connection_lost: disconnect_callback_t = disconnect_callback_t(None),
             log_level: Logger.Verbosity = Logger.Verbosity.info
             ) -> None:
             """Auto-generated default constructor with named params"""
@@ -4180,6 +5246,12 @@ class RtspClient:
         """
         pass
 
+    def tracks(self) -> List[RtspClient.TrackInfo]:
+        """/ Get the parsed SDP track descriptions from the most recent DESCRIBE call.
+        / \return The ordered set of discovered media tracks.
+        """
+        pass
+
     def __init__(self) -> None:
         """Auto-generated default constructor"""
         pass
@@ -4208,29 +5280,38 @@ class RtspServer:
     """
     class Config:
         """/ @brief Configuration for the RTSP server"""
-        server_address: str                                  #/< The ip address of the server
-        port: int                                            #/< The port to listen on
-        path: str                                            #/< The path to the RTSP stream
-        max_data_size: int = 1000                            #/< The maximum size of RTP packet data for the MJPEG stream. Frames will be broken
+
+        server_address: str                                                                            #/< The ip address of the server
+        port: int                                                                                      #/< The port to listen on
+        path: str                                                                                      #/< The path to the RTSP stream
+        max_data_size: int = 1000                                                                      #/< The maximum size of RTP packet data for the MJPEG stream. Frames will be broken
         #/< up into multiple packets if they are larger than this. It seems that 1500 works
         #/< well for sending, but is too large for the esp32 (camera-display) to receive
         #/< properly.
-        log_level: Logger.Verbosity = Logger.Verbosity.warn  #/< The log level for the RTSP server
+        log_level: Logger.Verbosity = Logger.Verbosity.warn                                            #/< The log level for the RTSP server
+        accept_task_stack_size_bytes: int = default_accept_task_stack_size_bytes                       #/< RTSP accept-task stack size, in bytes
+        session_task_stack_size_bytes: int = default_session_task_stack_size_bytes                     #/< RTSP session-dispatch task stack size, in bytes
+        control_task_stack_size_bytes: int = RtspSession.Config.default_control_task_stack_size_bytes  #/< Per-session RTSP
+        #/< control-task stack size, in
+        #/< bytes
         def __init__(
             self,
             server_address: str = "",
             port: int = int(),
             path: str = "",
             max_data_size: int = 1000,
-            log_level: Logger.Verbosity = Logger.Verbosity.warn
+            log_level: Logger.Verbosity = Logger.Verbosity.warn,
+            accept_task_stack_size_bytes: int = default_accept_task_stack_size_bytes,
+            session_task_stack_size_bytes: int = default_session_task_stack_size_bytes,
+            control_task_stack_size_bytes: int = RtspSession.Config.default_control_task_stack_size_bytes
             ) -> None:
             """Auto-generated default constructor with named params"""
             pass
 
     class TrackConfig:
         """/ Configuration for a media track to be registered with the server"""
-        track_id: int = int(0)                               #/< Track identifier
-        packetizer: RtpPacketizer                            #/< Codec-specific packetizer
+        track_id: int = int(0)                                                                         #/< Track identifier
+        packetizer: RtpPacketizer                                                                      #/< Codec-specific packetizer
         def __init__(
             self,
             track_id: int = int(0),
@@ -4274,6 +5355,24 @@ class RtspServer:
         """
         pass
 
+    def has_active_sessions(self) -> bool:
+        """/ @brief Returns True when at least one session is actively playing.
+        / @return True if an active RTSP session is ready to receive RTP packets.
+        """
+        pass
+
+    def get_capture_cooldown(self) -> std.chrono.milliseconds:
+        """/ @brief Returns how long capture should wait before queueing another frame.
+        / @return Remaining RTP backpressure cooldown, or zero if sending may resume.
+        """
+        pass
+
+    def get_recommended_capture_period(self) -> std.chrono.milliseconds:
+        """/ @brief Returns the minimum recommended period between captured frames.
+        / @return Recommended capture period based on recent RTP backpressure history.
+        """
+        pass
+
     @overload
     def send_frame(self, track_id: int, frame_data: std.span[ int]) -> None:
         """/ @brief Send a frame on a specific track.
@@ -4293,6 +5392,16 @@ class RtspServer:
         / exact wire format for existing MJPEG users.
         / @note Overwrites any existing frame that has not been sent.
         / @param frame The frame to send.
+        """
+        pass
+
+    @overload
+    def send_frame(self, frame_data: std.span[ int]) -> None:
+        """/ @brief Send raw JPEG bytes over the default MJPEG track.
+        / Uses the legacy MJPEG RTP packetization path without copying the frame
+        / into an intermediate JpegFrame object.
+        / @note Overwrites any existing frame that has not been sent.
+        / @param frame_data Complete JPEG bytes, including header and EOI marker.
         """
         pass
 
@@ -4316,34 +5425,37 @@ class RtspSession:
     """
     class Track:
         """/ Represents one media track within an RTSP session"""
-        track_id: int = int(0)                                               #/< Track identifier (matches trackID=N in SDP)
-        control_path: str                                                    #/< Control path suffix (e.g., "trackID=0")
-        rtp_socket: UdpSocket                                                #/< RTP socket for this track
-        rtcp_socket: UdpSocket                                               #/< RTCP socket for this track
-        client_rtp_port: int = int(0)                                        #/< Client's RTP port
-        client_rtcp_port: int = int(0)                                       #/< Client's RTCP port
-        setup_complete: bool = bool(False)                                   #/< Whether SETUP has been completed for this track
+        track_id: int = int(0)                                                      #/< Track identifier (matches trackID=N in SDP)
+        control_path: str                                                           #/< Control path suffix (e.g., "trackID=0")
+        rtp_socket: UdpSocket                                                       #/< RTP socket for this track
+        rtcp_socket: UdpSocket                                                      #/< RTCP socket for this track
+        client_rtp_port: int = int(0)                                               #/< Client's RTP port
+        client_rtcp_port: int = int(0)                                              #/< Client's RTCP port
+        setup_complete: bool = bool(False)                                          #/< Whether SETUP has been completed for this track
 
         def __init__(self) -> None:
             pass
 
     class Config:
         """/ Configuration for the RTSP session"""
-        server_address: str                                                  #/< The address of the server
-        rtsp_path: str                                                       #/< The RTSP path of the session
-        receive_timeout: std.chrono.duration[float] = std.chrono.seconds(5)  #/< The timeout for receiving data. Should be > 0.
+
+        server_address: str                                                         #/< The address of the server
+        rtsp_path: str                                                              #/< The RTSP path of the session
+        receive_timeout: std.chrono.duration[float] = std.chrono.seconds(5)         #/< The timeout for receiving data. Should be > 0.
+        control_task_stack_size_bytes: int = default_control_task_stack_size_bytes  #/< RTSP control-task stack size, in bytes
         #/ SDP generator callback. If set, called during DESCRIBE to produce the SDP body.
         #/ If not set, a default MJPEG SDP is generated for backward compatibility.
         #/ @param session_path Full RTSP path (e.g., "rtsp://ip:port/path")
         #/ @param session_id The session ID
         #/ @param server_address The server address with port
         sdp_generator: std.function[str( str session_path, int session_id, str server_address)]
-        log_level: Logger.Verbosity = Logger.Verbosity.warn                  #/< The log level of the session
+        log_level: Logger.Verbosity = Logger.Verbosity.warn                         #/< The log level of the session
         def __init__(
             self,
             server_address: str = "",
             rtsp_path: str = "",
             receive_timeout: std.chrono.duration[float] = std.chrono.seconds(5),
+            control_task_stack_size_bytes: int = default_control_task_stack_size_bytes,
             log_level: Logger.Verbosity = Logger.Verbosity.warn
             ) -> None:
             """Auto-generated default constructor with named params"""
@@ -4406,9 +5518,26 @@ class RtspSession:
         pass
 
     @overload
+    def send_rtp_packet(self, track_id: int, packet_data: std.span[ int]) -> bool:
+        """/ Send a serialized RTP packet on a specific track.
+        / @param track_id The track to send on
+        / @param packet_data Serialized RTP packet bytes
+        / @return True if the packet was sent successfully, False otherwise
+        """
+        pass
+
+    @overload
     def send_rtp_packet(self, packet: RtpPacket) -> bool:
         """/ Send an RTP packet to the client (backward compat — sends on default track 0)
         / @param packet The RTP packet to send
+        / @return True if the packet was sent successfully, False otherwise
+        """
+        pass
+
+    @overload
+    def send_rtp_packet(self, packet_data: std.span[ int]) -> bool:
+        """/ Send a serialized RTP packet to the client (default track 0).
+        / @param packet_data Serialized RTP packet bytes
         / @return True if the packet was sent successfully, False otherwise
         """
         pass
@@ -4435,499 +5564,6 @@ class RtspSession:
         pass
 
 ####################    </generated_from:rtsp_session.hpp>    ####################
-
-
-####################    <generated_from:generic_depacketizer.hpp>    ####################
-
-
-
-
-class GenericDepacketizer:
-    """/ A generic RTP depacketizer that reassembles media frames from incoming RTP
-    / packets. It accumulates payload data until a packet with the marker bit set
-    / is received, then delivers the complete frame via the frame callback. If a
-    / packet arrives with a different RTP timestamp than the current accumulation
-    / buffer, the old buffer is discarded and a new one is started.
-    /
-    / This is suitable for audio codecs (PCM, G.711, Opus, etc.) or any payload
-    / format that uses simple marker-based framing.
-    /
-    / \section generic_depacketizer_ex1 Example
-    / \snippet generic_depacketizer_example.cpp generic_depacketizer example
-    """
-    class Config:
-        """/ Configuration for GenericDepacketizer."""
-        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #/< Log verbosity level
-        def __init__(
-            self,
-            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
-            ) -> None:
-            """Auto-generated default constructor with named params"""
-            pass
-
-
-
-    def process_packet(self, packet: RtpPacket) -> None:
-        """/ Process an incoming RTP packet.
-        / Payload data is accumulated until a packet with the marker bit set is
-        / received. At that point the assembled frame is delivered via the frame
-        / callback and the buffer is reset.
-        / @param packet The RTP packet to process.
-        """
-        pass
-
-    def __init__(self) -> None:
-        """Auto-generated default constructor"""
-        pass
-
-
-####################    </generated_from:generic_depacketizer.hpp>    ####################
-
-
-####################    <generated_from:h264_depacketizer.hpp>    ####################
-
-
-
-
-class H264Depacketizer:
-    """/ @brief RTP depacketizer for H.264 video per RFC 6184.
-    /
-    / Reassembles H.264 access units from incoming RTP packets. Supports:
-    /   - **Single NAL unit** packets (NAL type 1–23)
-    /   - **STAP-A** aggregation packets (NAL type 24)
-    /   - **FU-A** fragmentation packets (NAL type 28)
-    /
-    / When the RTP marker bit is set, the accumulated NAL units are delivered
-    / as one Annex B byte-stream (each NAL prefixed with 0x00 0x00 0x00 0x01)
-    / via the frame callback set with set_frame_callback().
-    /
-    / \section h264_depacketizer_ex1 Example
-    / \snippet h264_depacketizer_example.cpp h264_depacketizer example
-    """
-    class Config:
-        """/ Configuration for the H264Depacketizer."""
-        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #/< Log verbosity level
-        def __init__(
-            self,
-            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
-            ) -> None:
-            """Auto-generated default constructor with named params"""
-            pass
-
-
-
-    def process_packet(self, packet: RtpPacket) -> None:
-        """/ Process an incoming RTP packet containing H.264 payload.
-        /
-        / Handles single NAL, STAP-A, and FU-A packet types. NAL units are
-        / buffered until the RTP marker bit indicates the end of an access unit,
-        / at which point the complete Annex B frame is delivered via the callback.
-        /
-        / @param packet The RTP packet to process.
-        """
-        pass
-
-    def __init__(self) -> None:
-        """Auto-generated default constructor"""
-        pass
-
-
-####################    </generated_from:h264_depacketizer.hpp>    ####################
-
-
-####################    <generated_from:mjpeg_depacketizer.hpp>    ####################
-
-
-
-
-class MjpegDepacketizer:
-    """/ MJPEG depacketizer that reassembles JPEG frames from RTP packets.
-    /
-    / This class receives individual RTP packets containing RFC 2435 MJPEG
-    / payloads, reassembles the scan data fragments, reconstructs the JPEG
-    / header from the MJPEG header fields, and delivers complete JPEG frames
-    / through callbacks.
-    """
-
-    class Config:
-        """/ Configuration for the MJPEG depacketizer."""
-        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #/< Log verbosity level
-        def __init__(
-            self,
-            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
-            ) -> None:
-            """Auto-generated default constructor with named params"""
-            pass
-
-
-    def set_jpeg_frame_callback(self, cb: jpeg_frame_callback_t) -> None:
-        """/ Set callback for receiving complete JPEG frames.
-        / @param cb Callback receiving a shared pointer to the completed JpegFrame.
-        """
-        pass
-
-    def __init__(self) -> None:
-        """Auto-generated default constructor"""
-        pass
-
-
-####################    </generated_from:mjpeg_depacketizer.hpp>    ####################
-
-
-####################    <generated_from:rtp_depacketizer.hpp>    ####################
-
-
-
-
-class RtpDepacketizer:
-    """/ Abstract base class for reassembling media frames from incoming RTP packets.
-    / Concrete depacketizers (e.g. MJPEG, H.264) override process_packet() to
-    / accumulate payload data and invoke the frame callback when a complete frame
-    / has been assembled.
-    """
-
-    class Config:
-        """/ Configuration for RtpDepacketizer."""
-        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #/< Log verbosity level
-        def __init__(
-            self,
-            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
-            ) -> None:
-            """Auto-generated default constructor with named params"""
-            pass
-
-
-
-    def process_packet(self, packet: RtpPacket) -> None:
-        """/ Process an incoming RTP packet, accumulating payload data.
-        / When a complete frame is assembled the frame callback is invoked.
-        / @param packet The RTP packet to process.
-        """
-        pass
-
-    def set_frame_callback(self, cb: frame_callback_t) -> None:
-        """/ Set the callback for completed frames.
-        / @param cb The callback to invoke when a full frame is ready.
-        """
-        pass
-
-    def __init__(self) -> None:
-        """Auto-generated default constructor"""
-        pass
-
-
-####################    </generated_from:rtp_depacketizer.hpp>    ####################
-
-
-####################    <generated_from:generic_packetizer.hpp>    ####################
-
-
-
-
-class GenericPacketizer:
-    """/ A generic RTP packetizer suitable for audio codecs (PCM, G.711, Opus, etc.)
-    / or any pre-formatted data that simply needs MTU-based chunking. It splits
-    / frame data into chunks of at most max_payload_size bytes and marks the last
-    / chunk with the RTP marker bit.
-    /
-    / \section generic_packetizer_ex1 Example
-    / \snippet generic_packetizer_example.cpp generic_packetizer example
-    """
-    class Config:
-        """/ Configuration for GenericPacketizer."""
-        max_payload_size: int = int(1400)                                      #/< Maximum payload bytes per RTP packet
-        payload_type: int = int(96)                                            #/< RTP payload type number
-        clock_rate: int = int(48000)                                           #/< Clock rate in Hz for RTP timestamps
-        encoding_name: str = str("L16")                                        #/< Encoding name for SDP rtpmap line
-        channels: int = int(1)                                                 #/< Number of audio channels
-        fmtp: str                                                              #/< Optional format parameters for SDP fmtp line
-        media_type: MediaType = MediaType(MediaType.audio)                     #/< Media type for the SDP m= line
-        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #/< Log verbosity level
-        def __init__(
-            self,
-            max_payload_size: int = int(1400),
-            payload_type: int = int(96),
-            clock_rate: int = int(48000),
-            encoding_name: str = str("L16"),
-            channels: int = int(1),
-            fmtp: str = "",
-            media_type: MediaType = MediaType(MediaType.audio),
-            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
-            ) -> None:
-            """Auto-generated default constructor with named params"""
-            pass
-
-
-
-    def packetize(self, frame_data: std.span[ int]) -> List[RtpPayloadChunk]:
-        """/ Split frame data into RTP payload chunks of at most max_payload_size.
-        / The last (or only) chunk has its marker flag set.
-        / @param frame_data The raw frame bytes to packetize.
-        / @return A vector of RtpPayloadChunk ready to be wrapped in RTP packets.
-        """
-        pass
-
-    def get_payload_type(self) -> int:
-        """/ Get the RTP payload type number.
-        / @return The configured RTP payload type.
-        """
-        pass
-
-    def get_clock_rate(self) -> int:
-        """/ Get the RTP clock rate.
-        / @return The configured clock rate in Hz.
-        """
-        pass
-
-    def get_sdp_media_attributes(self) -> str:
-        """/ Generate the SDP media-level attribute lines for this codec.
-        / Produces an a=rtpmap line and, if fmtp is non-empty, an a=fmtp line.
-        / @return A string containing the SDP a= lines.
-        """
-        pass
-
-    def get_sdp_media_line(self) -> str:
-        """/ Generate the SDP m= line for this codec.
-        / @return A string such as "m=audio 0 RTP/AVP 96".
-        """
-        pass
-
-    def __init__(self) -> None:
-        """Auto-generated default constructor"""
-        pass
-
-
-####################    </generated_from:generic_packetizer.hpp>    ####################
-
-
-####################    <generated_from:h264_packetizer.hpp>    ####################
-
-
-
-
-class H264Packetizer:
-    """/ @brief RTP packetizer for H.264 video per RFC 6184.
-    /
-    / Accepts H.264 access units in Annex B byte-stream format (NAL units
-    / separated by 0x00000001 or 0x000001 start codes) and produces a sequence
-    / of RTP payload chunks suitable for transmission.
-    /
-    / Supports two NAL-unit packetization strategies:
-    /   - **Single NAL unit mode** — NAL fits within max_payload_size.
-    /   - **FU-A fragmentation** — NAL exceeds max_payload_size (packetization_mode >= 1).
-    /
-    / @note This class does not manage RTP headers (sequence numbers, timestamps,
-    /       SSRC). The caller wraps each returned chunk into an RtpPacket.
-    /
-    / \section h264_packetizer_ex1 Example
-    / \snippet h264_packetizer_example.cpp h264_packetizer example
-    """
-    class Config:
-        """/ Configuration for the H264Packetizer."""
-        max_payload_size: int = int(1400)                                      #/< Maximum payload bytes per RTP packet
-        payload_type: int = int(96)                                            #/< Dynamic RTP payload type (typically 96–127).
-        profile_level_id: str                                                  #/< H.264 profile-level-id hex string, e.g. "42C01E".
-        packetization_mode: int = int(1)                                       #/< 0 = single NAL only, 1 = non-interleaved (FU-A allowed).
-        sps: List[int]                                                         #/< Sequence Parameter Set raw bytes (without start code).
-        pps: List[int]                                                         #/< Picture Parameter Set raw bytes (without start code).
-        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #/< Log verbosity level
-        def __init__(
-            self,
-            max_payload_size: int = int(1400),
-            payload_type: int = int(96),
-            profile_level_id: str = "",
-            packetization_mode: int = int(1),
-            sps: List[int] = List[int](),
-            pps: List[int] = List[int](),
-            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
-            ) -> None:
-            """Auto-generated default constructor with named params"""
-            pass
-
-
-
-    def packetize(self, frame_data: std.span[ int]) -> List[RtpPayloadChunk]:
-        """/ Packetize a complete H.264 access unit (Annex B format).
-        /
-        / The input may contain multiple NAL units separated by 3-byte or 4-byte
-        / start codes. Each NAL is individually packetized (single NAL or FU-A).
-        / The marker bit is set on the last chunk of the last NAL unit in the
-        / access unit.
-        /
-        / @param frame_data Raw Annex B byte-stream of one access unit.
-        / @return Vector of RTP payload chunks ready for transmission.
-        """
-        pass
-
-    def packetize_nal(
-        self,
-        nal_data: std.span[ int],
-        is_last_nal: bool = True
-        ) -> List[RtpPayloadChunk]:
-        """/ Packetize a single pre-parsed NAL unit (no start code prefix).
-        /
-        / @param nal_data The raw NAL unit bytes (including NAL header byte).
-        / @param is_last_nal If True, the marker bit is set on the last chunk.
-        / @return Vector of RTP payload chunks for this NAL.
-        """
-        pass
-
-    def set_sps_pps(self, sps: std.span[ int], pps: std.span[ int]) -> None:
-        """/ Update the SPS and PPS used for SDP generation.
-        / @param sps Sequence Parameter Set raw bytes.
-        / @param pps Picture Parameter Set raw bytes.
-        """
-        pass
-
-    def get_payload_type(self) -> int:
-        """/ Get the RTP payload type.
-        / @return The dynamic payload type configured for H.264.
-        """
-        pass
-
-    def get_clock_rate(self) -> int:
-        """/ Get the RTP clock rate for H.264 video.
-        / @return 90000 (fixed for H.264).
-        """
-        pass
-
-    def get_sdp_media_attributes(self) -> str:
-        """/ Get the SDP attribute lines for H.264.
-        / @return SDP a= lines (rtpmap and fmtp) without trailing CRLF.
-        """
-        pass
-
-    def get_sdp_media_line(self) -> str:
-        """/ Get the SDP m= media line for H.264.
-        / @return SDP m= line without trailing CRLF.
-        """
-        pass
-
-    def __init__(self) -> None:
-        """Auto-generated default constructor"""
-        pass
-
-
-####################    </generated_from:h264_packetizer.hpp>    ####################
-
-
-####################    <generated_from:mjpeg_packetizer.hpp>    ####################
-
-
-
-class MjpegPacketizer:
-    """/ MJPEG packetizer that fragments JPEG frames into RFC 2435 RTP payloads.
-    /
-    / This class takes complete JPEG frames and produces RTP payload chunks
-    / suitable for MJPEG streaming. Each chunk contains an RFC 2435 MJPEG
-    / header, and the first chunk additionally includes quantization tables.
-    """
-    class Config:
-        """/ Configuration for the MJPEG packetizer."""
-        max_payload_size: int = int(1400)                                      #/< Maximum payload bytes per RTP packet
-        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #/< Log verbosity level
-        def __init__(
-            self,
-            max_payload_size: int = int(1400),
-            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
-            ) -> None:
-            """Auto-generated default constructor with named params"""
-            pass
-
-
-    def get_payload_type(self) -> int:
-        """/ Get the RTP payload type for MJPEG.
-        / @return 26 (static JPEG payload type).
-        """
-        pass
-
-    def get_clock_rate(self) -> int:
-        """/ Get the RTP clock rate for MJPEG.
-        / @return 90000 Hz.
-        """
-        pass
-
-    def get_sdp_media_attributes(self) -> str:
-        """/ Get the SDP media attributes for MJPEG.
-        / @return SDP rtpmap attribute string.
-        """
-        pass
-
-    def get_sdp_media_line(self) -> str:
-        """/ Get the SDP media line for MJPEG.
-        / @return SDP media description line.
-        """
-        pass
-    def __init__(self) -> None:
-        """Auto-generated default constructor"""
-        pass
-
-
-####################    </generated_from:mjpeg_packetizer.hpp>    ####################
-
-
-####################    <generated_from:rtp_packetizer.hpp>    ####################
-
-
-
-
-class RtpPacketizer:
-    """/ Abstract base class for splitting media frames into RTP payload chunks.
-    / Concrete packetizers (e.g. MJPEG, H.264) override the pure-virtual methods
-    / to produce codec-specific payloads. The RTSP server wraps each returned
-    / RtpPayloadChunk with an RTP header before sending.
-    """
-    class Config:
-        """/ Configuration for RtpPacketizer."""
-        max_payload_size: int = int(1400)                                      #/< Maximum payload bytes per RTP packet
-        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #/< Log verbosity level
-        def __init__(
-            self,
-            max_payload_size: int = int(1400),
-            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
-            ) -> None:
-            """Auto-generated default constructor with named params"""
-            pass
-
-
-
-    def packetize(self, frame_data: std.span[ int]) -> List[RtpPayloadChunk]:
-        """/ Packetize a complete media frame into RTP payload chunks.
-        / @param frame_data The raw frame bytes to packetize.
-        / @return A vector of RtpPayloadChunk ready to be wrapped in RTP packets.
-        """
-        pass
-
-    def get_payload_type(self) -> int:
-        """/ Get the RTP payload type number for this codec.
-        / @return The RTP payload type (e.g. 26 for MJPEG, 96 for dynamic).
-        """
-        pass
-
-    def get_clock_rate(self) -> int:
-        """/ Get the RTP clock rate for timestamp calculation.
-        / @return The clock rate in Hz (e.g. 90000 for video, 8000 for audio).
-        """
-        pass
-
-    def get_sdp_media_attributes(self) -> str:
-        """/ Generate the SDP media-level attributes for this codec.
-        / @return A string containing SDP a= lines (without trailing CRLF).
-        """
-        pass
-
-    def get_sdp_media_line(self) -> str:
-        """/ Generate the SDP m= line for this codec.
-        / @return A string containing the SDP m= line (without trailing CRLF).
-        """
-        pass
-
-    def __init__(self) -> None:
-        """Auto-generated default constructor"""
-        pass
-
-
-####################    </generated_from:rtp_packetizer.hpp>    ####################
 
 
 ####################    <generated_from:lowpass_filter.hpp>    ####################
