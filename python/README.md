@@ -47,6 +47,23 @@ This section gives a brief overview of what the scripts in this folder do.
   audio by default when running with a UI; use `--no-audio-playback` to disable
   it or `--play-audio --headless` to exercise playback without opening the video
   window.
+- `rtps_host.py`: A pure-stdlib host-side RTPS harness for discovering an ESPP
+  `RtpsParticipant`, printing SPDP/SEDP metadata, and optionally publishing or
+  receiving standard CDR-over-RTPS `UInt32` user-data samples (routed by writer
+  GUID via SEDP) without needing Python bindings. It follows endpoint-advertised
+  user-data multicast locators, joining matching subscribed-topic multicast
+  groups dynamically. Run `python rtps_host.py --self-test` to validate the
+  wire-format encoders/decoders against the firmware with no network I/O.
+- `rtps_pubsub.py`, `rtps_publisher.py`, `rtps_subscriber.py`: RTPS tests that
+  use the **espp Python library** (`espp.RtpsParticipant` + `espp.CdrWriter`/
+  `CdrReader`) rather than the pure-stdlib harness. `rtps_pubsub.py` is
+  self-contained (a publisher and subscriber in one process; exits 0 if samples
+  were received). `rtps_publisher.py` / `rtps_subscriber.py` are standalone and
+  interoperate with each other, with the C++ `rtps_publisher`/`rtps_subscriber`
+  in `../pc`, and with `rtps_host.py`. They take an optional
+  `[topic] [advertised_ipv4]` (a real interface IP is needed for cross-host
+  discovery). Note: RTPS discovery is multicast, so these require a
+  multicast-capable network.
 - `cobs_demo.py`: Demonstration of ESPP COBS functionality with native Python data types.
   Shows ESPP encoding/decoding, cross-library compatibility with the cobs-python library,
   and practical usage examples. Includes design differences explanation and validation
@@ -105,7 +122,9 @@ python3 <test_name>.py
 python3 task.py
 # or 
 python3 udp_client.py
-``` 
+# or discover / test RTPS from a host machine
+python3 rtps_host.py --advertised-address <your-host-ip>
+```
 
 Note: the `udp_client.py` script requires a running instance of the
 `udp_server.py` script. To run the server, use the following command from
@@ -113,4 +132,28 @@ another terminal:
 
 ```console
 python3 udp_server.py
+```
+
+For the default ESP RTPS example, the host harness now defaults to the
+**responder** side of the request/response test, so it will subscribe to
+``espp/rtps_example/request`` and echo values back on
+``espp/rtps_example/response``:
+
+```console
+python3 rtps_host.py --advertised-address 192.168.1.50
+```
+
+When the ESP RTPS example is configured for per-topic multicast, the host
+harness will automatically join the discovered request-topic multicast group and
+send response samples using the discovered response-reader locators.
+
+To act as the initiator instead, swap the topics and enable periodic publishing:
+
+```console
+python3 rtps_host.py --advertised-address 192.168.1.50 \
+  --subscribe-topic espp/rtps_example/response \
+  --publish-topic espp/rtps_example/request \
+  --publish-value 42 \
+  --publish-interval 1.0 \
+  --no-echo-received
 ```

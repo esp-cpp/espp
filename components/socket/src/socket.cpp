@@ -229,8 +229,15 @@ bool Socket::add_multicast_group(const std::string &multicast_group) {
   }
 
   // Assign the IPv4 multicast source interface, via its IP
-  // (only necessary if this socket is IPV4 only)
-  struct in_addr iaddr;
+  // (only necessary if this socket is IPV4 only). Use INADDR_ANY so the OS picks the default
+  // multicast interface; leaving iaddr uninitialized passes garbage to IP_MULTICAST_IF, which fails
+  // with EADDRNOTAVAIL ("Can't assign requested address") on some platforms (e.g. macOS).
+  struct in_addr iaddr {};
+#if defined(ESP_PLATFORM)
+  iaddr.s_addr = IPADDR_ANY;
+#else
+  iaddr.s_addr = htonl(INADDR_ANY);
+#endif
   err = setsockopt(socket_, IPPROTO_IP, IP_MULTICAST_IF, reinterpret_cast<const char *>(&iaddr),
                    sizeof(struct in_addr));
   if (err < 0) {

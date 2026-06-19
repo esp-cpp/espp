@@ -9,7 +9,7 @@ include(cmake/CPM.cmake)
 CPMAddPackage(
     NAME pybind11
     GIT_REPOSITORY https://github.com/pybind/pybind11.git
-    VERSION 2.13.6
+    VERSION 3.0.4
     DOWNLOAD_ONLY YES
 )
 if(pybind11_ADDED)

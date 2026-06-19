@@ -20,6 +20,7 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    button
    byte90
    controller
+   cdr
    cli
    cobs
    color
@@ -65,6 +66,7 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    remote_debug
    rmt
    rtc/index
+   rtps
    rtsp
    runqueue
    seeed_studio_round_display
