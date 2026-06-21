@@ -1,7 +1,9 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <functional>
+#include <iterator>
 #include <span>
 #include <system_error>
 
@@ -263,11 +265,8 @@ protected:
   }
 
   template <typename T, size_t N> static int index_of(const std::array<T, N> &table, int value) {
-    for (size_t i = 0; i < N; i++) {
-      if (table[i] == value)
-        return static_cast<int>(i);
-    }
-    return -1;
+    auto it = std::find(table.begin(), table.end(), value);
+    return it != table.end() ? static_cast<int>(std::distance(table.begin(), it)) : -1;
   }
 
   // --- Register addresses (AT581X datasheet) ---
