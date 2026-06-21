@@ -33,6 +33,7 @@ jobs:
             components/ads7138
             components/adxl345
             components/as5600
+            components/at581x
             components/aw9523
             components/base_component
             components/base_peripheral

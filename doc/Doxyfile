@@ -78,6 +78,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/ads7138/example/main/ads7138_example.cpp \
   $(PROJECT_PATH)/components/adxl345/example/main/adxl345_example.cpp \
   $(PROJECT_PATH)/components/as5600/example/main/as5600_example.cpp \
+  $(PROJECT_PATH)/components/at581x/example/main/at581x_example.cpp \
   $(PROJECT_PATH)/components/aw9523/example/main/aw9523_example.cpp \
   $(PROJECT_PATH)/components/bdc_driver/example/main/bdc_driver_example.cpp \
   $(PROJECT_PATH)/components/lp5817/example/main/lp5817_example.cpp \
@@ -192,6 +193,7 @@ INPUT = \
   $(PROJECT_PATH)/components/ads7138/include/ads7138.hpp \
   $(PROJECT_PATH)/components/adxl345/include/adxl345.hpp \
   $(PROJECT_PATH)/components/as5600/include/as5600.hpp \
+  $(PROJECT_PATH)/components/at581x/include/at581x.hpp \
   $(PROJECT_PATH)/components/aw9523/include/aw9523.hpp \
   $(PROJECT_PATH)/components/base_component/include/base_component.hpp \
   $(PROJECT_PATH)/components/base_peripheral/include/base_peripheral.hpp \

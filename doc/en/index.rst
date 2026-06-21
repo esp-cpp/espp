@@ -61,6 +61,7 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    odrive_ascii
    pid
    power/index
+   presence/index
    qtpy
    qwiicnes
    remote_debug
