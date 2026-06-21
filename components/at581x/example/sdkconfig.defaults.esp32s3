@@ -1,0 +1,2 @@
+# on the ESP32S3, which has native USB, set the console so output works over USB:
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y

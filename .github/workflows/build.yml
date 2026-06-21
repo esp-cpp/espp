@@ -31,6 +31,8 @@ jobs:
           target: esp32s3
         - path: 'components/as5600/example'
           target: esp32s3
+        - path: 'components/at581x/example'
+          target: esp32s3
         - path: 'components/aw9523/example'
           target: esp32
         - path: 'components/bdc_driver/example'
