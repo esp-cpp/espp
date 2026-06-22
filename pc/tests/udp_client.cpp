@@ -14,8 +14,8 @@ bool task_func() {
 }
 
 int main() {
-  auto task = espp::Task(espp::Task::SimpleConfig{
-      .callback = task_func, .task_config = espp::Task::BaseConfig{.name = "test_task"}});
+  auto task = espp::Task(
+      {.callback = task_func, .task_config = espp::Task::BaseConfig{.name = "test_task"}});
   task.start();
 
   std::this_thread::sleep_for(5s);

@@ -13,13 +13,14 @@ int main() {
 
   logger.info("Starting task test");
 
-  espp::Task task({.name = "Task", .callback = [&](auto &, auto &) -> bool {
+  espp::Task task({.callback = [&](auto &, auto &) -> bool {
                      auto now = std::chrono::steady_clock::now();
                      logger.info("[{:.3f}] Hello from the task!", elapsed());
                      std::this_thread::sleep_until(now + 1s);
                      // don't want to stop the task
                      return false;
-                   }});
+                   },
+                   .task_config = espp::Task::BaseConfig{.name = "Task"}});
   task.start();
 
   std::this_thread::sleep_for(10s);
