@@ -17,13 +17,13 @@ jobs:
 
     steps:
     - name: Checkout repo
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         submodules: 'recursive'
         fetch-depth: 0
 
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: '3.12'
 
@@ -36,7 +36,7 @@ jobs:
         cmake --build . --config Release --target install
 
     - name: Upload output folder
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: libespp_windows
         path: lib/pc
@@ -48,13 +48,13 @@ jobs:
 
     steps:
     - name: Checkout repo
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         submodules: 'recursive'
         fetch-depth: 0
 
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: '3.12'
 
@@ -64,7 +64,7 @@ jobs:
         ./build.sh
 
     - name: Upload output folder
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: libespp_linux
         path: lib/pc
@@ -81,12 +81,12 @@ jobs:
         xcode-version: latest-stable
 
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: '3.12'
 
     - name: Checkout repo
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         submodules: 'recursive'
         fetch-depth: 0
@@ -97,7 +97,7 @@ jobs:
         ./build.sh
 
     - name: Upload output folder
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: libespp_macos
         path: lib/pc
