@@ -67,7 +67,7 @@ Socket::Socket(sock_type_t socket_fd, const Logger::Config &logger_config)
   if (!_socket_initialized) {
     logger_.debug("Initializing Winsock");
     WSADATA wsa_data;
-    int err = WSAStartup(MAKEWORD(1, 1), &wsa_data);
+    int err = WSAStartup(MAKEWORD(2, 2), &wsa_data);
     if (err != 0) {
       logger_.error("WSAStartup failed: {}", error_string(err));
     }
@@ -83,7 +83,7 @@ Socket::Socket(Type type, const Logger::Config &logger_config)
   if (!_socket_initialized) {
     logger_.debug("Initializing Winsock");
     WSADATA wsa_data;
-    int err = WSAStartup(MAKEWORD(1, 1), &wsa_data);
+    int err = WSAStartup(MAKEWORD(2, 2), &wsa_data);
     if (err != 0) {
       logger_.error("WSAStartup failed: {}", error_string(err));
     }
@@ -320,7 +320,7 @@ std::string Socket::error_string(int err) const {
     return "WSAECONNREFUSED";
   } else if (err == WSAETIMEDOUT) {
     return "WSAETIMEDOUT";
-  } else if (err = WSAEINTR) {
+  } else if (err == WSAEINTR) {
     return "WSAEINTR";
   } else if (err == WSAENOTSOCK) {
     return "WSAENOTSOCK";
