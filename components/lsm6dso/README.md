@@ -3,7 +3,8 @@
 [![Badge](https://components.espressif.com/components/espp/lsm6dso/badge.svg)](https://components.espressif.com/components/espp/lsm6dso)
 
 This is an espp component for the LSM6DSO 6-axis IMU (3-axis accelerometer +
-3-axis gyroscope) from STMicroelectronics. It supports both I2C and SPI
+3-axis gyroscope) from STMicroelectronics and compatible LSM6DS-family parts
+used with the same basic accel/gyro register map. It supports both I2C and SPI
 interfaces, FIFO, interrupts, tap/event detection, and on-chip filtering. The
 driver is designed for use with the ESP-IDF and espp framework, and is modeled
 after the ICM42607 and MT6701 components.
@@ -18,6 +19,10 @@ after the ICM42607 and MT6701 components.
 
 The [example](./example) shows how to use the `espp::Lsm6dso` component to
 initialize and communicate with an LSM6DSO 6-axis IMU.
+
+For basic accel/gyro use, the driver also accepts the LSM6DS33 `WHO_AM_I`
+value (`0x69`), which allows BSPs such as MotorGo Plink to reuse the same
+component over I2C without a separate driver.
 
 ## Documentation
 See the [documentation](https://esp-cpp.github.io/espp/imu/lsm6dso.html) for

@@ -19,11 +19,20 @@ extern "C" void app_main(void) {
       .sda_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SDA_GPIO,
       .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
   });
+  std::error_code ec;
+  auto max1704x_device =
+      i2c.add_device<uint8_t>({.device_address = espp::Max1704x::DEFAULT_ADDRESS,
+                               .timeout_ms = static_cast<int>(i2c.config().timeout_ms),
+                               .scl_speed_hz = i2c.config().clk_speed,
+                               .log_level = espp::Logger::Verbosity::WARN},
+                              ec);
+  if (!max1704x_device) {
+    logger.error("MAX1704x I2C device initialization failed: {}", ec.message());
+    return;
+  }
   // now make the max1704x which handles GPIO
-  espp::Max1704x max1704x({.write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1,
-                                              std::placeholders::_2, std::placeholders::_3),
-                           .read = std::bind(&espp::I2c::read, &i2c, std::placeholders::_1,
-                                             std::placeholders::_2, std::placeholders::_3),
+  espp::Max1704x max1704x({.write = espp::make_i2c_addressed_write(max1704x_device),
+                           .read = espp::make_i2c_addressed_read(max1704x_device),
                            .log_level = espp::Logger::Verbosity::WARN});
 
   // and finally, make the task to periodically poll the max1704x and print
@@ -40,7 +49,6 @@ extern "C" void app_main(void) {
     static auto start = std::chrono::high_resolution_clock::now();
     auto now = std::chrono::high_resolution_clock::now();
     auto seconds = std::chrono::duration<float>(now - start).count();
-    std::error_code ec;
     auto voltage = max1704x.get_battery_voltage(ec);
     if (ec) {
       return false;

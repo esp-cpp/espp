@@ -21,7 +21,10 @@ void TcpSocket::reinit() {
   init(Type::STREAM);
 }
 
-void TcpSocket::close() { ::close(socket_); }
+void TcpSocket::close() {
+  connected_ = false;
+  cleanup();
+}
 
 bool TcpSocket::is_connected() const { return connected_; }
 

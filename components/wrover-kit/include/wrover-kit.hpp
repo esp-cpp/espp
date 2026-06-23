@@ -12,6 +12,7 @@
 #include "base_component.hpp"
 #include "ili9341.hpp"
 #include "led.hpp"
+#include "spi.hpp"
 
 namespace espp {
 /// The WroverKit class provides an interface to the ESP32-WROVER-KIT ESP32
@@ -28,6 +29,9 @@ class WroverKit : public BaseComponent {
 public:
   /// Alias for the pixel type used by the wrover-kit display
   using Pixel = lv_color16_t;
+
+  /// Alias for the display driver
+  using DisplayDriver = espp::Ili9341;
 
   /// Maximum number of bytes that can be transferred in a single SPI
   /// transaction to the Display. 2MB on ESP32.
@@ -80,6 +84,14 @@ public:
   /// \return The height of the LCD in pixels
   static constexpr size_t lcd_height() { return lcd_height_; }
 
+  /// Get the display width in pixels, according to the current orientation
+  /// \return The display width in pixels, according to the current orientation
+  size_t rotated_display_width() const;
+
+  /// Get the display height in pixels, according to the current orientation
+  /// \return The display height in pixels, according to the current orientation
+  size_t rotated_display_height() const;
+
   /// Get the GPIO pin for the LCD data/command signal
   /// \return The GPIO pin for the LCD data/command signal
   static constexpr auto get_lcd_dc_gpio() { return lcd_dc_io; }
@@ -87,6 +99,10 @@ public:
   /// Get a shared pointer to the display
   /// \return A shared pointer to the display
   std::shared_ptr<Display<Pixel>> display() const;
+
+  /// Get a shared pointer to the low-level display driver
+  /// \return A shared pointer to the display driver
+  const std::shared_ptr<DisplayDriver> &display_driver() const { return display_driver_; }
 
   /// Set the brightness of the backlight
   /// \param brightness The brightness of the backlight as a percentage (0 - 100)
@@ -124,15 +140,6 @@ public:
   /// \note This is null unless initialize_display() has been called
   uint8_t *frame_buffer1() const;
 
-  /// Write command and optional parameters to the LCD
-  /// \param command The command to write
-  /// \param parameters The command parameters to write
-  /// \param user_data User data to pass to the spi transaction callback
-  /// \note This method is designed to be used by the display driver
-  /// \note This method queues the data to be written to the LCD, only blocking
-  ///      if there is an ongoing SPI transaction
-  void write_command(uint8_t command, std::span<const uint8_t> parameters, uint32_t user_data);
-
   /// Write a frame to the LCD
   /// \param x The x coordinate
   /// \param y The y coordinate
@@ -150,9 +157,9 @@ public:
   /// \param xe The x end coordinate
   /// \param ye The y end coordinate
   /// \param data The data to write
-  /// \param user_data User data to pass to the spi transaction callback
-  /// \note This method queues the data to be written to the LCD, only blocking
-  ///      if there is an ongoing SPI transaction
+  /// \param user_data User data to pass to the SPI transaction callback
+  /// \note This method queues the panel transfer asynchronously and may return
+  ///       before the write has completed.
   void write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data);
 
 protected:
@@ -180,19 +187,14 @@ protected:
   static constexpr bool mirror_x = false;
   static constexpr bool mirror_y = false;
   static constexpr bool swap_xy = true;
-  using DisplayDriver = espp::Ili9341;
 
   // display
   std::shared_ptr<Display<Pixel>> display_;
   std::vector<Led::ChannelConfig> backlight_channel_configs_{};
   std::shared_ptr<Led> backlight_{};
-  /// SPI bus for communication with the LCD
-  spi_bus_config_t lcd_spi_bus_config_;
-  spi_device_interface_config_t lcd_config_;
-  spi_device_handle_t lcd_handle_{nullptr};
-  static constexpr int spi_queue_size = 6;
-  spi_transaction_t trans[spi_queue_size];
-  std::atomic<int> num_queued_trans = 0;
+  std::shared_ptr<DisplayDriver> display_driver_{static_cast<DisplayDriver *>(nullptr)};
+  std::unique_ptr<Spi> lcd_spi_;
+  std::unique_ptr<SpiPanelIo> lcd_;
   uint8_t *frame_buffer0_{nullptr};
   uint8_t *frame_buffer1_{nullptr};
 }; // class WroverKit

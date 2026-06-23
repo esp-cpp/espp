@@ -9,10 +9,12 @@ BSP component on the Smart Panlee SC01 Plus touchscreen display module.
 
 - ST7796 display initialization over the ESP32-S3 8-bit parallel LCD bus
 - FT5x06 touch handling with LVGL integration
+- Foreground custom-drawn touch trail with bounded invalidation for smooth redraws
 - I2S speaker playback with a bundled touch-click sound
 - Backlight brightness control
 - Optional microSD mounting and filesystem inspection
 - Published peripheral pin maps for I2S, RS-485, and external GPIOs
+- Rotation-aware UI layout with wrapped instructions that stay on-screen in portrait/landscape
 
 ## Hardware Required
 
@@ -24,7 +26,8 @@ BSP component on the Smart Panlee SC01 Plus touchscreen display module.
 
 Build the project and flash it to the board, then run monitor tool to view
 serial output and verify that touching the screen draws circles and plays the
-embedded click sound:
+embedded click sound. The refresh button rotates the display and the label will
+reflow to stay within the visible screen width:
 
 ```
 idf.py -p PORT flash monitor

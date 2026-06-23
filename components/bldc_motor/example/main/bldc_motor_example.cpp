@@ -35,11 +35,20 @@ extern "C" void app_main(void) {
     //! [bldc_motor example]
     // now make the mt6701 which decodes the data
     using Encoder = espp::Mt6701<>;
+    std::error_code ec;
+    auto encoder_device =
+        i2c.add_device<uint8_t>({.device_address = Encoder::DEFAULT_ADDRESS,
+                                 .timeout_ms = static_cast<int>(i2c.config().timeout_ms),
+                                 .scl_speed_hz = i2c.config().clk_speed,
+                                 .log_level = espp::Logger::Verbosity::WARN},
+                                ec);
+    if (!encoder_device) {
+      logger.error("Failed to initialize MT6701 I2C device: {}", ec.message());
+      return;
+    }
     std::shared_ptr<Encoder> mt6701 = std::make_shared<Encoder>(
-        Encoder::Config{.write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1,
-                                           std::placeholders::_2, std::placeholders::_3),
-                        .read = std::bind(&espp::I2c::read, &i2c, std::placeholders::_1,
-                                          std::placeholders::_2, std::placeholders::_3),
+        Encoder::Config{.write = espp::make_i2c_addressed_write(encoder_device),
+                        .read = espp::make_i2c_addressed_read(encoder_device),
                         .velocity_filter = nullptr, // no filtering
                         .update_period = std::chrono::duration<float>(core_update_period),
                         .log_level = espp::Logger::Verbosity::WARN});

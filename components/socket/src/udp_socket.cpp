@@ -1,14 +1,48 @@
 #include "udp_socket.hpp"
 
+#include <thread>
+
 using namespace espp;
+
+namespace {
+#ifdef _MSC_VER
+int last_socket_error() { return WSAGetLastError(); }
+#else
+int last_socket_error() { return errno; }
+#endif
+
+bool is_transient_send_error(int err) {
+#ifdef _MSC_VER
+  return err == WSAEWOULDBLOCK || err == WSAENOBUFS;
+#else
+  return err == EAGAIN || err == EWOULDBLOCK || err == ENOBUFS || err == ENOMEM;
+#endif
+}
+
+constexpr int transient_send_retry_count = 5;
+constexpr auto transient_send_retry_delay = std::chrono::milliseconds(2);
+
+int transient_send_retry_limit(int err) {
+#if defined(ESP_PLATFORM)
+  if (err == ENOBUFS || err == ENOMEM) {
+    return 0;
+  }
+#endif
+  return transient_send_retry_count;
+}
+} // namespace
 
 UdpSocket::UdpSocket(const UdpSocket::Config &config)
     : Socket(Type::DGRAM, Logger::Config{.tag = "UdpSocket", .level = config.log_level}) {}
 
-UdpSocket::~UdpSocket() {
-  // we have to explicitly call cleanup here so that the server recvfrom
-  // will return and the task can stop.
+UdpSocket::~UdpSocket() { stop_receiving(); }
+
+void UdpSocket::stop_receiving() {
+  // Close the socket first so any blocking recvfrom returns and the task can stop.
   cleanup();
+  if (task_ && task_->is_started()) {
+    task_->stop();
+  }
 }
 
 bool UdpSocket::send(const std::vector<uint8_t> &data, const UdpSocket::SendConfig &send_config) {
@@ -46,11 +80,39 @@ bool UdpSocket::send(std::span<const uint8_t> data, const UdpSocket::SendConfig 
   auto server_address = server_info.ipv4_ptr();
   logger_.info("Client sending {} bytes to {}:{}", data.size(), send_config.ip_address,
                send_config.port);
-  int num_bytes_sent =
-      sendto(socket_, reinterpret_cast<const char *>(data.data()), data.size(), 0,
-             reinterpret_cast<struct sockaddr *>(server_address), sizeof(*server_address));
+  int num_bytes_sent = -1;
+  for (int attempt = 0; attempt <= transient_send_retry_count; attempt++) {
+    num_bytes_sent =
+        sendto(socket_, reinterpret_cast<const char *>(data.data()), data.size(), 0,
+               reinterpret_cast<struct sockaddr *>(server_address), sizeof(*server_address));
+    if (num_bytes_sent >= 0) {
+      break;
+    }
+    int err = last_socket_error();
+    int retry_limit = transient_send_retry_limit(err);
+    if (!is_transient_send_error(err)) {
+      logger_.error("Error occurred during sending {} bytes to {}:{}: {}", data.size(),
+                    send_config.ip_address, send_config.port, error_string(err));
+      return false;
+    }
+    if (attempt >= retry_limit) {
+#if defined(ESP_PLATFORM)
+      if (err == ENOBUFS || err == ENOMEM) {
+        logger_.warn("Dropping UDP send of {} bytes to {}:{} due to TX backpressure: {}",
+                     data.size(), send_config.ip_address, send_config.port, error_string(err));
+        return false;
+      }
+#endif
+      logger_.error("Error occurred during sending {} bytes to {}:{}: {}", data.size(),
+                    send_config.ip_address, send_config.port, error_string(err));
+      return false;
+    }
+    logger_.warn("Transient send failure sending {} bytes to {}:{} (attempt {}/{}): {}",
+                 data.size(), send_config.ip_address, send_config.port, attempt + 1,
+                 retry_limit + 1, error_string(err));
+    std::this_thread::sleep_for(transient_send_retry_delay);
+  }
   if (num_bytes_sent < 0) {
-    logger_.error("Error occurred during sending: {}", error_string());
     return false;
   }
   logger_.debug("Client sent {} bytes", num_bytes_sent);

@@ -25,6 +25,7 @@ dependencies:
   espp/input_drivers: '>=1.0'
   espp/interrupt: '>=1.0'
   espp/gt911: '>=1.0'
+  espp/spi: '>=1.0'
   espp/task: '>=1.0'
   espp/touch: '>=1.0'
   espp/tt21100: '>=1.0'

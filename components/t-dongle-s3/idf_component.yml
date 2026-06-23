@@ -23,6 +23,7 @@ dependencies:
   espp/i2c: '>=1.0'
   espp/interrupt: '>=1.0'
   espp/led_strip: '>=1.0'
+  espp/spi: '>=1.0'
   espp/task: '>=1.0'
 targets:
   - esp32s3

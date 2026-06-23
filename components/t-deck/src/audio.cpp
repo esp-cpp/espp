@@ -29,6 +29,7 @@ bool TDeck::initialize_i2s(uint32_t default_audio_rate) {
               .clk_src = I2S_CLK_SRC_DEFAULT,
               .ext_clk_freq_hz = 0,
               .mclk_multiple = I2S_MCLK_MULTIPLE_256,
+              .bclk_div = 8,
           },
       .slot_cfg =
           I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_STEREO),

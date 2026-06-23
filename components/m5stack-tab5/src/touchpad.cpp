@@ -24,6 +24,20 @@ bool M5StackTab5::initialize_touch(const touch_callback_t &callback) {
   }
 
   using namespace std::chrono_literals;
+  
+  std::error_code ec;
+  touch_i2c_device_ = internal_i2c_.add_device<uint8_t>(
+      {
+          .device_address = controller == DisplayController::ST7123 ? St7123TouchDriver::DEFAULT_ADDRESS : TouchDriver::DEFAULT_ADDRESS_2,
+          .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
+          .scl_speed_hz = internal_i2c_.config().clk_speed,
+          .log_level = espp::Logger::Verbosity::WARN,
+      },
+      ec);
+  if (!touch_i2c_device_) {
+    logger_.error("Could not initialize touch I2C device: {}", ec.message());
+    return false;
+  }
 
   if (controller == DisplayController::ST7123) {
     // The ST7123 is a TDDI chip: its touch engine is enabled by LCD_RST, which
@@ -32,8 +46,8 @@ bool M5StackTab5::initialize_touch(const touch_callback_t &callback) {
     logger_.info("ST7123 variant detected — using integrated touch controller (skipping TP_RST)");
 
     auto driver = std::make_shared<St7123TouchDriver>(St7123TouchDriver::Config{
-        .write = std::bind_front(&I2c::write, &internal_i2c_),
-        .read = std::bind_front(&I2c::read, &internal_i2c_),
+        .write = espp::make_i2c_addressed_write(touch_i2c_device_),
+        .read = espp::make_i2c_addressed_read(touch_i2c_device_),
         .address = St7123TouchDriver::DEFAULT_ADDRESS,
         .log_level = espp::Logger::Verbosity::WARN});
     touch_driver_ = espp::make_touch_driver(std::move(driver));
@@ -48,14 +62,13 @@ bool M5StackTab5::initialize_touch(const touch_callback_t &callback) {
     std::this_thread::sleep_for(50ms);
 
     auto driver = std::make_shared<TouchDriver>(
-        TouchDriver::Config{.write = std::bind_front(&I2c::write, &internal_i2c_),
-                            .read = std::bind_front(&I2c::read, &internal_i2c_),
+        TouchDriver::Config{.write = espp::make_i2c_addressed_write(touch_i2c_device_),
+                            .read = espp::make_i2c_addressed_read(touch_i2c_device_),
                             .address = TouchDriver::DEFAULT_ADDRESS_2, // GT911 0x14
                             .log_level = espp::Logger::Verbosity::WARN});
     touch_driver_ = espp::make_touch_driver(std::move(driver));
   }
-
-  // Create touchpad input wrapper (identical for both drivers)
+  
   touchpad_input_ = std::make_shared<TouchpadInput>(
       TouchpadInput::Config{.touchpad_read = std::bind_front(&M5StackTab5::touchpad_read, this),
                             .swap_xy = false,

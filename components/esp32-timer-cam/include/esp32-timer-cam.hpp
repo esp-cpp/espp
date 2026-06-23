@@ -255,6 +255,7 @@ protected:
   espp::Gaussian gaussian_{{.gamma = 0.1f, .alpha = 1.0f, .beta = 0.5f}};
 
   // RTC
+  std::shared_ptr<I2c::Device<uint8_t>> rtc_i2c_device_;
   std::shared_ptr<Rtc> rtc_;
 
   // Battery ADC

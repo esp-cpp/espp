@@ -24,11 +24,22 @@ extern "C" void app_main(void) {
                  .clk_speed = i2c_clock_speed});
 
   using Rtc = espp::Rx8130ce<>;
+  std::error_code ec;
+  auto rtc_device =
+      i2c.add_device<uint8_t>({.device_address = Rtc::DEFAULT_ADDRESS,
+                               .timeout_ms = static_cast<int>(i2c.config().timeout_ms),
+                               .scl_speed_hz = i2c.config().clk_speed,
+                               .log_level = espp::Logger::Verbosity::INFO},
+                              ec);
+  if (!rtc_device) {
+    logger.error("Failed to initialize RTC I2C device: {}", ec.message());
+    return;
+  }
 
   // Configure the RX8130CE
   Rtc::Config config{.device_address = Rtc::DEFAULT_ADDRESS,
-                     .write = std::bind_front(&espp::I2c::write, &i2c),
-                     .read = std::bind_front(&espp::I2c::read, &i2c),
+                     .write = espp::make_i2c_addressed_write(rtc_device),
+                     .read = espp::make_i2c_addressed_read(rtc_device),
                      .log_level = espp::Logger::Verbosity::INFO};
 
   // Create RTC instance
@@ -47,7 +58,6 @@ extern "C" void app_main(void) {
   time.tm_sec = 45;
   time.tm_wday = 1; // Monday
 
-  std::error_code ec;
   if (rtc.set_time(time, ec)) {
     logger.info("Time set successfully");
   } else {
@@ -114,13 +124,13 @@ extern "C" void app_main(void) {
 
     // Check alarm
     if (rtc.is_alarm_triggered(ec) && !ec) {
-      logger.info("🚨 ALARM TRIGGERED!");
+      logger.info("ALARM TRIGGERED!");
       rtc.clear_alarm_flag(ec);
     }
 
     // Check timer
     if (rtc.is_timer_expired(ec) && !ec) {
-      logger.info("⏰ TIMER EXPIRED!");
+      logger.info("TIMER EXPIRED!");
       rtc.clear_timer_flag(ec);
 
       // Restart timer for another 5 seconds

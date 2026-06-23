@@ -9,6 +9,20 @@ namespace espp {
 bool M5StackTab5::initialize_battery_monitoring() {
   logger_.info("Initializing battery monitoring (INA226)");
 
+  std::error_code ec;
+  battery_monitor_i2c_device_ = internal_i2c_.add_device<uint8_t>(
+      {
+          .device_address = 0x41,
+          .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
+          .scl_speed_hz = internal_i2c_.config().clk_speed,
+          .log_level = espp::Logger::Verbosity::WARN,
+      },
+      ec);
+  if (!battery_monitor_i2c_device_) {
+    logger_.error("Could not initialize battery monitor I2C device: {}", ec.message());
+    return false;
+  }
+
   // INA226 connected to the internal I2C bus; setup with typical values.
   BatteryMonitor::Config cfg{
       .device_address = 0x41, // NOTE: not the default address, the ES7210 uses 0x40
@@ -18,22 +32,16 @@ bool M5StackTab5::initialize_battery_monitoring() {
       .mode = BatteryMonitor::Mode::SHUNT_BUS_CONT,
       .current_lsb = 0.0005f,          // 0.5 mA / LSB
       .shunt_resistance_ohms = 0.005f, // 5 mΩ (adjust if different on board)
-      .probe = std::bind(&espp::I2c::probe_device, &internal_i2c(), std::placeholders::_1),
-      .write = std::bind(&espp::I2c::write, &internal_i2c(), std::placeholders::_1,
-                         std::placeholders::_2, std::placeholders::_3),
-      .read_register =
-          std::bind(&espp::I2c::read_at_register, &internal_i2c(), std::placeholders::_1,
-                    std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
-      .write_then_read = std::bind(&espp::I2c::write_read, &internal_i2c(), std::placeholders::_1,
-                                   std::placeholders::_2, std::placeholders::_3,
-                                   std::placeholders::_4, std::placeholders::_5),
+      .probe = espp::make_i2c_addressed_probe(battery_monitor_i2c_device_),
+      .write = espp::make_i2c_addressed_write(battery_monitor_i2c_device_),
+      .read_register = espp::make_i2c_addressed_read_register(battery_monitor_i2c_device_),
+      .write_then_read = espp::make_i2c_addressed_write_then_read(battery_monitor_i2c_device_),
       .auto_init = true,
       .log_level = espp::Logger::Verbosity::WARN,
   };
 
   battery_monitor_ = std::make_shared<BatteryMonitor>(cfg);
 
-  std::error_code ec;
   if (!battery_monitor_->initialize(ec) || ec) {
     logger_.error("Battery monitor (INA226) initialization failed: {}", ec.message());
     battery_monitor_.reset();

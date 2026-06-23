@@ -5,6 +5,7 @@
 // Only include this menu if the new API is selected
 #if defined(CONFIG_ESPP_I2C_USE_NEW_API) || defined(_DOXYGEN_)
 
+#include <algorithm>
 #include <functional>
 #include <memory>
 #include <vector>
@@ -36,52 +37,55 @@ public:
   std::unique_ptr<cli::Menu> get(std::string_view name = "i2c_master",
                                  std::string_view description = "I2c Master menu") {
     auto menu = std::make_unique<cli::Menu>(std::string(name), std::string(description));
+    auto *bus = &bus_.get();
 
     // Set the log verbosity for the I2c master bus
     menu->Insert(
         "log", {"verbosity"},
-        [this](std::ostream &out, const std::string &verbosity) -> void {
-          set_log_level(out, verbosity);
+        [bus](std::ostream &out, const std::string &verbosity) -> void {
+          set_log_level(out, *bus, verbosity);
         },
         "Set the log verbosity for the I2c master bus.");
 
     // Scan the bus for devices
     menu->Insert(
-        "scan", [this](std::ostream &out) -> void { scan_bus(out); },
+        "scan", [bus](std::ostream &out) -> void { scan_bus(out, *bus); },
         "Scan the I2c master bus for devices.");
 
-    // Probe for a device (hexadecimal address string)
+    // Probe for a device (hex or decimal address string)
     menu->Insert(
-        "probe", {"address (hex)"},
-        [this](std::ostream &out, const std::string &address_string) -> void {
-          uint16_t address = std::stoi(address_string, nullptr, 16);
-          probe_device(out, address);
+        "probe", {"address (hex/dec)"},
+        [bus](std::ostream &out, const std::string &address_string) -> void {
+          uint16_t address = std::stoi(address_string, nullptr, 0);
+          probe_device(out, *bus, address);
         },
-        "Probe for a device at a specific address, given as a hexadecimal string.");
+        "Probe for a device at a specific address, given as a hex or decimal string.");
 
     // Read from a device
     menu->Insert(
-        "read", {"address (hex)", "register", "length (number of bytes to read)"},
-        [this](std::ostream &out, const std::string &address_string, uint8_t reg,
-               uint8_t len) -> void {
-          uint16_t address = std::stoi(address_string, nullptr, 16);
-          read_device(out, address, reg, len);
+        "read", {"address (hex/dec)", "register", "length (number of bytes to read)"},
+        [bus](std::ostream &out, const std::string &address_string, uint8_t reg,
+              uint8_t len) -> void {
+          uint16_t address = std::stoi(address_string, nullptr, 0);
+          read_device(out, *bus, address, reg, len);
         },
         "Read len bytes from a device at a specific address and register.");
 
     // Write to a device
     menu->Insert(
-        "write", {"address (hex)", "register (hex)", "data byte (hex)", "data byte (hex)", "..."},
-        [this](std::ostream &out, const std::vector<std::string> &args) -> void {
+        "write",
+        {"address (hex/dec)", "register (hex/dec)", "data byte (hex/dec)", "data byte (hex/dec)",
+         "..."},
+        [bus](std::ostream &out, const std::vector<std::string> &args) -> void {
           if (args.size() < 3) {
             out << "Not enough arguments.\n";
             return;
           }
-          uint16_t address = std::stoi(args[0], nullptr, 16);
+          uint16_t address = std::stoi(args[0], nullptr, 0);
           std::vector<uint8_t> data;
           std::transform(args.begin() + 1, args.end(), std::back_inserter(data),
                          [](const std::string &s) -> uint8_t { return std::stoi(s, nullptr, 0); });
-          write_device(out, address, data);
+          write_device(out, *bus, address, data);
         },
         "Write bytes to a device at a specific address and register.");
 
@@ -91,18 +95,20 @@ public:
 protected:
   /// @brief Set the log level for the I2c master bus.
   /// @param out The output stream to write to.
+  /// @param bus The I2C master bus whose log level will be updated.
   /// @param verbosity The verbosity level to set.
-  void set_log_level(std::ostream &out, const std::string &verbosity) {
+  static void set_log_level(std::ostream &out, espp::I2cMasterBus &bus,
+                            const std::string &verbosity) {
     if (verbosity == "debug") {
-      bus_.get().set_log_level(espp::Logger::Verbosity::DEBUG);
+      bus.set_log_level(espp::Logger::Verbosity::DEBUG);
     } else if (verbosity == "info") {
-      bus_.get().set_log_level(espp::Logger::Verbosity::INFO);
+      bus.set_log_level(espp::Logger::Verbosity::INFO);
     } else if (verbosity == "warn") {
-      bus_.get().set_log_level(espp::Logger::Verbosity::WARN);
+      bus.set_log_level(espp::Logger::Verbosity::WARN);
     } else if (verbosity == "error") {
-      bus_.get().set_log_level(espp::Logger::Verbosity::ERROR);
+      bus.set_log_level(espp::Logger::Verbosity::ERROR);
     } else if (verbosity == "none") {
-      bus_.get().set_log_level(espp::Logger::Verbosity::NONE);
+      bus.set_log_level(espp::Logger::Verbosity::NONE);
     } else {
       out << "Invalid log level.\n";
       return;
@@ -112,19 +118,20 @@ protected:
 
   /// @brief Scan the I2c master bus for devices.
   /// @param out The output stream to write to.
-  void scan_bus(std::ostream &out) {
+  /// @param bus The I2C master bus to scan.
+  static void scan_bus(std::ostream &out, espp::I2cMasterBus &bus) {
     out << "Scanning I2c master bus. This may take a while.\n";
-    auto prev_log_level = bus_.get().get_log_level();
+    auto prev_log_level = bus.get_log_level();
     // NOTE: we turn off logging for this so we don't spam the console
-    bus_.get().set_log_level(espp::Logger::Verbosity::ERROR);
+    bus.set_log_level(espp::Logger::Verbosity::ERROR);
     std::vector<uint8_t> found_addresses;
-    for (uint8_t address = 0; address < 128; address++) {
+    for (uint8_t address = 1; address < 128; address++) {
       std::error_code ec;
-      if (bus_.get().probe(address, ec)) {
+      if (bus.probe(address, 50, ec)) {
         found_addresses.push_back(address);
       }
     }
-    bus_.get().set_log_level(prev_log_level);
+    bus.set_log_level(prev_log_level);
     if (found_addresses.empty()) {
       out << "No devices found.\n";
     } else {
@@ -135,10 +142,11 @@ protected:
 
   /// @brief Probe for a device at a specific address.
   /// @param out The output stream to write to.
+  /// @param bus The I2C master bus to probe on.
   /// @param address The address to probe for.
-  void probe_device(std::ostream &out, uint16_t address) {
+  static void probe_device(std::ostream &out, espp::I2cMasterBus &bus, uint16_t address) {
     std::error_code ec;
-    if (bus_.get().probe(address, ec)) {
+    if (bus.probe(address, 50, ec)) {
       out << fmt::format("Device found at address {:#02x}.\n", address);
     } else {
       out << fmt::format("No device found at address {:#02x}.\n", address);
@@ -147,12 +155,15 @@ protected:
 
   /// @brief Read from a device at a specific address and register.
   /// @param out The output stream to write to.
+  /// @param bus The I2C master bus used to create the temporary device handle.
   /// @param address The address to read from.
   /// @param reg The register to read from.
   /// @param len The number of bytes to read.
-  void read_device(std::ostream &out, uint16_t address, uint8_t reg, uint8_t len) {
+  static void read_device(std::ostream &out,
+                          espp::I2cMasterBus &bus, // cppcheck-suppress constParameterReference
+                          uint16_t address, uint8_t reg, uint8_t len) {
     std::error_code ec;
-    auto dev = bus_.get().add_device<uint8_t>({.device_address = address}, ec);
+    auto dev = bus.add_device<uint8_t>({.device_address = address, .timeout_ms = 50}, ec);
     if (!dev) {
       out << "Failed to create device.\n";
       return;
@@ -170,15 +181,18 @@ protected:
 
   /// @brief Write to a device at a specific address and register.
   /// @param out The output stream to write to.
+  /// @param bus The I2C master bus used to create the temporary device handle.
   /// @param address The address to write to.
   /// @param data The data to write (first byte is register, rest is data).
-  void write_device(std::ostream &out, uint16_t address, const std::vector<uint8_t> &data) {
+  static void write_device(std::ostream &out,
+                           espp::I2cMasterBus &bus, // cppcheck-suppress constParameterReference
+                           uint16_t address, const std::vector<uint8_t> &data) {
     if (data.empty()) {
       out << "No register/data provided.\n";
       return;
     }
     std::error_code ec;
-    auto dev = bus_.get().add_device<uint8_t>({.device_address = address}, ec);
+    auto dev = bus.add_device<uint8_t>({.device_address = address, .timeout_ms = 50}, ec);
     if (!dev) {
       out << "Failed to create device.\n";
       return;

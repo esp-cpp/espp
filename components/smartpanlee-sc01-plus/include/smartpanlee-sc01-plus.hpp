@@ -12,6 +12,7 @@
 #include <driver/spi_master.h>
 #include <esp_lcd_io_i80.h>
 #include <esp_lcd_panel_io.h>
+#include <freertos/FreeRTOS.h>
 #include <freertos/stream_buffer.h>
 #include <hal/spi_types.h>
 #include <sdmmc_cmd.h>
@@ -175,6 +176,9 @@ public:
   /// Get the high-level LVGL display wrapper.
   /// \return Shared pointer to the display wrapper, or nullptr if not initialized.
   std::shared_ptr<Display<Pixel>> display() const { return display_; }
+  /// Get a shared pointer to the low-level display driver.
+  /// \return Shared pointer to the display driver, or a typed-null handle if not initialized.
+  const std::shared_ptr<DisplayDriver> &display_driver() const { return display_driver_; }
   /// Set the display backlight brightness.
   /// \param brightness Brightness percentage in the range [0, 100].
   void brightness(float brightness);
@@ -197,6 +201,16 @@ public:
   /// Get the current display height after applying LVGL rotation.
   /// \return Rotated height in pixels.
   size_t rotated_display_height() const;
+  /// Write lines to the LCD using the legacy scanline-oriented transport signature.
+  /// \param xs Inclusive start X coordinate.
+  /// \param ys Inclusive start Y coordinate.
+  /// \param xe Inclusive end X coordinate.
+  /// \param ye Inclusive end Y coordinate.
+  /// \param data Pointer to pixel payload data.
+  /// \param user_data Opaque user data passed by the caller.
+  /// \note This method queues the panel transfer asynchronously and may return
+  ///       before the write has completed.
+  void write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data);
 
   /// Initialize the speaker audio path using the board's published I2S pins.
   /// \return True if audio playback support was initialized, false otherwise.
@@ -265,7 +279,6 @@ protected:
   bool audio_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
   bool update_touch();
   void write_command(uint8_t command, std::span<const uint8_t> parameters, uint32_t user_data);
-  void write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data);
 
   static constexpr auto internal_i2c_port = I2C_NUM_1;
   static constexpr auto internal_i2c_clock_speed = 400 * 1000;
@@ -337,6 +350,7 @@ protected:
        .task_config = {.name = "sc01+ interrupts",
                        .stack_size_bytes = CONFIG_SMARTPANLEE_SC01_PLUS_INTERRUPT_STACK_SIZE}}};
 
+  std::shared_ptr<I2c::Device<uint8_t>> touch_i2c_device_;
   std::shared_ptr<TouchDriver> touch_driver_;
   std::shared_ptr<TouchpadInput> touchpad_input_;
   mutable std::recursive_mutex touchpad_data_mutex_;
@@ -344,6 +358,7 @@ protected:
   touch_callback_t touch_callback_{nullptr};
 
   std::shared_ptr<Display<Pixel>> display_;
+  std::shared_ptr<DisplayDriver> display_driver_{static_cast<DisplayDriver *>(nullptr)};
   std::shared_ptr<Led> backlight_;
   std::vector<Led::ChannelConfig> backlight_channel_configs_;
   esp_lcd_i80_bus_handle_t lcd_bus_{nullptr};

@@ -23,7 +23,11 @@ PROJECT_NAME = "Espressif++ (ESPP), an ESP C++ Library"
 ##
 QUIET = YES
 
-INLINE_SOURCES = YES
+# Keep inline sources out of the generated LaTeX/PDF output. Some example/source
+# listings contain rich Unicode that is fine in code and HTML, but makes the
+# standalone Doxygen PDF build unreliable.
+INLINE_SOURCES = NO
+
 
 # If the INLINE_INHERITED_MEMB tag is set to YES, doxygen will show all
 # inherited members of a class in the documentation of that class as if those
@@ -69,11 +73,14 @@ MARKDOWN_SUPPORT       = NO
 #       what's here and what's not
 EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/adc/example/main/adc_example.cpp \
+  $(PROJECT_PATH)/components/adrc/example/main/adrc_example.cpp \
   $(PROJECT_PATH)/components/ads1x15/example/main/ads1x15_example.cpp \
   $(PROJECT_PATH)/components/ads7138/example/main/ads7138_example.cpp \
   $(PROJECT_PATH)/components/adxl345/example/main/adxl345_example.cpp \
   $(PROJECT_PATH)/components/as5600/example/main/as5600_example.cpp \
+  $(PROJECT_PATH)/components/at581x/example/main/at581x_example.cpp \
   $(PROJECT_PATH)/components/aw9523/example/main/aw9523_example.cpp \
+  $(PROJECT_PATH)/components/bdc_driver/example/main/bdc_driver_example.cpp \
   $(PROJECT_PATH)/components/lp5817/example/main/lp5817_example.cpp \
   $(PROJECT_PATH)/components/binary-log/example/main/binary_log_example.cpp \
   $(PROJECT_PATH)/components/ble_gatt_server/example/main/ble_gatt_server_example.cpp \
@@ -84,6 +91,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/button/example/main/button_example.cpp \
   $(PROJECT_PATH)/components/byte90/example/main/byte90_example.cpp \
   $(PROJECT_PATH)/components/chsc6x/example/main/chsc6x_example.cpp \
+  $(PROJECT_PATH)/components/cdr/example/main/cdr_example.cpp \
   $(PROJECT_PATH)/components/cli/example/main/cli_example.cpp \
   $(PROJECT_PATH)/components/cobs/example/main/cobs_example.cpp \
   $(PROJECT_PATH)/components/color/example/main/color_example.cpp \
@@ -124,7 +132,9 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/matouch-rotary-display/example/main/matouch_rotary_display_example.cpp \
   $(PROJECT_PATH)/components/max1704x/example/main/max1704x_example.cpp \
   $(PROJECT_PATH)/components/monitor/example/main/monitor_example.cpp \
+  $(PROJECT_PATH)/components/motorgo-axis/example/main/motorgo_axis_example.cpp \
   $(PROJECT_PATH)/components/motorgo-mini/example/main/motorgo_mini_example.cpp \
+  $(PROJECT_PATH)/components/motorgo-plink/example/main/motorgo_plink_example.cpp \
   $(PROJECT_PATH)/components/mcp23x17/example/main/mcp23x17_example.cpp \
   $(PROJECT_PATH)/components/mt6701/example/main/mt6701_example.cpp \
   $(PROJECT_PATH)/components/neopixel/example/main/neopixel_example.cpp \
@@ -138,6 +148,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/qwiicnes/example/main/qwiicnes_example.cpp \
   $(PROJECT_PATH)/components/remote_debug/example/main/remote_debug_example.cpp \
   $(PROJECT_PATH)/components/rmt/example/main/rmt_example.cpp \
+  $(PROJECT_PATH)/components/rtps/example/main/rtps_example.cpp \
   $(PROJECT_PATH)/components/rtsp/example/main/rtsp_example.cpp \
   $(PROJECT_PATH)/components/ping/example/main/ping_example.cpp \
   $(PROJECT_PATH)/components/runqueue/example/main/runqueue_example.cpp \
@@ -165,7 +176,8 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/wrover-kit/example/main/wrover_kit_example.cpp \
   $(PROJECT_PATH)/components/ws-s3-geek/example/main/ws_s3_geek_example.cpp \
   $(PROJECT_PATH)/components/ws-s3-lcd-1-47/example/main/ws_s3_lcd_1_47_example.cpp \
-  $(PROJECT_PATH)/components/ws-s3-touch/example/main/ws_s3_touch_example.cpp
+  $(PROJECT_PATH)/components/ws-s3-touch/example/main/ws_s3_touch_example.cpp \
+  $(PROJECT_PATH)/components/xiao-esp32s3-sense/example/main/xiao_esp32s3_sense_example.cpp
 
 ## The 'INPUT' statement below is used as input by script 'gen-df-input.py'
 ## to automatically generate API reference list files header_file.inc
@@ -178,13 +190,16 @@ INPUT = \
   $(PROJECT_PATH)/components/adc/include/adc_types.hpp \
   $(PROJECT_PATH)/components/adc/include/oneshot_adc.hpp \
   $(PROJECT_PATH)/components/adc/include/continuous_adc.hpp \
+  $(PROJECT_PATH)/components/adrc/include/adrc.hpp \
   $(PROJECT_PATH)/components/ads1x15/include/ads1x15.hpp \
   $(PROJECT_PATH)/components/ads7138/include/ads7138.hpp \
   $(PROJECT_PATH)/components/adxl345/include/adxl345.hpp \
   $(PROJECT_PATH)/components/as5600/include/as5600.hpp \
+  $(PROJECT_PATH)/components/at581x/include/at581x.hpp \
   $(PROJECT_PATH)/components/aw9523/include/aw9523.hpp \
   $(PROJECT_PATH)/components/base_component/include/base_component.hpp \
   $(PROJECT_PATH)/components/base_peripheral/include/base_peripheral.hpp \
+  $(PROJECT_PATH)/components/bdc_driver/include/bdc_driver.hpp \
   $(PROJECT_PATH)/components/binary-log/include/binary-log.hpp \
   $(PROJECT_PATH)/components/ble_gatt_server/include/battery_service.hpp \
   $(PROJECT_PATH)/components/ble_gatt_server/include/ble_appearances.hpp \
@@ -206,6 +221,7 @@ INPUT = \
   $(PROJECT_PATH)/components/button/include/button.hpp \
   $(PROJECT_PATH)/components/byte90/include/byte90.hpp \
   $(PROJECT_PATH)/components/chsc6x/include/chsc6x.hpp \
+  $(PROJECT_PATH)/components/cdr/include/cdr.hpp \
   $(PROJECT_PATH)/components/cli/include/cli.hpp \
   $(PROJECT_PATH)/components/cli/include/line_input.hpp \
   $(PROJECT_PATH)/components/cobs/include/cobs.hpp \
@@ -215,10 +231,14 @@ INPUT = \
   $(PROJECT_PATH)/components/cst816/include/cst816.hpp \
   $(PROJECT_PATH)/components/csv/include/csv.hpp \
   $(PROJECT_PATH)/components/display/include/display.hpp \
+  $(PROJECT_PATH)/components/display_drivers/include/display_drivers.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/gc9a01.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/ili9341.hpp \
+  $(PROJECT_PATH)/components/display_drivers/include/ili9881.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/sh8601.hpp \
+  $(PROJECT_PATH)/components/display_drivers/include/spi_panel_io.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/ssd1351.hpp \
+  $(PROJECT_PATH)/components/display_drivers/include/st7123.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/st7789.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/st7796.hpp \
   $(PROJECT_PATH)/components/dns_server/include/dns_server.hpp \
@@ -293,7 +313,9 @@ INPUT = \
   $(PROJECT_PATH)/components/max1704x/include/max1704x.hpp \
   $(PROJECT_PATH)/components/monitor/include/heap_monitor.hpp \
   $(PROJECT_PATH)/components/monitor/include/task_monitor.hpp \
+  $(PROJECT_PATH)/components/motorgo-axis/include/motorgo-axis.hpp \
   $(PROJECT_PATH)/components/motorgo-mini/include/motorgo-mini.hpp \
+  $(PROJECT_PATH)/components/motorgo-plink/include/motorgo-plink.hpp \
   $(PROJECT_PATH)/components/ndef/include/ndef.hpp \
   $(PROJECT_PATH)/components/neopixel/include/neopixel.hpp \
   $(PROJECT_PATH)/components/nvs/include/nvs.hpp \
@@ -312,14 +334,24 @@ INPUT = \
   $(PROJECT_PATH)/components/remote_debug/include/remote_debug.hpp \
   $(PROJECT_PATH)/components/rmt/include/rmt.hpp \
   $(PROJECT_PATH)/components/rmt/include/rmt_encoder.hpp \
+  $(PROJECT_PATH)/components/rtps/include/rtps.hpp \
+  $(PROJECT_PATH)/components/rtsp/include/generic_depacketizer.hpp \
+  $(PROJECT_PATH)/components/rtsp/include/generic_packetizer.hpp \
+  $(PROJECT_PATH)/components/rtsp/include/h264_depacketizer.hpp \
+  $(PROJECT_PATH)/components/rtsp/include/h264_packetizer.hpp \
+  $(PROJECT_PATH)/components/rtsp/include/jpeg_frame.hpp \
+  $(PROJECT_PATH)/components/rtsp/include/jpeg_header.hpp \
+  $(PROJECT_PATH)/components/rtsp/include/mjpeg_depacketizer.hpp \
+  $(PROJECT_PATH)/components/rtsp/include/mjpeg_packetizer.hpp \
+  $(PROJECT_PATH)/components/rtsp/include/rtcp_packet.hpp \
+  $(PROJECT_PATH)/components/rtsp/include/rtp_depacketizer.hpp \
+  $(PROJECT_PATH)/components/rtsp/include/rtp_jpeg_packet.hpp \
+  $(PROJECT_PATH)/components/rtsp/include/rtp_packet.hpp \
+  $(PROJECT_PATH)/components/rtsp/include/rtp_packetizer.hpp \
+  $(PROJECT_PATH)/components/rtsp/include/rtp_types.hpp \
   $(PROJECT_PATH)/components/rtsp/include/rtsp_client.hpp \
   $(PROJECT_PATH)/components/rtsp/include/rtsp_server.hpp \
   $(PROJECT_PATH)/components/rtsp/include/rtsp_session.hpp \
-  $(PROJECT_PATH)/components/rtsp/include/rtcp_packet.hpp \
-  $(PROJECT_PATH)/components/rtsp/include/rtp_packet.hpp \
-  $(PROJECT_PATH)/components/rtsp/include/rtp_jpeg_packet.hpp \
-  $(PROJECT_PATH)/components/rtsp/include/jpeg_frame.hpp \
-  $(PROJECT_PATH)/components/rtsp/include/jpeg_header.hpp \
   $(PROJECT_PATH)/components/runqueue/include/runqueue.hpp \
   $(PROJECT_PATH)/components/rx8130ce/include/rx8130ce.hpp \
   $(PROJECT_PATH)/components/serialization/include/serialization.hpp \
@@ -358,7 +390,8 @@ INPUT = \
   $(PROJECT_PATH)/components/wrover-kit/include/wrover-kit.hpp \
   $(PROJECT_PATH)/components/ws-s3-geek/include/ws-s3-geek.hpp \
   $(PROJECT_PATH)/components/ws-s3-lcd-1-47/include/ws-s3-lcd-1-47.hpp \
-  $(PROJECT_PATH)/components/ws-s3-touch/include/ws-s3-touch.hpp
+  $(PROJECT_PATH)/components/ws-s3-touch/include/ws-s3-touch.hpp \
+  $(PROJECT_PATH)/components/xiao-esp32s3-sense/include/xiao-esp32s3-sense.hpp
 
 ## Get warnings for functions that have no documentation for their parameters or return value
 ##

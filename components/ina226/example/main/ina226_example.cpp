@@ -35,6 +35,17 @@ extern "C" void app_main(void) {
 #endif
 
   logger.info("Using INA226 address 0x{:02X}", address);
+  std::error_code ec;
+  auto ina_device =
+      i2c.add_device<uint8_t>({.device_address = address,
+                               .timeout_ms = static_cast<int>(i2c.config().timeout_ms),
+                               .scl_speed_hz = i2c.config().clk_speed,
+                               .log_level = espp::Logger::Verbosity::WARN},
+                              ec);
+  if (!ina_device) {
+    logger.info("INA226 I2C device initialization failed: {}", ec.message());
+    return;
+  }
 
   // Configure INA226 with reasonable defaults and known shunt resistor
   espp::Ina226 ina({
@@ -45,19 +56,13 @@ extern "C" void app_main(void) {
       .mode = espp::Ina226::Mode::SHUNT_BUS_CONT,
       .current_lsb = 0.001f,         // 1mA / LSB
       .shunt_resistance_ohms = 0.1f, // 0.1 ohm
-      .probe = std::bind(&espp::I2c::probe_device, &i2c, std::placeholders::_1),
-      .write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1, std::placeholders::_2,
-                         std::placeholders::_3),
-      .read_register =
-          std::bind(&espp::I2c::read_at_register, &i2c, std::placeholders::_1,
-                    std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
-      .write_then_read =
-          std::bind(&espp::I2c::write_read, &i2c, std::placeholders::_1, std::placeholders::_2,
-                    std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
+      .probe = espp::make_i2c_addressed_probe(ina_device),
+      .write = espp::make_i2c_addressed_write(ina_device),
+      .read_register = espp::make_i2c_addressed_read_register(ina_device),
+      .write_then_read = espp::make_i2c_addressed_write_then_read(ina_device),
       .log_level = espp::Logger::Verbosity::WARN,
   });
 
-  std::error_code ec;
   // Optional explicit initialize
   ina.initialize(ec);
   if (ec) {

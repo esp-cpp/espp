@@ -5,6 +5,7 @@
 #include "kalman_filter.hpp"
 #include "madgwick_filter.hpp"
 #include "qmi8658.hpp"
+#include "task.hpp"
 
 using namespace std::chrono_literals;
 
@@ -26,6 +27,17 @@ extern "C" void app_main(void) {
                  .sda_pullup_en = GPIO_PULLUP_ENABLE,
                  .scl_pullup_en = GPIO_PULLUP_ENABLE,
                  .clk_speed = i2c_clock_speed});
+  std::error_code ec;
+  auto imu_device =
+      i2c.add_device<uint8_t>({.device_address = Imu::DEFAULT_ADDRESS,
+                               .timeout_ms = static_cast<int>(i2c.config().timeout_ms),
+                               .scl_speed_hz = i2c.config().clk_speed,
+                               .log_level = espp::Logger::Verbosity::WARN},
+                              ec);
+  if (!imu_device) {
+    logger.error("Failed to initialize QMI8658 I2C device: {}", ec.message());
+    return;
+  }
 
   // make the orientation filter to compute orientation from accel + gyro
   static constexpr float angle_noise = 0.001f;
@@ -70,10 +82,8 @@ extern "C" void app_main(void) {
   // make the IMU config
   Imu::Config config{
       .device_address = Imu::DEFAULT_ADDRESS,
-      .write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1, std::placeholders::_2,
-                         std::placeholders::_3),
-      .read = std::bind(&espp::I2c::read, &i2c, std::placeholders::_1, std::placeholders::_2,
-                        std::placeholders::_3),
+      .write = espp::make_i2c_addressed_write(imu_device),
+      .read = espp::make_i2c_addressed_read(imu_device),
       .imu_config =
           {
               .accelerometer_range = Imu::AccelerometerRange::RANGE_8G,

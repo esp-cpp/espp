@@ -28,17 +28,24 @@ extern "C" void app_main(void) {
                    .sda_pullup_en = GPIO_PULLUP_ENABLE,
                    .scl_pullup_en = GPIO_PULLUP_ENABLE,
                    .clk_speed = i2c_clock_speed});
+    std::error_code ec;
+    auto vl53l_device =
+        i2c.add_device<uint8_t>({.device_address = espp::Vl53l::DEFAULT_ADDRESS,
+                                 .timeout_ms = static_cast<int>(i2c.config().timeout_ms),
+                                 .scl_speed_hz = i2c.config().clk_speed,
+                                 .log_level = espp::Logger::Verbosity::WARN},
+                                ec);
+    if (!vl53l_device) {
+      logger.error("Failed to initialize VL53L I2C device: {}", ec.message());
+      return;
+    }
 
     // make the actual test object
-    espp::Vl53l vl53l(
-        espp::Vl53l::Config{.device_address = espp::Vl53l::DEFAULT_ADDRESS,
-                            .write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1,
-                                               std::placeholders::_2, std::placeholders::_3),
-                            .read = std::bind(&espp::I2c::read, &i2c, std::placeholders::_1,
-                                              std::placeholders::_2, std::placeholders::_3),
-                            .log_level = espp::Logger::Verbosity::WARN});
+    espp::Vl53l vl53l(espp::Vl53l::Config{.device_address = espp::Vl53l::DEFAULT_ADDRESS,
+                                          .write = espp::make_i2c_addressed_write(vl53l_device),
+                                          .read = espp::make_i2c_addressed_read(vl53l_device),
+                                          .log_level = espp::Logger::Verbosity::WARN});
 
-    std::error_code ec;
     // set the timing budget to 10ms, which must be shorter than the
     // inter-measurement period. We'll log every 20ms so this guarantees we get
     // new data every time

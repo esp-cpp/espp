@@ -20,13 +20,22 @@ extern "C" void app_main(void) {
         .sda_pullup_en = GPIO_PULLUP_ENABLE,
         .scl_pullup_en = GPIO_PULLUP_ENABLE,
     });
+    std::error_code ec;
+    auto bm8563_device =
+        i2c.add_device<uint8_t>({.device_address = espp::Bm8563::DEFAULT_ADDRESS,
+                                 .timeout_ms = static_cast<int>(i2c.config().timeout_ms),
+                                 .scl_speed_hz = i2c.config().clk_speed,
+                                 .log_level = espp::Logger::Verbosity::WARN},
+                                ec);
+    if (!bm8563_device) {
+      fmt::print("bm8563 I2C device initialization failed: {}\n", ec.message());
+      return;
+    }
     // now make the bm8563
     auto bm8563 = espp::Bm8563({
-        .write = std::bind_front(&espp::I2c::write, &i2c),
-        .write_then_read = std::bind_front(&espp::I2c::write_read, &i2c),
+        .write = espp::make_i2c_addressed_write(bm8563_device),
+        .write_then_read = espp::make_i2c_addressed_write_then_read(bm8563_device),
     });
-
-    std::error_code ec;
 
     // set the time
     espp::Bm8563::DateTime date_time = {.date =

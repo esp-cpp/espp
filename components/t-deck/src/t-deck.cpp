@@ -1,5 +1,7 @@
 #include "t-deck.hpp"
 
+#include <array>
+
 using namespace espp;
 
 TDeck::TDeck()
@@ -25,28 +27,24 @@ bool TDeck::peripheral_power() const { return gpio_get_level(peripheral_power_pi
 ////////////////////////
 
 bool TDeck::init_spi_bus() {
-  if (spi_bus_initialized_) {
-    return true;
+  if (lcd_spi_) {
+    return lcd_spi_->initialized();
   }
 
-  spi_bus_config_t bus_cfg;
-  memset(&bus_cfg, 0, sizeof(bus_cfg));
-  bus_cfg.mosi_io_num = spi_mosi_io;
-  bus_cfg.miso_io_num = spi_miso_io;
-  bus_cfg.sclk_io_num = spi_sclk_io;
-  bus_cfg.quadwp_io_num = -1;
-  bus_cfg.quadhd_io_num = -1;
-  bus_cfg.max_transfer_sz = SPI_MAX_TRANSFER_BYTES;
-  auto ret = spi_bus_initialize(spi_num, &bus_cfg,
-                                SDSPI_DEFAULT_DMA); // SPI_DMA_CH_AUTO); // SDSPI_DEFAULT_DMA);
-  if (ret != ESP_OK) {
+  lcd_spi_ = std::make_unique<Spi>(Spi::Config{
+      .host = spi_num,
+      .sclk_io_num = spi_sclk_io,
+      .mosi_io_num = spi_mosi_io,
+      .miso_io_num = spi_miso_io,
+      .max_transfer_sz = SPI_MAX_TRANSFER_BYTES,
+      .dma_channel = static_cast<spi_dma_chan_t>(SDSPI_DEFAULT_DMA),
+      .log_level = get_log_level(),
+  });
+  if (!lcd_spi_->initialized()) {
     logger_.error("Failed to initialize bus.");
+    lcd_spi_.reset();
     return false;
   }
-
-  logger_.info("SPI bus initialized");
-  spi_bus_initialized_ = true;
-
   return true;
 }
 
@@ -61,15 +59,26 @@ bool TDeck::initialize_keyboard(bool start_task, const TDeck::keypress_callback_
     return false;
   }
   logger_.info("Initializing keyboard input");
-  keyboard_ = std::make_shared<espp::TKeyboard>(espp::TKeyboard::Config{
-      .write = std::bind(&espp::I2c::write, &internal_i2c_, std::placeholders::_1,
-                         std::placeholders::_2, std::placeholders::_3),
-      .read = std::bind(&espp::I2c::read, &internal_i2c_, std::placeholders::_1,
-                        std::placeholders::_2, std::placeholders::_3),
-      .key_cb = key_cb,
-      .polling_interval = poll_interval,
-      .auto_start = start_task,
-      .log_level = espp::Logger::Verbosity::WARN});
+  std::error_code ec;
+  keyboard_i2c_device_ = internal_i2c_.add_device<uint8_t>(
+      {
+          .device_address = espp::TKeyboard::DEFAULT_ADDRESS,
+          .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
+          .scl_speed_hz = internal_i2c_.config().clk_speed,
+          .log_level = espp::Logger::Verbosity::WARN,
+      },
+      ec);
+  if (!keyboard_i2c_device_) {
+    logger_.error("Could not initialize keyboard I2C device: {}", ec.message());
+    return false;
+  }
+  keyboard_ = std::make_shared<espp::TKeyboard>(
+      espp::TKeyboard::Config{.write = espp::make_i2c_addressed_write(keyboard_i2c_device_),
+                              .read = espp::make_i2c_addressed_read(keyboard_i2c_device_),
+                              .key_cb = key_cb,
+                              .polling_interval = poll_interval,
+                              .auto_start = start_task,
+                              .log_level = espp::Logger::Verbosity::WARN});
   return true;
 }
 
@@ -152,13 +161,24 @@ bool TDeck::initialize_touch(const TDeck::touch_callback_t &touch_cb) {
   }
 
   logger_.info("Initializing touch input");
+  std::error_code ec;
+  touch_i2c_device_ = internal_i2c_.add_device<uint8_t>(
+      {
+          .device_address = espp::Gt911::DEFAULT_ADDRESS_1,
+          .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
+          .scl_speed_hz = internal_i2c_.config().clk_speed,
+          .log_level = espp::Logger::Verbosity::WARN,
+      },
+      ec);
+  if (!touch_i2c_device_) {
+    logger_.error("Could not initialize touch I2C device: {}", ec.message());
+    return false;
+  }
 
-  gt911_ = std::make_unique<espp::Gt911>(espp::Gt911::Config{
-      .write = std::bind(&espp::I2c::write, &internal_i2c_, std::placeholders::_1,
-                         std::placeholders::_2, std::placeholders::_3),
-      .read = std::bind(&espp::I2c::read, &internal_i2c_, std::placeholders::_1,
-                        std::placeholders::_2, std::placeholders::_3),
-      .log_level = espp::Logger::Verbosity::WARN});
+  gt911_ = std::make_unique<espp::Gt911>(
+      espp::Gt911::Config{.write = espp::make_i2c_addressed_write(touch_i2c_device_),
+                          .read = espp::make_i2c_addressed_read(touch_i2c_device_),
+                          .log_level = espp::Logger::Verbosity::WARN});
 
   // store the callback
   touch_callback_ = touch_cb;
@@ -259,25 +279,7 @@ espp::TouchpadData TDeck::touchpad_convert(const espp::TouchpadData &data) const
 static constexpr int FLUSH_BIT = (1 << (int)espp::display_drivers::Flags::FLUSH_BIT);
 static constexpr int DC_LEVEL_BIT = (1 << (int)espp::display_drivers::Flags::DC_LEVEL_BIT);
 
-// This function is called (in irq context!) just before a transmission starts.
-// It will set the D/C line to the value indicated in the user field
-// (DC_LEVEL_BIT).
-//
-// cppcheck-suppress constParameterCallback
-static void IRAM_ATTR lcd_spi_pre_transfer_callback(spi_transaction_t *t) {
-  static auto lcd_dc_io = TDeck::get_lcd_dc_gpio();
-  uint32_t user_flags = (uint32_t)(t->user);
-  bool dc_level = user_flags & DC_LEVEL_BIT;
-  gpio_set_level(lcd_dc_io, dc_level);
-}
-
-// This function is called (in irq context!) just after a transmission ends. It
-// will indicate to lvgl that the next flush is ready to be done if the
-// FLUSH_BIT is set.
-//
-// cppcheck-suppress constParameterCallback
-static void IRAM_ATTR lcd_spi_post_transfer_callback(spi_transaction_t *t) {
-  uint16_t user_flags = (uint32_t)(t->user);
+static void IRAM_ATTR lcd_spi_flush_ready(uint32_t user_flags) {
   bool should_flush = user_flags & FLUSH_BIT;
   if (should_flush) {
     lv_display_t *disp = lv_display_get_default();
@@ -286,11 +288,55 @@ static void IRAM_ATTR lcd_spi_post_transfer_callback(spi_transaction_t *t) {
 }
 
 bool TDeck::initialize_lcd() {
-  if (lcd_handle_ || backlight_) {
+  if (lcd_ || backlight_) {
     logger_.warn("LCD already initialized, not initializing again!");
     return false;
   }
-  // Initialize backlight PWM
+  if (!init_spi_bus()) {
+    logger_.error("Failed to initialize SPI bus for LCD.");
+    return false;
+  }
+
+  lcd_ = std::make_unique<SpiPanelIo>(SpiPanelIo::Config{
+      .spi = lcd_spi_.get(),
+      .device_config =
+          {
+              .mode = 0,
+              .clock_speed_hz = lcd_clock_speed,
+              .input_delay_ns = 0,
+              .cs_io_num = lcd_cs_io,
+              .queue_size = spi_queue_size,
+          },
+      .data_command_io = lcd_dc_io,
+      .data_command_bit_mask = DC_LEVEL_BIT,
+      .post_transaction_callback_bit_mask = FLUSH_BIT,
+      .post_transaction_callback = lcd_spi_flush_ready,
+      .log_level = get_log_level(),
+  });
+  if (!lcd_->initialized()) {
+    lcd_.reset();
+    return false;
+  }
+
+  display_driver_ = std::make_shared<DisplayDriver>(
+      espp::display_drivers::Config{.panel_io = lcd_.get(),
+                                    .write_command = nullptr,
+                                    .read_command = nullptr,
+                                    .lcd_send_lines = nullptr,
+                                    .reset_pin = lcd_reset_io,
+                                    .data_command_pin = lcd_dc_io,
+                                    .reset_value = reset_value,
+                                    .invert_colors = invert_colors,
+                                    .swap_xy = swap_xy,
+                                    .mirror_x = mirror_x,
+                                    .mirror_y = mirror_y,
+                                    .mirror_portrait = mirror_portrait});
+  if (!display_driver_ || !display_driver_->initialize()) {
+    display_driver_.reset();
+    lcd_.reset();
+    return false;
+  }
+
   backlight_channel_configs_.push_back({.gpio = static_cast<size_t>(backlight_io),
                                         .channel = LEDC_CHANNEL_0,
                                         .timer = LEDC_TIMER_0,
@@ -300,44 +346,11 @@ bool TDeck::initialize_lcd() {
                                                   .channels = backlight_channel_configs_,
                                                   .duty_resolution = LEDC_TIMER_10_BIT}));
   brightness(100.0f);
-
-  if (!init_spi_bus()) {
-    logger_.error("Failed to initialize SPI bus for LCD.");
-    return false;
-  }
-
-  esp_err_t ret;
-  memset(&lcd_config_, 0, sizeof(lcd_config_));
-  lcd_config_.mode = 0;
-  // lcd_config_.flags = SPI_DEVICE_NO_RETURN_RESULT;
-  lcd_config_.clock_speed_hz = lcd_clock_speed;
-  lcd_config_.input_delay_ns = 0;
-  lcd_config_.spics_io_num = lcd_cs_io;
-  lcd_config_.queue_size = spi_queue_size;
-  lcd_config_.pre_cb = lcd_spi_pre_transfer_callback;
-  lcd_config_.post_cb = lcd_spi_post_transfer_callback;
-
-  // Attach the LCD to the SPI bus
-  ret = spi_bus_add_device(spi_num, &lcd_config_, &lcd_handle_);
-  ESP_ERROR_CHECK(ret);
-  // initialize the controller
-  using namespace std::placeholders;
-  DisplayDriver::initialize(espp::display_drivers::Config{
-      .write_command = std::bind(&TDeck::write_command, this, _1, _2, _3),
-      .lcd_send_lines = std::bind(&TDeck::write_lcd_lines, this, _1, _2, _3, _4, _5, _6),
-      .reset_pin = lcd_reset_io,
-      .data_command_pin = lcd_dc_io,
-      .reset_value = reset_value,
-      .invert_colors = invert_colors,
-      .swap_xy = swap_xy,
-      .mirror_x = mirror_x,
-      .mirror_y = mirror_y,
-      .mirror_portrait = mirror_portrait});
   return true;
 }
 
 bool TDeck::initialize_display(size_t pixel_buffer_size) {
-  if (!lcd_handle_) {
+  if (!lcd_) {
     logger_.error(
         "LCD not initialized, you must call initialize_lcd() before initialize_display()!");
     return false;
@@ -349,11 +362,22 @@ bool TDeck::initialize_display(size_t pixel_buffer_size) {
   // initialize the display / lvgl
   using namespace std::chrono_literals;
   display_ = std::make_shared<Display<Pixel>>(
-      Display<Pixel>::LvglConfig{.width = lcd_width_,
-                                 .height = lcd_height_,
-                                 .flush_callback = DisplayDriver::flush,
-                                 .rotation_callback = DisplayDriver::rotate,
-                                 .rotation = rotation},
+      Display<Pixel>::LvglConfig{
+          .width = lcd_width_,
+          .height = lcd_height_,
+          .flush_callback =
+              [this](lv_display_t *disp, const lv_area_t *area, uint8_t *color_map) {
+                if (display_driver_) {
+                  display_driver_->flush(disp, area, color_map);
+                }
+              },
+          .rotation_callback =
+              [this](const DisplayRotation &new_rotation) {
+                if (display_driver_) {
+                  display_driver_->set_rotation(new_rotation);
+                }
+              },
+          .rotation = rotation},
       Display<Pixel>::OledConfig{
           .set_brightness_callback =
               [this](float brightness) { this->brightness(brightness * 100.0f); },
@@ -383,131 +407,70 @@ bool TDeck::initialize_display(size_t pixel_buffer_size) {
 std::shared_ptr<espp::Display<TDeck::Pixel>> TDeck::display() const { return display_; }
 
 void IRAM_ATTR TDeck::lcd_wait_lines() {
-  spi_transaction_t *rtrans;
-  esp_err_t ret;
-  // logger_.debug("Waiting for {} queued transactions", num_queued_trans);
-  // Wait for all transactions to be done and get back the results.
-  while (num_queued_trans) {
-    ret = spi_device_get_trans_result(lcd_handle_, &rtrans, 10 / portTICK_PERIOD_MS);
-    if (ret != ESP_OK) {
-      logger_.error("Display: Could not get spi trans result: {} '{}'", ret, esp_err_to_name(ret));
-    }
-    num_queued_trans--;
-    // We could inspect rtrans now if we received any info back. The LCD is treated as write-only,
-    // though.
+  if (lcd_) {
+    lcd_->wait();
   }
 }
 
 void IRAM_ATTR TDeck::write_command(uint8_t command, std::span<const uint8_t> parameters,
                                     uint32_t user_data) {
-  lcd_wait_lines();
-  memset(&trans[0], 0, sizeof(spi_transaction_t));
-  memset(&trans[1], 0, sizeof(spi_transaction_t));
-
-  trans[0].length = 8;
-  trans[0].user = reinterpret_cast<void *>(user_data);
-  trans[0].flags = SPI_TRANS_USE_TXDATA;
-  trans[0].tx_data[0] = command;
-
-  trans[1].length = parameters.size() * 8;
-  if (parameters.size() <= 4) {
-    // copy the data pointer to trans[0].tx_data
-    memcpy(trans[1].tx_data, parameters.data(), parameters.size());
-    trans[1].flags = SPI_TRANS_USE_TXDATA;
-  } else if (!parameters.empty()) {
-    trans[1].tx_buffer = parameters.data();
-    trans[1].flags = 0;
-  }
-  trans[1].user = reinterpret_cast<void *>(
-      user_data | (1 << static_cast<int>(display_drivers::Flags::DC_LEVEL_BIT)));
-
-  esp_err_t ret = spi_device_queue_trans(lcd_handle_, &trans[0], 10 / portTICK_PERIOD_MS);
-  if (ret != ESP_OK) {
-    logger_.error("Couldn't queue spi command trans for display: {} '{}'", ret,
-                  esp_err_to_name(ret));
-  } else {
-    ++num_queued_trans;
-    if (!parameters.empty()) {
-      ret = spi_device_queue_trans(lcd_handle_, &trans[1], 10 / portTICK_PERIOD_MS);
-      if (ret != ESP_OK) {
-        logger_.error("Couldn't queue spi data trans for display: {} '{}'", ret,
-                      esp_err_to_name(ret));
-      } else {
-        ++num_queued_trans;
-      }
-    }
+  if (lcd_) {
+    lcd_->write_command(command, parameters, user_data);
   }
 }
 
 void IRAM_ATTR TDeck::write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data,
                                       uint32_t user_data) {
-  // if we haven't waited by now, wait here...
-  lcd_wait_lines();
-  esp_err_t ret;
-  size_t length = (xe - xs + 1) * (ye - ys + 1) * 2;
-  if (length == 0) {
-    logger_.error("lcd_send_lines: Bad length: ({},{}) to ({},{})", xs, ys, xe, ye);
+  if (!lcd_) {
+    return;
   }
-  // initialize the spi transactions
-  for (int i = 0; i < 6; i++) {
-    memset(&trans[i], 0, sizeof(spi_transaction_t));
-    if ((i & 1) == 0) {
-      // Even transfers are commands
-      trans[i].length = 8;
-      trans[i].user = (void *)0;
-    } else {
-      // Odd transfers are data
-      trans[i].length = 8 * 4;
-      trans[i].user = (void *)DC_LEVEL_BIT;
-    }
-    trans[i].flags = SPI_TRANS_USE_TXDATA;
+  if (data == nullptr) {
+    logger_.error("lcd_send_lines: Null data for ({},{}) to ({},{})", xs, ys, xe, ye);
+    return;
   }
-  trans[0].tx_data[0] = (uint8_t)DisplayDriver::Command::caset;
-  trans[1].tx_data[0] = (xs) >> 8;
-  trans[1].tx_data[1] = (xs)&0xff;
-  trans[1].tx_data[2] = (xe) >> 8;
-  trans[1].tx_data[3] = (xe)&0xff;
-  trans[2].tx_data[0] = (uint8_t)DisplayDriver::Command::raset;
-  trans[3].tx_data[0] = (ys) >> 8;
-  trans[3].tx_data[1] = (ys)&0xff;
-  trans[3].tx_data[2] = (ye) >> 8;
-  trans[3].tx_data[3] = (ye)&0xff;
-  trans[4].tx_data[0] = (uint8_t)DisplayDriver::Command::ramwr;
-  trans[5].tx_buffer = data;
-  trans[5].length = length * 8;
-  // undo SPI_TRANS_USE_TXDATA flag
-  trans[5].flags = SPI_TRANS_DMA_BUFFER_ALIGN_MANUAL;
-  // we need to keep the dc bit set, but also add our flags
-  trans[5].user = (void *)(DC_LEVEL_BIT | user_data);
-  // Queue all transactions.
-  for (int i = 0; i < 6; i++) {
-    ret = spi_device_queue_trans(lcd_handle_, &trans[i], 10 / portTICK_PERIOD_MS);
-    if (ret != ESP_OK) {
-      logger_.error("Couldn't queue spi trans for display: {} '{}'", ret, esp_err_to_name(ret));
-    } else {
-      num_queued_trans++;
-    }
+  if (xs < 0 || ys < 0 || xe < xs || ye < ys) {
+    logger_.error("lcd_send_lines: Bad region: ({},{}) to ({},{})", xs, ys, xe, ye);
+    return;
   }
-  // When we are here, the SPI driver is busy (in the background) getting the
-  // transactions sent. That happens mostly using DMA, so the CPU doesn't have
-  // much to do here. We're not going to wait for the transaction to finish
-  // because we may as well spend the time calculating the next line. When that
-  // is done, we can call lcd_wait_lines, which will wait for the transfers
-  // to be done and check their status.
+  size_t width = static_cast<size_t>(xe - xs + 1);
+  size_t height = static_cast<size_t>(ye - ys + 1);
+  size_t length = width * height * 2;
+  lcd_->wait();
+  std::array<uint8_t, 4> window = {
+      static_cast<uint8_t>((xs >> 8) & 0xff),
+      static_cast<uint8_t>(xs & 0xff),
+      static_cast<uint8_t>((xe >> 8) & 0xff),
+      static_cast<uint8_t>(xe & 0xff),
+  };
+  lcd_->queue_command(static_cast<uint8_t>(DisplayDriver::Command::caset));
+  lcd_->queue_data(window);
+  window = {
+      static_cast<uint8_t>((ys >> 8) & 0xff),
+      static_cast<uint8_t>(ys & 0xff),
+      static_cast<uint8_t>((ye >> 8) & 0xff),
+      static_cast<uint8_t>(ye & 0xff),
+  };
+  lcd_->queue_command(static_cast<uint8_t>(DisplayDriver::Command::raset));
+  lcd_->queue_data(window);
+  lcd_->queue_command(static_cast<uint8_t>(DisplayDriver::Command::ramwr));
+  lcd_->queue_pixels(data, length, user_data);
 }
 
 void TDeck::write_lcd_frame(const uint16_t xs, const uint16_t ys, const uint16_t width,
                             const uint16_t height, uint8_t *data) {
+  if (!display_driver_) {
+    return;
+  }
   if (data) {
     // have data, fill the area with the color data
     lv_area_t area{.x1 = (lv_coord_t)(xs),
                    .y1 = (lv_coord_t)(ys),
                    .x2 = (lv_coord_t)(xs + width - 1),
                    .y2 = (lv_coord_t)(ys + height - 1)};
-    DisplayDriver::fill(nullptr, &area, data);
+    display_driver_->fill(nullptr, &area, data);
   } else {
     // don't have data, so clear the area (set to 0)
-    DisplayDriver::clear(xs, ys, width, height);
+    display_driver_->clear(xs, ys, width, height);
   }
 }
 

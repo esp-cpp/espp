@@ -1,0 +1,24 @@
+## IDF Component Manager Manifest File
+dependencies:
+  idf:
+    version: '>=5.0'
+  espressif/mdns: '>=1.8'
+  espressif/esp32-camera: '>=2.0'
+  espp/cli:
+    version: '*'
+    override_path: ../../../cli
+  espp/monitor:
+    version: '*'
+    override_path: ../../../monitor
+  espp/rtsp:
+    version: '*'
+    override_path: ../../../rtsp
+  espp/task:
+    version: '*'
+    override_path: ../../../task
+  espp/wifi:
+    version: '*'
+    override_path: ../../../wifi
+  espp/xiao-esp32s3-sense:
+    version: '*'
+    override_path: ../..

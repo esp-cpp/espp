@@ -11,6 +11,7 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    :maxdepth: 2
 
    adc/index
+   adrc
    base_component
    base_peripheral
    battery/index
@@ -19,6 +20,7 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    button
    byte90
    controller
+   cdr
    cli
    cobs
    color
@@ -49,7 +51,9 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    math/index
    matouch_rotary_display
    monitor
+   motorgo_axis
    motorgo_mini
+   motorgo_plink
    neopixel
    network/index
    nfc/index
@@ -57,11 +61,13 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    odrive_ascii
    pid
    power/index
+   presence/index
    qtpy
    qwiicnes
    remote_debug
    rmt
    rtc/index
+   rtps
    rtsp
    runqueue
    seeed_studio_round_display
@@ -80,3 +86,4 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    ws_s3_geek
    ws_s3_lcd_1_47
    ws_s3_touch
+   xiao_esp32s3_sense

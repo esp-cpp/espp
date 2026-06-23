@@ -40,6 +40,16 @@ extern "C" void app_main(void) {
   });
 
   std::error_code ec;
+  auto accel_device =
+      i2c.add_device<uint8_t>({.device_address = espp::Adxl345::DEFAULT_ADDRESS,
+                               .timeout_ms = static_cast<int>(i2c.config().timeout_ms),
+                               .scl_speed_hz = i2c.config().clk_speed,
+                               .log_level = espp::Logger::Verbosity::WARN},
+                              ec);
+  if (!accel_device) {
+    logger.error("ADXL345 I2C device initialization failed: {}", ec.message());
+    return;
+  }
 
   //////////////////////
   /// ADXL345 Configuration
@@ -51,10 +61,8 @@ extern "C" void app_main(void) {
       .device_address = espp::Adxl345::DEFAULT_ADDRESS,
       .range = espp::Adxl345::RANGE_2G,
       .data_rate = espp::Adxl345::RATE_100_HZ,
-      .write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1, std::placeholders::_2,
-                         std::placeholders::_3),
-      .read = std::bind(&espp::I2c::read, &i2c, std::placeholders::_1, std::placeholders::_2,
-                        std::placeholders::_3),
+      .write = espp::make_i2c_addressed_write(accel_device),
+      .read = espp::make_i2c_addressed_read(accel_device),
       .log_level = espp::Logger::Verbosity::WARN,
   });
 

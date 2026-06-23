@@ -19,6 +19,7 @@ path, microSD card, and exposed peripheral pin mappings.
 - I2S speaker playback with software volume, mute, and sample-rate control
 - SPI microSD card mounting helpers
 - Exposed I2S, RS-485, and external GPIO pin maps for application use
+- Object-style `espp::St7796` display-controller integration for the LCD path
 
 ## Notes
 
@@ -34,4 +35,4 @@ path, microSD card, and exposed peripheral pin mappings.
 
 The [example](./example) shows how to initialize the display, register touch
 input, play a click sound through the speaker path, adjust backlight
-brightness, and optionally mount the microSD card.
+brightness, rotate the display, and optionally mount the microSD card.

@@ -77,6 +77,9 @@ public:
   /// Alias for the pixel type used by the Tab5 display
   using Pixel = lv_color16_t;
 
+  /// Alias for the low-level display driver interface
+  using DisplayDriver = espp::display_drivers::Controller;
+
   /// Enum for display controller type
   enum class DisplayController { UNKNOWN, ILI9881, ST7123 };
 
@@ -244,6 +247,21 @@ public:
   /// \return The display height in pixels, according to the current orientation
   size_t rotated_display_height() const;
 
+  /// Get a shared pointer to the low-level display driver
+  /// \return A shared pointer to the display driver
+  const std::shared_ptr<DisplayDriver> &display_driver() const { return display_driver_; }
+
+  /// Write lines to the LCD
+  /// \param xs The x start coordinate
+  /// \param ys The y start coordinate
+  /// \param xe The x end coordinate
+  /// \param ye The y end coordinate
+  /// \param data The data to write
+  /// \param user_data User data to pass to the lower-level transport
+  /// \note This method queues the panel transfer asynchronously and may return
+  ///       before the write has completed.
+  void write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data);
+
   /////////////////////////////////////////////////////////////////////////////
   // Audio System
   /////////////////////////////////////////////////////////////////////////////
@@ -405,12 +423,12 @@ public:
   bool initialize_io_expanders();
 
   /// Control the LCD reset (active-low) routed via IO expander (0x43 P4)
-  /// \param assert_reset=true drives reset low; false releases reset high.
+  /// \param assert_reset True drives reset low; false releases reset high.
   /// \return true on success
   bool lcd_reset(bool assert_reset);
 
   /// Control the GT911 touch reset (active-low) via IO expander (0x43 P5)
-  /// \param assert_reset=true drives reset low; false releases reset high.
+  /// \param assert_reset True drives reset low; false releases reset high.
   /// \return true on success
   bool touch_reset(bool assert_reset);
 
@@ -682,12 +700,14 @@ protected:
                        .stack_size_bytes = CONFIG_M5STACK_TAB5_INTERRUPT_STACK_SIZE}}};
 
   // Component instances
+  std::shared_ptr<I2c::Device<uint8_t>> touch_i2c_device_;
   std::shared_ptr<espp::ITouchDriver> touch_driver_; ///< Concept-erased touch driver (GT911 or ST7123)
   std::shared_ptr<TouchpadInput> touchpad_input_;
   std::recursive_mutex touchpad_data_mutex_;
   TouchpadData touchpad_data_;
   touch_callback_t touch_callback_{nullptr};
 
+  std::shared_ptr<I2c::Device<uint8_t>> imu_i2c_device_;
   std::shared_ptr<Imu> imu_;
 
   // Button callbacks
@@ -697,6 +717,8 @@ protected:
   std::atomic<bool> audio_initialized_{false};
   std::atomic<float> volume_{50.0f};
   std::atomic<bool> mute_{false};
+  std::shared_ptr<I2c::Device<uint8_t>> es8388_i2c_device_;
+  std::shared_ptr<I2c::Device<uint8_t>> es7210_i2c_device_;
   std::unique_ptr<espp::Task> audio_task_{nullptr};
   i2s_chan_handle_t audio_tx_handle{nullptr};
   i2s_chan_handle_t audio_rx_handle{nullptr};
@@ -715,8 +737,11 @@ protected:
   std::atomic<bool> battery_monitoring_initialized_{false};
   BatteryStatus battery_status_;
   std::mutex battery_mutex_;
+  std::shared_ptr<I2c::Device<uint8_t>> battery_monitor_i2c_device_;
   std::shared_ptr<BatteryMonitor> battery_monitor_;
   // IO expanders on the internal I2C (addresses 0x43 and 0x44 per Tab5 design)
+  std::shared_ptr<I2c::Device<uint8_t>> ioexp_0x43_i2c_device_;
+  std::shared_ptr<I2c::Device<uint8_t>> ioexp_0x44_i2c_device_;
   std::shared_ptr<IoExpander> ioexp_0x43_;
   std::shared_ptr<IoExpander> ioexp_0x44_;
 
@@ -728,10 +753,12 @@ protected:
 
   // RTC
   std::atomic<bool> rtc_initialized_{false};
+  std::shared_ptr<I2c::Device<uint8_t>> rtc_i2c_device_;
   std::shared_ptr<Rtc> rtc_;
 
   // Display state
   std::shared_ptr<Display<Pixel>> display_;
+  std::shared_ptr<DisplayDriver> display_driver_{static_cast<DisplayDriver *>(nullptr)};
   std::shared_ptr<Led> backlight_;
   std::vector<Led::ChannelConfig> backlight_channel_configs_;
   struct LcdHandles {

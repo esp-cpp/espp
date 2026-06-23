@@ -22,12 +22,21 @@ extern "C" void app_main(void) {
       .clk_speed = CONFIG_EXAMPLE_I2C_CLOCK_SPEED_HZ,
       .log_level = espp::Logger::Verbosity::INFO,
   });
+  std::error_code ec;
+  auto lp_device = i2c.add_device<uint8_t>({.device_address = espp::Lp5817::DEFAULT_ADDRESS,
+                                            .timeout_ms = static_cast<int>(i2c.config().timeout_ms),
+                                            .scl_speed_hz = i2c.config().clk_speed,
+                                            .log_level = espp::Logger::Verbosity::WARN},
+                                           ec);
+  if (!lp_device) {
+    logger.error("Failed to initialize LP5817 I2C device: {}", ec.message());
+    return;
+  }
 
   espp::Lp5817 lp({.device_address = espp::Lp5817::DEFAULT_ADDRESS,
-                   .write = std::bind_front(&espp::I2c::write, &i2c),
-                   .write_then_read = std::bind_front(&espp::I2c::write_read, &i2c),
+                   .write = espp::make_i2c_addressed_write(lp_device),
+                   .write_then_read = espp::make_i2c_addressed_write_then_read(lp_device),
                    .log_level = espp::Logger::Verbosity::WARN});
-  std::error_code ec;
   if (!lp.initialize(ec)) {
     logger.error("Failed to initialize LP5817: {}", ec.message());
     return;

@@ -26,6 +26,7 @@
 #include "interrupt.hpp"
 #include "led.hpp"
 #include "pointer_input.hpp"
+#include "spi.hpp"
 #include "st7789.hpp"
 #include "t_keyboard.hpp"
 #include "touchpad_input.hpp"
@@ -337,6 +338,10 @@ public:
   /// \return A shared pointer to the display
   std::shared_ptr<Display<Pixel>> display() const;
 
+  /// Get a shared pointer to the low-level display driver
+  /// \return A shared pointer to the display driver
+  const std::shared_ptr<DisplayDriver> &display_driver() const { return display_driver_; }
+
   /// Set the brightness of the backlight
   /// \param brightness The brightness of the backlight as a percentage (0 - 100)
   /// \note This function will only work after initialize_lcd() has been called
@@ -400,8 +405,8 @@ public:
   /// \param ye The y end coordinate
   /// \param data The data to write
   /// \param user_data User data to pass to the spi transaction callback
-  /// \note This method queues the data to be written to the LCD, only blocking
-  ///      if there is an ongoing SPI transaction
+  /// \note This method queues the panel transfer asynchronously and may return
+  ///       before the write has completed.
   void write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data);
 
   /////////////////////////////////////////////////////////////////////////////
@@ -562,9 +567,6 @@ protected:
                      .sda_pullup_en = GPIO_PULLUP_ENABLE,
                      .scl_pullup_en = GPIO_PULLUP_ENABLE}};
 
-  // spi bus shared between sdcard and lcd
-  std::atomic<bool> spi_bus_initialized_{false};
-
   // sdcard
   sdmmc_card_t *sdcard_{nullptr};
 
@@ -628,6 +630,7 @@ protected:
                        .priority = 20}}};
 
   // keyboard
+  std::shared_ptr<I2c::Device<uint8_t>> keyboard_i2c_device_{nullptr};
   std::shared_ptr<TKeyboard> keyboard_{nullptr};
 
   // trackball
@@ -638,6 +641,7 @@ protected:
   trackball_callback_t trackball_callback_{nullptr};
 
   // touch
+  std::shared_ptr<I2c::Device<uint8_t>> touch_i2c_device_;
   std::shared_ptr<Gt911> gt911_;
   std::shared_ptr<TouchpadInput> touchpad_input_;
   std::recursive_mutex touchpad_data_mutex_;
@@ -646,14 +650,12 @@ protected:
 
   // display
   std::shared_ptr<Display<Pixel>> display_;
+  std::shared_ptr<DisplayDriver> display_driver_{static_cast<DisplayDriver *>(nullptr)};
   std::vector<Led::ChannelConfig> backlight_channel_configs_{};
   std::shared_ptr<Led> backlight_{};
-  /// SPI bus for communication with the LCD
-  spi_device_interface_config_t lcd_config_;
-  spi_device_handle_t lcd_handle_{nullptr};
   static constexpr int spi_queue_size = 6;
-  spi_transaction_t trans[spi_queue_size];
-  std::atomic<int> num_queued_trans = 0;
+  std::unique_ptr<Spi> lcd_spi_;
+  std::unique_ptr<SpiPanelIo> lcd_;
   uint8_t *frame_buffer0_{nullptr};
   uint8_t *frame_buffer1_{nullptr};
 

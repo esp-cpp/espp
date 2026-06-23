@@ -1,0 +1,44 @@
+menu "Example Configuration"
+
+    choice EXAMPLE_HARDWARE
+        prompt "Hardware"
+        default EXAMPLE_HARDWARE_BOX3_SENSOR
+        help
+            Select the hardware to run this example on.
+
+        config EXAMPLE_HARDWARE_BOX3_SENSOR
+            depends on IDF_TARGET_ESP32S3
+            bool "ESP32-S3-BOX-3 sensor dock"
+
+        config EXAMPLE_HARDWARE_CUSTOM
+            bool "Custom"
+    endchoice
+
+    config EXAMPLE_I2C_SCL_GPIO
+        int "SCL GPIO Num"
+        range 0 50
+        default 40 if EXAMPLE_HARDWARE_BOX3_SENSOR
+        default 40 if EXAMPLE_HARDWARE_CUSTOM
+        help
+            GPIO number for I2C Master clock line.
+
+    config EXAMPLE_I2C_SDA_GPIO
+        int "SDA GPIO Num"
+        range 0 50
+        default 41 if EXAMPLE_HARDWARE_BOX3_SENSOR
+        default 41 if EXAMPLE_HARDWARE_CUSTOM
+        help
+            GPIO number for I2C Master data line.
+
+    config EXAMPLE_RADAR_OUTPUT_GPIO
+        int "Radar output GPIO Num (-1 to disable presence interrupt)"
+        range -1 50
+        default 21 if EXAMPLE_HARDWARE_BOX3_SENSOR
+        default -1 if EXAMPLE_HARDWARE_CUSTOM
+        help
+            GPIO number connected to the AT581X active-high presence/motion
+            output pin. On the ESP32-S3-BOX-3 sensor dock this is GPIO21 (verify
+            for your board revision). If set to -1, the presence interrupt is
+            disabled and the example only exercises the I2C configuration.
+
+endmenu

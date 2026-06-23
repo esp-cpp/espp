@@ -6,6 +6,27 @@
 #include "i2c_master.hpp"
 
 namespace espp {
+namespace {
+std::error_code make_error_code(esp_err_t err) {
+  switch (err) {
+  case ESP_OK:
+    return {};
+  case ESP_ERR_INVALID_ARG:
+    return std::make_error_code(std::errc::invalid_argument);
+  case ESP_ERR_NO_MEM:
+    return std::make_error_code(std::errc::not_enough_memory);
+  case ESP_ERR_TIMEOUT:
+    return std::make_error_code(std::errc::timed_out);
+  case ESP_ERR_NOT_FOUND:
+  case ESP_ERR_INVALID_RESPONSE:
+    return std::make_error_code(std::errc::no_such_device_or_address);
+  case ESP_ERR_INVALID_STATE:
+    return std::make_error_code(std::errc::operation_not_permitted);
+  default:
+    return std::make_error_code(std::errc::io_error);
+  }
+}
+} // namespace
 
 I2cMasterBus::I2cMasterBus(const Config &config)
     : BaseComponent("I2cMasterBus", config.log_level)
@@ -97,12 +118,12 @@ bool I2cMasterBus::probe(uint16_t device_address, int32_t timeout_ms, std::error
   } else if (err == ESP_ERR_TIMEOUT) {
     logger_.error("Probe timeout for device 0x{:02x} on bus {}: {}", device_address, config_.port,
                   esp_err_to_name(err));
-    ec = std::make_error_code(std::errc::timed_out);
+    ec = make_error_code(err);
     return false;
   }
   logger_.warn("Device 0x{:02x} not found on bus {}: {}", device_address, config_.port,
                esp_err_to_name(err));
-  ec = std::make_error_code(std::errc::io_error);
+  ec = make_error_code(err);
   return false;
 }
 
@@ -303,37 +324,26 @@ bool I2cMasterDevice<RegisterType>::read_register(RegisterType reg, std::vector<
 }
 
 template <typename RegisterType> bool I2cMasterDevice<RegisterType>::probe(std::error_code &ec) {
+  return probe(config_.timeout_ms, ec);
+}
+
+template <typename RegisterType>
+bool I2cMasterDevice<RegisterType>::probe(int32_t timeout_ms, std::error_code &ec) {
   logger_.info("Probing for device at address 0x{:02x}", config_.device_address);
-  if (!bus_handle_) {
-    logger_.error("Bus handle is null");
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  if (!initialized_ || !bus_handle_ || !dev_handle_) {
+    logger_.error("Device not initialized or handle is null");
     ec = std::make_error_code(std::errc::not_connected);
     return false;
   }
-  esp_err_t err = i2c_master_probe(bus_handle_, config_.device_address, config_.timeout_ms);
+  esp_err_t err = i2c_master_probe(bus_handle_, config_.device_address, timeout_ms);
   if (err == ESP_OK) {
     logger_.info("Device 0x{:02x} found", config_.device_address);
     ec.clear();
     return true;
   }
   logger_.warn("Device 0x{:02x} not found: {}", config_.device_address, esp_err_to_name(err));
-  ec = std::make_error_code(std::errc::io_error);
-  return false;
-}
-
-template <typename RegisterType>
-bool I2cMasterDevice<RegisterType>::probe(int32_t timeout_ms, std::error_code &ec) {
-  // NOTE: This uses the bus_handle_ provided at construction. If the bus is deleted, this will
-  // fail.
-  if (!bus_handle_) {
-    ec = std::make_error_code(std::errc::not_connected);
-    return false;
-  }
-  esp_err_t err = i2c_master_probe(bus_handle_, config_.device_address, timeout_ms);
-  if (err == ESP_OK) {
-    ec.clear();
-    return true;
-  }
-  ec = std::make_error_code(std::errc::io_error);
+  ec = make_error_code(err);
   return false;
 }
 

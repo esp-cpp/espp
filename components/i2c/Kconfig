@@ -2,21 +2,24 @@ menu "ESPP I2C Component Configuration"
 
 choice
     prompt "I2C API Selection"
-    default ESPP_I2C_USE_LEGACY_API
+    default ESPP_I2C_USE_NEW_API
 
 config ESPP_I2C_USE_LEGACY_API
     bool "Use legacy I2C API (i2c.hpp)"
     help
-      Use the legacy I2C API (i2c.hpp). This is compatible with ESP-IDF versions < 6.0.
-      This is the default for compatibility with existing code.
+      Use the deprecated ESP-IDF legacy I2C driver through i2c.hpp.
+      This is only intended for older environments that still require the
+      legacy driver.
 
 config ESPP_I2C_USE_NEW_API
-    bool "Use new I2C API (i2c_master.hpp/i2c_slave.hpp)"
+    bool "Use new I2C API (i2c.hpp, i2c_master.hpp, i2c_slave.hpp)"
     help
-      Use the new I2C API (i2c_master.hpp/i2c_slave.hpp). This is only available for ESP-IDF >= 5.4.0.
-      This API is modern, type-safe, and supports the latest ESP-IDF features.
+      Use the ESP-IDF master/slave bus APIs. In this mode, i2c.hpp keeps the
+      familiar address-based espp::I2c helpers for compatibility while also
+      exposing explicit device handles via add_device().
 
-      This API will be required for ESP-IDF 6.0 and later, as the legacy API is deprecated.
+      This API is available on ESP-IDF >= 5.4.0 and is required for ESP-IDF
+      6.0 and later.
 
 endchoice
 

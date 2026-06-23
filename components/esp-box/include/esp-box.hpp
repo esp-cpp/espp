@@ -22,6 +22,7 @@
 #include "i2c.hpp"
 #include "icm42607.hpp"
 #include "interrupt.hpp"
+#include "spi.hpp"
 #include "st7789.hpp"
 #include "touch.hpp"
 #include "touchpad_input.hpp"
@@ -187,6 +188,10 @@ public:
   /// \return A shared pointer to the display
   std::shared_ptr<Display<Pixel>> display() const { return display_; }
 
+  /// Get a shared pointer to the low-level display driver
+  /// \return A shared pointer to the display driver
+  const std::shared_ptr<DisplayDriver> &display_driver() const { return display_driver_; }
+
   /// Set the brightness of the backlight
   /// \param brightness The brightness of the backlight as a percentage (0 - 100)
   /// \note This function will only work after initialize_lcd() has been called
@@ -223,15 +228,6 @@ public:
   /// \note This is null unless initialize_display() has been called
   uint8_t *frame_buffer1() const;
 
-  /// Write command and optional parameters to the LCD
-  /// \param command The command to write
-  /// \param parameters The command parameters to write
-  /// \param user_data User data to pass to the spi transaction callback
-  /// \note This method is designed to be used by the display driver
-  /// \note This method queues the data to be written to the LCD, only blocking
-  ///      if there is an ongoing SPI transaction
-  void write_command(uint8_t command, std::span<const uint8_t> parameters, uint32_t user_data);
-
   /// Write a frame to the LCD
   /// \param x The x coordinate
   /// \param y The y coordinate
@@ -249,9 +245,9 @@ public:
   /// \param xe The x end coordinate
   /// \param ye The y end coordinate
   /// \param data The data to write
-  /// \param user_data User data to pass to the spi transaction callback
-  /// \note This method queues the data to be written to the LCD, only blocking
-  ///      if there is an ongoing SPI transaction
+  /// \param user_data User data to pass to the SPI transaction callback
+  /// \note This method queues the panel transfer asynchronously and may return
+  ///       before the write has completed.
   void write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data);
 
   /////////////////////////////////////////////////////////////////////////////
@@ -508,6 +504,7 @@ protected:
   button_callback_t mute_button_callback_{nullptr};
 
   // touch
+  std::shared_ptr<I2c::Device<uint8_t>> touch_i2c_device_;
   std::shared_ptr<ITouchDevice> touch_driver_;
   std::shared_ptr<TouchpadInput> touchpad_input_;
   std::recursive_mutex touchpad_data_mutex_;
@@ -518,17 +515,14 @@ protected:
   std::vector<Led::ChannelConfig> backlight_channel_configs_;
   std::shared_ptr<Led> backlight_;
   std::shared_ptr<Display<Pixel>> display_;
-  /// SPI bus for communication with the LCD
-  spi_bus_config_t lcd_spi_bus_config_;
-  spi_device_interface_config_t lcd_config_;
-  spi_device_handle_t lcd_handle_{nullptr};
-  static constexpr int spi_queue_size = 6;
-  spi_transaction_t trans[spi_queue_size];
-  std::atomic<int> num_queued_trans = 0;
+  std::shared_ptr<DisplayDriver> display_driver_{static_cast<DisplayDriver *>(nullptr)};
+  std::unique_ptr<Spi> lcd_spi_;
+  std::unique_ptr<SpiPanelIo> lcd_;
   uint8_t *frame_buffer0_{nullptr};
   uint8_t *frame_buffer1_{nullptr};
 
   // sound
+  std::shared_ptr<I2c::Device<uint8_t>> codec_i2c_device_;
   std::atomic<bool> sound_initialized_{false};
   std::atomic<float> volume_{50.0f};
   std::atomic<bool> mute_{false};
@@ -541,6 +535,7 @@ protected:
   i2s_std_config_t audio_std_cfg;
 
   // IMU
+  std::shared_ptr<I2c::Device<uint8_t>> imu_i2c_device_;
   std::shared_ptr<Imu> imu_;
 }; // class EspBox
 } // namespace espp

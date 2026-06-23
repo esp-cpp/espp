@@ -21,6 +21,8 @@ jobs:
         test:
         - path: 'components/adc/example'
           target: esp32
+        - path: 'components/adrc/example'
+          target: esp32
         - path: 'components/ads1x15/example'
           target: esp32
         - path: 'components/ads7138/example'
@@ -29,8 +31,12 @@ jobs:
           target: esp32s3
         - path: 'components/as5600/example'
           target: esp32s3
+        - path: 'components/at581x/example'
+          target: esp32s3
         - path: 'components/aw9523/example'
           target: esp32
+        - path: 'components/bdc_driver/example'
+          target: esp32s3
         - path: 'components/binary-log/example'
           target: esp32s3
         - path: 'components/bldc_haptics/example'
@@ -49,6 +55,8 @@ jobs:
           target: esp32s3
         - path: 'components/chsc6x/example'
           target: esp32s3
+        - path: 'components/cdr/example'
+          target: esp32
         - path: 'components/cli/example'
           target: esp32
         - path: 'components/cobs/example'
@@ -137,7 +145,11 @@ jobs:
           target: esp32
         - path: 'components/monitor/example'
           target: esp32
+        - path: 'components/motorgo-axis/example'
+          target: esp32s3
         - path: 'components/motorgo-mini/example'
+          target: esp32s3
+        - path: 'components/motorgo-plink/example'
           target: esp32s3
         - path: 'components/mcp23x17/example'
           target: esp32s3
@@ -171,6 +183,8 @@ jobs:
           target: esp32s3
         - path: 'components/rmt/example'
           target: esp32s3
+        - path: 'components/rtps/example'
+          target: esp32
         - path: 'components/rtsp/example'
           target: esp32
         - path: 'components/runqueue/example'
@@ -225,10 +239,12 @@ jobs:
           target: esp32s3
         - path: 'components/ws-s3-touch/example'
           target: esp32s3
+        - path: 'components/xiao-esp32s3-sense/example'
+          target: esp32s3
 
     steps:
     - name: Checkout repo
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         submodules: 'recursive'
 

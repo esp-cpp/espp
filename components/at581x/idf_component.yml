@@ -1,0 +1,23 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "AT581X 5.8GHz radar presence/motion sensor component for ESP-IDF (e.g. the MS58-3909S68U4 module on the ESP32-S3-BOX-3 sensor dock)"
+url: "https://github.com/esp-cpp/espp/tree/main/components/at581x"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/sensors/at581x.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - Sensor
+  - Radar
+  - Presence
+  - Motion
+  - AT581X
+  - MS58
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/base_peripheral: '>=1.0'

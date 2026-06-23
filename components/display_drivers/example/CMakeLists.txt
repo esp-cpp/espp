@@ -12,7 +12,7 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py driver task format display display_drivers"
+  "main esptool_py driver task format display display_drivers spi"
   CACHE STRING
   "List of components to include"
   )

@@ -1,5 +1,5 @@
+#include <array>
 #include <chrono>
-#include <deque>
 #include <stdlib.h>
 #include <vector>
 
@@ -11,10 +11,22 @@
 using namespace std::chrono_literals;
 
 static constexpr size_t MAX_CIRCLES = 100;
-static std::deque<lv_obj_t *> circles;
+struct Circle {
+  int x{0};
+  int y{0};
+  int radius{0};
+  bool visible{false};
+};
+static std::array<Circle, MAX_CIRCLES> circles;
+static size_t next_circle_index = 0;
+static size_t visible_circle_count = 0;
 static std::vector<uint8_t> audio_bytes;
+static lv_obj_t *circle_layer = nullptr;
 
 static std::recursive_mutex lvgl_mutex;
+static bool initialize_circle_layer(int width, int height);
+static void draw_circle_layer(lv_event_t *event);
+static void invalidate_circle_area(const Circle &circle);
 static void draw_circle(int x0, int y0, int radius);
 static void clear_circles();
 
@@ -71,12 +83,6 @@ extern "C" void app_main(void) {
     logger.error("Failed to initialize display!");
     return;
   }
-  // initialize the touchpad
-  if (!box.initialize_touch(touch_callback)) {
-    logger.error("Failed to initialize touchpad!");
-    return;
-  }
-
   // make the filter we'll use for the IMU to compute the orientation
   static constexpr float angle_noise = 0.001f;
   static constexpr float rate_noise = 0.1f;
@@ -130,6 +136,11 @@ extern "C" void app_main(void) {
   lv_obj_set_size(bg, box.lcd_width(), box.lcd_height());
   lv_obj_set_style_bg_color(bg, lv_color_make(0, 0, 0), 0);
 
+  if (!initialize_circle_layer(box.lcd_width(), box.lcd_height())) {
+    logger.error("Failed to initialize circle layer!");
+    return;
+  }
+
   // add text in the center of the screen
   lv_obj_t *label = lv_label_create(lv_screen_active());
   static std::string label_text =
@@ -173,6 +184,11 @@ extern "C" void app_main(void) {
     lv_disp_set_rotation(disp, rotation);
     // update the size of the screen
     lv_obj_set_size(bg, box.rotated_display_width(), box.rotated_display_height());
+    if (circle_layer) {
+      lv_obj_set_size(circle_layer, box.rotated_display_width(), box.rotated_display_height());
+      lv_obj_align(circle_layer, LV_ALIGN_CENTER, 0, 0);
+      lv_obj_invalidate(circle_layer);
+    }
   };
 
   // add a button in the top left which (when pressed) will rotate the display
@@ -191,6 +207,14 @@ extern "C" void app_main(void) {
   // rotated and drawing with your finger)
   lv_obj_set_scrollbar_mode(lv_screen_active(), LV_SCROLLBAR_MODE_OFF);
   lv_obj_clear_flag(lv_screen_active(), LV_OBJ_FLAG_SCROLLABLE);
+
+  // initialize the touchpad after the circle canvas exists so touch events can
+  // update the trail immediately.
+  if (!box.initialize_touch(touch_callback)) {
+    logger.error("Failed to initialize touchpad!");
+    return;
+  }
+  lv_obj_move_foreground(circle_layer);
 
   // start a simple thread to do the lv_task_handler every 16ms
   espp::Task lv_task({.callback = [](std::mutex &m, std::condition_variable &cv) -> bool {
@@ -356,30 +380,104 @@ extern "C" void app_main(void) {
   //! [esp box example]
 }
 
-static void draw_circle(int x0, int y0, int radius) {
-  // if the number of circles is greater than the max, remove the oldest circle
-  if (circles.size() > MAX_CIRCLES) {
-    lv_obj_delete(circles.front());
-    circles.pop_front();
+static bool initialize_circle_layer(int width, int height) {
+  if (circle_layer) {
+    return true;
   }
-  lv_obj_t *my_Cir = lv_obj_create(lv_screen_active());
-  lv_obj_set_scrollbar_mode(my_Cir, LV_SCROLLBAR_MODE_OFF);
-  lv_obj_set_size(my_Cir, radius * 2, radius * 2);
-  lv_obj_set_pos(my_Cir, x0 - radius, y0 - radius);
-  lv_obj_set_style_radius(my_Cir, LV_RADIUS_CIRCLE, 0);
-  // ensure the circle ignores touch events (so things behind it can still be
-  // interacted with)
-  lv_obj_clear_flag(my_Cir, LV_OBJ_FLAG_CLICKABLE);
-  circles.push_back(my_Cir);
+
+  circle_layer = lv_obj_create(lv_screen_active());
+  if (!circle_layer) {
+    return false;
+  }
+  lv_obj_remove_style_all(circle_layer);
+  lv_obj_set_size(circle_layer, width, height);
+  lv_obj_align(circle_layer, LV_ALIGN_CENTER, 0, 0);
+  lv_obj_clear_flag(circle_layer, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_clear_flag(circle_layer, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_style_bg_opa(circle_layer, LV_OPA_TRANSP, 0);
+  lv_obj_set_style_border_width(circle_layer, 0, 0);
+  lv_obj_set_style_outline_width(circle_layer, 0, 0);
+  lv_obj_set_style_shadow_width(circle_layer, 0, 0);
+  lv_obj_add_event_cb(circle_layer, draw_circle_layer, LV_EVENT_DRAW_MAIN, nullptr);
+  return true;
+}
+
+static void draw_circle_layer(lv_event_t *event) {
+  if (visible_circle_count == 0) {
+    return;
+  }
+
+  auto *obj = static_cast<lv_obj_t *>(lv_event_get_current_target(event));
+  auto *layer = lv_event_get_layer(event);
+  lv_area_t obj_coords;
+  lv_obj_get_coords(obj, &obj_coords);
+
+  lv_draw_rect_dsc_t rect_dsc;
+  lv_draw_rect_dsc_init(&rect_dsc);
+  rect_dsc.base.layer = layer;
+  rect_dsc.radius = LV_RADIUS_CIRCLE;
+  rect_dsc.bg_opa = LV_OPA_70;
+  rect_dsc.bg_color = lv_color_make(0, 255, 255);
+  rect_dsc.border_width = 0;
+  rect_dsc.outline_width = 0;
+  rect_dsc.shadow_width = 0;
+
+  for (const auto &circle : circles) {
+    if (!circle.visible) {
+      continue;
+    }
+    lv_area_t coords = {
+        .x1 = static_cast<lv_coord_t>(obj_coords.x1 + circle.x - circle.radius),
+        .y1 = static_cast<lv_coord_t>(obj_coords.y1 + circle.y - circle.radius),
+        .x2 = static_cast<lv_coord_t>(obj_coords.x1 + circle.x + circle.radius - 1),
+        .y2 = static_cast<lv_coord_t>(obj_coords.y1 + circle.y + circle.radius - 1),
+    };
+    lv_draw_rect(layer, &rect_dsc, &coords);
+  }
+}
+
+static void invalidate_circle_area(const Circle &circle) {
+  if (!circle_layer || circle.radius <= 0) {
+    return;
+  }
+
+  lv_area_t obj_coords;
+  lv_obj_get_coords(circle_layer, &obj_coords);
+  lv_area_t coords = {
+      .x1 = static_cast<lv_coord_t>(obj_coords.x1 + circle.x - circle.radius),
+      .y1 = static_cast<lv_coord_t>(obj_coords.y1 + circle.y - circle.radius),
+      .x2 = static_cast<lv_coord_t>(obj_coords.x1 + circle.x + circle.radius - 1),
+      .y2 = static_cast<lv_coord_t>(obj_coords.y1 + circle.y + circle.radius - 1),
+  };
+  lv_obj_invalidate_area(circle_layer, &coords);
+}
+
+static void draw_circle(int x0, int y0, int radius) {
+  if (!circle_layer) {
+    return;
+  }
+  lv_obj_move_foreground(circle_layer);
+  Circle previous_circle = circles[next_circle_index];
+  circles[next_circle_index] = {.x = x0, .y = y0, .radius = radius, .visible = true};
+  next_circle_index = (next_circle_index + 1) % circles.size();
+  if (visible_circle_count < circles.size()) {
+    visible_circle_count++;
+  }
+  if (previous_circle.visible) {
+    invalidate_circle_area(previous_circle);
+  }
+  invalidate_circle_area(circles[(next_circle_index + circles.size() - 1) % circles.size()]);
 }
 
 static void clear_circles() {
-  // remove the circles from lvgl
-  for (auto circle : circles) {
-    lv_obj_delete(circle);
+  for (auto &circle : circles) {
+    if (circle.visible) {
+      invalidate_circle_area(circle);
+    }
+    circle.visible = false;
   }
-  // clear the vector
-  circles.clear();
+  next_circle_index = 0;
+  visible_circle_count = 0;
 }
 
 static bool load_audio(size_t &out_size, size_t &out_sample_rate) {

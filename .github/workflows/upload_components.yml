@@ -11,7 +11,7 @@ jobs:
   upload_components:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: "recursive"
       - name: Upload components to the component registry
@@ -28,13 +28,16 @@ jobs:
           #
           components: |
             components/adc
+            components/adrc
             components/ads1x15
             components/ads7138
             components/adxl345
             components/as5600
+            components/at581x
             components/aw9523
             components/base_component
             components/base_peripheral
+            components/bdc_driver
             components/binary-log
             components/bldc_driver
             components/bldc_haptics
@@ -45,6 +48,7 @@ jobs:
             components/button
             components/byte90
             components/chsc6x
+            components/cdr
             components/cli
             components/cobs
             components/codec
@@ -90,7 +94,9 @@ jobs:
             components/max1704x
             components/mcp23x17
             components/monitor
+            components/motorgo-axis
             components/motorgo-mini
+            components/motorgo-plink
             components/mt6701
             components/ndef
             components/neopixel
@@ -106,6 +112,7 @@ jobs:
             components/qwiicnes
             components/remote_debug
             components/rmt
+            components/rtps
             components/rtsp
             components/runqueue
             components/rx8130ce
@@ -134,6 +141,7 @@ jobs:
             components/ws-s3-geek
             components/ws-s3-lcd-1-47
             components/ws-s3-touch
+            components/xiao-esp32s3-sense
           namespace: "espp"
           # use old version if this isn't a release for testing
           version: ${{ github.event.release && github.event.release.tag_name || 'v0.20.2' }}

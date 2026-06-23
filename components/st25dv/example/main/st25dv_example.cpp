@@ -70,16 +70,58 @@ extern "C" void app_main(void) {
         .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
         .clk_speed = 1000 * 1000,
     });
+    std::error_code ec;
+    auto st25dv_data_device =
+        i2c.add_device<uint8_t>({.device_address = espp::St25dv::DATA_ADDRESS,
+                                 .timeout_ms = static_cast<int>(i2c.config().timeout_ms),
+                                 .scl_speed_hz = i2c.config().clk_speed,
+                                 .log_level = espp::Logger::Verbosity::INFO},
+                                ec);
+    if (!st25dv_data_device) {
+      fmt::print("Failed to initialize ST25DV data I2C device: {}\n", ec.message());
+      return;
+    }
+    auto st25dv_syst_device =
+        i2c.add_device<uint8_t>({.device_address = espp::St25dv::SYST_ADDRESS,
+                                 .timeout_ms = static_cast<int>(i2c.config().timeout_ms),
+                                 .scl_speed_hz = i2c.config().clk_speed,
+                                 .log_level = espp::Logger::Verbosity::INFO},
+                                ec);
+    if (!st25dv_syst_device) {
+      fmt::print("Failed to initialize ST25DV system I2C device: {}\n", ec.message());
+      return;
+    }
 
     // now make the st25dv which decodes the data
-    espp::St25dv st25dv({.write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1,
-                                            std::placeholders::_2, std::placeholders::_3),
-                         .read = std::bind(&espp::I2c::read, &i2c, std::placeholders::_1,
-                                           std::placeholders::_2, std::placeholders::_3),
-                         .log_level = espp::Logger::Verbosity::INFO});
+    espp::St25dv st25dv(
+        {.write =
+             [st25dv_data_device, st25dv_syst_device](uint8_t addr, const uint8_t *data,
+                                                      size_t len) {
+               auto device =
+                   addr == espp::St25dv::SYST_ADDRESS ? st25dv_syst_device : st25dv_data_device;
+               std::error_code ec;
+               bool success = device->write(data, len, ec);
+               if (!success) {
+                 fmt::print("Failed to write ST25DV {} I2C device: {}\n",
+                            addr == espp::St25dv::SYST_ADDRESS ? "system" : "data", ec.message());
+               }
+               return success;
+             },
+         .read =
+             [st25dv_data_device, st25dv_syst_device](uint8_t addr, uint8_t *data, size_t len) {
+               auto device =
+                   addr == espp::St25dv::SYST_ADDRESS ? st25dv_syst_device : st25dv_data_device;
+               std::error_code ec;
+               bool success = device->read(data, len, ec);
+               if (!success) {
+                 fmt::print("Failed to read ST25DV {} I2C device: {}\n",
+                            addr == espp::St25dv::SYST_ADDRESS ? "system" : "data", ec.message());
+               }
+               return success;
+             },
+         .log_level = espp::Logger::Verbosity::INFO});
 
     std::array<uint8_t, 50> programmed_data;
-    std::error_code ec;
     st25dv.read(programmed_data.data(), programmed_data.size(), ec);
     if (ec) {
       fmt::print("Failed to read st25dv: {}\n", ec.message());

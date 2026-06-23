@@ -13,24 +13,45 @@ bool EspBox::initialize_touch(const EspBox::touch_callback_t &callback) {
   }
 
   switch (box_type_) {
-  case BoxType::BOX3:
+  case BoxType::BOX3: {
+    std::error_code ec;
+    touch_i2c_device_ = internal_i2c_.add_device<uint8_t>(
+        {
+            .device_address = espp::Gt911::DEFAULT_ADDRESS_1,
+            .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
+            .scl_speed_hz = internal_i2c_.config().clk_speed,
+            .log_level = espp::Logger::Verbosity::WARN,
+        },
+        ec);
+    if (!touch_i2c_device_) {
+      logger_.error("Could not initialize GT911 I2C device: {}", ec.message());
+      return false;
+    }
     logger_.info("Initializing GT911");
-    touch_driver_ = std::make_shared<espp::Gt911>(espp::Gt911::Config{
-        .write = std::bind(&espp::I2c::write, &internal_i2c_, std::placeholders::_1,
-                           std::placeholders::_2, std::placeholders::_3),
-        .read = std::bind(&espp::I2c::read, &internal_i2c_, std::placeholders::_1,
-                          std::placeholders::_2, std::placeholders::_3),
-        .log_level = espp::Logger::Verbosity::WARN});
-    break;
-  case BoxType::BOX:
+    touch_driver_ = std::make_shared<espp::Gt911>(
+        espp::Gt911::Config{.write = espp::make_i2c_addressed_write(touch_i2c_device_),
+                            .read = espp::make_i2c_addressed_read(touch_i2c_device_),
+                            .log_level = espp::Logger::Verbosity::WARN});
+  } break;
+  case BoxType::BOX: {
+    std::error_code ec;
+    touch_i2c_device_ = internal_i2c_.add_device<uint8_t>(
+        {
+            .device_address = espp::Tt21100::DEFAULT_ADDRESS,
+            .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
+            .scl_speed_hz = internal_i2c_.config().clk_speed,
+            .log_level = espp::Logger::Verbosity::WARN,
+        },
+        ec);
+    if (!touch_i2c_device_) {
+      logger_.error("Could not initialize TT21100 I2C device: {}", ec.message());
+      return false;
+    }
     logger_.info("Initializing TT21100");
-    touch_driver_ = std::make_shared<espp::Tt21100>(espp::Tt21100::Config{
-        .write = std::bind(&espp::I2c::write, &internal_i2c_, std::placeholders::_1,
-                           std::placeholders::_2, std::placeholders::_3),
-        .read = std::bind(&espp::I2c::read, &internal_i2c_, std::placeholders::_1,
-                          std::placeholders::_2, std::placeholders::_3),
-        .log_level = espp::Logger::Verbosity::WARN});
-    break;
+    touch_driver_ = std::make_shared<espp::Tt21100>(
+        espp::Tt21100::Config{.read = espp::make_i2c_addressed_read(touch_i2c_device_),
+                              .log_level = espp::Logger::Verbosity::WARN});
+  } break;
   default:
     return false;
   }

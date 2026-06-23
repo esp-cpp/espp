@@ -13,7 +13,7 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           fetch-tags: true
@@ -30,21 +30,40 @@ jobs:
           sudo apt-get install doxygen graphviz texlive-full pandoc
           pip install -r doc/requirements.txt
 
-      - name: Build Documentation
+      - name: Build Documentation (HTML)
         run: |
           cd doc
           # ignore if the following command fails
           build-docs -bs html -t esp32 -l en --project-path ../ --source-dir ./ --doxyfile_dir ./ || true
+          if [ -d _build/en/esp32/html ]; then
+            build_dir_from_doc=_build/en/esp32
+            build_dir_root=doc/_build/en/esp32
+          elif [ -d ../_build/en/esp32/html ]; then
+            build_dir_from_doc=../_build/en/esp32
+            build_dir_root=_build/en/esp32
+          else
+            echo "Unable to find generated documentation output directory." >&2
+            exit 1
+          fi
+          echo "DOC_BUILD_DIR_FROM_DOC=${build_dir_from_doc}" >> $GITHUB_ENV
+          echo "DOC_BUILD_DIR_ROOT=${build_dir_root}" >> $GITHUB_ENV
+          # copy the generated HTML files to the docs directory for GitHub Pages
           mkdir -p ../docs
-          cp -r _build/en/esp32/html/* ../docs/.
-          # go to the latex output
-          cd _build/en/esp32/latex/
-          # build once (ignore if command fails)
-          pdflatex -interaction=batchmode refman || true
-          # build again to make sure page numbers and refs and such work (ignore if command fails)
-          pdflatex -interaction=batchmode refman || true
-          # rename refman to espp_documentation.pdf
-          mv refman.pdf espp_documentation.pdf
+          cp -r "${build_dir_from_doc}/html/"* ../docs/.
+
+      - name: Build Documentation (PDF)
+        run: |
+          cd doc
+          if sh ./build_latex_pdf.sh "${DOC_BUILD_DIR_FROM_DOC}/latex"; then
+            echo "PDF_GENERATED=true" >> $GITHUB_ENV
+            echo "Success: PDF documentation generated successfully."
+          else
+            rm -f "${DOC_BUILD_DIR_FROM_DOC}/latex/refman.pdf"
+            rm -f "${DOC_BUILD_DIR_FROM_DOC}/latex/espp_documentation.pdf"
+            echo "PDF_GENERATED=false" >> $GITHUB_ENV
+            # warn if the PDF was not generated successfully
+            echo "Warning: PDF documentation was not generated successfully."
+          fi
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
@@ -53,14 +72,15 @@ jobs:
           publish_dir: ./docs
           force_orphan: true
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
+        if: env.PDF_GENERATED == 'true'
         with:
           name: espp_documentation.pdf
-          path: doc/_build/en/esp32/latex/espp_documentation.pdf
+          path: ${{ env.DOC_BUILD_DIR_ROOT }}/latex/espp_documentation.pdf
 
       - name: Attach files to release
-        uses: softprops/action-gh-release@v2
-        if: ${{ github.event.release && github.event.action == 'published' }}
+        uses: softprops/action-gh-release@v3
+        if: ${{ github.event.release && github.event.action == 'published' && env.PDF_GENERATED == 'true' }}
         with:
           files: |
-            doc/_build/en/esp32/latex/espp_documentation.pdf
+            ${{ env.DOC_BUILD_DIR_ROOT }}/latex/espp_documentation.pdf

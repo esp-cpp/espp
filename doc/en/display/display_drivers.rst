@@ -1,9 +1,17 @@
 Display Drivers
 ***************
 
-ESPP contains a few different display drivers in the `display_drivers`
-component, corresponding to common display drivers on espressif development
-boards.
+ESPP contains a reusable set of display-controller implementations in the
+`display_drivers` component.
+
+The drivers use the shared object-style
+`display_drivers::Controller` / `display_drivers::MipiDbiDisplayDriver`
+architecture so controller state is owned per instance instead of hidden behind
+static helpers.
+
+The component also provides `SpiPanelIo` / `SpiCommandData`, a SPI-backed
+implementation of the shared `display_drivers::PanelIo` transport interface for
+command/data display panels, in ``components/display_drivers/include/spi_panel_io.hpp``.
 
 .. ------------------------------- Example -------------------------------------
 
@@ -16,9 +24,13 @@ boards.
 API Reference
 -------------
 
+.. include-build-file:: inc/display_drivers.inc
 .. include-build-file:: inc/gc9a01.inc
 .. include-build-file:: inc/ili9341.inc
+.. include-build-file:: inc/ili9881.inc
 .. include-build-file:: inc/sh8601.inc
+.. include-build-file:: inc/spi_panel_io.inc
 .. include-build-file:: inc/ssd1351.inc
+.. include-build-file:: inc/st7123.inc
 .. include-build-file:: inc/st7789.inc
 .. include-build-file:: inc/st7796.inc
