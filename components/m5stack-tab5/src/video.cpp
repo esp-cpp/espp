@@ -98,17 +98,11 @@ bool M5StackTab5::initialize_lcd() {
   // create MIPI DSI bus first, it will initialize the DSI PHY as well
   if (lcd_handles_.mipi_dsi_bus == nullptr) {
     logger_.info("Creating MIPI DSI bus");
-    esp_lcd_dsi_bus_config_t bus_config = {
-      .bus_id = 0,
-      .num_data_lanes = 2,
-      .phy_clk_src = MIPI_DSI_PHY_CLK_SRC_DEFAULT,
-      .lane_bit_rate_mbps =
-#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(6, 0, 0)
-          static_cast<uint32_t>(detected_controller == DisplayController::ILI9881 ? 730 : 965),
-#else
-          static_cast<float>(detected_controller == DisplayController::ILI9881 ? 730 : 965),
-#endif
-    };
+    esp_lcd_dsi_bus_config_t bus_config = {};
+    bus_config.bus_id = 0;
+    bus_config.num_data_lanes = 2;
+    bus_config.phy_clk_src = MIPI_DSI_PHY_CLK_SRC_DEFAULT;
+    bus_config.lane_bit_rate_mbps = (detected_controller == DisplayController::ILI9881) ? 730 : 965;
     ret = esp_lcd_new_dsi_bus(&bus_config, &lcd_handles_.mipi_dsi_bus);
     if (ret != ESP_OK) {
       logger_.error("New DSI bus init failed: {}", esp_err_to_name(ret));
@@ -119,11 +113,10 @@ bool M5StackTab5::initialize_lcd() {
   if (lcd_handles_.io == nullptr) {
     logger_.info("Install MIPI DSI LCD panel I/O");
     // we use DBI interface to send LCD commands and parameters
-    esp_lcd_dbi_io_config_t dbi_config = {
-        .virtual_channel = 0,
-        .lcd_cmd_bits = 8,
-        .lcd_param_bits = 8,
-    };
+    esp_lcd_dbi_io_config_t dbi_config = {};
+    dbi_config.virtual_channel = 0;
+    dbi_config.lcd_cmd_bits = 8;
+    dbi_config.lcd_param_bits = 8;
     ret = esp_lcd_new_panel_io_dbi(lcd_handles_.mipi_dsi_bus, &dbi_config, &lcd_handles_.io);
     if (ret != ESP_OK) {
       logger_.error("New panel IO failed: {}", esp_err_to_name(ret));
