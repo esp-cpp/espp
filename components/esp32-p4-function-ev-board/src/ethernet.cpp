@@ -8,8 +8,6 @@
 #include <esp_event.h>
 #include <esp_netif.h>
 
-#include "esp_eth_phy_ip101.h" // vendored IP101 PHY driver (third_party/)
-
 namespace espp {
 
 // IP101 PHY: reset GPIO and address. The RMII data/clock/MDIO pins for the

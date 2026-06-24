@@ -1,6 +1,6 @@
 idf_component_register(
-  INCLUDE_DIRS "include" "third_party"
-  SRC_DIRS "src" "third_party"
+  INCLUDE_DIRS "include"
+  SRC_DIRS "src"
   REQUIRES
     "base_component"
     "codec"
