@@ -79,6 +79,8 @@ jobs:
           target: esp32
         - path: 'components/esp32-timer-cam/example'
           target: esp32
+        - path: 'components/esp32-p4-function-ev-board/example'
+          target: esp32p4
         - path: 'components/esp-box/example'
           target: esp32s3
         - path: 'components/event_manager/example'

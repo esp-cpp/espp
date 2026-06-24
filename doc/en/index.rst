@@ -28,6 +28,7 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    display/index
    distance_sensors/index
    encoder/index
+   esp32_p4_function_ev_board
    esp32_timer_cam
    esp_box
    event_manager
