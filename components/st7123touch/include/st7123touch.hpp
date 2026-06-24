@@ -1,88 +1,12 @@
 #pragma once
 
 #include <atomic>
-#include <concepts>
-#include <functional>
-#include <memory>
 #include <system_error>
 
 #include "base_peripheral.hpp"
+#include "touch.hpp"
 
 namespace espp {
-
-/// @brief Concept satisfied by any touch-controller driver that exposes the
-///        standard espp touch-driver interface.
-///
-/// A type T satisfies TouchDriverConcept if it provides:
-/// - `bool T::update(std::error_code &)` — read new touch data from hardware
-/// - `void T::get_touch_point(uint8_t *, uint16_t *, uint16_t *) const` — retrieve coordinates
-/// - `bool T::get_home_button_state() const` — return home-button state
-///
-/// Both `espp::Gt911` and `espp::St7123Touch` satisfy this concept.
-template <typename T>
-concept TouchDriverConcept = requires(T &t, std::error_code &ec, uint8_t *n, uint16_t *x,
-                                      uint16_t *y) {
-  { t.update(ec) } -> std::convertible_to<bool>;
-  { t.get_touch_point(n, x, y) };
-  { t.get_home_button_state() } -> std::convertible_to<bool>;
-};
-
-/// @brief Abstract type-erased interface for a touch driver.
-///
-/// Used together with `TouchDriverAdapter<T>` to allow the M5Stack Tab5 BSP
-/// (and any other consumer) to store a single `std::shared_ptr<ITouchDriver>`
-/// regardless of which concrete driver (Gt911, St7123Touch, …) is in use at
-/// runtime.
-struct ITouchDriver {
-  virtual ~ITouchDriver() = default;
-
-  /// @brief Read new touch data from the hardware.
-  /// @param ec Set on I2C error; cleared on success.
-  /// @return True when new coordinate data is available.
-  virtual bool update(std::error_code &ec) = 0;
-
-  /// @brief Retrieve the primary touch point.
-  /// @param num_touch_points Output: number of active touch points.
-  /// @param x Output: X coordinate.
-  /// @param y Output: Y coordinate.
-  virtual void get_touch_point(uint8_t *num_touch_points, uint16_t *x, uint16_t *y) const = 0;
-
-  /// @brief Return the home-button pressed state.
-  virtual bool get_home_button_state() const = 0;
-};
-
-/// @brief Concept-constrained adapter that wraps any concrete touch driver
-///        satisfying `TouchDriverConcept` behind the `ITouchDriver` interface.
-///
-/// Usage:
-/// @code
-///   auto driver = std::make_shared<espp::Gt911>(...);
-///   std::shared_ptr<espp::ITouchDriver> touch =
-///       std::make_shared<espp::TouchDriverAdapter<espp::Gt911>>(driver);
-/// @endcode
-template <TouchDriverConcept T>
-struct TouchDriverAdapter : ITouchDriver {
-  /// Underlying concrete driver
-  std::shared_ptr<T> driver;
-
-  explicit TouchDriverAdapter(std::shared_ptr<T> d) : driver(std::move(d)) {}
-
-  bool update(std::error_code &ec) override { return driver->update(ec); }
-
-  void get_touch_point(uint8_t *num_touch_points, uint16_t *x, uint16_t *y) const override {
-    driver->get_touch_point(num_touch_points, x, y);
-  }
-
-  bool get_home_button_state() const override { return driver->get_home_button_state(); }
-};
-
-/// @brief Convenience factory: wrap a shared_ptr to a concrete touch driver in
-///        a `TouchDriverAdapter` and return it as `std::shared_ptr<ITouchDriver>`.
-/// @tparam T Concrete driver type — must satisfy `TouchDriverConcept`.
-template <TouchDriverConcept T>
-std::shared_ptr<ITouchDriver> make_touch_driver(std::shared_ptr<T> driver) {
-  return std::make_shared<TouchDriverAdapter<T>>(std::move(driver));
-}
 
 /// @brief Driver for the ST7123 integrated touch controller
 ///

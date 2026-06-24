@@ -26,8 +26,10 @@ extern "C" void app_main(void) {
     fmt::print("ST7123 touch probe: {}\n", has_st7123);
     fmt::print("         address:   {:#02x}\n", espp::St7123Touch::DEFAULT_ADDRESS);
 
-    // Create the ST7123 touch driver
-    espp::St7123Touch touch({
+    // Create the ST7123 touch driver. It owns a recursive_mutex and atomics, so
+    // it is non-copyable and non-movable — construct it directly inside the
+    // shared_ptr rather than moving a stack instance into it.
+    auto touch = std::make_shared<espp::St7123Touch>(espp::St7123Touch::Config{
         .write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1, std::placeholders::_2,
                            std::placeholders::_3),
         .read = std::bind(&espp::I2c::read, &i2c, std::placeholders::_1, std::placeholders::_2,
@@ -37,7 +39,7 @@ extern "C" void app_main(void) {
 
     // Wrap the driver in a concept-erased ITouchDriver pointer.
     // Any type satisfying espp::TouchDriverConcept can be wrapped this way.
-    auto driver = espp::make_touch_driver(std::make_shared<espp::St7123Touch>(std::move(touch)));
+    auto driver = espp::make_touch_driver(touch);
 
     // Poll for touch events using the type-erased interface
     auto task_fn = [&driver](std::mutex &m, std::condition_variable &cv) {

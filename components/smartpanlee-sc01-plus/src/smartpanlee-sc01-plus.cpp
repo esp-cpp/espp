@@ -493,15 +493,23 @@ bool SmartPanleeSc01Plus::update_touch() {
     return false;
   }
 
+  // Read fresh data from the controller, then pull the cached touch point out of
+  // the driver via the espp touch-device interface (update() + get_touch_point()).
   std::error_code ec;
-  TouchpadData temp_data;
-  touch_driver_->get_touch_point(&temp_data.num_touch_points, &temp_data.x, &temp_data.y, ec);
+  bool new_data = touch_driver_->update(ec);
   if (ec) {
     logger_.error("Could not update touch driver: {}", ec.message());
     std::lock_guard<std::recursive_mutex> lock(touchpad_data_mutex_);
     touchpad_data_ = {};
     return false;
   }
+  if (!new_data) {
+    return false;
+  }
+
+  TouchpadData temp_data;
+  touch_driver_->get_touch_point(&temp_data.num_touch_points, &temp_data.x, &temp_data.y);
+  temp_data.btn_state = touch_driver_->get_home_button_state();
 
   std::lock_guard<std::recursive_mutex> lock(touchpad_data_mutex_);
   bool changed = temp_data != touchpad_data_;

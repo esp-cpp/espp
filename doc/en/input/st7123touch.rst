@@ -16,7 +16,10 @@ controller in a single IC. This driver accesses the touch side over I2C
    standalone controllers such as the GT911, as this can take the touch I2C
    endpoint offline.
 
-The driver also provides:
+``St7123Touch`` satisfies the ``espp::TouchDriverConcept``, so it can be wrapped
+in the type-erased ``espp::ITouchDriver`` interface via
+``espp::make_touch_driver()``. These shared type-erasure helpers now live in the
+:doc:`touch` component and are reused by every espp touch driver and BSP:
 
 - ``espp::TouchDriverConcept`` — C++23 concept satisfied by any touch driver
   exposing ``update()``, ``get_touch_point()``, and ``get_home_button_state()``.
