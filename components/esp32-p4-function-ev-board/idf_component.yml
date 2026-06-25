@@ -12,8 +12,8 @@ tags:
   - cpp
   - Component
   - BSP
-  - ESP32-P4
-  - EV-Board
+  - ESP32P4
+  - EVBoard
   - HMI
 dependencies:
   idf: ">=5.3"
