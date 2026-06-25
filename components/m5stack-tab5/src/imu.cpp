@@ -14,7 +14,7 @@ bool M5StackTab5::initialize_imu(const Imu::filter_fn &orientation_filter) {
   imu_i2c_device_ = internal_i2c_.add_device<uint8_t>(
       {
           .device_address = Imu::DEFAULT_ADDRESS,
-          .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
+          .timeout_ms = 200,
           .scl_speed_hz = internal_i2c_.config().clk_speed,
           .log_level = espp::Logger::Verbosity::WARN,
       },
@@ -39,6 +39,11 @@ bool M5StackTab5::initialize_imu(const Imu::filter_fn &orientation_filter) {
               .gyroscope_performance_mode = Imu::GyroscopePerformanceMode::PERFORMANCE_OPTIMIZED,
           },
       .orientation_filter = orientation_filter,
+      // Upload the ~8 KB config file in 256-byte bursts rather than one big
+      // transaction. The shared internal bus runs at 100 kHz, where a single
+      // 8 KB write (~740 ms) would blow the 200 ms transaction timeout; each
+      // 256-byte chunk takes ~23 ms, well within it.
+      .burst_write_size = 256,
       .auto_init = true,
       .log_level = espp::Logger::Verbosity::WARN});
 

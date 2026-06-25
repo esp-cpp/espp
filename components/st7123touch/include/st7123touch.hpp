@@ -38,16 +38,19 @@ public:
   static constexpr uint8_t DEFAULT_ADDRESS = 0x55;
 
   /// @brief Configuration for the St7123Touch driver
-  /// @note The ST7123 latches its register pointer only for the duration of a
-  ///       single I2C transaction. Register reads MUST therefore use a combined
-  ///       repeated-START write-then-read; issuing the register-pointer write
-  ///       and the data read as two separate transactions (with a STOP in
-  ///       between) makes the chip return register 0x00 on every read. For that
-  ///       reason the driver takes a `write_then_read` function rather than
-  ///       separate write/read functions.
+  /// @note Provide EITHER a combined `write_then_read` (a repeated-START
+  ///       write-then-read, no STOP between the register-pointer write and the
+  ///       data read) OR a separate `write` + `read` pair. If `write_then_read`
+  ///       is set it takes precedence; otherwise the driver writes the register
+  ///       pointer and reads the data as two separate transactions. Some boards
+  ///       are happier with the separate form (e.g. when reads run from an
+  ///       interrupt handler and the longer combined transaction is more prone
+  ///       to I/O errors).
   struct Config {
+    BasePeripheral::write_fn write; ///< Write function (paired with `read` for separate reads)
+    BasePeripheral::read_fn read;   ///< Read function (paired with `write` for separate reads)
     BasePeripheral::write_then_read_fn
-        write_then_read;               ///< Combined (repeated-START) write-then-read for the ST7123
+        write_then_read; ///< Combined (repeated-START) write-then-read; takes precedence if set
     uint8_t address = DEFAULT_ADDRESS; ///< I2C address of the chip
     espp::Logger::Verbosity log_level{
         espp::Logger::Verbosity::WARN}; ///< Log verbosity for the driver
@@ -56,7 +59,10 @@ public:
   /// @brief Constructor for the St7123Touch driver
   /// @param config The configuration for the driver
   explicit St7123Touch(const Config &config)
-      : BasePeripheral({.address = config.address, .write_then_read = config.write_then_read},
+      : BasePeripheral({.address = config.address,
+                        .write = config.write,
+                        .read = config.read,
+                        .write_then_read = config.write_then_read},
                        "St7123Touch", config.log_level) {}
 
   /// @brief Update the touch state by reading from the ST7123 over I2C

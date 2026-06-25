@@ -32,8 +32,8 @@ bool M5StackTab5::initialize_touch(const touch_callback_t &callback) {
           // completes in well under 1 ms; the bus default (200 ms, sized for the
           // IMU's large config write) would hold the shared internal I2C bus for
           // a fifth of a second whenever the ST7123 stalls, starving the IMU/RTC/
-          // battery reads. Fail fast and let the next poll retry instead.
-          .timeout_ms = 10,
+          // battery reads. Fail fast and let the next read retry instead.
+          .timeout_ms = 20,
           .scl_speed_hz = internal_i2c_.config().clk_speed,
           .log_level = espp::Logger::Verbosity::WARN,
       },
@@ -57,33 +57,23 @@ bool M5StackTab5::initialize_touch(const touch_callback_t &callback) {
     std::this_thread::sleep_for(50ms);
 
     auto driver = std::make_shared<St7123TouchDriver>(St7123TouchDriver::Config{
-        // The ST7123 only holds its register pointer within a single
-        // transaction, so reads must be a repeated-START write-then-read.
-        .write_then_read = espp::make_i2c_addressed_write_then_read(touch_i2c_device_),
+        // Use two separate transactions (write the register pointer, then read)
+        // rather than a combined repeated-START. The longer combined transaction
+        // is more prone to I/O errors when reads run from the touch interrupt
+        // handler on this board.
+        .write = espp::make_i2c_addressed_write(touch_i2c_device_),
+        .read = espp::make_i2c_addressed_read(touch_i2c_device_),
         .address = St7123TouchDriver::DEFAULT_ADDRESS,
         .log_level = espp::Logger::Verbosity::WARN});
     touch_driver_ = espp::make_touch_driver(std::move(driver));
 
-    // The ST7123's TP_INT line is not asserted like a standalone GT911's, so an
-    // interrupt-driven read never fires. Poll the controller from a background
-    // task instead (the same update()/get_touch_point() flow the standalone
-    // st7123touch example uses).
-    touch_poll_task_ = std::make_unique<espp::Task>(espp::Task::Config{
-        .callback = [this](std::mutex &m, std::condition_variable &cv) -> bool {
-          auto now = std::chrono::high_resolution_clock::now();
-          if (update_touch() && touch_callback_) {
-            touch_callback_(touchpad_data());
-          }
-          std::unique_lock<std::mutex> lock(m);
-          // ~33 Hz is plenty for responsive touch and is gentle on the
-          // shared internal I2C bus. Polling the TDDI ST7123 at 100 Hz while
-          // it time-shares scanning with the display stresses it into I2C
-          // stalls and eventually wedges its touch engine.
-          cv.wait_until(lock, now + std::chrono::milliseconds(20));
-          return false; // keep running
-        },
-        .task_config = {.name = "tab5 touch poll", .stack_size_bytes = 4 * 1024}});
-    touch_poll_task_->start();
+    // Now that the touch engine is actually scanning (it needed the correct DPI
+    // pixel clock to run), the ST7123 drives its TP_INT line low on each new
+    // touch report — just like the GT911 — so read it from the touch interrupt
+    // rather than polling. Reading only when a frame is ready avoids hammering
+    // the shared internal I2C bus and the mid-scan I2C stalls that aggressive
+    // polling provoked (which eventually wedged the touch engine).
+    interrupts_.add_interrupt(touch_interrupt_pin_);
   } else {
     // ILI9881 (and UNKNOWN fallback) use a standalone GT911 touch controller
     // that requires a hardware reset via the IO expander before being used.

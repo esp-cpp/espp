@@ -664,8 +664,17 @@ protected:
                      .scl_io_num = internal_i2c_scl,
                      .sda_pullup_en = GPIO_PULLUP_ENABLE,
                      .scl_pullup_en = GPIO_PULLUP_ENABLE,
-                     .timeout_ms = 200, // needs to be long enough for writing imu config file (8k)
-                     .clk_speed = 400'000}};
+                     .timeout_ms = 200,
+                     // Standard-mode (100 kHz) shared internal bus. At 400 kHz the
+                     // bus is marginal with this many devices on it — the ST7123
+                     // touch reads time out and a hung transaction corrupts a
+                     // concurrent BMI270 read (correlated touch I/O errors + IMU
+                     // vector jumps while dragging). Per-device speed mixing
+                     // (touch @100k, rest @400k) did NOT help: any 400 kHz traffic
+                     // disturbs the bus. 100 kHz everywhere is clean. The IMU's
+                     // 8 KB config upload is chunked (see initialize_imu) so it
+                     // still fits the 200 ms transaction timeout at this speed.
+                     .clk_speed = 100'000}};
 
   // Interrupt configurations
   espp::Interrupt::PinConfig button_interrupt_pin_{
@@ -704,8 +713,6 @@ protected:
   std::shared_ptr<espp::ITouchDriver>
       touch_driver_; ///< Concept-erased touch driver (GT911 or ST7123)
   std::shared_ptr<TouchpadInput> touchpad_input_;
-  std::unique_ptr<espp::Task>
-      touch_poll_task_; ///< Polls the touch driver when it does not drive TP_INT (e.g. ST7123)
   std::recursive_mutex touchpad_data_mutex_;
   TouchpadData touchpad_data_;
   touch_callback_t touch_callback_{nullptr};
