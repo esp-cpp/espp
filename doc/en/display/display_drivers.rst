@@ -25,6 +25,7 @@ API Reference
 -------------
 
 .. include-build-file:: inc/display_drivers.inc
+.. include-build-file:: inc/ek79007.inc
 .. include-build-file:: inc/gc9a01.inc
 .. include-build-file:: inc/ili9341.inc
 .. include-build-file:: inc/ili9881.inc

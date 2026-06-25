@@ -1,0 +1,56 @@
+# ESP32-P4 specific configuration
+CONFIG_IDF_TARGET="esp32p4"
+# for ESP-IDF >= v6.0, we have to set this to allow older boards (e.g. this dev
+# board) to work with the newer ESP-IDF since it's using an older p4 chip
+# revision
+CONFIG_ESP32P4_SELECTS_REV_LESS_V3=y
+
+# CONFIG_COMPILER_OPTIMIZATION_PERF=y
+
+CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
+CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="16MB"
+
+# Memory configuration
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=32768
+CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=4096
+CONFIG_ESP_TIMER_TASK_STACK_SIZE=6144
+
+# Ensure eth is enabled
+CONFIG_ETH_ENABLED=y
+CONFIG_ETH_USE_ESP32_EMAC=y
+
+#
+# Partition Table
+#
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_OFFSET=0x9000
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+
+# FreeRTOS
+CONFIG_FREERTOS_HZ=1000
+
+# Copy received Ethernet frames into a fresh lwip pbuf instead of referencing the
+# EMAC DMA buffer directly. This avoids cache-coherency issues with the EMAC RX
+# DMA on the ESP32-P4 (which can silently drop/corrupt unicast frames while
+# broadcast/multicast appear to work, e.g. DHCP succeeds but ping fails).
+# CONFIG_LWIP_L2_TO_L3_COPY=y
+
+# PSRAM (required for the MIPI-DSI frame buffers)
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_SPEED_200M=y
+CONFIG_SPIRAM_XIP_FROM_PSRAM=y
+CONFIG_CACHE_L2_CACHE_256KB=y
+CONFIG_CACHE_L2_CACHE_LINE_128B=y
+
+# LVGL configuration
+CONFIG_LV_DEF_REFR_PERIOD=16
+CONFIG_LV_USE_THEME_DEFAULT=y
+CONFIG_LV_THEME_DEFAULT_DARK=y
+CONFIG_LV_THEME_DEFAULT_GROW=y
+CONFIG_LV_THEME_DEFAULT_TRANSITION_TIME=30
+
+# ESP32-P4 Function EV Board BSP configuration
+CONFIG_ESP_P4_EV_BOARD_INTERRUPT_STACK_SIZE=4096
+CONFIG_ESP_P4_EV_BOARD_TOUCH_TASK_STACK_SIZE=4096
+CONFIG_ESP_P4_EV_BOARD_AUDIO_TASK_STACK_SIZE=8192

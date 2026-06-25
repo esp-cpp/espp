@@ -1,0 +1,31 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "ESP32-P4 Function EV Board (+ ESP32-P4-HMI-Subboard) Board Support Package (BSP) component in C++"
+url: "https://github.com/esp-cpp/espp/tree/main/components/esp32-p4-function-ev-board"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/esp32_p4_function_ev_board.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - BSP
+  - ESP32P4
+  - EVBoard
+  - HMI
+dependencies:
+  idf: ">=5.3"
+  espp/base_component: ">=1.0"
+  espp/codec: ">=1.0"
+  espp/display: ">=1.0"
+  espp/display_drivers: ">=1.0"
+  espp/gt911: ">=1.0"
+  espp/i2c: ">=1.0"
+  espp/input_drivers: ">=1.0"
+  espp/interrupt: ">=1.0"
+  espp/led: ">=1.0"
+  espp/task: ">=1.0"
+targets:
+  - esp32p4

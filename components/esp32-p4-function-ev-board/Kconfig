@@ -1,0 +1,69 @@
+menu "ESP32-P4 Function EV Board Configuration"
+
+  choice ESP_P4_EV_BOARD_DISPLAY
+    prompt "HMI subboard display panel"
+    default ESP_P4_EV_BOARD_DISPLAY_EK79007
+    help
+      Select the MIPI-DSI panel attached to the HMI subboard. The BSP does not
+      auto-detect the panel (runtime DSI-ID probing was removed because it hangs
+      the boot watchdog on the EK79007), so set this to the panel you have.
+
+    config ESP_P4_EV_BOARD_DISPLAY_EK79007
+      bool "EK79007 (7-inch, 1024x600)"
+      help
+        The 7-inch 1024x600 panel that ships with the standard
+        ESP32-P4-Function-EV-Board kit. Backlight on GPIO26, reset on GPIO27.
+
+    config ESP_P4_EV_BOARD_DISPLAY_ILI9881C
+      bool "ILI9881C (10.1-inch, 800x1280)"
+      help
+        The 10.1-inch 800x1280 panel variant. Backlight on GPIO23, reset is not
+        connected (handled over DSI).
+  endchoice
+
+  config ESP_P4_EV_BOARD_INTERRUPT_STACK_SIZE
+    int "Interrupt task stack size (bytes)"
+    default 4096
+    help
+      Size of the stack used for the GPIO interrupt handler task (button, etc.).
+
+  config ESP_P4_EV_BOARD_TOUCH_TASK_STACK_SIZE
+    int "Touch polling task stack size (bytes)"
+    default 4096
+    help
+      Size of the stack used for the GT911 touch polling task. Used only in
+      polling mode (see ESP_P4_EV_BOARD_TOUCH_INTERRUPT).
+
+  config ESP_P4_EV_BOARD_TOUCH_INTERRUPT
+    bool "Use interrupt-driven touch instead of polling"
+    default n
+    help
+      By default the ESP32-P4-HMI-Subboard does not route the GT911 touch INT pin
+      to the ESP32-P4, so touch is polled in a task. The LCD expansion header does
+      expose the touch INT pin: if you wire it to a free ESP32-P4 GPIO, enable this
+      to read the GT911 from a GPIO interrupt instead of polling (lower CPU usage
+      and latency). The GPIO is set below, and can also be overridden at runtime
+      via initialize_touch().
+
+  config ESP_P4_EV_BOARD_TOUCH_INTERRUPT_GPIO
+    int "Touch interrupt GPIO"
+    depends on ESP_P4_EV_BOARD_TOUCH_INTERRUPT
+    default 33
+    help
+      GPIO that the GT911 touch INT pin (from the LCD expansion header) is wired
+      to. Must be a free GPIO not used by another on-board peripheral.
+
+  config ESP_P4_EV_BOARD_AUDIO_TASK_STACK_SIZE
+    int "Audio task stack size (bytes)"
+    default 8192
+    help
+      Size of the stack used for the audio processing task.
+
+  config ESP_P4_EV_BOARD_ETHERNET
+    bool "Enable Ethernet (IP101 RMII) support"
+    default y
+    help
+      Build the Ethernet (EMAC + IP101 RMII PHY) support in the BSP. Disable to
+      drop the esp_eth dependency if you do not need wired networking.
+
+endmenu

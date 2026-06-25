@@ -62,6 +62,7 @@ jobs:
             components/drv2605
             components/encoder
             components/esp-box
+            components/esp32-p4-function-ev-board
             components/esp32-timer-cam
             components/event_manager
             components/expressive_eyes

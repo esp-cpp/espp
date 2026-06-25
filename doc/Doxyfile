@@ -103,6 +103,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/drv2605/example/main/drv2605_example.cpp \
   $(PROJECT_PATH)/components/encoder/example/main/encoder_example.cpp \
   $(PROJECT_PATH)/components/esp32-timer-cam/example/main/esp_timer_cam_example.cpp \
+  $(PROJECT_PATH)/components/esp32-p4-function-ev-board/example/main/esp32_p4_function_ev_board_example.cpp \
   $(PROJECT_PATH)/components/esp-box/example/main/esp_box_example.cpp \
   $(PROJECT_PATH)/components/event_manager/example/main/event_manager_example.cpp \
   $(PROJECT_PATH)/components/expressive_eyes/example/main/expressive_eyes_example.cpp \
@@ -233,6 +234,7 @@ INPUT = \
   $(PROJECT_PATH)/components/display/include/display.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/display_drivers.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/gc9a01.hpp \
+  $(PROJECT_PATH)/components/display_drivers/include/ek79007.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/ili9341.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/ili9881.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/sh8601.hpp \
@@ -247,6 +249,7 @@ INPUT = \
   $(PROJECT_PATH)/components/encoder/include/abi_encoder.hpp \
   $(PROJECT_PATH)/components/encoder/include/encoder_types.hpp \
   $(PROJECT_PATH)/components/esp32-timer-cam/include/esp32-timer-cam.hpp \
+  $(PROJECT_PATH)/components/esp32-p4-function-ev-board/include/esp32-p4-function-ev-board.hpp \
   $(PROJECT_PATH)/components/esp-box/include/esp-box.hpp \
   $(PROJECT_PATH)/components/event_manager/include/event_manager.hpp \
   $(PROJECT_PATH)/components/expressive_eyes/include/expressive_eyes.hpp \
