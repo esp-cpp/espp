@@ -162,7 +162,12 @@ bool M5StackTab5::initialize_lcd() {
   } else if (detected_controller == DisplayController::ST7123 && lcd_handles_.panel == nullptr) {
     dpi_cfg.virtual_channel = 0;
     dpi_cfg.dpi_clk_src = MIPI_DSI_DPI_CLK_SRC_DEFAULT;
-    dpi_cfg.dpi_clock_freq_mhz = 100;
+    // The ST7123 is a TDDI part: its touch engine scans during the display
+    // blanking interval and is timed against the pixel clock the vendor init
+    // table was tuned for. Running the panel faster than the reference 70 MHz
+    // (M5Stack/esp-bsp value) shrinks the blanking window and desyncs the touch
+    // scan, so the panel shows but touch never reports. Keep this at 70 MHz.
+    dpi_cfg.dpi_clock_freq_mhz = 70;
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
     dpi_cfg.in_color_format = LCD_COLOR_FMT_RGB565;
     dpi_cfg.out_color_format = LCD_COLOR_FMT_RGB565;

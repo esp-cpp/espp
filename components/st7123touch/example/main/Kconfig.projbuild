@@ -1,0 +1,17 @@
+menu "Example Configuration"
+
+    config EXAMPLE_I2C_SCL_GPIO
+        int "SCL GPIO Num"
+        range 0 56
+        default 22
+        help
+            GPIO number for I2C Master clock line.
+
+    config EXAMPLE_I2C_SDA_GPIO
+        int "SDA GPIO Num"
+        range 0 56
+        default 21
+        help
+            GPIO number for I2C Master data line.
+
+endmenu

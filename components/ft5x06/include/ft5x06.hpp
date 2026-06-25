@@ -1,8 +1,10 @@
 #pragma once
 
+#include <algorithm>
 #include <functional>
 
 #include "base_peripheral.hpp"
+#include "touch.hpp"
 
 namespace espp {
 /// @brief The FT5x06 touch controller.
@@ -10,7 +12,7 @@ namespace espp {
 ///
 /// \section ft5x06_ex1 Example
 /// \snippet ft5x06_example.cpp ft5x06 example
-class Ft5x06 : public BasePeripheral<> {
+class Ft5x06 : public BasePeripheral<>, public ITouchDevice {
 public:
   /// @brief The default I2C address for the FT5x06.
   static constexpr uint8_t DEFAULT_ADDRESS = (0x38);
@@ -48,35 +50,65 @@ public:
     }
   }
 
-  /// @brief Get the number of touch points.
+  /// @brief Update the cached touch state.
   /// @param ec The error code if the function fails.
-  /// @return The number of touch points.
-  uint8_t get_num_touch_points(std::error_code &ec) {
-    return read_u8_from_register((uint8_t)Registers::TOUCH_POINTS, ec);
+  /// @return True if new data was read successfully.
+  bool update(std::error_code &ec) override {
+    TouchState state{};
+    auto tp = read_u8_from_register((uint8_t)Registers::TOUCH_POINTS, ec);
+    if (ec) {
+      return false;
+    }
+    state.num_touch_points = std::min<uint8_t>(tp, TouchState::MAX_TOUCH_POINTS);
+    if (state.num_touch_points > 0) {
+      static constexpr size_t BYTES_PER_TOUCH = 6;
+      uint8_t data[TouchState::MAX_TOUCH_POINTS * BYTES_PER_TOUCH];
+      read_many_from_register((uint8_t)Registers::TOUCH1_XH, data,
+                              state.num_touch_points * BYTES_PER_TOUCH, ec);
+      if (ec) {
+        return false;
+      }
+      for (size_t i = 0; i < state.num_touch_points; i++) {
+        size_t offset = i * BYTES_PER_TOUCH;
+        state.points[i] = {
+            .x = static_cast<uint16_t>(((data[offset + 0] & 0x0f) << 8) + data[offset + 1]),
+            .y = static_cast<uint16_t>(((data[offset + 2] & 0x0f) << 8) + data[offset + 3]),
+        };
+      }
+      logger_.info("Got touch ({}, {})", state.points[0].x, state.points[0].y);
+    }
+    {
+      std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+      touch_state_ = state;
+    }
+    return true;
   }
 
-  /// @brief Get the touch point.
+  /// @brief Get the cached touch state.
+  /// @return The cached touch state as of the last update() call.
+  TouchState touch_state() const override {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    return touch_state_;
+  }
+
+  /// @brief Get the number of touch points.
+  /// @note This is the number of touch points that were present when the last
+  ///       update() was called
+  /// @return The number of touch points.
+  uint8_t get_num_touch_points() const { return touch_state().num_touch_points; }
+
+  /// @brief Get the touch point data.
+  /// @note This is the touch point data that was present when the last
+  ///       update() was called
   /// @param num_touch_points The number of touch points.
   /// @param x The x coordinate of the touch point.
   /// @param y The y coordinate of the touch point.
-  /// @param ec The error code if the function fails.
-  void get_touch_point(uint8_t *num_touch_points, uint16_t *x, uint16_t *y, std::error_code &ec) {
-    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-    auto tp = get_num_touch_points(ec);
-    if (ec) {
-      return;
-    }
-    *num_touch_points = tp;
-    if (*num_touch_points != 0) {
-      uint8_t data[4];
-      read_many_from_register((uint8_t)Registers::TOUCH1_XH, data, 4, ec);
-      if (ec) {
-        return;
-      }
-      *x = ((data[0] & 0x0f) << 8) + data[1];
-      *y = ((data[2] & 0x0f) << 8) + data[3];
-      logger_.info("Got touch ({}, {})", *x, *y);
-    }
+  void get_touch_point(uint8_t *num_touch_points, uint16_t *x, uint16_t *y) const {
+    auto state = touch_state();
+    auto point = state.primary_point();
+    *num_touch_points = state.num_touch_points;
+    *x = point.x;
+    *y = point.y;
   }
 
   /// @brief Get the gesture that was detected.
@@ -181,5 +213,7 @@ protected:
     ID_G_FT5201ID = 0xA8,
     ID_G_ERR = 0xA9,
   };
+
+  TouchState touch_state_{};
 };
 } // namespace espp

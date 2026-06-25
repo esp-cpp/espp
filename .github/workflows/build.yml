@@ -203,6 +203,8 @@ jobs:
           target: esp32s3
         - path: 'components/st25dv/example'
           target: esp32s3
+        - path: 'components/st7123touch/example'
+          target: esp32s3
         - path: 'components/state_machine/example'
           target: esp32
         - path: 'components/t-deck/example'
@@ -218,6 +220,8 @@ jobs:
         - path: 'components/thermistor/example'
           target: esp32
         - path: 'components/timer/example'
+          target: esp32
+        - path: 'components/touch/example'
           target: esp32
         - path: 'components/tla2528/example'
           target: esp32

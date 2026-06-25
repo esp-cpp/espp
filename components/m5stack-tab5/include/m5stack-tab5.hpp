@@ -40,6 +40,7 @@
 #include "pi4ioe5v.hpp"
 #include "rx8130ce.hpp"
 #include "st7123.hpp"
+#include "st7123touch.hpp"
 #include "touchpad_input.hpp"
 // #include "wifi_ap.hpp"
 // #include "wifi_sta.hpp"
@@ -107,8 +108,11 @@ public:
     }
   }
 
-  /// Alias for the GT911 touch controller used by the Tab5
+  /// Alias for the GT911 touch controller used by the Tab5 (ILI9881 variant)
   using TouchDriver = espp::Gt911;
+
+  /// Alias for the ST7123 integrated touch controller (ST7123 variant)
+  using St7123TouchDriver = espp::St7123Touch;
 
   /// Alias for the touchpad data used by the Tab5 touchpad
   using TouchpadData = espp::TouchpadData;
@@ -660,8 +664,17 @@ protected:
                      .scl_io_num = internal_i2c_scl,
                      .sda_pullup_en = GPIO_PULLUP_ENABLE,
                      .scl_pullup_en = GPIO_PULLUP_ENABLE,
-                     .timeout_ms = 200, // needs to be long enough for writing imu config file (8k)
-                     .clk_speed = 400'000}};
+                     .timeout_ms = 200,
+                     // Standard-mode (100 kHz) shared internal bus. At 400 kHz the
+                     // bus is marginal with this many devices on it — the ST7123
+                     // touch reads time out and a hung transaction corrupts a
+                     // concurrent BMI270 read (correlated touch I/O errors + IMU
+                     // vector jumps while dragging). Per-device speed mixing
+                     // (touch @100k, rest @400k) did NOT help: any 400 kHz traffic
+                     // disturbs the bus. 100 kHz everywhere is clean. The IMU's
+                     // 8 KB config upload is chunked (see initialize_imu) so it
+                     // still fits the 200 ms transaction timeout at this speed.
+                     .clk_speed = 100'000}};
 
   // Interrupt configurations
   espp::Interrupt::PinConfig button_interrupt_pin_{
@@ -697,7 +710,8 @@ protected:
 
   // Component instances
   std::shared_ptr<I2c::Device<uint8_t>> touch_i2c_device_;
-  std::shared_ptr<TouchDriver> touch_driver_;
+  std::shared_ptr<espp::ITouchDriver>
+      touch_driver_; ///< Concept-erased touch driver (GT911 or ST7123)
   std::shared_ptr<TouchpadInput> touchpad_input_;
   std::recursive_mutex touchpad_data_mutex_;
   TouchpadData touchpad_data_;
@@ -719,13 +733,10 @@ protected:
   i2s_chan_handle_t audio_tx_handle{nullptr};
   i2s_chan_handle_t audio_rx_handle{nullptr};
   i2s_std_config_t audio_std_cfg{};
-  i2s_event_callbacks_t audio_tx_callbacks_{};
-  i2s_event_callbacks_t audio_rx_callbacks_{};
   std::vector<uint8_t> audio_tx_buffer;
   std::vector<uint8_t> audio_rx_buffer;
   StreamBufferHandle_t audio_tx_stream;
   StreamBufferHandle_t audio_rx_stream;
-  std::atomic<bool> has_sound{false};
   std::atomic<bool> recording_{false};
   std::function<void(const uint8_t *data, size_t length)> audio_rx_callback_{nullptr};
 

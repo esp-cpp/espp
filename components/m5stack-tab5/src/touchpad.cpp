@@ -8,25 +8,32 @@ bool M5StackTab5::initialize_touch(const touch_callback_t &callback) {
     return true;
   }
 
-  logger_.info("Initializing multi-touch controller");
+  logger_.info("Initializing touch controller");
 
   touch_callback_ = callback;
 
-  // add touch interrupt
-  interrupts_.add_interrupt(touch_interrupt_pin_);
+  // Determine which touch controller is present based on the detected display.
+  // If the LCD has already been initialised, reuse the cached result; otherwise
+  // run the I2C probe now.
+  auto controller = display_controller_;
+  if (controller == DisplayController::UNKNOWN) {
+    controller = detect_display_controller();
+  }
 
-  // Reset touch controller via expander if available
-  touch_reset(true);
   using namespace std::chrono_literals;
-  std::this_thread::sleep_for(10ms);
-  touch_reset(false);
-  std::this_thread::sleep_for(50ms);
 
   std::error_code ec;
   touch_i2c_device_ = internal_i2c_.add_device<uint8_t>(
       {
-          .device_address = TouchDriver::DEFAULT_ADDRESS_2,
-          .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
+          .device_address = controller == DisplayController::ST7123
+                                ? St7123TouchDriver::DEFAULT_ADDRESS
+                                : TouchDriver::DEFAULT_ADDRESS_2,
+          // Keep the touch transaction timeout short. A touch read normally
+          // completes in well under 1 ms; the bus default (200 ms, sized for the
+          // IMU's large config write) would hold the shared internal I2C bus for
+          // a fifth of a second whenever the ST7123 stalls, starving the IMU/RTC/
+          // battery reads. Fail fast and let the next read retry instead.
+          .timeout_ms = 20,
           .scl_speed_hz = internal_i2c_.config().clk_speed,
           .log_level = espp::Logger::Verbosity::WARN,
       },
@@ -36,14 +43,58 @@ bool M5StackTab5::initialize_touch(const touch_callback_t &callback) {
     return false;
   }
 
-  // Create touch driver instance
-  touch_driver_ = std::make_shared<TouchDriver>(
-      TouchDriver::Config{.write = espp::make_i2c_addressed_write(touch_i2c_device_),
-                          .read = espp::make_i2c_addressed_read(touch_i2c_device_),
-                          .address = TouchDriver::DEFAULT_ADDRESS_2, // GT911 0x14 address
-                          .log_level = espp::Logger::Verbosity::WARN});
+  if (controller == DisplayController::ST7123) {
+    // The pin we historically called "TP_RST" (IO expander 0x43 P5) is in fact
+    // the ST7123 touch ENABLE line (esp-bsp's BSP_TOUCH_EN). The touch engine
+    // needs a clean disable→enable (low→high) edge to boot its firmware and
+    // start scanning; without it the chip answers I2C and reports correct
+    // firmware/config registers but never produces coordinates. Pulse it here.
+    logger_.info(
+        "ST7123 variant detected — pulsing touch enable (0x43 P5) to start the touch engine");
+    touch_reset(true); // drive 0x43 P5 low  (disable / reset touch)
+    std::this_thread::sleep_for(20ms);
+    touch_reset(false); // drive 0x43 P5 high (enable touch)
+    std::this_thread::sleep_for(50ms);
 
-  // Create touchpad input wrapper
+    auto driver = std::make_shared<St7123TouchDriver>(St7123TouchDriver::Config{
+        // Use two separate transactions (write the register pointer, then read)
+        // rather than a combined repeated-START. The longer combined transaction
+        // is more prone to I/O errors when reads run from the touch interrupt
+        // handler on this board.
+        .write = espp::make_i2c_addressed_write(touch_i2c_device_),
+        .read = espp::make_i2c_addressed_read(touch_i2c_device_),
+        .address = St7123TouchDriver::DEFAULT_ADDRESS,
+        .log_level = espp::Logger::Verbosity::WARN});
+    touch_driver_ = espp::make_touch_driver(std::move(driver));
+
+    // Now that the touch engine is actually scanning (it needed the correct DPI
+    // pixel clock to run), the ST7123 drives its TP_INT line low on each new
+    // touch report — just like the GT911 — so read it from the touch interrupt
+    // rather than polling. Reading only when a frame is ready avoids hammering
+    // the shared internal I2C bus and the mid-scan I2C stalls that aggressive
+    // polling provoked (which eventually wedged the touch engine).
+    interrupts_.add_interrupt(touch_interrupt_pin_);
+  } else {
+    // ILI9881 (and UNKNOWN fallback) use a standalone GT911 touch controller
+    // that requires a hardware reset via the IO expander before being used.
+    logger_.info("ILI9881/default variant — using GT911 touch controller");
+
+    touch_reset(true);
+    std::this_thread::sleep_for(10ms);
+    touch_reset(false);
+    std::this_thread::sleep_for(50ms);
+
+    auto driver = std::make_shared<TouchDriver>(
+        TouchDriver::Config{.write = espp::make_i2c_addressed_write(touch_i2c_device_),
+                            .read = espp::make_i2c_addressed_read(touch_i2c_device_),
+                            .address = TouchDriver::DEFAULT_ADDRESS_2, // GT911 0x14
+                            .log_level = espp::Logger::Verbosity::WARN});
+    touch_driver_ = espp::make_touch_driver(std::move(driver));
+
+    // The GT911 drives TP_INT, so read it from the touch interrupt.
+    interrupts_.add_interrupt(touch_interrupt_pin_);
+  }
+
   touchpad_input_ = std::make_shared<TouchpadInput>(
       TouchpadInput::Config{.touchpad_read = std::bind_front(&M5StackTab5::touchpad_read, this),
                             .swap_xy = false,
@@ -57,28 +108,31 @@ bool M5StackTab5::initialize_touch(const touch_callback_t &callback) {
 
 bool M5StackTab5::update_touch() {
   logger_.debug("Updating touch data");
+
   if (!touch_driver_) {
-    logger_.error("Touch driver not initialized");
+    logger_.error("No touch driver initialized");
     return false;
   }
 
-  // get the latest data from the device
   std::error_code ec;
   bool new_data = touch_driver_->update(ec);
   if (ec) {
-    logger_.error("could not update touch_driver: {}", ec.message());
+    logger_.error("could not update touch driver: {}", ec.message());
     std::lock_guard<std::recursive_mutex> lock(touchpad_data_mutex_);
     touchpad_data_ = {};
     return false;
   }
-  if (!new_data) {
+  logger_.debug("Touch driver update returned new_data={}", new_data);
+  if (!new_data)
     return false;
-  }
-  // get the latest data from the touchpad
+
   TouchpadData temp_data;
   touch_driver_->get_touch_point(&temp_data.num_touch_points, &temp_data.x, &temp_data.y);
   temp_data.btn_state = touch_driver_->get_home_button_state();
-  // update the touchpad data
+
+  logger_.debug("Touch data: num_touch_points={}, x={}, y={}, btn_state={}",
+                temp_data.num_touch_points, temp_data.x, temp_data.y, temp_data.btn_state);
+
   std::lock_guard<std::recursive_mutex> lock(touchpad_data_mutex_);
   touchpad_data_ = temp_data;
   return true;

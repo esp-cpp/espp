@@ -22,3 +22,4 @@ dependencies:
   lvgl/lvgl:
     version: '>=9.2.2'
   espp/base_component: '>=1.0'
+  espp/touch: '>=1.0'

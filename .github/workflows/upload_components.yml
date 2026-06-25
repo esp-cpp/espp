@@ -122,6 +122,7 @@ jobs:
             components/socket
             components/spi
             components/st25dv
+            components/st7123touch
             components/state_machine
             components/t_keyboard
             components/t-deck
@@ -130,6 +131,7 @@ jobs:
             components/task
             components/thermistor
             components/timer
+            components/touch
             components/tla2528
             components/tt21100
             components/utils

@@ -7,7 +7,7 @@ using namespace espp;
 ////////////////////////
 
 bool EspBox::initialize_touch(const EspBox::touch_callback_t &callback) {
-  if (gt911_ || tt21100_) {
+  if (touch_driver_) {
     logger_.warn("Touch already initialized, not initializing again!");
     return false;
   }
@@ -28,7 +28,7 @@ bool EspBox::initialize_touch(const EspBox::touch_callback_t &callback) {
       return false;
     }
     logger_.info("Initializing GT911");
-    gt911_ = std::make_unique<espp::Gt911>(
+    touch_driver_ = std::make_shared<espp::Gt911>(
         espp::Gt911::Config{.write = espp::make_i2c_addressed_write(touch_i2c_device_),
                             .read = espp::make_i2c_addressed_read(touch_i2c_device_),
                             .log_level = espp::Logger::Verbosity::WARN});
@@ -48,7 +48,7 @@ bool EspBox::initialize_touch(const EspBox::touch_callback_t &callback) {
       return false;
     }
     logger_.info("Initializing TT21100");
-    tt21100_ = std::make_unique<espp::Tt21100>(
+    touch_driver_ = std::make_shared<espp::Tt21100>(
         espp::Tt21100::Config{.read = espp::make_i2c_addressed_read(touch_i2c_device_),
                               .log_level = espp::Logger::Verbosity::WARN});
   } break;
@@ -65,69 +65,24 @@ bool EspBox::initialize_touch(const EspBox::touch_callback_t &callback) {
   return true;
 }
 
-bool EspBox::update_gt911() {
-  // ensure the gt911 is initialized
-  if (!gt911_) {
-    return false;
-  }
-  // get the latest data from the device
-  std::error_code ec;
-  bool new_data = gt911_->update(ec);
-  if (ec) {
-    logger_.error("could not update gt911: {}\n", ec.message());
-    std::lock_guard<std::recursive_mutex> lock(touchpad_data_mutex_);
-    touchpad_data_ = {};
-    return false;
-  }
-  if (!new_data) {
-    return false;
-  }
-  // get the latest data from the touchpad
-  TouchpadData temp_data;
-  gt911_->get_touch_point(&temp_data.num_touch_points, &temp_data.x, &temp_data.y);
-  temp_data.btn_state = gt911_->get_home_button_state();
-  // update the touchpad data
-  std::lock_guard<std::recursive_mutex> lock(touchpad_data_mutex_);
-  touchpad_data_ = temp_data;
-  return true;
-}
-
-bool EspBox::update_tt21100() {
-  // ensure the tt21100 is initialized
-  if (!tt21100_) {
-    return false;
-  }
-  // get the latest data from the device
-  std::error_code ec;
-  bool new_data = tt21100_->update(ec);
-  if (ec) {
-    logger_.error("could not update tt21100: {}\n", ec.message());
-    std::lock_guard<std::recursive_mutex> lock(touchpad_data_mutex_);
-    touchpad_data_ = {};
-    return false;
-  }
-  if (!new_data) {
-    return false;
-  }
-  // get the latest data from the touchpad
-  TouchpadData temp_data;
-  tt21100_->get_touch_point(&temp_data.num_touch_points, &temp_data.x, &temp_data.y);
-  temp_data.btn_state = tt21100_->get_home_button_state();
-  // update the touchpad data
-  std::lock_guard<std::recursive_mutex> lock(touchpad_data_mutex_);
-  touchpad_data_ = temp_data;
-  return true;
-}
-
 bool EspBox::update_touch() {
-  switch (box_type_) {
-  case BoxType::BOX3:
-    return update_gt911();
-  case BoxType::BOX:
-    return update_tt21100();
-  default:
+  if (!touch_driver_) {
     return false;
   }
+  std::error_code ec;
+  bool new_data = touch_driver_->update(ec);
+  if (ec) {
+    logger_.error("could not update touch driver: {}\n", ec.message());
+    std::lock_guard<std::recursive_mutex> lock(touchpad_data_mutex_);
+    touchpad_data_ = {};
+    return false;
+  }
+  if (!new_data) {
+    return false;
+  }
+  std::lock_guard<std::recursive_mutex> lock(touchpad_data_mutex_);
+  touchpad_data_ = touch_driver_->touchpad_data();
+  return true;
 }
 
 void EspBox::touchpad_read(uint8_t *num_touch_points, uint16_t *x, uint16_t *y,

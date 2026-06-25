@@ -39,14 +39,20 @@ extern "C" void app_main(void) {
     // the state
     auto task_fn = [&ft5x06](std::mutex &m, std::condition_variable &cv) {
       std::error_code ec;
-      // get the state
-      uint8_t num_touch_points = 0;
-      uint16_t x = 0, y = 0;
-      ft5x06.get_touch_point(&num_touch_points, &x, &y, ec);
+      // update the cached touch state
+      bool new_data = ft5x06.update(ec);
       if (ec) {
-        fmt::print("Could not get touch point\n");
+        fmt::print("Could not update state\n");
         return false;
       }
+      if (!new_data) {
+        return false;
+      }
+      auto state = ft5x06.touch_state();
+      auto point = state.primary_point();
+      uint8_t num_touch_points = state.num_touch_points;
+      uint16_t x = point.x;
+      uint16_t y = point.y;
       fmt::print("num_touch_points: {}, x: {}, y: {}\n", num_touch_points, x, y);
       // NOTE: sleeping in this way allows the sleep to exit early when the
       // task is being stopped / destroyed

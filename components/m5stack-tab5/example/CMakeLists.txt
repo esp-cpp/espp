@@ -32,7 +32,9 @@ set(EXTRA_COMPONENT_DIRS
   "../../../components/rx8130ce"
   "../../../components/pi4ioe5v"
   "../../../components/spi"
+  "../../../components/st7123touch"
   "../../../components/task"
+  "../../../components/touch"
 )
 
 set(
