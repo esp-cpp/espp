@@ -260,19 +260,35 @@ extern "C" void app_main(void) {
   // Touch: draw a circle wherever the screen is touched, and play a click on
   // each new touch-down. play_audio() is non-blocking, and the click is gated to
   // the touch-down edge so it doesn't retrigger every poll while held/dragging.
+  //
+  // The touch task polls at ~16 ms, so we must NOT draw a circle on every poll:
+  // a held/stationary finger would stack many translucent (LV_OPA_70) circles at
+  // the same point and they'd composite to look fully opaque. Draw only on a new
+  // touch-down or once the point has moved at least one radius, so a stationary
+  // touch draws a single circle and a drag leaves a spaced trail.
+  static constexpr int kCircleRadius = 10;
   static std::atomic<int> touch_x{0}, touch_y{0}, touch_n{0};
   board.initialize_touch([&](const auto &data) {
     static int prev_touch_n = 0;
+    static int last_drawn_x = 0, last_drawn_y = 0;
     auto td = board.touchpad_convert(data);
     touch_n = td.num_touch_points;
     touch_x = td.x;
     touch_y = td.y;
     if (td.num_touch_points > 0) {
-      if (prev_touch_n == 0 && !audio_bytes.empty()) {
-        board.play_audio(audio_bytes); // non-blocking
+      const bool new_touch = (prev_touch_n == 0);
+      if (new_touch && !audio_bytes.empty()) {
+        board.play_audio(audio_bytes); // non-blocking, touch-down edge only
       }
-      std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
-      draw_circle(td.x, td.y, 10);
+      const int dx = static_cast<int>(td.x) - last_drawn_x;
+      const int dy = static_cast<int>(td.y) - last_drawn_y;
+      const bool moved = (dx * dx + dy * dy) >= (kCircleRadius * kCircleRadius);
+      if (new_touch || moved) {
+        std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
+        draw_circle(td.x, td.y, kCircleRadius);
+        last_drawn_x = td.x;
+        last_drawn_y = td.y;
+      }
     }
     prev_touch_n = td.num_touch_points;
   });

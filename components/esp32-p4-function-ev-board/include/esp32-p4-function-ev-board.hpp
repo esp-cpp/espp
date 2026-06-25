@@ -387,7 +387,11 @@ protected:
 
   // MIPI-DSI common parameters
   static constexpr int mipi_dsi_lanes = 2;
-  static constexpr int mipi_dsi_lane_bitrate_mbps = 1000;
+  // DSI HS lane bit rate. 900 Mbps matches Espressif's official
+  // EK79007_PANEL_BUS_DSI_2CH_CONFIG; using the wrong rate (e.g. 1000) mis-packs
+  // the pixel bits on the link, which shows up as shifted/oversaturated colors
+  // (notably on mid-tones / alpha-blended content) while white/black look fine.
+  static constexpr int mipi_dsi_lane_bitrate_mbps = 900;
   static constexpr int mipi_dsi_phy_ldo_channel = 3; // on-chip LDO_VO3 -> VDD_MIPI_DPHY
   static constexpr int mipi_dsi_phy_ldo_voltage_mv = 2500;
 

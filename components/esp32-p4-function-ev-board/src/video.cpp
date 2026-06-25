@@ -143,16 +143,14 @@ bool Esp32P4FunctionEvBoard::initialize_lcd() {
       logger_.error("Failed to create MIPI DSI DPI panel: {}", esp_err_to_name(ret));
       return false;
     }
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
-    // On ESP-IDF >= 6.0 the DPI panel needs DMA2D explicitly enabled for
-    // esp_lcd_panel_draw_bitmap() (the LVGL flush path) to copy into the
-    // framebuffer; without it the screen stays blank.
-    ret = esp_lcd_dpi_panel_enable_dma2d(lcd_handles_.panel);
-    if (ret != ESP_OK) {
-      logger_.error("Failed to enable DMA2D on DPI panel: {}", esp_err_to_name(ret));
-      return false;
-    }
-#endif
+    // NOTE: deliberately do NOT enable DMA2D for the DPI panel. DMA2D is a
+    // color-processing engine, not a plain copy: routing the LVGL flush
+    // (esp_lcd_panel_draw_bitmap) through it corrupts the RGB565 channel order on
+    // this board — colors come out brighter/greener and alpha blends render
+    // wrong, while the bytes in the frame buffer are correct. The plain CPU copy
+    // path renders correctly and matches the m5stack-tab5 BSP, which also does
+    // not enable DMA2D on IDF >= 6. (An earlier "blank screen without DMA2D" was
+    // actually the RST_LCD/PWM jumper wiring, not DMA2D.)
   }
 
   // Send the panel controller's vendor init sequence over DBI (command mode),
@@ -249,10 +247,10 @@ bool Esp32P4FunctionEvBoard::initialize_display(size_t pixel_buffer_size) {
         Display<Pixel>::DynamicMemoryConfig{
             .pixel_buffer_size = pixel_buffer_size,
             .double_buffered = true,
-            // Allocate the LVGL draw buffers in PSRAM, not internal RAM. The
-            // MIPI-DSI DMA2D path can read PSRAM, and keeping these large buffers
-            // out of internal SRAM leaves room for FreeRTOS/pthread task stacks
-            // (which must be internal).
+            // Allocate the LVGL draw buffers in PSRAM to keep these large buffers
+            // out of internal SRAM, leaving room for the FreeRTOS/pthread task
+            // stacks that must be internal (e.g. the RTPS receive/announce tasks).
+            // The CPU-copy flush reads them coherently.
             .allocation_flags = MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT,
         },
         Logger::Verbosity::WARN);
