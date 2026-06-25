@@ -4,15 +4,6 @@
 // Audio Functions   //
 ////////////////////////
 
-static TaskHandle_t play_audio_task_handle_ = NULL;
-
-static bool IRAM_ATTR audio_tx_sent_callback(i2s_chan_handle_t handle, i2s_event_data_t *event,
-                                             void *user_ctx) {
-  // notify the main task that we're done
-  vTaskNotifyGiveFromISR(play_audio_task_handle_, NULL);
-  return true;
-}
-
 namespace espp {
 
 bool M5StackTab5::initialize_audio(uint32_t sample_rate,
@@ -62,10 +53,13 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
   chan_cfg.auto_clear = true; // Auto clear the legacy data in the DMA buffer
   ESP_ERROR_CHECK(i2s_new_channel(&chan_cfg, &audio_tx_handle, &audio_rx_handle));
 
-  // Configure I2S for stereo output (needed for proper ES8388 operation)
+  // Configure I2S for stereo output (needed for proper ES8388 operation). The
+  // playback data is interleaved 16-bit stereo, so the slot mode MUST be stereo
+  // — a mono slot plays interleaved stereo at the wrong rate and garbles L/R.
   audio_std_cfg = {
       .clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(sample_rate),
-      .slot_cfg = I2S_STD_PHILIP_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_MONO),
+      .slot_cfg =
+          I2S_STD_PHILIP_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_STEREO),
       .gpio_cfg = {.mclk = audio_mclk_io,
                    .bclk = audio_sclk_io,
                    .ws = audio_lrck_io,
@@ -157,16 +151,9 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
   };
   ESP_ERROR_CHECK(i2s_channel_init_tdm_mode(audio_rx_handle, &tdm_cfg));
 
-  // Register TX done callback
-  memset(&audio_tx_callbacks_, 0, sizeof(audio_tx_callbacks_));
-  audio_tx_callbacks_.on_sent = audio_tx_sent_callback;
-  i2s_channel_register_event_callback(audio_tx_handle, &audio_tx_callbacks_, NULL);
-
   // now enable both channels
   ESP_ERROR_CHECK(i2s_channel_enable(audio_tx_handle));
   ESP_ERROR_CHECK(i2s_channel_enable(audio_rx_handle));
-
-  play_audio_task_handle_ = xTaskGetCurrentTaskHandle();
 
   // Stream buffers and task
   auto tx_buf_size = calc_audio_buffer_size(sample_rate);
@@ -216,11 +203,10 @@ void M5StackTab5::play_audio(const uint8_t *data, uint32_t num_bytes) {
   if (!audio_initialized_ || !data || num_bytes == 0) {
     return;
   }
-  if (has_sound) {
-    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-  }
+  // Don't block here: append what fits into the stream buffer and return
+  // immediately. The audio task drains it to the I2S peripheral. Matches the
+  // esp-box / t-deck playback path.
   xStreamBufferSendFromISR(audio_tx_stream, data, num_bytes, NULL);
-  has_sound = true;
 }
 
 void M5StackTab5::play_audio(std::span<const uint8_t> data) {
@@ -247,6 +233,9 @@ void M5StackTab5::stop_audio_recording() {
 bool M5StackTab5::audio_task_callback(std::mutex &m, std::condition_variable &cv,
                                       bool &task_notified) {
   // Playback: write next buffer worth of audio from stream buffer
+  // Queue the next I2S out frame to write (matches the esp-box / t-deck path):
+  // always write a full, frame-aligned buffer with the queued samples zero-
+  // padded up to buffer_size so the I2S DMA is fed at a constant cadence.
   uint16_t available = xStreamBufferBytesAvailable(audio_tx_stream);
   int buffer_size = audio_tx_buffer.size();
   available = std::min<uint16_t>(available, buffer_size);
@@ -256,7 +245,7 @@ bool M5StackTab5::audio_task_callback(std::mutex &m, std::condition_variable &cv
     i2s_channel_write(audio_tx_handle, tx_buf, buffer_size, NULL, portMAX_DELAY);
   } else {
     xStreamBufferReceive(audio_tx_stream, tx_buf, available, 0);
-    i2s_channel_write(audio_tx_handle, tx_buf, available, NULL, portMAX_DELAY);
+    i2s_channel_write(audio_tx_handle, tx_buf, buffer_size, NULL, portMAX_DELAY);
   }
 
   // Recording: read from RX channel and invoke callback

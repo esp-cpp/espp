@@ -33,7 +33,6 @@
 #include "es8388.hpp"
 #include "gt911.hpp"
 #include "i2c.hpp"
-#include "st7123touch.hpp"
 #include "ili9881.hpp"
 #include "ina226.hpp"
 #include "interrupt.hpp"
@@ -41,6 +40,7 @@
 #include "pi4ioe5v.hpp"
 #include "rx8130ce.hpp"
 #include "st7123.hpp"
+#include "st7123touch.hpp"
 #include "touchpad_input.hpp"
 // #include "wifi_ap.hpp"
 // #include "wifi_sta.hpp"
@@ -701,8 +701,11 @@ protected:
 
   // Component instances
   std::shared_ptr<I2c::Device<uint8_t>> touch_i2c_device_;
-  std::shared_ptr<espp::ITouchDriver> touch_driver_; ///< Concept-erased touch driver (GT911 or ST7123)
+  std::shared_ptr<espp::ITouchDriver>
+      touch_driver_; ///< Concept-erased touch driver (GT911 or ST7123)
   std::shared_ptr<TouchpadInput> touchpad_input_;
+  std::unique_ptr<espp::Task>
+      touch_poll_task_; ///< Polls the touch driver when it does not drive TP_INT (e.g. ST7123)
   std::recursive_mutex touchpad_data_mutex_;
   TouchpadData touchpad_data_;
   touch_callback_t touch_callback_{nullptr};
@@ -723,13 +726,10 @@ protected:
   i2s_chan_handle_t audio_tx_handle{nullptr};
   i2s_chan_handle_t audio_rx_handle{nullptr};
   i2s_std_config_t audio_std_cfg{};
-  i2s_event_callbacks_t audio_tx_callbacks_{};
-  i2s_event_callbacks_t audio_rx_callbacks_{};
   std::vector<uint8_t> audio_tx_buffer;
   std::vector<uint8_t> audio_rx_buffer;
   StreamBufferHandle_t audio_tx_stream;
   StreamBufferHandle_t audio_rx_stream;
-  std::atomic<bool> has_sound{false};
   std::atomic<bool> recording_{false};
   std::function<void(const uint8_t *data, size_t length)> audio_rx_callback_{nullptr};
 

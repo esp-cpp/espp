@@ -43,7 +43,7 @@ static bool load_audio(size_t &out_size, size_t &out_sample_rate);
 static void play_click(espp::M5StackTab5 &tab5);
 
 extern "C" void app_main(void) {
-  espp::Logger logger({.tag = "M5Stack Tab5 Example", .level = espp::Logger::Verbosity::DEBUG});
+  espp::Logger logger({.tag = "M5Stack Tab5 Example", .level = espp::Logger::Verbosity::INFO});
   logger.info("Starting example!");
 
   //! [m5stack tab5 example]
@@ -92,7 +92,7 @@ extern "C" void app_main(void) {
     static auto previous_touchpad_data = tab5.touchpad_convert(touch);
     auto touchpad_data = tab5.touchpad_convert(touch);
     if (touchpad_data != previous_touchpad_data) {
-      logger.info("Touch: {}", touchpad_data);
+      logger.debug("Touch: {}", touchpad_data);
       previous_touchpad_data = touchpad_data;
       // if the button is pressed, clear the circles
       if (touchpad_data.btn_state) {

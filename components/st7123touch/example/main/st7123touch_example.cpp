@@ -30,10 +30,13 @@ extern "C" void app_main(void) {
     // it is non-copyable and non-movable — construct it directly inside the
     // shared_ptr rather than moving a stack instance into it.
     auto touch = std::make_shared<espp::St7123Touch>(espp::St7123Touch::Config{
-        .write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1, std::placeholders::_2,
-                           std::placeholders::_3),
-        .read = std::bind(&espp::I2c::read, &i2c, std::placeholders::_1, std::placeholders::_2,
-                          std::placeholders::_3),
+        // The ST7123 only holds its register pointer within a single I2C
+        // transaction, so register reads must be a repeated-START
+        // write-then-read rather than a separate write + read.
+        .write_then_read = [&i2c](uint8_t addr, const uint8_t *wdata, size_t wlen, uint8_t *rdata,
+                                  size_t rlen) -> bool {
+          return i2c.write_read(addr, wdata, wlen, rdata, rlen);
+        },
         .log_level = espp::Logger::Verbosity::WARN,
     });
 
