@@ -91,6 +91,16 @@ public:
   /// Mount point for the uSD card
   static constexpr char mount_point[] = "/sdcard";
 
+  /// Default touch INT GPIO used by initialize_touch(). GPIO_NUM_NC means the
+  /// GT911 is polled; if interrupt-driven touch is enabled via Kconfig this is
+  /// the configured GPIO (CONFIG_ESP_P4_EV_BOARD_TOUCH_INTERRUPT_GPIO).
+#if CONFIG_ESP_P4_EV_BOARD_TOUCH_INTERRUPT
+  static constexpr gpio_num_t touch_interrupt_default =
+      static_cast<gpio_num_t>(CONFIG_ESP_P4_EV_BOARD_TOUCH_INTERRUPT_GPIO);
+#else
+  static constexpr gpio_num_t touch_interrupt_default = GPIO_NUM_NC;
+#endif
+
   /// @brief Access the singleton instance
   /// @return Reference to the singleton instance
   static Esp32P4FunctionEvBoard &get() {
@@ -145,10 +155,16 @@ public:
 
   /// Initialize the GT911 multi-touch controller
   /// \param callback The touchpad callback
+  /// \param interrupt_pin GPIO wired to the GT911 touch INT pin. If GPIO_NUM_NC
+  ///        (the default, unless interrupt-driven touch is enabled via Kconfig),
+  ///        the GT911 is polled in a task. If a valid GPIO is provided, touch is
+  ///        read from a GPIO interrupt on that pin instead of polling.
   /// \return true if the touchpad was successfully initialized, false otherwise
-  /// \note The touch interrupt is not routed on this board, so a polling task is
-  ///       used to read the GT911 and invoke the callback.
-  bool initialize_touch(const touch_callback_t &callback = nullptr);
+  /// \note The HMI subboard does not route the GT911 INT pin to the ESP32-P4 by
+  ///       default (hence polling); the LCD expansion header exposes it, so wiring
+  ///       it to a free GPIO enables the interrupt-driven path.
+  bool initialize_touch(const touch_callback_t &callback = nullptr,
+                        gpio_num_t interrupt_pin = touch_interrupt_default);
 
   /// Get the number of bytes per pixel for the display
   /// \return The number of bytes per pixel

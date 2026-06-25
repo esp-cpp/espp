@@ -2,6 +2,14 @@
 
 #if CONFIG_ESP_P4_EV_BOARD_ETHERNET
 
+#include "esp_idf_version.h"
+#ifndef ESP_IDF_VERSION_VAL
+#define ESP_IDF_VERSION_VAL(major, minor, patch) (((major) << 16) | ((minor) << 8) | (patch))
+#endif
+#ifndef ESP_IDF_VERSION
+#define ESP_IDF_VERSION ESP_IDF_VERSION_VAL(0, 0, 0)
+#endif
+
 #include <esp_eth.h>
 #include <esp_eth_mac_esp.h>
 #include <esp_eth_netif_glue.h>
@@ -91,19 +99,22 @@ bool Esp32P4FunctionEvBoard::initialize_ethernet(const ethernet_link_callback_t 
   // NOTE: we can't use the ETH_ESP32_EMAC_DEFAULT_CONFIG macro because it's out
   // of order which is a hard error in c++20 and above.
   eth_esp32_emac_config_t esp32_emac_config = {
-      .smi_gpio = {.mdc_num = 31, .mdio_num = 52},
-      .interface = EMAC_DATA_INTERFACE_RMII,
-      .clock_config = {.rmii = {.clock_mode = EMAC_CLK_EXT_IN, .clock_gpio = 50}},
-      .dma_burst_len = ETH_DMA_BURST_LEN_32,
-      .intr_priority = 0,
-      .emac_dataif_gpio = {.rmii = {.tx_en_num = 49,
-                                    .txd0_num = 34,
-                                    .txd1_num = 35,
-                                    .crs_dv_num = 28,
-                                    .rxd0_num = 29,
-                                    .rxd1_num = 30}},
-      .clock_config_out_in = {.rmii = {.clock_mode = EMAC_CLK_EXT_IN, .clock_gpio = -1}},
-      .mdc_freq_hz = 0,
+    .smi_gpio = {.mdc_num = 31, .mdio_num = 52},
+    .interface = EMAC_DATA_INTERFACE_RMII,
+    .clock_config = {.rmii = {.clock_mode = EMAC_CLK_EXT_IN, .clock_gpio = 50}},
+    .dma_burst_len = ETH_DMA_BURST_LEN_32,
+    .intr_priority = 0,
+    .emac_dataif_gpio = {.rmii = {.tx_en_num = 49,
+                                  .txd0_num = 34,
+                                  .txd1_num = 35,
+                                  .crs_dv_num = 28,
+                                  .rxd0_num = 29,
+                                  .rxd1_num = 30}},
+    .clock_config_out_in = {.rmii = {.clock_mode = EMAC_CLK_EXT_IN, .clock_gpio = -1}},
+// The below only exists in esp-idf >= v6.0
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
+    .mdc_freq_hz = 0,
+#endif
   };
 #pragma GCC diagnostic pop
 

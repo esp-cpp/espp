@@ -269,28 +269,22 @@ extern "C" void app_main(void) {
   static constexpr int kCircleRadius = 10;
   static std::atomic<int> touch_x{0}, touch_y{0}, touch_n{0};
   board.initialize_touch([&](const auto &data) {
-    static int prev_touch_n = 0;
-    static int last_drawn_x = 0, last_drawn_y = 0;
     auto td = board.touchpad_convert(data);
+    static Board::TouchpadData prev_td = {};
     touch_n = td.num_touch_points;
     touch_x = td.x;
     touch_y = td.y;
     if (td.num_touch_points > 0) {
-      const bool new_touch = (prev_touch_n == 0);
+      const bool new_touch = (prev_td != td);
       if (new_touch && !audio_bytes.empty()) {
         board.play_audio(audio_bytes); // non-blocking, touch-down edge only
       }
-      const int dx = static_cast<int>(td.x) - last_drawn_x;
-      const int dy = static_cast<int>(td.y) - last_drawn_y;
-      const bool moved = (dx * dx + dy * dy) >= (kCircleRadius * kCircleRadius);
-      if (new_touch || moved) {
+      if (new_touch) {
         std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
         draw_circle(td.x, td.y, kCircleRadius);
-        last_drawn_x = td.x;
-        last_drawn_y = td.y;
       }
     }
-    prev_touch_n = td.num_touch_points;
+    prev_td = td;
   });
 
   // Run the LVGL task handler periodically

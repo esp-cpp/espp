@@ -32,8 +32,27 @@ menu "ESP32-P4 Function EV Board Configuration"
     int "Touch polling task stack size (bytes)"
     default 4096
     help
-      Size of the stack used for the GT911 touch polling task. The HMI subboard
-      does not route the touch interrupt to the ESP32-P4, so touch is polled.
+      Size of the stack used for the GT911 touch polling task. Used only in
+      polling mode (see ESP_P4_EV_BOARD_TOUCH_INTERRUPT).
+
+  config ESP_P4_EV_BOARD_TOUCH_INTERRUPT
+    bool "Use interrupt-driven touch instead of polling"
+    default n
+    help
+      By default the ESP32-P4-HMI-Subboard does not route the GT911 touch INT pin
+      to the ESP32-P4, so touch is polled in a task. The LCD expansion header does
+      expose the touch INT pin: if you wire it to a free ESP32-P4 GPIO, enable this
+      to read the GT911 from a GPIO interrupt instead of polling (lower CPU usage
+      and latency). The GPIO is set below, and can also be overridden at runtime
+      via initialize_touch().
+
+  config ESP_P4_EV_BOARD_TOUCH_INTERRUPT_GPIO
+    int "Touch interrupt GPIO"
+    depends on ESP_P4_EV_BOARD_TOUCH_INTERRUPT
+    default 33
+    help
+      GPIO that the GT911 touch INT pin (from the LCD expansion header) is wired
+      to. Must be a free GPIO not used by another on-board peripheral.
 
   config ESP_P4_EV_BOARD_AUDIO_TASK_STACK_SIZE
     int "Audio task stack size (bytes)"

@@ -4,7 +4,8 @@ using namespace std::chrono_literals;
 
 namespace espp {
 
-bool Esp32P4FunctionEvBoard::initialize_touch(const touch_callback_t &callback) {
+bool Esp32P4FunctionEvBoard::initialize_touch(const touch_callback_t &callback,
+                                              gpio_num_t interrupt_pin) {
   if (touch_driver_) {
     logger_.warn("Touch driver already initialized");
     return true;
@@ -53,22 +54,43 @@ bool Esp32P4FunctionEvBoard::initialize_touch(const touch_callback_t &callback) 
       .invert_y = touch_invert_y,
       .log_level = espp::Logger::Verbosity::WARN});
 
-  // The touch interrupt is not routed to the ESP32-P4 on this board, so poll the
-  // GT911 in a task and invoke the user callback on new data.
-  touch_task_ = std::make_unique<espp::Task>(espp::Task::Config{
-      .callback = [this](std::mutex &m, std::condition_variable &cv) -> bool {
-        if (update_touch()) {
-          if (touch_callback_) {
-            touch_callback_(touchpad_data());
+  if (interrupt_pin != GPIO_NUM_NC) {
+    // Interrupt-driven: read the GT911 only when its INT pin signals new data,
+    // instead of polling. update_touch() reads the touch point(s) and clears the
+    // GT911's data-ready flag (which de-asserts INT). We use ANY_EDGE so this
+    // works regardless of the GT911's configured INT polarity; a spurious edge
+    // just finds no new data and invokes nothing.
+    logger_.info("Touch in interrupt mode (GT911 INT on GPIO{})", static_cast<int>(interrupt_pin));
+    interrupts_.add_interrupt(
+        espp::Interrupt::PinConfig{.gpio_num = interrupt_pin,
+                                   .callback =
+                                       [this](const auto &) {
+                                         if (update_touch() && touch_callback_) {
+                                           touch_callback_(touchpad_data());
+                                         }
+                                       },
+                                   .active_level = espp::Interrupt::ActiveLevel::LOW,
+                                   .interrupt_type = espp::Interrupt::Type::ANY_EDGE,
+                                   .pullup_enabled = true});
+  } else {
+    // The touch INT pin is not wired to a GPIO, so poll the GT911 in a task and
+    // invoke the user callback on new data.
+    logger_.info("Touch in polling mode (GT911 INT not wired)");
+    touch_task_ = std::make_unique<espp::Task>(espp::Task::Config{
+        .callback = [this](std::mutex &m, std::condition_variable &cv) -> bool {
+          if (update_touch()) {
+            if (touch_callback_) {
+              touch_callback_(touchpad_data());
+            }
           }
-        }
-        std::unique_lock<std::mutex> lock(m);
-        cv.wait_for(lock, 16ms);
-        return false; // don't stop
-      },
-      .task_config = {.name = "p4-ev touch",
-                      .stack_size_bytes = CONFIG_ESP_P4_EV_BOARD_TOUCH_TASK_STACK_SIZE}});
-  touch_task_->start();
+          std::unique_lock<std::mutex> lock(m);
+          cv.wait_for(lock, 16ms);
+          return false; // don't stop
+        },
+        .task_config = {.name = "p4-ev touch",
+                        .stack_size_bytes = CONFIG_ESP_P4_EV_BOARD_TOUCH_TASK_STACK_SIZE}});
+    touch_task_->start();
+  }
 
   logger_.info("Touch controller initialized");
   return true;
