@@ -308,7 +308,7 @@ public:
   /// \return True if info retrieved successfully
   bool get_sd_card_info(uint32_t *size_mb, uint32_t *free_mb) const;
 
-#if CONFIG_ESP_P4_EV_BOARD_ETHERNET
+#if CONFIG_ESP_P4_EV_BOARD_ETHERNET || defined(_DOXYGEN_)
   /////////////////////////////////////////////////////////////////////////////
   // Ethernet (EMAC + IP101 RMII PHY)
   /////////////////////////////////////////////////////////////////////////////
@@ -329,7 +329,7 @@ public:
   /// Get the most recently acquired IPv4 address (0 if none)
   /// \return The IPv4 address
   esp_ip4_addr_t ethernet_ip() const { return ethernet_ip_; }
-#endif // CONFIG_ESP_P4_EV_BOARD_ETHERNET
+#endif // CONFIG_ESP_P4_EV_BOARD_ETHERNET || defined(_DOXYGEN_)
 
   /////////////////////////////////////////////////////////////////////////////
   // Camera (MIPI-CSI) — pins wired, capture pipeline is a stub
