@@ -1,13 +1,12 @@
 menu "ESP32-P4 Function EV Board Configuration"
 
   choice ESP_P4_EV_BOARD_DISPLAY
-    prompt "HMI subboard display panel (fallback/default)"
+    prompt "HMI subboard display panel"
     default ESP_P4_EV_BOARD_DISPLAY_EK79007
     help
-      The BSP probes the attached MIPI-DSI panel at runtime (it reads the
-      ILI9881C ID over DSI and otherwise assumes EK79007), so this choice is only
-      the fallback used if probing is inconclusive. Set it to the panel you
-      normally use.
+      Select the MIPI-DSI panel attached to the HMI subboard. The BSP does not
+      auto-detect the panel (runtime DSI-ID probing was removed because it hangs
+      the boot watchdog on the EK79007), so set this to the panel you have.
 
     config ESP_P4_EV_BOARD_DISPLAY_EK79007
       bool "EK79007 (7-inch, 1024x600)"

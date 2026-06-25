@@ -70,7 +70,7 @@ bool Esp32P4FunctionEvBoard::initialize_touch(const touch_callback_t &callback,
                                          }
                                        },
                                    .active_level = espp::Interrupt::ActiveLevel::LOW,
-                                   .interrupt_type = espp::Interrupt::Type::ANY_EDGE,
+                                   .interrupt_type = espp::Interrupt::Type::FALLING_EDGE,
                                    .pullup_enabled = true});
   } else {
     // The touch INT pin is not wired to a GPIO, so poll the GT911 in a task and

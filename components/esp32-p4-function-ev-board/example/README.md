@@ -26,8 +26,14 @@ It:
 ## Configuration
 
 Use `idf.py menuconfig` → *ESP32-P4 Function EV Board Configuration* to select
-the display panel (EK79007 1024x600 by default, or ILI9881C 800x1280) and adjust
-task stack sizes / enable Ethernet.
+the display panel (EK79007 1024x600 by default, or ILI9881C 800x1280), adjust
+task stack sizes, and enable Ethernet.
+
+By default touch is **polled**. If you wire the GT911 touch INT pin (from the LCD
+expansion header) to a free GPIO, enable **`Use interrupt-driven touch instead of
+polling`** and set **`Touch interrupt GPIO`** to read touch from an interrupt
+instead. The example needs no code change — `initialize_touch()` follows the
+Kconfig setting.
 
 ## Build and Flash
 

@@ -48,8 +48,9 @@ initializes and exposes the board's peripherals:
 
 - **MIPI-DSI display** — Kconfig-selectable **EK79007 (7", 1024x600)** or
   **ILI9881C (10.1", 800x1280)** — with LVGL integration and PWM backlight.
-- **GT911 capacitive multi-touch** (the touch interrupt is not routed on this
-  board, so touch is polled).
+- **GT911 capacitive multi-touch** — polled by default (the touch INT pin is not
+  routed to the ESP32-P4 on this board), or **interrupt-driven** if you wire the
+  INT pin from the LCD expansion header to a GPIO (see [Touch mode](#touch-mode-polling-vs-interrupt)).
 - **ES8311 audio codec** (+ NS4150B speaker amplifier) over I2S for playback.
 - **10/100 Ethernet** (EMAC + IP101 RMII PHY) with DHCP.
 - **microSD card** (4-bit SDMMC, powered via the on-chip LDO).
@@ -61,17 +62,37 @@ All on-board control lines are direct ESP32-P4 GPIOs (this board has no I/O
 expander). The display, touch, and audio codec share a single I2C bus
 (`SDA=GPIO7`, `SCL=GPIO8`).
 
-## Display panel detection
+## Display panel selection
 
-`initialize_lcd()` **probes the attached panel at runtime**: it brings up the
-MIPI-DSI bus, reads the ILI9881C ID over DSI, and selects **ILI9881C** if it
-matches or **EK79007** otherwise. It then applies that panel's resolution, DPI
-timing, backlight GPIO (26 for EK79007, 23 for ILI9881C), and reset GPIO, and
-`get_display_controller()` / `display_width()` / `display_height()` reflect the
-detected panel. The probed ID bytes are logged (`Panel probe ID: ...`).
+The active panel is selected at **compile time via Kconfig**
+(*ESP32-P4 Function EV Board Configuration* → display panel: EK79007 1024x600 by
+default, or ILI9881C 800x1280). `initialize_lcd()` applies that panel's
+resolution, DPI timing, backlight GPIO (26 for EK79007, 23 for ILI9881C), and
+reset GPIO, and `get_display_controller()` / `display_width()` /
+`display_height()` reflect the configured panel.
 
-The Kconfig choice under *ESP32-P4 Function EV Board Configuration* is only the
-**fallback** used if probing is inconclusive.
+> [!NOTE]
+> The BSP does **not** auto-detect the attached panel. Runtime probing (reading
+> the panel ID over DSI) was tried but removed: the EK79007 does not answer DSI
+> reads and the read poll has no timeout, which hung the boot watchdog. This
+> matches Espressif's esp-bsp, which also selects the panel via Kconfig. Set the
+> Kconfig choice to the panel you have.
+
+## Touch mode (polling vs interrupt)
+
+By default the GT911 is **polled** in a task, because the ESP32-P4-HMI-Subboard
+does not route the touch INT pin to the ESP32-P4. The LCD expansion header *does*
+expose the INT pin, so you can wire it to a free GPIO and switch to
+**interrupt-driven** touch (lower CPU usage and latency):
+
+- **Kconfig** (*ESP32-P4 Function EV Board Configuration*):
+  - `ESP_P4_EV_BOARD_TOUCH_INTERRUPT` — use interrupt-driven touch instead of polling.
+  - `ESP_P4_EV_BOARD_TOUCH_INTERRUPT_GPIO` — the GPIO the INT pin is wired to.
+- **API**: `initialize_touch(callback, interrupt_pin)`. Pass `GPIO_NUM_NC` to
+  poll, or a valid GPIO to read the GT911 from an interrupt on that pin. The
+  default `interrupt_pin` (`touch_interrupt_default`) follows the Kconfig setting,
+  so an unchanged `initialize_touch(cb)` call uses whichever mode you selected in
+  Kconfig; pass an explicit GPIO to override at runtime.
 
 ## Example
 
@@ -81,11 +102,17 @@ up the SD card, audio, Ethernet, and BOOT button.
 
 ## Peripheral status / notes
 
-- **Ethernet**: uses the ESP-IDF internal EMAC with the generic 802.3 PHY driver
-  for the IP101 (the dedicated `esp_eth_phy_ip101` driver is a separate managed
-  component in newer ESP-IDF; the generic driver works for this board). The RMII
-  pinout is the ESP-IDF ESP32-P4 default (MDC=31, MDIO=52, REF_CLK in=50,
-  TX_EN=49, TXD0=34, TXD1=35, CRS_DV=28, RXD0=29, RXD1=30; PHY reset=51, addr=1).
+- **Ethernet**: uses the ESP-IDF internal EMAC with the **generic 802.3 PHY
+  driver** (`esp_eth_phy_new_generic`) for the IP101. The dedicated
+  `esp_eth_phy_ip101` driver is a separate registry component on ESP-IDF v6+, and
+  this BSP builds with the component manager disabled, so the generic 802.3 driver
+  is used instead — it drives the IP101 on this board. The RMII pinout is the
+  ESP-IDF ESP32-P4 default (MDC=31, MDIO=52, REF_CLK in=50, TX_EN=49, TXD0=34,
+  TXD1=35, CRS_DV=28, RXD0=29, RXD1=30; PHY reset=51, addr=1).
+- **BOOT button**: GPIO35 is shared with Ethernet **RMII TXD1**, so the button
+  cannot be used as a runtime input while Ethernet is enabled — claiming the pin
+  would take down Ethernet TX. `initialize_button()` refuses (returns `false`)
+  while Ethernet is active.
 - **Camera**: the SC2336/OV5647 MIPI-CSI sensor's pins are documented (SCCB on
   the internal I2C bus at 0x30, reset/XCLK not connected), but the `esp_video`
   capture pipeline is **not yet implemented**; `initialize_camera()` returns

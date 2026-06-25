@@ -141,59 +141,6 @@ extern "C" void app_main(void) {
     return;
   }
 
-  // microSD (optional — only present if a card is inserted)
-  bool sd_ok = board.initialize_sdcard({.format_if_mount_failed = false});
-  uint32_t sd_size_mb = 0, sd_free_mb = 0;
-  if (sd_ok) {
-    board.get_sd_card_info(&sd_size_mb, &sd_free_mb);
-    logger.info("SD card: {} MB total, {} MB free", sd_size_mb, sd_free_mb);
-  } else {
-    logger.warn("No SD card mounted");
-  }
-
-  // Audio (ES8311) — load the embedded click sound first so we can initialize
-  // the codec directly at the clip's sample rate (changing the sample rate after
-  // the audio task is running is racy, so we avoid it here).
-  size_t wav_size = 0, wav_sample_rate = 0;
-  bool have_audio = load_audio(wav_size, wav_sample_rate);
-  uint32_t audio_rate = have_audio ? static_cast<uint32_t>(wav_sample_rate) : 48000;
-  if (board.initialize_audio(audio_rate)) {
-    board.mute(false);
-    board.volume(60.0f);
-    if (have_audio) {
-      logger.info("Loaded {} bytes of click audio @ {} Hz", wav_size, wav_sample_rate);
-    }
-  }
-
-  // Ethernet (IP101) — DHCP; the callback fires once an IP is acquired
-  static std::atomic<bool> have_ip{false};
-  static std::string ip_str{"(no link)"};
-  board.initialize_ethernet([&](esp_ip4_addr_t ip) {
-    char buf[16];
-    esp_ip4addr_ntoa(&ip, buf, sizeof(buf));
-    ip_str = buf;
-    have_ip = true;
-    logger.info("Ethernet IP: {}", ip_str);
-  });
-
-  // BOOT button — clears the drawn circles
-  //
-  // NOTE: GPIO35 is shared with Ethernet RMII TXD1 on this board, so the BOOT
-  //       button can't be used as a runtime input while Ethernet is active
-  //       (initialize_button() refuses to run when Ethernet is up). It is
-  //       disabled here since this example uses Ethernet.
-  bool button_initialized = board.initialize_button([&](const auto &event) {
-    if (event.active) {
-      std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
-      clear_circles();
-    }
-  });
-  if (button_initialized) {
-    logger.error("BOOT button incorrectly initialized while Ethernet is active!");
-  } else {
-    logger.info("BOOT button not initialized (shared with Ethernet RMII TXD1 pin)");
-  }
-
   // Build the LVGL UI: a title, a status label, a rotate button, and a
   // transparent layer that the touch handler draws circles onto.
   lv_obj_t *bg = nullptr;
@@ -257,6 +204,61 @@ extern "C" void app_main(void) {
         rotate_btn, [](lv_event_t *) { rotate_display(); }, LV_EVENT_CLICKED, nullptr);
   }
 
+  // On-screen status state. These are filled in as each subsystem initializes
+  // below, and rendered immediately by the status task, so the display shows SD /
+  // Ethernet / RTPS coming online live instead of staying blank until the whole
+  // bring-up finishes.
+  static std::atomic<int> touch_x{0}, touch_y{0}, touch_n{0};
+  static std::atomic<bool> sd_card_mounted{false};
+  static std::atomic<uint32_t> sd_card_size_mb{0};
+  static std::atomic<bool> rtps_running{false}, rtps_has_peers{false};
+  static std::atomic<uint32_t> rtps_value{0};
+  static int64_t status_start_us = esp_timer_get_time();
+
+  // Status updater: starts now (right after the display is up) and refreshes the
+  // on-screen status ~10x/s. Ethernet state is read live from the board; SD and
+  // RTPS state are published into the atomics above as those subsystems come up.
+  espp::Task status_task(espp::Task::Config{
+      .callback = [&board](std::mutex &m, std::condition_variable &cv) -> bool {
+        const size_t free_internal = heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024;
+        const size_t free_psram = heap_caps_get_free_size(MALLOC_CAP_SPIRAM) / 1024;
+        const int uptime_s = static_cast<int>((esp_timer_get_time() - status_start_us) / 1'000'000);
+        std::string eth_text = "(no link)";
+        if (board.is_ethernet_connected()) {
+          auto ip = board.ethernet_ip();
+          eth_text = std::to_string(esp_ip4_addr1_16(&ip)) + "." +
+                     std::to_string(esp_ip4_addr2_16(&ip)) + "." +
+                     std::to_string(esp_ip4_addr3_16(&ip)) + "." +
+                     std::to_string(esp_ip4_addr4_16(&ip));
+        }
+        std::string rtps_text =
+            rtps_running ? ("publishing #" + std::to_string(rtps_value.load()) +
+                            (rtps_has_peers ? "" : " (no peers)"))
+                         : (board.is_ethernet_connected() ? std::string("not started")
+                                                          : std::string("waiting for network"));
+        std::string status =
+            "Panel:    " + std::string(board.get_display_controller_name()) + " (" +
+            std::to_string(board.display_width()) + "x" + std::to_string(board.display_height()) +
+            ")\n" + "Touch:    " + std::to_string(touch_n.load()) + " pts (" +
+            std::to_string(touch_x.load()) + ", " + std::to_string(touch_y.load()) + ")\n" +
+            "SD card:  " +
+            (sd_card_mounted ? std::to_string(sd_card_size_mb.load()) + " MB" : "none") + "\n" +
+            "Ethernet: " + eth_text + "\n" + "RTPS:     " + rtps_text + "\n" +
+            "System:   " + std::to_string(free_internal) + " KB int, " +
+            std::to_string(free_psram) + " KB psram free, up " + std::to_string(uptime_s) + " s";
+        {
+          std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
+          if (status_label) {
+            lv_label_set_text(status_label, status.c_str());
+          }
+        }
+        std::unique_lock<std::mutex> lock(m);
+        cv.wait_for(lock, 100ms);
+        return false;
+      },
+      .task_config = {.name = "p4-ev status", .stack_size_bytes = 6144}});
+  status_task.start();
+
   // Touch: draw a circle wherever the screen is touched, and play a click on
   // each new touch-down. play_audio() is non-blocking, and the click is gated to
   // the touch-down edge so it doesn't retrigger every poll while held/dragging.
@@ -267,7 +269,6 @@ extern "C" void app_main(void) {
   // touch-down or once the point has moved at least one radius, so a stationary
   // touch draws a single circle and a drag leaves a spaced trail.
   static constexpr int kCircleRadius = 10;
-  static std::atomic<int> touch_x{0}, touch_y{0}, touch_n{0};
   board.initialize_touch([&](const auto &data) {
     auto td = board.touchpad_convert(data);
     static Board::TouchpadData prev_td = {};
@@ -299,6 +300,61 @@ extern "C" void app_main(void) {
                       },
                       .task_config = {.name = "lvgl", .stack_size_bytes = 8192}});
   lv_task.start();
+
+  // microSD (optional — only present if a card is inserted)
+  bool sd_ok = board.initialize_sdcard({.format_if_mount_failed = false});
+  uint32_t sd_size_mb = 0, sd_free_mb = 0;
+  if (sd_ok) {
+    board.get_sd_card_info(&sd_size_mb, &sd_free_mb);
+    logger.info("SD card: {} MB total, {} MB free", sd_size_mb, sd_free_mb);
+  } else {
+    logger.warn("No SD card mounted");
+  }
+  sd_card_mounted = sd_ok;
+  sd_card_size_mb = sd_size_mb; // published to the status task
+
+  // Audio (ES8311) — load the embedded click sound first so we can initialize
+  // the codec directly at the clip's sample rate (changing the sample rate after
+  // the audio task is running is racy, so we avoid it here).
+  size_t wav_size = 0, wav_sample_rate = 0;
+  bool have_audio = load_audio(wav_size, wav_sample_rate);
+  uint32_t audio_rate = have_audio ? static_cast<uint32_t>(wav_sample_rate) : 48000;
+  if (board.initialize_audio(audio_rate)) {
+    board.mute(false);
+    board.volume(60.0f);
+    if (have_audio) {
+      logger.info("Loaded {} bytes of click audio @ {} Hz", wav_size, wav_sample_rate);
+    }
+  }
+
+  // Ethernet (IP101) — DHCP; the callback fires once an IP is acquired
+  static std::atomic<bool> have_ip{false};
+  static std::string ip_str{"(no link)"};
+  board.initialize_ethernet([&](esp_ip4_addr_t ip) {
+    char buf[16];
+    esp_ip4addr_ntoa(&ip, buf, sizeof(buf));
+    ip_str = buf;
+    have_ip = true;
+    logger.info("Ethernet IP: {}", ip_str);
+  });
+
+  // BOOT button — clears the drawn circles
+  //
+  // NOTE: GPIO35 is shared with Ethernet RMII TXD1 on this board, so the BOOT
+  //       button can't be used as a runtime input while Ethernet is active
+  //       (initialize_button() refuses to run when Ethernet is up). It is
+  //       disabled here since this example uses Ethernet.
+  bool button_initialized = board.initialize_button([&](const auto &event) {
+    if (event.active) {
+      std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
+      clear_circles();
+    }
+  });
+  if (button_initialized) {
+    logger.error("BOOT button incorrectly initialized while Ethernet is active!");
+  } else {
+    logger.info("BOOT button not initialized (shared with Ethernet RMII TXD1 pin)");
+  }
 
   // Connectivity self-test: once we have an IP (and a moment for RTPS discovery),
   // ping the gateway and the discovered peer once, then stop. This makes it easy
@@ -341,16 +397,16 @@ extern "C" void app_main(void) {
   ping_task.start();
   //! [esp32 p4 function ev board example]
 
-  // Once we have an IP, start an RTPS participant that publishes a counter.
-  // The display status is refreshed at 50 Hz while RTPS publishes at 2 Hz.
+  // Once we have an IP, start an RTPS participant that publishes a counter. The
+  // on-screen status is rendered separately by status_task above; this loop drives
+  // RTPS and publishes its state into the rtps_* atomics for the status task.
   static bool did_have_ip = false;
   std::shared_ptr<espp::RtpsParticipant> participant = nullptr;
   const std::string topic = "espp/test/counter";
   const std::string rtps_type = "std_msgs::msg::dds_::UInt32_";
   uint32_t value = 0;
   bool published = false;
-  const int64_t start_us = esp_timer_get_time();
-  static constexpr auto status_period = 20ms;           // 50 Hz display status update
+  static constexpr auto loop_tick = 20ms;               // RTPS loop tick
   static constexpr int64_t publish_period_us = 500'000; // 2 Hz RTPS publish
   int64_t last_publish_us = 0;
 
@@ -398,6 +454,7 @@ extern "C" void app_main(void) {
       participant.reset();
       did_have_ip = false;
     }
+    rtps_running = (participant != nullptr);
 
     // Publish the next counter value at 2 Hz (independent of the status refresh).
     // Only publish if there is a discovered peer (otherwise the publish() call will return false).
@@ -415,33 +472,11 @@ extern "C" void app_main(void) {
       }
     }
 
-    // Build and show the on-screen status at 50 Hz.
-    size_t free_internal = heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024;
-    size_t free_psram = heap_caps_get_free_size(MALLOC_CAP_SPIRAM) / 1024;
-    int uptime_s = static_cast<int>((now_us - start_us) / 1'000'000);
-    std::string rtps_text =
-        participant ? ("publishing '" + topic + "' #" + std::to_string(value) +
-                       (published ? "" : " (no peers)"))
-                    : (have_ip ? std::string("not started") : std::string("waiting for network"));
-    std::string status =
-        "Panel:    " + std::string(board.get_display_controller_name()) + " (" +
-        std::to_string(board.display_width()) + "x" + std::to_string(board.display_height()) +
-        ")\n" + "Touch:    " + std::to_string(touch_n.load()) + " pts (" +
-        std::to_string(touch_x.load()) + ", " + std::to_string(touch_y.load()) + ")\n" +
-        "SD card:  " + (sd_ok ? std::to_string(sd_size_mb) + " MB" : "none") + "\n" +
-        "Ethernet: " + (have_ip ? ip_str : std::string("(no link)")) + "\n" +
-        "RTPS:     " + rtps_text + "\n" + "System:   " + std::to_string(free_internal) +
-        " KB int, " + std::to_string(free_psram) + " KB psram free, up " +
-        std::to_string(uptime_s) + " s";
+    // Publish the RTPS counter/peer state for the status task to render.
+    rtps_value = value;
+    rtps_has_peers = published;
 
-    {
-      std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
-      if (status_label) {
-        lv_label_set_text(status_label, status.c_str());
-      }
-    }
-
-    std::this_thread::sleep_for(status_period);
+    std::this_thread::sleep_for(loop_tick);
   }
 }
 

@@ -14,6 +14,12 @@ abstraction for initializing the display, touch, audio, Ethernet, and SD card
 subsystems. The display panel (EK79007 1024x600 or ILI9881C 800x1280) is
 selectable via Kconfig.
 
+Touch is **polled** by default (the GT911 INT pin is not routed to the ESP32-P4
+on this board). If you wire the INT pin from the LCD expansion header to a free
+GPIO, you can switch to **interrupt-driven** touch via Kconfig
+(``ESP_P4_EV_BOARD_TOUCH_INTERRUPT`` / ``..._GPIO``) or by passing the GPIO to
+``initialize_touch()``.
+
 Official board documentation:
 
 - `ESP32-P4-Function-EV-Board User Guide <https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32p4/esp32-p4-function-ev-board/user_guide.html>`_ (includes the ESP32-P4-HMI-Subboard)
