@@ -48,8 +48,17 @@ bool Ping::run_async(std::error_code &ec) {
 bool Ping::run_sync(std::error_code &ec) {
   if (!run_async(ec))
     return false;
-  std::unique_lock<std::mutex> slk(state_mutex_);
-  state_cv_.wait(slk, [&] { return session_completed_ || !session_active_; });
+  {
+    std::unique_lock<std::mutex> slk(state_mutex_);
+    state_cv_.wait(slk, [&] { return session_completed_ || !session_active_; });
+  }
+  // Delete the session here, in the caller's context — NOT inside handle_end()
+  // (which runs in the esp_ping thread). esp_ping_delete_session() only clears
+  // the init flag, so the ping thread frees itself on its next loop iteration.
+  {
+    std::lock_guard<std::mutex> slk(state_mutex_);
+    destroy_session();
+  }
   ec.clear();
   return true;
 }
@@ -376,8 +385,13 @@ void Ping::handle_end(void *h) {
     session_completed_ = true;
     session_active_ = false;
   }
+  // IMPORTANT: do NOT touch any member (including destroy_session()) after this
+  // point. handle_end() runs in the esp_ping thread; notify_all() can wake a
+  // run_sync() caller that immediately destroys this Ping object, so any access
+  // to 'this' afterwards is a use-after-free. The session is deleted by the
+  // caller (run_sync) / stop() / the destructor instead, and notify_all() must
+  // be the last statement here.
   state_cv_.notify_all();
-  destroy_session();
 }
 
 bool Ping::create_session(std::error_code &ec) {
