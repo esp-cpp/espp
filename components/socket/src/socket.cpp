@@ -320,7 +320,7 @@ std::string Socket::error_string(int err) const {
     return "WSAECONNREFUSED";
   } else if (err == WSAETIMEDOUT) {
     return "WSAETIMEDOUT";
-  } else if (err = WSAEINTR) {
+  } else if (err == WSAEINTR) {
     return "WSAEINTR";
   } else if (err == WSAENOTSOCK) {
     return "WSAENOTSOCK";
