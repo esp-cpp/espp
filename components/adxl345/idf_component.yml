@@ -5,7 +5,7 @@ url: "https://github.com/esp-cpp/espp/tree/main/components/adxl345"
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
   - William Emfinger <waemfinger@gmail.com>
-documentation: "https://esp-cpp.github.io/espp/accelerometers/adxl345.html"
+documentation: "https://esp-cpp.github.io/espp/imu/adxl345.html"
 examples:
   - path: example
 tags:
