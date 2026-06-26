@@ -253,7 +253,9 @@ protected:
   espp::Interrupt interrupts_{
       {.interrupts = {},
        .task_config = {.name = "ws-s3-geek interrupts",
-                       .stack_size_bytes = CONFIG_WS_S3_GEEK_INTERRUPT_STACK_SIZE}}};
+                       .stack_size_bytes = CONFIG_WS_S3_GEEK_INTERRUPT_STACK_SIZE,
+                       .priority = CONFIG_WS_S3_GEEK_INTERRUPT_PRIORITY,
+                       .core_id = CONFIG_WS_S3_GEEK_INTERRUPT_CORE_ID}}};
 
   // button
   std::atomic<bool> button_initialized_{false};

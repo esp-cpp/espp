@@ -495,7 +495,9 @@ protected:
   espp::Interrupt interrupts_{
       {.interrupts = {},
        .task_config = {.name = "esp-box interrupts",
-                       .stack_size_bytes = CONFIG_ESP_BOX_INTERRUPT_STACK_SIZE}}};
+                       .stack_size_bytes = CONFIG_ESP_BOX_INTERRUPT_STACK_SIZE,
+                       .priority = CONFIG_ESP_BOX_INTERRUPT_PRIORITY,
+                       .core_id = CONFIG_ESP_BOX_INTERRUPT_CORE_ID}}};
 
   // button
   std::atomic<bool> boot_button_initialized_{false};

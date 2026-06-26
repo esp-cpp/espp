@@ -336,7 +336,9 @@ protected:
   espp::Interrupt interrupts_{
       {.interrupts = {},
        .task_config = {.name = "matouch interrupts",
-                       .stack_size_bytes = CONFIG_MATOUCH_INTERRUPT_STACK_SIZE}}};
+                       .stack_size_bytes = CONFIG_MATOUCH_INTERRUPT_STACK_SIZE,
+                       .priority = CONFIG_MATOUCH_INTERRUPT_PRIORITY,
+                       .core_id = CONFIG_MATOUCH_INTERRUPT_CORE_ID}}};
 
   // button
   std::atomic<bool> button_initialized_{false};

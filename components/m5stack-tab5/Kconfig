@@ -5,7 +5,22 @@ menu "M5Stack Tab5 Configuration"
   help
     Size of the stack used for the interrupt handler. Used by the touch
     callback and other interrupt handlers.
-            
+
+  config M5STACK_TAB5_INTERRUPT_PRIORITY
+  int "Interrupt task priority"
+  default 0
+  range 0 25
+  help
+    FreeRTOS priority of the GPIO interrupt handler task (0 = lowest). Raise it
+    if interrupt callbacks must run promptly relative to other tasks.
+
+  config M5STACK_TAB5_INTERRUPT_CORE_ID
+  int "Interrupt task core ID"
+  default -1
+  range -1 1
+  help
+    Core to pin the GPIO interrupt handler task to (-1 = not pinned to any core).
+
   config M5STACK_TAB5_AUDIO_TASK_STACK_SIZE
   int "Audio task stack size"
   default 8192

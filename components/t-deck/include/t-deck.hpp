@@ -627,7 +627,8 @@ protected:
        .event_queue_size = 50,
        .task_config = {.name = "t-deck interrupts",
                        .stack_size_bytes = CONFIG_TDECK_INTERRUPT_STACK_SIZE,
-                       .priority = 20}}};
+                       .priority = CONFIG_TDECK_INTERRUPT_PRIORITY,
+                       .core_id = CONFIG_TDECK_INTERRUPT_CORE_ID}}};
 
   // keyboard
   std::shared_ptr<I2c::Device<uint8_t>> keyboard_i2c_device_{nullptr};
