@@ -330,7 +330,8 @@ protected:
        .event_queue_size = 50,
        .task_config = {.name = "byte90 interrupts",
                        .stack_size_bytes = CONFIG_BYTE90_INTERRUPT_STACK_SIZE,
-                       .priority = 20}}};
+                       .priority = CONFIG_BYTE90_INTERRUPT_PRIORITY,
+                       .core_id = CONFIG_BYTE90_INTERRUPT_CORE_ID}}};
 
   // button
   std::atomic<bool> button_initialized_{false};

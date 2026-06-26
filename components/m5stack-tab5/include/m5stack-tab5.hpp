@@ -706,7 +706,9 @@ protected:
   espp::Interrupt interrupts_{
       {.interrupts = {},
        .task_config = {.name = "tab5 interrupts",
-                       .stack_size_bytes = CONFIG_M5STACK_TAB5_INTERRUPT_STACK_SIZE}}};
+                       .stack_size_bytes = CONFIG_M5STACK_TAB5_INTERRUPT_STACK_SIZE,
+                       .priority = CONFIG_M5STACK_TAB5_INTERRUPT_PRIORITY,
+                       .core_id = CONFIG_M5STACK_TAB5_INTERRUPT_CORE_ID}}};
 
   // Component instances
   std::shared_ptr<I2c::Device<uint8_t>> touch_i2c_device_;

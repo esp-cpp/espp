@@ -4,4 +4,19 @@ menu "Esp32 TimerCam Configuration"
         default 4096
         help
             Size of the stack used for the interrupt handler.
+
+    config ESP_TIMER_CAM_INTERRUPT_PRIORITY
+        int "Interrupt task priority"
+        default 0
+        range 0 25
+        help
+            FreeRTOS priority of the GPIO interrupt handler task (0 = lowest). Raise it
+            if interrupt callbacks must run promptly relative to other tasks.
+
+    config ESP_TIMER_CAM_INTERRUPT_CORE_ID
+        int "Interrupt task core ID"
+        default -1
+        range -1 1
+        help
+            Core to pin the GPIO interrupt handler task to (-1 = not pinned to any core).
 endmenu

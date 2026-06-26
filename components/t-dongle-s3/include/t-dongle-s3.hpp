@@ -300,7 +300,9 @@ protected:
   espp::Interrupt interrupts_{
       {.interrupts = {},
        .task_config = {.name = "t-dongle-s3 interrupts",
-                       .stack_size_bytes = CONFIG_T_DONGLE_S3_INTERRUPT_STACK_SIZE}}};
+                       .stack_size_bytes = CONFIG_T_DONGLE_S3_INTERRUPT_STACK_SIZE,
+                       .priority = CONFIG_T_DONGLE_S3_INTERRUPT_PRIORITY,
+                       .core_id = CONFIG_T_DONGLE_S3_INTERRUPT_CORE_ID}}};
 
   // button
   std::atomic<bool> button_initialized_{false};

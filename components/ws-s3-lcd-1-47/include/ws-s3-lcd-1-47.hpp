@@ -290,7 +290,9 @@ protected:
   espp::Interrupt interrupts_{
       {.interrupts = {},
        .task_config = {.name = "ws-s3-lcd-1.47 interrupts",
-                       .stack_size_bytes = CONFIG_WS_S3_LCD_1_47_INTERRUPT_STACK_SIZE}}};
+                       .stack_size_bytes = CONFIG_WS_S3_LCD_1_47_INTERRUPT_STACK_SIZE,
+                       .priority = CONFIG_WS_S3_LCD_1_47_INTERRUPT_PRIORITY,
+                       .core_id = CONFIG_WS_S3_LCD_1_47_INTERRUPT_CORE_ID}}};
 
   // button
   std::atomic<bool> button_initialized_{false};

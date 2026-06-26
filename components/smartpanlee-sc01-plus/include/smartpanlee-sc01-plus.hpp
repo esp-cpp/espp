@@ -348,7 +348,9 @@ protected:
   espp::Interrupt interrupts_{
       {.interrupts = {},
        .task_config = {.name = "sc01+ interrupts",
-                       .stack_size_bytes = CONFIG_SMARTPANLEE_SC01_PLUS_INTERRUPT_STACK_SIZE}}};
+                       .stack_size_bytes = CONFIG_SMARTPANLEE_SC01_PLUS_INTERRUPT_STACK_SIZE,
+                       .priority = CONFIG_SMARTPANLEE_SC01_PLUS_INTERRUPT_PRIORITY,
+                       .core_id = CONFIG_SMARTPANLEE_SC01_PLUS_INTERRUPT_CORE_ID}}};
 
   std::shared_ptr<I2c::Device<uint8_t>> touch_i2c_device_;
   std::shared_ptr<TouchDriver> touch_driver_;

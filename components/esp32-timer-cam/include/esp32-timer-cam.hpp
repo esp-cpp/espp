@@ -240,7 +240,9 @@ protected:
   espp::Interrupt interrupts_{
       {.interrupts = {},
        .task_config = {.name = "esp timer cam interrupts",
-                       .stack_size_bytes = CONFIG_ESP_TIMER_CAM_INTERRUPT_STACK_SIZE}}};
+                       .stack_size_bytes = CONFIG_ESP_TIMER_CAM_INTERRUPT_STACK_SIZE,
+                       .priority = CONFIG_ESP_TIMER_CAM_INTERRUPT_PRIORITY,
+                       .core_id = CONFIG_ESP_TIMER_CAM_INTERRUPT_CORE_ID}}};
 
   // LED
   std::vector<espp::Led::ChannelConfig> led_channels_{{

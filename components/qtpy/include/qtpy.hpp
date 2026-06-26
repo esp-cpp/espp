@@ -151,10 +151,11 @@ protected:
       .pullup_enabled = true};
 
   // we'll only add each interrupt pin if the initialize method is called
-  espp::Interrupt interrupts_{
-      {.interrupts = {},
-       .task_config = {.name = "qtpy interrupts",
-                       .stack_size_bytes = CONFIG_QTPY_INTERRUPT_STACK_SIZE}}};
+  espp::Interrupt interrupts_{{.interrupts = {},
+                               .task_config = {.name = "qtpy interrupts",
+                                               .stack_size_bytes = CONFIG_QTPY_INTERRUPT_STACK_SIZE,
+                                               .priority = CONFIG_QTPY_INTERRUPT_PRIORITY,
+                                               .core_id = CONFIG_QTPY_INTERRUPT_CORE_ID}}};
 
   // button
   std::atomic<bool> button_initialized_{false};
