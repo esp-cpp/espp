@@ -4,7 +4,6 @@ using namespace espp;
 
 Task::Task(const Task::Config &config)
     : BaseComponent(config.task_config.name, config.log_level)
-    , name_(config.task_config.name)
     , callback_(config.callback)
     , config_(config.task_config) {}
 
@@ -28,13 +27,13 @@ bool Task::start() {
 
 #if defined(ESP_PLATFORM)
   auto thread_config = esp_pthread_get_default_config();
-  thread_config.thread_name = name_.c_str();
+  thread_config.thread_name = config_.name.c_str();
   auto core_id = config_.core_id;
   if (core_id >= 0)
     thread_config.pin_to_core = core_id;
   if (core_id >= portNUM_PROCESSORS) {
     logger_.error("core_id ({}) is larger than portNUM_PROCESSORS ({}), cannot create Task '{}'",
-                  core_id, portNUM_PROCESSORS, name_);
+                  core_id, portNUM_PROCESSORS, config_.name);
     return false;
   }
   thread_config.stack_size = config_.stack_size_bytes;
@@ -42,7 +41,7 @@ bool Task::start() {
   // this will set the config for the next created thread
   auto err = esp_pthread_set_cfg(&thread_config);
   if (err == ESP_ERR_NO_MEM) {
-    logger_.error("Out of memory, cannot create Task '{}'", name_);
+    logger_.error("Out of memory, cannot create Task '{}'", config_.name);
     return false;
   }
   if (err == ESP_ERR_INVALID_ARG) {
@@ -50,7 +49,7 @@ bool Task::start() {
     // https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/pthread.html?highlight=esp_pthread_set_cfg#_CPPv419esp_pthread_set_cfgPK17esp_pthread_cfg_t
     logger_.error(
         "Configured stack size ({}) is less than PTHREAD_STACK_MIN ({}), cannot create Task '{}'",
-        config_.stack_size_bytes, PTHREAD_STACK_MIN, name_);
+        config_.stack_size_bytes, PTHREAD_STACK_MIN, config_.name);
     return false;
   }
 #endif
@@ -102,16 +101,16 @@ bool Task::start_watchdog() {
     logger_.debug("Watchdog already started!");
     return false;
   }
-  logger_.debug("Starting watchdog for task '{}'", name_);
+  logger_.debug("Starting watchdog for task '{}'", config_.name);
   // subscribe to the watchdog
   auto task_handle = static_cast<TaskHandle_t>(get_id());
   if (task_handle == nullptr) {
-    logger_.error("Failed to get task handle for task '{}'", name_);
+    logger_.error("Failed to get task handle for task '{}'", config_.name);
     return false;
   }
   auto err = esp_task_wdt_add(task_handle);
   if (err != ESP_OK) {
-    logger_.error("Failed to start watchdog for task '{}'", name_);
+    logger_.error("Failed to start watchdog for task '{}'", config_.name);
     return false;
   }
   // everything is good, set the flag
@@ -129,18 +128,18 @@ bool Task::stop_watchdog() {
     logger_.debug("Watchdog already stopped!");
     return false;
   }
-  logger_.debug("Stopping watchdog for task '{}'", name_);
+  logger_.debug("Stopping watchdog for task '{}'", config_.name);
   // update the flag
   watchdog_started_ = false;
   // unsubscribe from the watchdog
   auto task_handle = static_cast<TaskHandle_t>(get_id());
   if (task_handle == nullptr) {
-    logger_.error("Failed to get task handle for task '{}'", name_);
+    logger_.error("Failed to get task handle for task '{}'", config_.name);
     return false;
   }
   auto err = esp_task_wdt_delete(task_handle);
   if (err != ESP_OK) {
-    logger_.error("Failed to stop watchdog for task '{}'", name_);
+    logger_.error("Failed to stop watchdog for task '{}'", config_.name);
   }
   return err == ESP_OK;
 #endif // CONFIG_ESP_TASK_WDT_EN
@@ -230,7 +229,7 @@ bool Task::set_priority(size_t priority) {
 #endif
   // always store the new priority so it is used on the next start()
   config_.priority = priority;
-  logger_.debug("Set priority to {} for task '{}'", priority, name_);
+  logger_.debug("Set priority to {} for task '{}'", priority, config_.name);
 #if defined(ESP_PLATFORM)
   // if the task is running, apply the change to the live task as well
   auto handle = static_cast<TaskHandle_t>(get_id());
@@ -245,7 +244,7 @@ bool Task::set_priority(size_t priority) {
 bool Task::set_core_id(int core_id) {
   // always store the new core id so it is used on the next start()
   config_.core_id = core_id;
-  logger_.debug("Set core id to {} for task '{}'", core_id, name_);
+  logger_.debug("Set core id to {} for task '{}'", core_id, config_.name);
 #if defined(ESP_PLATFORM) && defined(configUSE_CORE_AFFINITY) && (configUSE_CORE_AFFINITY == 1) && \
     (configNUMBER_OF_CORES > 1)
   // this FreeRTOS build supports changing a live task's core affinity
@@ -268,7 +267,7 @@ bool Task::set_core_id(int core_id) {
   if (started_) {
     logger_.warn("Cannot change core affinity of running task '{}'; new core id ({}) will take "
                  "effect on next start()",
-                 name_, core_id);
+                 config_.name, core_id);
   }
   return false;
 #endif
@@ -319,7 +318,7 @@ void Task::thread_function() {
     if (watchdog_started_) {
       auto err = esp_task_wdt_reset();
       if (err != ESP_OK) {
-        logger_.error("Watchdog reset failed for task '{}'", name_);
+        logger_.error("Watchdog reset failed for task '{}'", config_.name);
       }
     }
 #endif // ESP_PLATFORM

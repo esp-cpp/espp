@@ -534,7 +534,6 @@ protected:
    */
   void notify_and_join();
 
-  std::string name_;          ///< Name of the task, used in logs and task monitoring.
   callback_variant callback_; ///< Variant of the callback function for the task.
   BaseConfig config_;         ///< Configuration for the task.
 
