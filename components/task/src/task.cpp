@@ -219,6 +219,61 @@ bool Task::is_started() const { return started_; }
 
 bool Task::is_running() const { return is_started(); }
 
+bool Task::set_priority(size_t priority) {
+#if defined(ESP_PLATFORM)
+  // clamp to the valid FreeRTOS priority range
+  if (priority >= configMAX_PRIORITIES) {
+    logger_.warn("Requested priority ({}) >= configMAX_PRIORITIES ({}), clamping", priority,
+                 configMAX_PRIORITIES);
+    priority = configMAX_PRIORITIES - 1;
+  }
+#endif
+  // always store the new priority so it is used on the next start()
+  config_.priority = priority;
+  logger_.debug("Set priority to {} for task '{}'", priority, name_);
+#if defined(ESP_PLATFORM)
+  // if the task is running, apply the change to the live task as well
+  auto handle = static_cast<TaskHandle_t>(get_id());
+  if (started_ && handle != nullptr) {
+    vTaskPrioritySet(handle, static_cast<UBaseType_t>(priority));
+    return true;
+  }
+#endif
+  return false;
+}
+
+bool Task::set_core_id(int core_id) {
+  // always store the new core id so it is used on the next start()
+  config_.core_id = core_id;
+  logger_.debug("Set core id to {} for task '{}'", core_id, name_);
+#if defined(ESP_PLATFORM) && defined(configUSE_CORE_AFFINITY) && (configUSE_CORE_AFFINITY == 1) && \
+    (configNUMBER_OF_CORES > 1)
+  // this FreeRTOS build supports changing a live task's core affinity
+  auto handle = static_cast<TaskHandle_t>(get_id());
+  if (started_ && handle != nullptr) {
+    UBaseType_t affinity_mask;
+    if (core_id < 0) {
+      // not pinned: allow the task to run on any core
+      affinity_mask = (1u << configNUMBER_OF_CORES) - 1u;
+    } else {
+      affinity_mask = 1u << core_id;
+    }
+    vTaskCoreAffinitySet(handle, affinity_mask);
+    return true;
+  }
+  return false;
+#else
+  // the default ESP-IDF FreeRTOS port fixes core affinity at task creation, so
+  // the new core id only takes effect the next time the task is started
+  if (started_) {
+    logger_.warn("Cannot change core affinity of running task '{}'; new core id ({}) will take "
+                 "effect on next start()",
+                 name_, core_id);
+  }
+  return false;
+#endif
+}
+
 #if defined(ESP_PLATFORM) || defined(_DOXYGEN_)
 std::string Task::get_info() {
   return fmt::format("[T] '{}',{},{},{}", pcTaskGetName(nullptr), xPortGetCoreID(),

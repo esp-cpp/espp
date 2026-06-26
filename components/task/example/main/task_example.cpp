@@ -470,6 +470,41 @@ extern "C" void app_main(void) {
   logger.debug("Test ran for {:.03f} seconds", test_duration);
 
   /**
+   * Show an example of changing a task's priority and core affinity at runtime.
+   */
+  {
+    logger.info("Task priority / core affinity example");
+    //! [Task Priority and Core example]
+    auto task_fn = [](std::mutex &m, std::condition_variable &cv) {
+      std::unique_lock<std::mutex> lk(m);
+      cv.wait_for(lk, 100ms);
+      return false; // keep running
+    };
+    auto task = espp::Task({.callback = task_fn,
+                            .task_config = {.name = "Reconfig Task", .priority = 5, .core_id = 0},
+                            .log_level = espp::Logger::Verbosity::DEBUG});
+    task.start();
+    fmt::println("Task started on core {} at priority {}", espp::Task::get_core_id(task),
+                 espp::Task::get_priority(task));
+
+    // priority changes apply to the running task immediately
+    bool applied = task.set_priority(10);
+    fmt::println("set_priority(10) applied live: {}, priority now {}", applied,
+                 espp::Task::get_priority(task));
+
+    // core affinity changes are stored but only take effect when the task is
+    // (re)started on the default ESP-IDF FreeRTOS port (a task's core is fixed
+    // when it is created), so stop() then start() to re-create it on core 1
+    task.set_core_id(1);
+    task.stop();
+    task.start();
+    fmt::println("After restart, task running on core {}", espp::Task::get_core_id(task));
+
+    std::this_thread::sleep_for(500ms);
+    //! [Task Priority and Core example]
+  }
+
+  /**
    * Show an example of a task which is stopped by multiple other tasks
    * (ensuring that stop can be called multiple times from multiple other
    * threads).

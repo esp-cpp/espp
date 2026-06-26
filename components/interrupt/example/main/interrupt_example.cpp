@@ -139,9 +139,43 @@ extern "C" void app_main(void) {
     logger.info("Minimum queue size over last 4 seconds: {}", min_queue_size);
   }
 
+  //! [interrupt example]
+
+  //! [interrupt task config example]
+  // The interrupt handler task is started automatically in the constructor, but
+  // its priority and core affinity (configured here, or via Kconfig in the BSP
+  // components) can be changed at runtime.
+  {
+    espp::Interrupt interrupt({
+        .interrupts = {io0},
+        .task_config =
+            {
+                .name = "Interrupt task",
+                .stack_size_bytes = 6192,
+                .priority = 5,
+                .core_id = 0,
+            },
+        .log_level = espp::Logger::Verbosity::DEBUG,
+    });
+
+    // raise the handler task priority - this is applied to the running task
+    // immediately (returns true), and is also used if the task is restarted
+    bool applied = interrupt.set_task_priority(10);
+    logger.info("Raised interrupt task priority to 10, applied live: {}", applied);
+
+    // changing the core affinity only takes effect when the task is (re)started,
+    // because the default ESP-IDF FreeRTOS port fixes a task's core at creation
+    interrupt.set_task_core_id(1);
+    // so stop and start the task to re-create it pinned to the new core
+    interrupt.stop_task();
+    interrupt.start_task();
+    logger.info("Restarted interrupt task on core 1");
+
+    std::this_thread::sleep_for(2s);
+  }
+  //! [interrupt task config example]
+
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 0)
   esp_intr_dump(stdout);
 #endif // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 0)
-
-  //! [interrupt example]
 }

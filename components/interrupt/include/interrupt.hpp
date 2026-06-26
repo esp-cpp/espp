@@ -65,6 +65,8 @@ namespace espp {
 ///
 /// \section interrupt_ex0 Interrupt Example
 /// \snippet interrupt_example.cpp interrupt example
+/// \section interrupt_ex1 Interrupt Task Reconfiguration Example
+/// \snippet interrupt_example.cpp interrupt task config example
 class Interrupt : public BaseComponent {
 public:
   /// \brief The event for the interrupt
@@ -209,6 +211,79 @@ public:
   ///          be needed on the interrupt line (either using the FilterType or
   ///          with hardware filtering).
   size_t get_min_queue_size() const { return min_queue_size_; }
+
+  /// \brief Start the interrupt handler task
+  /// \return true if the task was started, false if it was already running or
+  ///         there is no task
+  /// \details The handler task is started automatically in the constructor, so
+  ///          this is only needed after a matching stop_task() - for example to
+  ///          re-create the task so that a new core id set via set_task_core_id()
+  ///          takes effect (the default ESP-IDF FreeRTOS port fixes a task's
+  ///          core affinity when the task is created).
+  /// \sa Task::start()
+  bool start_task() {
+    if (!task_) {
+      logger_.error("No task to start");
+      return false;
+    }
+    return task_->start();
+  }
+
+  /// \brief Stop the interrupt handler task
+  /// \return true if the task was stopped, false if it was not running or there
+  ///         is no task
+  /// \details While the task is stopped, interrupt events are not serviced, but
+  ///          the GPIO ISRs still run and keep enqueueing events. Those events
+  ///          are not dropped: they remain in the queue and are serviced when
+  ///          start_task() is called - up until the queue fills (event_queue_size
+  ///          entries), after which further events are lost until the task drains
+  ///          it. Pair with start_task() to resume. This is primarily useful to
+  ///          apply a new core id from set_task_core_id() by stopping and
+  ///          restarting the task.
+  /// \sa Task::stop()
+  bool stop_task() {
+    if (!task_) {
+      logger_.error("No task to stop");
+      return false;
+    }
+    return task_->stop();
+  }
+
+  /// \brief Set the priority of the interrupt handler task
+  /// \param priority New FreeRTOS priority (0 is lowest priority)
+  /// \return true if the change was applied to the running task, false otherwise
+  /// \details Forwards to Task::set_priority(). The new priority is always
+  ///          stored and used the next time the task is started; if the task is
+  ///          already running it is also applied immediately. This lets callers
+  ///          override the priority configured at construction (e.g. via Kconfig
+  ///          in the BSP components) at runtime.
+  /// \sa Task::set_priority()
+  bool set_task_priority(size_t priority) {
+    if (!task_) {
+      logger_.error("No task to set priority on");
+      return false;
+    }
+    return task_->set_priority(priority);
+  }
+
+  /// \brief Set the core affinity (core ID) of the interrupt handler task
+  /// \param core_id Core to pin the task to (0 or 1), or -1 to leave it unpinned
+  /// \return true if the change was applied to the running task, false otherwise
+  /// \details Forwards to Task::set_core_id(). The new core ID is always stored
+  ///          and used the next time the task is started. On the default
+  ///          ESP-IDF FreeRTOS port a running task's core affinity cannot be
+  ///          changed, so for an already-started handler this only takes effect
+  ///          after the task is restarted - call stop_task() then start_task()
+  ///          to apply it. This lets callers override the core configured at
+  ///          construction (e.g. via Kconfig in the BSP components).
+  /// \sa Task::set_core_id()
+  bool set_task_core_id(int core_id) {
+    if (!task_) {
+      logger_.error("No task to set core id on");
+      return false;
+    }
+    return task_->set_core_id(core_id);
+  }
 
   /// \brief Add an interrupt to the interrupt handler
   /// \param interrupt The interrupt to add

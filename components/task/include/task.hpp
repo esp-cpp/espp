@@ -43,6 +43,8 @@ namespace espp {
  * \snippet task_example.cpp Task Info example
  * \section task_ex7 Task Request Stop Example
  * \snippet task_example.cpp Task Request Stop example
+ * \section task_ex8 Task Priority and Core Affinity Example
+ * \snippet task_example.cpp Task Priority and Core example
  *
  * \section run_on_core_ex1 Run on Core Example
  * \snippet task_example.cpp run on core example
@@ -269,6 +271,40 @@ public:
    * @return true if the task is running, false otherwise.
    */
   bool is_running() const;
+
+  /**
+   * @brief Set the priority of the task.
+   * @details The new priority is always stored in the task's configuration, so
+   *          it will be used the next time the task is started. If the task is
+   *          currently running (ESP only), the change is also applied to the
+   *          live task immediately via vTaskPrioritySet().
+   * @param priority New FreeRTOS priority (0 is lowest priority on ESP /
+   *          FreeRTOS). It is clamped to [0, configMAX_PRIORITIES - 1] on ESP.
+   * @return true if the change was applied to the currently-running task; false
+   *          if the task is not running (the new value still takes effect the
+   *          next time the task is started) or the platform does not support
+   *          changing a live task's priority.
+   */
+  bool set_priority(size_t priority);
+
+  /**
+   * @brief Set the core affinity (core ID) of the task.
+   * @details The new core ID is always stored in the task's configuration, so
+   *          it will be used the next time the task is started. On the default
+   *          ESP-IDF FreeRTOS port a running task's core affinity cannot be
+   *          changed (it is fixed when the task is created), so for an
+   *          already-started task this only takes effect after a stop()/start().
+   *          If the underlying FreeRTOS build does provide a runtime
+   *          core-affinity API (configUSE_CORE_AFFINITY on a multi-core SMP
+   *          build), the change is applied to the live task immediately.
+   * @param core_id Core to pin the task to (0 or 1), or -1 to leave the task
+   *          unpinned (able to run on any core).
+   * @return true if the change was applied to the currently-running task; false
+   *          if the task is not running or the platform cannot change a live
+   *          task's core affinity (in which case the new value still takes
+   *          effect the next time the task is started).
+   */
+  bool set_core_id(int core_id);
 
 #if defined(ESP_PLATFORM) || defined(_DOXYGEN_)
   /**
