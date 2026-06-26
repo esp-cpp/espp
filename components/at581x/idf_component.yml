@@ -5,7 +5,7 @@ url: "https://github.com/esp-cpp/espp/tree/main/components/at581x"
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
   - William Emfinger <waemfinger@gmail.com>
-documentation: "https://esp-cpp.github.io/espp/sensors/at581x.html"
+documentation: "https://esp-cpp.github.io/espp/presence/at581x.html"
 examples:
   - path: example
 tags:
