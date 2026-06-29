@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <chrono>
 
 #include "base_component.hpp"
 #include "fast_math.hpp"
@@ -152,8 +153,8 @@ public:
       , current_sense_(config.current_sense)
       , pid_current_q_(config.current_pid_config)
       , pid_current_d_(config.current_pid_config)
-      , pid_velocity_(config.current_pid_config)
-      , pid_angle_(config.current_pid_config)
+      , pid_velocity_(config.velocity_pid_config)
+      , pid_angle_(config.angle_pid_config)
       , q_current_filter_(config.q_current_filter)
       , d_current_filter_(config.d_current_filter)
       , velocity_filter_(config.velocity_filter)
@@ -713,16 +714,22 @@ protected:
   void init() { status_ = Status::UNCALIBRATED; }
 
   void init_foc(float zero_electric_offset = 0,
-                detail::SensorDirection sensor_direction = detail::SensorDirection::CLOCKWISE) {
+                detail::SensorDirection sensor_direction = detail::SensorDirection::UNKNOWN) {
     logger_.info("Init FOC");
     std::error_code ec;
     status_ = Status::CALIBRATING;
-    // align motor with sensor - necessary for encoders
-    if (zero_electric_offset) {
-      logger_.info("Updating electrical zero angle and direction: {}, {}", zero_electric_offset,
-                   (int)sensor_direction);
-      zero_electrical_angle_ = zero_electric_offset;
+    // align motor with sensor - necessary for encoders.
+    // NOTE: the sensor direction and the electrical zero offset are applied
+    // independently. Providing a known sensor direction skips the direction
+    // detection in align_sensor(); providing a non-zero electrical offset skips
+    // the offset calibration. Either can be provided without the other.
+    if (sensor_direction != detail::SensorDirection::UNKNOWN) {
+      logger_.info("Using provided sensor direction: {}", (int)sensor_direction);
       sensor_direction_ = sensor_direction;
+    }
+    if (zero_electric_offset) {
+      logger_.info("Using provided electrical zero angle: {}", zero_electric_offset);
+      zero_electrical_angle_ = zero_electric_offset;
     }
     // align sensor and motor
     bool success = align_sensor();
@@ -903,21 +910,20 @@ protected:
   // - target_shaft_velocity_ - rad/s
   // it uses voltage_limit_ variable
   float velocity_openloop(float target) {
-    static auto openloop_timestamp = std::chrono::high_resolution_clock::now();
     // get current timestamp
     auto now = std::chrono::high_resolution_clock::now();
     // calculate the sample time from last call
-    float Ts = std::chrono::duration<float>(now - openloop_timestamp).count();
+    float Ts = std::chrono::duration<float>(now - openloop_timestamp_).count();
     // ensure that the sample time is not too small or too big
     if (Ts <= 0 || Ts > 0.5f)
       Ts = 1e-3f;
     // save timestamp for next call
-    openloop_timestamp = now;
+    openloop_timestamp_ = now;
 
     // calculate the necessary angle to achieve target velocity
-    shaft_angle_ = normalize_angle(shaft_angle_ + target_shaft_velocity_ * Ts);
+    shaft_angle_ = normalize_angle(shaft_angle_ + target * Ts);
     // for display purposes
-    shaft_velocity_ = target_shaft_velocity_;
+    shaft_velocity_ = target;
 
     // use voltage limit or current limit
     float Uq = voltage_limit_;
@@ -937,29 +943,28 @@ protected:
   // - target_shaft_angle_ - rad
   // it uses voltage_limit_ and velocity_limit_ variables
   float angle_openloop(float target) {
-    static auto openloop_timestamp = std::chrono::high_resolution_clock::now();
     // get current timestamp
     auto now = std::chrono::high_resolution_clock::now();
     // calculate the sample time from last call
-    float Ts = std::chrono::duration<float>(now - openloop_timestamp).count();
+    float Ts = std::chrono::duration<float>(now - openloop_timestamp_).count();
     // quick fix for strange cases (micros overflow + timestamp not defined)
     if (Ts <= 0 || Ts > 0.5f) {
       // cppcheck-suppress unreadVariable
       Ts = 1e-3f;
     }
     // save timestamp for next call
-    openloop_timestamp = now;
+    openloop_timestamp_ = now;
 
     // calculate the necessary angle to move from current position towards target angle
     // with maximal velocity (velocity_limit_)
     // TODO sensor precision: this calculation is not numerically precise. The
     // angle can grow to the point where small position changes are no longer
     // captured by the precision of floats when the total position is large.
-    if (abs(target_shaft_angle_ - shaft_angle_) > abs(velocity_limit_ * Ts)) {
-      shaft_angle_ += sgn(target_shaft_angle_ - shaft_angle_) * abs(velocity_limit_) * Ts;
+    if (std::abs(target - shaft_angle_) > std::abs(velocity_limit_ * Ts)) {
+      shaft_angle_ += sgn(target - shaft_angle_) * std::abs(velocity_limit_) * Ts;
       shaft_velocity_ = velocity_limit_;
     } else {
-      shaft_angle_ = target_shaft_angle_;
+      shaft_angle_ = target;
       shaft_velocity_ = 0;
     }
 
@@ -1005,6 +1010,13 @@ protected:
   // configuration parameters
   float voltage_sensor_align_;        // sensor and motor align voltage parameter
   float velocity_index_search_{1.0f}; // target velocity for index search
+
+  // timestamp of the last open-loop iteration, used to compute the sample time
+  // (Ts) in the open-loop control functions. NOTE: this is a per-instance
+  // member (not a function-local static) so that multiple motors do not share
+  // / clobber each other's open-loop timing.
+  std::chrono::high_resolution_clock::time_point openloop_timestamp_{
+      std::chrono::high_resolution_clock::now()};
 
   // motor physical parameters
   int num_pole_pairs_;
