@@ -1,14 +1,24 @@
 # Design: Reliable RTPS (HEARTBEAT / ACKNACK) for user data
 
-Status: **in progress.** Phase 0 (submessage codecs + dispatch seam), Phase 1
-(reliable writer: history cache + HEARTBEAT emission), and Phase 2 (reliable
-reader: dedup + in-order delivery + ACKNACK generation) are implemented; Phase 3
-(writer-side retransmission on ACKNACK) follows as a separate reviewable PR.
-Best-effort behavior is unchanged for endpoints that advertise `BEST_EFFORT`.
+Status: **complete (pending final interop sign-off).** Phases 0–4 are
+implemented and hardware-validated against Fast DDS/RTPS:
 
-With Phases 1–2, an espp reliable reader already recovers lost samples from a
-**DDS/ROS 2 reliable writer** (which retransmits on our ACKNACK). espp↔espp
-recovery needs Phase 3 (our writer answering NACKs).
+- Phase 0 — submessage codecs (`SequenceNumberSet`, `HEARTBEAT`, `ACKNACK`,
+  `INFO_DST`, `GAP`) + dispatch seam.
+- Phase 1 — reliable writer: history cache + HEARTBEAT emission.
+- Phase 2 — reliable reader: dedup + in-order delivery + ACKNACK generation.
+- Phase 3 — writer-side retransmission on ACKNACK, for **both** user-data
+  writers and the builtin **SEDP** writers, plus `GAP` for evicted/irrelevant
+  samples (emitted by the writer, honored by the reader).
+- Phase 4 — hardening: builtin SEDP reliability (stable SEDP sequence numbers +
+  SEDP HEARTBEATs so a reliable peer recovers a missed announcement), per-reader
+  `DATA` `readerId` addressing, multi-homed multicast interface selection, and a
+  GUID-keyed `DiscoveryDb` for discovery state.
+
+Best-effort behavior is unchanged for endpoints that advertise `BEST_EFFORT`.
+Reliable recovery now works in both directions: an espp reliable reader recovers
+lost samples from a DDS/ROS 2 writer, and an espp reliable writer answers a
+peer's NACKs (and GAPs samples it can no longer provide).
 
 ## Goal
 
@@ -150,12 +160,22 @@ state — matching the existing snapshot-then-act pattern in
   Handles writer-purged gaps (advance past lost SNs) and stale heartbeats.
   Reliable handshake runs only when both endpoints advertise RELIABLE; the
   downgrade warning is removed.
-- **Phase 3 — writer retransmission**: resend NACKed SNs from history on ACKNACK;
-  per-reader acked watermark + purge.
-- **Phase 4 — hardening**: initial heartbeat on reader match, stale-count
-  rejection, jittered timers, `stop()` cleanup, edge cases.
-- **Phase 5 — interop validation**: espp↔espp loopback with induced drops, then
-  Fast DDS / Cyclone / ROS 2 reliable with Wireshark; explicit packet-loss tests.
+- **Phase 3 — writer retransmission** *(done)*: on ACKNACK, a writer resends the
+  NACKed SNs still in history to the requesting reader. Shared
+  `build_directed_data_message` (INFO_DST + DATA addressed to the requesting
+  reader) drives both `retransmit_user_data` (from the per-writer history) and
+  `retransmit_sedp` (rebuilt deterministically from `writers_`/`readers_` via the
+  stable index-based SEDP sequence numbers — no separate SEDP cache). Samples no
+  longer in history are answered with a `GAP`; the reader's `apply_gap` advances
+  its frontier over the irrelevant SNs and releases anything buffered behind them.
+- **Phase 4 — hardening** *(done)*: builtin SEDP reliability (stable SEDP SNs +
+  SEDP HEARTBEATs so a reliable peer ACKNACKs and we retransmit a missed
+  announcement), per-reader `DATA` `readerId` addressing, `stop()` cleanup of all
+  reliable state, and bounded reorder/irrelevant buffers. (Remaining nice-to-haves:
+  initial heartbeat on reader match, stale-count rejection, jittered timers.)
+- **Phase 5 — interop validation** *(in progress)*: hardware-validated publishing
+  from an ESP32-P4 (Ethernet) to a Fast RTPS subscriber, including the SEDP
+  HEARTBEAT/ACKNACK exchange. Still TODO: induced packet-loss tests and Cyclone.
 
 ## Design decisions
 - **History model**: KEEP_LAST depth per writer (bounded memory on embedded), not
@@ -167,6 +187,6 @@ state — matching the existing snapshot-then-act pattern in
 
 ## Out of scope (later)
 - Durability beyond VOLATILE (TRANSIENT_LOCAL replay to late joiners).
-- `GAP` submessage (irrelevant/removed samples).
 - Fragmentation (`DATA_FRAG`) for samples larger than the MTU.
 - Full QoS-incompatibility reporting.
+- Reliable-over-multicast (the reliable handshake is unicast-only).

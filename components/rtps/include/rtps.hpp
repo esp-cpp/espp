@@ -9,6 +9,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <set>
 #include <span>
 #include <string>
 #include <string_view>
@@ -126,6 +127,7 @@ public:
     PAD = 0x01,       ///< Padding submessage.
     ACKNACK = 0x06,   ///< Reliable-reader acknowledgement submessage.
     HEARTBEAT = 0x07, ///< Reliable-writer heartbeat submessage.
+    GAP = 0x08,       ///< Writer notification that sequence numbers are irrelevant/unavailable.
     INFO_TS = 0x09,   ///< Timestamp information submessage.
     INFO_DST = 0x0e,  ///< Destination GUID-prefix information submessage.
     DATA = 0x15,      ///< User or discovery data submessage.
@@ -226,6 +228,13 @@ public:
     std::string node_name{"espp_rtps"}; ///< Local participant name advertised in discovery.
     uint16_t domain_id{0};      ///< RTPS domain ID used for port derivation and discovery scope.
     uint16_t participant_id{0}; ///< RTPS participant ID used for GUID and port derivation.
+    bool randomize_guid_prefix{true}; ///< When true (default), mix per-instance entropy into the
+                                      ///< participant GUID so a restarted participant is seen as a
+                                      ///< new participant — DDS/ROS 2 peers then accept its
+                                      ///< republished samples instead of dropping them as
+                                      ///< already-seen duplicates. Set false for a deterministic
+                                      ///< GUID derived only from node_name/domain/participant id
+                                      ///< (e.g. reproducible tests).
     std::string bind_address{"0.0.0.0"}; ///< Local IPv4 address to bind sockets to.
     std::string advertised_address{
         "127.0.0.1"}; ///< IPv4 address advertised to peers for unicast traffic.
@@ -419,6 +428,13 @@ private:
                             const std::vector<int64_t> &requested_sequence_numbers);
   void retransmit_sedp(const GuidPrefix &reader_prefix, EntityId reader_id, EntityId writer_id,
                        const std::vector<int64_t> &requested_sequence_numbers);
+  // Reader-side GAP handling: mark the irrelevant sequence numbers as skipped and advance.
+  // [gap_start, gap_list_base) is the contiguous irrelevant range; bitmap_irrelevant are individual
+  // irrelevant sequence numbers >= gap_list_base.
+  void handle_user_gap(const GuidPrefix &writer_prefix, EntityId writer_id, int64_t gap_start,
+                       int64_t gap_list_base, const std::vector<int64_t> &bitmap_irrelevant);
+  void handle_builtin_gap(const GuidPrefix &writer_prefix, EntityId writer_id, int64_t gap_start,
+                          int64_t gap_list_base, const std::vector<int64_t> &bitmap_irrelevant);
 
   /// @brief Per-writer reliable-QoS state: the history of recently-sent samples
   ///        (keyed by sequence number) plus heartbeat bookkeeping. Guarded by
@@ -437,9 +453,21 @@ private:
     int64_t highest_delivered{0}; ///< Highest sequence number delivered in order (0 = none).
     std::map<int64_t, std::vector<uint8_t>>
         reorder{};                    ///< Out-of-order samples awaiting their predecessors.
+    std::set<int64_t> irrelevant{};   ///< Out-of-order sequence numbers a GAP marked irrelevant
+                                      ///< (skipped, not delivered, when the frontier reaches them).
     uint32_t last_heartbeat_count{0}; ///< Highest HEARTBEAT count seen (stale-heartbeat detection).
     uint32_t acknack_count{0};        ///< Monotonic ACKNACK count emitted by this reader.
   };
+
+  // Advance the reader's in-order frontier over any now-contiguous buffered samples (collected into
+  // `delivered`) and irrelevant (GAP-skipped) sequence numbers. Caller must hold reliable_mutex_.
+  static void drain_reader_frontier(ReaderReliableState &state,
+                                    std::vector<std::vector<uint8_t>> &delivered);
+  // Mark a GAP's irrelevant sequence numbers as skipped, then drain the frontier. Caller must hold
+  // reliable_mutex_.
+  static void apply_gap(ReaderReliableState &state, int64_t gap_start, int64_t gap_list_base,
+                        const std::vector<int64_t> &bitmap_irrelevant,
+                        std::vector<std::vector<uint8_t>> &delivered);
 
   /// @brief Hash functor for using a Guid as an unordered_map key.
   struct GuidHash {

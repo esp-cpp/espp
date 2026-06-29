@@ -2,16 +2,40 @@
 
 #include <algorithm>
 #include <cctype>
+#include <chrono>
 #include <cstring>
 #include <iomanip>
+#include <iterator>
 #include <numeric>
 #include <optional>
 #include <sstream>
+
+#if defined(ESP_PLATFORM)
+#include "esp_random.h"
+#else
+#include <random>
+#endif
 
 #include "cdr.hpp"
 
 namespace {
 constexpr std::array<char, 4> kRtpsMagic{'R', 'T', 'P', 'S'};
+
+// Per-instance entropy mixed into the participant GUID so a restarted participant presents a new
+// GUID. Without this a restart reuses the same writer GUID and republishes sequence numbers from 1,
+// which reliable DDS/ROS 2 peers treat as already-seen duplicates and drop.
+uint64_t random_guid_entropy() {
+#if defined(ESP_PLATFORM)
+  return (static_cast<uint64_t>(esp_random()) << 32) ^ esp_random();
+#else
+  std::random_device device;
+  uint64_t value = (static_cast<uint64_t>(device()) << 32) ^ device();
+  // Mix in a high-resolution clock sample so rapid restarts diverge even if random_device repeats.
+  value ^=
+      static_cast<uint64_t>(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+  return value;
+#endif
+}
 
 constexpr uint16_t kPortBase = 7400;
 constexpr uint16_t kDomainGain = 250;
@@ -959,6 +983,55 @@ std::vector<int64_t> requested_sequence_numbers(const SequenceNumberSet &set) {
   }
   return sequence_numbers;
 }
+
+// GAP submessage: readerId(4) writerId(4) gapStart:SN(8) gapList:SequenceNumberSet. The samples in
+// [gapStart, gapList.base - 1] plus the set bits in gapList are irrelevant / no longer available.
+std::vector<uint8_t> build_gap_payload(const espp::RtpsParticipant::EntityId &reader_id,
+                                       const espp::RtpsParticipant::EntityId &writer_id,
+                                       int64_t gap_start, const SequenceNumberSet &gap_list) {
+  ByteWriter writer;
+  writer.append_bytes(reader_id.value);
+  writer.append_bytes(writer_id.value);
+  writer.append_sequence_number_le(gap_start);
+  append_sequence_number_set(writer, gap_list);
+  return writer.take();
+}
+
+espp::RtpsParticipant::Submessage
+build_gap_submessage(const espp::RtpsParticipant::EntityId &reader_id,
+                     const espp::RtpsParticipant::EntityId &writer_id, int64_t gap_start,
+                     const SequenceNumberSet &gap_list) {
+  return {.kind = espp::RtpsParticipant::SubmessageKind::GAP,
+          .flags = kSubmessageFlagLittleEndian,
+          .payload = build_gap_payload(reader_id, writer_id, gap_start, gap_list)};
+}
+
+struct GapView {
+  espp::RtpsParticipant::EntityId reader_id{};
+  espp::RtpsParticipant::EntityId writer_id{};
+  int64_t gap_start{0};
+  SequenceNumberSet gap_list{};
+  bool valid{false};
+};
+
+GapView parse_gap_submessage(const espp::RtpsParticipant::Submessage &submessage) {
+  GapView view;
+  if (submessage.kind != espp::RtpsParticipant::SubmessageKind::GAP) {
+    return view;
+  }
+  const bool little_endian = (submessage.flags & kSubmessageFlagLittleEndian) != 0;
+  ByteReader reader(std::span<const uint8_t>{submessage.payload.data(), submessage.payload.size()});
+  if (!reader.read_bytes(
+          std::span<uint8_t>{view.reader_id.value.data(), view.reader_id.value.size()}) ||
+      !reader.read_bytes(
+          std::span<uint8_t>{view.writer_id.value.data(), view.writer_id.value.size()}) ||
+      !reader.read_sequence_number(view.gap_start, little_endian) ||
+      !read_sequence_number_set(reader, little_endian, view.gap_list)) {
+    return view;
+  }
+  view.valid = true;
+  return view;
+}
 } // namespace
 
 namespace espp {
@@ -1055,8 +1128,13 @@ RtpsParticipant::RtpsParticipant(const Config &config)
     , config_(config) {
   // GUID prefix layout: bytes 0..1 = participant_id, 2..3 = domain_id, 4..11 = 64-bit node-name
   // hash. Uniqueness across participants on one host relies on distinct participant_ids; the
-  // node-name hash distinguishes different nodes/applications.
+  // node-name hash distinguishes different nodes/applications. By default we also mix per-instance
+  // entropy into the hash so a restarted participant presents a new GUID (otherwise reliable peers
+  // drop its republished samples as already-seen duplicates).
   uint64_t hash = fnv1a_64(config_.node_name);
+  if (config_.randomize_guid_prefix) {
+    hash ^= random_guid_entropy();
+  }
   guid_prefix_.value[0] = config_.participant_id & 0xff;
   guid_prefix_.value[1] = (config_.participant_id >> 8) & 0xff;
   guid_prefix_.value[2] = config_.domain_id & 0xff;
@@ -1631,17 +1709,75 @@ bool RtpsParticipant::send_heartbeats_now() {
   std::vector<WriterConfig> reliable_writers;
   {
     std::lock_guard<std::mutex> lock(mutex_);
-    for (const auto &writer : writers_) {
-      if (writer.reliability == ReliabilityKind::RELIABLE) {
-        reliable_writers.push_back(writer);
-      }
-    }
+    std::copy_if(
+        writers_.begin(), writers_.end(), std::back_inserter(reliable_writers),
+        [](const WriterConfig &writer) { return writer.reliability == ReliabilityKind::RELIABLE; });
   }
   bool sent = false;
   for (const auto &writer : reliable_writers) {
     sent = send_heartbeat_for_writer(writer) || sent;
   }
   return sent;
+}
+
+void RtpsParticipant::drain_reader_frontier(ReaderReliableState &state,
+                                            std::vector<std::vector<uint8_t>> &delivered) {
+  while (true) {
+    const int64_t next = state.highest_delivered + 1;
+    auto buffered = state.reorder.find(next);
+    if (buffered != state.reorder.end()) {
+      delivered.push_back(std::move(buffered->second));
+      state.reorder.erase(buffered);
+      state.highest_delivered = next;
+      continue;
+    }
+    auto skipped = state.irrelevant.find(next);
+    if (skipped != state.irrelevant.end()) {
+      state.irrelevant.erase(skipped); // irrelevant sample: advance past it without delivering
+      state.highest_delivered = next;
+      continue;
+    }
+    break;
+  }
+}
+
+void RtpsParticipant::apply_gap(ReaderReliableState &state, int64_t gap_start,
+                                int64_t gap_list_base,
+                                const std::vector<int64_t> &bitmap_irrelevant,
+                                std::vector<std::vector<uint8_t>> &delivered) {
+  constexpr int64_t kMaxGapRange = 4096;
+  // Contiguous irrelevant range [gap_start, gap_list_base - 1].
+  const int64_t range_end = gap_list_base - 1;
+  if (range_end > state.highest_delivered) {
+    if (gap_start <= state.highest_delivered + 1) {
+      // Touches the frontier: advance directly past the whole irrelevant range.
+      state.highest_delivered = range_end;
+    } else if (range_end - gap_start <= kMaxGapRange) {
+      // A hole precedes the gap: remember the irrelevant SNs so the frontier skips them later.
+      for (int64_t sn = gap_start; sn <= range_end; sn++) {
+        if (sn > state.highest_delivered) {
+          state.irrelevant.insert(sn);
+        }
+      }
+    } else {
+      // Unreasonably large gap ahead of our frontier: we are hopelessly behind; jump past it.
+      state.highest_delivered = range_end;
+    }
+  }
+  // Individual irrelevant sequence numbers (the set bits) at/after gap_list_base.
+  for (int64_t sn : bitmap_irrelevant) {
+    if (sn > state.highest_delivered) {
+      state.irrelevant.insert(sn);
+    }
+  }
+  // Drop anything that is now at/below the frontier.
+  while (!state.reorder.empty() && state.reorder.begin()->first <= state.highest_delivered) {
+    state.reorder.erase(state.reorder.begin());
+  }
+  while (!state.irrelevant.empty() && *state.irrelevant.begin() <= state.highest_delivered) {
+    state.irrelevant.erase(state.irrelevant.begin());
+  }
+  drain_reader_frontier(state, delivered);
 }
 
 void RtpsParticipant::deliver_reliable_sample(
@@ -1660,18 +1796,10 @@ void RtpsParticipant::deliver_reliable_sample(
       return;
     }
     if (sequence_number == state.highest_delivered + 1) {
-      // Next expected sample: deliver it, then drain any now-contiguous buffered samples.
+      // Next expected sample: deliver it, then drain any now-contiguous buffered / irrelevant SNs.
       to_deliver.emplace_back(payload.begin(), payload.end());
       state.highest_delivered = sequence_number;
-      while (true) {
-        auto iterator = state.reorder.find(state.highest_delivered + 1);
-        if (iterator == state.reorder.end()) {
-          break;
-        }
-        to_deliver.push_back(std::move(iterator->second));
-        state.reorder.erase(iterator);
-        state.highest_delivered++;
-      }
+      drain_reader_frontier(state, to_deliver);
     } else if (state.reorder.find(sequence_number) == state.reorder.end() &&
                state.reorder.size() < config_.reliable_reorder_depth) {
       // Out of order: buffer for in-order delivery once the gap is filled. If the buffer is full
@@ -1957,6 +2085,17 @@ bool RtpsParticipant::handle_metatraffic_message(std::vector<uint8_t> &data,
       }
       continue;
     }
+    // A peer GAPs its builtin SEDP writer (samples it will never send); advance past them.
+    if (submessage.kind == SubmessageKind::GAP) {
+      if (message->header.guid_prefix != guid_prefix_) {
+        auto gap = parse_gap_submessage(submessage);
+        if (gap.valid) {
+          handle_builtin_gap(message->header.guid_prefix, gap.writer_id, gap.gap_start,
+                             gap.gap_list.base, requested_sequence_numbers(gap.gap_list));
+        }
+      }
+      continue;
+    }
 
     bool valid_data = false;
     auto data_view = parse_data_submessage(submessage, valid_data);
@@ -2232,6 +2371,16 @@ bool RtpsParticipant::handle_user_message(std::vector<uint8_t> &data, const Sock
         // A matched reliable writer resends the NACKed sequence numbers from its history.
         retransmit_user_data(message->header.guid_prefix, acknack.reader_id, acknack.writer_id,
                              requested_sequence_numbers(acknack.reader_sn_state));
+      }
+      continue;
+    }
+    // A reliable writer GAPs samples it will never send (evicted/irrelevant); advance past them so
+    // we stop NACKing them and release any buffered samples blocked behind them.
+    if (submessage.kind == SubmessageKind::GAP) {
+      auto gap = parse_gap_submessage(submessage);
+      if (gap.valid) {
+        handle_user_gap(message->header.guid_prefix, gap.writer_id, gap.gap_start,
+                        gap.gap_list.base, requested_sequence_numbers(gap.gap_list));
       }
       continue;
     }
@@ -2597,19 +2746,28 @@ void RtpsParticipant::retransmit_user_data(const GuidPrefix &reader_prefix, Enti
     return;
   }
 
-  // Collect the requested samples still in history (copied under the lock; sent after releasing
-  // it).
+  // Collect the requested samples still in history, plus the lowest requested sequence number that
+  // has already been evicted (below the history floor) so we can GAP it. Copied under the lock;
+  // sent after releasing it.
   std::vector<std::pair<int64_t, std::vector<uint8_t>>> samples;
+  int64_t first_available = 0; // lowest SN still in history (0 = history empty)
+  int64_t lowest_evicted = 0;  // lowest requested SN below first_available (0 = none)
   {
     std::lock_guard<std::mutex> lock(reliable_mutex_);
     auto state = writer_reliable_states_.find(*writer_entity_index);
     if (state == writer_reliable_states_.end()) {
       return;
     }
+    const auto &history = state->second.history;
+    first_available =
+        history.empty() ? state->second.last_sequence_number + 1 : history.begin()->first;
     for (int64_t sequence_number : requested_sequence_numbers) {
-      auto entry = state->second.history.find(sequence_number);
-      if (entry != state->second.history.end()) {
+      auto entry = history.find(sequence_number);
+      if (entry != history.end()) {
         samples.emplace_back(sequence_number, entry->second);
+      } else if (sequence_number < first_available &&
+                 (lowest_evicted == 0 || sequence_number < lowest_evicted)) {
+        lowest_evicted = sequence_number;
       }
     }
   }
@@ -2620,10 +2778,22 @@ void RtpsParticipant::retransmit_user_data(const GuidPrefix &reader_prefix, Enti
         build_directed_data_message(reader_prefix, reader_id, writer_id, sequence_number, payload);
     user_unicast_receiver_->send(bytes, send_config);
   }
-  if (!samples.empty()) {
-    logger_.debug("Retransmitted {} user-data sample(s) to {}:{} (writer {}, reader {})",
-                  samples.size(), dest_address, dest_port, writer_id.to_string(),
-                  reader_id.to_string());
+  // Tell the reader the evicted samples are gone (GAP [lowest_evicted, first_available - 1]) so it
+  // advances its frontier instead of NACKing them forever.
+  if (lowest_evicted != 0 && first_available > lowest_evicted) {
+    SequenceNumberSet gap_list;
+    gap_list.base = first_available; // next SN the reader should expect
+    Message message;
+    message.header.guid_prefix = guid_prefix_;
+    message.submessages.push_back(build_info_dst_submessage(reader_prefix));
+    message.submessages.push_back(
+        build_gap_submessage(reader_id, writer_id, lowest_evicted, gap_list));
+    user_unicast_receiver_->send(message.serialize(), send_config);
+  }
+  if (!samples.empty() || lowest_evicted != 0) {
+    logger_.debug("Retransmitted {} user-data sample(s){} to {}:{} (writer {}, reader {})",
+                  samples.size(), lowest_evicted != 0 ? " + GAP" : "", dest_address, dest_port,
+                  writer_id.to_string(), reader_id.to_string());
   }
 }
 
@@ -2692,6 +2862,57 @@ void RtpsParticipant::retransmit_sedp(const GuidPrefix &reader_prefix, EntityId 
     logger_.debug("Retransmitted {} SEDP sample(s) to {}:{} (writer {})", retransmitted,
                   dest_address, dest_port, writer_id.to_string());
   }
+}
+
+void RtpsParticipant::handle_user_gap(const GuidPrefix &writer_prefix, EntityId writer_id,
+                                      int64_t gap_start, int64_t gap_list_base,
+                                      const std::vector<int64_t> &bitmap_irrelevant) {
+  const Guid writer_guid{.prefix = writer_prefix, .entity_id = writer_id};
+  auto writer = discovery_.find_writer(writer_guid);
+  if (!writer || writer->reliability != ReliabilityKind::RELIABLE) {
+    return;
+  }
+  struct MatchedReader {
+    uint32_t entity_index{0};
+    std::function<void(std::span<const uint8_t>)> on_sample{};
+  };
+  std::vector<MatchedReader> matched_readers;
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    for (const auto &reader_config : readers_) {
+      if (reader_config.topic_name == writer->topic_name &&
+          reader_config.reliability == ReliabilityKind::RELIABLE && reader_config.on_sample) {
+        matched_readers.push_back({reader_config.entity_index, reader_config.on_sample});
+      }
+    }
+  }
+  for (const auto &reader : matched_readers) {
+    std::vector<std::vector<uint8_t>> delivered;
+    {
+      std::lock_guard<std::mutex> lock(reliable_mutex_);
+      auto key = fmt::format("{}#{}", reader.entity_index, writer_guid.to_string());
+      apply_gap(reader_reliable_states_[key], gap_start, gap_list_base, bitmap_irrelevant,
+                delivered);
+    }
+    for (const auto &sample : delivered) {
+      reader.on_sample(sample);
+    }
+  }
+}
+
+void RtpsParticipant::handle_builtin_gap(const GuidPrefix &writer_prefix, EntityId writer_id,
+                                         int64_t gap_start, int64_t gap_list_base,
+                                         const std::vector<int64_t> &bitmap_irrelevant) {
+  // Only the reliable builtin SEDP writers are tracked for ACKNACK accounting.
+  if (writer_id.value != kSedpPublicationsWriterEntityId &&
+      writer_id.value != kSedpSubscriptionsWriterEntityId) {
+    return;
+  }
+  const Guid writer_guid{.prefix = writer_prefix, .entity_id = writer_id};
+  std::vector<std::vector<uint8_t>> delivered; // builtin reader tracks SNs only; nothing to deliver
+  std::lock_guard<std::mutex> lock(reliable_mutex_);
+  apply_gap(builtin_reader_states_[writer_guid.to_string()], gap_start, gap_list_base,
+            bitmap_irrelevant, delivered);
 }
 
 bool RtpsParticipant::send_discovery_now() {
