@@ -184,7 +184,26 @@ bool Socket::enable_reuse() {
 #endif // !CONFIG_LWIP_SO_REUSE && defined(ESP_PLATFORM)
 }
 
-bool Socket::make_multicast(uint8_t time_to_live, uint8_t loopback_enabled) {
+// Resolve a dotted-decimal IPv4 interface address to an in_addr. An empty string or "0.0.0.0"
+// resolves to INADDR_ANY (let the OS pick the default multicast interface).
+static bool resolve_interface_address(const std::string &interface_address, struct in_addr &out) {
+  if (interface_address.empty() || interface_address == "0.0.0.0") {
+#if defined(ESP_PLATFORM)
+    out.s_addr = IPADDR_ANY;
+#else
+    out.s_addr = htonl(INADDR_ANY);
+#endif
+    return true;
+  }
+#ifdef _MSC_VER
+  return inet_pton(AF_INET, interface_address.c_str(), &out) == 1;
+#else
+  return inet_aton(interface_address.c_str(), &out) == 1;
+#endif
+}
+
+bool Socket::make_multicast(uint8_t time_to_live, uint8_t loopback_enabled,
+                            const std::string &interface_address) {
   int err = 0;
   // Assign multicast TTL - separate from normal interface TTL
   err = setsockopt(socket_, IPPROTO_IP, IP_MULTICAST_TTL,
@@ -200,21 +219,46 @@ bool Socket::make_multicast(uint8_t time_to_live, uint8_t loopback_enabled) {
     fmt::print(fg(fmt::color::red), "Couldn't set IP_MULTICAST_LOOP: {}\n", error_string());
     return false;
   }
+  // Pin the outgoing multicast interface (IP_MULTICAST_IF) when an interface address is given.
+  // Binding the socket does NOT control which NIC outgoing multicast leaves on; without this the OS
+  // uses its default multicast route (e.g. Wi-Fi on a multi-homed macOS host).
+  if (!interface_address.empty() && interface_address != "0.0.0.0") {
+    struct in_addr iaddr {};
+    if (!resolve_interface_address(interface_address, iaddr)) {
+      fmt::print(fg(fmt::color::red), "Invalid multicast interface address: {}\n",
+                 interface_address);
+      return false;
+    }
+    err = setsockopt(socket_, IPPROTO_IP, IP_MULTICAST_IF, reinterpret_cast<const char *>(&iaddr),
+                     sizeof(struct in_addr));
+    if (err < 0) {
+      fmt::print(fg(fmt::color::red), "Couldn't set IP_MULTICAST_IF to {}: {}\n", interface_address,
+                 error_string());
+      return false;
+    }
+  }
   return true;
 }
 
-bool Socket::add_multicast_group(const std::string &multicast_group) {
+bool Socket::add_multicast_group(const std::string &multicast_group,
+                                 const std::string &interface_address) {
   struct ip_mreq imreq;
   int err = 0;
 
-  // Configure source interface
-#if defined(ESP_PLATFORM)
-  imreq.imr_interface.s_addr = IPADDR_ANY;
+  // Resolve the local interface on which to join the group (and use for egress). Empty/"0.0.0.0"
+  // resolves to INADDR_ANY (OS default interface). Specifying it makes a multi-homed host join the
+  // group on the desired NIC instead of whichever interface the OS would pick by default.
+  struct in_addr iface_addr {};
+  if (!resolve_interface_address(interface_address, iface_addr)) {
+    fmt::print(fg(fmt::color::red), "Invalid multicast interface address: {}\n", interface_address);
+    return false;
+  }
+  imreq.imr_interface = iface_addr;
+
   // Configure multicast address to listen to
+#if defined(ESP_PLATFORM)
   err = inet_aton(multicast_group.c_str(), &imreq.imr_multiaddr.s_addr);
 #else
-  imreq.imr_interface.s_addr = htonl(INADDR_ANY);
-  // Configure multicast address to listen to
 #ifdef _MSC_VER
   err = inet_pton(AF_INET, multicast_group.c_str(), &imreq.imr_multiaddr);
 #else
@@ -228,18 +272,9 @@ bool Socket::add_multicast_group(const std::string &multicast_group) {
     return false;
   }
 
-  // Assign the IPv4 multicast source interface, via its IP
-  // (only necessary if this socket is IPV4 only). Use INADDR_ANY so the OS picks the default
-  // multicast interface; leaving iaddr uninitialized passes garbage to IP_MULTICAST_IF, which fails
-  // with EADDRNOTAVAIL ("Can't assign requested address") on some platforms (e.g. macOS).
-  struct in_addr iaddr {};
-#if defined(ESP_PLATFORM)
-  iaddr.s_addr = IPADDR_ANY;
-#else
-  iaddr.s_addr = htonl(INADDR_ANY);
-#endif
-  err = setsockopt(socket_, IPPROTO_IP, IP_MULTICAST_IF, reinterpret_cast<const char *>(&iaddr),
-                   sizeof(struct in_addr));
+  // Assign the IPv4 multicast egress interface (IP_MULTICAST_IF) to the same interface we join on.
+  err = setsockopt(socket_, IPPROTO_IP, IP_MULTICAST_IF,
+                   reinterpret_cast<const char *>(&iface_addr), sizeof(struct in_addr));
   if (err < 0) {
     fmt::print(fg(fmt::color::red), "Couldn't set IP_MULTICAST_IF: {}\n", error_string());
     return false;

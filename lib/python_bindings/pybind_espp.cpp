@@ -1685,20 +1685,31 @@ void py_init_module_espp(py::module &m) {
            "*        with it.\n   * @return True if SO_REUSEADDR and SO_REUSEPORT were "
            "successfully set.\n")
       .def("make_multicast", &espp::Socket::make_multicast, py::arg("time_to_live") = 1,
-           py::arg("loopback_enabled") = true,
+           py::arg("loopback_enabled") = true, py::arg("interface_address") = "",
            "*\n   * @brief Configure the socket to be multicast (if time_to_live > 0).\n   *       "
            " Sets the IP_MULTICAST_TTL (number of multicast hops allowed) and\n   *        "
            "optionally configures whether this node should receive its own\n   *        multicast "
            "packets (IP_MULTICAST_LOOP).\n   * @param time_to_live number of multicast hops "
            "allowed (TTL).\n   * @param loopback_enabled Whether to receive our own multicast "
-           "packets.\n   * @return True if IP_MULTICAST_TTL and IP_MULTICAST_LOOP were set.\n")
+           "packets.\n   * @param interface_address Optional dotted-decimal IPv4 address of the "
+           "local\n   *        interface to use for *outgoing* multicast (IP_MULTICAST_IF). When\n "
+           "  *        empty or \"0.0.0.0\", the OS chooses its default multicast interface.\n   * "
+           "       Set this to the IP of the desired NIC on multi-homed hosts (e.g. to\n   *       "
+           " force multicast out a wired interface instead of Wi-Fi).\n   * @return True if "
+           "IP_MULTICAST_TTL and IP_MULTICAST_LOOP were set.\n")
       .def("add_multicast_group", &espp::Socket::add_multicast_group, py::arg("multicast_group"),
+           py::arg("interface_address") = "",
            "*\n   * @brief If this is a server socket, add it to the provided the multicast\n   *  "
            "      group.\n   *\n   *         @note Multicast groups must be Class D addresses "
            "(224.0.0.0 to\n   *                239.255.255.255)\n   *\n   *        See "
            "https://en.wikipedia.org/wiki/Multicast_address for more\n   *        information.\n   "
-           "* @param multicast_group multicast group to join.\n   * @return True if "
-           "IP_ADD_MEMBERSHIP was successfully set.\n")
+           "* @param multicast_group multicast group to join.\n   * @param interface_address "
+           "Optional dotted-decimal IPv4 address of the local\n   *        interface on which to "
+           "join the group (imr_interface) and to use for\n   *        outgoing multicast "
+           "(IP_MULTICAST_IF). When empty or \"0.0.0.0\", the OS\n   *        default interface is "
+           "used. Set this on multi-homed hosts so the group\n   *        is joined on the desired "
+           "NIC (e.g. wired instead of Wi-Fi).\n   * @return True if IP_ADD_MEMBERSHIP was "
+           "successfully set.\n")
       .def("select", &espp::Socket::select, py::arg("timeout"),
            "*\n   * @brief Select on the socket for read events.\n   * @param timeout how long to "
            "wait for an event.\n   * @return number of events that occurred.\n");
@@ -1886,18 +1897,21 @@ void py_init_module_espp(py::module &m) {
             .def(py::init<>([](size_t port = size_t(), size_t buffer_size = size_t(),
                                bool is_multicast_endpoint = {false},
                                std::string multicast_group = {""},
+                               std::string multicast_interface = {""},
                                espp::Socket::receive_callback_fn on_receive_callback = {nullptr}) {
                    auto r_ctor_ = std::make_unique<espp::UdpSocket::ReceiveConfig>();
                    r_ctor_->port = port;
                    r_ctor_->buffer_size = buffer_size;
                    r_ctor_->is_multicast_endpoint = is_multicast_endpoint;
                    r_ctor_->multicast_group = multicast_group;
+                   r_ctor_->multicast_interface = multicast_interface;
                    r_ctor_->on_receive_callback = on_receive_callback;
                    return r_ctor_;
                  }),
                  py::arg("port") = size_t(), py::arg("buffer_size") = size_t(),
                  py::arg("is_multicast_endpoint") = bool{false},
                  py::arg("multicast_group") = std::string{""},
+                 py::arg("multicast_interface") = std::string{""},
                  py::arg("on_receive_callback") = espp::Socket::receive_callback_fn{nullptr})
             .def_readwrite("port", &espp::UdpSocket::ReceiveConfig::port,
                            "*< Port number to bind to / receive from.")
@@ -1908,6 +1922,12 @@ void py_init_module_espp(py::module &m) {
                            "*< Whether this should be a multicast endpoint.")
             .def_readwrite("multicast_group", &espp::UdpSocket::ReceiveConfig::multicast_group,
                            "*< If this is a multicast endpoint, this is the group it belongs to.")
+            .def_readwrite(
+                "multicast_interface", &espp::UdpSocket::ReceiveConfig::multicast_interface,
+                "*< Optional local IPv4 interface address on which to join the multicast group "
+                "and\n                receive its traffic. Empty/\"0.0.0.0\" lets the OS pick the "
+                "default interface; set it\n                on multi-homed hosts to bind multicast "
+                "to a specific NIC (e.g. wired vs Wi-Fi).")
             .def_readwrite("on_receive_callback",
                            &espp::UdpSocket::ReceiveConfig::on_receive_callback,
                            "*< Function containing business logic to handle data received.");
@@ -1916,6 +1936,7 @@ void py_init_module_espp(py::module &m) {
                                                 "")
             .def(py::init<>([](std::string ip_address = std::string(), size_t port = size_t(),
                                bool is_multicast_endpoint = {false},
+                               std::string multicast_interface = {""},
                                bool wait_for_response = {false}, size_t response_size = {0},
                                espp::Socket::response_callback_fn on_response_callback = {nullptr},
                                std::chrono::duration<float> response_timeout =
@@ -1924,6 +1945,7 @@ void py_init_module_espp(py::module &m) {
                    r_ctor_->ip_address = ip_address;
                    r_ctor_->port = port;
                    r_ctor_->is_multicast_endpoint = is_multicast_endpoint;
+                   r_ctor_->multicast_interface = multicast_interface;
                    r_ctor_->wait_for_response = wait_for_response;
                    r_ctor_->response_size = response_size;
                    r_ctor_->on_response_callback = on_response_callback;
@@ -1932,6 +1954,7 @@ void py_init_module_espp(py::module &m) {
                  }),
                  py::arg("ip_address") = std::string(), py::arg("port") = size_t(),
                  py::arg("is_multicast_endpoint") = bool{false},
+                 py::arg("multicast_interface") = std::string{""},
                  py::arg("wait_for_response") = bool{false}, py::arg("response_size") = size_t{0},
                  py::arg("on_response_callback") = espp::Socket::response_callback_fn{nullptr},
                  py::arg("response_timeout") = std::chrono::duration<float>(0.5f))
@@ -1942,6 +1965,12 @@ void py_init_module_espp(py::module &m) {
             .def_readwrite("is_multicast_endpoint",
                            &espp::UdpSocket::SendConfig::is_multicast_endpoint,
                            "*< Whether this should be a multicast endpoint.")
+            .def_readwrite(
+                "multicast_interface", &espp::UdpSocket::SendConfig::multicast_interface,
+                "*< Optional local IPv4 interface address to use for outgoing multicast\n          "
+                "      (IP_MULTICAST_IF). Empty/\"0.0.0.0\" lets the OS pick the default "
+                "interface; set it on\n                multi-homed hosts to send multicast out a "
+                "specific NIC (e.g. wired vs Wi-Fi).")
             .def_readwrite("wait_for_response", &espp::UdpSocket::SendConfig::wait_for_response,
                            "*< Whether to wait for a response from the remote or not.")
             .def_readwrite(
@@ -2043,9 +2072,11 @@ void py_init_module_espp(py::module &m) {
       "(Recommended)\n * \\snippet task_example.cpp LongRunningTaskNotified example\n * \\section "
       "task_ex6 Task Info Example\n * \\snippet task_example.cpp Task Info example\n * \\section "
       "task_ex7 Task Request Stop Example\n * \\snippet task_example.cpp Task Request Stop "
-      "example\n *\n * \\section run_on_core_ex1 Run on Core Example\n * \\snippet "
-      "task_example.cpp run on core example\n * \\section run_on_core_ex2 Run on Core "
-      "(Non-Blocking) Example\n * \\snippet task_example.cpp run on core nonblocking example\n");
+      "example\n * \\section task_ex8 Task Priority and Core Affinity Example\n * \\snippet "
+      "task_example.cpp Task Priority and Core example\n *\n * \\section run_on_core_ex1 Run on "
+      "Core Example\n * \\snippet task_example.cpp run on core example\n * \\section "
+      "run_on_core_ex2 Run on Core (Non-Blocking) Example\n * \\snippet task_example.cpp run on "
+      "core nonblocking example\n");
 
   { // inner classes & enums of Task
     auto pyClassTask_ClassBaseConfig =
@@ -2115,6 +2146,32 @@ void py_init_module_espp(py::module &m) {
       .def("is_running", &espp::Task::is_running,
            "*\n   * @brief Is the task running?\n   *\n   * @return True if the task is running, "
            "False otherwise.\n")
+      .def("set_priority", &espp::Task::set_priority, py::arg("priority"),
+           "*\n   * @brief Set the priority of the task.\n   * @details The new priority is always "
+           "stored in the task's configuration, so\n   *          it will be used the next time "
+           "the task is started. If the task is\n   *          currently running (ESP only), the "
+           "change is also applied to the\n   *          live task immediately via "
+           "vTaskPrioritySet().\n   * @param priority New FreeRTOS priority (0 is lowest priority "
+           "on ESP /\n   *          FreeRTOS). It is clamped to [0, configMAX_PRIORITIES - 1] on "
+           "ESP.\n   * @return True if the change was applied to the currently-running task; "
+           "False\n   *          if the task is not running (the new value still takes effect "
+           "the\n   *          next time the task is started) or the platform does not support\n   "
+           "*          changing a live task's priority.\n")
+      .def(
+          "set_core_id", &espp::Task::set_core_id, py::arg("core_id"),
+          "*\n   * @brief Set the core affinity (core ID) of the task.\n   * @details The new core "
+          "ID is always stored in the task's configuration, so\n   *          it will be used the "
+          "next time the task is started. On the default\n   *          ESP-IDF FreeRTOS port a "
+          "running task's core affinity cannot be\n   *          changed (it is fixed when the "
+          "task is created), so for an\n   *          already-started task this only takes effect "
+          "after a stop()/start().\n   *          If the underlying FreeRTOS build does provide a "
+          "runtime\n   *          core-affinity API (configUSE_CORE_AFFINITY on a multi-core SMP\n "
+          "  *          build), the change is applied to the live task immediately.\n   * @param "
+          "core_id Core to pin the task to (0 or 1), or -1 to leave the task\n   *          "
+          "unpinned (able to run on any core).\n   * @return True if the change was applied to the "
+          "currently-running task; False\n   *          if the task is not running or the platform "
+          "cannot change a live\n   *          task's core affinity (in which case the new value "
+          "still takes\n   *          effect the next time the task is started).\n")
       .def(
           "get_id", [](espp::Task &self) { return self.get_id(); },
           "*\n   * @brief Get the ID for this Task's thread / task context.\n   * @return ID for "

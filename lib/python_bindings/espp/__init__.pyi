@@ -2887,7 +2887,12 @@ class Socket:
         """
         pass
 
-    def make_multicast(self, time_to_live: int = 1, loopback_enabled: int = True) -> bool:
+    def make_multicast(
+        self,
+        time_to_live: int = 1,
+        loopback_enabled: int = True,
+        interface_address: str = ""
+        ) -> bool:
         """*
            * @brief Configure the socket to be multicast (if time_to_live > 0).
            *        Sets the IP_MULTICAST_TTL (number of multicast hops allowed) and
@@ -2895,12 +2900,21 @@ class Socket:
            *        multicast packets (IP_MULTICAST_LOOP).
            * @param time_to_live number of multicast hops allowed (TTL).
            * @param loopback_enabled Whether to receive our own multicast packets.
+           * @param interface_address Optional dotted-decimal IPv4 address of the local
+           *        interface to use for *outgoing* multicast (IP_MULTICAST_IF). When
+           *        empty or "0.0.0.0", the OS chooses its default multicast interface.
+           *        Set this to the IP of the desired NIC on multi-homed hosts (e.g. to
+           *        force multicast out a wired interface instead of Wi-Fi).
            * @return True if IP_MULTICAST_TTL and IP_MULTICAST_LOOP were set.
 
         """
         pass
 
-    def add_multicast_group(self, multicast_group: str) -> bool:
+    def add_multicast_group(
+        self,
+        multicast_group: str,
+        interface_address: str = ""
+        ) -> bool:
         """*
            * @brief If this is a server socket, add it to the provided the multicast
            *        group.
@@ -2911,6 +2925,11 @@ class Socket:
            *        See https://en.wikipedia.org/wiki/Multicast_address for more
            *        information.
            * @param multicast_group multicast group to join.
+           * @param interface_address Optional dotted-decimal IPv4 address of the local
+           *        interface on which to join the group (imr_interface) and to use for
+           *        outgoing multicast (IP_MULTICAST_IF). When empty or "0.0.0.0", the OS
+           *        default interface is used. Set this on multi-homed hosts so the group
+           *        is joined on the desired NIC (e.g. wired instead of Wi-Fi).
            * @return True if IP_ADD_MEMBERSHIP was successfully set.
 
         """
@@ -3240,6 +3259,9 @@ class UdpSocket:
         buffer_size: int                                                                       #*< Max size of data we can receive at one time.
         is_multicast_endpoint: bool = bool(False)                                              #*< Whether this should be a multicast endpoint.
         multicast_group: str = str("")                                                         #*< If this is a multicast endpoint, this is the group it belongs to.
+        multicast_interface: str = str("")                                                     #*< Optional local IPv4 interface address on which to join the multicast group and
+                        receive its traffic. Empty/"0.0.0.0" lets the OS pick the default interface; set it
+                        on multi-homed hosts to bind multicast to a specific NIC (e.g. wired vs Wi-Fi).
         on_receive_callback: Socket.receive_callback_fn = Socket.receive_callback_fn(None)     #*< Function containing business logic to handle data received.
         def __init__(
             self,
@@ -3247,6 +3269,7 @@ class UdpSocket:
             buffer_size: int = int(),
             is_multicast_endpoint: bool = bool(False),
             multicast_group: str = str(""),
+            multicast_interface: str = str(""),
             on_receive_callback: Socket.receive_callback_fn = Socket.receive_callback_fn(None)
             ) -> None:
             """Auto-generated default constructor with named params"""
@@ -3256,6 +3279,9 @@ class UdpSocket:
         ip_address: str                                                                        #*< Address to send data to.
         port: int                                                                              #*< Port number to send data to.
         is_multicast_endpoint: bool = bool(False)                                              #*< Whether this should be a multicast endpoint.
+        multicast_interface: str = str("")                                                     #*< Optional local IPv4 interface address to use for outgoing multicast
+                        (IP_MULTICAST_IF). Empty/"0.0.0.0" lets the OS pick the default interface; set it on
+                        multi-homed hosts to send multicast out a specific NIC (e.g. wired vs Wi-Fi).
         wait_for_response: bool = bool(False)                                                  #*< Whether to wait for a response from the remote or not.
         response_size: int = int(0)                                                            #*< If waiting for a response, this is the maximum size response we will receive.
         on_response_callback: Socket.response_callback_fn = Socket.response_callback_fn(None)  #*< If waiting for a response, this is an optional handler which is provided the
@@ -3267,6 +3293,7 @@ class UdpSocket:
             ip_address: str = "",
             port: int = int(),
             is_multicast_endpoint: bool = bool(False),
+            multicast_interface: str = str(""),
             wait_for_response: bool = bool(False),
             response_size: int = int(0),
             on_response_callback: Socket.response_callback_fn = Socket.response_callback_fn(None),
@@ -3429,6 +3456,8 @@ class Task:
      * \snippet task_example.cpp Task Info example
      * \section task_ex7 Task Request Stop Example
      * \snippet task_example.cpp Task Request Stop example
+     * \section task_ex8 Task Priority and Core Affinity Example
+     * \snippet task_example.cpp Task Priority and Core example
      *
      * \section run_on_core_ex1 Run on Core Example
      * \snippet task_example.cpp run on core example
@@ -3521,6 +3550,44 @@ class Task:
            * @brief Is the task running?
            *
            * @return True if the task is running, False otherwise.
+
+        """
+        pass
+
+    def set_priority(self, priority: int) -> bool:
+        """*
+           * @brief Set the priority of the task.
+           * @details The new priority is always stored in the task's configuration, so
+           *          it will be used the next time the task is started. If the task is
+           *          currently running (ESP only), the change is also applied to the
+           *          live task immediately via vTaskPrioritySet().
+           * @param priority New FreeRTOS priority (0 is lowest priority on ESP /
+           *          FreeRTOS). It is clamped to [0, configMAX_PRIORITIES - 1] on ESP.
+           * @return True if the change was applied to the currently-running task; False
+           *          if the task is not running (the new value still takes effect the
+           *          next time the task is started) or the platform does not support
+           *          changing a live task's priority.
+
+        """
+        pass
+
+    def set_core_id(self, core_id: int) -> bool:
+        """*
+           * @brief Set the core affinity (core ID) of the task.
+           * @details The new core ID is always stored in the task's configuration, so
+           *          it will be used the next time the task is started. On the default
+           *          ESP-IDF FreeRTOS port a running task's core affinity cannot be
+           *          changed (it is fixed when the task is created), so for an
+           *          already-started task this only takes effect after a stop()/start().
+           *          If the underlying FreeRTOS build does provide a runtime
+           *          core-affinity API (configUSE_CORE_AFFINITY on a multi-core SMP
+           *          build), the change is applied to the live task immediately.
+           * @param core_id Core to pin the task to (0 or 1), or -1 to leave the task
+           *          unpinned (able to run on any core).
+           * @return True if the change was applied to the currently-running task; False
+           *          if the task is not running or the platform cannot change a live
+           *          task's core affinity (in which case the new value still takes
+           *          effect the next time the task is started).
 
         """
         pass

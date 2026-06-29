@@ -47,6 +47,10 @@ public:
     bool is_multicast_endpoint{false}; /**< Whether this should be a multicast endpoint. */
     std::string multicast_group{
         ""}; /**< If this is a multicast endpoint, this is the group it belongs to. */
+    std::string multicast_interface{
+        ""}; /**< Optional local IPv4 interface address on which to join the multicast group and
+                receive its traffic. Empty/"0.0.0.0" lets the OS pick the default interface; set it
+                on multi-homed hosts to bind multicast to a specific NIC (e.g. wired vs Wi-Fi). */
     espp::Socket::receive_callback_fn on_receive_callback{
         nullptr}; /**< Function containing business logic to handle data received. */
   };
@@ -55,6 +59,10 @@ public:
     std::string ip_address;            /**< Address to send data to. */
     size_t port;                       /**< Port number to send data to.*/
     bool is_multicast_endpoint{false}; /**< Whether this should be a multicast endpoint. */
+    std::string multicast_interface{
+        ""}; /**< Optional local IPv4 interface address to use for outgoing multicast
+                (IP_MULTICAST_IF). Empty/"0.0.0.0" lets the OS pick the default interface; set it on
+                multi-homed hosts to send multicast out a specific NIC (e.g. wired vs Wi-Fi). */
     bool wait_for_response{false}; /**< Whether to wait for a response from the remote or not. */
     size_t response_size{
         0}; /**< If waiting for a response, this is the maximum size response we will receive. */
