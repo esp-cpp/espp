@@ -60,8 +60,8 @@ bool UdpSocket::send(std::span<const uint8_t> data, const UdpSocket::SendConfig 
     return false;
   }
   if (send_config.is_multicast_endpoint) {
-    // configure it for multicast
-    if (!make_multicast()) {
+    // configure it for multicast (pinning the egress interface if one was provided)
+    if (!make_multicast(1, true, send_config.multicast_interface)) {
       logger_.error("Cannot make multicast: {}", error_string());
       return false;
     }
@@ -194,13 +194,13 @@ bool UdpSocket::start_receiving(Task::BaseConfig &task_config,
     return false;
   }
   if (receive_config.is_multicast_endpoint) {
-    // enable multicast
-    if (!make_multicast()) {
+    // enable multicast (pinning the egress interface if one was provided)
+    if (!make_multicast(1, true, receive_config.multicast_interface)) {
       logger_.error("Unable to make bound socket multicast: {}", error_string());
       return false;
     }
-    // add multicast group
-    if (!add_multicast_group(receive_config.multicast_group)) {
+    // add multicast group, joining on the requested interface (if any)
+    if (!add_multicast_group(receive_config.multicast_group, receive_config.multicast_interface)) {
       logger_.error("Unable to add multicast group to bound socket: {}", error_string());
       return false;
     }

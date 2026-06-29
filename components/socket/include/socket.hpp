@@ -178,9 +178,15 @@ public:
    *        multicast packets (IP_MULTICAST_LOOP).
    * @param time_to_live number of multicast hops allowed (TTL).
    * @param loopback_enabled Whether to receive our own multicast packets.
+   * @param interface_address Optional dotted-decimal IPv4 address of the local
+   *        interface to use for *outgoing* multicast (IP_MULTICAST_IF). When
+   *        empty or "0.0.0.0", the OS chooses its default multicast interface.
+   *        Set this to the IP of the desired NIC on multi-homed hosts (e.g. to
+   *        force multicast out a wired interface instead of Wi-Fi).
    * @return true if IP_MULTICAST_TTL and IP_MULTICAST_LOOP were set.
    */
-  bool make_multicast(uint8_t time_to_live = 1, uint8_t loopback_enabled = true);
+  bool make_multicast(uint8_t time_to_live = 1, uint8_t loopback_enabled = true,
+                      const std::string &interface_address = "");
 
   /**
    * @brief If this is a server socket, add it to the provided the multicast
@@ -192,9 +198,15 @@ public:
    *        See https://en.wikipedia.org/wiki/Multicast_address for more
    *        information.
    * @param multicast_group multicast group to join.
+   * @param interface_address Optional dotted-decimal IPv4 address of the local
+   *        interface on which to join the group (imr_interface) and to use for
+   *        outgoing multicast (IP_MULTICAST_IF). When empty or "0.0.0.0", the OS
+   *        default interface is used. Set this on multi-homed hosts so the group
+   *        is joined on the desired NIC (e.g. wired instead of Wi-Fi).
    * @return true if IP_ADD_MEMBERSHIP was successfully set.
    */
-  bool add_multicast_group(const std::string &multicast_group);
+  bool add_multicast_group(const std::string &multicast_group,
+                           const std::string &interface_address = "");
 
   /**
    * @brief Select on the socket for read events.
