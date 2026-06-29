@@ -7,53 +7,12 @@
 #include "fast_math.hpp"
 #include "pid.hpp"
 
+#include "bldc_concepts.hpp"
 #include "bldc_types.hpp"
 #include "foc_utils.hpp"
 #include "sensor_direction.hpp"
 
 namespace espp {
-
-/**
- * @brief Concept defining the required interfaces for the Driver for a BLDC Motor.
- */
-template <class FOO>
-concept DriverConcept = requires {
-  static_cast<void (FOO::*)(void)>(&FOO::enable);
-  static_cast<void (FOO::*)(void)>(&FOO::disable);
-  static_cast<void (FOO::*)(float, float, float)>(&FOO::set_voltage);
-  static_cast<void (FOO::*)(int, int, int)>(&FOO::set_phase_state);
-  static_cast<float (FOO::*)(void) const>(&FOO::get_voltage_limit);
-};
-
-/**
- * @brief Concept defining the required interfaces for a Sensor on a BLDC Motor.
- */
-template <class FOO>
-concept SensorConcept = requires {
-  static_cast<void (FOO::*)(std::error_code &)>(&FOO::update);
-  static_cast<bool (FOO::*)(void) const>(&FOO::needs_zero_search);
-  static_cast<float (FOO::*)(void) const>(&FOO::get_radians);
-  static_cast<float (FOO::*)(void) const>(&FOO::get_rpm);
-  static_cast<float (FOO::*)(void) const>(&FOO::get_mechanical_radians);
-};
-
-/**
- * @brief Concept defining the required interfaces for a Current Sensor on a BLDC Motor.
- */
-template <class FOO>
-concept CurrentSensorConcept = requires {
-  static_cast<float (FOO::*)(float) const>(&FOO::get_dc_current);
-  static_cast<DqCurrent (FOO::*)(float) const>(&FOO::get_foc_currents);
-  static_cast<bool (FOO::*)(float) const>(&FOO::driver_align);
-};
-
-// Provide a dummy current sense type here (as default) if you don't want to
-// use (or your hardware doesn't support) an actual current sensor for FOC.
-struct DummyCurrentSense {
-  float get_dc_current(float) const { return 0.0f; }
-  DqCurrent get_foc_currents(float) const { return {0.0f, 0.0f}; }
-  bool driver_align(float v) const { return true; }
-};
 
 /**
  * @brief Motor control class for a Brushless DC (BLDC) motor, implementing
@@ -513,8 +472,16 @@ public:
   /**
    * @brief Main FOC loop for implementing the torque control, based on the
    *        configured detail::TorqueControlType.
-   * @note Only detail::TorqueControlType::VOLTAGE is supported right now, because the
-   *       other types require current sense.
+   * @note detail::TorqueControlType::VOLTAGE requires no current sensing and is
+   *       fully supported. detail::TorqueControlType::DC_CURRENT and
+   *       detail::TorqueControlType::FOC_CURRENT close a current loop and
+   *       therefore require a current sensor (CurrentSensorConcept, e.g.
+   *       espp::CurrentSense from the bldc_current_sense component) to be
+   *       provided; they are experimental and must be validated on hardware.
+   * @note For correct current-mode control this should be called at a steady,
+   *       relatively high rate (several kHz), ideally synchronized to the
+   *       current-sampling instant (PWM center). See BldcDriver's PWM sample
+   *       callback.
    */
   void loop_foc() {
     if (run_sensor_update_) {

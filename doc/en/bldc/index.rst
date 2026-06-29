@@ -5,8 +5,10 @@ Motor (BDC + BLDC) APIs
     :maxdepth: 1
 
     bdc_driver
+    bldc_types
     bldc_driver
     bldc_motor
+    bldc_current_sense
 
 These components provide interfaces by which the user can control brushed DC (BDC) and
 brushless DC (BLDC) motors. The driver component(s) implement the low-level

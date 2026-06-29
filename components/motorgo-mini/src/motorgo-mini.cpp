@@ -144,6 +144,193 @@ float MotorGoMini::motor2_current_w_amps() {
   return adc_1.read_mv(current_sense_m2_w_).value() * CURRENT_SENSE_MV_TO_A;
 }
 
+/////////////////////////////////////////////////////////////////////////////
+// Symmetric (index-based) API
+/////////////////////////////////////////////////////////////////////////////
+
+bool MotorGoMini::init_encoder(size_t index, bool run_tasks) {
+  std::error_code ec;
+  if (index == 0) {
+    if (!encoder1_) {
+      encoder1_ = std::make_shared<Encoder>(encoder1_config_);
+      encoder1_->initialize(run_tasks, ec);
+    }
+  } else if (index == 1) {
+    if (!encoder2_) {
+      encoder2_ = std::make_shared<Encoder>(encoder2_config_);
+      encoder2_->initialize(run_tasks, ec);
+    }
+  } else {
+    logger_.error("Invalid encoder index: {}", index);
+    return false;
+  }
+  if (ec) {
+    logger_.error("Could not initialize encoder {}: {}", index + 1, ec.message());
+    return false;
+  }
+  return true;
+}
+
+bool MotorGoMini::init_driver(size_t index, float power_supply_voltage, float limit_voltage,
+                              uint64_t dead_zone_ns) {
+  if (index == 0) {
+    if (!motor1_driver_) {
+      motor1_driver_config_.power_supply_voltage = power_supply_voltage;
+      motor1_driver_config_.limit_voltage = limit_voltage;
+      motor1_driver_config_.dead_zone_ns = dead_zone_ns;
+      motor1_driver_ = std::make_shared<BldcDriver>(motor1_driver_config_);
+    }
+  } else if (index == 1) {
+    if (!motor2_driver_) {
+      motor2_driver_config_.power_supply_voltage = power_supply_voltage;
+      motor2_driver_config_.limit_voltage = limit_voltage;
+      motor2_driver_config_.dead_zone_ns = dead_zone_ns;
+      motor2_driver_ = std::make_shared<BldcDriver>(motor2_driver_config_);
+    }
+  } else {
+    logger_.error("Invalid motor index: {}", index);
+    return false;
+  }
+  return true;
+}
+
+bool MotorGoMini::initialize_encoders(bool run_tasks) {
+  bool ok = true;
+  ok &= init_encoder(0, run_tasks);
+  ok &= init_encoder(1, run_tasks);
+  return ok;
+}
+
+bool MotorGoMini::initialize_motors(float power_supply_voltage, float limit_voltage,
+                                    uint64_t dead_zone_ns) {
+  bool ok = true;
+  ok &= init_driver(0, power_supply_voltage, limit_voltage, dead_zone_ns);
+  ok &= init_driver(1, power_supply_voltage, limit_voltage, dead_zone_ns);
+  return ok;
+}
+
+std::shared_ptr<MotorGoMini::MotorDriver> MotorGoMini::motor_driver(size_t index) {
+  if (index == 0)
+    return motor1_driver_;
+  if (index == 1)
+    return motor2_driver_;
+  logger_.error("Invalid motor index: {}", index);
+  return nullptr;
+}
+
+std::shared_ptr<MotorGoMini::Encoder> MotorGoMini::encoder(size_t index) {
+  if (index == 0)
+    return encoder1_;
+  if (index == 1)
+    return encoder2_;
+  logger_.error("Invalid encoder index: {}", index);
+  return nullptr;
+}
+
+void MotorGoMini::reset_encoder_accumulator(size_t index) {
+  auto enc = encoder(index);
+  if (!enc) {
+    logger_.error("Encoder {} not initialized", index + 1);
+    return;
+  }
+  enc->reset_accumulator();
+}
+
+bool MotorGoMini::motor_driver_enabled(size_t index) {
+  auto drv = motor_driver(index);
+  return drv && drv->is_enabled();
+}
+
+bool MotorGoMini::enable_motor_driver(size_t index) {
+  auto drv = motor_driver(index);
+  if (!drv) {
+    logger_.error("Motor driver {} not initialized", index + 1);
+    return false;
+  }
+  drv->enable();
+  return drv->is_enabled();
+}
+
+void MotorGoMini::disable_motor_driver(size_t index) {
+  auto drv = motor_driver(index);
+  if (!drv) {
+    logger_.error("Motor driver {} not initialized", index + 1);
+    return;
+  }
+  drv->disable();
+}
+
+void MotorGoMini::enable_all_motor_drivers() {
+  for (size_t i = 0; i < num_motor_channels(); i++) {
+    auto drv = motor_driver(i);
+    if (drv) {
+      drv->enable();
+    }
+  }
+}
+
+void MotorGoMini::disable_all_motor_drivers() {
+  for (size_t i = 0; i < num_motor_channels(); i++) {
+    auto drv = motor_driver(i);
+    if (drv) {
+      drv->disable();
+    }
+  }
+}
+
+MotorGoMini::BldcMotor::Config MotorGoMini::default_motor_config(size_t index) const {
+  if (index == 0)
+    return default_motor1_config;
+  if (index == 1)
+    return default_motor2_config;
+  logger_.error("Invalid motor index: {}", index);
+  return default_motor1_config;
+}
+
+std::shared_ptr<MotorGoMini::BldcMotor>
+MotorGoMini::initialize_motor(size_t index, const MotorGoMini::BldcMotor::Config &config) {
+  if (index >= num_motor_channels()) {
+    logger_.error("Invalid motor index: {}", index);
+    return nullptr;
+  }
+  // make sure the encoder and driver for this channel exist; initialize the
+  // board defaults if the user has not done so already.
+  if (!encoder(index)) {
+    init_encoder(index, true);
+  }
+  if (!motor_driver(index)) {
+    init_driver(index, driver_default_power_supply_voltage(), driver_default_voltage_limit(),
+                default_motor_dead_zone_ns());
+  }
+  auto enc = encoder(index);
+  auto drv = motor_driver(index);
+  if (!enc || !drv) {
+    logger_.error("Could not initialize driver / encoder for motor {}", index + 1);
+    return nullptr;
+  }
+  // the board owns the driver + encoder, so override those fields regardless of
+  // what the caller passed.
+  auto motor_config = config;
+  motor_config.driver = drv;
+  motor_config.sensor = enc;
+  auto m = std::make_shared<BldcMotor>(motor_config);
+  if (index == 0) {
+    motor1_ = m;
+  } else {
+    motor2_ = m;
+  }
+  return m;
+}
+
+std::shared_ptr<MotorGoMini::BldcMotor> MotorGoMini::motor(size_t index) {
+  if (index == 0)
+    return motor1_;
+  if (index == 1)
+    return motor2_;
+  logger_.error("Invalid motor index: {}", index);
+  return nullptr;
+}
+
 void MotorGoMini::always_init() {
   start_breathing();
   init_spi();

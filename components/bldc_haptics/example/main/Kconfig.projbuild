@@ -10,8 +10,30 @@ menu "Example Configuration"
             depends on IDF_TARGET_ESP32S3
             bool "BLDC Motor Test Stand (TinyS3)"
 
+        config EXAMPLE_HARDWARE_MOTORGO_MINI
+            depends on IDF_TARGET_ESP32S3
+            bool "MotorGo Mini"
+
+        config EXAMPLE_HARDWARE_MOTORGO_AXIS
+            depends on IDF_TARGET_ESP32S3
+            bool "MotorGo Axis"
+
         config EXAMPLE_HARDWARE_CUSTOM
             bool "Custom"
+    endchoice
+
+    choice EXAMPLE_MOTOR_CHANNEL
+        prompt "Motor channel"
+        depends on EXAMPLE_HARDWARE_MOTORGO_MINI || EXAMPLE_HARDWARE_MOTORGO_AXIS
+        default EXAMPLE_MOTOR_CHANNEL_1
+        help
+            Select which motor channel of the MotorGo board to drive.
+
+        config EXAMPLE_MOTOR_CHANNEL_1
+            bool "Motor 1"
+
+        config EXAMPLE_MOTOR_CHANNEL_2
+            bool "Motor 2"
     endchoice
 
     config EXAMPLE_I2C_SCL_GPIO
@@ -19,15 +41,21 @@ menu "Example Configuration"
         range 0 50
         default 9 if EXAMPLE_HARDWARE_TEST_STAND
         default 19 if EXAMPLE_HARDWARE_CUSTOM
+        default 0
+        depends on EXAMPLE_HARDWARE_TEST_STAND || EXAMPLE_HARDWARE_CUSTOM
         help
-            GPIO number for I2C Master clock line.
+            GPIO number for I2C Master clock line. Only used for the test-stand /
+            custom wiring; the MotorGo boards use their own SSI encoder bus.
 
     config EXAMPLE_I2C_SDA_GPIO
         int "SDA GPIO Num"
         range 0 50
         default 8 if EXAMPLE_HARDWARE_TEST_STAND
         default 22 if EXAMPLE_HARDWARE_CUSTOM
+        default 0
+        depends on EXAMPLE_HARDWARE_TEST_STAND || EXAMPLE_HARDWARE_CUSTOM
         help
-            GPIO number for I2C Master data line.
+            GPIO number for I2C Master data line. Only used for the test-stand /
+            custom wiring; the MotorGo boards use their own SSI encoder bus.
 
 endmenu

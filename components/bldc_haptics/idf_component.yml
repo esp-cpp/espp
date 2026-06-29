@@ -20,6 +20,7 @@ dependencies:
   idf:
     version: '>=5.0'
   espp/base_component: '>=1.0'
+  espp/bldc_types: '>=1.0'
   espp/bldc_motor: '>=1.0'
   espp/math: '>=1.0'
   espp/pid: '>=1.0'

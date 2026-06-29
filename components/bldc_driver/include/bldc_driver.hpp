@@ -3,9 +3,11 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <functional>
 
 #include "driver/gpio.h"
 #include "driver/mcpwm_prelude.h"
+#include "esp_attr.h"
 #include "esp_idf_version.h"
 #ifndef ESP_IDF_VERSION_VAL
 #define ESP_IDF_VERSION_VAL(major, minor, patch) (((major) << 16) | ((minor) << 8) | (patch))
@@ -152,6 +154,57 @@ public:
   }
 
   /**
+   * @brief Register a callback fired once per PWM period at the timer "empty"
+   *        (TEZ) event, i.e. when the counter reaches zero.
+   * @param callback Function to call at each TEZ event. Pass nullptr to clear a
+   *        previously registered callback.
+   * @return True if the callback was registered (or cleared) successfully.
+   * @details For this driver's center-aligned (up/down) configuration the
+   *          low-side FETs are conducting around the TEZ event, which is the
+   *          correct instant to sample low-side shunt currents for FOC current
+   *          sensing. Wire this to start / read your current-sense ADC so the
+   *          samples are synchronized to the PWM.
+   * @note The callback runs in interrupt context. Keep it short (e.g. kick off
+   *       an ADC conversion or read a pre-triggered result) and non-blocking. If
+   *       CONFIG_MCPWM_ISR_IRAM_SAFE is enabled, the callback and everything it
+   *       touches must be in IRAM.
+   * @note Registering the callback briefly disables and re-enables the MCPWM
+   *       timer (the ESP-IDF API requires the timer to be in the init state to
+   *       attach event callbacks), so register it during setup before the motor
+   *       is spinning.
+   */
+  bool register_pwm_sample_callback(std::function<void()> callback) {
+    pwm_sample_callback_ = std::move(callback);
+    // the trampoline only needs to be attached once; subsequent calls just swap
+    // the stored std::function.
+    if (sample_cbs_registered_) {
+      return true;
+    }
+    // the ESP-IDF MCPWM API requires the timer to be in the init (disabled)
+    // state to register event callbacks, so disable it if necessary and
+    // re-enable afterwards.
+    bool was_enabled = enabled_;
+    if (was_enabled) {
+      disable();
+    }
+    mcpwm_timer_event_callbacks_t cbs = {};
+    cbs.on_empty = &BldcDriver::on_timer_empty;
+    auto err = mcpwm_timer_register_event_callbacks(timer_, &cbs, this);
+    if (err != ESP_OK) {
+      logger_.error("Failed to register PWM sample callback: {}", esp_err_to_name(err));
+      if (was_enabled) {
+        enable();
+      }
+      return false;
+    }
+    sample_cbs_registered_ = true;
+    if (was_enabled) {
+      enable();
+    }
+    return true;
+  }
+
+  /**
    * @brief This function does nothing, merely exists for later if we choose
    *        to implement it as part of the FOC control algorithm.
    * @note The integers provided are -1 (low), 0 (high impedance), and 1
@@ -266,6 +319,18 @@ public:
 
 protected:
   static int GROUP_ID;
+
+  // ISR trampoline for the MCPWM timer "empty" (TEZ) event. Runs in interrupt
+  // context and forwards to the user-registered PWM sample callback (if any).
+  static bool IRAM_ATTR on_timer_empty(mcpwm_timer_handle_t, const mcpwm_timer_event_data_t *,
+                                       void *user_ctx) {
+    auto *self = static_cast<BldcDriver *>(user_ctx);
+    if (self && self->pwm_sample_callback_) {
+      self->pwm_sample_callback_();
+    }
+    // we did not wake a higher priority task
+    return false;
+  }
 
   void init(const Config &config) {
 #if defined(SOC_MCPWM_GROUPS)
@@ -460,5 +525,9 @@ protected:
   std::array<mcpwm_oper_handle_t, 3> operators_;
   std::array<mcpwm_cmpr_handle_t, 3> comparators_;
   std::array<mcpwm_gen_handle_t, 6> generators_;
+
+  // PWM-synchronized current-sampling support
+  std::function<void()> pwm_sample_callback_{nullptr};
+  bool sample_cbs_registered_{false};
 };
 } // namespace espp

@@ -11,9 +11,15 @@ changed dynamically):
 * Open-loop angle
 * Open-loop velocity
 
-Note: currently the code has some support for Torque control, but that requires
-current sense - for which I don't yet have the hardware to support the
-development of.
+Torque control is supported in two forms. Voltage-mode torque
+(``TorqueControlType::VOLTAGE``) requires no current sensing and is fully
+supported. Current-feedback torque (``TorqueControlType::DC_CURRENT`` and
+``TorqueControlType::FOC_CURRENT``) closes a current loop and therefore requires
+a current sensor implementing the ``CurrentSensorConcept`` (for example
+``espp::CurrentSense`` from the ``bldc_current_sense`` component). The
+current-feedback modes are experimental: they depend on accurate,
+PWM-synchronized current sampling and per-board calibration, and must be
+validated on hardware.
 
 The `BldcMotor` should be configured with a `BldcDriver` and optional `Sensor`
 (for angle & speed of the motor), and optional `CurrentSensor` (for measuring
@@ -31,5 +37,3 @@ API Reference
 -------------
 
 .. include-build-file:: inc/bldc_motor.inc
-.. include-build-file:: inc/bldc_types.inc
-.. include-build-file:: inc/sensor_direction.inc

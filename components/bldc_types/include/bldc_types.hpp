@@ -19,12 +19,20 @@ enum class MotionControlType {
 };
 
 /// \brief How the torque is controlled.
-/// \note VOLTAGE is the only one supported right now, since the other two
-///      require current sense.
+/// \details VOLTAGE control requires no current sensing and is fully supported:
+///      the torque command is converted to a q-axis voltage (using the phase
+///      resistance and estimated back-EMF if those are provided). DC_CURRENT and
+///      FOC_CURRENT close a current loop and therefore require a current sensor
+///      implementing the CurrentSensorConcept (for example espp::CurrentSense
+///      from the bldc_current_sense component) to be supplied to the BldcMotor.
+/// \note DC_CURRENT and FOC_CURRENT are experimental: they depend on accurate,
+///      PWM-synchronized current sampling and per-board calibration, so they
+///      must be validated on hardware before use. If no current sensor is
+///      provided, only VOLTAGE control is functional.
 enum class TorqueControlType {
-  VOLTAGE,    //!< Torque control using voltage
-  DC_CURRENT, //!< Torque control using DC current (one current magnitude)
-  FOC_CURRENT //!< Torque control using DQ currents
+  VOLTAGE,    //!< Torque control using voltage (no current sense required)
+  DC_CURRENT, //!< Torque control using DC current (one current magnitude; needs current sense)
+  FOC_CURRENT //!< Torque control using DQ currents (needs current sense)
 };
 
 /// \brief How the voltages / pwms are calculated based on the magnitude and

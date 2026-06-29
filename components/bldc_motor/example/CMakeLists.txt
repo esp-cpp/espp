@@ -12,7 +12,7 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py filters task monitor mt6701 bldc_motor bldc_driver i2c timer"
+  "main esptool_py filters task monitor mt6701 bldc_motor bldc_driver i2c timer motorgo-mini motorgo-axis"
   CACHE STRING
   "List of components to include"
   )

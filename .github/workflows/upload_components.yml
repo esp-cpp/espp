@@ -39,9 +39,11 @@ jobs:
             components/base_peripheral
             components/bdc_driver
             components/binary-log
+            components/bldc_current_sense
             components/bldc_driver
             components/bldc_haptics
             components/bldc_motor
+            components/bldc_types
             components/ble_gatt_server
             components/bm8563
             components/bmi270
