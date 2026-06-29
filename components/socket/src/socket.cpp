@@ -23,7 +23,7 @@ void Socket::Info::update() {
   if (raw.ss_family == PF_INET) {
     const auto *ipv4 = reinterpret_cast<const struct sockaddr_in *>(&raw);
     address = inet_ntoa(ipv4->sin_addr);
-    port = ipv4->sin_port;
+    port = ntohs(ipv4->sin_port);
   } else if (raw.ss_family == PF_INET6) {
     const auto *ipv6 = reinterpret_cast<const struct sockaddr_in6 *>(&raw);
 #if defined(ESP_PLATFORM)
@@ -33,7 +33,7 @@ void Socket::Info::update() {
     inet_ntop(AF_INET6, &(ipv6->sin6_addr), str, INET6_ADDRSTRLEN);
     address = str;
 #endif
-    port = ipv6->sin6_port;
+    port = ntohs(ipv6->sin6_port);
   }
 }
 
@@ -45,7 +45,7 @@ void Socket::Info::from_sockaddr(const struct sockaddr_storage &source_address) 
 void Socket::Info::from_sockaddr(const struct sockaddr_in &source_address) {
   memcpy(&raw, &source_address, sizeof(source_address));
   address = inet_ntoa(source_address.sin_addr);
-  port = source_address.sin_port;
+  port = ntohs(source_address.sin_port);
 }
 
 void Socket::Info::from_sockaddr(const struct sockaddr_in6 &source_address) {
@@ -56,7 +56,7 @@ void Socket::Info::from_sockaddr(const struct sockaddr_in6 &source_address) {
   inet_ntop(AF_INET6, &(source_address.sin6_addr), str, INET6_ADDRSTRLEN);
   address = str;
 #endif
-  port = source_address.sin6_port;
+  port = ntohs(source_address.sin6_port);
   memcpy(&raw, &source_address, sizeof(source_address));
 }
 
