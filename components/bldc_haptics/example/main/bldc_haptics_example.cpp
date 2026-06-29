@@ -40,14 +40,9 @@ extern "C" void app_main(void) {
   {
     logger.info("Running BLDC Haptics example for {} seconds!", num_seconds_to_run);
 
-    static constexpr float core_update_period = 0.001f; // seconds
-
     // The motor and driver are set up below depending on the selected hardware.
     std::shared_ptr<espp::BldcDriver> driver;
     std::shared_ptr<BldcMotor> motor;
-    // Objects which must outlive the motor for the standalone (I2C) wiring.
-    std::unique_ptr<espp::I2c> i2c;
-    std::shared_ptr<Encoder> standalone_encoder;
 
 #if CONFIG_EXAMPLE_HARDWARE_MOTORGO_MINI || CONFIG_EXAMPLE_HARDWARE_MOTORGO_AXIS
 #if CONFIG_EXAMPLE_HARDWARE_MOTORGO_MINI
@@ -69,6 +64,9 @@ extern "C" void app_main(void) {
     driver = board.motor_driver(example_motor_index);
 #else
     logger.info("Using test-stand / custom wiring (I2C MT6701 + TMC6300)");
+    // Objects which must outlive the motor for the standalone (I2C) wiring.
+    std::unique_ptr<espp::I2c> i2c;
+    std::shared_ptr<Encoder> standalone_encoder;
     // make the I2C that we'll use to communicate with the mt6701 (magnetic encoder)
     logger.info("initializing i2c driver...");
     i2c = std::make_unique<espp::I2c>(espp::I2c::Config{
@@ -90,6 +88,7 @@ extern "C" void app_main(void) {
       logger.error("Failed to initialize MT6701 I2C device: {}", ec.message());
       return;
     }
+    static constexpr float core_update_period = 0.001f; // seconds
     standalone_encoder = std::make_shared<Encoder>(
         Encoder::Config{.write = espp::make_i2c_addressed_write(encoder_device),
                         .read = espp::make_i2c_addressed_read(encoder_device),
@@ -152,11 +151,6 @@ extern "C" void app_main(void) {
             },
         .log_level = espp::Logger::Verbosity::DEBUG});
 #endif
-
-    if (!motor || !driver) {
-      logger.error("Motor / driver were not initialized, cannot run example!");
-      return;
-    }
 
     auto print_detent_config = [&logger](const auto &detent_config) {
       if (detent_config == espp::detail::UNBOUNDED_NO_DETENTS) {

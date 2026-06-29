@@ -49,9 +49,6 @@ extern "C" void app_main(void) {
     // The motor and driver are set up below depending on the selected hardware.
     std::shared_ptr<espp::BldcDriver> driver;
     std::shared_ptr<BldcMotor> motor;
-    // Objects which must outlive the motor for the standalone (I2C) wiring.
-    std::unique_ptr<espp::I2c> i2c;
-    std::shared_ptr<Encoder> standalone_encoder;
 
     //! [bldc_motor example]
 #if CONFIG_EXAMPLE_HARDWARE_MOTORGO_MINI || CONFIG_EXAMPLE_HARDWARE_MOTORGO_AXIS
@@ -74,6 +71,9 @@ extern "C" void app_main(void) {
     driver = board.motor_driver(example_motor_index);
 #else
     logger.info("Using test-stand / custom wiring (I2C MT6701 + TMC6300)");
+    // Objects which must outlive the motor for the standalone (I2C) wiring.
+    std::unique_ptr<espp::I2c> i2c;
+    std::shared_ptr<Encoder> standalone_encoder;
     // make the I2C that we'll use to communicate with the mt6701 (magnetic encoder)
     logger.info("initializing i2c driver...");
     i2c = std::make_unique<espp::I2c>(espp::I2c::Config{
@@ -157,11 +157,6 @@ extern "C" void app_main(void) {
             },
         .log_level = espp::Logger::Verbosity::DEBUG});
 #endif
-
-    if (!motor || !driver) {
-      logger.error("Motor / driver were not initialized, cannot run example!");
-      return;
-    }
 
     static const auto motion_control_type = espp::detail::MotionControlType::VELOCITY;
     // static const auto motion_control_type = espp::detail::MotionControlType::ANGLE;
