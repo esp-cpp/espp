@@ -23,8 +23,8 @@ extern "C" void app_main(void) {
   motor1_config.phase_resistance = 4.0f; // ohms
   motor1_config.current_limit = 1.0f;    // amps
   // velocity PID config:
-  motor1_config.velocity_pid_config.kp = 0.020f;
-  motor1_config.velocity_pid_config.ki = 0.700f;
+  motor1_config.velocity_pid_config.kp = 0.010f;
+  motor1_config.velocity_pid_config.ki = 0.100f;
   motor1_config.velocity_pid_config.kd = 0.000f;
   // angle PID config:
   motor1_config.angle_pid_config.kp = 5.000f;
@@ -35,8 +35,8 @@ extern "C" void app_main(void) {
   motor2_config.phase_resistance = 4.0f; // ohms
   motor2_config.current_limit = 1.0f;    // amps
   // velocity PID config:
-  motor2_config.velocity_pid_config.kp = 0.020f;
-  motor2_config.velocity_pid_config.ki = 0.700f;
+  motor2_config.velocity_pid_config.kp = 0.010f;
+  motor2_config.velocity_pid_config.ki = 0.100f;
   motor2_config.velocity_pid_config.kd = 0.000f;
   // angle PID config:
   motor2_config.angle_pid_config.kp = 5.000f;

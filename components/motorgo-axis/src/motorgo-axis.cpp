@@ -174,6 +174,84 @@ void MotorGoAxis::reset_encoder_accumulator(size_t index) {
   encoder_ptr->reset_accumulator();
 }
 
+MotorGoAxis::BldcMotor::Config MotorGoAxis::default_motor_config(size_t index) const {
+  if (index >= num_motor_channels()) {
+    logger_.error("Invalid motor index: {}", index);
+  }
+  // Sensible defaults for the board's gimbal motors. The driver and sensor are
+  // filled in by initialize_motor(). These mirror the espp::MotorGoMini default
+  // motor configuration so the same code drives either board.
+  return BldcMotor::Config{
+      .num_pole_pairs = 7,
+      .phase_resistance = 4.0f,
+      .kv_rating = 320,
+      .current_limit = 1.0f,
+      .foc_type = espp::detail::FocType::SPACE_VECTOR_PWM,
+      .driver = nullptr,          // filled in by initialize_motor()
+      .sensor = nullptr,          // filled in by initialize_motor()
+      .run_sensor_update = false, // the board runs the encoder update task
+      .velocity_pid_config =
+          {
+              .kp = 0.010f,
+              .ki = 0.100f,
+              .kd = 0.000f,
+              .integrator_min = -1.0f,
+              .integrator_max = 1.0f,
+              .output_min = -1.0,
+              .output_max = 1.0,
+          },
+      .angle_pid_config =
+          {
+              .kp = 5.000f,
+              .ki = 1.000f,
+              .kd = 0.000f,
+              .integrator_min = -10.0f,
+              .integrator_max = 10.0f,
+              .output_min = -20.0,
+              .output_max = 20.0,
+          },
+      .log_level = get_log_level(),
+  };
+}
+
+std::shared_ptr<MotorGoAxis::BldcMotor>
+MotorGoAxis::initialize_motor(size_t index, const MotorGoAxis::BldcMotor::Config &config) {
+  if (index >= num_motor_channels()) {
+    logger_.error("Invalid motor index: {}", index);
+    return nullptr;
+  }
+  // make sure the encoder and driver for this channel exist; initialize the
+  // board defaults if the user has not done so already.
+  if (!encoder(index)) {
+    initialize_encoders();
+  }
+  if (!motor_driver(index)) {
+    initialize_motors();
+  }
+  auto enc = encoder(index);
+  auto drv = motor_driver(index);
+  if (!enc || !drv) {
+    logger_.error("Could not initialize driver / encoder for motor {}", index + 1);
+    return nullptr;
+  }
+  // the board owns the driver + encoder (and the encoder runs its own update
+  // task), so override those fields regardless of what the caller passed.
+  auto motor_config = config;
+  motor_config.driver = drv;
+  motor_config.sensor = enc;
+  motor_config.run_sensor_update = false;
+  motors_[index] = std::make_shared<BldcMotor>(motor_config);
+  return motors_[index];
+}
+
+std::shared_ptr<MotorGoAxis::BldcMotor> MotorGoAxis::motor(size_t index) {
+  if (index >= motors_.size()) {
+    logger_.error("Invalid motor index: {}", index);
+    return nullptr;
+  }
+  return motors_[index];
+}
+
 bool MotorGoAxis::initialize_imu(const Imu::filter_fn &orientation_filter,
                                  const Imu::ImuConfig &imu_config) {
   if (imu_) {

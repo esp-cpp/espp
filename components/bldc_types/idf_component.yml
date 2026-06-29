@@ -1,0 +1,19 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "Shared types and concepts for BLDC motor control (espp)"
+url: "https://github.com/esp-cpp/espp/tree/main/components/bldc_types"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/bldc/bldc_types.html"
+tags:
+  - cpp
+  - Component
+  - BLDC
+  - Motor
+  - Control
+  - FOC
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/format: '>=1.0'

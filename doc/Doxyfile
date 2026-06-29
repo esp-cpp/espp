@@ -84,6 +84,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/lp5817/example/main/lp5817_example.cpp \
   $(PROJECT_PATH)/components/binary-log/example/main/binary_log_example.cpp \
   $(PROJECT_PATH)/components/ble_gatt_server/example/main/ble_gatt_server_example.cpp \
+  $(PROJECT_PATH)/components/bldc_current_sense/example/main/bldc_current_sense_example.cpp \
   $(PROJECT_PATH)/components/bldc_motor/example/main/bldc_motor_example.cpp \
   $(PROJECT_PATH)/components/bldc_haptics/example/main/bldc_haptics_example.cpp \
   $(PROJECT_PATH)/components/bm8563/example/main/bm8563_example.cpp \
@@ -209,13 +210,16 @@ INPUT = \
   $(PROJECT_PATH)/components/ble_gatt_server/include/ble_gatt_server_menu.hpp \
   $(PROJECT_PATH)/components/ble_gatt_server/include/device_info_service.hpp \
   $(PROJECT_PATH)/components/ble_gatt_server/include/generic_access_service.hpp \
+  $(PROJECT_PATH)/components/bldc_current_sense/include/current_sense.hpp \
   $(PROJECT_PATH)/components/bldc_driver/include/bldc_driver.hpp \
   $(PROJECT_PATH)/components/bldc_haptics/include/bldc_haptics.hpp \
   $(PROJECT_PATH)/components/bldc_haptics/include/detent_config.hpp \
   $(PROJECT_PATH)/components/bldc_haptics/include/haptic_config.hpp \
   $(PROJECT_PATH)/components/bldc_motor/include/bldc_motor.hpp \
-  $(PROJECT_PATH)/components/bldc_motor/include/bldc_types.hpp \
-  $(PROJECT_PATH)/components/bldc_motor/include/sensor_direction.hpp \
+  $(PROJECT_PATH)/components/bldc_types/include/bldc_types.hpp \
+  $(PROJECT_PATH)/components/bldc_types/include/foc_utils.hpp \
+  $(PROJECT_PATH)/components/bldc_types/include/bldc_concepts.hpp \
+  $(PROJECT_PATH)/components/bldc_types/include/sensor_direction.hpp \
   $(PROJECT_PATH)/components/bm8563/include/bm8563.hpp \
   $(PROJECT_PATH)/components/bmi270/include/bmi270.hpp \
   $(PROJECT_PATH)/components/bmi270/include/bmi270_detail.hpp \

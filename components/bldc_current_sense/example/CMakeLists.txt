@@ -12,11 +12,11 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py task monitor mt6701 bldc_motor bldc_driver bldc_haptics i2c motorgo-mini motorgo-axis"
+  "main esptool_py task monitor bldc_types bldc_driver bldc_current_sense"
   CACHE STRING
   "List of components to include"
   )
 
-project(bldc_haptics_example)
+project(bldc_current_sense_example)
 
 set(CMAKE_CXX_STANDARD 20)

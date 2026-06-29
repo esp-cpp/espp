@@ -12,6 +12,7 @@
 
 #include "base_component.hpp"
 #include "bldc_driver.hpp"
+#include "bldc_motor.hpp"
 #include "gaussian.hpp"
 #include "i2c.hpp"
 #include "led.hpp"
@@ -42,6 +43,10 @@ public:
   using Encoder = espp::Mt6701<espp::Mt6701Interface::SSI>;
   /// Alias for the 6-PWM BLDC motor driver helper used on each motor channel.
   using MotorDriver = espp::BldcDriver;
+  /// Alias for the FOC BLDC motor controller used on each motor channel.
+  /// \note Shares the same type as espp::MotorGoMini::BldcMotor so that code can
+  ///       be written generically against either board.
+  using BldcMotor = espp::BldcMotor<espp::BldcDriver, Encoder>;
   /// Alias for the onboard hidden-bus IMU helper.
   using Imu = espp::Lsm6dso<espp::lsm6dso::Interface::I2C>;
 
@@ -176,6 +181,33 @@ public:
 
   /// Disable all initialized motor driver helpers.
   void disable_all_motor_drivers();
+
+  /// Get a default FOC motor configuration for one channel.
+  /// \param index Zero-based motor index in the range [0, num_motor_channels()).
+  /// \return A BldcMotor::Config pre-populated with sensible defaults for the
+  ///         board's gimbal motors. The driver and sensor fields are filled in
+  ///         by initialize_motor(), so they may be left as-is.
+  /// \note Provided for API symmetry with espp::MotorGoMini so the same code can
+  ///       drive either board.
+  BldcMotor::Config default_motor_config(size_t index) const;
+
+  /// Create the FOC motor controller for one channel.
+  /// \param index Zero-based motor index in the range [0, num_motor_channels()).
+  /// \param config The motor configuration. Its driver and sensor fields are
+  ///        overridden with the board's per-channel driver and encoder.
+  /// \return Shared pointer to the created (and initialized) BldcMotor, or
+  ///         `nullptr` if the index is invalid or the channel's driver/encoder
+  ///         could not be initialized.
+  /// \details If the encoders / motor drivers have not been initialized yet,
+  ///          this initializes them first (with default settings), so a single
+  ///          call is enough to get a ready-to-use motor.
+  std::shared_ptr<BldcMotor> initialize_motor(size_t index, const BldcMotor::Config &config);
+
+  /// Get one FOC motor controller.
+  /// \param index Zero-based motor index in the range [0, num_motor_channels()).
+  /// \return Shared pointer to the requested motor, or `nullptr` if the index is
+  ///         invalid or initialize_motor() has not been called for it.
+  std::shared_ptr<BldcMotor> motor(size_t index);
 
   /// Initialize the shared encoder bus and create the two MT6701 SSI helpers.
   /// \param run_tasks If true, each encoder starts its own update task after
@@ -371,6 +403,7 @@ protected:
   }};
 
   std::array<std::shared_ptr<MotorDriver>, 2> motor_drivers_{};
+  std::array<std::shared_ptr<BldcMotor>, 2> motors_{};
   std::shared_ptr<espp::Led> indicator_leds_;
   std::unique_ptr<espp::Task> led_task_;
   std::atomic<float> breathing_period_{3.5f};

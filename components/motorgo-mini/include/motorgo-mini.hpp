@@ -50,6 +50,10 @@ public:
   /// Alias for the BLDC motor type
   using BldcMotor = espp::BldcMotor<espp::BldcDriver, Encoder>;
 
+  /// Alias for the 6-PWM BLDC motor driver helper used on each motor channel.
+  /// \note Provided for API symmetry with espp::MotorGoAxis.
+  using MotorDriver = espp::BldcDriver;
+
   /// Alias for the velocity filter type
   using VelocityFilter = espp::SimpleLowpassFilter;
 
@@ -170,6 +174,19 @@ public:
     float limit_voltage;        ///< The limit voltage in volts
   };
 
+  /// Get the number of supported motor channels.
+  /// \return The number of motor channels exposed by the board.
+  static constexpr size_t num_motor_channels() { return 2; }
+  /// Get the default motor supply voltage used for the board definition.
+  /// \return Default power supply voltage in volts.
+  static constexpr float driver_default_power_supply_voltage() { return 5.0f; }
+  /// Get the default motor voltage limit used for the board definition.
+  /// \return Default motor voltage limit in volts.
+  static constexpr float driver_default_voltage_limit() { return 5.0f; }
+  /// Get the default BLDC driver dead-time.
+  /// \return Default dead-time in nanoseconds.
+  static constexpr uint64_t default_motor_dead_zone_ns() { return 100; }
+
   /// Default configuration for the MotorGo-Mini's BLDC motor on channel 1
   const BldcMotor::Config default_motor1_config{
       .num_pole_pairs = 7,
@@ -181,8 +198,8 @@ public:
       .sensor = encoder1_,      // NOTE: user cannot override this
       .velocity_pid_config =
           {
-              .kp = 0.020f,
-              .ki = 0.700f,
+              .kp = 0.010f,
+              .ki = 0.100f,
               .kd = 0.000f,
               .integrator_min = -1.0f, // same scale as output_min (so same scale as current)
               .integrator_max = 1.0f,  // same scale as output_max (so same scale as current)
@@ -214,8 +231,8 @@ public:
       .sensor = encoder2_,      // NOTE: user cannot override this
       .velocity_pid_config =
           {
-              .kp = 0.020f,
-              .ki = 0.700f,
+              .kp = 0.010f,
+              .ki = 0.100f,
               .kd = 0.000f,
               .integrator_min = -1.0f, // same scale as output_min (so same scale as current)
               .integrator_max = 1.0f,  // same scale as output_max (so same scale as current)
@@ -313,6 +330,91 @@ public:
   void reset_encoder2_accumulator();
 
   /////////////////////////////////////////////////////////////////////////////
+  // Symmetric (index-based) API
+  //
+  // The methods below mirror the espp::MotorGoAxis API so the same code can
+  // drive either board. Motor channels are zero-based here (index 0 == "Motor
+  // 1", index 1 == "Motor 2"), unlike the 1-based named accessors above which
+  // remain available for backwards compatibility.
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// Initialize the magnetic encoders for both motor channels.
+  /// \param run_tasks If true, each encoder starts its own update task.
+  /// \return True if both encoders were initialized successfully.
+  /// \details Encoders that are already initialized are left untouched.
+  bool initialize_encoders(bool run_tasks = true);
+
+  /// Initialize the BLDC motor drivers for both motor channels.
+  /// \param power_supply_voltage Supply voltage (V) provided to the drivers.
+  /// \param limit_voltage Maximum voltage (V) allowed to the motors.
+  /// \param dead_zone_ns Dead-time applied to both sides of each phase PWM.
+  /// \return True if both drivers were initialized successfully.
+  /// \details Drivers that are already initialized are left untouched.
+  bool initialize_motors(float power_supply_voltage = driver_default_power_supply_voltage(),
+                         float limit_voltage = driver_default_voltage_limit(),
+                         uint64_t dead_zone_ns = default_motor_dead_zone_ns());
+
+  /// Get one motor driver helper.
+  /// \param index Zero-based motor index in the range [0, num_motor_channels()).
+  /// \return Shared pointer to the requested driver, or `nullptr` if the index
+  ///         is invalid or that driver has not been initialized.
+  std::shared_ptr<MotorDriver> motor_driver(size_t index);
+
+  /// Get one encoder helper.
+  /// \param index Zero-based encoder index in the range [0, num_motor_channels()).
+  /// \return Shared pointer to the requested encoder, or `nullptr` if the index
+  ///         is invalid or that encoder has not been initialized.
+  std::shared_ptr<Encoder> encoder(size_t index);
+
+  /// Reset one encoder's accumulator.
+  /// \param index Zero-based encoder index in the range [0, num_motor_channels()).
+  void reset_encoder_accumulator(size_t index);
+
+  /// Check whether one motor driver helper is currently enabled.
+  /// \param index Zero-based motor index in the range [0, num_motor_channels()).
+  /// \return True if the requested driver exists and is enabled.
+  bool motor_driver_enabled(size_t index);
+
+  /// Enable one motor driver helper.
+  /// \param index Zero-based motor index in the range [0, num_motor_channels()).
+  /// \return True if the driver exists and was enabled.
+  bool enable_motor_driver(size_t index);
+
+  /// Disable one motor driver helper.
+  /// \param index Zero-based motor index in the range [0, num_motor_channels()).
+  void disable_motor_driver(size_t index);
+
+  /// Enable all initialized motor driver helpers.
+  void enable_all_motor_drivers();
+
+  /// Disable all initialized motor driver helpers.
+  void disable_all_motor_drivers();
+
+  /// Get a default FOC motor configuration for one channel.
+  /// \param index Zero-based motor index in the range [0, num_motor_channels()).
+  /// \return A BldcMotor::Config pre-populated with the board defaults for that
+  ///         channel (including the per-channel velocity / angle filters).
+  BldcMotor::Config default_motor_config(size_t index) const;
+
+  /// Create the FOC motor controller for one channel.
+  /// \param index Zero-based motor index in the range [0, num_motor_channels()).
+  /// \param config The motor configuration. Its driver and sensor fields are
+  ///        overridden with the board's per-channel driver and encoder.
+  /// \return Shared pointer to the created (and initialized) BldcMotor, or
+  ///         `nullptr` if the index is invalid or the channel's driver/encoder
+  ///         could not be initialized.
+  /// \details If the encoder / driver for the channel have not been initialized
+  ///          yet, this initializes them first, so a single call is enough to
+  ///          get a ready-to-use motor.
+  std::shared_ptr<BldcMotor> initialize_motor(size_t index, const BldcMotor::Config &config);
+
+  /// Get one FOC motor controller.
+  /// \param index Zero-based motor index in the range [0, num_motor_channels()).
+  /// \return Shared pointer to the requested motor, or `nullptr` if the index is
+  ///         invalid or the motor has not been initialized.
+  std::shared_ptr<BldcMotor> motor(size_t index);
+
+  /////////////////////////////////////////////////////////////////////////////
   // Motor Current Sense
   /////////////////////////////////////////////////////////////////////////////
 
@@ -371,6 +473,12 @@ protected:
 
   void always_init();
   void init_spi();
+
+  // Index-based helpers for the symmetric API. They create the per-channel
+  // encoder / driver only if it has not been created yet.
+  bool init_encoder(size_t index, bool run_tasks);
+  bool init_driver(size_t index, float power_supply_voltage, float limit_voltage,
+                   uint64_t dead_zone_ns);
 
   float breathe(float breathing_period, uint64_t start_us, bool restart = false);
 

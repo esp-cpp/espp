@@ -1,11 +1,11 @@
 ## IDF Component Manager Manifest File
 license: "MIT"
-description: "BLDC Motor component for ESP-IDF"
-url: "https://github.com/esp-cpp/espp/tree/main/components/bldc_motor"
+description: "FOC current sense for BLDC motor control (espp)"
+url: "https://github.com/esp-cpp/espp/tree/main/components/bldc_current_sense"
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
   - William Emfinger <waemfinger@gmail.com>
-documentation: "https://esp-cpp.github.io/espp/bldc/bldc_motor.html"
+documentation: "https://esp-cpp.github.io/espp/bldc/bldc_current_sense.html"
 examples:
   - path: example
 tags:
@@ -14,11 +14,12 @@ tags:
   - BLDC
   - Motor
   - Control
+  - FOC
+  - Current
 dependencies:
   idf:
     version: '>=5.0'
   espp/base_component: '>=1.0'
-  espp/bldc_types: '>=1.0'
   espp/math: '>=1.0'
-  espp/pid: '>=1.0'
-  espp/task: '>=1.0'
+  espp/bldc_driver: '>=1.0'
+  espp/bldc_types: '>=1.0'
