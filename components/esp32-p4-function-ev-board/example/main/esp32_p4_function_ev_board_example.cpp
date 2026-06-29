@@ -406,8 +406,8 @@ extern "C" void app_main(void) {
   const std::string rtps_type = "std_msgs::msg::dds_::UInt32_";
   uint32_t value = 0;
   bool published = false;
-  static constexpr auto loop_tick = 20ms;               // RTPS loop tick
-  static constexpr int64_t publish_period_us = 500'000; // 2 Hz RTPS publish
+  static constexpr auto loop_tick = 20ms; // RTPS loop tick
+  static constexpr int64_t publish_period_us = 50'000'000;
   int64_t last_publish_us = 0;
 
   while (true) {
@@ -438,6 +438,7 @@ extern "C" void app_main(void) {
                 logger.info("discovered {} '{}'", endpoint.is_reader ? "reader" : "writer",
                             endpoint.topic_name);
               },
+          .log_level = espp::Logger::Verbosity::DEBUG,
       });
       participant->add_writer({
           .topic_name = topic,
