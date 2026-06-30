@@ -5,7 +5,7 @@ url: "https://github.com/esp-cpp/espp/tree/main/components/led"
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
   - William Emfinger <waemfinger@gmail.com>
-documentation: "https://esp-cpp.github.io/espp/led.html"
+documentation: "https://esp-cpp.github.io/espp/leds/led.html"
 examples:
   - path: example
 tags:

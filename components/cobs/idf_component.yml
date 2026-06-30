@@ -5,7 +5,7 @@ url: "https://github.com/esp-cpp/espp/tree/main/components/cobs"
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
   - Sam Boegli <samboegli@gmail.com>
-documentation: "https://esp-cpp.github.io/espp/cobs.html"
+documentation: "https://esp-cpp.github.io/espp/data/cobs.html"
 examples:
   - path: example
 tags:

@@ -5,7 +5,7 @@ url: "https://github.com/esp-cpp/espp/tree/main/components/event_manager"
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
   - William Emfinger <waemfinger@gmail.com>
-documentation: "https://esp-cpp.github.io/espp/event_manager.html"
+documentation: "https://esp-cpp.github.io/espp/core/event_manager.html"
 examples:
   - path: example
 tags:

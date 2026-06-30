@@ -5,7 +5,7 @@ url: "https://github.com/esp-cpp/espp/tree/main/components/m5stack-tab5"
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
   - William Emfinger <waemfinger@gmail.com>
-documentation: "https://esp-cpp.github.io/espp/m5stack_tab5.html"
+documentation: "https://esp-cpp.github.io/espp/dev_boards/m5stack/m5stack_tab5.html"
 examples:
   - path: example
 tags:

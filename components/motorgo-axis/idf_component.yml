@@ -5,7 +5,7 @@ url: "https://github.com/esp-cpp/espp/tree/main/components/motorgo-axis"
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
   - William Emfinger <waemfinger@gmail.com>
-documentation: "https://esp-cpp.github.io/espp/motorgo_axis.html"
+documentation: "https://esp-cpp.github.io/espp/dev_boards/motorgo/motorgo_axis.html"
 examples:
   - path: example
 tags:

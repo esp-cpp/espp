@@ -5,7 +5,7 @@ url: "https://github.com/esp-cpp/espp/tree/main/components/matouch-rotary-displa
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
   - William Emfinger <waemfinger@gmail.com>
-documentation: "https://esp-cpp.github.io/espp/matouch_rotary_display.html"
+documentation: "https://esp-cpp.github.io/espp/dev_boards/other/matouch_rotary_display.html"
 examples:
   - path: example
 tags:

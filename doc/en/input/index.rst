@@ -1,6 +1,22 @@
 Input APIs
 **********
 
+Human-input devices and the touch / keypad / pointer drivers behind them.
+
+Input devices
+=============
+
+.. toctree::
+    :maxdepth: 1
+
+    button
+    joystick
+    controller
+    qwiicnes
+
+Touch & input drivers
+=====================
+
 .. toctree::
     :maxdepth: 1
 

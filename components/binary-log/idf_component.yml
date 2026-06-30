@@ -5,7 +5,7 @@ url: "https://github.com/esp-cpp/espp/tree/main/components/binary-log"
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
   - William Emfinger <waemfinger@gmail.com>
-documentation: "https://esp-cpp.github.io/espp/logger.html#binary-log"
+documentation: "https://esp-cpp.github.io/espp/core/logger.html#binary-log"
 examples:
   - path: example
 tags:

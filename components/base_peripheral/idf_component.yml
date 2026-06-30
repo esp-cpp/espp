@@ -5,7 +5,7 @@ url: "https://github.com/esp-cpp/espp/tree/main/components/base_peripheral"
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
   - William Emfinger <waemfinger@gmail.com>
-documentation: "https://esp-cpp.github.io/espp/base_peripheral.html"
+documentation: "https://esp-cpp.github.io/espp/core/base_peripheral.html"
 tags:
   - cpp
   - Component

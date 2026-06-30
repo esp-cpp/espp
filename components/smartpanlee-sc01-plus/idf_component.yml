@@ -5,7 +5,7 @@ url: "https://github.com/esp-cpp/espp/tree/main/components/smartpanlee-sc01-plus
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
   - William Emfinger <waemfinger@gmail.com>
-documentation: "https://esp-cpp.github.io/espp/smartpanlee_sc01_plus.html"
+documentation: "https://esp-cpp.github.io/espp/dev_boards/other/smartpanlee_sc01_plus.html"
 examples:
   - path: example
 tags:
