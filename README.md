@@ -31,29 +31,36 @@ If you have questions or would like to chat, feel free to hop over to our discor
 The components in this repository are targeted towards ESP-IDF >=5.0, though
 they are mainly tested against 5.5.1 right now.
 
-To use the components in this repository, you have a few options:
+There are a few different ways to use the components in this repository. **These
+are independent alternatives — pick the one that best fits your situation. You
+only need to do one of them; they are not steps to be run one after another.**
 
-1. You can use the [esp-cppp/template](https://github.com/esp-cpp/template)
-   repository as a starting point, which is very similar to the esp-idf
-   template, but is geared towards c++ development and already has `espp` as a
-   submodule, along with the appropriate configuration in the top-level
-   CMakeLists.txt.
+- **Start from the template repository (recommended for new projects).** The
+  [esp-cpp/template](https://github.com/esp-cpp/template) repository is a
+  ready-to-go starting point that is similar to the esp-idf template but geared
+  towards C++ development, and is already set up to pull the `espp` components it
+  needs via the IDF component manager. It is set up as a GitHub *template
+  repository*, so you can create your own project from it directly using the
+  green **"Use this template"** button on its
+  [GitHub page](https://github.com/esp-cpp/template) — there's no need to fork or
+  clone it by hand. After creating your repository from the template, run the
+  included setup script to customize and configure the project (renaming it,
+  etc.) for your needs.
 
-1. You can add dependencies on the components you want using the `idf component
-   manager`. All `espp` components are published to the [ESP Component
-   Registry](https://components.espressif.com/components?q=namespace:espp) under the namespace `espp`.
-   
-   For example, if you want to use the `task` component and the
-   `ble_gatt_server` components, you could run:
+- **Add individual components with the IDF component manager.** All `espp`
+  components are published to the [ESP Component
+  Registry](https://components.espressif.com/components?q=namespace:espp) under
+  the namespace `espp`. For example, if you want to use the `task` component and
+  the `ble_gatt_server` component, you could run:
 
      ```console
      idf.py add-dependency "espp/task^1.0"
      idf.py add-dependency "espp/ble_gatt_server^1.0"
      ```
-   
+
    Alternatively, you could add the following dependencies to your
    `main/idf_component.yml`:
-   
+
      ```yaml
      dependencies:
         esp-cpp/ble_gatt_server: '>=1.0'
@@ -61,11 +68,26 @@ To use the components in this repository, you have a few options:
         # other dependencies here...
      ```
 
-1. If you have an existing project with a `components` directory, then you can
-   clone `espp` as a submodule within that directory e.g. `git submodule add
-   https://github.com/esp-cpp/espp components/espp`, then make sure to run `git
-   submodule update --init --recursive`. Afterwards, simply update your
-   `CMakeLists.txt` to add
+- **Add espp to an existing project as a submodule.**
+
+  > **Not recommended.** espp is a large repository with many submodules and
+  > supports many targets, so vendoring the whole repository this way is
+  > heavyweight, and this approach may not be fully supported going forward.
+  > Prefer the IDF component manager (above), which pulls in only the components
+  > you need. Use this approach only in exceptional cases where the component
+  > manager is not an option.
+
+  If you already have a project with a `components` directory, add `espp` as a
+  submodule there:
+
+    ```console
+    git submodule add https://github.com/esp-cpp/espp components/espp
+    git submodule update --init --recursive
+    ```
+
+  The `--recursive` flag is important: it pulls in the nested submodules that
+  some components require. Afterwards, update your top-level `CMakeLists.txt` to
+  add
 
     ```cmake
     # add the component directories that we want to use
@@ -74,10 +96,12 @@ To use the components in this repository, you have a few options:
     )
     ```
 
-1. You can clone espp somewhere on your computer and then point your project to
-   its `components` directory to use any of the components it contains, similar
-   to the step above.
-   
+- **Clone espp anywhere and reference its components.** You can also clone espp
+  somewhere on your computer and then point your project to its `components`
+  directory to use any of the components it contains, similar to the option
+  above. The same caveat applies: this is **not recommended** and should be
+  reserved for exceptional cases — prefer the IDF component manager.
+
    Note: you should ensure that you clone recursively or run `git submodule
    update --init --recursive` to ensure that you have the latest versions of all
    the submodules which are required to build the components in this repository.

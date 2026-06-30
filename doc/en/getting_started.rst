@@ -28,33 +28,58 @@ Every component has:
 Using a component
 =================
 
-There are a few ways to pull ESPP components into your project:
+There are a few ways to pull ESPP components into your project. These are
+**independent alternatives** — pick the one that best fits your situation. You
+only need to do one of them; they are not steps to be run in sequence.
 
-#. Start from the `esp-cpp/template <https://github.com/esp-cpp/template>`_
-   repository, which is set up for C++ development with ``espp`` already included
-   as a submodule.
+- **Start from the template repository (recommended for new projects).**
+  `esp-cpp/template <https://github.com/esp-cpp/template>`_ is a ready-to-go
+  starting point geared towards C++ development that is already set up to pull the
+  ``espp`` components it needs via the IDF component manager. It is set up as a
+  GitHub *template repository*, so you can create your own project from it
+  directly using the green **"Use this template"** button on its `GitHub page
+  <https://github.com/esp-cpp/template>`_ — no need to fork or clone it by hand.
+  After creating your repository from the template, run the included setup script
+  to customize and configure the project for your needs.
 
-#. Add individual components with the IDF component manager. All ``espp``
-   components are published to the `ESP Component Registry
-   <https://components.espressif.com/components?q=namespace:espp>`_ under the
-   ``espp`` namespace, for example:
+- **Add individual components with the IDF component manager.** All ``espp``
+  components are published to the `ESP Component Registry
+  <https://components.espressif.com/components?q=namespace:espp>`_ under the
+  ``espp`` namespace, for example:
 
-   .. code-block:: console
+  .. code-block:: console
 
-      idf.py add-dependency "espp/task^1.0"
-      idf.py add-dependency "espp/ble_gatt_server^1.0"
+     idf.py add-dependency "espp/task^1.0"
+     idf.py add-dependency "espp/ble_gatt_server^1.0"
 
-#. Clone ``espp`` as a submodule in your project's ``components`` directory and
-   add it to ``EXTRA_COMPONENT_DIRS`` in your ``CMakeLists.txt``:
+- **Add espp to an existing project as a submodule.**
 
-   .. code-block:: cmake
+  .. note::
 
-      set(EXTRA_COMPONENT_DIRS
-        "components/espp/components"
-      )
+     This approach is **not recommended** and may not be fully supported going
+     forward. espp is a large repository with many submodules and supports many
+     targets, so vendoring the whole repository this way is heavyweight. Prefer
+     the IDF component manager (above), which pulls in only the components you
+     need; use the submodule approach only in exceptional cases where the
+     component manager is not an option.
 
-   Be sure to clone recursively (or run ``git submodule update --init
-   --recursive``) so the required submodules are present.
+  If you already have a project with a ``components`` directory, add ``espp`` as a
+  submodule there:
+
+  .. code-block:: console
+
+     git submodule add https://github.com/esp-cpp/espp components/espp
+     git submodule update --init --recursive
+
+  The ``--recursive`` flag is important: it pulls in the nested submodules that
+  some components require. Then point ``EXTRA_COMPONENT_DIRS`` in your top-level
+  ``CMakeLists.txt`` at the components:
+
+  .. code-block:: cmake
+
+     set(EXTRA_COMPONENT_DIRS
+       "components/espp/components"
+     )
 
 For questions or to chat, join the `Discord
 <https://discord.gg/dvcQw37xAY>`_.
