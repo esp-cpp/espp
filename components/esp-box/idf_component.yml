@@ -5,7 +5,7 @@ url: "https://github.com/esp-cpp/espp/tree/main/components/esp-box"
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
   - William Emfinger <waemfinger@gmail.com>
-documentation: "https://esp-cpp.github.io/espp/esp_box.html"
+documentation: "https://esp-cpp.github.io/espp/dev_boards/espressif/esp_box.html"
 examples:
   - path: example
 tags:

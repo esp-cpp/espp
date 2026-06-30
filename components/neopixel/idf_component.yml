@@ -5,7 +5,7 @@ url: "https://github.com/esp-cpp/espp/tree/main/components/neopixel"
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
   - William Emfinger <waemfinger@gmail.com>
-documentation: "https://esp-cpp.github.io/espp/neopixel.html"
+documentation: "https://esp-cpp.github.io/espp/leds/neopixel.html"
 examples:
   - path: example
 tags:

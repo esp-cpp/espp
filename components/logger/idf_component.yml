@@ -5,7 +5,7 @@ url: "https://github.com/esp-cpp/espp/tree/main/components/logger"
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
   - William Emfinger <waemfinger@gmail.com>
-documentation: "https://esp-cpp.github.io/espp/logger.html#logger"
+documentation: "https://esp-cpp.github.io/espp/core/logger.html#logger"
 examples:
   - path: example
 tags:

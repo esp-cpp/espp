@@ -1,90 +1,102 @@
 ESPP Documentation
-=========================
+==================
 
-This is the documentation for the ESP-IDF C++ library esp-cpp/espp.
+This is the documentation for the ESP-IDF C++ library `espp
+<https://github.com/esp-cpp/espp>`_. ESPP provides additional C++ components and
+abstractions for building applications from reusable components.
 
+New here? Start with :doc:`getting_started`. The APIs below are grouped by
+capability; all supported development boards are collected under
+:doc:`dev_boards/index`.
 
-This is the documentation for esp-idf c++ components, ESPP (`espp <https://github.com/esp-cpp/espp>`_). ESPP provides additional c++ components and abstractions for building applications from reusable components.
+.. toctree::
+   :maxdepth: 1
+   :caption: Introduction
 
+   getting_started
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Core & RTOS
+
+   core/index
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Storage & Configuration
+
+   storage/index
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Buses & I/O
+
+   buses/index
+   io_expander/index
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Sensors
+
+   adc/index
+   imu/index
+   encoder/index
+   distance_sensors/index
+   presence/index
+   battery/index
+   power/index
+   rtc/index
+   thermistor
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Motor Control
+
+   motor_control/index
+   bldc/index
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Displays, LEDs & Haptics
+
+   display/index
+   leds/index
+   led_driver/index
+   haptics/index
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Input & HID
+
+   input/index
+   hid/index
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Connectivity & Protocols
+
+   network/index
+   wifi/index
+   ble/index
+   ftp/index
+   nfc/index
+   protocols/index
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Math & DSP
+
+   math/index
+   filters/index
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Data & Serialization
+
+   data/index
 
 .. toctree::
    :maxdepth: 2
+   :caption: Dev Boards (BSPs)
 
-   adc/index
-   adrc
-   base_component
-   base_peripheral
-   battery/index
-   bldc/index
-   ble/index
-   button
-   byte90
-   controller
-   cdr
-   cli
-   cobs
-   color
-   csv
-   display/index
-   distance_sensors/index
-   encoder/index
-   esp32_p4_function_ev_board
-   esp32_timer_cam
-   esp_box
-   event_manager
-   file_system
-   filters/index
-   ftp/index
-   haptics/index
-   hid/index
-   i2c
-   imu/index
-   interrupt
-   input/index
-   io_expander/index
-   iperf_menu
-   joystick
-   led
-   led_driver/index
-   led_strip
-   logger
-   m5stack_tab5
-   math/index
-   matouch_rotary_display
-   monitor
-   motorgo_axis
-   motorgo_mini
-   motorgo_plink
-   neopixel
-   network/index
-   nfc/index
-   nvs
-   odrive_ascii
-   pid
-   power/index
-   presence/index
-   qtpy
-   qwiicnes
-   remote_debug
-   rmt
-   rtc/index
-   rtps
-   rtsp
-   runqueue
-   seeed_studio_round_display
-   serialization
-   smartpanlee_sc01_plus
-   spi
-   state_machine
-   t_deck
-   t_dongle_s3
-   tabulate
-   task
-   thermistor
-   timer
-   wifi/index
-   wrover_kit
-   ws_s3_geek
-   ws_s3_lcd_1_47
-   ws_s3_touch
-   xiao_esp32s3_sense
+   dev_boards/index

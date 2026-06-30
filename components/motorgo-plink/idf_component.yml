@@ -5,7 +5,7 @@ url: "https://github.com/esp-cpp/espp/tree/main/components/motorgo-plink"
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
   - William Emfinger <waemfinger@gmail.com>
-documentation: "https://esp-cpp.github.io/espp/motorgo_plink.html"
+documentation: "https://esp-cpp.github.io/espp/dev_boards/motorgo/motorgo_plink.html"
 examples:
   - path: example
 tags:

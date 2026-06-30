@@ -5,7 +5,7 @@ url: "https://github.com/esp-cpp/espp/tree/main/components/esp32-p4-function-ev-
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
   - William Emfinger <waemfinger@gmail.com>
-documentation: "https://esp-cpp.github.io/espp/esp32_p4_function_ev_board.html"
+documentation: "https://esp-cpp.github.io/espp/dev_boards/espressif/esp32_p4_function_ev_board.html"
 examples:
   - path: example
 tags:

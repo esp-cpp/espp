@@ -1,6 +1,9 @@
 Math APIs
 *********
 
+Numeric helpers and color math. See also the :doc:`../filters/index` APIs for
+signal-processing filters.
+
 .. toctree::
     :maxdepth: 1
 
@@ -10,3 +13,4 @@ Math APIs
     gaussian
     range_mapper
     vector2d
+    color

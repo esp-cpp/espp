@@ -5,7 +5,7 @@ url: "https://github.com/esp-cpp/espp/tree/main/components/i2c"
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
   - William Emfinger <waemfinger@gmail.com>
-documentation: "https://esp-cpp.github.io/espp/i2c.html"
+documentation: "https://esp-cpp.github.io/espp/buses/i2c.html"
 examples:
   - path: example
 tags:
