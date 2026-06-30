@@ -38,10 +38,10 @@ only need to do one of them; they are not steps to be run one after another.**
 - **Start from the template repository (recommended for new projects).** The
   [esp-cpp/template](https://github.com/esp-cpp/template) repository is a
   ready-to-go starting point that is similar to the esp-idf template but geared
-  towards C++ development, with `espp` already added as a submodule and
-  configured in the top-level `CMakeLists.txt`. It is set up as a GitHub
-  *template repository*, so you can create your own project from it directly
-  using the green **"Use this template"** button on its
+  towards C++ development, and is already set up to pull the `espp` components it
+  needs via the IDF component manager. It is set up as a GitHub *template
+  repository*, so you can create your own project from it directly using the
+  green **"Use this template"** button on its
   [GitHub page](https://github.com/esp-cpp/template) — there's no need to fork or
   clone it by hand. After creating your repository from the template, run the
   included setup script to customize and configure the project (renaming it,
@@ -68,8 +68,17 @@ only need to do one of them; they are not steps to be run one after another.**
         # other dependencies here...
      ```
 
-- **Add espp to an existing project as a submodule.** If you already have a
-  project with a `components` directory, add `espp` as a submodule there:
+- **Add espp to an existing project as a submodule.**
+
+  > **Not recommended.** espp is a large repository with many submodules and
+  > supports many targets, so vendoring the whole repository this way is
+  > heavyweight, and this approach may not be fully supported going forward.
+  > Prefer the IDF component manager (above), which pulls in only the components
+  > you need. Use this approach only in exceptional cases where the component
+  > manager is not an option.
+
+  If you already have a project with a `components` directory, add `espp` as a
+  submodule there:
 
     ```console
     git submodule add https://github.com/esp-cpp/espp components/espp
@@ -90,7 +99,8 @@ only need to do one of them; they are not steps to be run one after another.**
 - **Clone espp anywhere and reference its components.** You can also clone espp
   somewhere on your computer and then point your project to its `components`
   directory to use any of the components it contains, similar to the option
-  above.
+  above. The same caveat applies: this is **not recommended** and should be
+  reserved for exceptional cases — prefer the IDF component manager.
 
    Note: you should ensure that you clone recursively or run `git submodule
    update --init --recursive` to ensure that you have the latest versions of all

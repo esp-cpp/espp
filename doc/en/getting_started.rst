@@ -34,9 +34,9 @@ only need to do one of them; they are not steps to be run in sequence.
 
 - **Start from the template repository (recommended for new projects).**
   `esp-cpp/template <https://github.com/esp-cpp/template>`_ is a ready-to-go
-  starting point geared towards C++ development, with ``espp`` already included
-  as a submodule and configured in the top-level ``CMakeLists.txt``. It is set up
-  as a GitHub *template repository*, so you can create your own project from it
+  starting point geared towards C++ development that is already set up to pull the
+  ``espp`` components it needs via the IDF component manager. It is set up as a
+  GitHub *template repository*, so you can create your own project from it
   directly using the green **"Use this template"** button on its `GitHub page
   <https://github.com/esp-cpp/template>`_ — no need to fork or clone it by hand.
   After creating your repository from the template, run the included setup script
@@ -52,8 +52,19 @@ only need to do one of them; they are not steps to be run in sequence.
      idf.py add-dependency "espp/task^1.0"
      idf.py add-dependency "espp/ble_gatt_server^1.0"
 
-- **Add espp to an existing project as a submodule.** If you already have a
-  project with a ``components`` directory, add ``espp`` as a submodule there:
+- **Add espp to an existing project as a submodule.**
+
+  .. note::
+
+     This approach is **not recommended** and may not be fully supported going
+     forward. espp is a large repository with many submodules and supports many
+     targets, so vendoring the whole repository this way is heavyweight. Prefer
+     the IDF component manager (above), which pulls in only the components you
+     need; use the submodule approach only in exceptional cases where the
+     component manager is not an option.
+
+  If you already have a project with a ``components`` directory, add ``espp`` as a
+  submodule there:
 
   .. code-block:: console
 
