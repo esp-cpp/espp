@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CDR (Common Data Representation) - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'data/cdr';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="&lt;no title&gt;" href="cdr_example.html" />
+    <link rel="prev" title="&lt;no title&gt;" href="serialization_example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Core &amp; RTOS APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../buses/index.html">Buses &amp; Low-Level I/O APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../motor_control/index.html">Motor Control APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Data &amp; Serialization APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="serialization.html">Serialization APIs</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">CDR (Common Data Representation)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cobs.html">COBS (Consistent Overhead Byte Stuffing)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="csv.html">CSV APIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tabulate.html">Tabulate APIs</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../dev_boards/index.html">Dev Boards (BSPs)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Data &amp; Serialization APIs</a></li>
+      <li class="breadcrumb-item active">CDR (Common Data Representation)</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/d535af92/docs/en/data/cdr.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="cdr-common-data-representation">
+<h1>CDR (Common Data Representation)<a class="headerlink" href="#cdr-common-data-representation" title="Permalink to this heading"></a></h1>
+<p>The <code class="docutils literal notranslate"><span class="pre">cdr</span></code> component provides a small, standalone Common Data Representation
+reader/writer utility aimed at standards-oriented protocols such as DDS/RTPS.</p>
+<p>This initial slice focuses on the pieces needed to start building interoperable
+payloads without forcing applications to adopt DDS or RTPS as a whole:</p>
+<ul class="simple">
+<li><p>CDR / PL_CDR encapsulation identifiers</p></li>
+<li><p>endian-aware primitive serialization helpers</p></li>
+<li><p>CDR alignment and padding handling</p></li>
+<li><p>string helpers using the standard CDR length-prefix + null terminator layout</p></li>
+<li><p>body helpers for CDR fields embedded inside larger protocol elements</p></li>
+<li><p>fixed-array helpers and zero-copy payload/span views</p></li>
+<li><p>primitive sequence helpers</p></li>
+<li><p>standalone usage outside RTPS</p></li>
+</ul>
+<p>Current scope:</p>
+<ul class="simple">
+<li><p>useful as a reusable building block for future DDS/RTPS payload work</p></li>
+<li><p>suitable for direct use in other protocols that want CDR-style payloads</p></li>
+<li><p>not yet a full XTypes / XCDR2 implementation</p></li>
+</ul>
+<div class="toctree-wrapper compound">
+</div>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/d535af92/components/cdr/include/cdr.hpp">components/cdr/include/cdr.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9CdrWriterE">
+<span id="_CPPv3N4espp9CdrWriterE"></span><span id="_CPPv2N4espp9CdrWriterE"></span><span id="espp::CdrWriter"></span><span class="target" id="classespp_1_1CdrWriter"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CdrWriter</span></span></span><a class="headerlink" href="#_CPPv4N4espp9CdrWriterE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Small helper for building CDR/XCDR1-style byte streams.</p>
+<section id="classespp_1_1CdrWriter_1cdr_ex1">
+<h4>CDR Example<a class="headerlink" href="#classespp_1_1CdrWriter_1cdr_ex1" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1CdrWriter_1cdr_ex1"><div class="highlight"><pre><span></span><span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">CdrWriter</span><span class="w"> </span><span class="nf">writer</span><span class="p">({</span>
+<span class="w">      </span><span class="p">.</span><span class="n">encapsulation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">CdrEncapsulation</span><span class="o">::</span><span class="n">CDR_LE</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">include_encapsulation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span>
+<span class="w">  </span><span class="p">});</span>
+<span class="w">  </span><span class="n">writer</span><span class="p">.</span><span class="n">write</span><span class="o">&lt;</span><span class="kt">uint32_t</span><span class="o">&gt;</span><span class="p">(</span><span class="mi">42</span><span class="p">);</span>
+<span class="w">  </span><span class="n">writer</span><span class="p">.</span><span class="n">write</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="mf">3.25f</span><span class="p">);</span>
+<span class="w">  </span><span class="n">writer</span><span class="p">.</span><span class="n">write_string</span><span class="p">(</span><span class="s">&quot;hello cdr&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">writer</span><span class="p">.</span><span class="n">write_sequence</span><span class="o">&lt;</span><span class="kt">uint16_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">input_values</span><span class="p">);</span>
+
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">payload</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">writer</span><span class="p">.</span><span class="n">take_buffer</span><span class="p">();</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Serialized {} bytes of CDR data&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">payload</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">inline_writer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">CdrWriter</span><span class="o">::</span><span class="n">make_body_writer</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">CdrEncapsulation</span><span class="o">::</span><span class="n">CDR_LE</span><span class="p">);</span>
+<span class="w">  </span><span class="n">inline_writer</span><span class="p">.</span><span class="n">write_array</span><span class="p">(</span><span class="n">input_magic</span><span class="p">);</span>
+<span class="w">  </span><span class="n">inline_writer</span><span class="p">.</span><span class="n">write_string</span><span class="p">(</span><span class="s">&quot;embedded field&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">inline_payload</span><span class="w"> </span><span class="o">=</span>
+<span class="w">      </span><span class="n">espp</span><span class="o">::</span><span class="n">CdrWriter</span><span class="o">::</span><span class="n">encapsulate</span><span class="p">(</span><span class="n">inline_writer</span><span class="p">.</span><span class="n">payload</span><span class="p">(),</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">CdrEncapsulation</span><span class="o">::</span><span class="n">PL_CDR_LE</span><span class="p">);</span>
+
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">CdrReader</span><span class="w"> </span><span class="nf">reader</span><span class="p">(</span><span class="n">payload</span><span class="p">);</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">CdrReader</span><span class="w"> </span><span class="nf">inline_reader</span><span class="p">(</span><span class="n">inline_payload</span><span class="p">);</span>
+<span class="w">  </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">decoded_count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">float</span><span class="w"> </span><span class="n">decoded_scale</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">decoded_text</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint16_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">decoded_values</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">array</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">decoded_magic</span><span class="p">{};</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">decoded_inline_text</span><span class="p">;</span>
+
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">reader</span><span class="p">.</span><span class="n">read</span><span class="o">&lt;</span><span class="kt">uint32_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">decoded_count</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">reader</span><span class="p">.</span><span class="n">read</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">decoded_scale</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span>
+<span class="w">            </span><span class="n">reader</span><span class="p">.</span><span class="n">read_string</span><span class="p">(</span><span class="n">decoded_text</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">reader</span><span class="p">.</span><span class="n">read_sequence</span><span class="o">&lt;</span><span class="kt">uint16_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">decoded_values</span><span class="p">);</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">inline_ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">inline_reader</span><span class="p">.</span><span class="n">encapsulation</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">CdrEncapsulation</span><span class="o">::</span><span class="n">PL_CDR_LE</span><span class="w"> </span><span class="o">&amp;&amp;</span>
+<span class="w">                   </span><span class="n">inline_reader</span><span class="p">.</span><span class="n">read_array</span><span class="p">(</span><span class="n">decoded_magic</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span>
+<span class="w">                   </span><span class="n">inline_reader</span><span class="p">.</span><span class="n">read_string</span><span class="p">(</span><span class="n">decoded_inline_text</span><span class="p">);</span>
+</pre></div>
+</div>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9CdrWriter9CdrWriterEv">
+<span id="_CPPv3N4espp9CdrWriter9CdrWriterEv"></span><span id="_CPPv2N4espp9CdrWriter9CdrWriterEv"></span><span id="espp::CdrWriter::CdrWriter"></span><span class="target" id="classespp_1_1CdrWriter_1a139d0eab20288db64e23ee7117616686"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CdrWriter</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9CdrWriter9CdrWriterEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct a writer using the default little-endian encapsulated configuration. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9CdrWriter9CdrWriterERK6Config">
+<span id="_CPPv3N4espp9CdrWriter9CdrWriterERK6Config"></span><span id="_CPPv2N4espp9CdrWriter9CdrWriterERK6Config"></span><span id="espp::CdrWriter::CdrWriter__ConfigCR"></span><span class="target" id="classespp_1_1CdrWriter_1a124520402bc2201118525831b3492432"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CdrWriter</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9CdrWriter6ConfigE" title="espp::CdrWriter::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9CdrWriter9CdrWriterERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct a writer using an explicit configuration. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – Writer configuration controlling encapsulation and endianness behavior. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9CdrWriter5resetEv">
+<span id="_CPPv3N4espp9CdrWriter5resetEv"></span><span id="_CPPv2N4espp9CdrWriter5resetEv"></span><span id="espp::CdrWriter::reset"></span><span class="target" id="classespp_1_1CdrWriter_1a562df38dbb1936b4de7911d7a7cd9d52"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9CdrWriter5resetEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear the current buffer and reinitialize the encapsulation header if configured. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9CdrWriter13encapsulationEv">
+<span id="_CPPv3NK4espp9CdrWriter13encapsulationEv"></span><span id="_CPPv2NK4espp9CdrWriter13encapsulationEv"></span><span id="espp::CdrWriter::encapsulationC"></span><span class="target" id="classespp_1_1CdrWriter_1ab747aea02aba7c389e15d3b772c9271f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">CdrEncapsulation</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">encapsulation</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9CdrWriter13encapsulationEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the configured encapsulation kind for this writer. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The encapsulation kind associated with this writer. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9CdrWriter18uses_little_endianEv">
+<span id="_CPPv3NK4espp9CdrWriter18uses_little_endianEv"></span><span id="_CPPv2NK4espp9CdrWriter18uses_little_endianEv"></span><span id="espp::CdrWriter::uses_little_endianC"></span><span class="target" id="classespp_1_1CdrWriter_1a3676366203d6a95dbb2a9890f494ab06"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">uses_little_endian</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9CdrWriter18uses_little_endianEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Determine whether values are encoded in little-endian order. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True for little-endian encapsulations, false for big-endian ones. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9CdrWriter4sizeEv">
+<span id="_CPPv3NK4espp9CdrWriter4sizeEv"></span><span id="_CPPv2NK4espp9CdrWriter4sizeEv"></span><span id="espp::CdrWriter::sizeC"></span><span class="target" id="classespp_1_1CdrWriter_1a1e9b24195687b685faed407b02265e1d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">size</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9CdrWriter4sizeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the total number of bytes currently written. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The size of the backing byte buffer, including any encapsulation header. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9CdrWriter6bufferEv">
+<span id="_CPPv3NK4espp9CdrWriter6bufferEv"></span><span id="_CPPv2NK4espp9CdrWriter6bufferEv"></span><span id="espp::CdrWriter::bufferC"></span><span class="target" id="classespp_1_1CdrWriter_1a1954a1682130cc73a6f7807d761862d6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">buffer</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9CdrWriter6bufferEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Access the full serialized buffer built so far. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the complete buffer, including any encapsulation header. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9CdrWriter7payloadEv">
+<span id="_CPPv3NK4espp9CdrWriter7payloadEv"></span><span id="_CPPv2NK4espp9CdrWriter7payloadEv"></span><span id="espp::CdrWriter::payloadC"></span><span class="target" id="classespp_1_1CdrWriter_1acadd2a476c05a18ebfab986518f71ff9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">payload</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9CdrWriter7payloadEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Access only the payload portion of the buffer. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A view over the serialized bytes after any encapsulation header. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9CdrWriter11take_bufferEv">
+<span id="_CPPv3N4espp9CdrWriter11take_bufferEv"></span><span id="_CPPv2N4espp9CdrWriter11take_bufferEv"></span><span id="espp::CdrWriter::take_buffer"></span><span class="target" id="classespp_1_1CdrWriter_1a1d594e244f29ee45ea27855ba1244f13"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">take_buffer</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9CdrWriter11take_bufferEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Move the complete serialized buffer out of the writer. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The current buffer contents, including any encapsulation header. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9CdrWriter5alignE6size_t">
+<span id="_CPPv3N4espp9CdrWriter5alignE6size_t"></span><span id="_CPPv2N4espp9CdrWriter5alignE6size_t"></span><span id="espp::CdrWriter::align__s"></span><span class="target" id="classespp_1_1CdrWriter_1a53ce662f5ac1f6c5156f2d6187dcf000"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">align</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">alignment</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9CdrWriter5alignE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Pad the buffer with zeros until it satisfies the requested alignment. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>alignment</strong> – Required alignment in bytes. Values less than or equal to 1 are ignored. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Always returns true. This matches the reader API even though writer-side alignment cannot currently fail. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN4espp9CdrWriter5writeEb1T">
+<span id="_CPPv3I0EN4espp9CdrWriter5writeE1T"></span><span id="_CPPv2I0EN4espp9CdrWriter5writeE1T"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1CdrWriter_1a154bd4fdecf6e5907e8e4f82fd21a370"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0EN4espp9CdrWriter5writeEb1T" title="espp::CdrWriter::write::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN4espp9CdrWriter5writeEb1T" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Append a primitive scalar using CDR alignment and endianness rules. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>T</strong> – Primitive integral or floating-point type to encode. </p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>value</strong> – Value to append to the serialized buffer. </p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True after the value has been encoded and appended. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9CdrWriter10write_boolEb">
+<span id="_CPPv3N4espp9CdrWriter10write_boolEb"></span><span id="_CPPv2N4espp9CdrWriter10write_boolEb"></span><span id="espp::CdrWriter::write_bool__b"></span><span class="target" id="classespp_1_1CdrWriter_1a7073f8294b9fdac4399eddcb2772a6fb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_bool</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9CdrWriter10write_boolEb" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Append a boolean value using the standard CDR 1-byte representation. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>value</strong> – Boolean value to encode. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True after the value has been appended. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9CdrWriter12write_stringENSt11string_viewE">
+<span id="_CPPv3N4espp9CdrWriter12write_stringENSt11string_viewE"></span><span id="_CPPv2N4espp9CdrWriter12write_stringENSt11string_viewE"></span><span id="espp::CdrWriter::write_string__std::string_view"></span><span class="target" id="classespp_1_1CdrWriter_1a68ff6da6d7552eb4623d86d737ab9cb8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_string</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">text</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9CdrWriter12write_stringENSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Append a CDR string. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>text</strong> – UTF-8 text to encode. A terminating null byte is written automatically. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True after the string length, contents, terminator, and alignment padding are written. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9CdrWriter11write_bytesENSt4spanIK7uint8_tEE6size_t">
+<span id="_CPPv3N4espp9CdrWriter11write_bytesENSt4spanIK7uint8_tEE6size_t"></span><span id="_CPPv2N4espp9CdrWriter11write_bytesENSt4spanIK7uint8_tEE6size_t"></span><span id="espp::CdrWriter::write_bytes__std::span:uint8_tC:.s"></span><span class="target" id="classespp_1_1CdrWriter_1a180136cc598ef7b57151ab0694ec6411"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_bytes</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">bytes</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">alignment</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9CdrWriter11write_bytesENSt4spanIK7uint8_tEE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Append raw bytes with optional alignment. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bytes</strong> – Bytes to copy into the serialized buffer. </p></li>
+<li><p><strong>alignment</strong> – Alignment in bytes to satisfy before appending the data. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True after the bytes have been appended. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0_6size_tEN4espp9CdrWriter11write_arrayEbRKNSt5arrayI1T1NEE">
+<span id="_CPPv3I0_6size_tEN4espp9CdrWriter11write_arrayERKNSt5arrayI1T1NEE"></span><span id="_CPPv2I0_6size_tEN4espp9CdrWriter11write_arrayERKNSt5arrayI1T1NEE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">N</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1CdrWriter_1a315e95a57498b8ef07158df4c6e90a71"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_array</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0_6size_tEN4espp9CdrWriter11write_arrayEbRKNSt5arrayI1T1NEE" title="espp::CdrWriter::write_array::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0_6size_tEN4espp9CdrWriter11write_arrayEbRKNSt5arrayI1T1NEE" title="espp::CdrWriter::write_array::N"><span class="n"><span class="pre">N</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">values</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0_6size_tEN4espp9CdrWriter11write_arrayEbRKNSt5arrayI1T1NEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Append a fixed-size array of primitive values. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T</strong> – Primitive integral or floating-point element type. </p></li>
+<li><p><strong>N</strong> – Number of elements in the array. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>values</strong> – Array to encode element-by-element. </p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True after all elements have been encoded. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN4espp9CdrWriter14write_sequenceEbNSt4spanIK1TEE">
+<span id="_CPPv3I0EN4espp9CdrWriter14write_sequenceENSt4spanIK1TEE"></span><span id="_CPPv2I0EN4espp9CdrWriter14write_sequenceENSt4spanIK1TEE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1CdrWriter_1a1cf4c28f70aa96037c45a6b5296e810e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_sequence</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN4espp9CdrWriter14write_sequenceEbNSt4spanIK1TEE" title="espp::CdrWriter::write_sequence::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">values</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN4espp9CdrWriter14write_sequenceEbNSt4spanIK1TEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Append a variable-length CDR sequence of primitive values. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>T</strong> – Primitive integral or floating-point element type. </p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>values</strong> – Sequence elements to encode. </p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True after the sequence length and all elements have been encoded. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9CdrWriter11body_configE16CdrEncapsulation">
+<span id="_CPPv3N4espp9CdrWriter11body_configE16CdrEncapsulation"></span><span id="_CPPv2N4espp9CdrWriter11body_configE16CdrEncapsulation"></span><span id="espp::CdrWriter::body_config__CdrEncapsulation"></span><span class="target" id="classespp_1_1CdrWriter_1aab79071268167eb9f63763e050099fb2"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9CdrWriter6ConfigE" title="espp::CdrWriter::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">body_config</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">CdrEncapsulation</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">encapsulation</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">CdrEncapsulation</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">CDR_LE</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9CdrWriter11body_configE16CdrEncapsulation" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Create a configuration for writing a CDR body without an encapsulation header. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>encapsulation</strong> – Endianness/encapsulation rules to use for the body payload. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A configuration with encapsulation emission disabled. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9CdrWriter16make_body_writerE16CdrEncapsulation">
+<span id="_CPPv3N4espp9CdrWriter16make_body_writerE16CdrEncapsulation"></span><span id="_CPPv2N4espp9CdrWriter16make_body_writerE16CdrEncapsulation"></span><span id="espp::CdrWriter::make_body_writer__CdrEncapsulation"></span><span class="target" id="classespp_1_1CdrWriter_1afa287c35c03f22fca1a33ecf5428cfd0"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9CdrWriterE" title="espp::CdrWriter"><span class="n"><span class="pre">CdrWriter</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make_body_writer</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">CdrEncapsulation</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">encapsulation</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">CdrEncapsulation</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">CDR_LE</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9CdrWriter16make_body_writerE16CdrEncapsulation" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Create a writer configured for a headerless/body-only CDR payload. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>CDR alignment is measured from the start of the buffer. Because a body-only writer has no 4-byte encapsulation header, 8-byte-aligned members (e.g. int64/double) land at different offsets than in an encapsulated writer. A body produced here and later wrapped with <a class="reference internal" href="#classespp_1_1CdrWriter_1abc4880178a5ca4c2d24fe57387d233f4"><span class="std std-ref">encapsulate()</span></a> is therefore not byte-compatible with a directly-encapsulated buffer when it contains 8-byte-aligned types. Current RTPS usage only emits &lt;= 4-byte-aligned types. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>encapsulation</strong> – Endianness/encapsulation rules to use for the body payload. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A ready-to-use writer with no encapsulation header in its output. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9CdrWriter11encapsulateENSt4spanIK7uint8_tEE16CdrEncapsulation">
+<span id="_CPPv3N4espp9CdrWriter11encapsulateENSt4spanIK7uint8_tEE16CdrEncapsulation"></span><span id="_CPPv2N4espp9CdrWriter11encapsulateENSt4spanIK7uint8_tEE16CdrEncapsulation"></span><span id="espp::CdrWriter::encapsulate__std::span:uint8_tC:.CdrEncapsulation"></span><span class="target" id="classespp_1_1CdrWriter_1abc4880178a5ca4c2d24fe57387d233f4"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">encapsulate</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">payload</span></span>, <span class="n"><span class="pre">CdrEncapsulation</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">encapsulation</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">CdrEncapsulation</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">CDR_LE</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9CdrWriter11encapsulateENSt4spanIK7uint8_tEE16CdrEncapsulation" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Wrap an existing payload with a CDR encapsulation header. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>payload</strong> – Raw bytes to append after the generated encapsulation header. </p></li>
+<li><p><strong>encapsulation</strong> – Encapsulation header to prepend. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new byte buffer containing the encapsulation header followed by the payload. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9CdrWriter6ConfigE">
+<span id="_CPPv3N4espp9CdrWriter6ConfigE"></span><span id="_CPPv2N4espp9CdrWriter6ConfigE"></span><span id="espp::CdrWriter::Config"></span><span class="target" id="structespp_1_1CdrWriter_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp9CdrWriter6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration for a CDR writer instance. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9CdrWriter6Config13encapsulationE">
+<span id="_CPPv3N4espp9CdrWriter6Config13encapsulationE"></span><span id="_CPPv2N4espp9CdrWriter6Config13encapsulationE"></span><span id="espp::CdrWriter::Config::encapsulation__CdrEncapsulation"></span><span class="target" id="structespp_1_1CdrWriter_1_1Config_1a05df040e0508862ec372463b7980cd8e"></span><span class="n"><span class="pre">CdrEncapsulation</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">encapsulation</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">CdrEncapsulation</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">CDR_LE</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp9CdrWriter6Config13encapsulationE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Encapsulation kind to emit when writing. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9CdrWriter6Config21include_encapsulationE">
+<span id="_CPPv3N4espp9CdrWriter6Config21include_encapsulationE"></span><span id="_CPPv2N4espp9CdrWriter6Config21include_encapsulationE"></span><span id="espp::CdrWriter::Config::include_encapsulation__b"></span><span class="target" id="structespp_1_1CdrWriter_1_1Config_1a699f52c89bebe0bddbfb6e46c75cae28"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">include_encapsulation</span></span></span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp9CdrWriter6Config21include_encapsulationE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>If true, prepend the 4-byte encapsulation header to the buffer. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9CdrReaderE">
+<span id="_CPPv3N4espp9CdrReaderE"></span><span id="_CPPv2N4espp9CdrReaderE"></span><span id="espp::CdrReader"></span><span class="target" id="classespp_1_1CdrReader"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CdrReader</span></span></span><a class="headerlink" href="#_CPPv4N4espp9CdrReaderE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Small helper for parsing CDR/XCDR1-style byte streams. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9CdrReader9CdrReaderENSt4spanIK7uint8_tEE">
+<span id="_CPPv3N4espp9CdrReader9CdrReaderENSt4spanIK7uint8_tEE"></span><span id="_CPPv2N4espp9CdrReader9CdrReaderENSt4spanIK7uint8_tEE"></span><span id="espp::CdrReader::CdrReader__std::span:uint8_tC:"></span><span class="target" id="classespp_1_1CdrReader_1a0072e02d7e62204df8ac9a52afc2eb70"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CdrReader</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9CdrReader9CdrReaderENSt4spanIK7uint8_tEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct a reader that expects a standard encapsulated CDR payload. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> – Serialized bytes to parse. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9CdrReader9CdrReaderENSt4spanIK7uint8_tEERK6Config">
+<span id="_CPPv3N4espp9CdrReader9CdrReaderENSt4spanIK7uint8_tEERK6Config"></span><span id="_CPPv2N4espp9CdrReader9CdrReaderENSt4spanIK7uint8_tEERK6Config"></span><span id="espp::CdrReader::CdrReader__std::span:uint8_tC:.ConfigCR"></span><span class="target" id="classespp_1_1CdrReader_1aec8a962780343ab2a15d4ab42a1ab08c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CdrReader</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9CdrReader6ConfigE" title="espp::CdrReader::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9CdrReader9CdrReaderENSt4spanIK7uint8_tEERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct a reader with an explicit configuration. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – Serialized bytes to parse. </p></li>
+<li><p><strong>config</strong> – Reader configuration controlling encapsulation handling. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9CdrReader5resetENSt4spanIK7uint8_tEE">
+<span id="_CPPv3N4espp9CdrReader5resetENSt4spanIK7uint8_tEE"></span><span id="_CPPv2N4espp9CdrReader5resetENSt4spanIK7uint8_tEE"></span><span id="espp::CdrReader::reset__std::span:uint8_tC:"></span><span class="target" id="classespp_1_1CdrReader_1aaa7ec97bd87bac349481bf34c94536cc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9CdrReader5resetENSt4spanIK7uint8_tEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Reset the reader to the beginning of a new serialized buffer. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> – Serialized bytes to parse. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9CdrReader5validEv">
+<span id="_CPPv3NK4espp9CdrReader5validEv"></span><span id="_CPPv2NK4espp9CdrReader5validEv"></span><span id="espp::CdrReader::validC"></span><span class="target" id="classespp_1_1CdrReader_1a8a44cda05db57d506521935114e43ba6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">valid</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9CdrReader5validEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Check whether the reader is still in a valid state. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if parsing can continue, false if a prior operation failed. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9CdrReader13encapsulationEv">
+<span id="_CPPv3NK4espp9CdrReader13encapsulationEv"></span><span id="_CPPv2NK4espp9CdrReader13encapsulationEv"></span><span id="espp::CdrReader::encapsulationC"></span><span class="target" id="classespp_1_1CdrReader_1abbd6f44b99573f3920420f8137991771"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">CdrEncapsulation</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">encapsulation</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9CdrReader13encapsulationEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the active encapsulation for the current buffer. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The parsed or assumed encapsulation value. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9CdrReader18uses_little_endianEv">
+<span id="_CPPv3NK4espp9CdrReader18uses_little_endianEv"></span><span id="_CPPv2NK4espp9CdrReader18uses_little_endianEv"></span><span id="espp::CdrReader::uses_little_endianC"></span><span class="target" id="classespp_1_1CdrReader_1ad31b4bc4d02824db97b3b3dfd75317de"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">uses_little_endian</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9CdrReader18uses_little_endianEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Determine whether values are decoded as little-endian. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True for little-endian encapsulations, false for big-endian ones. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9CdrReader7payloadEv">
+<span id="_CPPv3NK4espp9CdrReader7payloadEv"></span><span id="_CPPv2NK4espp9CdrReader7payloadEv"></span><span id="espp::CdrReader::payloadC"></span><span class="target" id="classespp_1_1CdrReader_1ae2a88e0a5cb29f048420affdbab633be"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">payload</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9CdrReader7payloadEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Access only the payload bytes after any encapsulation header. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A view over the unread buffer excluding the encapsulation header. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9CdrReader9remainingEv">
+<span id="_CPPv3NK4espp9CdrReader9remainingEv"></span><span id="_CPPv2NK4espp9CdrReader9remainingEv"></span><span id="espp::CdrReader::remainingC"></span><span class="target" id="classespp_1_1CdrReader_1a51eef5d3b0791329f6707103346aa73f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">remaining</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9CdrReader9remainingEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the number of unread bytes remaining. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Remaining unread byte count, or 0 if the offset is beyond the buffer. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9CdrReader14remaining_viewEv">
+<span id="_CPPv3NK4espp9CdrReader14remaining_viewEv"></span><span id="_CPPv2NK4espp9CdrReader14remaining_viewEv"></span><span id="espp::CdrReader::remaining_viewC"></span><span class="target" id="classespp_1_1CdrReader_1a9ec66add918ef9da1d6c2f4d0956f065"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">remaining_view</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9CdrReader14remaining_viewEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Access a view of the unread bytes without copying. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A span over the unread tail of the buffer, or an empty span if the reader is invalid. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9CdrReader4skipE6size_t">
+<span id="_CPPv3N4espp9CdrReader4skipE6size_t"></span><span id="_CPPv2N4espp9CdrReader4skipE6size_t"></span><span id="espp::CdrReader::skip__s"></span><span class="target" id="classespp_1_1CdrReader_1a45eca304b62de21c06ff44a2199fad50"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">skip</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">length</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9CdrReader4skipE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Advance the read cursor by a fixed number of bytes. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>length</strong> – Number of bytes to skip. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the bytes were skipped, false if the reader became invalid. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9CdrReader5alignE6size_t">
+<span id="_CPPv3N4espp9CdrReader5alignE6size_t"></span><span id="_CPPv2N4espp9CdrReader5alignE6size_t"></span><span id="espp::CdrReader::align__s"></span><span class="target" id="classespp_1_1CdrReader_1aa503ad790c6b9dd9ef85936ddfc8ef2c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">align</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">alignment</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9CdrReader5alignE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Advance the read cursor to satisfy an alignment requirement. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>alignment</strong> – Required alignment in bytes. Values less than or equal to 1 are ignored. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the padding bytes were skipped successfully, false if the reader became invalid. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN4espp9CdrReader4readEbR1T">
+<span id="_CPPv3I0EN4espp9CdrReader4readER1T"></span><span id="_CPPv2I0EN4espp9CdrReader4readER1T"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1CdrReader_1a99bd8c7cacfc0212f94e11d7e0ff7f72"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0EN4espp9CdrReader4readEbR1T" title="espp::CdrReader::read::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN4espp9CdrReader4readEbR1T" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read a primitive scalar using CDR alignment and endianness rules. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>T</strong> – Primitive integral or floating-point type to decode. </p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>value</strong> – Output variable that receives the decoded value on success. </p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if a complete value was decoded, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9CdrReader9read_boolERb">
+<span id="_CPPv3N4espp9CdrReader9read_boolERb"></span><span id="_CPPv2N4espp9CdrReader9read_boolERb"></span><span id="espp::CdrReader::read_bool__bR"></span><span class="target" id="classespp_1_1CdrReader_1a3fbe411acb81e4d16c4684528e31eb5e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_bool</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9CdrReader9read_boolERb" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read a boolean value encoded with the CDR 1-byte representation. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>value</strong> – Output variable that receives the decoded boolean on success. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the boolean was read successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9CdrReader11read_stringERNSt6stringE">
+<span id="_CPPv3N4espp9CdrReader11read_stringERNSt6stringE"></span><span id="_CPPv2N4espp9CdrReader11read_stringERNSt6stringE"></span><span id="espp::CdrReader::read_string__ssR"></span><span class="target" id="classespp_1_1CdrReader_1aa861407ecb9da03504817e2bbdd6dbe2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_string</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">text</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9CdrReader11read_stringERNSt6stringE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read a CDR string. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>text</strong> – Output string receiving the decoded text without the trailing null terminator. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the string was decoded successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9CdrReader9read_spanE6size_t6size_t">
+<span id="_CPPv3N4espp9CdrReader9read_spanE6size_t6size_t"></span><span id="_CPPv2N4espp9CdrReader9read_spanE6size_t6size_t"></span><span id="espp::CdrReader::read_span__s.s"></span><span class="target" id="classespp_1_1CdrReader_1a9be761e4500f4237172f7e0aad072250"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_span</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">length</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">alignment</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9CdrReader9read_spanE6size_t6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read a fixed number of bytes as a zero-copy span. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>length</strong> – Number of bytes to expose. </p></li>
+<li><p><strong>alignment</strong> – Alignment in bytes to satisfy before reading. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A span over the requested bytes, or an empty span if the read failed. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9CdrReader10read_bytesENSt4spanI7uint8_tEE6size_t">
+<span id="_CPPv3N4espp9CdrReader10read_bytesENSt4spanI7uint8_tEE6size_t"></span><span id="_CPPv2N4espp9CdrReader10read_bytesENSt4spanI7uint8_tEE6size_t"></span><span id="espp::CdrReader::read_bytes__std::span:uint8_t:.s"></span><span class="target" id="classespp_1_1CdrReader_1a5daaf27ab51a2c7075a999242e22a563"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_bytes</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">bytes</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">alignment</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9CdrReader10read_bytesENSt4spanI7uint8_tEE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read bytes into a caller-provided mutable span. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bytes</strong> – Destination span that receives the copied bytes. </p></li>
+<li><p><strong>alignment</strong> – Alignment in bytes to satisfy before reading. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if all requested bytes were read successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9CdrReader10read_bytesERNSt6vectorI7uint8_tEE6size_t6size_t">
+<span id="_CPPv3N4espp9CdrReader10read_bytesERNSt6vectorI7uint8_tEE6size_t6size_t"></span><span id="_CPPv2N4espp9CdrReader10read_bytesERNSt6vectorI7uint8_tEE6size_t6size_t"></span><span id="espp::CdrReader::read_bytes__std::vector:uint8_t:R.s.s"></span><span class="target" id="classespp_1_1CdrReader_1a2bd2d19a706417552a48e8013717be3e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_bytes</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">bytes</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">length</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">alignment</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9CdrReader10read_bytesERNSt6vectorI7uint8_tEE6size_t6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read bytes into a vector. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bytes</strong> – Output vector replaced with the decoded bytes on success. </p></li>
+<li><p><strong>length</strong> – Number of bytes to read. </p></li>
+<li><p><strong>alignment</strong> – Alignment in bytes to satisfy before reading. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the requested bytes were read successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0_6size_tEN4espp9CdrReader10read_arrayEbRNSt5arrayI1T1NEE">
+<span id="_CPPv3I0_6size_tEN4espp9CdrReader10read_arrayERNSt5arrayI1T1NEE"></span><span id="_CPPv2I0_6size_tEN4espp9CdrReader10read_arrayERNSt5arrayI1T1NEE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">N</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1CdrReader_1a3d8301b9498b9149d655398258382003"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_array</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0_6size_tEN4espp9CdrReader10read_arrayEbRNSt5arrayI1T1NEE" title="espp::CdrReader::read_array::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0_6size_tEN4espp9CdrReader10read_arrayEbRNSt5arrayI1T1NEE" title="espp::CdrReader::read_array::N"><span class="n"><span class="pre">N</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">values</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0_6size_tEN4espp9CdrReader10read_arrayEbRNSt5arrayI1T1NEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read a fixed-size array of primitive values. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T</strong> – Primitive integral or floating-point element type. </p></li>
+<li><p><strong>N</strong> – Number of elements in the array. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>values</strong> – Output array receiving the decoded elements. </p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if all array elements were read successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN4espp9CdrReader13read_sequenceEbRNSt6vectorI1TEE">
+<span id="_CPPv3I0EN4espp9CdrReader13read_sequenceERNSt6vectorI1TEE"></span><span id="_CPPv2I0EN4espp9CdrReader13read_sequenceERNSt6vectorI1TEE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1CdrReader_1ae0e974a544368562b7e5b9b755f4f065"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_sequence</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN4espp9CdrReader13read_sequenceEbRNSt6vectorI1TEE" title="espp::CdrReader::read_sequence::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">values</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN4espp9CdrReader13read_sequenceEbRNSt6vectorI1TEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read a variable-length CDR sequence of primitive values. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>T</strong> – Primitive integral or floating-point element type. </p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>values</strong> – Output vector replaced with the decoded sequence elements on success. </p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if the sequence length and all elements were decoded successfully, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9CdrReader11body_configE16CdrEncapsulation">
+<span id="_CPPv3N4espp9CdrReader11body_configE16CdrEncapsulation"></span><span id="_CPPv2N4espp9CdrReader11body_configE16CdrEncapsulation"></span><span id="espp::CdrReader::body_config__CdrEncapsulation"></span><span class="target" id="classespp_1_1CdrReader_1aa0fa3261bc93e48be9149378e1e89340"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9CdrReader6ConfigE" title="espp::CdrReader::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">body_config</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">CdrEncapsulation</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">encapsulation</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">CdrEncapsulation</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">CDR_LE</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9CdrReader11body_configE16CdrEncapsulation" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Create a configuration for reading a headerless/body-only CDR payload. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>encapsulation</strong> – Encapsulation/endian rules to assume for the payload body. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A configuration with encapsulation consumption disabled. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9CdrReader16make_body_readerENSt4spanIK7uint8_tEE16CdrEncapsulation">
+<span id="_CPPv3N4espp9CdrReader16make_body_readerENSt4spanIK7uint8_tEE16CdrEncapsulation"></span><span id="_CPPv2N4espp9CdrReader16make_body_readerENSt4spanIK7uint8_tEE16CdrEncapsulation"></span><span id="espp::CdrReader::make_body_reader__std::span:uint8_tC:.CdrEncapsulation"></span><span class="target" id="classespp_1_1CdrReader_1a7353ed2eca724c57dd928a6dc369fae8"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9CdrReaderE" title="espp::CdrReader"><span class="n"><span class="pre">CdrReader</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make_body_reader</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">CdrEncapsulation</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">encapsulation</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">CdrEncapsulation</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">CDR_LE</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9CdrReader16make_body_readerENSt4spanIK7uint8_tEE16CdrEncapsulation" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Create a reader for a headerless/body-only CDR payload. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – Serialized payload bytes to read. </p></li>
+<li><p><strong>encapsulation</strong> – Encapsulation/endian rules to assume for the payload body. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A reader initialized for body-only parsing. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9CdrReader6ConfigE">
+<span id="_CPPv3N4espp9CdrReader6ConfigE"></span><span id="_CPPv2N4espp9CdrReader6ConfigE"></span><span id="espp::CdrReader::Config"></span><span class="target" id="structespp_1_1CdrReader_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp9CdrReader6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration for a CDR reader instance. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9CdrReader6Config20expect_encapsulationE">
+<span id="_CPPv3N4espp9CdrReader6Config20expect_encapsulationE"></span><span id="_CPPv2N4espp9CdrReader6Config20expect_encapsulationE"></span><span id="espp::CdrReader::Config::expect_encapsulation__b"></span><span class="target" id="structespp_1_1CdrReader_1_1Config_1ac8769a5b877ad76a6fc55088eaa7beb4"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">expect_encapsulation</span></span></span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp9CdrReader6Config20expect_encapsulationE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>If true, consume and validate a 4-byte encapsulation header on reset. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9CdrReader6Config21default_encapsulationE">
+<span id="_CPPv3N4espp9CdrReader6Config21default_encapsulationE"></span><span id="_CPPv2N4espp9CdrReader6Config21default_encapsulationE"></span><span id="espp::CdrReader::Config::default_encapsulation__CdrEncapsulation"></span><span class="target" id="structespp_1_1CdrReader_1_1Config_1ac47114da65f13a24f3ebe868cbbaf246"></span><span class="n"><span class="pre">CdrEncapsulation</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">default_encapsulation</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">CdrEncapsulation</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">CDR_LE</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp9CdrReader6Config21default_encapsulationE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Encapsulation to assume when no header is expected. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="serialization_example.html" class="btn btn-neutral float-left" title="&lt;no title&gt;" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="cdr_example.html" class="btn btn-neutral float-right" title="&lt;no title&gt;" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

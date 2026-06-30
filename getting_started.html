@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Getting Started - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="_static/copybutton.js?v=ff8fa330"></script>
+    <script src="_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'getting_started';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Core &amp; RTOS APIs" href="core/index.html" />
+    <link rel="prev" title="ESPP Documentation" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            ESPP
+              <img src="_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#how-this-documentation-is-organized">How this documentation is organized</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#using-a-component">Using a component</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="core/index.html">Core &amp; RTOS APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="buses/index.html">Buses &amp; Low-Level I/O APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="motor_control/index.html">Motor Control APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="dev_boards/index.html">Dev Boards (BSPs)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Getting Started</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/d535af92/docs/en/getting_started.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="getting-started">
+<h1>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this heading"></a></h1>
+<p>ESPP (<a class="reference external" href="https://github.com/esp-cpp/espp">espp</a>) is a collection of C++
+components and abstractions for the <a class="reference external" href="https://github.com/espressif/esp-idf">ESP-IDF</a> framework. Each component is reusable on
+its own, and many also build on a few foundational components such as
+<code class="docutils literal notranslate"><span class="pre">format</span></code>, <code class="docutils literal notranslate"><span class="pre">logger</span></code>, and <code class="docutils literal notranslate"><span class="pre">task</span></code>.</p>
+<p>ESPP currently targets ESP-IDF <code class="docutils literal notranslate"><span class="pre">6.0</span></code> while maintaining support for <code class="docutils literal notranslate"><span class="pre">5.5.1</span></code>.</p>
+<section id="how-this-documentation-is-organized">
+<h2>How this documentation is organized<a class="headerlink" href="#how-this-documentation-is-organized" title="Permalink to this heading"></a></h2>
+<p>The APIs are grouped by capability — <a class="reference internal" href="core/index.html"><span class="doc">Core &amp; RTOS APIs</span></a>, <a class="reference internal" href="imu/index.html"><span class="doc">sensors</span></a>, <a class="reference internal" href="buses/index.html"><span class="doc">Buses &amp; Low-Level I/O APIs</span></a>, <a class="reference internal" href="network/index.html"><span class="doc">Network APIs</span></a>, and so on — with all of
+the supported development boards collected under <a class="reference internal" href="dev_boards/index.html"><span class="doc">Dev Boards (BSPs)</span></a>. Use the
+navigation sidebar to browse a category, or the search box to jump straight to a
+component.</p>
+<p>Every component has:</p>
+<ul class="simple">
+<li><p>an <strong>API Reference</strong> page (the pages linked from each category), and</p></li>
+<li><p>an <strong>example</strong> that shows basic usage. The example code lives in that
+component’s <code class="docutils literal notranslate"><span class="pre">example</span></code> directory in the repository and is embedded in the
+component’s documentation page.</p></li>
+</ul>
+</section>
+<section id="using-a-component">
+<h2>Using a component<a class="headerlink" href="#using-a-component" title="Permalink to this heading"></a></h2>
+<p>There are a few ways to pull ESPP components into your project. These are
+<strong>independent alternatives</strong> — pick the one that best fits your situation. You
+only need to do one of them; they are not steps to be run in sequence.</p>
+<ul>
+<li><p><strong>Start from the template repository (recommended for new projects).</strong>
+<a class="reference external" href="https://github.com/esp-cpp/template">esp-cpp/template</a> is a ready-to-go
+starting point geared towards C++ development that is already set up to pull the
+<code class="docutils literal notranslate"><span class="pre">espp</span></code> components it needs via the IDF component manager. It is set up as a
+GitHub <em>template repository</em>, so you can create your own project from it
+directly using the green <strong>“Use this template”</strong> button on its <a class="reference external" href="https://github.com/esp-cpp/template">GitHub page</a> — no need to fork or clone it by hand.
+After creating your repository from the template, run the included setup script
+to customize and configure the project for your needs.</p></li>
+<li><p><strong>Add individual components with the IDF component manager.</strong> All <code class="docutils literal notranslate"><span class="pre">espp</span></code>
+components are published to the <a class="reference external" href="https://components.espressif.com/components?q=namespace:espp">ESP Component Registry</a> under the
+<code class="docutils literal notranslate"><span class="pre">espp</span></code> namespace, for example:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">idf.py add-dependency &quot;espp/task^1.0&quot;</span>
+<span class="go">idf.py add-dependency &quot;espp/ble_gatt_server^1.0&quot;</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>Add espp to an existing project as a submodule.</strong></p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This approach is <strong>not recommended</strong> and may not be fully supported going
+forward. espp is a large repository with many submodules and supports many
+targets, so vendoring the whole repository this way is heavyweight. Prefer
+the IDF component manager (above), which pulls in only the components you
+need; use the submodule approach only in exceptional cases where the
+component manager is not an option.</p>
+</div>
+<p>If you already have a project with a <code class="docutils literal notranslate"><span class="pre">components</span></code> directory, add <code class="docutils literal notranslate"><span class="pre">espp</span></code> as a
+submodule there:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">git submodule add https://github.com/esp-cpp/espp components/espp</span>
+<span class="go">git submodule update --init --recursive</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">--recursive</span></code> flag is important: it pulls in the nested submodules that
+some components require. Then point <code class="docutils literal notranslate"><span class="pre">EXTRA_COMPONENT_DIRS</span></code> in your top-level
+<code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code> at the components:</p>
+<div class="highlight-cmake notranslate"><div class="highlight"><pre><span></span><span class="nb">set</span><span class="p">(</span><span class="s">EXTRA_COMPONENT_DIRS</span>
+<span class="w">  </span><span class="s2">&quot;components/espp/components&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</li>
+</ul>
+<p>For questions or to chat, join the <a class="reference external" href="https://discord.gg/dvcQw37xAY">Discord</a>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="ESPP Documentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="core/index.html" class="btn btn-neutral float-right" title="Core &amp; RTOS APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

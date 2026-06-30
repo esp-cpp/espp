@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AT581X Example - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'presence/at581x_example';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Battery APIs" href="../battery/index.html" />
+    <link rel="prev" title="AT581X Radar Presence Sensor" href="at581x.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Core &amp; RTOS APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../buses/index.html">Buses &amp; Low-Level I/O APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Presence Sensor APIs</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="at581x.html">AT581X Radar Presence Sensor</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">AT581X Example</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#configuration">Configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#build-and-flash">Build and Flash</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#output">Output</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="at581x.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../motor_control/index.html">Motor Control APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../dev_boards/index.html">Dev Boards (BSPs)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Presence Sensor APIs</a></li>
+          <li class="breadcrumb-item"><a href="at581x.html">AT581X Radar Presence Sensor</a></li>
+      <li class="breadcrumb-item active">AT581X Example</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/d535af92/docs/en/presence/at581x_example.md" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="at581x-example">
+<h1>AT581X Example<a class="headerlink" href="#at581x-example" title="Permalink to this heading"></a></h1>
+<img width="2470" height="1860" alt="image" src="https://github.com/user-attachments/assets/697434b1-7415-4ac7-b73a-6a8f4b92080f" />
+<p>This example demonstrates the use of the <code class="docutils literal notranslate"><span class="pre">espp::At581x</span></code> driver to configure the
+AT581X 5.8 GHz radar presence/motion sensor (e.g. the MS58-3909S68U4 module on
+the ESP32-S3-BOX-3 sensor dock) over I2C.</p>
+<p>It:</p>
+<ul class="simple">
+<li><p>creates an I2C bus (default SDA=GPIO41, SCL=GPIO40 for the BOX-3 sensor dock),</p></li>
+<li><p>constructs the <code class="docutils literal notranslate"><span class="pre">At581x</span></code> driver, which writes the configuration to the chip,</p></li>
+<li><p>periodically changes the sensing distance (sensitivity) at runtime, and</p></li>
+<li><p>attaches an <code class="docutils literal notranslate"><span class="pre">espp::Interrupt</span></code> to the radar output GPIO
+(<code class="docutils literal notranslate"><span class="pre">CONFIG_EXAMPLE_RADAR_OUTPUT_GPIO</span></code>, default GPIO21 on the BOX-3 dock) and
+prints presence/motion transitions. Set it to -1 to disable.</p></li>
+</ul>
+<p>When the <strong>ESP32-S3-BOX-3</strong> hardware profile is selected (the default on
+esp32s3), the example also uses the <code class="docutils literal notranslate"><span class="pre">esp-box</span></code> BSP to show the live radar status
+on the screen — a color-coded presence label plus the detection count and
+configured sensing distance. The radar is placed on <code class="docutils literal notranslate"><span class="pre">I2C_NUM_1</span></code> in this mode so
+it doesn’t collide with the box’s internal I2C bus (<code class="docutils literal notranslate"><span class="pre">I2C_NUM_0</span></code>, GPIO8/18).</p>
+<p>On the ESP32-S3-BOX-3 with the sensor dock attached, the defaults (SDA=41,
+SCL=40, radar output=21) should work as-is.</p>
+<section id="configuration">
+<h2>Configuration<a class="headerlink" href="#configuration" title="Permalink to this heading"></a></h2>
+<p>Use <code class="docutils literal notranslate"><span class="pre">idf.py</span> <span class="pre">menuconfig</span></code> → <em>Example Configuration</em> to set the I2C pins and the
+radar output GPIO for your hardware.</p>
+</section>
+<section id="build-and-flash">
+<h2>Build and Flash<a class="headerlink" href="#build-and-flash" title="Permalink to this heading"></a></h2>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>idf.py<span class="w"> </span>set-target<span class="w"> </span>esp32s3
+idf.py<span class="w"> </span>build<span class="w"> </span>flash<span class="w"> </span>monitor
+</pre></div>
+</div>
+</section>
+<section id="output">
+<h2>Output<a class="headerlink" href="#output" title="Permalink to this heading"></a></h2>
+<p>The example logs the configuration it applies and, when the radar output GPIO is
+wired up, <code class="docutils literal notranslate"><span class="pre">Radar</span> <span class="pre">presence</span> <span class="pre">DETECTED</span></code> / <code class="docutils literal notranslate"><span class="pre">Radar</span> <span class="pre">presence</span> <span class="pre">cleared</span></code> as the sensor
+sees motion within its configured range.</p>
+<img width="2470" height="1860" alt="image" src="https://github.com/user-attachments/assets/a7b6f343-5e3f-49ad-b927-bb0eeef25655" />
+<img width="2470" height="1860" alt="image" src="https://github.com/user-attachments/assets/697434b1-7415-4ac7-b73a-6a8f4b92080f" />
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">I (188) main_task: Calling app_main()</span>
+<span class="go">[at581x example/I][0.188]: Starting AT581X radar example</span>
+<span class="go">[At581x/I][0.190]: Writing config: freq=5800MHz, sensing_distance=700, gain=3, power=70uA, trigger_base=500ms, trigger_keep=1000ms, protect=1000ms, selfcheck=2000ms</span>
+<span class="go">[At581x/I][0.193]: Resetting RF frontend</span>
+<span class="go">[at581x example/I][0.196]: Watching radar output on GPIO 21</span>
+<span class="go">[at581x example/I][0.196]: Radar presence DETECTED</span>
+<span class="go">[Interrupt/W][0.197]: ISR service already installed, not installing again</span>
+<span class="go">W (199) ledc: the binded timer can&#39;t keep alive in sleep</span>
+<span class="go">[at581x example/I][2.322]: Radar presence cleared</span>
+<span class="go">[at581x example/I][5.057]: Radar presence DETECTED</span>
+<span class="go">[at581x example/I][7.838]: Radar presence cleared</span>
+<span class="go">[at581x example/I][14.645]: Radar presence DETECTED</span>
+<span class="go">[at581x example/I][16.186]: Radar presence cleared</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="at581x.html" class="btn btn-neutral float-left" title="AT581X Radar Presence Sensor" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../battery/index.html" class="btn btn-neutral float-right" title="Battery APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

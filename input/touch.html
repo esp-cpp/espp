@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Touch Interface - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'input/touch';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Touch Interface Example" href="touch_example.html" />
+    <link rel="prev" title="LilyGo T-Keyboard Example" href="t_keyboard_example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Core &amp; RTOS APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../buses/index.html">Buses &amp; Low-Level I/O APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../motor_control/index.html">Motor Control APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Input APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="index.html#input-devices">Input devices</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html#touch-input-drivers">Touch &amp; input drivers</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="chsc6x.html">CHSC6X Touch Controller</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cst816.html">CST816 Touch Controller</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ft5x06.html">FT5x06 Touch Controller</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gt911.html">GT911 Touch Controller</a></li>
+<li class="toctree-l3"><a class="reference internal" href="st7123touch.html">ST7123 Touch Controller</a></li>
+<li class="toctree-l3"><a class="reference internal" href="t_keyboard.html">LilyGo T-Keyboard</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Touch Interface</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="touch_example.html">Touch Interface Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="tt21100.html">TT21100 Touch Controller</a></li>
+<li class="toctree-l3"><a class="reference internal" href="encoder_input.html">Encoder Input</a></li>
+<li class="toctree-l3"><a class="reference internal" href="keypad_input.html">Keypad Input</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pointer_input.html">Pointer Input</a></li>
+<li class="toctree-l3"><a class="reference internal" href="touchpad_input.html">Touchpad Input</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../dev_boards/index.html">Dev Boards (BSPs)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Input APIs</a></li>
+      <li class="breadcrumb-item active">Touch Interface</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/d535af92/docs/en/input/touch.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="touch-interface">
+<h1>Touch Interface<a class="headerlink" href="#touch-interface" title="Permalink to this heading"></a></h1>
+<p>The <cite>touch</cite> component provides the shared <cite>TouchPoint</cite>, <cite>TouchState</cite>,
+<cite>TouchpadData</cite>, and <cite>ITouchDevice</cite> types used by ESPP touch controller drivers
+and BSPs.</p>
+<p>It also provides the type-erasure helpers used to store any touch driver behind
+a single runtime handle:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">espp::TouchDriverConcept</span></code> — C++23 concept satisfied by any touch driver
+exposing <code class="docutils literal notranslate"><span class="pre">update()</span></code>, <code class="docutils literal notranslate"><span class="pre">get_touch_point()</span></code>, and <code class="docutils literal notranslate"><span class="pre">get_home_button_state()</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">espp::ITouchDriver</span></code> — abstract type-erased interface backed by the concept.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">espp::TouchDriverAdapter&lt;T&gt;</span></code> — concept-constrained adapter wrapping any
+concrete driver (e.g. <code class="docutils literal notranslate"><span class="pre">Gt911</span></code> or <code class="docutils literal notranslate"><span class="pre">St7123Touch</span></code>) behind <code class="docutils literal notranslate"><span class="pre">ITouchDriver</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">espp::make_touch_driver(driver)</span></code> — convenience factory returning a
+<code class="docutils literal notranslate"><span class="pre">std::shared_ptr&lt;ITouchDriver&gt;</span></code>.</p></li>
+</ul>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="touch_example.html">Touch Interface Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="touch_example.html#how-to-use-example">How to use example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="touch_example.html#build-and-flash">Build and Flash</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/d535af92/components/touch/include/touch.hpp">components/touch/include/touch.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12ITouchDeviceE">
+<span id="_CPPv3N4espp12ITouchDeviceE"></span><span id="_CPPv2N4espp12ITouchDeviceE"></span><span id="espp::ITouchDevice"></span><span class="target" id="classespp_1_1ITouchDevice"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ITouchDevice</span></span></span><a class="headerlink" href="#_CPPv4N4espp12ITouchDeviceE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Runtime interface implemented by touch controller drivers. </p>
+<p>Subclassed by <a class="reference internal" href="chsc6x.html#classespp_1_1Chsc6x"><span class="std std-ref">espp::Chsc6x</span></a>, <a class="reference internal" href="cst816.html#classespp_1_1Cst816"><span class="std std-ref">espp::Cst816</span></a>, <a class="reference internal" href="ft5x06.html#classespp_1_1Ft5x06"><span class="std std-ref">espp::Ft5x06</span></a>, <a class="reference internal" href="gt911.html#classespp_1_1Gt911"><span class="std std-ref">espp::Gt911</span></a>, <a class="reference internal" href="tt21100.html#classespp_1_1Tt21100"><span class="std std-ref">espp::Tt21100</span></a></p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12ITouchDevice6updateERNSt10error_codeE">
+<span id="_CPPv3N4espp12ITouchDevice6updateERNSt10error_codeE"></span><span id="_CPPv2N4espp12ITouchDevice6updateERNSt10error_codeE"></span><span id="espp::ITouchDevice::update__std::error_codeR"></span><span class="target" id="classespp_1_1ITouchDevice_1ac8f2a59b6615ed1f69887365fc9a2432"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">update</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N4espp12ITouchDevice6updateERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Update the cached touch state from the hardware. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the device reported new data, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp12ITouchDevice11touch_stateEv">
+<span id="_CPPv3NK4espp12ITouchDevice11touch_stateEv"></span><span id="_CPPv2NK4espp12ITouchDevice11touch_stateEv"></span><span id="espp::ITouchDevice::touch_stateC"></span><span class="target" id="classespp_1_1ITouchDevice_1aed6b1df5675cd9f9addea961a686f139"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">TouchState</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">touch_state</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4NK4espp12ITouchDevice11touch_stateEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the cached touch state. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The cached touch state. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp12ITouchDevice15has_home_buttonEv">
+<span id="_CPPv3NK4espp12ITouchDevice15has_home_buttonEv"></span><span id="_CPPv2NK4espp12ITouchDevice15has_home_buttonEv"></span><span id="espp::ITouchDevice::has_home_buttonC"></span><span class="target" id="classespp_1_1ITouchDevice_1a3221ceeb5fbae77731b6951c0baeefeb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">has_home_button</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp12ITouchDevice15has_home_buttonEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether the controller exposes a touch-adjacent home button. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if the controller exposes a home button, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp12ITouchDevice20get_num_touch_pointsEv">
+<span id="_CPPv3NK4espp12ITouchDevice20get_num_touch_pointsEv"></span><span id="_CPPv2NK4espp12ITouchDevice20get_num_touch_pointsEv"></span><span id="espp::ITouchDevice::get_num_touch_pointsC"></span><span class="target" id="classespp_1_1ITouchDevice_1a7795271e820660f395b6bce3e7900e4a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_num_touch_points</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp12ITouchDevice20get_num_touch_pointsEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the number of cached touch points. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The number of cached touch points. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp12ITouchDevice15get_touch_pointEP7uint8_tP8uint16_tP8uint16_t">
+<span id="_CPPv3NK4espp12ITouchDevice15get_touch_pointEP7uint8_tP8uint16_tP8uint16_t"></span><span id="_CPPv2NK4espp12ITouchDevice15get_touch_pointEP7uint8_tP8uint16_tP8uint16_t"></span><span id="espp::ITouchDevice::get_touch_point__uint8_tP.uint16_tP.uint16_tPC"></span><span class="target" id="classespp_1_1ITouchDevice_1a01ec0a4ef6703492d6eb9f4f12fbb972"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_touch_point</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">num_touch_points</span></span>, <span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">y</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp12ITouchDevice15get_touch_pointEP7uint8_tP8uint16_tP8uint16_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the primary cached touch point. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>num_touch_points</strong> – The number of touch points as of the last update. </p></li>
+<li><p><strong>x</strong> – The x coordinate of the primary touch point. </p></li>
+<li><p><strong>y</strong> – The y coordinate of the primary touch point. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp12ITouchDevice21get_home_button_stateEv">
+<span id="_CPPv3NK4espp12ITouchDevice21get_home_button_stateEv"></span><span id="_CPPv2NK4espp12ITouchDevice21get_home_button_stateEv"></span><span id="espp::ITouchDevice::get_home_button_stateC"></span><span class="target" id="classespp_1_1ITouchDevice_1a8502c594cb9eaf534ad86f51c90f564d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_home_button_state</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp12ITouchDevice21get_home_button_stateEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the cached home button state. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The cached home button state. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp12ITouchDevice13touchpad_dataEv">
+<span id="_CPPv3NK4espp12ITouchDevice13touchpad_dataEv"></span><span id="_CPPv2NK4espp12ITouchDevice13touchpad_dataEv"></span><span id="espp::ITouchDevice::touchpad_dataC"></span><span class="target" id="classespp_1_1ITouchDevice_1aafae35a967a7f8d6ca9aa8c7f42808a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">TouchpadData</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">touchpad_data</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp12ITouchDevice13touchpad_dataEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the cached single-point touchpad view. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The primary touchpad view of the cached state. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="t_keyboard_example.html" class="btn btn-neutral float-left" title="LilyGo T-Keyboard Example" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="touch_example.html" class="btn btn-neutral float-right" title="Touch Interface Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

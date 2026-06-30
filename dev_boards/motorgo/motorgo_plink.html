@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MotorGo Plink - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'dev_boards/motorgo/motorgo_plink';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="&lt;no title&gt;" href="motorgo_plink_example.html" />
+    <link rel="prev" title="&lt;no title&gt;" href="motorgo_mini_example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            ESPP
+              <img src="../../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started.html">Getting Started</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../core/index.html">Core &amp; RTOS APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../buses/index.html">Buses &amp; Low-Level I/O APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../motor_control/index.html">Motor Control APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Dev Boards (BSPs)</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../espressif/index.html">Espressif Boards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../adafruit/index.html">Adafruit Boards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lilygo/index.html">LilyGo Boards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../m5stack/index.html">M5Stack Boards</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">MotorGo Boards</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="motorgo_axis.html">MotorGo Axis</a></li>
+<li class="toctree-l3"><a class="reference internal" href="motorgo_mini.html">MotorGo Mini</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">MotorGo Plink</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id1">MotorGo Plink</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#api-reference">API Reference</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../seeed/index.html">Seeed Studio Boards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../waveshare/index.html">Waveshare Boards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../other/index.html">Other Boards</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Dev Boards (BSPs)</a></li>
+          <li class="breadcrumb-item"><a href="index.html">MotorGo Boards</a></li>
+      <li class="breadcrumb-item active">MotorGo Plink</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/d535af92/docs/en/dev_boards/motorgo/motorgo_plink.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="motorgo-plink">
+<h1>MotorGo Plink<a class="headerlink" href="#motorgo-plink" title="Permalink to this heading"></a></h1>
+<section id="id1">
+<h2>MotorGo Plink<a class="headerlink" href="#id1" title="Permalink to this heading"></a></h2>
+<p>The MotorGo Plink is a four-channel ESP32-S3 motor-control board from Every
+Flavor Robotics. The <cite>espp::MotorGoPlink</cite> component provides a singleton board
+abstraction for the documented pin mapping of its DC motor outputs, encoder
+chip-selects, servo signal header, onboard LSM6DS33 IMU, Qwiic and internal I2C
+buses, and user/status LEDs.</p>
+<p>It also provides helper methods for:</p>
+<ul class="simple">
+<li><p>initializing the four dual-PWM motor channels via <code class="docutils literal notranslate"><span class="pre">espp::BdcDriver</span></code> on
+MCPWM and commanding normalized motor speeds, where positive commands drive
+<code class="docutils literal notranslate"><span class="pre">pwm_a</span></code> and negative commands drive <code class="docutils literal notranslate"><span class="pre">pwm_b</span></code></p></li>
+<li><p>initializing the shared SSI/SPI encoder bus and creating four
+<cite>espp::Mt6701&lt;SSI&gt;</cite> helpers</p></li>
+<li><p>initializing the onboard LSM6DS33 IMU on the hidden I2C bus via the
+<cite>espp::Lsm6dso</cite> helper</p></li>
+<li><p>accessing the four RC-servo signal pins for use with an external servo driver</p></li>
+<li><p>controlling the user and status LEDs with direct brightness setters or a
+Gaussian breathing effect</p></li>
+</ul>
+<div class="toctree-wrapper compound">
+</div>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/d535af92/components/motorgo-plink/include/motorgo-plink.hpp">components/motorgo-plink/include/motorgo-plink.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlinkE">
+<span id="_CPPv3N4espp12MotorGoPlinkE"></span><span id="_CPPv2N4espp12MotorGoPlinkE"></span><span id="espp::MotorGoPlink"></span><span class="target" id="classespp_1_1MotorGoPlink"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MotorGoPlink</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlinkE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="#classespp_1_1MotorGoPlink"><span class="std std-ref">MotorGoPlink</span></a> is a lightweight board-support component for the MotorGo Plink hardware.</p>
+<p>It exposes the documented pin mapping for the board’s:<ul class="simple">
+<li><p>four dual-PWM DC motor outputs</p></li>
+<li><p>four encoder chip-selects on a shared SSI/SPI bus</p></li>
+<li><p>four RC-servo signal pins</p></li>
+<li><p>one onboard LSM6DS33 IMU on the hidden I2C bus</p></li>
+<li><p>Qwiic and hidden I2C buses</p></li>
+<li><p>user and status LEDs</p></li>
+</ul>
+</p>
+<p>The class is a singleton and can be accessed with <a class="reference internal" href="#classespp_1_1MotorGoPlink_1a85c8b038b00776aa19bb0ebc72b42075"><span class="std std-ref">get()</span></a>.</p>
+<section id="classespp_1_1MotorGoPlink_1motorgo_plink_ex1">
+<h4>MotorGo Plink Example<a class="headerlink" href="#classespp_1_1MotorGoPlink_1motorgo_plink_ex1" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1MotorGoPlink_1motorgo_plink_ex1"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">board</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">MotorGoPlink</span><span class="o">::</span><span class="n">get</span><span class="p">();</span>
+
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">board</span><span class="p">.</span><span class="n">initialize_leds</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;Failed to initialize indicator LEDs&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">board</span><span class="p">.</span><span class="n">start_led_breathing</span><span class="p">();</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="cp">#if CONFIG_MOTORGO_PLINK_EXAMPLE_ENABLE_MOTOR_SWEEP</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">board</span><span class="p">.</span><span class="n">initialize_motors</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Failed to initialize motor drivers&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">board</span><span class="p">.</span><span class="n">stop_all_motors</span><span class="p">();</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="cp">#else</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Motor drivers not initialized because motor sweep is disabled&quot;</span><span class="p">);</span>
+<span class="cp">#endif</span>
+
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">board</span><span class="p">.</span><span class="n">initialize_imu</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;Failed to initialize onboard IMU&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;IMU initialized&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="n">log_board_info</span><span class="p">(</span><span class="n">board</span><span class="p">);</span>
+
+<span class="cp">#if CONFIG_MOTORGO_PLINK_EXAMPLE_ENABLE_ENCODER_POLLING</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">board</span><span class="p">.</span><span class="n">initialize_encoders</span><span class="p">(</span><span class="nb">false</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;Failed to initialize encoders&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Encoder polling enabled&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="cp">#else</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Encoder polling disabled&quot;</span><span class="p">);</span>
+<span class="cp">#endif</span>
+
+<span class="cp">#if CONFIG_MOTORGO_PLINK_EXAMPLE_ENABLE_MOTOR_SWEEP</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;Motor sweep enabled; using an aggressive {:.0f}% to {:.0f}% duty sweep after a &quot;</span>
+<span class="w">              </span><span class="s">&quot;{:.0f}% zero window. Ensure the board is connected to a safe test setup&quot;</span><span class="p">,</span>
+<span class="w">              </span><span class="mf">35.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">85.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">5.0f</span><span class="p">);</span>
+<span class="cp">#else</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Motor sweep disabled; all motors remain stopped&quot;</span><span class="p">);</span>
+<span class="cp">#endif</span>
+
+<span class="cp">#if CONFIG_MOTORGO_PLINK_EXAMPLE_ENABLE_MOTOR_SWEEP</span>
+<span class="w">  </span><span class="kt">float</span><span class="w"> </span><span class="n">motor_phase</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">;</span>
+<span class="cp">#endif</span>
+<span class="w">  </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="cp">#if CONFIG_MOTORGO_PLINK_EXAMPLE_ENABLE_MOTOR_SWEEP</span>
+<span class="w">    </span><span class="n">update_motor_demo</span><span class="p">(</span><span class="n">board</span><span class="p">,</span><span class="w"> </span><span class="n">motor_phase</span><span class="p">);</span>
+<span class="w">    </span><span class="n">log_motor_outputs</span><span class="p">(</span><span class="n">board</span><span class="p">);</span>
+<span class="cp">#endif</span>
+
+<span class="cp">#if CONFIG_MOTORGO_PLINK_EXAMPLE_ENABLE_ENCODER_POLLING</span>
+<span class="w">    </span><span class="n">log_encoder_angles</span><span class="p">(</span><span class="n">board</span><span class="p">);</span>
+<span class="cp">#endif</span>
+
+<span class="w">    </span><span class="n">log_imu_data</span><span class="p">(</span><span class="n">board</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">std</span><span class="o">::</span><span class="nn">chrono_literals</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">500</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink7EncoderE">
+<span id="_CPPv3N4espp12MotorGoPlink7EncoderE"></span><span id="_CPPv2N4espp12MotorGoPlink7EncoderE"></span><span class="target" id="classespp_1_1MotorGoPlink_1ac17da08222c5d1012e06482a8d8f06d2"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Encoder</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../encoder/mt6701.html#_CPPv4I_15Mt6701InterfaceEN4espp6Mt6701E" title="espp::Mt6701"><span class="n"><span class="pre">Mt6701</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Mt6701Interface</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">SSI</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink7EncoderE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Alias for the SSI-based magnetic encoder helper used on each motor channel. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink11MotorDriverE">
+<span id="_CPPv3N4espp12MotorGoPlink11MotorDriverE"></span><span id="_CPPv2N4espp12MotorGoPlink11MotorDriverE"></span><span class="target" id="classespp_1_1MotorGoPlink_1aa934c956b5ba76b01b1b047662679208"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MotorDriver</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../bldc/bdc_driver.html#_CPPv4N4espp9BdcDriverE" title="espp::BdcDriver"><span class="n"><span class="pre">BdcDriver</span></span></a><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink11MotorDriverE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Alias for the brushed DC motor driver helper used on each motor channel. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink3ImuE">
+<span id="_CPPv3N4espp12MotorGoPlink3ImuE"></span><span id="_CPPv2N4espp12MotorGoPlink3ImuE"></span><span class="target" id="classespp_1_1MotorGoPlink_1a4513ffb79ea3e3810e8ed75eff125e0f"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Imu</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../imu/lsm6dso.html#_CPPv4I_N7lsm6dso9InterfaceEEN4espp7Lsm6dsoE" title="espp::Lsm6dso"><span class="n"><span class="pre">Lsm6dso</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">lsm6dso</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Interface</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">I2C</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink3ImuE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Alias for the onboard hidden-bus IMU helper. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink12MotorGoPlinkERK12MotorGoPlink">
+<span id="_CPPv3N4espp12MotorGoPlink12MotorGoPlinkERK12MotorGoPlink"></span><span id="_CPPv2N4espp12MotorGoPlink12MotorGoPlinkERK12MotorGoPlink"></span><span id="espp::MotorGoPlink::MotorGoPlink__MotorGoPlinkCR"></span><span class="target" id="classespp_1_1MotorGoPlink_1af4c56c21511feaca2f2e12ab59d5290f"></span><span class="sig-name descname"><span class="n"><span class="pre">MotorGoPlink</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp12MotorGoPlink12MotorGoPlinkERK12MotorGoPlink" title="espp::MotorGoPlink::MotorGoPlink"><span class="n"><span class="pre">MotorGoPlink</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink12MotorGoPlinkERK12MotorGoPlink" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Deleted copy constructor. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlinkaSERK12MotorGoPlink">
+<span id="_CPPv3N4espp12MotorGoPlinkaSERK12MotorGoPlink"></span><span id="_CPPv2N4espp12MotorGoPlinkaSERK12MotorGoPlink"></span><span id="espp::MotorGoPlink::assign-operator__MotorGoPlinkCR"></span><span class="target" id="classespp_1_1MotorGoPlink_1a6b5795c69efac6f9af817fd42bf99d37"></span><a class="reference internal" href="#_CPPv4N4espp12MotorGoPlinkE" title="espp::MotorGoPlink"><span class="n"><span class="pre">MotorGoPlink</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp12MotorGoPlinkE" title="espp::MotorGoPlink"><span class="n"><span class="pre">MotorGoPlink</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlinkaSERK12MotorGoPlink" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Deleted copy assignment operator. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink12MotorGoPlinkERR12MotorGoPlink">
+<span id="_CPPv3N4espp12MotorGoPlink12MotorGoPlinkERR12MotorGoPlink"></span><span id="_CPPv2N4espp12MotorGoPlink12MotorGoPlinkERR12MotorGoPlink"></span><span id="espp::MotorGoPlink::MotorGoPlink__MotorGoPlinkRR"></span><span class="target" id="classespp_1_1MotorGoPlink_1a3748fbe7cf3033f148fdab2d613f13c6"></span><span class="sig-name descname"><span class="n"><span class="pre">MotorGoPlink</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp12MotorGoPlink12MotorGoPlinkERR12MotorGoPlink" title="espp::MotorGoPlink::MotorGoPlink"><span class="n"><span class="pre">MotorGoPlink</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink12MotorGoPlinkERR12MotorGoPlink" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Deleted move constructor. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlinkaSERR12MotorGoPlink">
+<span id="_CPPv3N4espp12MotorGoPlinkaSERR12MotorGoPlink"></span><span id="_CPPv2N4espp12MotorGoPlinkaSERR12MotorGoPlink"></span><span id="espp::MotorGoPlink::assign-operator__MotorGoPlinkRR"></span><span class="target" id="classespp_1_1MotorGoPlink_1abba055772f66e9d53d5724681d39a2ec"></span><a class="reference internal" href="#_CPPv4N4espp12MotorGoPlinkE" title="espp::MotorGoPlink"><span class="n"><span class="pre">MotorGoPlink</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp12MotorGoPlinkE" title="espp::MotorGoPlink"><span class="n"><span class="pre">MotorGoPlink</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlinkaSERR12MotorGoPlink" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Deleted move assignment operator. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink16get_external_i2cEv">
+<span id="_CPPv3N4espp12MotorGoPlink16get_external_i2cEv"></span><span id="_CPPv2N4espp12MotorGoPlink16get_external_i2cEv"></span><span id="espp::MotorGoPlink::get_external_i2c"></span><span class="target" id="classespp_1_1MotorGoPlink_1a9c48782d93a4a60af450ef6d33f79083"></span><a class="reference internal" href="../../buses/i2c.html#_CPPv4N4espp3I2cE" title="espp::I2c"><span class="n"><span class="pre">I2c</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_external_i2c</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink16get_external_i2cEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the external Qwiic I2C bus. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Reference to the initialized external I2C bus. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink9qwiic_i2cEv">
+<span id="_CPPv3N4espp12MotorGoPlink9qwiic_i2cEv"></span><span id="_CPPv2N4espp12MotorGoPlink9qwiic_i2cEv"></span><span id="espp::MotorGoPlink::qwiic_i2c"></span><span class="target" id="classespp_1_1MotorGoPlink_1aba2503a0e34090324ce089763f5632da"></span><a class="reference internal" href="../../buses/i2c.html#_CPPv4N4espp3I2cE" title="espp::I2c"><span class="n"><span class="pre">I2c</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">qwiic_i2c</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink9qwiic_i2cEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the external Qwiic I2C bus. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Reference to the initialized external I2C bus. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink10hidden_i2cEv">
+<span id="_CPPv3N4espp12MotorGoPlink10hidden_i2cEv"></span><span id="_CPPv2N4espp12MotorGoPlink10hidden_i2cEv"></span><span id="espp::MotorGoPlink::hidden_i2c"></span><span class="target" id="classespp_1_1MotorGoPlink_1a449e677b3b0173925eb6152049ead1f1"></span><a class="reference internal" href="../../buses/i2c.html#_CPPv4N4espp3I2cE" title="espp::I2c"><span class="n"><span class="pre">I2c</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">hidden_i2c</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink10hidden_i2cEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the internal hidden I2C bus. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Reference to the initialized internal I2C bus. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp12MotorGoPlink10motor_pinsEv">
+<span id="_CPPv3NK4espp12MotorGoPlink10motor_pinsEv"></span><span id="_CPPv2NK4espp12MotorGoPlink10motor_pinsEv"></span><span id="espp::MotorGoPlink::motor_pinsC"></span><span class="target" id="classespp_1_1MotorGoPlink_1a295e967c9fa219605ca65633c51877c6"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp12MotorGoPlink9MotorPinsE" title="espp::MotorGoPlink::MotorPins"><span class="n"><span class="pre">MotorPins</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">4</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">motor_pins</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp12MotorGoPlink10motor_pinsEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the documented motor pin mappings for all four channels. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Array containing the two PWM pins for each motor channel. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp12MotorGoPlink10motor_pinsE6size_t">
+<span id="_CPPv3NK4espp12MotorGoPlink10motor_pinsE6size_t"></span><span id="_CPPv2NK4espp12MotorGoPlink10motor_pinsE6size_t"></span><span id="espp::MotorGoPlink::motor_pins__sC"></span><span class="target" id="classespp_1_1MotorGoPlink_1a1fd196f4f748c19f42d3c0705e829ca4"></span><a class="reference internal" href="#_CPPv4N4espp12MotorGoPlink9MotorPinsE" title="espp::MotorGoPlink::MotorPins"><span class="n"><span class="pre">MotorPins</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">motor_pins</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">index</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp12MotorGoPlink10motor_pinsE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get one motor channel pin mapping. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>index</strong> – Zero-based motor index in the range [0, <a class="reference internal" href="#classespp_1_1MotorGoPlink_1a635ba9c5ffa5633347c204149dcd5633"><span class="std std-ref">num_motor_channels()</span></a>). </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The motor pin mapping for the requested channel, or a default `MotorPins{}` with `GPIO_NUM_NC` entries if the index is invalid. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp12MotorGoPlink16encoder_bus_pinsEv">
+<span id="_CPPv3NK4espp12MotorGoPlink16encoder_bus_pinsEv"></span><span id="_CPPv2NK4espp12MotorGoPlink16encoder_bus_pinsEv"></span><span id="espp::MotorGoPlink::encoder_bus_pinsC"></span><span class="target" id="classespp_1_1MotorGoPlink_1a1ce10e7040d07acee8ff0c1a65b3979a"></span><a class="reference internal" href="#_CPPv4N4espp12MotorGoPlink14EncoderBusPinsE" title="espp::MotorGoPlink::EncoderBusPins"><span class="n"><span class="pre">EncoderBusPins</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">encoder_bus_pins</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp12MotorGoPlink16encoder_bus_pinsEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the shared encoder bus pin mapping. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The shared SCLK, MISO, and dummy MOSI pins used for the encoder bus. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp12MotorGoPlink15encoder_cs_pinsEv">
+<span id="_CPPv3NK4espp12MotorGoPlink15encoder_cs_pinsEv"></span><span id="_CPPv2NK4espp12MotorGoPlink15encoder_cs_pinsEv"></span><span id="espp::MotorGoPlink::encoder_cs_pinsC"></span><span class="target" id="classespp_1_1MotorGoPlink_1a835f47abe9336d073c997cde2a4e53e0"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">4</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">encoder_cs_pins</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp12MotorGoPlink15encoder_cs_pinsEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the four encoder chip-select pins. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Array containing the chip-select pin for each encoder channel. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp12MotorGoPlink14encoder_cs_pinE6size_t">
+<span id="_CPPv3NK4espp12MotorGoPlink14encoder_cs_pinE6size_t"></span><span id="_CPPv2NK4espp12MotorGoPlink14encoder_cs_pinE6size_t"></span><span id="espp::MotorGoPlink::encoder_cs_pin__sC"></span><span class="target" id="classespp_1_1MotorGoPlink_1aa167794536048f7b31fb07971bf6837f"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">encoder_cs_pin</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">index</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp12MotorGoPlink14encoder_cs_pinE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get one encoder chip-select pin. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>index</strong> – Zero-based encoder index in the range [0, <a class="reference internal" href="#classespp_1_1MotorGoPlink_1a635ba9c5ffa5633347c204149dcd5633"><span class="std std-ref">num_motor_channels()</span></a>). </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The requested encoder chip-select pin, or `GPIO_NUM_NC` if the index is invalid. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp12MotorGoPlink10servo_pinsEv">
+<span id="_CPPv3NK4espp12MotorGoPlink10servo_pinsEv"></span><span id="_CPPv2NK4espp12MotorGoPlink10servo_pinsEv"></span><span id="espp::MotorGoPlink::servo_pinsC"></span><span class="target" id="classespp_1_1MotorGoPlink_1aa63f5f6f56d0242b56302d6f85154811"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">4</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">servo_pins</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp12MotorGoPlink10servo_pinsEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the four servo signal pins. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Array containing the four documented RC-servo signal GPIOs. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp12MotorGoPlink9servo_pinE6size_t">
+<span id="_CPPv3NK4espp12MotorGoPlink9servo_pinE6size_t"></span><span id="_CPPv2NK4espp12MotorGoPlink9servo_pinE6size_t"></span><span id="espp::MotorGoPlink::servo_pin__sC"></span><span class="target" id="classespp_1_1MotorGoPlink_1a86f5e540b9fda205c7af9f97d98bbaad"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">servo_pin</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">index</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp12MotorGoPlink9servo_pinE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get one servo signal pin. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>index</strong> – Zero-based servo index in the range [0, <a class="reference internal" href="#classespp_1_1MotorGoPlink_1a6a2ab36b602b1cfe71ee970b40108a1b"><span class="std std-ref">num_servo_channels()</span></a>). </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The requested servo signal pin, or `GPIO_NUM_NC` if the index is invalid. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp12MotorGoPlink10qwiic_pinsEv">
+<span id="_CPPv3NK4espp12MotorGoPlink10qwiic_pinsEv"></span><span id="_CPPv2NK4espp12MotorGoPlink10qwiic_pinsEv"></span><span id="espp::MotorGoPlink::qwiic_pinsC"></span><span class="target" id="classespp_1_1MotorGoPlink_1a75fcec0af4796d38e6fb01c9944328c4"></span><a class="reference internal" href="#_CPPv4N4espp12MotorGoPlink7I2cPinsE" title="espp::MotorGoPlink::I2cPins"><span class="n"><span class="pre">I2cPins</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">qwiic_pins</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp12MotorGoPlink10qwiic_pinsEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the external Qwiic I2C pin mapping. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The external Qwiic SDA/SCL pin mapping. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp12MotorGoPlink15hidden_i2c_pinsEv">
+<span id="_CPPv3NK4espp12MotorGoPlink15hidden_i2c_pinsEv"></span><span id="_CPPv2NK4espp12MotorGoPlink15hidden_i2c_pinsEv"></span><span id="espp::MotorGoPlink::hidden_i2c_pinsC"></span><span class="target" id="classespp_1_1MotorGoPlink_1a7102177df15dfc7507f50ed972afa906"></span><a class="reference internal" href="#_CPPv4N4espp12MotorGoPlink7I2cPinsE" title="espp::MotorGoPlink::I2cPins"><span class="n"><span class="pre">I2cPins</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hidden_i2c_pins</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp12MotorGoPlink15hidden_i2c_pinsEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the hidden internal I2C pin mapping. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The internal SDA/SCL pin mapping. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp12MotorGoPlink8led_pinsEv">
+<span id="_CPPv3NK4espp12MotorGoPlink8led_pinsEv"></span><span id="_CPPv2NK4espp12MotorGoPlink8led_pinsEv"></span><span id="espp::MotorGoPlink::led_pinsC"></span><span class="target" id="classespp_1_1MotorGoPlink_1a266f24c9cab35c760addcb99c7890a65"></span><a class="reference internal" href="#_CPPv4N4espp12MotorGoPlink7LedPinsE" title="espp::MotorGoPlink::LedPins"><span class="n"><span class="pre">LedPins</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">led_pins</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp12MotorGoPlink8led_pinsEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the user/status LED pins. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The documented user and status LED GPIOs. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink17initialize_motorsE6size_t">
+<span id="_CPPv3N4espp12MotorGoPlink17initialize_motorsE6size_t"></span><span id="_CPPv2N4espp12MotorGoPlink17initialize_motorsE6size_t"></span><span id="espp::MotorGoPlink::initialize_motors__s"></span><span class="target" id="classespp_1_1MotorGoPlink_1ad45a20ca5e604cc50f5e8c911135b5b7"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize_motors</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">pwm_frequency_hz</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp12MotorGoPlink30motor_default_pwm_frequency_hzEv" title="espp::MotorGoPlink::motor_default_pwm_frequency_hz"><span class="n"><span class="pre">motor_default_pwm_frequency_hz</span></span></a><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink17initialize_motorsE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the four MCPWM-backed motor driver helpers. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pwm_frequency_hz</strong> – PWM carrier frequency for all four motor channels. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the motor driver helpers were initialized; false if the PWM frequency is invalid or any motor channel could not be configured. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink15set_motor_speedE6size_tf">
+<span id="_CPPv3N4espp12MotorGoPlink15set_motor_speedE6size_tf"></span><span id="_CPPv2N4espp12MotorGoPlink15set_motor_speedE6size_tf"></span><span id="espp::MotorGoPlink::set_motor_speed__s.float"></span><span class="target" id="classespp_1_1MotorGoPlink_1a379e895605546ba01062bb401130831e"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_motor_speed</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">index</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">speed</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink15set_motor_speedE6size_tf" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set a normalized motor speed in the range [-1, 1]. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>index</strong> – Zero-based motor index in the range [0, <a class="reference internal" href="#classespp_1_1MotorGoPlink_1a635ba9c5ffa5633347c204149dcd5633"><span class="std std-ref">num_motor_channels()</span></a>). </p></li>
+<li><p><strong>speed</strong> – Normalized motor command. Values are clamped to [-1.0, 1.0], with positive values driving `pwm_a`, negative values driving `pwm_b`, and zero disabling both PWM outputs for that motor. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the motor command was applied; false if the motor PWM subsystem has not been initialized or the index is invalid. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp12MotorGoPlink11motor_speedE6size_t">
+<span id="_CPPv3NK4espp12MotorGoPlink11motor_speedE6size_t"></span><span id="_CPPv2NK4espp12MotorGoPlink11motor_speedE6size_t"></span><span id="espp::MotorGoPlink::motor_speed__sC"></span><span class="target" id="classespp_1_1MotorGoPlink_1ad31aafaf41dd42a5733a14862dbbab97"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">motor_speed</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">index</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp12MotorGoPlink11motor_speedE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the last commanded normalized motor speed. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>index</strong> – Zero-based motor index in the range [0, <a class="reference internal" href="#classespp_1_1MotorGoPlink_1a635ba9c5ffa5633347c204149dcd5633"><span class="std std-ref">num_motor_channels()</span></a>). </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The last commanded normalized speed for that channel, or 0.0f if the index is invalid. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink10stop_motorE6size_t">
+<span id="_CPPv3N4espp12MotorGoPlink10stop_motorE6size_t"></span><span id="_CPPv2N4espp12MotorGoPlink10stop_motorE6size_t"></span><span id="espp::MotorGoPlink::stop_motor__s"></span><span class="target" id="classespp_1_1MotorGoPlink_1ade7d8afe2835744d357e7169dc68a326"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stop_motor</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">index</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink10stop_motorE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Stop one motor channel. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>index</strong> – Zero-based motor index in the range [0, <a class="reference internal" href="#classespp_1_1MotorGoPlink_1a635ba9c5ffa5633347c204149dcd5633"><span class="std std-ref">num_motor_channels()</span></a>). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink15stop_all_motorsEv">
+<span id="_CPPv3N4espp12MotorGoPlink15stop_all_motorsEv"></span><span id="_CPPv2N4espp12MotorGoPlink15stop_all_motorsEv"></span><span id="espp::MotorGoPlink::stop_all_motors"></span><span class="target" id="classespp_1_1MotorGoPlink_1a1c8b2d728d4f4490f2f75dddc5cf40c7"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stop_all_motors</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink15stop_all_motorsEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Stop all motor channels.</p>
+<p>If the motor PWM subsystem has been initialized, each motor is actively commanded to zero speed. Otherwise the cached command values are simply reset to zero. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp12MotorGoPlink12motor_driverE6size_t">
+<span id="_CPPv3NK4espp12MotorGoPlink12motor_driverE6size_t"></span><span id="_CPPv2NK4espp12MotorGoPlink12motor_driverE6size_t"></span><span id="espp::MotorGoPlink::motor_driver__sC"></span><span class="target" id="classespp_1_1MotorGoPlink_1a2765f87c2c641b488324c34b7ce252b3"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp12MotorGoPlink11MotorDriverE" title="espp::MotorGoPlink::MotorDriver"><span class="n"><span class="pre">MotorDriver</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">motor_driver</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">index</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp12MotorGoPlink12motor_driverE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get one motor driver helper. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>index</strong> – Zero-based motor index in the range [0, <a class="reference internal" href="#classespp_1_1MotorGoPlink_1a635ba9c5ffa5633347c204149dcd5633"><span class="std std-ref">num_motor_channels()</span></a>). </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Shared pointer to the requested motor driver helper, or `nullptr` if the index is invalid or that motor has not been initialized yet. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink19initialize_encodersEb">
+<span id="_CPPv3N4espp12MotorGoPlink19initialize_encodersEb"></span><span id="_CPPv2N4espp12MotorGoPlink19initialize_encodersEb"></span><span id="espp::MotorGoPlink::initialize_encoders__b"></span><span class="target" id="classespp_1_1MotorGoPlink_1a3be52cc8adb7963d0875e77aa08d5455"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize_encoders</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">run_tasks</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink19initialize_encodersEb" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the shared encoder bus and create the four MT6701 SSI helpers. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>run_tasks</strong> – If true, each encoder starts its own update task after initialization. If false, callers must invoke `Encoder::update()` manually. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the shared bus and all four encoder helpers were initialized successfully; false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink7encoderE6size_t">
+<span id="_CPPv3N4espp12MotorGoPlink7encoderE6size_t"></span><span id="_CPPv2N4espp12MotorGoPlink7encoderE6size_t"></span><span id="espp::MotorGoPlink::encoder__s"></span><span class="target" id="classespp_1_1MotorGoPlink_1a94fc9f2edee9c4367b65f486477bd178"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp12MotorGoPlink7EncoderE" title="espp::MotorGoPlink::Encoder"><span class="n"><span class="pre">Encoder</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">encoder</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">index</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink7encoderE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get one encoder helper. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>index</strong> – Zero-based encoder index in the range [0, <a class="reference internal" href="#classespp_1_1MotorGoPlink_1a635ba9c5ffa5633347c204149dcd5633"><span class="std std-ref">num_motor_channels()</span></a>). </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Shared pointer to the requested encoder helper, or `nullptr` if the index is invalid or that encoder has not been initialized yet. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink25reset_encoder_accumulatorE6size_t">
+<span id="_CPPv3N4espp12MotorGoPlink25reset_encoder_accumulatorE6size_t"></span><span id="_CPPv2N4espp12MotorGoPlink25reset_encoder_accumulatorE6size_t"></span><span id="espp::MotorGoPlink::reset_encoder_accumulator__s"></span><span class="target" id="classespp_1_1MotorGoPlink_1aeb5a02832df6cae53faf45783cddd5e5"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset_encoder_accumulator</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">index</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink25reset_encoder_accumulatorE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p><p>Reset one encoder’s accumulator.</p>
+<p>If the encoder has not been initialized, the request is ignored after logging an error.</p>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>index</strong> – Zero-based encoder index in the range [0, <a class="reference internal" href="#classespp_1_1MotorGoPlink_1a635ba9c5ffa5633347c204149dcd5633"><span class="std std-ref">num_motor_channels()</span></a>).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp">
+<span class="target" id="classespp_1_1MotorGoPlink_1a3bad4d7708e7214740d5d771623af1c2"></span><span class="sig-name descname"><span class="pre">bool</span> <span class="pre">initialize_imu</span> <span class="pre">(const</span> <span class="pre">Imu::filter_fn</span> <span class="pre">&amp;orientation_filter=nullptr,</span> <span class="pre">const</span> <span class="pre">Imu::ImuConfig</span> <span class="pre">&amp;imu_config={</span> <span class="pre">.accel_range=Imu::AccelRange::RANGE_2G,.accel_odr=Imu::AccelODR::ODR_104_HZ,.gyro_range=Imu::GyroRange::DPS_1000,.gyro_odr=Imu::GyroODR::ODR_104_HZ,</span> <span class="pre">})</span></span></dt>
+<dd><p>Initialize the onboard IMU on the hidden I2C bus. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>orientation_filter</strong> – Optional orientation filter callback used by the IMU driver when update() is called. </p></li>
+<li><p><strong>imu_config</strong> – Basic accelerometer / gyroscope configuration to apply during initialization. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the hidden-bus I2C device and IMU helper were initialized successfully; false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp12MotorGoPlink3imuEv">
+<span id="_CPPv3NK4espp12MotorGoPlink3imuEv"></span><span id="_CPPv2NK4espp12MotorGoPlink3imuEv"></span><span id="espp::MotorGoPlink::imuC"></span><span class="target" id="classespp_1_1MotorGoPlink_1a35978cdf812470f7cd57b56c3ffdde3a"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp12MotorGoPlink3ImuE" title="espp::MotorGoPlink::Imu"><span class="n"><span class="pre">Imu</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">imu</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp12MotorGoPlink3imuEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the onboard IMU helper. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Shared pointer to the initialized IMU helper, or `nullptr` if <a class="reference internal" href="#classespp_1_1MotorGoPlink_1a3bad4d7708e7214740d5d771623af1c2"><span class="std std-ref">initialize_imu()</span></a> has not been called yet. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink15initialize_ledsEf">
+<span id="_CPPv3N4espp12MotorGoPlink15initialize_ledsEf"></span><span id="_CPPv2N4espp12MotorGoPlink15initialize_ledsEf"></span><span id="espp::MotorGoPlink::initialize_leds__float"></span><span class="target" id="classespp_1_1MotorGoPlink_1a87ee5f5d577d23afc0e4fbdf669a383a"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize_leds</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">breathing_period</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">3.5f</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink15initialize_ledsEf" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the user/status LED helpers. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>breathing_period</strong> – Default breathing period in seconds for <a class="reference internal" href="#classespp_1_1MotorGoPlink_1a647daf525e992d9b616788dfb2717fec"><span class="std std-ref">start_led_breathing()</span></a>. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the indicator LED PWM helper and breathing task were created successfully; false if they were already initialized or the LEDs could not be driven after setup. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink19start_led_breathingEv">
+<span id="_CPPv3N4espp12MotorGoPlink19start_led_breathingEv"></span><span id="_CPPv2N4espp12MotorGoPlink19start_led_breathingEv"></span><span id="espp::MotorGoPlink::start_led_breathing"></span><span class="target" id="classespp_1_1MotorGoPlink_1a647daf525e992d9b616788dfb2717fec"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">start_led_breathing</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink19start_led_breathingEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Start breathing both indicator LEDs.</p>
+<p>This uses the shared <a class="reference internal" href="../../math/gaussian.html#classespp_1_1Gaussian"><span class="std std-ref">Gaussian</span></a> waveform returned by <a class="reference internal" href="#classespp_1_1MotorGoPlink_1a2dfe7f0855960c8260e6795891bae4a4"><span class="std std-ref">gaussian()</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink18stop_led_breathingEv">
+<span id="_CPPv3N4espp12MotorGoPlink18stop_led_breathingEv"></span><span id="_CPPv2N4espp12MotorGoPlink18stop_led_breathingEv"></span><span id="espp::MotorGoPlink::stop_led_breathing"></span><span class="target" id="classespp_1_1MotorGoPlink_1a6dd9a6b59b2c11e5a4db27aec8a367b6"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stop_led_breathing</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink18stop_led_breathingEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Stop breathing and turn both indicator LEDs off. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink23set_user_led_brightnessEf">
+<span id="_CPPv3N4espp12MotorGoPlink23set_user_led_brightnessEf"></span><span id="_CPPv2N4espp12MotorGoPlink23set_user_led_brightnessEf"></span><span id="espp::MotorGoPlink::set_user_led_brightness__float"></span><span class="target" id="classespp_1_1MotorGoPlink_1ae5ce23f8c6bc01a517233c983aeb05b4"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_user_led_brightness</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">brightness</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink23set_user_led_brightnessEf" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the user LED brightness in the range [0, 1]. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>brightness</strong> – Desired brightness, clamped to [0.0, 1.0]. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the user LED duty cycle was updated; false if the LEDs have not been initialized or the breathing task is currently running. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink23get_user_led_brightnessEv">
+<span id="_CPPv3N4espp12MotorGoPlink23get_user_led_brightnessEv"></span><span id="_CPPv2N4espp12MotorGoPlink23get_user_led_brightnessEv"></span><span id="espp::MotorGoPlink::get_user_led_brightness"></span><span class="target" id="classespp_1_1MotorGoPlink_1ad524cea041161d1926432ca9e3006e3c"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_user_led_brightness</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink23get_user_led_brightnessEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the user LED brightness in the range [0, 1]. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Current user LED brightness normalized to [0.0, 1.0], or 0.0f if the LEDs have not been initialized or the duty cycle could not be read. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink25set_status_led_brightnessEf">
+<span id="_CPPv3N4espp12MotorGoPlink25set_status_led_brightnessEf"></span><span id="_CPPv2N4espp12MotorGoPlink25set_status_led_brightnessEf"></span><span id="espp::MotorGoPlink::set_status_led_brightness__float"></span><span class="target" id="classespp_1_1MotorGoPlink_1aa0c7ed96952bd2619b2a92951cc00424"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_status_led_brightness</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">brightness</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink25set_status_led_brightnessEf" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the status LED brightness in the range [0, 1]. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>brightness</strong> – Desired brightness, clamped to [0.0, 1.0]. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the status LED duty cycle was updated; false if the LEDs have not been initialized or the breathing task is currently running. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink25get_status_led_brightnessEv">
+<span id="_CPPv3N4espp12MotorGoPlink25get_status_led_brightnessEv"></span><span id="_CPPv2N4espp12MotorGoPlink25get_status_led_brightnessEv"></span><span id="espp::MotorGoPlink::get_status_led_brightness"></span><span class="target" id="classespp_1_1MotorGoPlink_1ab209ec6d0c1e9fcfd3cc933bfc5ce7eb"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_status_led_brightness</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink25get_status_led_brightnessEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the status LED brightness in the range [0, 1]. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Current status LED brightness normalized to [0.0, 1.0], or 0.0f if the LEDs have not been initialized or the duty cycle could not be read. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink24set_led_breathing_periodEf">
+<span id="_CPPv3N4espp12MotorGoPlink24set_led_breathing_periodEf"></span><span id="_CPPv2N4espp12MotorGoPlink24set_led_breathing_periodEf"></span><span id="espp::MotorGoPlink::set_led_breathing_period__float"></span><span class="target" id="classespp_1_1MotorGoPlink_1a4a0142625d4a2383ff8d12e505d746aa"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_led_breathing_period</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">period</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink24set_led_breathing_periodEf" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the LED breathing period in seconds. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>period</strong> – Breathing period in seconds. Must be greater than zero. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the period was accepted; false if the value is not positive. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink24get_led_breathing_periodEv">
+<span id="_CPPv3N4espp12MotorGoPlink24get_led_breathing_periodEv"></span><span id="_CPPv2N4espp12MotorGoPlink24get_led_breathing_periodEv"></span><span id="espp::MotorGoPlink::get_led_breathing_period"></span><span class="target" id="classespp_1_1MotorGoPlink_1ad617019943cd0efe36f0c12bc501e833"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_led_breathing_period</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink24get_led_breathing_periodEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the LED breathing period in seconds. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The configured LED breathing period in seconds. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink4ledsEv">
+<span id="_CPPv3N4espp12MotorGoPlink4ledsEv"></span><span id="_CPPv2N4espp12MotorGoPlink4ledsEv"></span><span id="espp::MotorGoPlink::leds"></span><span class="target" id="classespp_1_1MotorGoPlink_1a22e67120725870f1d28a2f333c6fcdb3"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../leds/led.html#_CPPv4N4espp3LedE" title="espp::Led"><span class="n"><span class="pre">Led</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">leds</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink4ledsEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the LED helper used for the indicator LEDs. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Shared pointer to the indicator LED helper, or `nullptr` if <a class="reference internal" href="#classespp_1_1MotorGoPlink_1a87ee5f5d577d23afc0e4fbdf669a383a"><span class="std std-ref">initialize_leds()</span></a> has not been called yet. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink8gaussianEv">
+<span id="_CPPv3N4espp12MotorGoPlink8gaussianEv"></span><span id="_CPPv2N4espp12MotorGoPlink8gaussianEv"></span><span id="espp::MotorGoPlink::gaussian"></span><span class="target" id="classespp_1_1MotorGoPlink_1a2dfe7f0855960c8260e6795891bae4a4"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../math/gaussian.html#_CPPv4N4espp8GaussianE" title="espp::Gaussian"><span class="n"><span class="pre">Gaussian</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">gaussian</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink8gaussianEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the <a class="reference internal" href="../../math/gaussian.html#classespp_1_1Gaussian"><span class="std std-ref">Gaussian</span></a> waveform used for LED breathing. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Reference to the <a class="reference internal" href="../../math/gaussian.html#classespp_1_1Gaussian"><span class="std std-ref">Gaussian</span></a> waveform object used by the LED breathing task. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp12MotorGoPlink8get_nameEv">
+<span id="_CPPv3NK4espp12MotorGoPlink8get_nameEv"></span><span id="_CPPv2NK4espp12MotorGoPlink8get_nameEv"></span><span id="espp::MotorGoPlink::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp12MotorGoPlink8get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp12MotorGoPlink11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp12MotorGoPlink11set_log_tagERKNSt11string_viewE"></span><span id="espp::MotorGoPlink::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp12MotorGoPlink13get_log_levelEv">
+<span id="_CPPv3NK4espp12MotorGoPlink13get_log_levelEv"></span><span id="_CPPv2NK4espp12MotorGoPlink13get_log_levelEv"></span><span id="espp::MotorGoPlink::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp12MotorGoPlink13get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp12MotorGoPlink13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp12MotorGoPlink13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::MotorGoPlink::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp12MotorGoPlink17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp12MotorGoPlink17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::MotorGoPlink::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../wifi/wifi_sta.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp12MotorGoPlink17get_log_verbosityEv">
+<span id="_CPPv3NK4espp12MotorGoPlink17get_log_verbosityEv"></span><span id="_CPPv2NK4espp12MotorGoPlink17get_log_verbosityEv"></span><span id="espp::MotorGoPlink::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp12MotorGoPlink17get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../wifi/wifi_sta.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp12MotorGoPlink18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp12MotorGoPlink18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::MotorGoPlink::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink3getEv">
+<span id="_CPPv3N4espp12MotorGoPlink3getEv"></span><span id="_CPPv2N4espp12MotorGoPlink3getEv"></span><span id="espp::MotorGoPlink::get"></span><span class="target" id="classespp_1_1MotorGoPlink_1a85c8b038b00776aa19bb0ebc72b42075"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp12MotorGoPlinkE" title="espp::MotorGoPlink"><span class="n"><span class="pre">MotorGoPlink</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink3getEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Access the singleton board instance. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Reference to the singleton <a class="reference internal" href="#classespp_1_1MotorGoPlink"><span class="std std-ref">MotorGoPlink</span></a> object. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink18num_motor_channelsEv">
+<span id="_CPPv3N4espp12MotorGoPlink18num_motor_channelsEv"></span><span id="_CPPv2N4espp12MotorGoPlink18num_motor_channelsEv"></span><span id="espp::MotorGoPlink::num_motor_channelsCE"></span><span class="target" id="classespp_1_1MotorGoPlink_1a635ba9c5ffa5633347c204149dcd5633"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">num_motor_channels</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink18num_motor_channelsEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the number of supported motor channels. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The number of motor channels exposed by the board. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink18num_servo_channelsEv">
+<span id="_CPPv3N4espp12MotorGoPlink18num_servo_channelsEv"></span><span id="_CPPv2N4espp12MotorGoPlink18num_servo_channelsEv"></span><span id="espp::MotorGoPlink::num_servo_channelsCE"></span><span class="target" id="classespp_1_1MotorGoPlink_1a6a2ab36b602b1cfe71ee970b40108a1b"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">num_servo_channels</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink18num_servo_channelsEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the number of exposed servo signal pins. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The number of servo channels exposed by the board. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink30motor_default_pwm_frequency_hzEv">
+<span id="_CPPv3N4espp12MotorGoPlink30motor_default_pwm_frequency_hzEv"></span><span id="_CPPv2N4espp12MotorGoPlink30motor_default_pwm_frequency_hzEv"></span><span id="espp::MotorGoPlink::motor_default_pwm_frequency_hzCE"></span><span class="target" id="classespp_1_1MotorGoPlink_1a0c97b932a5fb219ef61e55924656563f"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">motor_default_pwm_frequency_hz</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink30motor_default_pwm_frequency_hzEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the default PWM frequency used for motor outputs. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Default motor PWM frequency in Hz. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink26encoder_spi_clock_speed_hzEv">
+<span id="_CPPv3N4espp12MotorGoPlink26encoder_spi_clock_speed_hzEv"></span><span id="_CPPv2N4espp12MotorGoPlink26encoder_spi_clock_speed_hzEv"></span><span id="espp::MotorGoPlink::encoder_spi_clock_speed_hzCE"></span><span class="target" id="classespp_1_1MotorGoPlink_1a7cd65a4b18508fdeedf1ccba1f22c00c"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">encoder_spi_clock_speed_hz</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink26encoder_spi_clock_speed_hzEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the encoder bus clock speed. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Default encoder SSI/SPI clock speed in Hz. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink12user_led_pinEv">
+<span id="_CPPv3N4espp12MotorGoPlink12user_led_pinEv"></span><span id="_CPPv2N4espp12MotorGoPlink12user_led_pinEv"></span><span id="espp::MotorGoPlink::user_led_pinCE"></span><span class="target" id="classespp_1_1MotorGoPlink_1a500e9738d1a778b86dd4dc17543bfd89"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">user_led_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink12user_led_pinEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the user LED GPIO. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>User LED pin. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink14status_led_pinEv">
+<span id="_CPPv3N4espp12MotorGoPlink14status_led_pinEv"></span><span id="_CPPv2N4espp12MotorGoPlink14status_led_pinEv"></span><span id="espp::MotorGoPlink::status_led_pinCE"></span><span class="target" id="classespp_1_1MotorGoPlink_1a70d84d3829141394938a38b87ca835b3"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">status_led_pin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink14status_led_pinEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the status LED GPIO. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Status LED pin. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink14EncoderBusPinsE">
+<span id="_CPPv3N4espp12MotorGoPlink14EncoderBusPinsE"></span><span id="_CPPv2N4espp12MotorGoPlink14EncoderBusPinsE"></span><span id="espp::MotorGoPlink::EncoderBusPins"></span><span class="target" id="structespp_1_1MotorGoPlink_1_1EncoderBusPins"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EncoderBusPins</span></span></span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink14EncoderBusPinsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Shared encoder SSI/SPI bus pins. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink14EncoderBusPins4sclkE">
+<span id="_CPPv3N4espp12MotorGoPlink14EncoderBusPins4sclkE"></span><span id="_CPPv2N4espp12MotorGoPlink14EncoderBusPins4sclkE"></span><span id="espp::MotorGoPlink::EncoderBusPins::sclk__gpio_num_t"></span><span class="target" id="structespp_1_1MotorGoPlink_1_1EncoderBusPins_1a4115bf636ce7fbecfd3277d03f25e832"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sclk</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">GPIO_NUM_NC</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink14EncoderBusPins4sclkE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Shared encoder clock pin. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink14EncoderBusPins4misoE">
+<span id="_CPPv3N4espp12MotorGoPlink14EncoderBusPins4misoE"></span><span id="_CPPv2N4espp12MotorGoPlink14EncoderBusPins4misoE"></span><span id="espp::MotorGoPlink::EncoderBusPins::miso__gpio_num_t"></span><span class="target" id="structespp_1_1MotorGoPlink_1_1EncoderBusPins_1ae34d0b9d6d20bac46f60c0efa512fec5"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miso</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">GPIO_NUM_NC</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink14EncoderBusPins4misoE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Shared encoder data pin. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink14EncoderBusPins4mosiE">
+<span id="_CPPv3N4espp12MotorGoPlink14EncoderBusPins4mosiE"></span><span id="_CPPv2N4espp12MotorGoPlink14EncoderBusPins4mosiE"></span><span id="espp::MotorGoPlink::EncoderBusPins::mosi__gpio_num_t"></span><span class="target" id="structespp_1_1MotorGoPlink_1_1EncoderBusPins_1ac7d859e83bb0d5b5ad779669de462c40"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mosi</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">GPIO_NUM_NC</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink14EncoderBusPins4mosiE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Dummy MOSI pin used to satisfy the SPI host. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink7I2cPinsE">
+<span id="_CPPv3N4espp12MotorGoPlink7I2cPinsE"></span><span id="_CPPv2N4espp12MotorGoPlink7I2cPinsE"></span><span id="espp::MotorGoPlink::I2cPins"></span><span class="target" id="structespp_1_1MotorGoPlink_1_1I2cPins"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">I2cPins</span></span></span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink7I2cPinsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>I2C pin mapping. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink7I2cPins3sdaE">
+<span id="_CPPv3N4espp12MotorGoPlink7I2cPins3sdaE"></span><span id="_CPPv2N4espp12MotorGoPlink7I2cPins3sdaE"></span><span id="espp::MotorGoPlink::I2cPins::sda__gpio_num_t"></span><span class="target" id="structespp_1_1MotorGoPlink_1_1I2cPins_1a82dadd51ea3ffe148abde8ce685b91d2"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sda</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">GPIO_NUM_NC</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink7I2cPins3sdaE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>I2C SDA pin. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink7I2cPins3sclE">
+<span id="_CPPv3N4espp12MotorGoPlink7I2cPins3sclE"></span><span id="_CPPv2N4espp12MotorGoPlink7I2cPins3sclE"></span><span id="espp::MotorGoPlink::I2cPins::scl__gpio_num_t"></span><span class="target" id="structespp_1_1MotorGoPlink_1_1I2cPins_1a48f19f4b25c601df95aea210df369a4d"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">scl</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">GPIO_NUM_NC</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink7I2cPins3sclE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>I2C SCL pin. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink7LedPinsE">
+<span id="_CPPv3N4espp12MotorGoPlink7LedPinsE"></span><span id="_CPPv2N4espp12MotorGoPlink7LedPinsE"></span><span id="espp::MotorGoPlink::LedPins"></span><span class="target" id="structespp_1_1MotorGoPlink_1_1LedPins"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LedPins</span></span></span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink7LedPinsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>User-visible LED pin mapping. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink7LedPins4userE">
+<span id="_CPPv3N4espp12MotorGoPlink7LedPins4userE"></span><span id="_CPPv2N4espp12MotorGoPlink7LedPins4userE"></span><span id="espp::MotorGoPlink::LedPins::user__gpio_num_t"></span><span class="target" id="structespp_1_1MotorGoPlink_1_1LedPins_1a4c99daf853516536ca343a3a3fbbc958"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">user</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">GPIO_NUM_NC</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink7LedPins4userE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>User LED pin. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink7LedPins6statusE">
+<span id="_CPPv3N4espp12MotorGoPlink7LedPins6statusE"></span><span id="_CPPv2N4espp12MotorGoPlink7LedPins6statusE"></span><span id="espp::MotorGoPlink::LedPins::status__gpio_num_t"></span><span class="target" id="structespp_1_1MotorGoPlink_1_1LedPins_1a6863d8ea22dd7300d7ad05c42123d31a"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">status</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">GPIO_NUM_NC</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink7LedPins6statusE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Status LED pin. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink9MotorPinsE">
+<span id="_CPPv3N4espp12MotorGoPlink9MotorPinsE"></span><span id="_CPPv2N4espp12MotorGoPlink9MotorPinsE"></span><span id="espp::MotorGoPlink::MotorPins"></span><span class="target" id="structespp_1_1MotorGoPlink_1_1MotorPins"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MotorPins</span></span></span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink9MotorPinsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Pin mapping for one DC motor channel. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink9MotorPins5pwm_aE">
+<span id="_CPPv3N4espp12MotorGoPlink9MotorPins5pwm_aE"></span><span id="_CPPv2N4espp12MotorGoPlink9MotorPins5pwm_aE"></span><span id="espp::MotorGoPlink::MotorPins::pwm_a__gpio_num_t"></span><span class="target" id="structespp_1_1MotorGoPlink_1_1MotorPins_1ab1364b6c99181158c5a1d327403d1d63"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pwm_a</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">GPIO_NUM_NC</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink9MotorPins5pwm_aE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>First PWM pin for the motor channel. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12MotorGoPlink9MotorPins5pwm_bE">
+<span id="_CPPv3N4espp12MotorGoPlink9MotorPins5pwm_bE"></span><span id="_CPPv2N4espp12MotorGoPlink9MotorPins5pwm_bE"></span><span id="espp::MotorGoPlink::MotorPins::pwm_b__gpio_num_t"></span><span class="target" id="structespp_1_1MotorGoPlink_1_1MotorPins_1ae132c74f6f23425cb8efa66c110e2bbd"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pwm_b</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">GPIO_NUM_NC</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp12MotorGoPlink9MotorPins5pwm_bE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Second PWM pin for the motor channel. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="motorgo_mini_example.html" class="btn btn-neutral float-left" title="&lt;no title&gt;" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="motorgo_plink_example.html" class="btn btn-neutral float-right" title="&lt;no title&gt;" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
