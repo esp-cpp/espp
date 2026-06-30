@@ -23,12 +23,14 @@ int main(int argc, char **argv) {
   espp::RtpsParticipant participant({
       .node_name = "espp_subscriber",
       .participant_id = 12,
+      .bind_address = address,
       .advertised_address = address,
       .announce_period = 500ms,
       .on_participant_discovered =
           [&logger](const auto &proxy) {
             logger.info("discovered participant '{}' at {}", proxy.name, proxy.address);
           },
+      .log_level = espp::Logger::Verbosity::DEBUG,
   });
   participant.add_reader({
       .topic_name = topic,
