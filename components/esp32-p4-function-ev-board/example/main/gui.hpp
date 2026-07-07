@@ -96,7 +96,7 @@ protected:
 
   // custom drawing of the circle layer
   static void draw_circle_layer(lv_event_t *e);
-  void draw_circles(lv_event_t *e);
+  void draw_circles(lv_event_t *e) const;
   void invalidate_circle_area(const Circle &circle);
 
   // unlocked implementations, called with the mutex held

@@ -49,9 +49,10 @@ extern "C" void app_main(void) {
   // the task which updates LVGL. All of its public methods are thread-safe,
   // so the keyboard and touch callbacks below can call them directly.
   static Gui gui({.log_level = espp::Logger::Verbosity::INFO});
-  gui.set_label_text("Touch the screen!\nPress the delete key or the " LV_SYMBOL_TRASH
-                     " button to clear circles.\nPress the space key or the " LV_SYMBOL_REFRESH
-                     " button to rotate the display.");
+  gui.set_label_text(
+      fmt::format("Touch the screen!\nPress the delete key or the {} button to clear "
+                  "circles.\nPress the space key or the {} button to rotate the display.",
+                  LV_SYMBOL_TRASH, LV_SYMBOL_REFRESH));
 
   // initialize the Keyboard after the Gui exists so key presses can act on it
   // immediately

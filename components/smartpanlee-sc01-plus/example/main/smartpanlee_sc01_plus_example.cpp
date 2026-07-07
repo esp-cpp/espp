@@ -66,9 +66,11 @@ extern "C" void app_main(void) {
   // starts the task which updates LVGL. All of its public methods are
   // thread-safe, so the touch callback below can call them directly.
   static Gui gui({.log_level = espp::Logger::Verbosity::INFO});
-  gui.set_label_text("Smart Panlee SC01 Plus\n\nTouch the screen to draw and play a "
-                     "click.\nPress " LV_SYMBOL_REFRESH " to rotate.\nPress " LV_SYMBOL_TRASH
-                     " to clear.\nCheck serial output for SD card, pin, and audio info.");
+  gui.set_label_text(
+      fmt::format("Smart Panlee SC01 Plus\n\nTouch the screen to draw and play a click.\nPress {} "
+                  "to rotate.\nPress {} to clear.\nCheck serial output for SD card, pin, and "
+                  "audio info.",
+                  LV_SYMBOL_REFRESH, LV_SYMBOL_TRASH));
 
   // initialize the touchpad after the GUI exists so touch events can update
   // it immediately; each touch draws a circle and plays a click sound

@@ -187,10 +187,9 @@ extern "C" void app_main(void) {
   logger.info("Setting up LVGL UI...");
   static Gui gui({.log_level = espp::Logger::Verbosity::INFO});
   static const std::string instructions =
-      "\n\n\n\nTouch the screen!\nPress the " LV_SYMBOL_TRASH
-      " button to clear circles.\nPress the " LV_SYMBOL_REFRESH
-      " button to rotate the display.\nPress the " LV_SYMBOL_EYE_OPEN
-      " button to cycle the brightness.";
+      fmt::format("\n\n\n\nTouch the screen!\nPress the {} button to clear circles.\nPress the {} "
+                  "button to rotate the display.\nPress the {} button to cycle the brightness.",
+                  LV_SYMBOL_TRASH, LV_SYMBOL_REFRESH, LV_SYMBOL_EYE_OPEN);
   gui.set_label_text(instructions);
 
   // Brightness control with the hardware button: cycle through the same

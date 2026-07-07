@@ -124,14 +124,14 @@ void Gui::invalidate_circle_area(const Circle &circle) {
 }
 
 void Gui::draw_circle_layer(lv_event_t *e) {
-  auto *gui = static_cast<Gui *>(lv_event_get_user_data(e));
+  const auto *gui = static_cast<const Gui *>(lv_event_get_user_data(e));
   if (!gui) {
     return;
   }
   gui->draw_circles(e);
 }
 
-void Gui::draw_circles(lv_event_t *e) {
+void Gui::draw_circles(lv_event_t *e) const {
   if (visible_circle_count_ == 0) {
     return;
   }

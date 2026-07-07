@@ -40,8 +40,9 @@ extern "C" void app_main(void) {
   // directly.
   static Gui gui({.log_level = espp::Logger::Verbosity::INFO});
   static const std::string instructions =
-      "Touch the screen!\nPress the button or the " LV_SYMBOL_TRASH
-      " button to clear circles.\nPress the " LV_SYMBOL_REFRESH " button to rotate the display.";
+      fmt::format("Touch the screen!\nPress the button or the {} button to clear circles.\nPress "
+                  "the {} button to rotate the display.",
+                  LV_SYMBOL_TRASH, LV_SYMBOL_REFRESH);
   gui.set_label_text(instructions);
 
   // initialize the hardware button (pressing the encoder); releasing it
