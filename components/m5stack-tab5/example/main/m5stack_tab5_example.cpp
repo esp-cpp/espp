@@ -7,37 +7,19 @@
  * and communication interfaces.
  */
 
-#include <array>
 #include <chrono>
 #include <stdlib.h>
 #include <vector>
 
 #include "m5stack-tab5.hpp"
 
+#include "gui.hpp"
 #include "kalman_filter.hpp"
 #include "madgwick_filter.hpp"
 
 using namespace std::chrono_literals;
 
-static constexpr size_t MAX_CIRCLES = 100;
-struct Circle {
-  int x{0};
-  int y{0};
-  int radius{0};
-  bool visible{false};
-};
-static std::array<Circle, MAX_CIRCLES> circles;
-static size_t next_circle_index = 0;
-static size_t visible_circle_count = 0;
 static std::vector<uint8_t> audio_bytes;
-static lv_obj_t *circle_layer = nullptr;
-
-static std::recursive_mutex lvgl_mutex;
-static bool initialize_circle_layer(int width, int height);
-static void draw_circle_layer(lv_event_t *event);
-static void invalidate_circle_area(const Circle &circle);
-static void draw_circle(int x0, int y0, int radius);
-static void clear_circles();
 
 static bool load_audio(size_t &out_size, size_t &out_sample_rate);
 static void play_click(espp::M5StackTab5 &tab5);
@@ -83,30 +65,6 @@ extern "C" void app_main(void) {
     logger.error("Failed to initialize display!");
     return;
   }
-
-  auto touch_callback = [&](const auto &touch) {
-    // NOTE: since we're directly using the touchpad data, and not using the
-    // TouchpadInput + LVGL, we'll need to ensure the touchpad data is
-    // converted into proper screen coordinates instead of simply using the
-    // raw values.
-    static auto previous_touchpad_data = tab5.touchpad_convert(touch);
-    auto touchpad_data = tab5.touchpad_convert(touch);
-    if (touchpad_data != previous_touchpad_data) {
-      logger.debug("Touch: {}", touchpad_data);
-      previous_touchpad_data = touchpad_data;
-      // if the button is pressed, clear the circles
-      if (touchpad_data.btn_state) {
-        std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
-        clear_circles();
-      }
-      // if there is a touch point, draw a circle and play a click sound
-      if (touchpad_data.num_touch_points > 0) {
-        play_click(tab5);
-        std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
-        draw_circle(touchpad_data.x, touchpad_data.y, 10);
-      }
-    }
-  };
 
   // make the filter we'll use for the IMU to compute the orientation
   static constexpr float angle_noise = 0.001f;
@@ -222,129 +180,60 @@ extern "C" void app_main(void) {
     return;
   }
 
-  // Brightness control with button
+  // create the GUI: builds the UI (label, buttons, gravity lines, circle
+  // layer) and starts the task which updates LVGL. All of its public methods
+  // are thread-safe, so the touch callback, button callback, and data display
+  // task below can call them directly.
+  logger.info("Setting up LVGL UI...");
+  static Gui gui({.log_level = espp::Logger::Verbosity::INFO});
+  static const std::string instructions =
+      "\n\n\n\nTouch the screen!\nPress the " LV_SYMBOL_TRASH
+      " button to clear circles.\nPress the " LV_SYMBOL_REFRESH
+      " button to rotate the display.\nPress the " LV_SYMBOL_EYE_OPEN
+      " button to cycle the brightness.";
+  gui.set_label_text(instructions);
+
+  // Brightness control with the hardware button: cycle through the same
+  // 25/50/75/100% levels as the on-screen brightness button
   logger.info("Initializing button...");
   auto button_callback = [&](const auto &state) {
     logger.info("Button state: {}", state.active);
     if (state.active) {
-      // Cycle through brightness levels: 25%, 50%, 75%, 100%
-      static int brightness_level = 0;
-      float brightness_values[] = {0.25f, 0.5f, 0.75f, 1.0f};
-      brightness_level = (brightness_level + 1) % 4;
-      float new_brightness = brightness_values[brightness_level];
-      tab5.brightness(new_brightness);
-      logger.info("Set brightness to {:.0f}%", new_brightness * 100);
+      gui.cycle_brightness();
     }
   };
   if (!tab5.initialize_button(button_callback)) {
     logger.warn("Failed to initialize button");
   }
 
-  logger.info("Setting up LVGL UI...");
-  // set the background color to black
-  lv_obj_t *bg = lv_obj_create(lv_screen_active());
-  lv_obj_set_size(bg, tab5.display_width(), tab5.display_height());
-  lv_obj_set_style_bg_color(bg, lv_color_make(0, 0, 0), 0);
-  if (!initialize_circle_layer(tab5.display_width(), tab5.display_height())) {
-    logger.error("Failed to initialize circle layer!");
-    return;
-  }
-
-  // add text in the center of the screen
-  lv_obj_t *label = lv_label_create(lv_screen_active());
-  static std::string label_text = "\n\n\n\nTouch the screen!";
-  lv_label_set_text(label, label_text.c_str());
-  lv_obj_align(label, LV_ALIGN_TOP_LEFT, 0, 0);
-  lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_LEFT, 0);
-
-  // Create style for line 0 (blue line, used for kalman filter)
-  static lv_style_t style_line0;
-  lv_style_init(&style_line0);
-  lv_style_set_line_width(&style_line0, 8);
-  lv_style_set_line_color(&style_line0, lv_palette_main(LV_PALETTE_BLUE));
-  lv_style_set_line_rounded(&style_line0, true);
-
-  // make a line for showing the direction of "down"
-  lv_obj_t *line0 = lv_line_create(lv_screen_active());
-  static lv_point_precise_t line_points0[] = {{0, 0},
-                                              {tab5.display_width(), tab5.display_height()}};
-  lv_line_set_points(line0, line_points0, 2);
-  lv_obj_add_style(line0, &style_line0, 0);
-
-  // Create style for line 1 (red line, used for madgwick filter)
-  static lv_style_t style_line1;
-  lv_style_init(&style_line1);
-  lv_style_set_line_width(&style_line1, 8);
-  lv_style_set_line_color(&style_line1, lv_palette_main(LV_PALETTE_RED));
-  lv_style_set_line_rounded(&style_line1, true);
-
-  // make a line for showing the direction of "down"
-  lv_obj_t *line1 = lv_line_create(lv_screen_active());
-  static lv_point_precise_t line_points1[] = {{0, 0},
-                                              {tab5.display_width(), tab5.display_height()}};
-  lv_line_set_points(line1, line_points1, 2);
-  lv_obj_add_style(line1, &style_line1, 0);
-
-  static auto rotate_display = [&]() {
-    std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
-    clear_circles();
-    static auto rotation = LV_DISPLAY_ROTATION_0;
-    rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
-    lv_display_t *disp = lv_display_get_default();
-    lv_disp_set_rotation(disp, rotation);
-    // update the size of the screen
-    lv_obj_set_size(bg, tab5.rotated_display_width(), tab5.rotated_display_height());
-    if (circle_layer) {
-      lv_obj_set_size(circle_layer, tab5.rotated_display_width(), tab5.rotated_display_height());
-      lv_obj_align(circle_layer, LV_ALIGN_CENTER, 0, 0);
-      lv_obj_move_foreground(circle_layer);
-      lv_obj_invalidate(circle_layer);
+  // initialize the touchpad; each touch draws a circle (and plays a click
+  // sound), while the touchscreen's button clears the circles
+  auto touch_callback = [&](const auto &touch) {
+    // NOTE: since we're directly using the touchpad data, and not using the
+    // TouchpadInput + LVGL, we'll need to ensure the touchpad data is
+    // converted into proper screen coordinates instead of simply using the
+    // raw values.
+    static auto previous_touchpad_data = tab5.touchpad_convert(touch);
+    auto touchpad_data = tab5.touchpad_convert(touch);
+    if (touchpad_data != previous_touchpad_data) {
+      logger.debug("Touch: {}", touchpad_data);
+      previous_touchpad_data = touchpad_data;
+      // if the button is pressed, clear the circles
+      if (touchpad_data.btn_state) {
+        gui.clear_circles();
+      }
+      // if there is a touch point, draw a circle and play a click sound
+      if (touchpad_data.num_touch_points > 0) {
+        play_click(tab5);
+        gui.draw_circle(touchpad_data.x, touchpad_data.y, 10);
+      }
     }
   };
-
-  // add a button in the top left which (when pressed) will rotate the display
-  // through 0, 90, 180, 270 degrees
-  lv_obj_t *btn = lv_btn_create(lv_screen_active());
-  lv_obj_set_size(btn, 50, 50);
-  lv_obj_align(btn, LV_ALIGN_TOP_LEFT, 0, 0);
-  lv_obj_t *label_btn = lv_label_create(btn);
-  lv_label_set_text(label_btn, LV_SYMBOL_REFRESH);
-  // center the text in the button
-  lv_obj_align(label_btn, LV_ALIGN_CENTER, 0, 0);
-  lv_obj_add_event_cb(
-      btn, [](auto event) { rotate_display(); }, LV_EVENT_PRESSED, nullptr);
-
-  // disable scrolling on the screen (so that it doesn't behave weirdly when
-  // rotated and drawing with your finger)
-  lv_obj_set_scrollbar_mode(lv_screen_active(), LV_SCROLLBAR_MODE_OFF);
-  lv_obj_clear_flag(lv_screen_active(), LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_move_foreground(circle_layer);
-
   logger.info("Initializing touch...");
   if (!tab5.initialize_touch(touch_callback)) {
     logger.error("Failed to initialize touch!");
     return;
   }
-
-  // start a simple thread to do the lv_task_handler every 16ms
-  logger.info("Starting LVGL task...");
-  espp::Task lv_task({.callback = [](std::mutex &m, std::condition_variable &cv) -> bool {
-                        auto start_time = std::chrono::high_resolution_clock::now();
-                        {
-                          std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
-                          lv_task_handler();
-                        }
-                        std::unique_lock<std::mutex> lock(m);
-                        cv.wait_until(lock, start_time + 16ms, []() { return false; });
-                        return false;
-                      },
-                      .task_config = {
-                          .name = "lv_task",
-                          .stack_size_bytes = 10 * 1024,
-                          .priority = 20,
-                          .core_id = 1,
-                      }});
-  lv_task.start();
 
   // load the audio file (wav file bundled in memory)
   size_t wav_size = 0;
@@ -416,23 +305,10 @@ extern "C" void app_main(void) {
          auto temp = imu->get_temperature();
          auto orientation = imu->get_orientation();
          auto gravity_vector = imu->get_gravity_vector();
-         // invert the axes
+         // invert the axes to convert from the sensor frame to the display's
+         // natural (unrotated) frame
          gravity_vector.y = -gravity_vector.y;
          gravity_vector.x = -gravity_vector.x;
-
-         // now update the gravity vector line to show the direction of "down"
-         // taking into account the configured rotation of the display
-         auto rotation = lv_display_get_rotation(lv_display_get_default());
-         if (rotation == LV_DISPLAY_ROTATION_90) {
-           std::swap(gravity_vector.x, gravity_vector.y);
-           gravity_vector.x = -gravity_vector.x;
-         } else if (rotation == LV_DISPLAY_ROTATION_180) {
-           gravity_vector.x = -gravity_vector.x;
-           gravity_vector.y = -gravity_vector.y;
-         } else if (rotation == LV_DISPLAY_ROTATION_270) {
-           std::swap(gravity_vector.x, gravity_vector.y);
-           gravity_vector.y = -gravity_vector.y;
-         }
 
          // separator for imu
          std::string imu_text = "\nIMU Data:\n";
@@ -443,64 +319,28 @@ extern "C" void app_main(void) {
                                  espp::rad_to_deg(orientation.pitch));
          imu_text += fmt::format("Temp: {:02.1f} C\n", temp);
 
-         // use the pitch to to draw a line on the screen indiating the
-         // direction from the center of the screen to "down"
-         int x0 = tab5.rotated_display_width() / 2;
-         int y0 = tab5.rotated_display_height() / 2;
-
-         int x1 = x0 + 50 * gravity_vector.x;
-         int y1 = y0 + 50 * gravity_vector.y;
-
-         static lv_point_precise_t line_points0[] = {{x0, y0}, {x1, y1}};
-         line_points0[0].x = x0;
-         line_points0[0].y = y0;
-         line_points0[1].x = x1;
-         line_points0[1].y = y1;
-
-         // Now show the madgwick filter
+         // Now show the madgwick filter's estimate of "down"
          auto madgwick_orientation = madgwick_filter_fn(dt, accel, gyro);
          float roll = madgwick_orientation.roll;
          float pitch = madgwick_orientation.pitch;
-         [[maybe_unused]] float yaw = madgwick_orientation.yaw;
          float vx = sin(pitch);
          float vy = -cos(pitch) * sin(roll);
-         [[maybe_unused]] float vz = -cos(pitch) * cos(roll);
 
-         // invert the axes
+         // invert the axes to convert from the sensor frame to the display's
+         // natural (unrotated) frame
          vx = -vx;
          vy = -vy;
 
-         // now update the line to show the direction of "down" based on the
-         // configured rotation of the display
-         if (rotation == LV_DISPLAY_ROTATION_90) {
-           std::swap(vx, vy);
-           vx = -vx;
-         } else if (rotation == LV_DISPLAY_ROTATION_180) {
-           vx = -vx;
-           vy = -vy;
-         } else if (rotation == LV_DISPLAY_ROTATION_270) {
-           std::swap(vx, vy);
-           vy = -vy;
-         }
-
-         x1 = x0 + 50 * vx;
-         y1 = y0 + 50 * vy;
-
-         static lv_point_precise_t line_points1[] = {{x0, y0}, {x1, y1}};
-         line_points1[0].x = x0;
-         line_points1[0].y = y0;
-         line_points1[1].x = x1;
-         line_points1[1].y = y1;
-
-         std::string text = fmt::format("{}\n\n\n\n\n", label_text);
+         std::string text = fmt::format("{}\n\n\n\n\n", instructions);
          text += battery_text;
          text += rtc_text;
          text += imu_text;
 
-         std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
-         lv_label_set_text(label, text.c_str());
-         lv_line_set_points(line0, line_points0, 2);
-         lv_line_set_points(line1, line_points1, 2);
+         // update the GUI with the new data; the Gui handles remapping the
+         // vectors for the current display rotation
+         gui.set_label_text(text);
+         gui.set_kalman_down(gravity_vector.x, gravity_vector.y);
+         gui.set_madgwick_down(vx, vy);
 
          return false;
        },
@@ -517,104 +357,6 @@ extern "C" void app_main(void) {
     std::this_thread::sleep_for(1s);
   }
   //! [m5stack tab5 example]
-}
-
-static bool initialize_circle_layer(int width, int height) {
-  if (circle_layer) {
-    return true;
-  }
-  circle_layer = lv_obj_create(lv_screen_active());
-  if (!circle_layer) {
-    return false;
-  }
-  lv_obj_remove_style_all(circle_layer);
-  lv_obj_set_size(circle_layer, width, height);
-  lv_obj_align(circle_layer, LV_ALIGN_CENTER, 0, 0);
-  lv_obj_clear_flag(circle_layer, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_clear_flag(circle_layer, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_set_style_bg_opa(circle_layer, LV_OPA_TRANSP, 0);
-  lv_obj_set_style_border_width(circle_layer, 0, 0);
-  lv_obj_set_style_outline_width(circle_layer, 0, 0);
-  lv_obj_set_style_shadow_width(circle_layer, 0, 0);
-  lv_obj_add_event_cb(circle_layer, draw_circle_layer, LV_EVENT_DRAW_MAIN, nullptr);
-  return true;
-}
-
-static void draw_circle_layer(lv_event_t *event) {
-  if (visible_circle_count == 0) {
-    return;
-  }
-  auto *obj = static_cast<lv_obj_t *>(lv_event_get_current_target(event));
-  auto *layer = lv_event_get_layer(event);
-  lv_area_t obj_coords;
-  lv_obj_get_coords(obj, &obj_coords);
-
-  lv_draw_rect_dsc_t rect_dsc;
-  lv_draw_rect_dsc_init(&rect_dsc);
-  rect_dsc.base.layer = layer;
-  rect_dsc.radius = LV_RADIUS_CIRCLE;
-  rect_dsc.bg_opa = LV_OPA_70;
-  rect_dsc.bg_color = lv_color_make(0, 255, 255);
-  rect_dsc.border_width = 0;
-  rect_dsc.outline_width = 0;
-  rect_dsc.shadow_width = 0;
-
-  for (const auto &circle : circles) {
-    if (!circle.visible) {
-      continue;
-    }
-    lv_area_t coords = {
-        .x1 = static_cast<lv_coord_t>(obj_coords.x1 + circle.x - circle.radius),
-        .y1 = static_cast<lv_coord_t>(obj_coords.y1 + circle.y - circle.radius),
-        .x2 = static_cast<lv_coord_t>(obj_coords.x1 + circle.x + circle.radius - 1),
-        .y2 = static_cast<lv_coord_t>(obj_coords.y1 + circle.y + circle.radius - 1),
-    };
-    lv_draw_rect(layer, &rect_dsc, &coords);
-  }
-}
-
-static void invalidate_circle_area(const Circle &circle) {
-  if (!circle_layer || circle.radius <= 0) {
-    return;
-  }
-
-  lv_area_t obj_coords;
-  lv_obj_get_coords(circle_layer, &obj_coords);
-  lv_area_t coords = {
-      .x1 = static_cast<lv_coord_t>(obj_coords.x1 + circle.x - circle.radius),
-      .y1 = static_cast<lv_coord_t>(obj_coords.y1 + circle.y - circle.radius),
-      .x2 = static_cast<lv_coord_t>(obj_coords.x1 + circle.x + circle.radius - 1),
-      .y2 = static_cast<lv_coord_t>(obj_coords.y1 + circle.y + circle.radius - 1),
-  };
-  lv_obj_invalidate_area(circle_layer, &coords);
-}
-
-static void draw_circle(int x0, int y0, int radius) {
-  if (!circle_layer) {
-    return;
-  }
-  lv_obj_move_foreground(circle_layer);
-  Circle previous_circle = circles[next_circle_index];
-  circles[next_circle_index] = {.x = x0, .y = y0, .radius = radius, .visible = true};
-  next_circle_index = (next_circle_index + 1) % circles.size();
-  if (visible_circle_count < circles.size()) {
-    visible_circle_count++;
-  }
-  if (previous_circle.visible) {
-    invalidate_circle_area(previous_circle);
-  }
-  invalidate_circle_area(circles[(next_circle_index + circles.size() - 1) % circles.size()]);
-}
-
-static void clear_circles() {
-  for (auto &circle : circles) {
-    if (circle.visible) {
-      invalidate_circle_area(circle);
-    }
-    circle.visible = false;
-  }
-  next_circle_index = 0;
-  visible_circle_count = 0;
 }
 
 static bool load_audio(size_t &out_size, size_t &out_sample_rate) {
