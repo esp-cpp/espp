@@ -1,5 +1,6 @@
 #include <chrono>
 #include <cmath>
+#include <numbers>
 #include <stdlib.h>
 
 #include "byte90.hpp"
@@ -69,9 +70,10 @@ extern "C" void app_main(void) {
       int middle_x = byte90.rotated_display_width() / 2;
       int middle_y = byte90.rotated_display_height() / 2;
       static constexpr int radius = 30;
-      float angle = gui.visible_circle_count() * 2.0f * M_PI / Gui::MAX_CIRCLES;
-      int x = middle_x + radius * cos(angle);
-      int y = middle_y + radius * sin(angle);
+      float angle =
+          gui.visible_circle_count() * 2.0f * std::numbers::pi_v<float> / Gui::MAX_CIRCLES;
+      int x = middle_x + radius * std::cos(angle);
+      int y = middle_y + radius * std::sin(angle);
       gui.draw_circle(x, y, 5);
     }
     auto end = esp_timer_get_time();

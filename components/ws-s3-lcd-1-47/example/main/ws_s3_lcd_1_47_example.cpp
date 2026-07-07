@@ -1,4 +1,6 @@
 #include <chrono>
+#include <cmath>
+#include <numbers>
 
 #include "ws-s3-lcd-1-47.hpp"
 
@@ -88,9 +90,10 @@ extern "C" void app_main(void) {
       int middle_x = board.rotated_display_width() / 2;
       int middle_y = board.rotated_display_height() / 2;
       static constexpr int radius = 50;
-      float angle = gui.visible_circle_count() * 2.0f * M_PI / Gui::max_circles();
-      int x = middle_x + radius * cos(angle);
-      int y = middle_y + radius * sin(angle);
+      float angle =
+          gui.visible_circle_count() * 2.0f * std::numbers::pi_v<float> / Gui::max_circles();
+      int x = middle_x + radius * std::cos(angle);
+      int y = middle_y + radius * std::sin(angle);
       gui.draw_circle(x, y, 10);
     }
     auto end = esp_timer_get_time();

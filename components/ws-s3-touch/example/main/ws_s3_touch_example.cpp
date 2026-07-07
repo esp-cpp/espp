@@ -1,5 +1,7 @@
 #include <chrono>
+#include <cmath>
 #include <stdlib.h>
+#include <utility>
 
 #include "ws-s3-touch.hpp"
 
