@@ -8,8 +8,6 @@
  * read-out (panel, touch, SD, Ethernet, RTPS, and system memory/uptime).
  */
 
-#include <algorithm>
-#include <array>
 #include <atomic>
 #include <chrono>
 #include <mutex>
@@ -27,6 +25,8 @@
 
 #include "esp32-p4-function-ev-board.hpp"
 
+#include "gui.hpp"
+
 using namespace std::chrono_literals;
 using Board = espp::Esp32P4FunctionEvBoard;
 
@@ -34,6 +34,10 @@ using Board = espp::Esp32P4FunctionEvBoard;
 // on_participant_discovered callback, read by the ping self-test).
 static std::mutex g_peer_mutex;
 static std::string g_peer_addr;
+
+static std::vector<uint8_t> audio_bytes;
+
+static bool load_audio(size_t &out_size, size_t &out_sample_rate);
 
 // Ping a target host a few times and log the result (uses the espp Ping helper).
 static void ping_target(espp::Logger &logger, const char *name, const std::string &ip) {
@@ -66,30 +70,6 @@ static void ping_target(espp::Logger &logger, const char *name, const std::strin
     logger.error("Ping {} failed to start: {}", name, ec.message());
   }
 }
-
-//////////////////////////////////////////////////////////////////////////////
-// Touch-to-draw circle state (a ring buffer of recent touch points)
-//////////////////////////////////////////////////////////////////////////////
-static constexpr size_t MAX_CIRCLES = 100;
-struct Circle {
-  int x{0};
-  int y{0};
-  int radius{0};
-  bool visible{false};
-};
-static std::array<Circle, MAX_CIRCLES> circles;
-static size_t next_circle_index = 0;
-static size_t visible_circle_count = 0;
-static lv_obj_t *circle_layer = nullptr;
-static std::recursive_mutex lvgl_mutex;
-static std::vector<uint8_t> audio_bytes;
-
-static bool initialize_circle_layer(int width, int height);
-static void draw_circle_layer(lv_event_t *event);
-static void invalidate_circle_area(const Circle &circle);
-static void draw_circle(int x0, int y0, int radius);
-static void clear_circles();
-static bool load_audio(size_t &out_size, size_t &out_sample_rate);
 
 namespace {
 /// Serialize a uint32 as an encapsulated little-endian CDR payload (matches std_msgs/msg/UInt32).
@@ -141,68 +121,11 @@ extern "C" void app_main(void) {
     return;
   }
 
-  // Build the LVGL UI: a title, a status label, a rotate button, and a
-  // transparent layer that the touch handler draws circles onto.
-  lv_obj_t *bg = nullptr;
-  lv_obj_t *title = nullptr;
-  static lv_obj_t *status_label = nullptr;
-  {
-    std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
-    bg = lv_obj_create(lv_screen_active());
-    lv_obj_set_size(bg, board.display_width(), board.display_height());
-    lv_obj_set_style_bg_color(bg, lv_color_make(0, 0, 0), 0);
-
-    title = lv_label_create(lv_screen_active());
-    lv_label_set_text(title, "ESP32-P4 Function EV Board  -  touch to draw!");
-    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 8);
-
-    status_label = lv_label_create(lv_screen_active());
-    lv_obj_set_style_text_align(status_label, LV_TEXT_ALIGN_LEFT, 0);
-    lv_obj_align(status_label, LV_ALIGN_TOP_LEFT, 8, 40);
-
-    initialize_circle_layer(board.display_width(), board.display_height());
-    lv_obj_set_scrollbar_mode(lv_screen_active(), LV_SCROLLBAR_MODE_OFF);
-    lv_obj_clear_flag(lv_screen_active(), LV_OBJ_FLAG_SCROLLABLE);
-    if (circle_layer) {
-      lv_obj_move_foreground(circle_layer);
-    }
-  }
-
-  // Cycle the display rotation (0 -> 90 -> 180 -> 270) and resize the background
-  // and circle layers to match the new orientation. Static so the (non-capturing)
-  // button event callback below can call it; it captures app_main locals by
-  // reference, which is safe because app_main never returns.
-  static auto rotate_display = [&]() {
-    std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
-    clear_circles();
-    static auto rotation = LV_DISPLAY_ROTATION_0;
-    rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
-    lv_display_set_rotation(lv_display_get_default(), rotation);
-    lv_obj_set_size(bg, board.rotated_display_width(), board.rotated_display_height());
-    if (circle_layer) {
-      lv_obj_set_size(circle_layer, board.rotated_display_width(), board.rotated_display_height());
-      lv_obj_align(circle_layer, LV_ALIGN_CENTER, 0, 0);
-      lv_obj_move_foreground(circle_layer);
-      lv_obj_invalidate(circle_layer);
-    }
-    // re-align the labels to the (now reoriented) screen edges
-    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 8);
-    if (status_label) {
-      lv_obj_align(status_label, LV_ALIGN_TOP_LEFT, 8, 40);
-    }
-  };
-
-  {
-    std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
-    lv_obj_t *rotate_btn = lv_btn_create(lv_screen_active());
-    lv_obj_set_size(rotate_btn, 50, 50);
-    lv_obj_align(rotate_btn, LV_ALIGN_TOP_RIGHT, -8, 8);
-    lv_obj_t *btn_label = lv_label_create(rotate_btn);
-    lv_label_set_text(btn_label, LV_SYMBOL_REFRESH);
-    lv_obj_align(btn_label, LV_ALIGN_CENTER, 0, 0);
-    lv_obj_add_event_cb(
-        rotate_btn, [](lv_event_t *) { rotate_display(); }, LV_EVENT_CLICKED, nullptr);
-  }
+  // create the GUI: builds the UI (title, status label, rotate / clear
+  // buttons, and a transparent circle layer) and starts the task which
+  // updates LVGL. All of its public methods are thread-safe, so the touch
+  // callback and status task below can call them directly.
+  static Gui gui({.log_level = espp::Logger::Verbosity::INFO});
 
   // On-screen status state. These are filled in as each subsystem initializes
   // below, and rendered immediately by the status task, so the display shows SD /
@@ -246,12 +169,7 @@ extern "C" void app_main(void) {
             "Ethernet: " + eth_text + "\n" + "RTPS:     " + rtps_text + "\n" +
             "System:   " + std::to_string(free_internal) + " KB int, " +
             std::to_string(free_psram) + " KB psram free, up " + std::to_string(uptime_s) + " s";
-        {
-          std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
-          if (status_label) {
-            lv_label_set_text(status_label, status.c_str());
-          }
-        }
+        gui.set_status_text(status);
         std::unique_lock<std::mutex> lock(m);
         cv.wait_for(lock, 100ms);
         return false;
@@ -281,25 +199,11 @@ extern "C" void app_main(void) {
         board.play_audio(audio_bytes); // non-blocking, touch-down edge only
       }
       if (new_touch) {
-        std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
-        draw_circle(td.x, td.y, kCircleRadius);
+        gui.draw_circle(td.x, td.y, kCircleRadius);
       }
     }
     prev_td = td;
   });
-
-  // Run the LVGL task handler periodically
-  espp::Task lv_task({.callback = [](std::mutex &m, std::condition_variable &cv) -> bool {
-                        {
-                          std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
-                          lv_task_handler();
-                        }
-                        std::unique_lock<std::mutex> lock(m);
-                        cv.wait_for(lock, 16ms);
-                        return false;
-                      },
-                      .task_config = {.name = "lvgl", .stack_size_bytes = 8192}});
-  lv_task.start();
 
   // microSD (optional — only present if a card is inserted)
   bool sd_ok = board.initialize_sdcard({.format_if_mount_failed = false});
@@ -346,8 +250,7 @@ extern "C" void app_main(void) {
   //       disabled here since this example uses Ethernet.
   bool button_initialized = board.initialize_button([&](const auto &event) {
     if (event.active) {
-      std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
-      clear_circles();
+      gui.clear_circles();
     }
   });
   if (button_initialized) {
@@ -479,107 +382,6 @@ extern "C" void app_main(void) {
 
     std::this_thread::sleep_for(loop_tick);
   }
-}
-
-//////////////////////////////////////////////////////////////////////////////
-// LVGL circle-drawing helpers (a transparent full-screen layer with a custom
-// draw callback that renders the ring buffer of recent touch points).
-//////////////////////////////////////////////////////////////////////////////
-static bool initialize_circle_layer(int width, int height) {
-  if (circle_layer) {
-    return true;
-  }
-  circle_layer = lv_obj_create(lv_screen_active());
-  if (!circle_layer) {
-    return false;
-  }
-  lv_obj_remove_style_all(circle_layer);
-  lv_obj_set_size(circle_layer, width, height);
-  lv_obj_align(circle_layer, LV_ALIGN_CENTER, 0, 0);
-  lv_obj_clear_flag(circle_layer, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_clear_flag(circle_layer, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_set_style_bg_opa(circle_layer, LV_OPA_TRANSP, 0);
-  lv_obj_set_style_border_width(circle_layer, 0, 0);
-  lv_obj_set_style_outline_width(circle_layer, 0, 0);
-  lv_obj_set_style_shadow_width(circle_layer, 0, 0);
-  lv_obj_add_event_cb(circle_layer, draw_circle_layer, LV_EVENT_DRAW_MAIN, nullptr);
-  return true;
-}
-
-static void draw_circle_layer(lv_event_t *event) {
-  if (visible_circle_count == 0) {
-    return;
-  }
-  auto *obj = static_cast<lv_obj_t *>(lv_event_get_current_target(event));
-  auto *layer = lv_event_get_layer(event);
-  lv_area_t obj_coords;
-  lv_obj_get_coords(obj, &obj_coords);
-
-  lv_draw_rect_dsc_t rect_dsc;
-  lv_draw_rect_dsc_init(&rect_dsc);
-  rect_dsc.base.layer = layer;
-  rect_dsc.radius = LV_RADIUS_CIRCLE;
-  rect_dsc.bg_opa = LV_OPA_70;
-  rect_dsc.bg_color = lv_color_make(0, 255, 255);
-  rect_dsc.border_width = 0;
-  rect_dsc.outline_width = 0;
-  rect_dsc.shadow_width = 0;
-
-  for (const auto &circle : circles) {
-    if (!circle.visible) {
-      continue;
-    }
-    lv_area_t coords = {
-        .x1 = static_cast<lv_coord_t>(obj_coords.x1 + circle.x - circle.radius),
-        .y1 = static_cast<lv_coord_t>(obj_coords.y1 + circle.y - circle.radius),
-        .x2 = static_cast<lv_coord_t>(obj_coords.x1 + circle.x + circle.radius - 1),
-        .y2 = static_cast<lv_coord_t>(obj_coords.y1 + circle.y + circle.radius - 1),
-    };
-    lv_draw_rect(layer, &rect_dsc, &coords);
-  }
-}
-
-static void invalidate_circle_area(const Circle &circle) {
-  if (!circle_layer || circle.radius <= 0) {
-    return;
-  }
-  lv_area_t obj_coords;
-  lv_obj_get_coords(circle_layer, &obj_coords);
-  lv_area_t coords = {
-      .x1 = static_cast<lv_coord_t>(obj_coords.x1 + circle.x - circle.radius),
-      .y1 = static_cast<lv_coord_t>(obj_coords.y1 + circle.y - circle.radius),
-      .x2 = static_cast<lv_coord_t>(obj_coords.x1 + circle.x + circle.radius - 1),
-      .y2 = static_cast<lv_coord_t>(obj_coords.y1 + circle.y + circle.radius - 1),
-  };
-  lv_obj_invalidate_area(circle_layer, &coords);
-}
-
-static void draw_circle(int x0, int y0, int radius) {
-  if (!circle_layer) {
-    return;
-  }
-  lv_obj_move_foreground(circle_layer);
-  Circle previous_circle = circles[next_circle_index];
-  circles[next_circle_index] = {.x = x0, .y = y0, .radius = radius, .visible = true};
-  next_circle_index = (next_circle_index + 1) % circles.size();
-  if (visible_circle_count < circles.size()) {
-    visible_circle_count++;
-  }
-  if (previous_circle.visible) {
-    invalidate_circle_area(previous_circle);
-  }
-  invalidate_circle_area(circles[(next_circle_index + circles.size() - 1) % circles.size()]);
-}
-
-static void clear_circles() {
-  for (auto &circle : circles) {
-    if (circle.visible) {
-      invalidate_circle_area(circle);
-    }
-    circle.visible = false;
-  }
-  next_circle_index = 0;
-  visible_circle_count = 0;
 }
 
 //////////////////////////////////////////////////////////////////////////////

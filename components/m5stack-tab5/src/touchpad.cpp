@@ -63,6 +63,7 @@ bool M5StackTab5::initialize_touch(const touch_callback_t &callback) {
         // handler on this board.
         .write = espp::make_i2c_addressed_write(touch_i2c_device_),
         .read = espp::make_i2c_addressed_read(touch_i2c_device_),
+        .write_then_read = nullptr,
         .address = St7123TouchDriver::DEFAULT_ADDRESS,
         .log_level = espp::Logger::Verbosity::WARN});
     touch_driver_ = espp::make_touch_driver(std::move(driver));
