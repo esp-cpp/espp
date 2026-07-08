@@ -1,0 +1,109 @@
+menu "RTPS Example Configuration"
+
+    choice RTPS_EXAMPLE_ROLE
+        prompt "Example Role"
+        default RTPS_EXAMPLE_ROLE_INITIATOR
+        help
+            Build one board as the initiator and a second board as the responder
+            to verify RTPS discovery and end-to-end UInt32 sample exchange.
+
+        config RTPS_EXAMPLE_ROLE_INITIATOR
+            bool "Initiator"
+            help
+                Publishes incrementing request samples after it discovers a
+                responder, then logs the matching responses.
+
+        config RTPS_EXAMPLE_ROLE_RESPONDER
+            bool "Responder"
+            help
+                Waits for request samples and echoes the same value back on the
+                response topic.
+
+    endchoice
+
+    config RTPS_EXAMPLE_NODE_NAME
+        string "Participant node name"
+        default "espp_rtps_initiator" if RTPS_EXAMPLE_ROLE_INITIATOR
+        default "espp_rtps_responder" if RTPS_EXAMPLE_ROLE_RESPONDER
+        help
+            Logical RTPS participant name announced during discovery.
+
+    config RTPS_EXAMPLE_DOMAIN_ID
+        int "RTPS domain ID"
+        range 0 231
+        default 0
+        help
+            Both boards must use the same domain ID to discover each other.
+
+    config RTPS_EXAMPLE_PARTICIPANT_ID
+        int "RTPS participant ID"
+        range 0 119
+        default 1 if RTPS_EXAMPLE_ROLE_INITIATOR
+        default 2 if RTPS_EXAMPLE_ROLE_RESPONDER
+        help
+            Each board should use a unique participant ID within the same domain.
+
+    config RTPS_EXAMPLE_TOPIC_PREFIX
+        string "Topic prefix"
+        default "espp/rtps_example"
+        help
+            Prefix used to derive the request and response topics.
+
+    config RTPS_EXAMPLE_ANNOUNCE_PERIOD_MS
+        int "Discovery announce period (ms)"
+        range 200 10000
+        default 1500
+        help
+            Period between periodic SPDP/SEDP discovery announcements.
+
+    config RTPS_EXAMPLE_PUBLISH_PERIOD_MS
+        int "Initiator publish period (ms)"
+        range 250 60000
+        default 2000
+        depends on RTPS_EXAMPLE_ROLE_INITIATOR
+        help
+            Period between request messages sent by the initiator after a
+            responder has been discovered.
+
+    config RTPS_EXAMPLE_USE_USER_MULTICAST
+        bool "Use best-effort user-data multicast"
+        default n
+        help
+            If enabled, the example advertises and uses topic-specific
+            multicast groups for the request and response topics instead of
+            per-participant unicast delivery.
+
+    config RTPS_EXAMPLE_REQUEST_MULTICAST_GROUP
+        string "Request topic multicast group"
+        default "239.255.0.11"
+        depends on RTPS_EXAMPLE_USE_USER_MULTICAST
+        help
+            IPv4 multicast group used for the <topic-prefix>/request topic.
+
+    config RTPS_EXAMPLE_RESPONSE_MULTICAST_GROUP
+        string "Response topic multicast group"
+        default "239.255.0.12"
+        depends on RTPS_EXAMPLE_USE_USER_MULTICAST
+        help
+            IPv4 multicast group used for the <topic-prefix>/response topic.
+
+    config ESP_WIFI_SSID
+        string "WiFi SSID"
+        default ""
+        help
+            SSID (network name) for the example to connect to.
+
+    config ESP_WIFI_PASSWORD
+        string "WiFi Password"
+        default ""
+        help
+            WiFi password (WPA or WPA2) for the example to use.
+
+    config ESP_MAXIMUM_RETRY
+        int "Maximum retry"
+        default 5
+        help
+            Set the maximum retry count to avoid reconnecting forever when the
+            network is unavailable.
+
+endmenu

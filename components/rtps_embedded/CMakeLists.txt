@@ -24,8 +24,9 @@ idf_component_register(
     "thirdparty/Micro-CDR/src/c/types/string.c"
   INCLUDE_DIRS
     "include"
+    "thirdparty/Micro-CDR/include"
   REQUIRES
-    base_component cdr task socket
+    base_component cdr task socket  lwip freertos
 )
 
 # target_compile_features(${COMPONENT_LIB} PUBLIC cxx_std_17)
