@@ -31,7 +31,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #if defined(ESP_PLATFORM)
 #include "rtps/config_esp32.h"
 #else
-#include "rtps/config_stm.h"
+#include "rtps/config_desktop.h"
 #endif
 #endif
 

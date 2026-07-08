@@ -1,0 +1,3 @@
+[submodule "thirdparty/ucdr"]
+	path = thirdparty/ucdr
+	url = git@github.com:eProsima/Micro-CDR.git
