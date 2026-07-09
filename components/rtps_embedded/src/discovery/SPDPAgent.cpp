@@ -23,12 +23,12 @@ Author: i11 - Embedded Software, RWTH Aachen University
 */
 
 #include "rtps/discovery/SPDPAgent.h"
-#include "lwip/sys.h"
 #include "rtps/discovery/ParticipantProxyData.h"
 #include "rtps/entities/Participant.h"
 #include "rtps/entities/Reader.h"
 #include "rtps/entities/Writer.h"
 #include "rtps/messages/MessageTypes.h"
+#include "rtps/platform/threading.h"
 #include "rtps/utils/Log.h"
 #include "rtps/utils/udpUtils.h"
 
@@ -57,9 +57,9 @@ void SPDPAgent::start() {
     return;
   }
   m_running = true;
-  auto t =
-      sys_thread_new("SPDPThread", runBroadcast, this,
-                     Config::SPDP_WRITER_STACKSIZE, Config::SPDP_WRITER_PRIO);
+  (void)platform::threading::startThread(
+      "SPDPThread", runBroadcast, this, Config::SPDP_WRITER_STACKSIZE,
+      Config::SPDP_WRITER_PRIO);
 }
 
 void SPDPAgent::stop() { m_running = false; }
@@ -74,7 +74,7 @@ void SPDPAgent::runBroadcast(void *args) {
 #ifdef OS_IS_FREERTOS
     vTaskDelay(pdMS_TO_TICKS(Config::SPDP_RESEND_PERIOD_MS));
 #else
-    sys_msleep(Config::SPDP_RESEND_PERIOD_MS);
+  platform::threading::sleepMs(Config::SPDP_RESEND_PERIOD_MS);
 #endif
     // StatelessWriter drops already-sent history; enqueue a fresh SPDP sample
     // for each announce cycle.

@@ -22,10 +22,10 @@ This file is part of embeddedRTPS.
 Author: i11 - Embedded Software, RWTH Aachen University
 */
 
-#include "lwip/sys.h"
 #include "rtps/entities/StatefulWriter.h"
 #include "rtps/messages/MessageFactory.h"
 #include "rtps/messages/MessageTypes.h"
+#include "rtps/platform/threading.h"
 #include "rtps/utils/Log.h"
 #include <cstring>
 #include <stdio.h>
@@ -48,7 +48,7 @@ template <class NetworkDriver>
 StatefulWriterT<NetworkDriver>::~StatefulWriterT() {
   m_running = false;
   while (m_thread_running) {
-    sys_msleep(500); // Required for tests/ Join currently not available /
+    platform::threading::sleepMs(500); // Required for tests/ Join currently not available /
     //  increased because Segfault in Tests if(sys_mutex_valid(&m_mutex)){
     //    sys_mutex_free(&m_mutex);
     //  }
@@ -100,18 +100,18 @@ bool StatefulWriterT<NetworkDriver>::init(TopicData attributes,
 
     if (m_attributes.endpointGuid.entityId ==
         ENTITYID_SEDP_BUILTIN_PUBLICATIONS_WRITER) {
-      m_heartbeatThread = sys_thread_new("HBThreadPub", hbFunctionJumppad, this,
-                                         Config::HEARTBEAT_STACKSIZE,
-                                         Config::THREAD_POOL_WRITER_PRIO);
+      m_heartbeatThread = platform::threading::startThread(
+          "HBThreadPub", hbFunctionJumppad, this,
+          Config::HEARTBEAT_STACKSIZE, Config::THREAD_POOL_WRITER_PRIO);
     } else if (m_attributes.endpointGuid.entityId ==
                ENTITYID_SEDP_BUILTIN_SUBSCRIPTIONS_WRITER) {
-      m_heartbeatThread = sys_thread_new("HBThreadSub", hbFunctionJumppad, this,
-                                         Config::HEARTBEAT_STACKSIZE,
-                                         Config::THREAD_POOL_WRITER_PRIO);
+      m_heartbeatThread = platform::threading::startThread(
+          "HBThreadSub", hbFunctionJumppad, this,
+          Config::HEARTBEAT_STACKSIZE, Config::THREAD_POOL_WRITER_PRIO);
     } else {
-      m_heartbeatThread = sys_thread_new("HBThread", hbFunctionJumppad, this,
-                                         Config::HEARTBEAT_STACKSIZE,
-                                         Config::THREAD_POOL_WRITER_PRIO);
+      m_heartbeatThread = platform::threading::startThread(
+          "HBThread", hbFunctionJumppad, this, Config::HEARTBEAT_STACKSIZE,
+          Config::THREAD_POOL_WRITER_PRIO);
     }
   }
 
@@ -458,9 +458,9 @@ void StatefulWriterT<NetworkDriver>::sendHeartBeatLoop() {
       vTaskDelay(pdMS_TO_TICKS(Config::SF_WRITER_HB_PERIOD_MS));
     }
 #else
-      sys_msleep(Config::SF_WRITER_HB_PERIOD_MS / 4);
+      platform::threading::sleepMs(Config::SF_WRITER_HB_PERIOD_MS / 4);
     } else {
-      sys_msleep(Config::SF_WRITER_HB_PERIOD_MS);
+      platform::threading::sleepMs(Config::SF_WRITER_HB_PERIOD_MS);
     }
 #endif
   }

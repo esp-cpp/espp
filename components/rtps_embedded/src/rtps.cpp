@@ -23,7 +23,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 */
 
 #include "rtps/rtps.h"
-#include "lwip/sys.h"
+#include "rtps/platform/bootstrap.h"
 #include <cmath>
 #include <time.h>
 
@@ -58,7 +58,7 @@ static void init(void *arg) {
 #endif
     return;
   }
-  auto init_sem = static_cast<sys_sem_t *>(arg);
+  auto init_sem = static_cast<platform::bootstrap::InitSemaphoreHandle *>(arg);
 
   srand((unsigned int)time(nullptr));
 
@@ -85,24 +85,23 @@ static void init(void *arg) {
   netif_set_default(&netif);
   netif_set_up(netif_default);
 
-  sys_sem_signal(init_sem);
+  platform::bootstrap::signalInitSemaphore(init_sem);
 }
 
 void LwIPInit() {
   /* no stdio-buffering, please! */
   setvbuf(stdout, nullptr, _IONBF, 0);
 
-  err_t err;
-  sys_sem_t init_sem;
+  platform::bootstrap::InitSemaphoreHandle init_sem;
 
-  err = sys_sem_new(&init_sem, 0);
-  LWIP_ASSERT("failed to create init_sem", err == ERR_OK);
-  LWIP_UNUSED_ARG(err);
+  bool sem_created = platform::bootstrap::createInitSemaphore(&init_sem);
+  LWIP_ASSERT("failed to create init_sem", sem_created);
+  LWIP_UNUSED_ARG(sem_created);
   tcpip_init(init, &init_sem);
   /* we have to wait for initialization to finish before
    * calling update_adapter()! */
-  sys_sem_wait(&init_sem);
-  sys_sem_free(&init_sem);
+  platform::bootstrap::waitInitSemaphore(&init_sem);
+  platform::bootstrap::freeInitSemaphore(&init_sem);
 }
 
 void rtps::init() {

@@ -2,6 +2,7 @@ idf_component_register(
   SRCS
     "src/rtps.cpp"
     "src/ThreadPool.cpp"
+    "src/communication/EsppTransport.cpp"
     "src/communication/UdpDriver.cpp"
     "src/discovery/ParticipantProxyData.cpp"
     "src/discovery/SEDPAgent.cpp"
@@ -14,6 +15,7 @@ idf_component_register(
     "src/entities/Writer.cpp"
     "src/messages/MessageReceiver.cpp"
     "src/messages/MessageTypes.cpp"
+    "src/platform/sync.cpp"
     "src/storages/PBufWrapper.cpp"
     "src/utils/Diagnostics.cpp"
     "src/utils/Lock.cpp"
@@ -28,6 +30,10 @@ idf_component_register(
   REQUIRES
     base_component cdr task socket  lwip freertos
 )
+
+if(DEFINED RTPS_USE_ESPP_TRANSPORT AND RTPS_USE_ESPP_TRANSPORT)
+  target_compile_definitions(${COMPONENT_LIB} PUBLIC RTPS_USE_ESPP_TRANSPORT=1)
+endif()
 
 # target_compile_features(${COMPONENT_LIB} PUBLIC cxx_std_17)
 # target_compile_definitions(${COMPONENT_LIB} PUBLIC RTPS_CONFIG_HEADER=\"rtps/config_esp32.h\")

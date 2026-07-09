@@ -27,6 +27,8 @@ Author: i11 - Embedded Software, RWTH Aachen University
 
 #include "rtps/entities/ReaderProxy.h"
 #include "rtps/entities/Writer.h"
+#include "rtps/platform/transport.h"
+#include "rtps/platform/threading.h"
 #include "rtps/storages/HistoryCacheWithDeletion.h"
 #include "rtps/storages/MemoryPool.h"
 
@@ -67,7 +69,7 @@ private:
   ThreadSafeCircularBuffer<SequenceNumber_t, 10> m_disposeWithDelay;
   void dropDisposeAfterWriteChanges();
 
-  sys_thread_t m_heartbeatThread;
+  platform::threading::ThreadHandle m_heartbeatThread;
 
   Count_t m_hbCount{1};
 
@@ -83,7 +85,7 @@ private:
                const SequenceNumber_t &nextValid);
 };
 
-using StatefulWriter = StatefulWriterT<UdpDriver>;
+using StatefulWriter = StatefulWriterT<platform::transport::ITransport>;
 } // namespace rtps
 
 #include "StatefulWriter.tpp"

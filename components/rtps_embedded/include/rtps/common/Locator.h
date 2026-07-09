@@ -26,10 +26,10 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #define RTPS_LOCATOR_T_H
 
 #include "rtps/communication/UdpDriver.h"
+#include "rtps/config.h"
+#include "rtps/platform/platform_types.h"
 #include "rtps/utils/udpUtils.h"
 #include "ucdr/microcdr.h"
-
-#include "lwip/netif.h"
 
 #include <array>
 
@@ -38,15 +38,7 @@ namespace rtps {
 inline std::array<uint8_t, 4> getLocalIp4AddressBytes() {
   std::array<uint8_t, 4> ip = {Config::IP_ADDRESS[0], Config::IP_ADDRESS[1],
                                Config::IP_ADDRESS[2], Config::IP_ADDRESS[3]};
-  if (netif_default != nullptr) {
-    const ip4_addr_t *iface_ip = netif_ip4_addr(netif_default);
-    if (iface_ip != nullptr) {
-      ip[0] = ip4_addr1(iface_ip);
-      ip[1] = ip4_addr2(iface_ip);
-      ip[2] = ip4_addr3(iface_ip);
-      ip[3] = ip4_addr4(iface_ip);
-    }
-  }
+  (void)platform::tryGetDefaultIp4AddressBytes(ip);
   return ip;
 }
 
@@ -103,13 +95,13 @@ struct FullLengthLocator {
     }
   }
 
-  ip4_addr_t getIp4Address() const {
+  platform::Ip4Address getIp4Address() const {
     return transformIP4ToU32(address[12], address[13], address[14],
                              address[15]);
   }
 
-  bool isSameAddress(ip4_addr_t *address) {
-    ip4_addr_t ownaddress = getIp4Address();
+  bool isSameAddress(platform::Ip4Address *address) {
+    platform::Ip4Address ownaddress = getIp4Address();
     return ip4_addr_cmp(&ownaddress, address);
   }
 
@@ -174,7 +166,7 @@ struct LocatorIPv4 {
     kind = locator.kind;
   }
 
-  ip4_addr_t getIp4Address() const {
+  platform::Ip4Address getIp4Address() const {
     return transformIP4ToU32(address[0], address[1], address[2], address[3]);
   }
 

@@ -22,45 +22,60 @@ This file is part of embeddedRTPS.
 Author: i11 - Embedded Software, RWTH Aachen University
 */
 
-#ifndef RTPS_UDPDRIVER_H
-#define RTPS_UDPDRIVER_H
+#ifndef RTPS_ESPPTRANSPORT_H
+#define RTPS_ESPPTRANSPORT_H
 
-#include "UdpConnection.h"
+#include "lwip/pbuf.h"
 #include "lwip/udp.h"
-#include "rtps/common/types.h"
-#include "rtps/communication/PacketInfo.h"
+#include "rtps/communication/UdpConnection.h"
 #include "rtps/config.h"
 #include "rtps/platform/transport.h"
-#include "rtps/storages/PBufWrapper.h"
+#include "udp_socket.hpp"
 
 #include <array>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <vector>
 
 namespace rtps {
 
-class UdpDriver : public platform::transport::ITransport {
-
+class EsppTransport : public platform::transport::ITransport {
 public:
-  typedef void (*udpRxFunc_fp)(void *arg, udp_pcb *pcb, pbuf *p,
-                               const ip_addr_t *addr, Ip4Port_t port);
+  using RxCallback =
+      void (*)(void *arg, udp_pcb *pcb, pbuf *p, const ip_addr_t *addr,
+               Ip4Port_t port);
 
-  UdpDriver(udpRxFunc_fp callback, void *args);
+  EsppTransport(RxCallback callback, void *args);
+  ~EsppTransport() override = default;
 
   const rtps::UdpConnection *createUdpConnection(Ip4Port_t receivePort) override;
   bool joinMultiCastGroup(platform::Ip4Address addr) const override;
   void sendPacket(PacketInfo &info) override;
 
-  static bool isSameSubnet(ip4_addr_t addr);
-  static bool isMulticastAddress(ip4_addr_t addr);
-
 private:
-  std::array<UdpConnection, Config::MAX_NUM_UDP_CONNECTIONS> m_conns;
-  std::size_t m_numConns = 0;
-  udpRxFunc_fp m_rxCallback = nullptr;
-  void *m_callbackArgs = nullptr;
+  struct Channel {
+    rtps::UdpConnection connection{};
+    std::unique_ptr<espp::UdpSocket> socket{};
+    bool in_use{false};
+  };
 
-  bool sendPacket(const UdpConnection &conn, ip4_addr_t &destAddr,
-                  Ip4Port_t destPort, pbuf &buffer);
+  Channel *findChannel(Ip4Port_t port);
+  const Channel *findChannel(Ip4Port_t port) const;
+  Channel *createChannel(Ip4Port_t receivePort);
+  bool startReceiver(Channel &channel, Ip4Port_t receivePort);
+  void onReceive(Ip4Port_t receivePort, std::vector<uint8_t> &data,
+                 const espp::Socket::Info &sender) const;
+
+  static std::string ip4ToString(platform::Ip4Address addr);
+
+  RxCallback m_rxCallback{nullptr};
+  void *m_callbackArgs{nullptr};
+  mutable std::recursive_mutex m_mutex;
+  std::array<Channel, rtps::Config::MAX_NUM_UDP_CONNECTIONS> m_channels{};
+  mutable std::vector<std::string> m_multicastGroups;
 };
+
 } // namespace rtps
 
-#endif // RTPS_UDPDRIVER_H
+#endif // RTPS_ESPPTRANSPORT_H

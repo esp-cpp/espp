@@ -25,10 +25,10 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #ifndef RTPS_THREADPOOL_H
 #define RTPS_THREADPOOL_H
 
-#include "lwip/sys.h"
 #include "rtps/communication/PacketInfo.h"
 #include "rtps/communication/UdpDriver.h"
 #include "rtps/config.h"
+#include "rtps/platform/threading.h"
 #include "rtps/storages/PBufWrapper.h"
 #include "rtps/storages/ThreadSafeCircularBuffer.h"
 
@@ -62,14 +62,14 @@ private:
   receiveJumppad_fp m_receiveJumppad;
   void *m_callee;
   bool m_running = false;
-  std::array<sys_thread_t, Config::THREAD_POOL_NUM_WRITERS> m_writers;
-  std::array<sys_thread_t, Config::THREAD_POOL_NUM_READERS> m_readers;
+  std::array<platform::threading::ThreadHandle, Config::THREAD_POOL_NUM_WRITERS> m_writers;
+  std::array<platform::threading::ThreadHandle, Config::THREAD_POOL_NUM_READERS> m_readers;
 
   std::array<Ip4Port_t, 2 * Config::MAX_NUM_PARTICIPANTS> m_builtinPorts;
   size_t m_builtinPortsIdx = 0;
 
-  sys_sem_t m_readerNotificationSem;
-  sys_sem_t m_writerNotificationSem;
+  platform::threading::SemaphoreHandle m_readerNotificationSem;
+  platform::threading::SemaphoreHandle m_writerNotificationSem;
 
   void updateDiagnostics();
 

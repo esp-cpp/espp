@@ -26,9 +26,9 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #define RTPS_STATEFULREADER_H
 
 #include "lwip/sys.h"
-#include "rtps/communication/UdpDriver.h"
 #include "rtps/config.h"
 #include "rtps/entities/Reader.h"
+#include "rtps/platform/transport.h"
 #include "rtps/entities/WriterProxy.h"
 #include "rtps/storages/MemoryPool.h"
 
@@ -53,7 +53,7 @@ private:
   NetworkDriver *m_transport;
 };
 
-using StatefulReader = StatefulReaderT<UdpDriver>;
+using StatefulReader = StatefulReaderT<platform::transport::ITransport>;
 
 } // namespace rtps
 

@@ -26,12 +26,15 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #define RTPS_DOMAIN_H
 
 #include "rtps/ThreadPool.h"
+#include "rtps/communication/EsppTransport.h"
+#include "rtps/communication/UdpDriver.h"
 #include "rtps/config.h"
 #include "rtps/entities/Participant.h"
 #include "rtps/entities/StatefulReader.h"
 #include "rtps/entities/StatefulWriter.h"
 #include "rtps/entities/StatelessReader.h"
 #include "rtps/entities/StatelessWriter.h"
+#include "rtps/platform/transport.h"
 #include "rtps/storages/PBufWrapper.h"
 #include <rtps/common/Locator.h>
 
@@ -39,6 +42,7 @@ namespace rtps {
 class Domain {
 public:
   Domain();
+  explicit Domain(platform::transport::ITransport &transport);
   ~Domain();
 
   bool completeInit();
@@ -65,7 +69,13 @@ public:
 private:
   friend class SizeInspector;
   ThreadPool m_threadPool;
-  UdpDriver m_transport;
+#if defined(RTPS_USE_ESPP_TRANSPORT)
+  using DefaultTransport = EsppTransport;
+#else
+  using DefaultTransport = UdpDriver;
+#endif
+  DefaultTransport m_defaultTransport;
+  platform::transport::ITransport *m_transport = nullptr;
   std::array<Participant, Config::MAX_NUM_PARTICIPANTS> m_participants;
   const uint8_t PARTICIPANT_START_ID = 0;
   ParticipantId_t m_nextParticipantId = PARTICIPANT_START_ID;
@@ -89,6 +99,7 @@ private:
   void receiveCallback(const PacketInfo &packet);
   GuidPrefix_t generateGuidPrefix(ParticipantId_t id) const;
   void createBuiltinWritersAndReaders(Participant &part);
+  void initializeTransport();
   void registerPort(const Participant &part);
   void registerMulticastPort(FullLengthLocator mcastLocator);
   static void receiveJumppad(void *callee, const PacketInfo &packet);

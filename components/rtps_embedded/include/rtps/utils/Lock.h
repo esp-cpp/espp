@@ -25,37 +25,30 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #ifndef RTPS_LOCK_H
 #define RTPS_LOCK_H
 
-#if defined(ESP_PLATFORM)
-#include "freertos/FreeRTOS.h"
-#include "freertos/semphr.h"
-#else
-#include "FreeRTOS.h"
-#include "semphr.h"
-#endif
-#include "lwip/sys.h"
+#include "rtps/platform/sync.h"
 
 namespace rtps {
 
+using RecursiveMutexHandle = platform::sync::RecursiveMutexHandle;
+
 class Lock {
 public:
-  explicit Lock(SemaphoreHandle_t &mutex) : m_mutex(mutex) {
-    if (m_mutex != nullptr) {
-      m_locked = (xSemaphoreTakeRecursive(m_mutex, portMAX_DELAY) == pdTRUE);
-    }
+  explicit Lock(RecursiveMutexHandle &mutex) : m_mutex(mutex) {
+    m_locked = platform::sync::lockRecursive(m_mutex);
   };
 
   ~Lock() {
-    if (m_locked && m_mutex != nullptr) {
-      xSemaphoreGiveRecursive(m_mutex);
+    if (m_locked) {
+      platform::sync::unlockRecursive(m_mutex);
     }
   };
 
 private:
-  SemaphoreHandle_t m_mutex = nullptr;
+  RecursiveMutexHandle m_mutex = nullptr;
   bool m_locked = false;
 };
 
-bool createMutex(SemaphoreHandle_t *mutex);
+bool createMutex(RecursiveMutexHandle *mutex);
 
 } // namespace rtps
 #endif // RTPS_LOCK_H

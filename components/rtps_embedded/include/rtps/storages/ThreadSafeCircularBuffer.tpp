@@ -23,7 +23,7 @@ bool ThreadSafeCircularBuffer<T, SIZE>::init() {
   if (m_initialized) {
     return true;
   }
-  if (!createMutex(&m_mutex)) {
+  if (!platform::sync::createRecursiveMutex(&m_mutex)) {
     TSCB_LOG("Failed to create mutex \n");
     return false;
   } else {

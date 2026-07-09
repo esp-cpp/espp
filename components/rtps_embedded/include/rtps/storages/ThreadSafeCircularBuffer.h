@@ -25,12 +25,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #ifndef RTPS_THREADSAFEQUEUE_H
 #define RTPS_THREADSAFEQUEUE_H
 
-#include "lwip/sys.h"
-#if defined(ESP_PLATFORM)
-#include "freertos/semphr.h"
-#else
-#include "semphr.h"
-#endif
+#include "rtps/platform/sync.h"
 
 #include <array>
 #include <limits>
@@ -67,7 +62,7 @@ private:
   static_assert(SIZE + 1 < std::numeric_limits<decltype(m_head)>::max(),
                 "Iterator is large enough for given size");
 
-  SemaphoreHandle_t m_mutex = nullptr;
+  platform::sync::RecursiveMutexHandle m_mutex = nullptr;
   bool m_initialized = false;
 
   inline bool isFull();

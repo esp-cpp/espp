@@ -52,10 +52,10 @@ ThreadPool::ThreadPool(receiveJumppad_fp receiveCallback, void *callee)
       !m_incomingMetaTraffic.init() || !m_incomingUserTraffic.init()) {
     return;
   }
-  err_t inputErr = sys_sem_new(&m_readerNotificationSem, 0);
-  err_t outputErr = sys_sem_new(&m_writerNotificationSem, 0);
+  bool inputOk = platform::threading::createSemaphore(&m_readerNotificationSem, 0);
+  bool outputOk = platform::threading::createSemaphore(&m_writerNotificationSem, 0);
 
-  if (inputErr != ERR_OK || outputErr != ERR_OK) {
+  if (!inputOk || !outputOk) {
     THREAD_POOL_LOG("ThreadPool: Failed to create Semaphores.\n");
   }
 }
@@ -63,14 +63,14 @@ ThreadPool::ThreadPool(receiveJumppad_fp receiveCallback, void *callee)
 ThreadPool::~ThreadPool() {
   if (m_running) {
     stopThreads();
-    sys_msleep(500);
+    platform::threading::sleepMs(500);
   }
 
-  if (sys_sem_valid(&m_readerNotificationSem)) {
-    sys_sem_free(&m_readerNotificationSem);
+  if (platform::threading::isSemaphoreValid(&m_readerNotificationSem)) {
+    platform::threading::freeSemaphore(&m_readerNotificationSem);
   }
-  if (sys_sem_valid(&m_writerNotificationSem)) {
-    sys_sem_free(&m_writerNotificationSem);
+  if (platform::threading::isSemaphoreValid(&m_writerNotificationSem)) {
+    platform::threading::freeSemaphore(&m_writerNotificationSem);
   }
 }
 
@@ -101,24 +101,24 @@ bool ThreadPool::startThreads() {
   if (m_running) {
     return true;
   }
-  if (!sys_sem_valid(&m_readerNotificationSem) ||
-      !sys_sem_valid(&m_writerNotificationSem)) {
+  if (!platform::threading::isSemaphoreValid(&m_readerNotificationSem) ||
+      !platform::threading::isSemaphoreValid(&m_writerNotificationSem)) {
     return false;
   }
 
   m_running = true;
   for (auto &thread : m_writers) {
     // TODO ID, err check, waitOnStop
-    thread = sys_thread_new("WriterThread", writerThreadFunction, this,
-                            Config::THREAD_POOL_WRITER_STACKSIZE,
-                            Config::THREAD_POOL_WRITER_PRIO);
+    thread = platform::threading::startThread(
+        "WriterThread", writerThreadFunction, this,
+        Config::THREAD_POOL_WRITER_STACKSIZE, Config::THREAD_POOL_WRITER_PRIO);
   }
 
   for (auto &thread : m_readers) {
     // TODO ID, err check, waitOnStop
-    thread = sys_thread_new("ReaderThread", readerThreadFunction, this,
-                            Config::THREAD_POOL_READER_STACKSIZE,
-                            Config::THREAD_POOL_READER_PRIO);
+    thread = platform::threading::startThread(
+        "ReaderThread", readerThreadFunction, this,
+        Config::THREAD_POOL_READER_STACKSIZE, Config::THREAD_POOL_READER_PRIO);
   }
   return true;
 }
@@ -129,17 +129,17 @@ void ThreadPool::stopThreads() {
   // stuck before ended.
   for (auto &thread : m_writers) {
     (void)thread;
-    sys_sem_signal(&m_writerNotificationSem);
-    sys_msleep(10);
+    platform::threading::signalSemaphore(&m_writerNotificationSem);
+    platform::threading::sleepMs(10);
   }
   for (auto &thread : m_readers) {
     (void)thread;
-    sys_sem_signal(&m_readerNotificationSem);
-    sys_msleep(10);
+    platform::threading::signalSemaphore(&m_readerNotificationSem);
+    platform::threading::sleepMs(10);
   }
   // TODO make sure they have finished. Seems to be sufficient for tests.
   // Not sufficient if threads shall actually be stopped during runtime.
-  sys_msleep(10);
+  platform::threading::sleepMs(10);
 }
 
 void ThreadPool::clearQueues() {
@@ -157,7 +157,7 @@ bool ThreadPool::addWorkload(Writer *workload) {
     res = m_outgoingUserTraffic.moveElementIntoBuffer(std::move(workload));
   }
   if (res) {
-    sys_sem_signal(&m_writerNotificationSem);
+    platform::threading::signalSemaphore(&m_writerNotificationSem);
   } else {
 	if(workload->isBuiltinEndpoint()){
 		rtps::Diagnostics::ThreadPool::dropped_outgoing_packets_metatraffic++;
@@ -204,7 +204,7 @@ bool ThreadPool::addNewPacket(PacketInfo &&packet) {
     res = m_incomingUserTraffic.moveElementIntoBuffer(std::move(packet));
   }
   if (res) {
-    sys_sem_signal(&m_readerNotificationSem);
+    platform::threading::signalSemaphore(&m_readerNotificationSem);
   } else {
     THREAD_POOL_LOG("failed to enqueue packet for port %u",
                     static_cast<unsigned int>(packet.destPort));
@@ -247,7 +247,7 @@ void ThreadPool::doWriterWork() {
                       static_cast<unsigned int>(Diagnostics::ThreadPool::processed_outgoing_usertraffic),
                       static_cast<unsigned int>(Diagnostics::ThreadPool::processed_outgoing_metatraffic));
       updateDiagnostics();
-      sys_sem_wait(&m_writerNotificationSem);
+      platform::threading::waitSemaphore(&m_writerNotificationSem);
     }
   }
 }
@@ -318,7 +318,7 @@ void ThreadPool::doReaderWork() {
                     static_cast<unsigned int>(usertraffic),
                     static_cast<unsigned int>(metatraffic));
     updateDiagnostics();
-    sys_sem_wait(&m_readerNotificationSem);
+    platform::threading::waitSemaphore(&m_readerNotificationSem);
   }
 }
 

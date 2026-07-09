@@ -25,6 +25,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/entities/Domain.h"
 #include "rtps/utils/Log.h"
 #include "rtps/utils/udpUtils.h"
+#include <cassert>
 
 #if defined(ESP_PLATFORM)
 #include "esp_mac.h"
@@ -45,11 +46,25 @@ using rtps::Domain;
 
 Domain::Domain()
     : m_threadPool(receiveJumppad, this),
-      m_transport(ThreadPool::readCallback, &m_threadPool) {
-  m_transport.createUdpConnection(getUserMulticastPort());
-  m_transport.createUdpConnection(getBuiltInMulticastPort());
-  m_transport.joinMultiCastGroup(transformIP4ToU32(239, 255, 0, 1));
+      m_defaultTransport(ThreadPool::readCallback, &m_threadPool),
+      m_transport(&m_defaultTransport) {
+  initializeTransport();
   createMutex(&m_mutex);
+}
+
+Domain::Domain(platform::transport::ITransport &transport)
+    : m_threadPool(receiveJumppad, this),
+      m_defaultTransport(ThreadPool::readCallback, &m_threadPool),
+      m_transport(&transport) {
+  initializeTransport();
+  createMutex(&m_mutex);
+}
+
+void Domain::initializeTransport() {
+  assert(m_transport != nullptr);
+  m_transport->createUdpConnection(getUserMulticastPort());
+  m_transport->createUdpConnection(getBuiltInMulticastPort());
+  m_transport->joinMultiCastGroup(transformIP4ToU32(239, 255, 0, 1));
 }
 
 Domain::~Domain() { stop(); }
@@ -163,7 +178,7 @@ void Domain::createBuiltinWritersAndReaders(Participant &part) {
   spdpWriterAttributes.unicastLocator = getBuiltInMulticastLocator();
 
   spdpWriter->init(spdpWriterAttributes, TopicKind_t::WITH_KEY, &m_threadPool,
-                   m_transport);
+                   *m_transport);
   spdpWriter->addNewMatchedReader(
       ReaderProxy{{part.m_guidPrefix, ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER},
                   getBuiltInMulticastLocator(),
@@ -192,14 +207,14 @@ void Domain::createBuiltinWritersAndReaders(Participant &part) {
           m_statefulReaders);
   sedpAttributes.endpointGuid.entityId =
       ENTITYID_SEDP_BUILTIN_PUBLICATIONS_READER;
-  sedpPubReader->init(sedpAttributes, m_transport);
+  sedpPubReader->init(sedpAttributes, *m_transport);
 
   StatefulReader *sedpSubReader =
       getNextUnusedEndpoint<decltype(m_statefulReaders), StatefulReader>(
           m_statefulReaders);
   sedpAttributes.endpointGuid.entityId =
       ENTITYID_SEDP_BUILTIN_SUBSCRIPTIONS_READER;
-  sedpSubReader->init(sedpAttributes, m_transport);
+  sedpSubReader->init(sedpAttributes, *m_transport);
 
   // WRITER
   StatefulWriter *sedpPubWriter =
@@ -208,7 +223,7 @@ void Domain::createBuiltinWritersAndReaders(Participant &part) {
   sedpAttributes.endpointGuid.entityId =
       ENTITYID_SEDP_BUILTIN_PUBLICATIONS_WRITER;
   sedpPubWriter->init(sedpAttributes, TopicKind_t::NO_KEY, &m_threadPool,
-                      m_transport);
+                      *m_transport);
 
   StatefulWriter *sedpSubWriter =
       getNextUnusedEndpoint<decltype(m_statefulWriters), StatefulWriter>(
@@ -216,7 +231,7 @@ void Domain::createBuiltinWritersAndReaders(Participant &part) {
   sedpAttributes.endpointGuid.entityId =
       ENTITYID_SEDP_BUILTIN_SUBSCRIPTIONS_WRITER;
   sedpSubWriter->init(sedpAttributes, TopicKind_t::NO_KEY, &m_threadPool,
-                      m_transport);
+                      *m_transport);
 
   // COLLECT
   BuiltInEndpoints endpoints{};
@@ -231,14 +246,14 @@ void Domain::createBuiltinWritersAndReaders(Participant &part) {
 }
 
 void Domain::registerPort(const Participant &part) {
-  m_transport.createUdpConnection(getUserUnicastPort(part.m_participantId));
-  m_transport.createUdpConnection(getBuiltInUnicastPort(part.m_participantId));
+  m_transport->createUdpConnection(getUserUnicastPort(part.m_participantId));
+  m_transport->createUdpConnection(getBuiltInUnicastPort(part.m_participantId));
   m_threadPool.addBuiltinPort(getBuiltInUnicastPort(part.m_participantId));
 }
 
 void Domain::registerMulticastPort(FullLengthLocator mcastLocator) {
   if (mcastLocator.kind == LocatorKind_t::LOCATOR_KIND_UDPv4) {
-    m_transport.createUdpConnection(mcastLocator.getLocatorPort());
+    m_transport->createUdpConnection(mcastLocator.getLocatorPort());
   }
 }
 
@@ -373,7 +388,7 @@ rtps::Writer *Domain::createWriter(Participant &part, const char *topicName,
     attributes.reliabilityKind = ReliabilityKind_t::RELIABLE;
 
     if (!statefulWriter->init(attributes, TopicKind_t::NO_KEY, &m_threadPool,
-                              m_transport, enforceUnicast)) {
+                              *m_transport, enforceUnicast)) {
       DOMAIN_LOG("StatefulWriter init failed.\n");
       return nullptr;
     }
@@ -386,7 +401,7 @@ rtps::Writer *Domain::createWriter(Participant &part, const char *topicName,
     attributes.reliabilityKind = ReliabilityKind_t::BEST_EFFORT;
 
     if (!statelessWriter->init(attributes, TopicKind_t::NO_KEY, &m_threadPool,
-                               m_transport, enforceUnicast)) {
+                               *m_transport, enforceUnicast)) {
       DOMAIN_LOG("StatelessWriter init failed.\n");
       return nullptr;
     }
@@ -437,7 +452,7 @@ rtps::Reader *Domain::createReader(Participant &part, const char *topicName,
           ip4_addr1(&mcastaddress), ip4_addr2(&mcastaddress),
           ip4_addr3(&mcastaddress), ip4_addr4(&mcastaddress),
           getUserMulticastPort());
-      m_transport.joinMultiCastGroup(
+        m_transport->joinMultiCastGroup(
           attributes.multicastLocator.getIp4Address());
       registerMulticastPort(attributes.multicastLocator);
 
@@ -456,7 +471,7 @@ rtps::Reader *Domain::createReader(Participant &part, const char *topicName,
 
     attributes.reliabilityKind = ReliabilityKind_t::RELIABLE;
 
-    statefulReader->init(attributes, m_transport);
+    statefulReader->init(attributes, *m_transport);
 
     if (!part.addReader(statefulReader)) {
       DOMAIN_LOG("Failed to add reader to participant.\n");

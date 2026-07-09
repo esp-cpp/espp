@@ -95,7 +95,7 @@ bool UdpDriver::isMulticastAddress(ip4_addr_t addr) {
 #endif
 }
 
-bool UdpDriver::joinMultiCastGroup(ip4_addr_t addr) const {
+bool UdpDriver::joinMultiCastGroup(platform::Ip4Address addr) const {
   err_t iret;
 
   {

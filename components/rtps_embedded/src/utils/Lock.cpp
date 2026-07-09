@@ -1,13 +1,19 @@
 #include "rtps/utils/Lock.h"
 
+#include <cassert>
+
 namespace rtps {
 
-bool createMutex(SemaphoreHandle_t *mutex) {
-  *mutex = xSemaphoreCreateRecursiveMutex();
-  if (*mutex != NULL) {
+bool createMutex(platform::sync::RecursiveMutexHandle *mutex) {
+  if (mutex == nullptr) {
+    assert(false && "Mutex pointer is null");
+    return false;
+  }
+
+  if (platform::sync::createRecursiveMutex(mutex)) {
     return true;
   } else {
-    LWIP_ASSERT("Mutex creation failed", true);
+    assert(false && "Mutex creation failed");
     return false;
   }
 }
