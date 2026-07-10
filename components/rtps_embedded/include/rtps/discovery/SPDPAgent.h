@@ -25,13 +25,16 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #ifndef RTPS_SPDP_H
 #define RTPS_SPDP_H
 
-#include "lwip/sys.h"
 #include "rtps/common/types.h"
 #include "rtps/config.h"
 #include "rtps/discovery/BuiltInEndpoints.h"
 #include "rtps/discovery/ParticipantProxyData.h"
+#include "rtps/platform/sync.h"
 #include "rtps/utils/Log.h"
+#include "task.hpp"
 #include "ucdr/microcdr.h"
+
+#include <memory>
 
 #if SPDP_VERBOSE && RTPS_GLOBAL_VERBOSE
 #include "rtps/utils/printutils.h"
@@ -56,11 +59,12 @@ public:
   void init(Participant &participant, BuiltInEndpoints &endpoints);
   void start();
   void stop();
-  SemaphoreHandle_t m_mutex;
+  platform::sync::RecursiveMutexHandle m_mutex = nullptr;
 
 private:
   Participant *mp_participant = nullptr;
   BuiltInEndpoints m_buildInEndpoints;
+  std::unique_ptr<espp::Task> m_broadcastTask;
   bool m_running = false;
   std::array<uint8_t, 1000> m_outputBuffer{}; // TODO check required size
   std::array<uint8_t, 1000> m_inputBuffer{};
@@ -80,7 +84,7 @@ private:
   void addParticipantParameters();
   void endCurrentList();
 
-  static void runBroadcast(void *args);
+  void runBroadcast();
 };
 } // namespace rtps
 

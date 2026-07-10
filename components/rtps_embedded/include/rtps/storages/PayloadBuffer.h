@@ -22,45 +22,49 @@ This file is part of embeddedRTPS.
 Author: i11 - Embedded Software, RWTH Aachen University
 */
 
-#ifndef RTPS_UDPDRIVER_H
-#define RTPS_UDPDRIVER_H
+#ifndef RTPS_PAYLOADBUFFER_H
+#define RTPS_PAYLOADBUFFER_H
 
-#include "UdpConnection.h"
-#include "lwip/udp.h"
+#include <vector>
+
 #include "rtps/common/types.h"
-#include "rtps/communication/PacketInfo.h"
-#include "rtps/config.h"
-#include "rtps/platform/transport.h"
-#include "rtps/storages/PBufWrapper.h"
-
-#include <array>
 
 namespace rtps {
 
-class UdpDriver : public platform::transport::ITransport {
+struct PayloadBuffer {
+  std::vector<uint8_t> bytes;
 
-public:
-  typedef void (*udpRxFunc_fp)(void *arg, udp_pcb *pcb, pbuf *p,
-                               const ip_addr_t *addr, Ip4Port_t port);
+  bool isValid() const { return true; }
 
-  UdpDriver(udpRxFunc_fp callback, void *args);
+  bool reserve(DataSize_t length) {
+    if (length > bytes.max_size() - bytes.size()) {
+      return false;
+    }
+    bytes.reserve(bytes.size() + length);
+    return true;
+  }
 
-  const rtps::UdpConnection *createUdpConnection(Ip4Port_t receivePort) override;
-  bool joinMultiCastGroup(platform::Ip4Address addr) const override;
-  void sendPacket(PacketInfo &info) override;
+  bool append(const uint8_t *data, DataSize_t length) {
+    if (length == 0) {
+      return true;
+    }
+    if (data == nullptr) {
+      return false;
+    }
 
-  static bool isSameSubnet(ip4_addr_t addr);
-  static bool isMulticastAddress(ip4_addr_t addr);
+    bytes.insert(bytes.end(), data, data + length);
+    return true;
+  }
 
-private:
-  std::array<UdpConnection, Config::MAX_NUM_UDP_CONNECTIONS> m_conns;
-  std::size_t m_numConns = 0;
-  udpRxFunc_fp m_rxCallback = nullptr;
-  void *m_callbackArgs = nullptr;
+  void append(const PayloadBuffer &other) {
+    bytes.insert(bytes.end(), other.bytes.begin(), other.bytes.end());
+  }
 
-  bool sendPacket(const UdpConnection &conn, ip4_addr_t &destAddr,
-                  Ip4Port_t destPort, pbuf &buffer);
+  DataSize_t spaceUsed() const { return static_cast<DataSize_t>(bytes.size()); }
+
+  void reset() { bytes.clear(); }
 };
+
 } // namespace rtps
 
-#endif // RTPS_UDPDRIVER_H
+#endif // RTPS_PAYLOADBUFFER_H

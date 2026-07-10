@@ -25,12 +25,9 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include <rtps/entities/ReaderProxy.h>
 #include <rtps/entities/Writer.h>
 
-#include "lwip/sys.h"
-#include "lwip/tcpip.h"
 #include "rtps/ThreadPool.h"
-#include "rtps/communication/UdpDriver.h"
 #include "rtps/messages/MessageFactory.h"
-#include "rtps/storages/PBufWrapper.h"
+#include "rtps/storages/PayloadBuffer.h"
 #include "rtps/utils/Log.h"
 #include "rtps/utils/udpUtils.h"
 
@@ -156,9 +153,8 @@ void StatelessWriterT<NetworkDriver>::onNewAckNack(
 template <typename NetworkDriver>
 void StatelessWriterT<NetworkDriver>::progress() {
   INIT_GUARD();
-  // TODO smarter packaging e.g. by creating MessageStruct and serialize after
-  // adjusting values Reusing the pbuf is not possible. See
-  // https://www.nongnu.org/lwip/2_1_x/raw_api.html (Zero-Copy MACs)
+  // TODO smarter packaging e.g. by creating MessageStruct and serializing
+  // after adjusting values.
 
   if (m_proxies.getNumElements() == 0) {
     SLW_LOG("No Proxy!\n");
@@ -171,9 +167,10 @@ void StatelessWriterT<NetworkDriver>::progress() {
     if (proxy.useMulticast || !proxy.suppressUnicast || m_enforceUnicast) {
       PacketInfo info;
       info.srcPort = m_srcPort;
+      PayloadBuffer payload;
 
-      MessageFactory::addHeader(info.buffer, m_attributes.endpointGuid.prefix);
-      MessageFactory::addSubMessageTimeStamp(info.buffer);
+      MessageFactory::addHeader(payload, m_attributes.endpointGuid.prefix);
+      MessageFactory::addSubMessageTimeStamp(payload);
 
       {
         Lock lock(m_mutex);
@@ -200,25 +197,29 @@ void StatelessWriterT<NetworkDriver>::progress() {
         } else {
           reid = proxy.remoteReaderGuid.entityId;
         }
-        MessageFactory::addSubMessageData(info.buffer, next->data, false,
+        MessageFactory::addSubMessageData(payload, next->data, false,
                                           next->sequenceNumber,
                                           m_attributes.endpointGuid.entityId,
                                           reid); // TODO
       }
 
+      info.payload = std::move(payload.bytes);
+
       // Just usable for IPv4
       // Decide which locator to be used unicast/multicast
 
       if (proxy.useMulticast && !m_enforceUnicast) {
-        info.destAddr = proxy.remoteMulticastLocator.getIp4Address();
+        info.destAddr = proxy.remoteMulticastLocator.getIp4AddressBytes();
         info.destPort = (Ip4Port_t)proxy.remoteMulticastLocator.port;
       } else {
-        info.destAddr = proxy.remoteLocator.getIp4Address();
+        info.destAddr = proxy.remoteLocator.getIp4AddressBytes();
         info.destPort = (Ip4Port_t)proxy.remoteLocator.port;
       }
-      SLW_LOG("Sending to %ld.%ld.%ld.%ld:%d\n", (info.destAddr.addr & 0xFF),
-              (info.destAddr.addr >> 8) & 0xFF, (info.destAddr.addr >> 16) & 0xFF,
-              (info.destAddr.addr >> 24) & 0xFF, info.destPort);
+      SLW_LOG("Sending to %u.%u.%u.%u:%d\n", info.destAddr[0], info.destAddr[1],
+              info.destAddr[2], info.destAddr[3], info.destPort);
+      if (info.payload.empty()) {
+        continue;
+      }
       m_transport->sendPacket(info);
     }
   }

@@ -26,17 +26,25 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #define RTPS_THREADPOOL_H
 
 #include "rtps/communication/PacketInfo.h"
-#include "rtps/communication/UdpDriver.h"
 #include "rtps/config.h"
-#include "rtps/platform/threading.h"
-#include "rtps/storages/PBufWrapper.h"
+#include "rtps/platform/transport.h"
 #include "rtps/storages/ThreadSafeCircularBuffer.h"
 
 #include <array>
+#include <cstddef>
+#include <memory>
 
 namespace rtps {
 
 class Writer;
+
+} // namespace rtps
+
+namespace espp {
+class ThreadPool;
+}
+
+namespace rtps {
 
 class ThreadPool {
 public:
@@ -53,8 +61,10 @@ public:
   bool addWorkload(Writer *workload);
   bool addNewPacket(PacketInfo &&packet);
 
-  static void readCallback(void *arg, udp_pcb *pcb, pbuf *p,
-                           const ip_addr_t *addr, Ip4Port_t port);
+  static void onDatagram(
+      void *arg, const uint8_t *data, std::size_t size, Ip4Port_t localPort,
+      Ip4Port_t remotePort,
+      const platform::transport::Ip4AddressBytes &remoteAddress);
 
   bool addBuiltinPort(const Ip4Port_t &port);
 
@@ -62,14 +72,11 @@ private:
   receiveJumppad_fp m_receiveJumppad;
   void *m_callee;
   bool m_running = false;
-  std::array<platform::threading::ThreadHandle, Config::THREAD_POOL_NUM_WRITERS> m_writers;
-  std::array<platform::threading::ThreadHandle, Config::THREAD_POOL_NUM_READERS> m_readers;
+    std::unique_ptr<espp::ThreadPool> m_writerWorkers;
+    std::unique_ptr<espp::ThreadPool> m_readerWorkers;
 
   std::array<Ip4Port_t, 2 * Config::MAX_NUM_PARTICIPANTS> m_builtinPorts;
   size_t m_builtinPortsIdx = 0;
-
-  platform::threading::SemaphoreHandle m_readerNotificationSem;
-  platform::threading::SemaphoreHandle m_writerNotificationSem;
 
   void updateDiagnostics();
 
@@ -88,9 +95,10 @@ private:
   BufferUsertrafficIncoming m_incomingUserTraffic;
   BufferMetatrafficIncoming m_incomingMetaTraffic;
 
+    void scheduleWriterWork();
+    void scheduleReaderWork();
+
   bool isBuiltinPort(const Ip4Port_t &port);
-  static void writerThreadFunction(void *arg);
-  static void readerThreadFunction(void *arg);
   void doWriterWork();
   void doReaderWork();
 };

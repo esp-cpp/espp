@@ -28,16 +28,18 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #ifndef RTPS_PACKETINFO_H
 #define RTPS_PACKETINFO_H
 
+#include <array>
+#include <vector>
+
 #include "rtps/common/types.h"
-#include "rtps/storages/PBufWrapper.h"
 
 namespace rtps {
 
 struct PacketInfo {
   Ip4Port_t srcPort; // TODO Do we need that?
-  ip4_addr_t destAddr;
+  std::array<uint8_t, 4> destAddr = {0, 0, 0, 0};
   Ip4Port_t destPort;
-  PBufWrapper buffer;
+  std::vector<uint8_t> payload;
 
   void copyTriviallyCopyable(const PacketInfo &other) {
     this->srcPort = other.srcPort;
@@ -52,9 +54,10 @@ struct PacketInfo {
 
   PacketInfo &operator=(PacketInfo &&other) noexcept {
     copyTriviallyCopyable(other);
-    this->buffer = std::move(other.buffer);
+    this->payload = std::move(other.payload);
     return *this;
   }
+
 };
 } // namespace rtps
 

@@ -27,22 +27,22 @@ Author: i11 - Embedded Software, RWTH Aachen University
 
 #include "rtps/ThreadPool.h"
 #include "rtps/communication/EsppTransport.h"
-#include "rtps/communication/UdpDriver.h"
 #include "rtps/config.h"
 #include "rtps/entities/Participant.h"
 #include "rtps/entities/StatefulReader.h"
 #include "rtps/entities/StatefulWriter.h"
 #include "rtps/entities/StatelessReader.h"
 #include "rtps/entities/StatelessWriter.h"
+#include "rtps/platform/sync.h"
 #include "rtps/platform/transport.h"
-#include "rtps/storages/PBufWrapper.h"
 #include <rtps/common/Locator.h>
 
 namespace rtps {
 class Domain {
 public:
-  Domain();
-  explicit Domain(platform::transport::ITransport &transport);
+  explicit Domain(const platform::transport::Ip4AddressBytes &localIpAddress);
+  Domain(platform::transport::ITransport &transport,
+         const platform::transport::Ip4AddressBytes &localIpAddress);
   ~Domain();
 
   bool completeInit();
@@ -54,7 +54,8 @@ public:
                        bool enforceUnicast = false);
   Reader *createReader(Participant &part, const char *topicName,
                        const char *typeName, bool reliable,
-                       ip4_addr_t mcastaddress = {0});
+                       platform::transport::Ip4AddressBytes mcastaddress =
+                           {0, 0, 0, 0});
 
   Writer *writerExists(Participant &part, const char *topicName,
                        const char *typeName, bool reliable);
@@ -69,14 +70,11 @@ public:
 private:
   friend class SizeInspector;
   ThreadPool m_threadPool;
-#if defined(RTPS_USE_ESPP_TRANSPORT)
   using DefaultTransport = EsppTransport;
-#else
-  using DefaultTransport = UdpDriver;
-#endif
   DefaultTransport m_defaultTransport;
   platform::transport::ITransport *m_transport = nullptr;
   std::array<Participant, Config::MAX_NUM_PARTICIPANTS> m_participants;
+  platform::transport::Ip4AddressBytes m_localIpAddress{{0, 0, 0, 0}};
   const uint8_t PARTICIPANT_START_ID = 0;
   ParticipantId_t m_nextParticipantId = PARTICIPANT_START_ID;
 
@@ -94,7 +92,7 @@ private:
   }
 
   bool m_initComplete = false;
-  SemaphoreHandle_t m_mutex;
+  platform::sync::RecursiveMutexHandle m_mutex = nullptr;
 
   void receiveCallback(const PacketInfo &packet);
   GuidPrefix_t generateGuidPrefix(ParticipantId_t id) const;

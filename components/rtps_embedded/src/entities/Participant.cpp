@@ -65,6 +65,16 @@ void Participant::reuse(const GuidPrefix_t &guidPrefix,
                         ParticipantId_t participantId) {
   m_guidPrefix = guidPrefix;
   m_participantId = participantId;
+  m_localIpAddress = {Config::IP_ADDRESS[0], Config::IP_ADDRESS[1],
+                      Config::IP_ADDRESS[2], Config::IP_ADDRESS[3]};
+}
+
+void Participant::reuse(
+    const GuidPrefix_t &guidPrefix, ParticipantId_t participantId,
+    const platform::transport::Ip4AddressBytes &localIpAddress) {
+  m_guidPrefix = guidPrefix;
+  m_participantId = participantId;
+  m_localIpAddress = localIpAddress;
 }
 
 bool Participant::isValid() {
@@ -381,13 +391,15 @@ void Participant::refreshRemoteParticipantLiveliness(
   }
 }
 
-bool Participant::hasReaderWithMulticastLocator(ip4_addr_t address) {
+bool Participant::hasReaderWithMulticastLocator(
+    const std::array<uint8_t, 4> &address) {
   Lock lock{m_mutex};
   for (uint8_t i = 0; i < m_readers.size(); i++) {
     if (m_readers[i] == nullptr) {
       continue;
     }
-    if (m_readers[i]->m_attributes.multicastLocator.isSameAddress(&address)) {
+    if (m_readers[i]->m_attributes.multicastLocator.getIp4AddressBytes() ==
+        address) {
       return true;
     }
   }

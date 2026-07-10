@@ -44,27 +44,30 @@ Author: i11 - Embedded Software, RWTH Aachen University
 
 using rtps::Domain;
 
-Domain::Domain()
+Domain::Domain(const platform::transport::Ip4AddressBytes &localIpAddress)
     : m_threadPool(receiveJumppad, this),
-      m_defaultTransport(ThreadPool::readCallback, &m_threadPool),
-      m_transport(&m_defaultTransport) {
+      m_defaultTransport(ThreadPool::onDatagram, &m_threadPool),
+      m_transport(&m_defaultTransport),
+      m_localIpAddress(localIpAddress) {
   initializeTransport();
   createMutex(&m_mutex);
 }
 
-Domain::Domain(platform::transport::ITransport &transport)
+Domain::Domain(platform::transport::ITransport &transport,
+               const platform::transport::Ip4AddressBytes &localIpAddress)
     : m_threadPool(receiveJumppad, this),
-      m_defaultTransport(ThreadPool::readCallback, &m_threadPool),
-      m_transport(&transport) {
+      m_defaultTransport(ThreadPool::onDatagram, &m_threadPool),
+      m_transport(&transport),
+      m_localIpAddress(localIpAddress) {
   initializeTransport();
   createMutex(&m_mutex);
 }
 
 void Domain::initializeTransport() {
   assert(m_transport != nullptr);
-  m_transport->createUdpConnection(getUserMulticastPort());
-  m_transport->createUdpConnection(getBuiltInMulticastPort());
-  m_transport->joinMultiCastGroup(transformIP4ToU32(239, 255, 0, 1));
+  m_transport->ensureReceivePort(getUserMulticastPort());
+  m_transport->ensureReceivePort(getBuiltInMulticastPort());
+  m_transport->joinMultiCastGroup({239, 255, 0, 1});
 }
 
 Domain::~Domain() { stop(); }
@@ -90,19 +93,19 @@ void Domain::receiveJumppad(void *callee, const PacketInfo &packet) {
 }
 
 void Domain::receiveCallback(const PacketInfo &packet) {
-  if (packet.buffer.firstElement->next != nullptr) {
-
-    DOMAIN_LOG("Cannot handle multiple elements chained. You might "
-               "want to increase PBUF_POOL_BUFSIZE\n");
+  if (packet.payload.empty()) {
+    DOMAIN_LOG("Dropping packet without payload\n");
+    return;
   }
+
+  const uint8_t *payload = packet.payload.data();
+  DataSize_t payload_size = static_cast<DataSize_t>(packet.payload.size());
 
   if (isMetaMultiCastPort(packet.destPort)) {
     // Pass to all
     DOMAIN_LOG("Domain: Multicast to port %u\n", packet.destPort);
     for (auto i = 0; i < m_nextParticipantId - PARTICIPANT_START_ID; ++i) {
-      m_participants[i].newMessage(
-          static_cast<uint8_t *>(packet.buffer.firstElement->payload),
-          packet.buffer.firstElement->len);
+      m_participants[i].newMessage(payload, payload_size);
     }
     // First Check if UserTraffic Multicast
   } else if (isUserMultiCastPort(packet.destPort)) {
@@ -113,9 +116,7 @@ void Domain::receiveCallback(const PacketInfo &packet) {
     for (auto i = 0; i < m_nextParticipantId - PARTICIPANT_START_ID; ++i) {
       if (m_participants[i].hasReaderWithMulticastLocator(packet.destAddr)) {
         DOMAIN_LOG("Domain: Forward Multicast only to Participant: %u\n", i);
-        m_participants[i].newMessage(
-            static_cast<uint8_t *>(packet.buffer.firstElement->payload),
-            packet.buffer.firstElement->len);
+        m_participants[i].newMessage(payload, payload_size);
       }
     }
   } else {
@@ -128,8 +129,7 @@ void Domain::receiveCallback(const PacketInfo &packet) {
           id >= PARTICIPANT_START_ID) { // added extra check to avoid segfault
                                         // (id below START_ID)
         m_participants[id - PARTICIPANT_START_ID].newMessage(
-            static_cast<uint8_t *>(packet.buffer.firstElement->payload),
-            packet.buffer.firstElement->len);
+          payload, payload_size);
       } else {
         DOMAIN_LOG("Domain: Participant id too high or unplausible.\n");
       }
@@ -151,7 +151,8 @@ rtps::Participant *Domain::createParticipant() {
   }
 
   auto &entry = m_participants[nextSlot];
-  entry.reuse(generateGuidPrefix(m_nextParticipantId), m_nextParticipantId);
+  entry.reuse(generateGuidPrefix(m_nextParticipantId), m_nextParticipantId,
+             m_localIpAddress);
   registerPort(entry);
   createBuiltinWritersAndReaders(entry);
   ++m_nextParticipantId;
@@ -199,7 +200,7 @@ void Domain::createBuiltinWritersAndReaders(Participant &part) {
   sedpAttributes.durabilityKind = DurabilityKind_t::TRANSIENT_LOCAL;
   sedpAttributes.endpointGuid.prefix = part.m_guidPrefix;
   sedpAttributes.unicastLocator =
-      getBuiltInUnicastLocator(part.m_participantId);
+      getBuiltInUnicastLocator(part.m_participantId, m_localIpAddress);
 
   // READER
   StatefulReader *sedpPubReader =
@@ -246,14 +247,14 @@ void Domain::createBuiltinWritersAndReaders(Participant &part) {
 }
 
 void Domain::registerPort(const Participant &part) {
-  m_transport->createUdpConnection(getUserUnicastPort(part.m_participantId));
-  m_transport->createUdpConnection(getBuiltInUnicastPort(part.m_participantId));
+  m_transport->ensureReceivePort(getUserUnicastPort(part.m_participantId));
+  m_transport->ensureReceivePort(getBuiltInUnicastPort(part.m_participantId));
   m_threadPool.addBuiltinPort(getBuiltInUnicastPort(part.m_participantId));
 }
 
 void Domain::registerMulticastPort(FullLengthLocator mcastLocator) {
   if (mcastLocator.kind == LocatorKind_t::LOCATOR_KIND_UDPv4) {
-    m_transport->createUdpConnection(mcastLocator.getLocatorPort());
+    m_transport->ensureReceivePort(mcastLocator.getLocatorPort());
   }
 }
 
@@ -379,7 +380,8 @@ rtps::Writer *Domain::createWriter(Participant &part, const char *topicName,
   attributes.endpointGuid.entityId = {
       part.getNextUserEntityKey(),
       EntityKind_t::USER_DEFINED_WRITER_WITHOUT_KEY};
-  attributes.unicastLocator = getUserUnicastLocator(part.m_participantId);
+    attributes.unicastLocator =
+      getUserUnicastLocator(part.m_participantId, m_localIpAddress);
   attributes.durabilityKind = DurabilityKind_t::TRANSIENT_LOCAL;
 
   DOMAIN_LOG("Creating writer[%s, %s]\n", topicName, typeName);
@@ -415,7 +417,8 @@ rtps::Writer *Domain::createWriter(Participant &part, const char *topicName,
 
 rtps::Reader *Domain::createReader(Participant &part, const char *topicName,
                                    const char *typeName, bool reliable,
-                                   ip4_addr_t mcastaddress) {
+                                   platform::transport::Ip4AddressBytes
+                                       mcastaddress) {
   Lock lock{m_mutex};
   StatelessReader *statelessReader =
       getNextUnusedEndpoint<decltype(m_statelessReaders), StatelessReader>(
@@ -445,15 +448,18 @@ rtps::Reader *Domain::createReader(Participant &part, const char *topicName,
   attributes.endpointGuid.entityId = {
       part.getNextUserEntityKey(),
       EntityKind_t::USER_DEFINED_READER_WITHOUT_KEY};
-  attributes.unicastLocator = getUserUnicastLocator(part.m_participantId);
+    attributes.unicastLocator =
+      getUserUnicastLocator(part.m_participantId, m_localIpAddress);
   if (!isZeroAddress(mcastaddress)) {
-    if (ip4_addr_ismulticast(&mcastaddress)) {
+    if (isMulticastAddress(mcastaddress)) {
       attributes.multicastLocator = rtps::FullLengthLocator::createUDPv4Locator(
-          ip4_addr1(&mcastaddress), ip4_addr2(&mcastaddress),
-          ip4_addr3(&mcastaddress), ip4_addr4(&mcastaddress),
+          mcastaddress[0], mcastaddress[1], mcastaddress[2], mcastaddress[3],
           getUserMulticastPort());
-        m_transport->joinMultiCastGroup(
-          attributes.multicastLocator.getIp4Address());
+      m_transport->joinMultiCastGroup(
+          {attributes.multicastLocator.address[12],
+           attributes.multicastLocator.address[13],
+           attributes.multicastLocator.address[14],
+           attributes.multicastLocator.address[15]});
       registerMulticastPort(attributes.multicastLocator);
 
       DOMAIN_LOG("Multicast enabled!\n");

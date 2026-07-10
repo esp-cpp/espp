@@ -25,8 +25,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #ifndef RTPS_LOCATOR_T_H
 #define RTPS_LOCATOR_T_H
 
-#include "rtps/communication/UdpDriver.h"
-#include "rtps/config.h"
+#include "rtps/common/types.h"
 #include "rtps/platform/platform_types.h"
 #include "rtps/utils/udpUtils.h"
 #include "ucdr/microcdr.h"
@@ -35,11 +34,10 @@ Author: i11 - Embedded Software, RWTH Aachen University
 
 namespace rtps {
 
-inline std::array<uint8_t, 4> getLocalIp4AddressBytes() {
-  std::array<uint8_t, 4> ip = {Config::IP_ADDRESS[0], Config::IP_ADDRESS[1],
-                               Config::IP_ADDRESS[2], Config::IP_ADDRESS[3]};
-  (void)platform::tryGetDefaultIp4AddressBytes(ip);
-  return ip;
+inline bool isSameSubnetAddress(
+    const platform::Ip4Address &addr,
+    const std::array<uint8_t, 4> &local) {
+  return addr[0] == local[0] && addr[1] == local[1] && addr[2] == local[2];
 }
 
 enum class LocatorKind_t : int32_t {
@@ -100,17 +98,20 @@ struct FullLengthLocator {
                              address[15]);
   }
 
-  bool isSameAddress(platform::Ip4Address *address) {
-    platform::Ip4Address ownaddress = getIp4Address();
-    return ip4_addr_cmp(&ownaddress, address);
+  std::array<uint8_t, 4> getIp4AddressBytes() const {
+    return {address[12], address[13], address[14], address[15]};
   }
 
-  inline bool isSameSubnet() const {
-    return UdpDriver::isSameSubnet(getIp4Address());
+  bool isSameAddress(const platform::Ip4Address &ipAddress) {
+    return getIp4Address() == ipAddress;
+  }
+
+  inline bool isSameSubnet(const std::array<uint8_t, 4> &localIp) const {
+    return isSameSubnetAddress(getIp4Address(), localIp);
   }
 
   inline bool isMulticastAddress() const {
-    return UdpDriver::isMulticastAddress(getIp4Address());
+    return rtps::isMulticastAddress(getIp4Address());
   }
 
   inline uint32_t getLocatorPort() { return static_cast<Ip4Port_t>(port); }
@@ -118,10 +119,11 @@ struct FullLengthLocator {
 } __attribute__((packed));
 
 inline FullLengthLocator
-getBuiltInUnicastLocator(ParticipantId_t participantId) {
-  const auto ip = getLocalIp4AddressBytes();
+getBuiltInUnicastLocator(ParticipantId_t participantId,
+                         const std::array<uint8_t, 4> &localIp) {
   return FullLengthLocator::createUDPv4Locator(
-      ip[0], ip[1], ip[2], ip[3], getBuiltInUnicastPort(participantId));
+      localIp[0], localIp[1], localIp[2], localIp[3],
+      getBuiltInUnicastPort(participantId));
 }
 
 inline FullLengthLocator getBuiltInMulticastLocator() {
@@ -129,18 +131,21 @@ inline FullLengthLocator getBuiltInMulticastLocator() {
                                                getBuiltInMulticastPort());
 }
 
-inline FullLengthLocator getUserUnicastLocator(ParticipantId_t participantId) {
-  const auto ip = getLocalIp4AddressBytes();
+inline FullLengthLocator
+getUserUnicastLocator(ParticipantId_t participantId,
+                      const std::array<uint8_t, 4> &localIp) {
   return FullLengthLocator::createUDPv4Locator(
-    ip[0], ip[1], ip[2], ip[3], getUserUnicastPort(participantId));
+      localIp[0], localIp[1], localIp[2], localIp[3],
+      getUserUnicastPort(participantId));
 }
 
 inline FullLengthLocator
-getUserMulticastLocator() { // this would be a unicastaddress, as
-                            // defined in config
-  const auto ip = getLocalIp4AddressBytes();
+getUserMulticastLocator(
+    const std::array<uint8_t, 4> &localIp) { // this would be a unicastaddress,
+                                              // as defined in config
   return FullLengthLocator::createUDPv4Locator(
-    ip[0], ip[1], ip[2], ip[3], getUserMulticastPort());
+      localIp[0], localIp[1], localIp[2], localIp[3],
+      getUserMulticastPort());
 }
 
 inline FullLengthLocator getDefaultSendMulticastLocator() {
@@ -170,16 +175,18 @@ struct LocatorIPv4 {
     return transformIP4ToU32(address[0], address[1], address[2], address[3]);
   }
 
+  std::array<uint8_t, 4> getIp4AddressBytes() const { return address; }
+
   void setInvalid() { kind = LocatorKind_t::LOCATOR_KIND_INVALID; }
 
   bool isValid() const { return kind != LocatorKind_t::LOCATOR_KIND_INVALID; }
 
-  inline bool isSameSubnet() const {
-    return UdpDriver::isSameSubnet(getIp4Address());
+  inline bool isSameSubnet(const std::array<uint8_t, 4> &localIp) const {
+    return isSameSubnetAddress(getIp4Address(), localIp);
   }
 
   inline bool isMulticastAddress() const {
-    return UdpDriver::isMulticastAddress(getIp4Address());
+    return rtps::isMulticastAddress(getIp4Address());
   }
 };
 

@@ -1,19 +1,13 @@
 #ifndef RTPS_PLATFORM_SYNC_H
 #define RTPS_PLATFORM_SYNC_H
 
-#if defined(ESP_PLATFORM)
-#include "freertos/FreeRTOS.h"
-#include "freertos/semphr.h"
-#else
-#include "FreeRTOS.h"
-#include "semphr.h"
-#endif
+#include <mutex>
 
 namespace rtps {
 namespace platform {
 namespace sync {
 
-using RecursiveMutexHandle = SemaphoreHandle_t;
+using RecursiveMutexHandle = std::recursive_mutex *;
 
 bool createRecursiveMutex(RecursiveMutexHandle *mutex);
 bool lockRecursive(RecursiveMutexHandle mutex);

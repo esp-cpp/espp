@@ -25,7 +25,6 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #ifndef RTPS_RTPSWRITER_H
 #define RTPS_RTPSWRITER_H
 
-#include "lwip/sys.h"
 #include "rtps/common/types.h"
 #include "rtps/config.h"
 #include "rtps/entities/Writer.h"
@@ -34,8 +33,6 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/storages/SimpleHistoryCache.h"
 
 namespace rtps {
-
-struct PBufWrapper;
 
 template <typename NetworkDriver> class StatelessWriterT : public Writer {
 public:

@@ -92,7 +92,8 @@ void publisher_task(void *arg) {
 
 extern "C" void embedded_rtps_start(const char *node_name,
                                       const char *pub_topic,
-                                      const char *sub_topic) {
+                                      const char *sub_topic,
+                                      const rtps::platform::transport::Ip4AddressBytes &local_ip) {
   if (s_started) {
     return;
   }
@@ -105,7 +106,7 @@ extern "C" void embedded_rtps_start(const char *node_name,
   strncpy(s_node_name, node_name, sizeof(s_node_name) - 1);
   s_node_name[sizeof(s_node_name) - 1] = '\0';
 
-  static rtps::Domain domain;
+  static rtps::Domain domain(local_ip);
   s_domain = &domain;
 
   s_participant = s_domain->createParticipant();
@@ -168,7 +169,15 @@ extern "C"  void app_main(void)
   }
   logger.info("WiFi connected, local IP {}", ip_address);
 
-  embedded_rtps_start("DHCPS", "rtps_embedded_pub", "rtps_embedded_sub");
+  rtps::platform::transport::Ip4AddressBytes local_ip{0, 0, 0, 0};
+  if (std::sscanf(ip_address.c_str(), "%hhu.%hhu.%hhu.%hhu", &local_ip[0],
+                  &local_ip[1], &local_ip[2], &local_ip[3]) != 4) {
+    logger.error("Failed to parse local IP {}", ip_address);
+    return;
+  }
+
+  embedded_rtps_start("DHCPS", "rtps_embedded_pub", "rtps_embedded_sub",
+                      local_ip);
   while (true) {
     vTaskDelay(pdMS_TO_TICKS(1000));
   }

@@ -26,16 +26,20 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #define PROJECT_CACHECHANGE_H
 
 #include "rtps/common/types.h"
-#include "rtps/storages/PBufWrapper.h"
+#include "rtps/storages/PayloadBuffer.h"
+
+#include <chrono>
 
 namespace rtps {
 struct CacheChange {
+  using TimePoint = std::chrono::steady_clock::time_point;
+
   ChangeKind_t kind = ChangeKind_t::INVALID;
   bool inLineQoS = false;
   bool disposeAfterWrite = false;
-  TickType_t sentTickCount = 0;
+  TimePoint sentTime{};
   SequenceNumber_t sequenceNumber = SEQUENCENUMBER_UNKNOWN;
-  PBufWrapper data;
+  PayloadBuffer data;
 
   CacheChange &operator=(const CacheChange &other) = delete;
 
@@ -43,7 +47,7 @@ struct CacheChange {
 	  kind = other.kind;
 	  inLineQoS = other.inLineQoS;
 	  disposeAfterWrite = other.disposeAfterWrite;
-	  sentTickCount = other.sentTickCount;
+    sentTime = other.sentTime;
 	  sequenceNumber = other.sequenceNumber;
 	  data = std::move(other.data);
 	  return *this;
@@ -58,7 +62,7 @@ struct CacheChange {
     sequenceNumber = SEQUENCENUMBER_UNKNOWN;
     inLineQoS = false;
     disposeAfterWrite = false;
-    sentTickCount = 0;
+    sentTime = TimePoint{};
   }
 
   bool isInitialized() { return (kind != ChangeKind_t::INVALID); }

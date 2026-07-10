@@ -25,10 +25,12 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/entities/StatefulWriter.h"
 #include "rtps/messages/MessageFactory.h"
 #include "rtps/messages/MessageTypes.h"
-#include "rtps/platform/threading.h"
+#include "rtps/storages/PayloadBuffer.h"
 #include "rtps/utils/Log.h"
+#include <chrono>
 #include <cstring>
 #include <stdio.h>
+#include <thread>
 
 using rtps::StatefulWriterT;
 
@@ -47,11 +49,12 @@ using rtps::StatefulWriterT;
 template <class NetworkDriver>
 StatefulWriterT<NetworkDriver>::~StatefulWriterT() {
   m_running = false;
+  if (m_heartbeatTask) {
+    m_heartbeatTask->stop();
+  }
   while (m_thread_running) {
-    platform::threading::sleepMs(500); // Required for tests/ Join currently not available /
-    //  increased because Segfault in Tests if(sys_mutex_valid(&m_mutex)){
-    //    sys_mutex_free(&m_mutex);
-    //  }
+    // Wait for the heartbeat loop to observe m_running and exit.
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
   }
 }
 
@@ -98,21 +101,29 @@ bool StatefulWriterT<NetworkDriver>::init(TopicData attributes,
     m_running = true;
     m_thread_running = false;
 
+    const char *task_name = "HBThread";
     if (m_attributes.endpointGuid.entityId ==
         ENTITYID_SEDP_BUILTIN_PUBLICATIONS_WRITER) {
-      m_heartbeatThread = platform::threading::startThread(
-          "HBThreadPub", hbFunctionJumppad, this,
-          Config::HEARTBEAT_STACKSIZE, Config::THREAD_POOL_WRITER_PRIO);
+      task_name = "HBThreadPub";
     } else if (m_attributes.endpointGuid.entityId ==
                ENTITYID_SEDP_BUILTIN_SUBSCRIPTIONS_WRITER) {
-      m_heartbeatThread = platform::threading::startThread(
-          "HBThreadSub", hbFunctionJumppad, this,
-          Config::HEARTBEAT_STACKSIZE, Config::THREAD_POOL_WRITER_PRIO);
-    } else {
-      m_heartbeatThread = platform::threading::startThread(
-          "HBThread", hbFunctionJumppad, this, Config::HEARTBEAT_STACKSIZE,
-          Config::THREAD_POOL_WRITER_PRIO);
+      task_name = "HBThreadSub";
     }
+
+    if (!m_heartbeatTask) {
+      espp::Task::Config config;
+      config.callback = [this]() {
+        sendHeartBeatLoop();
+        return true;
+      };
+      config.task_config.name = task_name;
+      config.task_config.stack_size_bytes = Config::HEARTBEAT_STACKSIZE;
+      config.task_config.priority = Config::THREAD_POOL_WRITER_PRIO;
+      config.log_level = espp::Logger::Verbosity::WARN;
+      m_heartbeatTask = espp::Task::make_unique(config);
+    }
+
+    (void)m_heartbeatTask->start();
   }
 
   return true;
@@ -191,7 +202,7 @@ template <class NetworkDriver> void StatefulWriterT<NetworkDriver>::progress() {
      * during SEDP
      */
     if (next->disposeAfterWrite) {
-      next->sentTickCount = xTaskGetTickCount();
+      next->sentTime = std::chrono::steady_clock::now();
       if (!m_disposeWithDelay.copyElementIntoBuffer(next->sequenceNumber)) {
         SFW_LOG("Failed to enqueue dispose after write!");
         m_history.dropChange(next->sequenceNumber);
@@ -339,25 +350,28 @@ template <class NetworkDriver>
 bool StatefulWriterT<NetworkDriver>::sendData(const ReaderProxy &reader,
                                               const CacheChange *next) {
   INIT_GUARD()
-  // TODO smarter packaging e.g. by creating MessageStruct and serialize after
-  // adjusting values Reusing the pbuf is not possible. See
-  // https://www.nongnu.org/lwip/2_0_x/raw_api.html (Zero-Copy MACs)
+  // TODO smarter packaging, e.g. create a message struct and serialize once.
 
   PacketInfo info;
   info.srcPort = m_srcPort;
+  PayloadBuffer payload;
 
-  MessageFactory::addHeader(info.buffer, m_attributes.endpointGuid.prefix);
-  MessageFactory::addSubMessageTimeStamp(info.buffer);
+  MessageFactory::addHeader(payload, m_attributes.endpointGuid.prefix);
+  MessageFactory::addSubMessageTimeStamp(payload);
 
   // Just usable for IPv4
   const LocatorIPv4 &locator = reader.remoteLocator;
 
-  info.destAddr = locator.getIp4Address();
+  info.destAddr = locator.getIp4AddressBytes();
   info.destPort = (Ip4Port_t)locator.port;
 
   MessageFactory::addSubMessageData(
-      info.buffer, next->data, next->inLineQoS, next->sequenceNumber,
+      payload, next->data, next->inLineQoS, next->sequenceNumber,
       m_attributes.endpointGuid.entityId, reader.remoteReaderGuid.entityId);
+  info.payload = std::move(payload.bytes);
+  if (info.payload.empty()) {
+    return false;
+  }
   m_transport->sendPacket(info);
 
   return true;
@@ -368,25 +382,28 @@ void StatefulWriterT<NetworkDriver>::sendGap(
     const ReaderProxy &reader, const SequenceNumber_t &firstMissing,
     const SequenceNumber_t &nextValid) {
   INIT_GUARD()
-  // TODO smarter packaging e.g. by creating MessageStruct and serialize after
-  // adjusting values Reusing the pbuf is not possible. See
-  // https://www.nongnu.org/lwip/2_0_x/raw_api.html (Zero-Copy MACs)
+  // TODO smarter packaging, e.g. create a message struct and serialize once.
 
   PacketInfo info;
   info.srcPort = m_srcPort;
+  PayloadBuffer payload;
 
-  MessageFactory::addHeader(info.buffer, m_attributes.endpointGuid.prefix);
-  MessageFactory::addSubMessageTimeStamp(info.buffer);
+  MessageFactory::addHeader(payload, m_attributes.endpointGuid.prefix);
+  MessageFactory::addSubMessageTimeStamp(payload);
 
   // Just usable for IPv4
   const LocatorIPv4 &locator = reader.remoteLocator;
 
-  info.destAddr = locator.getIp4Address();
+  info.destAddr = locator.getIp4AddressBytes();
   info.destPort = (Ip4Port_t)locator.port;
 
   MessageFactory::addSubmessageGap(
-      info.buffer, m_attributes.endpointGuid.entityId,
+      payload, m_attributes.endpointGuid.entityId,
       reader.remoteReaderGuid.entityId, firstMissing, nextValid);
+  info.payload = std::move(payload.bytes);
+  if (info.payload.empty()) {
+    return;
+  }
   m_transport->sendPacket(info);
 }
 
@@ -398,18 +415,19 @@ bool StatefulWriterT<NetworkDriver>::sendDataWRMulticast(
   if (reader.useMulticast || reader.suppressUnicast == false) {
     PacketInfo info;
     info.srcPort = m_srcPort;
+    PayloadBuffer payload;
 
-    MessageFactory::addHeader(info.buffer, m_attributes.endpointGuid.prefix);
-    MessageFactory::addSubMessageTimeStamp(info.buffer);
+    MessageFactory::addHeader(payload, m_attributes.endpointGuid.prefix);
+    MessageFactory::addSubMessageTimeStamp(payload);
 
-    // Deceide whether multicast or not
+    // Decide whether to use multicast or unicast.
     if (reader.useMulticast) {
       const LocatorIPv4 &locator = reader.remoteMulticastLocator;
-      info.destAddr = locator.getIp4Address();
+      info.destAddr = locator.getIp4AddressBytes();
       info.destPort = (Ip4Port_t)locator.port;
     } else {
       const LocatorIPv4 &locator = reader.remoteLocator;
-      info.destAddr = locator.getIp4Address();
+      info.destAddr = locator.getIp4AddressBytes();
       info.destPort = (Ip4Port_t)locator.port;
     }
 
@@ -420,19 +438,17 @@ bool StatefulWriterT<NetworkDriver>::sendDataWRMulticast(
       reid = reader.remoteReaderGuid.entityId;
     }
 
-    MessageFactory::addSubMessageData(info.buffer, next->data, next->inLineQoS,
+    MessageFactory::addSubMessageData(payload, next->data, next->inLineQoS,
                                       next->sequenceNumber,
                                       m_attributes.endpointGuid.entityId, reid);
 
+    info.payload = std::move(payload.bytes);
+    if (info.payload.empty()) {
+      return false;
+    }
     m_transport->sendPacket(info);
   }
   return true;
-}
-
-template <class NetworkDriver>
-void StatefulWriterT<NetworkDriver>::hbFunctionJumppad(void *thisPointer) {
-  auto *writer = static_cast<StatefulWriterT<NetworkDriver> *>(thisPointer);
-  writer->sendHeartBeatLoop();
 }
 
 template <class NetworkDriver>
@@ -452,17 +468,12 @@ void StatefulWriterT<NetworkDriver>::sendHeartBeatLoop() {
     // Temporarily increase HB frequency if there are unconfirmed remote changes
     if (unconfirmed_changes) {
       SFW_LOG("HB SPEEDUP!\r\n");
-#ifdef OS_IS_FREERTOS
-      vTaskDelay(pdMS_TO_TICKS(Config::SF_WRITER_HB_PERIOD_MS / 4));
+      std::this_thread::sleep_for(
+          std::chrono::milliseconds(Config::SF_WRITER_HB_PERIOD_MS / 4));
     } else {
-      vTaskDelay(pdMS_TO_TICKS(Config::SF_WRITER_HB_PERIOD_MS));
+      std::this_thread::sleep_for(
+          std::chrono::milliseconds(Config::SF_WRITER_HB_PERIOD_MS));
     }
-#else
-      platform::threading::sleepMs(Config::SF_WRITER_HB_PERIOD_MS / 4);
-    } else {
-      platform::threading::sleepMs(Config::SF_WRITER_HB_PERIOD_MS);
-    }
-#endif
   }
   m_thread_running = false;
 }
@@ -479,8 +490,15 @@ void StatefulWriterT<NetworkDriver>::dropDisposeAfterWriteChanges() {
       return;
     }
 
-    auto age = (xTaskGetTickCount() - change->sentTickCount);
-    if (age > pdMS_TO_TICKS(4000)) {
+    if (change->sentTime == CacheChange::TimePoint{}) {
+      m_history.dropChange(change->sequenceNumber);
+      SequenceNumber_t tmp;
+      m_disposeWithDelay.moveFirstInto(tmp);
+      continue;
+    }
+
+    auto age = std::chrono::steady_clock::now() - change->sentTime;
+    if (age > std::chrono::milliseconds(4000)) {
       m_history.dropChange(change->sequenceNumber);
       SFW_LOG("Removing SN %u %u for good\r\n",
               static_cast<unsigned int>(oldest_retained.low),
@@ -508,11 +526,12 @@ void StatefulWriterT<NetworkDriver>::sendHeartBeat() {
 
     PacketInfo info;
     info.srcPort = m_srcPort;
+    PayloadBuffer payload;
 
     SequenceNumber_t firstSN;
     SequenceNumber_t lastSN;
 
-    MessageFactory::addHeader(info.buffer, m_attributes.endpointGuid.prefix);
+    MessageFactory::addHeader(payload, m_attributes.endpointGuid.prefix);
 
     {
       Lock lock{m_mutex};
@@ -548,11 +567,15 @@ void StatefulWriterT<NetworkDriver>::sendHeartBeat() {
             lastSN.low, lastSN.high);
 
     MessageFactory::addHeartbeat(
-        info.buffer, m_attributes.endpointGuid.entityId,
+        payload, m_attributes.endpointGuid.entityId,
         proxy.remoteReaderGuid.entityId, firstSN, lastSN, m_hbCount);
 
-    info.destAddr = proxy.remoteLocator.getIp4Address();
+    info.destAddr = proxy.remoteLocator.getIp4AddressBytes();
     info.destPort = proxy.remoteLocator.port;
+    info.payload = std::move(payload.bytes);
+    if (info.payload.empty()) {
+      continue;
+    }
     m_transport->sendPacket(info);
   }
   m_hbCount.value++;

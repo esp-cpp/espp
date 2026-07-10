@@ -24,12 +24,12 @@ Author: i11 - Embedded Software, RWTH Aachen University
 
 #include "rtps/ThreadPool.h"
 
-#include "lwip/tcpip.h"
 #include "rtps/entities/Domain.h"
 #include "rtps/entities/Writer.h"
 #include "rtps/utils/Diagnostics.h"
 #include "rtps/utils/Log.h"
 #include "rtps/utils/udpUtils.h"
+#include "thread_pool.hpp"
 
 using rtps::ThreadPool;
 
@@ -52,25 +52,39 @@ ThreadPool::ThreadPool(receiveJumppad_fp receiveCallback, void *callee)
       !m_incomingMetaTraffic.init() || !m_incomingUserTraffic.init()) {
     return;
   }
-  bool inputOk = platform::threading::createSemaphore(&m_readerNotificationSem, 0);
-  bool outputOk = platform::threading::createSemaphore(&m_writerNotificationSem, 0);
 
-  if (!inputOk || !outputOk) {
-    THREAD_POOL_LOG("ThreadPool: Failed to create Semaphores.\n");
-  }
+  m_writerWorkers = std::make_unique<espp::ThreadPool>(espp::ThreadPool::Config{
+      .worker_count = Config::THREAD_POOL_NUM_WRITERS,
+      .max_queue_size = 0,
+      .auto_start = false,
+      .block_on_submit_when_full = false,
+      .worker_task_config = {
+          .name = "rtps_writer",
+          .stack_size_bytes = static_cast<size_t>(Config::THREAD_POOL_WRITER_STACKSIZE),
+          .priority = static_cast<size_t>(Config::THREAD_POOL_WRITER_PRIO),
+          .core_id = -1,
+      },
+      .log_level = espp::Logger::Verbosity::WARN,
+  });
+
+  m_readerWorkers = std::make_unique<espp::ThreadPool>(espp::ThreadPool::Config{
+      .worker_count = Config::THREAD_POOL_NUM_READERS,
+      .max_queue_size = 0,
+      .auto_start = false,
+      .block_on_submit_when_full = false,
+      .worker_task_config = {
+          .name = "rtps_reader",
+          .stack_size_bytes = static_cast<size_t>(Config::THREAD_POOL_READER_STACKSIZE),
+          .priority = static_cast<size_t>(Config::THREAD_POOL_READER_PRIO),
+          .core_id = -1,
+      },
+      .log_level = espp::Logger::Verbosity::WARN,
+  });
 }
 
 ThreadPool::~ThreadPool() {
   if (m_running) {
     stopThreads();
-    platform::threading::sleepMs(500);
-  }
-
-  if (platform::threading::isSemaphoreValid(&m_readerNotificationSem)) {
-    platform::threading::freeSemaphore(&m_readerNotificationSem);
-  }
-  if (platform::threading::isSemaphoreValid(&m_writerNotificationSem)) {
-    platform::threading::freeSemaphore(&m_writerNotificationSem);
   }
 }
 
@@ -101,45 +115,27 @@ bool ThreadPool::startThreads() {
   if (m_running) {
     return true;
   }
-  if (!platform::threading::isSemaphoreValid(&m_readerNotificationSem) ||
-      !platform::threading::isSemaphoreValid(&m_writerNotificationSem)) {
+  if (!m_writerWorkers || !m_readerWorkers) {
     return false;
   }
 
   m_running = true;
-  for (auto &thread : m_writers) {
-    // TODO ID, err check, waitOnStop
-    thread = platform::threading::startThread(
-        "WriterThread", writerThreadFunction, this,
-        Config::THREAD_POOL_WRITER_STACKSIZE, Config::THREAD_POOL_WRITER_PRIO);
-  }
+  m_writerWorkers->start();
+  m_readerWorkers->start();
 
-  for (auto &thread : m_readers) {
-    // TODO ID, err check, waitOnStop
-    thread = platform::threading::startThread(
-        "ReaderThread", readerThreadFunction, this,
-        Config::THREAD_POOL_READER_STACKSIZE, Config::THREAD_POOL_READER_PRIO);
-  }
+  scheduleWriterWork();
+  scheduleReaderWork();
   return true;
 }
 
 void ThreadPool::stopThreads() {
   m_running = false;
-  // This should call all the semaphores for each thread once, so they don't
-  // stuck before ended.
-  for (auto &thread : m_writers) {
-    (void)thread;
-    platform::threading::signalSemaphore(&m_writerNotificationSem);
-    platform::threading::sleepMs(10);
+  if (m_writerWorkers) {
+    m_writerWorkers->stop();
   }
-  for (auto &thread : m_readers) {
-    (void)thread;
-    platform::threading::signalSemaphore(&m_readerNotificationSem);
-    platform::threading::sleepMs(10);
+  if (m_readerWorkers) {
+    m_readerWorkers->stop();
   }
-  // TODO make sure they have finished. Seems to be sufficient for tests.
-  // Not sufficient if threads shall actually be stopped during runtime.
-  platform::threading::sleepMs(10);
 }
 
 void ThreadPool::clearQueues() {
@@ -156,16 +152,17 @@ bool ThreadPool::addWorkload(Writer *workload) {
   } else {
     res = m_outgoingUserTraffic.moveElementIntoBuffer(std::move(workload));
   }
-  if (res) {
-    platform::threading::signalSemaphore(&m_writerNotificationSem);
-  } else {
+  if (!res) {
 	if(workload->isBuiltinEndpoint()){
 		rtps::Diagnostics::ThreadPool::dropped_outgoing_packets_metatraffic++;
 	}else{
 		rtps::Diagnostics::ThreadPool::dropped_outgoing_packets_usertraffic++;
 	}
     THREAD_POOL_LOG("Failed to enqueue outgoing packet.");
+    return false;
   }
+
+  scheduleWriterWork();
 
   return res;
 }
@@ -203,25 +200,22 @@ bool ThreadPool::addNewPacket(PacketInfo &&packet) {
   } else {
     res = m_incomingUserTraffic.moveElementIntoBuffer(std::move(packet));
   }
-  if (res) {
-    platform::threading::signalSemaphore(&m_readerNotificationSem);
-  } else {
+  if (!res) {
     THREAD_POOL_LOG("failed to enqueue packet for port %u",
                     static_cast<unsigned int>(packet.destPort));
+    return false;
   }
+
+  scheduleReaderWork();
   return res;
 }
 
-void ThreadPool::writerThreadFunction(void *arg) {
-  auto pool = static_cast<ThreadPool *>(arg);
-  if (pool == nullptr) {
-
-    THREAD_POOL_LOG("nullptr passed to writer function\n");
-
+void ThreadPool::scheduleWriterWork() {
+  if (!m_running || !m_writerWorkers) {
     return;
   }
 
-  pool->doWriterWork();
+  (void)m_writerWorkers->try_submit([this]() { doWriterWork(); });
 }
 
 void ThreadPool::doWriterWork() {
@@ -242,39 +236,34 @@ void ThreadPool::doWriterWork() {
 
     if (workload_usertraffic_available || workload_metatraffic_available) {
       continue;
-    } else {
-      THREAD_POOL_LOG("WriterWorker | User = %u, Meta = %u\r\n",
-                      static_cast<unsigned int>(Diagnostics::ThreadPool::processed_outgoing_usertraffic),
-                      static_cast<unsigned int>(Diagnostics::ThreadPool::processed_outgoing_metatraffic));
-      updateDiagnostics();
-      platform::threading::waitSemaphore(&m_writerNotificationSem);
     }
+
+    THREAD_POOL_LOG("WriterWorker | User = %u, Meta = %u\r\n",
+                    static_cast<unsigned int>(Diagnostics::ThreadPool::processed_outgoing_usertraffic),
+                    static_cast<unsigned int>(Diagnostics::ThreadPool::processed_outgoing_metatraffic));
+    updateDiagnostics();
+    return;
   }
 }
 
-void ThreadPool::readCallback(void *args, udp_pcb *target, pbuf *pbuf,
-                              const ip_addr_t *addr, Ip4Port_t port) {
-  auto &pool = *static_cast<ThreadPool *>(args);
+void ThreadPool::onDatagram(
+    void *arg, const uint8_t *data, std::size_t size, Ip4Port_t localPort,
+    Ip4Port_t remotePort,
+    const platform::transport::Ip4AddressBytes &remoteAddress) {
+  auto &pool = *static_cast<ThreadPool *>(arg);
 
   PacketInfo packet;
+  packet.destAddr = remoteAddress;
+  packet.destPort = localPort;
+  packet.srcPort = remotePort;
 
-  // TODO This is a workaround for chained pbufs caused by hardware limitations,
-  // not a general fix
-  if (pbuf->next != nullptr) {
-    struct pbuf *test = pbuf_alloc(PBUF_RAW, pbuf->tot_len, PBUF_POOL);
-    pbuf_copy(test, pbuf);
-    pbuf_free(pbuf);
-    pbuf = test;
+  if (size > 0 && data != nullptr) {
+    packet.payload.assign(data, data + size);
   }
-
-  packet.destAddr = {0}; // not relevant
-  packet.destPort = target->local_port;
-  packet.srcPort = port;
-  packet.buffer = PBufWrapper{pbuf};
 
   if (!pool.addNewPacket(std::move(packet))) {
     THREAD_POOL_LOG("ThreadPool: dropped packet\n");
-    if (pool.isBuiltinPort(port)) {
+    if (pool.isBuiltinPort(remotePort)) {
       rtps::Diagnostics::ThreadPool::dropped_incoming_packets_metatraffic++;
     } else {
       rtps::Diagnostics::ThreadPool::dropped_incoming_packets_usertraffic++;
@@ -282,15 +271,12 @@ void ThreadPool::readCallback(void *args, udp_pcb *target, pbuf *pbuf,
   }
 }
 
-void ThreadPool::readerThreadFunction(void *arg) {
-  auto pool = static_cast<ThreadPool *>(arg);
-  if (pool == nullptr) {
-
-    THREAD_POOL_LOG("nullptr passed to reader function\n");
-
+void ThreadPool::scheduleReaderWork() {
+  if (!m_running || !m_readerWorkers) {
     return;
   }
-  pool->doReaderWork();
+
+  (void)m_readerWorkers->try_submit([this]() { doReaderWork(); });
 }
 
 void ThreadPool::doReaderWork() {
@@ -318,7 +304,7 @@ void ThreadPool::doReaderWork() {
                     static_cast<unsigned int>(usertraffic),
                     static_cast<unsigned int>(metatraffic));
     updateDiagnostics();
-    platform::threading::waitSemaphore(&m_readerNotificationSem);
+    return;
   }
 }
 

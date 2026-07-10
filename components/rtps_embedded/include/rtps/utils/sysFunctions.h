@@ -25,16 +25,21 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #ifndef PROJECT_SYSFUNCTIONS_H
 #define PROJECT_SYSFUNCTIONS_H
 
-#include "lwip/sys.h"
 #include "rtps/common/types.h"
+
+#include <chrono>
 
 namespace rtps {
 inline Time_t getCurrentTimeStamp() {
+  static const auto start = std::chrono::steady_clock::now();
+  const auto elapsed = std::chrono::steady_clock::now() - start;
+  const auto nowMs =
+      std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
+
   Time_t now;
-  // TODO FIX
-  uint32_t nowMs = sys_now();
-  now.seconds = (int32_t)nowMs / 1000;
-  now.fraction = ((nowMs % 1000) / 1000);
+  now.seconds = static_cast<int32_t>(nowMs / 1000);
+  now.fraction = static_cast<uint32_t>((nowMs % 1000) *
+                                       ((1ULL << 32) / 1000));
   return now;
 }
 } // namespace rtps

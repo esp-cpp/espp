@@ -24,23 +24,57 @@ Author: i11 - Embedded Software, RWTH Aachen University
 
 #include "rtps/communication/EsppTransport.h"
 
-#include "lwip/ip_addr.h"
-#include "lwip/ip4_addr.h"
 #include "rtps/communication/PacketInfo.h"
 #include "task.hpp"
 
 #include <array>
+#include <cstdlib>
 #include <optional>
 #include <vector>
 
 using rtps::EsppTransport;
+
+namespace {
+
+bool parseIp4Address(const std::string &address,
+                     rtps::platform::transport::Ip4AddressBytes &out) {
+  rtps::platform::transport::Ip4AddressBytes parsed{0, 0, 0, 0};
+  const char *cursor = address.c_str();
+
+  for (std::size_t i = 0; i < parsed.size(); ++i) {
+    char *end = nullptr;
+    const unsigned long value = std::strtoul(cursor, &end, 10);
+    if (end == cursor || value > 255) {
+      return false;
+    }
+
+    parsed[i] = static_cast<uint8_t>(value);
+    if (i + 1 < parsed.size()) {
+      if (*end != '.') {
+        return false;
+      }
+      cursor = end + 1;
+    } else if (*end != '\0') {
+      return false;
+    }
+  }
+
+  out = parsed;
+  return true;
+}
+
+bool isMulticastAddress(const rtps::platform::transport::Ip4AddressBytes &addr) {
+  return addr[0] >= 224 && addr[0] <= 239;
+}
+
+} // namespace
 
 EsppTransport::EsppTransport(RxCallback callback, void *args)
     : m_rxCallback(callback), m_callbackArgs(args) {}
 
 EsppTransport::Channel *EsppTransport::findChannel(Ip4Port_t port) {
   for (auto &channel : m_channels) {
-    if (channel.in_use && channel.connection.port == port) {
+    if (channel.in_use && channel.port == port) {
       return &channel;
     }
   }
@@ -49,21 +83,17 @@ EsppTransport::Channel *EsppTransport::findChannel(Ip4Port_t port) {
 
 const EsppTransport::Channel *EsppTransport::findChannel(Ip4Port_t port) const {
   for (const auto &channel : m_channels) {
-    if (channel.in_use && channel.connection.port == port) {
+    if (channel.in_use && channel.port == port) {
       return &channel;
     }
   }
   return nullptr;
 }
 
-std::string EsppTransport::ip4ToString(platform::Ip4Address addr) {
-  std::array<char, 16> buffer{};
-  const char *result = ip4addr_ntoa_r(&addr, buffer.data(),
-                                      static_cast<int>(buffer.size()));
-  if (result == nullptr) {
-    return "0.0.0.0";
-  }
-  return std::string(result);
+std::string EsppTransport::ip4ToString(
+    const platform::transport::Ip4AddressBytes &addr) {
+  return std::to_string(addr[0]) + "." + std::to_string(addr[1]) + "." +
+         std::to_string(addr[2]) + "." + std::to_string(addr[3]);
 }
 
 bool EsppTransport::startReceiver(Channel &channel, Ip4Port_t receivePort) {
@@ -104,12 +134,12 @@ EsppTransport::Channel *EsppTransport::createChannel(Ip4Port_t receivePort) {
       return nullptr;
     }
 
-    channel.connection.port = receivePort;
+    channel.port = receivePort;
     channel.in_use = true;
 
     if (!startReceiver(channel, receivePort)) {
       channel.socket.reset();
-      channel.connection.port = 0;
+      channel.port = 0;
       channel.in_use = false;
       return nullptr;
     }
@@ -128,44 +158,27 @@ void EsppTransport::onReceive(Ip4Port_t receivePort, std::vector<uint8_t> &data,
     return;
   }
 
-  pbuf *packet_buffer = pbuf_alloc(PBUF_TRANSPORT,
-                                   static_cast<u16_t>(data.size()), PBUF_POOL);
-  if (packet_buffer == nullptr) {
-    return;
-  }
+  platform::transport::Ip4AddressBytes remoteAddress{0, 0, 0, 0};
+  (void)parseIp4Address(sender.address, remoteAddress);
 
-  if (!data.empty() &&
-      pbuf_take(packet_buffer, data.data(), static_cast<u16_t>(data.size())) !=
-          ERR_OK) {
-    pbuf_free(packet_buffer);
-    return;
-  }
-
-  udp_pcb pcb{};
-  pcb.local_port = receivePort;
-
-  ip_addr_t source_addr{};
-  if (!ipaddr_aton(sender.address.c_str(), &source_addr)) {
-    ip_addr_set_any(IPADDR_TYPE_V4, &source_addr);
-  }
-
-  m_rxCallback(m_callbackArgs, &pcb, packet_buffer, &source_addr,
-               static_cast<Ip4Port_t>(sender.port));
+  m_rxCallback(m_callbackArgs, data.data(), data.size(), receivePort,
+               static_cast<Ip4Port_t>(sender.port), remoteAddress);
 }
 
-const rtps::UdpConnection *EsppTransport::createUdpConnection(Ip4Port_t receivePort) {
+bool EsppTransport::ensureReceivePort(Ip4Port_t receivePort) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
   Channel *existing = findChannel(receivePort);
   if (existing != nullptr) {
-    return &existing->connection;
+    return true;
   }
 
   Channel *created = createChannel(receivePort);
-  return created != nullptr ? &created->connection : nullptr;
+  return created != nullptr;
 }
 
-bool EsppTransport::joinMultiCastGroup(platform::Ip4Address addr) const {
+bool EsppTransport::joinMultiCastGroup(
+    const platform::transport::Ip4AddressBytes &addr) const {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
   const std::string group = ip4ToString(addr);
@@ -195,22 +208,19 @@ void EsppTransport::sendPacket(PacketInfo &info) {
     channel = createChannel(info.srcPort);
   }
 
-  if (channel == nullptr || !channel->socket || info.buffer.firstElement == nullptr) {
+  if (channel == nullptr || !channel->socket) {
     return;
   }
 
-  const size_t packet_size = info.buffer.firstElement->tot_len;
-  std::vector<uint8_t> bytes(packet_size);
-  u16_t copied = pbuf_copy_partial(info.buffer.firstElement, bytes.data(),
-                                   static_cast<u16_t>(packet_size), 0);
-  if (copied != static_cast<u16_t>(packet_size)) {
+  if (info.payload.empty()) {
     return;
   }
 
   espp::UdpSocket::SendConfig send_config;
-  send_config.ip_address = ip4ToString(info.destAddr);
+  const platform::transport::Ip4AddressBytes destination = info.destAddr;
+  send_config.ip_address = ip4ToString(destination);
   send_config.port = info.destPort;
-  send_config.is_multicast_endpoint = ip4_addr_ismulticast(&info.destAddr) != 0;
+  send_config.is_multicast_endpoint = isMulticastAddress(info.destAddr);
 
-  (void)channel->socket->send(bytes, send_config);
+  (void)channel->socket->send(info.payload, send_config);
 }

@@ -50,10 +50,18 @@ bool ParticipantProxyData::readFromUcdrBuffer(ucdrBuffer &buffer,
   uint16_t length;
   SPDP_LOG("Start deserializing ParticipantProxyData\n");
   SPDP_LOG("Buffer has %u bytes remaining\n", ucdr_buffer_remaining(&buffer));
+  SPDP_LOG("first 20 bytes of data: ");
+  for (int i = 0; i < 20 && i < ucdr_buffer_remaining(&buffer); ++i) {
+    SPDP_LOG("%02x ", buffer.iterator[i]);
+  }
+  SPDP_LOG("\n");
+  SPDP_LOG("before start, buff length: %d. last data size: %d, offset: %d", ucdr_buffer_length(&buffer), buffer.last_data_size, buffer.offset);
   while (ucdr_buffer_remaining(&buffer) >= 4) {
     ucdr_deserialize_uint16_t(&buffer, reinterpret_cast<uint16_t *>(&pid));
+    SPDP_LOG("buff length after get id: %d. last data size: %d, offset: %d", ucdr_buffer_length(&buffer), buffer.last_data_size, buffer.offset);
 
     ucdr_deserialize_uint16_t(&buffer, &length);
+    SPDP_LOG("buff length after get length: %d. last data size: %d, offset: %d", ucdr_buffer_length(&buffer), buffer.last_data_size, buffer.offset);
     SPDP_LOG("Deserializing parameter with id %u and length %u\n",
              static_cast<uint16_t>(pid), length);
     if (ucdr_buffer_remaining(&buffer) < length) {
@@ -77,11 +85,18 @@ bool ParticipantProxyData::readFromUcdrBuffer(ucdrBuffer &buffer,
       } else {
         ucdr_deserialize_uint8_t(&buffer, &m_protocolVersion.minor);
       }
+      SPDP_LOG("Protocol version: %u.%u\n", m_protocolVersion.major,
+               m_protocolVersion.minor);
+      SPDP_LOG("buff length: %d. last data size: %d, offset: %d", ucdr_buffer_length(&buffer), buffer.last_data_size, buffer.offset);
       break;
     }
     case ParameterId::PID_VENDORID: {
       ucdr_deserialize_array_uint8_t(&buffer, m_vendorId.vendorId.data(),
                                      m_vendorId.vendorId.size());
+      SPDP_LOG(" vendor id struct size: %d\n", m_vendorId.vendorId.size());
+      SPDP_LOG("Vendor ID: %u %u\n", m_vendorId.vendorId[0],
+               m_vendorId.vendorId[1]);
+      SPDP_LOG("buff length: %d. last data size: %d, offset: %d", ucdr_buffer_length(&buffer), buffer.last_data_size, buffer.offset);
       break;
     }
 
@@ -169,13 +184,16 @@ bool ParticipantProxyData::readFromUcdrBuffer(ucdrBuffer &buffer,
       // SPDP_LOG("unknow ID. could be vender defined.\n");
       // should not return false for unknown parameter, just skip it, otherwise we might miss some important information if the remote participant is using some vendor specific parameters that we do not know about.
       // TODO: GUO: need read out the data for the length of the parameter, otherwise the buffer will be in wrong state and the following parameters cannot be read correctly. For now just skip the data by moving the iterator forward, but we might want to actually read out the data and store it for future use if needed, especially for some vendor specific parameters that we do not know about.
-      buffer.iterator += length;
+      // buffer.iterator += length;
+      ucdr_advance_buffer(&buffer, length);
       break; }
     }
-    // Parameter lists are 4-byte aligned
+      // Parameter lists are 4-byte aligned
     uint32_t alignment = ucdr_buffer_alignment(&buffer, 4);
-    buffer.iterator += alignment;
-    buffer.last_data_size = 4;
+      SPDP_LOG("Alignment for next parameter: %lu\n", alignment);
+    ucdr_advance_buffer(&buffer, alignment);
+    // buffer.iterator += alignment;
+    // buffer.last_data_size = 4;
   }
   return true;
 }

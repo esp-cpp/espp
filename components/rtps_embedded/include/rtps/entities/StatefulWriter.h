@@ -28,9 +28,11 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/entities/ReaderProxy.h"
 #include "rtps/entities/Writer.h"
 #include "rtps/platform/transport.h"
-#include "rtps/platform/threading.h"
 #include "rtps/storages/HistoryCacheWithDeletion.h"
 #include "rtps/storages/MemoryPool.h"
+#include "task.hpp"
+
+#include <memory>
 
 namespace rtps {
 
@@ -69,7 +71,7 @@ private:
   ThreadSafeCircularBuffer<SequenceNumber_t, 10> m_disposeWithDelay;
   void dropDisposeAfterWriteChanges();
 
-  platform::threading::ThreadHandle m_heartbeatThread;
+  std::unique_ptr<espp::Task> m_heartbeatTask;
 
   Count_t m_hbCount{1};
 
@@ -78,7 +80,6 @@ private:
 
   bool sendData(const ReaderProxy &reader, const CacheChange *next);
   bool sendDataWRMulticast(const ReaderProxy &reader, const CacheChange *next);
-  static void hbFunctionJumppad(void *thisPointer);
   void sendHeartBeatLoop();
   void sendHeartBeat();
   void sendGap(const ReaderProxy &reader, const SequenceNumber_t &firstMissing,

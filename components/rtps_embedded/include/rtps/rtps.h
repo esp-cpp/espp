@@ -28,12 +28,6 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/entities/Domain.h"
 
 namespace rtps {
-
-#if defined(unix) || defined(__unix__) || defined(WIN32) || defined(_WIN32) || \
-    defined(__WIN32) && !defined(__CYGWIN__)
-void init();
-#endif
-
 } // namespace rtps
 
 #endif // RTPS_RTPS_H

@@ -25,9 +25,6 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #ifndef RTPS_ESPPTRANSPORT_H
 #define RTPS_ESPPTRANSPORT_H
 
-#include "lwip/pbuf.h"
-#include "lwip/udp.h"
-#include "rtps/communication/UdpConnection.h"
 #include "rtps/config.h"
 #include "rtps/platform/transport.h"
 #include "udp_socket.hpp"
@@ -42,20 +39,19 @@ namespace rtps {
 
 class EsppTransport : public platform::transport::ITransport {
 public:
-  using RxCallback =
-      void (*)(void *arg, udp_pcb *pcb, pbuf *p, const ip_addr_t *addr,
-               Ip4Port_t port);
+  using RxCallback = platform::transport::ReceiveCallback;
 
   EsppTransport(RxCallback callback, void *args);
   ~EsppTransport() override = default;
 
-  const rtps::UdpConnection *createUdpConnection(Ip4Port_t receivePort) override;
-  bool joinMultiCastGroup(platform::Ip4Address addr) const override;
+  bool ensureReceivePort(Ip4Port_t receivePort) override;
+  bool joinMultiCastGroup(
+      const platform::transport::Ip4AddressBytes &addr) const override;
   void sendPacket(PacketInfo &info) override;
 
 private:
   struct Channel {
-    rtps::UdpConnection connection{};
+    Ip4Port_t port{0};
     std::unique_ptr<espp::UdpSocket> socket{};
     bool in_use{false};
   };
@@ -67,12 +63,12 @@ private:
   void onReceive(Ip4Port_t receivePort, std::vector<uint8_t> &data,
                  const espp::Socket::Info &sender) const;
 
-  static std::string ip4ToString(platform::Ip4Address addr);
+  static std::string ip4ToString(const platform::transport::Ip4AddressBytes &addr);
 
   RxCallback m_rxCallback{nullptr};
   void *m_callbackArgs{nullptr};
   mutable std::recursive_mutex m_mutex;
-  std::array<Channel, rtps::Config::MAX_NUM_UDP_CONNECTIONS> m_channels{};
+  std::array<Channel, Config::MAX_NUM_UDP_CONNECTIONS> m_channels{};
   mutable std::vector<std::string> m_multicastGroups;
 };
 

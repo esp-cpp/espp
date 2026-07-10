@@ -101,8 +101,8 @@ void addSubMessageTimeStamp(Buffer &buffer, bool setInvalid = false) {
   }
 }
 
-template <class Buffer>
-void addSubMessageData(Buffer &buffer, const Buffer &filledPayload,
+template <class Buffer, class PayloadBuffer>
+void addSubMessageData(Buffer &buffer, const PayloadBuffer &filledPayload,
                        bool containsInlineQos, const SequenceNumber_t &SN,
                        const EntityId_t &writerID, const EntityId_t &readerID) {
   SubmessageData msg;

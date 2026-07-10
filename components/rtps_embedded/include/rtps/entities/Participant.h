@@ -30,6 +30,10 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/discovery/SEDPAgent.h"
 #include "rtps/discovery/SPDPAgent.h"
 #include "rtps/messages/MessageReceiver.h"
+#include "rtps/platform/sync.h"
+#include "rtps/platform/transport.h"
+
+#include <cstdint>
 
 namespace rtps {
 
@@ -40,6 +44,7 @@ class Participant {
 public:
   GuidPrefix_t m_guidPrefix;
   ParticipantId_t m_participantId;
+  platform::transport::Ip4AddressBytes m_localIpAddress{{0, 0, 0, 0}};
 
   Participant();
   explicit Participant(const GuidPrefix_t &guidPrefix,
@@ -56,6 +61,8 @@ public:
   bool isValid();
 
   void reuse(const GuidPrefix_t &guidPrefix, ParticipantId_t participantId);
+  void reuse(const GuidPrefix_t &guidPrefix, ParticipantId_t participantId,
+             const platform::transport::Ip4AddressBytes &localIpAddress);
 
   std::array<uint8_t, 3> getNextUserEntityKey();
 
@@ -97,7 +104,7 @@ public:
   MessageReceiver *getMessageReceiver();
   bool checkAndResetHeartbeats();
 
-  bool hasReaderWithMulticastLocator(ip4_addr_t address);
+  bool hasReaderWithMulticastLocator(const std::array<uint8_t, 4> &address);
 
   void addBuiltInEndpoints(BuiltInEndpoints &endpoints);
   void newMessage(const uint8_t *data, DataSize_t size);
@@ -115,7 +122,7 @@ private:
   std::array<Reader *, Config::NUM_READERS_PER_PARTICIPANT> m_readers = {
       nullptr};
 
-  SemaphoreHandle_t m_mutex;
+  platform::sync::RecursiveMutexHandle m_mutex = nullptr;
   MemoryPool<ParticipantProxyData, Config::SPDP_MAX_NUMBER_FOUND_PARTICIPANTS>
       m_remoteParticipants;
 

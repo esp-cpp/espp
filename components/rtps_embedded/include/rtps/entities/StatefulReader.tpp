@@ -22,10 +22,9 @@ This file is part of embeddedRTPS.
 Author: i11 - Embedded Software, RWTH Aachen University
 */
 
-#include "lwip/sys.h"
-#include "lwip/tcpip.h"
 #include "rtps/entities/StatefulReader.h"
 #include "rtps/messages/MessageFactory.h"
+#include "rtps/storages/PayloadBuffer.h"
 #include "rtps/utils/Diagnostics.h"
 #include "rtps/utils/Lock.h"
 #include "rtps/utils/Log.h"
@@ -138,16 +137,21 @@ bool StatefulReaderT<NetworkDriver>::onNewGapMessage(
   if (writer->expectedSN < msg.gapStart) {
     PacketInfo info;
     info.srcPort = m_srcPort;
-    info.destAddr = writer->remoteLocator.getIp4Address();
+    info.destAddr = writer->remoteLocator.getIp4AddressBytes();
     info.destPort = writer->remoteLocator.port;
-    rtps::MessageFactory::addHeader(info.buffer,
+    PayloadBuffer payload;
+    rtps::MessageFactory::addHeader(payload,
                                     m_attributes.endpointGuid.prefix);
     SequenceNumber_t last_valid = msg.gapStart;
     --last_valid;
     auto missing_sns = writer->getMissing(writer->expectedSN, last_valid);
-    rtps::MessageFactory::addAckNack(info.buffer, msg.writerId, msg.readerId,
+    rtps::MessageFactory::addAckNack(payload, msg.writerId, msg.readerId,
                                      missing_sns, writer->getNextAckNackCount(),
                                      false);
+    info.payload = std::move(payload.bytes);
+    if (info.payload.empty()) {
+      return false;
+    }
     m_transport->sendPacket(info);
     return true;
   }
@@ -155,7 +159,6 @@ bool StatefulReaderT<NetworkDriver>::onNewGapMessage(
   // Case 2: We are expecting a message between [gapStart; gapList.base -1]
   // Advance expectedSN beyond gapList.base
   if (writer->expectedSN < msg.gapList.base) {
-    auto before = writer->expectedSN;
     writer->expectedSN = msg.gapList.base;
 
     // writer->expectedSN++;
@@ -185,17 +188,22 @@ bool StatefulReaderT<NetworkDriver>::onNewGapMessage(
 		}else{
 		  PacketInfo info;
 		  info.srcPort = m_srcPort;
-		  info.destAddr = writer->remoteLocator.getIp4Address();
+      info.destAddr = writer->remoteLocator.getIp4AddressBytes();
 		  info.destPort = writer->remoteLocator.port;
-		  rtps::MessageFactory::addHeader(info.buffer,
+      PayloadBuffer payload;
+      rtps::MessageFactory::addHeader(payload,
 											m_attributes.endpointGuid.prefix);
 		  SequenceNumberSet set;
 		  set.base = writer->expectedSN;
 		  set.numBits = 1;
 		  set.bitMap[0] = set.bitMap[0] |= uint32_t{1} << 31;
-		  rtps::MessageFactory::addAckNack(info.buffer, msg.writerId, msg.readerId,
+      rtps::MessageFactory::addAckNack(payload, msg.writerId, msg.readerId,
 											 set, writer->getNextAckNackCount(),
 											 false);
+      info.payload = std::move(payload.bytes);
+      if (info.payload.empty()) {
+      return false;
+      }
 		  m_transport->sendPacket(info);
 
 		  return true;
@@ -216,6 +224,7 @@ bool StatefulReaderT<NetworkDriver>::onNewHeartbeat(
   }
   PacketInfo info;
   info.srcPort = m_srcPort;
+  PayloadBuffer payload;
 
   Guid_t writerProxyGuid;
   writerProxyGuid.prefix = sourceGuidPrefix;
@@ -239,18 +248,22 @@ bool StatefulReaderT<NetworkDriver>::onNewHeartbeat(
   }
 
   writer->hbCount.value = msg.count.value;
-  info.destAddr = writer->remoteLocator.getIp4Address();
+  info.destAddr = writer->remoteLocator.getIp4AddressBytes();
   info.destPort = writer->remoteLocator.port;
-  rtps::MessageFactory::addHeader(info.buffer,
+  rtps::MessageFactory::addHeader(payload,
                                   m_attributes.endpointGuid.prefix);
   auto missing_sns = writer->getMissing(msg.firstSN, msg.lastSN);
   bool final_flag = (missing_sns.numBits == 0);
-  rtps::MessageFactory::addAckNack(info.buffer, msg.writerId, msg.readerId,
+  rtps::MessageFactory::addAckNack(payload, msg.writerId, msg.readerId,
                                    missing_sns, writer->getNextAckNackCount(),
                                    final_flag);
 
   SFR_LOG("Sending acknack base %u bits %u .\n", (int)missing_sns.base.low,
           (int)missing_sns.numBits);
+  info.payload = std::move(payload.bytes);
+  if (info.payload.empty()) {
+    return false;
+  }
   m_transport->sendPacket(info);
   return true;
 }
@@ -265,19 +278,24 @@ bool StatefulReaderT<NetworkDriver>::sendPreemptiveAckNack(
 
   PacketInfo info;
   info.srcPort = m_attributes.unicastLocator.port;
-  info.destAddr = writer.remoteLocator.getIp4Address();
+  info.destAddr = writer.remoteLocator.getIp4AddressBytes();
   info.destPort = writer.remoteLocator.port;
-  rtps::MessageFactory::addHeader(info.buffer,
+  PayloadBuffer payload;
+  rtps::MessageFactory::addHeader(payload,
                                   m_attributes.endpointGuid.prefix);
   SequenceNumberSet number_set;
   number_set.base.high = 0;
   number_set.base.low = 0;
   number_set.numBits = 0;
   rtps::MessageFactory::addAckNack(
-      info.buffer, writer.remoteWriterGuid.entityId,
+      payload, writer.remoteWriterGuid.entityId,
       m_attributes.endpointGuid.entityId, number_set, Count_t{1}, false);
 
   SFR_LOG("Sending preemptive acknack.\n");
+  info.payload = std::move(payload.bytes);
+  if (info.payload.empty()) {
+    return false;
+  }
   m_transport->sendPacket(info);
   return true;
 }

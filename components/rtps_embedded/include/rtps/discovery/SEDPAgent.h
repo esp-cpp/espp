@@ -27,6 +27,9 @@ Author: i11 - Embedded Software, RWTH Aachen University
 
 #include "rtps/discovery/BuiltInEndpoints.h"
 #include "rtps/discovery/TopicData.h"
+#include "rtps/platform/sync.h"
+
+#include <cstdint>
 
 namespace rtps {
 
@@ -61,7 +64,7 @@ protected: // For testing purposes
 
 private:
   Participant *m_part;
-  SemaphoreHandle_t m_mutex;
+  platform::sync::RecursiveMutexHandle m_mutex = nullptr;
   uint8_t m_buffer[600]; // TODO check size, currently changed from 300 to 600
                          // (FastDDS gives too many options)
   BuiltInEndpoints m_endpoints;

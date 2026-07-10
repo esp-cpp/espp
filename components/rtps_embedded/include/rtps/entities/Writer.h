@@ -28,9 +28,11 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/ThreadPool.h"
 #include "rtps/discovery/TopicData.h"
 #include "rtps/entities/ReaderProxy.h"
+#include "rtps/platform/sync.h"
 #include "rtps/storages/CacheChange.h"
 #include "rtps/storages/MemoryPool.h"
-#include "rtps/storages/PBufWrapper.h"
+
+#include <cstdint>
 
 #ifdef DEBUG_BUILD
 #define COMPILE_INIT_GUARD
@@ -74,7 +76,7 @@ public:
   int dumpAllProxies(dumpProxyCallback target, void *arg);
 
   bool isInitialized();
-  uint32_t getProxiesCount();
+  std::uint32_t getProxiesCount();
 
   void setSEDPSequenceNumber(const SequenceNumber_t &sn);
   const SequenceNumber_t &getSEDPSequenceNumber();
@@ -84,7 +86,7 @@ public:
 protected:
   SequenceNumber_t m_sedp_sequence_number;
 
-  SemaphoreHandle_t m_mutex = nullptr;
+  platform::sync::RecursiveMutexHandle m_mutex = nullptr;
   ThreadPool *mp_threadPool = nullptr;
 
   Ip4Port_t m_srcPort;

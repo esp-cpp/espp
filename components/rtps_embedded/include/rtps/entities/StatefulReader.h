@@ -25,7 +25,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #ifndef RTPS_STATEFULREADER_H
 #define RTPS_STATEFULREADER_H
 
-#include "lwip/sys.h"
+#include "rtps/communication/PacketInfo.h"
 #include "rtps/config.h"
 #include "rtps/entities/Reader.h"
 #include "rtps/platform/transport.h"

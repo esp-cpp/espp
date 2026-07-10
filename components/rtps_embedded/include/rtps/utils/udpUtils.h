@@ -27,6 +27,8 @@ Author: i11 - Embedded Software, RWTH Aachen University
 
 #include "rtps/config.h"
 
+#include <array>
+
 namespace rtps {
 namespace {
 const uint16_t PB = 7400; // Port Base Number
@@ -39,9 +41,9 @@ const uint16_t D2 = 1;  // User multicast
 const uint16_t D3 = 11; // User unicast
 } // namespace
 
-constexpr ip4_addr transformIP4ToU32(uint8_t MSB, uint8_t p2, uint8_t p1,
-                                     uint8_t LSB) {
-  return ip4_addr{PP_HTONL(LWIP_MAKEU32(MSB, p2, p1, LSB))};
+constexpr std::array<uint8_t, 4>
+transformIP4ToU32(uint8_t MSB, uint8_t p2, uint8_t p1, uint8_t LSB) {
+  return {MSB, p2, p1, LSB};
 }
 
 constexpr Ip4Port_t getBuiltInUnicastPort(ParticipantId_t participantId) {
@@ -81,7 +83,14 @@ inline bool isUserMultiCastPort(Ip4Port_t port) {
   return (idWithoutBase >= D2 && idWithoutBase < D1);
 }
 
-inline bool isZeroAddress(ip4_addr_t address) { return address.addr == 0; }
+inline bool isZeroAddress(const std::array<uint8_t, 4> &address) {
+  return address[0] == 0 && address[1] == 0 && address[2] == 0 &&
+         address[3] == 0;
+}
+
+inline bool isMulticastAddress(const std::array<uint8_t, 4> &address) {
+  return address[0] >= 224 && address[0] <= 239;
+}
 
 inline ParticipantId_t getParticipantIdFromUnicastPort(Ip4Port_t port,
                                                        bool isUserPort) {

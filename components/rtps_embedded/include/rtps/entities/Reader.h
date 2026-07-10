@@ -29,13 +29,8 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/config.h"
 #include "rtps/discovery/TopicData.h"
 #include "rtps/entities/WriterProxy.h"
+#include "rtps/platform/sync.h"
 #include "rtps/storages/MemoryPool.h"
-#include "rtps/storages/PBufWrapper.h"
-#if defined(ESP_PLATFORM)
-#include "freertos/semphr.h"
-#else
-#include "semphr.h"
-#endif
 #include <cstring>
 
 namespace rtps {
@@ -77,7 +72,7 @@ public:
 
   const uint8_t *getData() const { return data; }
 
-  const DataSize_t getDataSize() const { return size; }
+  DataSize_t getDataSize() const { return size; }
 };
 
 typedef void (*ddsReaderCallback_fp)(void *callee,
@@ -141,10 +136,10 @@ protected:
   std::array<callbackElement_t, Config::MAX_NUM_READER_CALLBACKS> m_callbacks;
 
   // Guards manipulation of the proxies array
-  SemaphoreHandle_t m_proxies_mutex = nullptr;
+  platform::sync::RecursiveMutexHandle m_proxies_mutex = nullptr;
 
   // Guards manipulation of callback array
-  SemaphoreHandle_t m_callback_mutex = nullptr;
+  platform::sync::RecursiveMutexHandle m_callback_mutex = nullptr;
 };
 } // namespace rtps
 

@@ -1,35 +1,47 @@
 #ifndef RTPS_PLATFORM_BOOTSTRAP_H
 #define RTPS_PLATFORM_BOOTSTRAP_H
 
-#include "lwip/err.h"
-#include "lwip/sys.h"
+#include <condition_variable>
+#include <mutex>
 
 namespace rtps {
 namespace platform {
 namespace bootstrap {
 
-using InitSemaphoreHandle = sys_sem_t;
+struct InitSemaphoreHandle {
+  std::mutex mutex;
+  std::condition_variable cv;
+  bool signaled{false};
+};
 
 inline bool createInitSemaphore(InitSemaphoreHandle *sem) {
-  return sem != nullptr && sys_sem_new(sem, 0) == ERR_OK;
+  if (sem == nullptr) {
+    return false;
+  }
+  std::lock_guard<std::mutex> lock(sem->mutex);
+  sem->signaled = false;
+  return true;
 }
 
 inline void signalInitSemaphore(InitSemaphoreHandle *sem) {
   if (sem != nullptr) {
-    sys_sem_signal(sem);
+    {
+      std::lock_guard<std::mutex> lock(sem->mutex);
+      sem->signaled = true;
+    }
+    sem->cv.notify_one();
   }
 }
 
 inline void waitInitSemaphore(InitSemaphoreHandle *sem) {
   if (sem != nullptr) {
-    sys_sem_wait(sem);
+    std::unique_lock<std::mutex> lock(sem->mutex);
+    sem->cv.wait(lock, [sem]() { return sem->signaled; });
   }
 }
 
 inline void freeInitSemaphore(InitSemaphoreHandle *sem) {
-  if (sem != nullptr) {
-    sys_sem_free(sem);
-  }
+  (void)sem;
 }
 
 } // namespace bootstrap

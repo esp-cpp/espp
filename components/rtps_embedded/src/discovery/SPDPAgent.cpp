@@ -28,9 +28,11 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/entities/Reader.h"
 #include "rtps/entities/Writer.h"
 #include "rtps/messages/MessageTypes.h"
-#include "rtps/platform/threading.h"
 #include "rtps/utils/Log.h"
 #include "rtps/utils/udpUtils.h"
+
+#include <chrono>
+#include <thread>
 
 using rtps::SPDPAgent;
 using rtps::SMElement::BuildInEndpointSet;
@@ -57,34 +59,44 @@ void SPDPAgent::start() {
     return;
   }
   m_running = true;
-  (void)platform::threading::startThread(
-      "SPDPThread", runBroadcast, this, Config::SPDP_WRITER_STACKSIZE,
-      Config::SPDP_WRITER_PRIO);
+  if (!m_broadcastTask) {
+    espp::Task::Config config;
+    config.callback = [this]() {
+      runBroadcast();
+      return true;
+    };
+    config.task_config.name = "SPDPThread";
+    config.task_config.stack_size_bytes = Config::SPDP_WRITER_STACKSIZE;
+    config.task_config.priority = Config::SPDP_WRITER_PRIO;
+    config.log_level = espp::Logger::Verbosity::WARN;
+    m_broadcastTask = espp::Task::make_unique(config);
+  }
+  (void)m_broadcastTask->start();
 }
 
-void SPDPAgent::stop() { m_running = false; }
+void SPDPAgent::stop() {
+  m_running = false;
+  if (m_broadcastTask) {
+    m_broadcastTask->stop();
+  }
+}
 
-void SPDPAgent::runBroadcast(void *args) {
-  SPDPAgent &agent = *static_cast<SPDPAgent *>(args);
-  const DataSize_t size = ucdr_buffer_length(&agent.m_microbuffer);
-  const uint8_t *payload = agent.m_microbuffer.init;
-  agent.m_buildInEndpoints.spdpWriter->newChange(ChangeKind_t::ALIVE, payload,
-                                                 size);
-  while (agent.m_running) {
-#ifdef OS_IS_FREERTOS
-    vTaskDelay(pdMS_TO_TICKS(Config::SPDP_RESEND_PERIOD_MS));
-#else
-  platform::threading::sleepMs(Config::SPDP_RESEND_PERIOD_MS);
-#endif
+void SPDPAgent::runBroadcast() {
+  const DataSize_t size = ucdr_buffer_length(&m_microbuffer);
+  const uint8_t *payload = m_microbuffer.init;
+  m_buildInEndpoints.spdpWriter->newChange(ChangeKind_t::ALIVE, payload, size);
+  while (m_running) {
+    std::this_thread::sleep_for(
+        std::chrono::milliseconds(Config::SPDP_RESEND_PERIOD_MS));
     // StatelessWriter drops already-sent history; enqueue a fresh SPDP sample
     // for each announce cycle.
-    agent.m_buildInEndpoints.spdpWriter->newChange(ChangeKind_t::ALIVE,
-                                                   payload, size);
-    if (agent.m_cycleHB == Config::SPDP_CYCLECOUNT_HEARTBEAT) {
-      agent.m_cycleHB = 0;
-      agent.mp_participant->checkAndResetHeartbeats();
+    m_buildInEndpoints.spdpWriter->newChange(ChangeKind_t::ALIVE, payload,
+                                             size);
+    if (m_cycleHB == Config::SPDP_CYCLECOUNT_HEARTBEAT) {
+      m_cycleHB = 0;
+      mp_participant->checkAndResetHeartbeats();
     } else {
-      agent.m_cycleHB++;
+      m_cycleHB++;
     }
   }
 }
@@ -111,6 +123,7 @@ void SPDPAgent::handleSPDPPackage(const ReaderCacheChange &cacheChange) {
   if (!cacheChange.copyInto(m_inputBuffer.data(), m_inputBuffer.size())) {
     return;
   }
+  SPDP_LOG("SPDPPackage size: %d", cacheChange.size);
 
   ucdrBuffer buffer;
   ucdr_init_buffer(&buffer, m_inputBuffer.data(), m_inputBuffer.size());
@@ -189,7 +202,7 @@ bool SPDPAgent::addProxiesForBuiltInEndpoints() {
   for (unsigned int i = 0;
        i < m_proxyDataBuffer.m_metatrafficUnicastLocatorList.size(); i++) {
     LocatorIPv4 *l = &(m_proxyDataBuffer.m_metatrafficUnicastLocatorList[i]);
-    if (l->isValid() && l->isSameSubnet()) {
+    if (l->isValid() && l->isSameSubnet(mp_participant->m_localIpAddress)) {
       locator = l;
       break;
     }
@@ -211,11 +224,6 @@ bool SPDPAgent::addProxiesForBuiltInEndpoints() {
   if (!locator) {
     return false;
   }
-
-#if SPDP_VERBOSE
-  ip4_addr_t ip4addr = locator->getIp4Address();
-  const char *addr = ip4addr_ntoa(&ip4addr);
-#endif
 
   if (m_proxyDataBuffer.hasPublicationReader()) {
     const ReaderProxy proxy{{m_proxyDataBuffer.m_guid.prefix,
@@ -289,9 +297,11 @@ void SPDPAgent::addParticipantParameters() {
   const uint16_t guidSize = sizeof(GuidPrefix_t::id) + entityIdSize;
 
   const FullLengthLocator userUniCastLocator =
-      getUserUnicastLocator(mp_participant->m_participantId);
+      getUserUnicastLocator(mp_participant->m_participantId,
+                mp_participant->m_localIpAddress);
   const FullLengthLocator builtInUniCastLocator =
-      getBuiltInUnicastLocator(mp_participant->m_participantId);
+      getBuiltInUnicastLocator(mp_participant->m_participantId,
+                   mp_participant->m_localIpAddress);
   const FullLengthLocator builtInMultiCastLocator =
       getBuiltInMulticastLocator();
 
