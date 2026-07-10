@@ -139,6 +139,7 @@ jobs:
             components/tt21100
             components/utils
             components/vl53l
+            components/vmu-pro
             components/wifi
             components/wrover-kit
             components/ws-s3-geek
