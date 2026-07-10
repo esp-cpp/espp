@@ -387,9 +387,9 @@ INPUT = \
   $(PROJECT_PATH)/components/touch/include/touch.hpp \
   $(PROJECT_PATH)/components/tla2528/include/tla2528.hpp \
   $(PROJECT_PATH)/components/tt21100/include/tt21100.hpp \
+  $(PROJECT_PATH)/components/utils/include/bitmask_operators.hpp \
   $(PROJECT_PATH)/components/vl53l/include/vl53l.hpp \
   $(PROJECT_PATH)/components/vmu-pro/include/vmu-pro.hpp \
-  $(PROJECT_PATH)/components/utils/include/bitmask_operators.hpp \
   $(PROJECT_PATH)/components/wifi/include/wifi.hpp \
   $(PROJECT_PATH)/components/wifi/include/wifi_base.hpp \
   $(PROJECT_PATH)/components/wifi/include/wifi_ap.hpp \
