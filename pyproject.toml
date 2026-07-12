@@ -81,6 +81,12 @@ test-command = "python -c \"import espp; print('espp', espp.__version__)\""
 # trust it for setuptools-scm to read the version from the repo.
 before-all = "git config --global --add safe.directory /project"
 
+[tool.cibuildwheel.macos]
+# Build fat wheels covering both apple silicon and intel from the single
+# arm64 runner (GitHub retired the intel macos-13 runners). The arm64 slice
+# is tested natively; the x86_64 slice runs under Rosetta where available.
+archs = ["universal2"]
+
 [tool.cibuildwheel.macos.environment]
 # espp uses std::filesystem (and other C++20 features) which require a newer
 # deployment target than cibuildwheel's default (10.13)

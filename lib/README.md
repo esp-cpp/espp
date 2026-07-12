@@ -68,7 +68,7 @@ Re-run it after changing C++ code to rebuild the extension (the CMake build
 dir is persistent, so rebuilds are incremental); pure-python changes are
 picked up automatically.
 
-Wheels for Linux (x86_64 / aarch64), macOS (x86_64 / arm64), and Windows
+Wheels for Linux (x86_64 / aarch64), macOS (universal2), and Windows
 (amd64) are built in CI by
 [build_wheels.yml](../.github/workflows/build_wheels.yml) and published to
 PyPI on each release.
