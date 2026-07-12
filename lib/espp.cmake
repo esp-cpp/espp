@@ -144,5 +144,6 @@ function(espp_install_python_module FOLDER)
     PATTERN "__pycache__" EXCLUDE
     PATTERN ".mypy_cache" EXCLUDE)
   install(TARGETS _espp
-    LIBRARY DESTINATION ${FOLDER}/espp/)
+    LIBRARY DESTINATION ${FOLDER}/espp/
+    RUNTIME DESTINATION ${FOLDER}/espp/)
 endfunction()

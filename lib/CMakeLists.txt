@@ -46,7 +46,9 @@ if(SKBUILD)
   # pure-python package files come from lib/python_bindings/espp via the
   # `wheel.packages` setting in pyproject.toml.
   espp_add_python_module()
-  install(TARGETS _espp LIBRARY DESTINATION espp)
+  install(TARGETS _espp
+          LIBRARY DESTINATION espp
+          RUNTIME DESTINATION espp)
 else()
   # Standalone build (./build.sh / ./build.ps1): build the C++ static library
   # and the python package, and install both into ./pc for local use.

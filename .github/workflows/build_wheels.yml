@@ -14,6 +14,11 @@ on:
     types: [published]
   workflow_dispatch:
 
+# default for all jobs; the publish job additionally grants itself the
+# id-token permission required for PyPI trusted publishing
+permissions:
+  contents: read
+
 jobs:
   build_wheels:
     name: Build wheels on ${{ matrix.os }}
