@@ -1,0 +1,87 @@
+[build-system]
+requires = ["scikit-build-core>=0.11", "pybind11>=3.0,<4", "setuptools-scm>=8"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "espp"
+dynamic = ["version"]
+description = "Python bindings for the cross-platform components of espp (ESP-CPP): tasks, timers, sockets, RTSP, RTPS, CDR, COBS, serialization, math, and more"
+readme = "lib/README_PYPI.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "William Emfinger", email = "waemfinger@gmail.com" }]
+requires-python = ">=3.10"
+keywords = ["espp", "esp-cpp", "embedded", "rtsp", "rtps", "cdr", "cobs", "sockets"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Operating System :: POSIX :: Linux",
+  "Operating System :: MacOS",
+  "Operating System :: Microsoft :: Windows",
+  "Programming Language :: C++",
+  "Programming Language :: Python :: 3",
+  "Topic :: Software Development :: Embedded Systems",
+  "Topic :: Software Development :: Libraries",
+]
+
+[project.urls]
+Homepage = "https://github.com/esp-cpp/espp"
+Documentation = "https://esp-cpp.github.io/espp/"
+Repository = "https://github.com/esp-cpp/espp"
+Issues = "https://github.com/esp-cpp/espp/issues"
+
+[tool.scikit-build]
+# The CMake project for the host (PC) build lives in lib/; the repo root is the
+# project root so the sdist can include the components/ sources it references.
+cmake.source-dir = "lib"
+# Pure-python part of the package (espp/__init__.py, __init__.pyi, py.typed);
+# the compiled espp._espp extension is installed into it by CMake.
+wheel.packages = ["lib/python_bindings/espp"]
+wheel.exclude = ["**/.mypy_cache", "**/__pycache__"]
+# Persistent CMake build dir (gitignored) so repeated local builds - notably
+# re-running `pip install -e .` after a C++ change - are incremental.
+build-dir = "build/{wheel_tag}"
+sdist.exclude = [
+  ".github/",
+  "doc/",
+  "docs/",
+  "pc/",
+  "python/",
+  # local build helpers / outputs (lib/pc, build/, _build/ already gitignored)
+  "*.sh",
+  "*.ps1",
+  # embedded-only submodules and components not referenced by lib/espp.cmake
+  "components/littlefs/",
+  "components/lvgl/",
+  "components/esp-dsp/",
+  "components/esp-nimble-cpp/",
+  "components/binary-log/",
+  "components/gfps_service/",
+  # examples are not needed to build the bindings
+  "components/*/example/",
+  # trim the bulk of the vendored fmt repo (only include/ is used)
+  "components/format/detail/fmt/doc/",
+  "components/format/detail/fmt/test/",
+]
+
+# Derive the version from git tags of the form vX.Y.Z (e.g. v1.1.4) via
+# setuptools-scm.
+[[tool.dynamic-metadata]]
+provider = "scikit_build_core.metadata.setuptools_scm"
+
+[tool.setuptools_scm]
+
+[tool.cibuildwheel]
+build = ["cp310-*", "cp311-*", "cp312-*", "cp313-*", "cp314-*"]
+skip = ["*-musllinux_*", "*_i686", "*-win32"]
+test-command = "python -c \"import espp; print('espp', espp.__version__)\""
+
+[tool.cibuildwheel.linux]
+# The repo is mounted at /project inside the manylinux container; git must
+# trust it for setuptools-scm to read the version from the repo.
+before-all = "git config --global --add safe.directory /project"
+
+[tool.cibuildwheel.macos.environment]
+# espp uses std::filesystem (and other C++20 features) which require a newer
+# deployment target than cibuildwheel's default (10.13)
+MACOSX_DEPLOYMENT_TARGET = "11.0"

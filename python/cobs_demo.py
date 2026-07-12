@@ -13,7 +13,7 @@ Key Features:
 
 import sys
 from cobs import cobs
-from support_loader import espp
+import espp
 
 def simple_example():
     """Simple practical example"""
