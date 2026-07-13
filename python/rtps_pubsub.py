@@ -13,7 +13,7 @@ import socket
 import sys
 import time
 
-from support_loader import espp
+import espp
 
 
 def guess_local_ipv4() -> str:

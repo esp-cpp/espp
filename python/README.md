@@ -77,15 +77,28 @@ This section gives a brief overview of what the scripts in this folder do.
 
 ## Setup
 
-For all scripts, you must have the `espp` shared objects built and the required Python dependencies installed:
+All scripts need the `espp` python package installed. Released versions come
+from PyPI:
 
-```bash
-pip install -r requirements.txt
+```console
+pip install espp
 ```
 
-**Note**: The COBS demo script (`cobs_demo.py`) requires the `cobs` library for cross-validation with the reference implementation.
-accessible in the `espp/lib` folder. See the [espp/lib](../lib/README.md)
-README for more details.
+If you're working from this repository (e.g. developing the bindings or
+running the scripts against unreleased changes), use an editable install from
+the repository root instead - it builds the same package from the local
+sources:
+
+```console
+pip install -e ..   # from this folder (or `pip install -e .` from the repo root)
+```
+
+Note: after changing C++ code (components or bindings), re-run the editable
+install to rebuild the extension; the build is incremental. Pure-python
+changes are picked up automatically.
+
+**Note**: The COBS demo script (`cobs_demo.py`) additionally requires the
+`cobs` library for cross-validation with the reference implementation.
 
 ### Install Python Requirements
 

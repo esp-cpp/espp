@@ -94,11 +94,13 @@ else()
   set(ESPP_EXTERNAL_LIBS pthread)
 endif()
 
+set(ESPP_PYTHON_BINDINGS_DIR ${CMAKE_CURRENT_LIST_DIR}/python_bindings)
+
 set(ESPP_PYTHON_SOURCES
-  ${CMAKE_CURRENT_LIST_DIR}/python_bindings/module.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/python_bindings/pybind_espp.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/python_bindings/cdr_bindings.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/python_bindings/rtps_bindings.cpp
+  ${ESPP_PYTHON_BINDINGS_DIR}/module.cpp
+  ${ESPP_PYTHON_BINDINGS_DIR}/pybind_espp.cpp
+  ${ESPP_PYTHON_BINDINGS_DIR}/cdr_bindings.cpp
+  ${ESPP_PYTHON_BINDINGS_DIR}/rtps_bindings.cpp
   ${ESPP_SOURCES}
 )
 
@@ -110,17 +112,38 @@ function(espp_install_includes FOLDER)
   install(DIRECTORY ${ESPP_EXTERNAL_INCLUDES_SEPARATE} DESTINATION ${FOLDER}/include/)
 endfunction()
 
-# make an espp_install_python_module command that can be used by other scripts, where
-# they just need to specify the folder they want to install into
-function(espp_install_python_module FOLDER)
-  pybind11_add_module(espp ${ESPP_PYTHON_SOURCES})
-  target_compile_features(espp PRIVATE cxx_std_20)
+# make an espp_add_python_module command that defines the `_espp` pybind11
+# extension module target (the native part of the `espp` python package)
+function(espp_add_python_module)
+  pybind11_add_module(_espp ${ESPP_PYTHON_SOURCES})
+  target_compile_features(_espp PRIVATE cxx_std_20)
   # disable certain compiler warnings for this module, but only if we're not on
   # Windows
   if(NOT MSVC)
-    target_compile_options(espp PRIVATE -Wno-braced-scalar-init -Wno-unused-variable -Wno-unused-parameter)
+    target_compile_options(_espp PRIVATE -Wno-braced-scalar-init -Wno-unused-variable -Wno-unused-parameter)
   endif()
-  target_link_libraries(espp PRIVATE ${ESPP_EXTERNAL_LIBS})
-  install(TARGETS espp
-    LIBRARY DESTINATION ${FOLDER}/)
+  target_link_libraries(_espp PRIVATE ${ESPP_EXTERNAL_LIBS})
+  # embed the package version (set by scikit-build-core when building wheels);
+  # prefer the full PEP 440 version (includes .devN+local parts) over the
+  # CMake-compatible X.Y.Z truncation
+  if(DEFINED SKBUILD_PROJECT_VERSION_FULL)
+    target_compile_definitions(_espp PRIVATE VERSION_INFO=${SKBUILD_PROJECT_VERSION_FULL})
+  elseif(DEFINED SKBUILD_PROJECT_VERSION)
+    target_compile_definitions(_espp PRIVATE VERSION_INFO=${SKBUILD_PROJECT_VERSION})
+  endif()
+endfunction()
+
+# make an espp_install_python_module command that can be used by other scripts,
+# where they just need to specify the folder they want to install into. This
+# installs the full `espp` python package (pure-python files + the compiled
+# `_espp` extension) into FOLDER/espp so FOLDER can be put on sys.path.
+function(espp_install_python_module FOLDER)
+  espp_add_python_module()
+  install(DIRECTORY ${ESPP_PYTHON_BINDINGS_DIR}/espp
+    DESTINATION ${FOLDER}/
+    PATTERN "__pycache__" EXCLUDE
+    PATTERN ".mypy_cache" EXCLUDE)
+  install(TARGETS _espp
+    LIBRARY DESTINATION ${FOLDER}/espp/
+    RUNTIME DESTINATION ${FOLDER}/espp/)
 endfunction()

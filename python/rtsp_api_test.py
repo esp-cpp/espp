@@ -11,7 +11,7 @@ Usage:
 import sys
 import traceback
 
-from support_loader import espp
+import espp
 
 passed = 0
 failed = 0

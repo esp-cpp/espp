@@ -12,9 +12,9 @@ void py_init_module_espp(py::module &m);
 void py_init_cdr(py::module &m);
 void py_init_rtps(py::module &m);
 
-// This builds the native python module `espp`
-// it will be wrapped in a standard python module `espp`
-PYBIND11_MODULE(espp, m) {
+// This builds the native python extension module `espp._espp`, which the
+// `espp` python package (python_bindings/espp/__init__.py) re-exports.
+PYBIND11_MODULE(_espp, m) {
 #ifdef VERSION_INFO
   m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);
 #else

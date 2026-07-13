@@ -1,0 +1,97 @@
+name: Build Python Wheels
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lib/**'
+      - 'components/**'
+      - 'pyproject.toml'
+      - '.github/workflows/build_wheels.yml'
+  push:
+    branches: [main]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+# default for all jobs; the publish job additionally grants itself the
+# id-token permission required for PyPI trusted publishing
+permissions:
+  contents: read
+
+jobs:
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest      # linux x86_64
+          - os: ubuntu-24.04-arm   # linux aarch64
+          - os: macos-latest       # macos universal2 (arm64 + x86_64)
+          - os: windows-latest     # windows amd64
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v7
+      with:
+        submodules: 'recursive'
+        # full history + tags so setuptools-scm can compute the version
+        fetch-depth: 0
+
+    - name: Build wheels
+      run: pipx run cibuildwheel
+      # configuration (python versions, test command, etc.) lives in
+      # [tool.cibuildwheel] in pyproject.toml
+
+    - name: Upload wheels
+      uses: actions/upload-artifact@v7
+      with:
+        name: wheels-${{ matrix.os }}
+        path: wheelhouse/*.whl
+
+  build_sdist:
+    name: Build source distribution
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v7
+      with:
+        submodules: 'recursive'
+        fetch-depth: 0
+
+    - name: Build sdist
+      run: pipx run build --sdist
+
+    - name: Upload sdist
+      uses: actions/upload-artifact@v7
+      with:
+        name: sdist
+        path: dist/*.tar.gz
+
+  publish_pypi:
+    name: Publish to PyPI
+    needs: [build_wheels, build_sdist]
+    runs-on: ubuntu-latest
+    # only publish on published releases; PR / push builds just verify the
+    # wheels build and import correctly
+    if: github.event_name == 'release' && github.event.action == 'published'
+    environment:
+      name: pypi
+      url: https://pypi.org/p/espp
+    permissions:
+      # required for PyPI trusted publishing (OIDC)
+      id-token: write
+
+    steps:
+    - name: Download all distributions
+      uses: actions/download-artifact@v5
+      with:
+        pattern: '*'
+        merge-multiple: true
+        path: dist
+
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
