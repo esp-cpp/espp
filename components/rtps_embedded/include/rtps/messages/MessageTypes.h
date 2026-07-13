@@ -234,7 +234,7 @@ struct SubmessageAckNack {
   static uint16_t getRawSize(const SequenceNumberSet &set) {
     uint16_t bitMapSize = 0;
     if (set.numBits != 0) {
-      bitMapSize = SNS_NUM_BYTES;
+      bitMapSize = static_cast<uint16_t>(4 * (((set.numBits - 1) / 32) + 1));
     }
     return getRawSizeWithoutSNSet() + sizeof(SequenceNumber_t) +
            sizeof(uint32_t) + bitMapSize; // SequenceNumberSet
@@ -394,9 +394,6 @@ bool serializeMessage(Buffer &buffer, SubmessageGap &msg) {
                 sizeof(msg.gapList.base.high));
   buffer.append(reinterpret_cast<uint8_t *>(&msg.gapList.base.low),
                 sizeof(msg.gapList.base.low));
-
-  buffer.append(reinterpret_cast<uint8_t *>(&msg.gapList.numBits),
-                sizeof(uint32_t));
 
   buffer.append(reinterpret_cast<uint8_t *>(&msg.gapList.numBits),
                 sizeof(uint32_t));

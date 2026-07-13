@@ -51,9 +51,11 @@ bool TopicData::readFromUcdrBuffer(ucdrBuffer &buffer) {
 
   while (ucdr_buffer_remaining(&buffer) >= 4) {
     if (ucdr_buffer_has_error(&buffer)) {
-      while (1) {
-        printf("FAILED TO DESERIALIZE TOPIC DATA\n");
-      }
+      printf("FAILED TO DESERIALIZE TOPIC DATA\n");
+      return false;
+      // while (1) {
+      //   printf("FAILED TO DESERIALIZE TOPIC DATA\n");
+      // }
     }
     ParameterId pid;
     uint16_t length;
@@ -138,13 +140,15 @@ bool TopicData::readFromUcdrBuffer(ucdrBuffer &buffer) {
       }
     } break;
     default:
-      buffer.iterator += length;
-      buffer.last_data_size = 1;
+      ucdr_advance_buffer(&buffer, length);
+      // buffer.iterator += length;
+      // buffer.last_data_size = 1;
     }
 
     uint32_t alignment = ucdr_buffer_alignment(&buffer, 4);
-    buffer.iterator += alignment;
-    buffer.last_data_size = 4; // 4 Byte alignment per element
+    ucdr_advance_buffer(&buffer, alignment);
+    // buffer.iterator += alignment;
+    // buffer.last_data_size = 4; // 4 Byte alignment per element
   }
   return ucdr_buffer_remaining(&buffer) == 0;
 }

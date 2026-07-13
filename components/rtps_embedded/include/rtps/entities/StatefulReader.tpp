@@ -115,7 +115,9 @@ bool StatefulReaderT<NetworkDriver>::onNewGapMessage(
   if (!m_is_initialized_) {
     return false;
   }
-  SFR_LOG("Processing gap message %u %u", msg.gapStart, msg.gapList.base);
+    SFR_LOG("Processing gap message %d.%u %d.%u", (int)msg.gapStart.high,
+      (unsigned int)msg.gapStart.low, (int)msg.gapList.base.high,
+      (unsigned int)msg.gapList.base.low);
 
   Guid_t writerProxyGuid;
   writerProxyGuid.prefix = remotePrefix;
