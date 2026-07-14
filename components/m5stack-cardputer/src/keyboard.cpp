@@ -9,23 +9,18 @@ using namespace espp;
 //////////////////////////////
 
 M5StackCardputer::Variant M5StackCardputer::variant() {
-  if (!variant_detected_) {
-    detect_variant();
-  }
+  std::call_once(variant_detect_once_, [this] { detect_variant(); });
   return variant_;
 }
 
 I2c *M5StackCardputer::internal_i2c() {
-  if (!variant_detected_) {
-    detect_variant();
-  }
+  std::call_once(variant_detect_once_, [this] { detect_variant(); });
   return internal_i2c_.get();
 }
 
 void M5StackCardputer::detect_variant() {
-  if (variant_detected_) {
-    return;
-  }
+  // NOTE: only ever called (once) through the std::call_once in variant() /
+  // internal_i2c(), so it needs no guard of its own.
   // The ADV has an internal I2C bus on GPIO 8/9 hosting its TCA8418 keyboard
   // controller; the original repurposes those pins as 74HC138 address lines.
   // Probe for the TCA8418 to tell them apart.
@@ -50,7 +45,6 @@ void M5StackCardputer::detect_variant() {
     gpio_reset_pin(internal_i2c_sda);
     gpio_reset_pin(internal_i2c_scl);
   }
-  variant_detected_ = true;
 }
 
 ////////////////////////

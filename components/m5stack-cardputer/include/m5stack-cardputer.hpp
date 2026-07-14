@@ -751,8 +751,9 @@ protected:
   std::atomic<bool> button_initialized_{false};
   button_callback_t button_callback_{nullptr};
 
-  // variant / internal I2C
-  std::atomic<bool> variant_detected_{false};
+  // variant / internal I2C. The once_flag makes the lazy detection (see
+  // variant() / internal_i2c()) thread-safe.
+  std::once_flag variant_detect_once_;
   Variant variant_{Variant::ORIGINAL};
   std::unique_ptr<I2c> internal_i2c_{nullptr};
 
