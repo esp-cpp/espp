@@ -85,13 +85,13 @@ bool M5StackCardputer::initialize_es8311_speaker() {
       {0x32, 0xBF}, // DAC: volume 0 dB
       {0x37, 0x08}, // DAC: bypass DAC equalizer
   };
-  for (const auto &entry : init) {
+  return std::all_of(std::begin(init), std::end(init), [this](const auto &entry) {
     if (!es8311_write(entry[0], entry[1])) {
       logger_.error("Failed to write ES8311 register {:#04x}", entry[0]);
       return false;
     }
-  }
-  return true;
+    return true;
+  });
 }
 
 bool M5StackCardputer::initialize_es8311_microphone() {
@@ -109,13 +109,13 @@ bool M5StackCardputer::initialize_es8311_microphone() {
       {0x17, 0xBF}, // ADC: volume 0 dB
       {0x1C, 0x6A}, // ADC: equalizer bypass
   };
-  for (const auto &entry : init) {
+  return std::all_of(std::begin(init), std::end(init), [this](const auto &entry) {
     if (!es8311_write(entry[0], entry[1])) {
       logger_.error("Failed to write ES8311 register {:#04x}", entry[0]);
       return false;
     }
-  }
-  return true;
+    return true;
+  });
 }
 
 ////////////////////////
