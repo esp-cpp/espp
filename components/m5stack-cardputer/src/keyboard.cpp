@@ -254,13 +254,18 @@ void M5StackCardputer::process_tca8418_events() {
     }
     any_events = true;
     bool pressed = (event & 0x80) != 0;
-    uint8_t n = (event & 0x7F) - 1;
+    uint8_t key_number = (event & 0x7F);
+    if (key_number == 0) {
+      logger_.warn("Ignoring TCA8418 event with invalid key number 0");
+      continue;
+    }
+    uint8_t n = key_number - 1;
     uint8_t tr = n / 10;
     uint8_t tc = n % 10;
     uint8_t col = tr * 2 + ((tc > 3) ? 1 : 0);
     uint8_t row = tc % 4;
     if (row >= KEYBOARD_ROWS || col >= KEYBOARD_COLS) {
-      logger_.warn("Ignoring TCA8418 event with out-of-range key number {}", n + 1);
+      logger_.warn("Ignoring TCA8418 event with out-of-range key number {}", key_number);
       continue;
     }
     Modifiers mods;
