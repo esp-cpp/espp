@@ -30,6 +30,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/storages/PayloadBuffer.h"
 #include "rtps/utils/Log.h"
 #include "rtps/utils/udpUtils.h"
+#include <mutex>
 
 using rtps::CacheChange;
 using rtps::SequenceNumber_t;
@@ -63,15 +64,6 @@ bool StatelessWriterT<NetworkDriver>::init(TopicData attributes,
 
   m_attributes = attributes;
 
-  if (m_mutex == nullptr) {
-    if (!createMutex(&m_mutex)) {
-#if SLW_VERBOSE
-      SLW_LOG("Failed to create mutex \n");
-#endif
-      return false;
-    }
-  }
-
   mp_threadPool = threadPool;
   m_srcPort = attributes.unicastLocator.port;
   m_enforceUnicast = enfUnicast;
@@ -101,7 +93,7 @@ const CacheChange *StatelessWriterT<NetworkDriver>::newChange(
   if (isIrrelevant(kind)) {
     return nullptr;
   }
-  Lock lock(m_mutex);
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
   if (!m_is_initialized_) {
     return nullptr;
   }
@@ -134,7 +126,7 @@ bool StatelessWriterT<NetworkDriver>::removeFromHistory(
 template <typename NetworkDriver>
 void StatelessWriterT<NetworkDriver>::setAllChangesToUnsent() {
   INIT_GUARD();
-  Lock lock(m_mutex);
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
   m_nextSequenceNumberToSend = m_history.getSeqNumMin();
 
@@ -173,7 +165,7 @@ void StatelessWriterT<NetworkDriver>::progress() {
       MessageFactory::addSubMessageTimeStamp(payload);
 
       {
-        Lock lock(m_mutex);
+        std::lock_guard<std::recursive_mutex> lock(m_mutex);
         const CacheChange *next =
             m_history.getChangeBySN(m_nextSequenceNumberToSend);
         if (next == nullptr) {

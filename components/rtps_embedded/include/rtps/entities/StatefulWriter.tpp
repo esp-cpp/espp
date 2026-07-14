@@ -29,6 +29,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/utils/Log.h"
 #include <chrono>
 #include <cstring>
+#include <mutex>
 #include <stdio.h>
 #include <thread>
 
@@ -64,15 +65,6 @@ bool StatefulWriterT<NetworkDriver>::init(TopicData attributes,
                                           ThreadPool *threadPool,
                                           NetworkDriver &driver,
                                           bool enfUnicast) {
-
-  if (m_mutex == nullptr) {
-    if (!createMutex(&m_mutex)) {
-
-      SFW_LOG("Failed to create mutex.\n");
-
-      return false;
-    }
-  }
 
   m_attributes = attributes;
 
@@ -143,7 +135,7 @@ const rtps::CacheChange *StatefulWriterT<NetworkDriver>::newChange(
     return nullptr;
   }
 
-  Lock lock{m_mutex};
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
   if (!m_is_initialized_) {
     return nullptr;
   }
@@ -173,7 +165,7 @@ const rtps::CacheChange *StatefulWriterT<NetworkDriver>::newChange(
 
 template <class NetworkDriver> void StatefulWriterT<NetworkDriver>::progress() {
   INIT_GUARD()
-  Lock lock{m_mutex};
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
   CacheChange *next = m_history.getChangeBySN(m_nextSequenceNumberToSend);
   if (next != nullptr) {
     uint32_t i = 0;
@@ -224,7 +216,7 @@ template <class NetworkDriver> void StatefulWriterT<NetworkDriver>::progress() {
 template <class NetworkDriver>
 void StatefulWriterT<NetworkDriver>::setAllChangesToUnsent() {
   INIT_GUARD()
-  Lock lock{m_mutex};
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
   m_nextSequenceNumberToSend = m_history.getCurrentSeqNumMin();
 
@@ -237,7 +229,7 @@ template <class NetworkDriver>
 void StatefulWriterT<NetworkDriver>::onNewAckNack(
     const SubmessageAckNack &msg, const GuidPrefix_t &sourceGuidPrefix) {
   INIT_GUARD()
-  Lock lock{m_mutex};
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
   if (!m_is_initialized_) {
     return;
   }
@@ -342,7 +334,7 @@ void StatefulWriterT<NetworkDriver>::onNewAckNack(
 template <class NetworkDriver>
 bool rtps::StatefulWriterT<NetworkDriver>::removeFromHistory(
     const SequenceNumber_t &s) {
-  Lock lock{m_mutex};
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
   return m_history.dropChange(s);
 }
 
@@ -534,7 +526,7 @@ void StatefulWriterT<NetworkDriver>::sendHeartBeat() {
     MessageFactory::addHeader(payload, m_attributes.endpointGuid.prefix);
 
     {
-      Lock lock{m_mutex};
+      std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
       if (!m_history.isEmpty()) {
         firstSN = m_history.getCurrentSeqNumMin();

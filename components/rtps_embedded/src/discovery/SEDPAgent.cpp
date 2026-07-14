@@ -30,6 +30,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/messages/MessageTypes.h"
 #include "rtps/utils/Log.h"
 #include "ucdr/microcdr.h"
+#include <mutex>
 
 using rtps::SEDPAgent;
 
@@ -45,12 +46,6 @@ using rtps::SEDPAgent;
 #endif
 
 void SEDPAgent::init(Participant &part, const BuiltInEndpoints &endpoints) {
-  // TODO move
-  if (!createMutex(&m_mutex)) {
-    SEDP_LOG("SEDPAgent failed to create mutex\n");
-    return;
-  }
-
   m_part = &part;
   m_endpoints = endpoints;
   if (m_endpoints.sedpPubReader != nullptr) {
@@ -87,7 +82,7 @@ void SEDPAgent::jumppadSubscriptionReader(
 }
 
 void SEDPAgent::handlePublisherReaderMessage(const ReaderCacheChange &change) {
-  Lock lock{m_mutex};
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
 #if SEDP_VERBOSE
   SEDP_LOG("New publisher\n");
 #endif
@@ -156,7 +151,7 @@ void SEDPAgent::removeUnmatchedEntity(const Guid_t &guid) {
 
 void SEDPAgent::removeUnmatchedEntitiesOfParticipant(
     const GuidPrefix_t &guidPrefix) {
-  Lock lock{m_mutex};
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
   auto isElementToRemove = [&](const TopicDataCompressed &topicData) {
     return topicData.endpointGuid.prefix == guidPrefix;
   };
@@ -222,7 +217,7 @@ void SEDPAgent::handlePublisherReaderMessage(const TopicData &writerData,
 
 void SEDPAgent::handleSubscriptionReaderMessage(
     const ReaderCacheChange &change) {
-  Lock lock{m_mutex};
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
 #if SEDP_VERBOSE
   SEDP_LOG("New subscriber\n");
 #endif
@@ -348,7 +343,7 @@ bool SEDPAgent::addWriter(Writer &writer) {
     return true; // No need to announce builtin endpoints
   }
 
-  Lock lock{m_mutex};
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
   // Check unmatched writers for this new reader
   tryMatchUnmatchedEndpoints();
@@ -442,7 +437,7 @@ void SEDPAgent::jumppadTakeProxyOfDisposedWriter(const Writer *writer,
 }
 
 bool SEDPAgent::deleteReader(Reader *reader) {
-  Lock lock{m_mutex};
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
   // Set cache change kind in SEDP endpoint to DISPOSED
   if (!disposeEndpointInSEDPHistory(reader, m_endpoints.sedpSubWriter)) {
     return false;
@@ -461,7 +456,7 @@ bool SEDPAgent::deleteReader(Reader *reader) {
 }
 
 bool SEDPAgent::deleteWriter(Writer *writer) {
-  Lock lock{m_mutex};
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
   // Set cache change kind in SEDP endpoint to DISPOSED
   if (!disposeEndpointInSEDPHistory(writer, m_endpoints.sedpPubWriter)) {
     return false;
@@ -491,7 +486,7 @@ bool SEDPAgent::addReader(Reader &reader) {
     return true; // No need to announce builtin endpoints
   }
 
-  Lock lock{m_mutex};
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
   // Check unmatched writers for this new reader
   tryMatchUnmatchedEndpoints();

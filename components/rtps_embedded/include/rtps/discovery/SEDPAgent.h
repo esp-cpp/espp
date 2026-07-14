@@ -26,10 +26,11 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #define RTPS_SEDPAGENT_H
 
 #include "rtps/discovery/BuiltInEndpoints.h"
+#include "rtps/config.h"
 #include "rtps/discovery/TopicData.h"
-#include "rtps/platform/sync.h"
 
 #include <cstdint>
+#include <mutex>
 
 namespace rtps {
 
@@ -64,7 +65,7 @@ protected: // For testing purposes
 
 private:
   Participant *m_part;
-  platform::sync::RecursiveMutexHandle m_mutex = nullptr;
+  std::recursive_mutex m_mutex;
   uint8_t m_buffer[600]; // TODO check size, currently changed from 300 to 600
                          // (FastDDS gives too many options)
   BuiltInEndpoints m_endpoints;

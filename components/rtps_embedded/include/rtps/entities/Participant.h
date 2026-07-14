@@ -30,10 +30,10 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/discovery/SEDPAgent.h"
 #include "rtps/discovery/SPDPAgent.h"
 #include "rtps/messages/MessageReceiver.h"
-#include "rtps/platform/sync.h"
 #include "rtps/platform/transport.h"
 
 #include <cstdint>
+#include <mutex>
 
 namespace rtps {
 
@@ -122,7 +122,7 @@ private:
   std::array<Reader *, Config::NUM_READERS_PER_PARTICIPANT> m_readers = {
       nullptr};
 
-  platform::sync::RecursiveMutexHandle m_mutex = nullptr;
+  std::recursive_mutex m_mutex;
   MemoryPool<ParticipantProxyData, Config::SPDP_MAX_NUMBER_FOUND_PARTICIPANTS>
       m_remoteParticipants;
 

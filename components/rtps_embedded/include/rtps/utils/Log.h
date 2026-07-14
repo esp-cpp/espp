@@ -36,12 +36,12 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #define SEDP_VERBOSE 1
 #define RECV_VERBOSE 0
 #define PARTICIPANT_VERBOSE 0
-#define DOMAIN_VERBOSE 0
+#define DOMAIN_VERBOSE 1
 #define UDP_DRIVER_VERBOSE 1
-#define TSCB_VERBOSE 0
+#define TSCB_VERBOSE 1
 #define SLW_VERBOSE 0
 #define SFR_VERBOSE 1
 #define SLR_VERBOSE 1
-#define THREAD_POOL_VERBOSE 0
+#define THREAD_POOL_VERBOSE 1
 
 #endif // RTPS_LOG_H

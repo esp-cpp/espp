@@ -26,6 +26,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/utils/Log.h"
 #include "rtps/utils/udpUtils.h"
 #include <cassert>
+#include <mutex>
 
 #if defined(ESP_PLATFORM)
 #include "esp_mac.h"
@@ -50,7 +51,6 @@ Domain::Domain(const platform::transport::Ip4AddressBytes &localIpAddress)
       m_transport(&m_defaultTransport),
       m_localIpAddress(localIpAddress) {
   initializeTransport();
-  createMutex(&m_mutex);
 }
 
 Domain::Domain(platform::transport::ITransport &transport,
@@ -60,7 +60,6 @@ Domain::Domain(platform::transport::ITransport &transport,
       m_transport(&transport),
       m_localIpAddress(localIpAddress) {
   initializeTransport();
-  createMutex(&m_mutex);
 }
 
 void Domain::initializeTransport() {
@@ -260,7 +259,7 @@ void Domain::registerMulticastPort(FullLengthLocator mcastLocator) {
 
 rtps::Reader *Domain::readerExists(Participant &part, const char *topicName,
                                    const char *typeName, bool reliable) {
-  Lock lock{m_mutex};
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
   if (reliable) {
     for (unsigned int i = 0; i < m_statefulReaders.size(); i++) {
       if (m_statefulReaders[i].isInitialized()) {
@@ -305,7 +304,7 @@ rtps::Reader *Domain::readerExists(Participant &part, const char *topicName,
 
 rtps::Writer *Domain::writerExists(Participant &part, const char *topicName,
                                    const char *typeName, bool reliable) {
-  Lock lock{m_mutex};
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
   if (reliable) {
     for (unsigned int i = 0; i < m_statefulWriters.size(); i++) {
       if (m_statefulWriters[i].isInitialized()) {
@@ -350,7 +349,7 @@ rtps::Writer *Domain::writerExists(Participant &part, const char *topicName,
 rtps::Writer *Domain::createWriter(Participant &part, const char *topicName,
                                    const char *typeName, bool reliable,
                                    bool enforceUnicast) {
-  Lock lock{m_mutex};
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
   StatelessWriter *statelessWriter =
       getNextUnusedEndpoint<decltype(m_statelessWriters), StatelessWriter>(
           m_statelessWriters);
@@ -419,7 +418,7 @@ rtps::Reader *Domain::createReader(Participant &part, const char *topicName,
                                    const char *typeName, bool reliable,
                                    platform::transport::Ip4AddressBytes
                                        mcastaddress) {
-  Lock lock{m_mutex};
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
   StatelessReader *statelessReader =
       getNextUnusedEndpoint<decltype(m_statelessReaders), StatelessReader>(
           m_statelessReaders);
@@ -499,7 +498,7 @@ rtps::Reader *Domain::createReader(Participant &part, const char *topicName,
 }
 
 bool rtps::Domain::deleteReader(Participant &part, Reader *reader) {
-  Lock lock{m_mutex};
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
   if(reader == nullptr || !reader->isInitialized()){
 	  return false;
   }
@@ -512,7 +511,7 @@ bool rtps::Domain::deleteReader(Participant &part, Reader *reader) {
 }
 
 bool rtps::Domain::deleteWriter(Participant &part, Writer *writer) {
-  Lock lock{m_mutex};
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
   if(writer == nullptr || !writer->isInitialized()){
 	  return false;
   }

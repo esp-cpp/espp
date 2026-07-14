@@ -29,9 +29,9 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/config.h"
 #include "rtps/discovery/TopicData.h"
 #include "rtps/entities/WriterProxy.h"
-#include "rtps/platform/sync.h"
 #include "rtps/storages/MemoryPool.h"
 #include <cstring>
+#include <mutex>
 
 namespace rtps {
 
@@ -136,10 +136,10 @@ protected:
   std::array<callbackElement_t, Config::MAX_NUM_READER_CALLBACKS> m_callbacks;
 
   // Guards manipulation of the proxies array
-  platform::sync::RecursiveMutexHandle m_proxies_mutex = nullptr;
+  std::recursive_mutex m_proxies_mutex;
 
   // Guards manipulation of callback array
-  platform::sync::RecursiveMutexHandle m_callback_mutex = nullptr;
+  std::recursive_mutex m_callback_mutex;
 };
 } // namespace rtps
 

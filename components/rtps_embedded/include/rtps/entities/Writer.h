@@ -28,11 +28,11 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/ThreadPool.h"
 #include "rtps/discovery/TopicData.h"
 #include "rtps/entities/ReaderProxy.h"
-#include "rtps/platform/sync.h"
 #include "rtps/storages/CacheChange.h"
 #include "rtps/storages/MemoryPool.h"
 
 #include <cstdint>
+#include <mutex>
 
 #ifdef DEBUG_BUILD
 #define COMPILE_INIT_GUARD
@@ -86,7 +86,7 @@ public:
 protected:
   SequenceNumber_t m_sedp_sequence_number;
 
-  platform::sync::RecursiveMutexHandle m_mutex = nullptr;
+  std::recursive_mutex m_mutex;
   ThreadPool *mp_threadPool = nullptr;
 
   Ip4Port_t m_srcPort;

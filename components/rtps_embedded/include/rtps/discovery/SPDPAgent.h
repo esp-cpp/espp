@@ -29,11 +29,11 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/config.h"
 #include "rtps/discovery/BuiltInEndpoints.h"
 #include "rtps/discovery/ParticipantProxyData.h"
-#include "rtps/platform/sync.h"
 #include "rtps/utils/Log.h"
 #include "task.hpp"
 #include "ucdr/microcdr.h"
 
+#include <mutex>
 #include <memory>
 
 #if SPDP_VERBOSE && RTPS_GLOBAL_VERBOSE
@@ -59,7 +59,7 @@ public:
   void init(Participant &participant, BuiltInEndpoints &endpoints);
   void start();
   void stop();
-  platform::sync::RecursiveMutexHandle m_mutex = nullptr;
+  std::recursive_mutex m_mutex;
 
 private:
   Participant *mp_participant = nullptr;

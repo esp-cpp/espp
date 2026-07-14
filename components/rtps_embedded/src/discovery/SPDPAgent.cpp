@@ -32,6 +32,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/utils/udpUtils.h"
 
 #include <chrono>
+#include <mutex>
 #include <thread>
 
 using rtps::SPDPAgent;
@@ -39,10 +40,6 @@ using rtps::SMElement::BuildInEndpointSet;
 using rtps::SMElement::ParameterId;
 
 void SPDPAgent::init(Participant &participant, BuiltInEndpoints &endpoints) {
-  if (!createMutex(&m_mutex)) {
-    SPDP_LOG("Could not alloc mutex");
-    return;
-  }
   mp_participant = &participant;
   m_buildInEndpoints = endpoints;
   m_buildInEndpoints.spdpReader->registerCallback(receiveCallback, this);
@@ -113,7 +110,7 @@ void SPDPAgent::handleSPDPPackage(const ReaderCacheChange &cacheChange) {
     return;
   }
 
-  Lock lock{m_mutex};
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
   if (cacheChange.size > m_inputBuffer.size()) {
     SPDP_LOG("Input buffer to small\n");
     return;

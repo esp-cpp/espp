@@ -238,9 +238,9 @@ void ThreadPool::doWriterWork() {
       continue;
     }
 
-    THREAD_POOL_LOG("WriterWorker | User = %u, Meta = %u\r\n",
-                    static_cast<unsigned int>(Diagnostics::ThreadPool::processed_outgoing_usertraffic),
-                    static_cast<unsigned int>(Diagnostics::ThreadPool::processed_outgoing_metatraffic));
+    // THREAD_POOL_LOG("WriterWorker | User = %u, Meta = %u\r\n",
+    //                 static_cast<unsigned int>(Diagnostics::ThreadPool::processed_outgoing_usertraffic),
+    //                 static_cast<unsigned int>(Diagnostics::ThreadPool::processed_outgoing_metatraffic));
     updateDiagnostics();
     return;
   }
@@ -301,8 +301,8 @@ void ThreadPool::doReaderWork() {
       continue;
     }
     THREAD_POOL_LOG("ReaderWorker | User = %u, Meta = %u\r\n",
-                    static_cast<unsigned int>(usertraffic),
-                    static_cast<unsigned int>(metatraffic));
+                    static_cast<unsigned int>(Diagnostics::ThreadPool::processed_incoming_usertraffic),
+                    static_cast<unsigned int>(Diagnostics::ThreadPool::processed_incoming_metatraffic));
     updateDiagnostics();
     return;
   }

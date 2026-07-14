@@ -1,16 +1,16 @@
 #include <rtps/entities/Reader.h>
 #include <rtps/entities/StatefulReader.h>
 #include <rtps/entities/StatelessReader.h>
-#include <rtps/utils/Lock.h>
 #include <rtps/utils/Log.h>
 #include <rtps/utils/printutils.h>
+#include <mutex>
 
 using namespace rtps;
 
 Reader::Reader() { m_callbacks.fill({nullptr, nullptr, 0}); }
 
 void Reader::executeCallbacks(const ReaderCacheChange &cacheChange) {
-  Lock lock{m_callback_mutex};
+  std::lock_guard<std::recursive_mutex> lock(m_callback_mutex);
   for (unsigned int i = 0; i < m_callbacks.size(); i++) {
     if (m_callbacks[i].function != nullptr) {
       m_callbacks[i].function(m_callbacks[i].arg, cacheChange);
@@ -19,26 +19,12 @@ void Reader::executeCallbacks(const ReaderCacheChange &cacheChange) {
 }
 
 bool Reader::initMutex() {
-  if (m_proxies_mutex == nullptr) {
-    if (!createMutex(&m_proxies_mutex)) {
-      SFR_LOG("StatefulReader: Failed to create mutex.\n");
-      return false;
-    }
-  }
-
-  if (m_callback_mutex == nullptr) {
-    if (!createMutex(&m_callback_mutex)) {
-      SFR_LOG("StatefulReader: Failed to create mutex.\n");
-      return false;
-    }
-  }
-
   return true;
 }
 
 void Reader::reset() {
-  Lock lock1{m_proxies_mutex};
-  Lock lock2{m_callback_mutex};
+  std::lock_guard<std::recursive_mutex> lock1(m_proxies_mutex);
+  std::lock_guard<std::recursive_mutex> lock2(m_callback_mutex);
 
   m_proxies.clear();
   for (unsigned int i = 0; i < m_callbacks.size(); i++) {
@@ -71,7 +57,7 @@ WriterProxy *Reader::getProxy(Guid_t guid) {
 
 Reader::callbackIdentifier_t
 Reader::registerCallback(Reader::callbackFunction_t cb, void *arg) {
-  Lock lock{m_callback_mutex};
+  std::lock_guard<std::recursive_mutex> lock(m_callback_mutex);
   if (m_callback_count == m_callbacks.size() || cb == nullptr) {
     return false;
   }
@@ -92,7 +78,7 @@ Reader::registerCallback(Reader::callbackFunction_t cb, void *arg) {
 uint32_t Reader::getProxiesCount() { return m_proxies.getNumElements(); }
 
 bool Reader::removeCallback(Reader::callbackIdentifier_t identifier) {
-  Lock lock{m_callback_mutex};
+  std::lock_guard<std::recursive_mutex> lock(m_callback_mutex);
   for (unsigned int i = 0; i < m_callbacks.size(); i++) {
     if (m_callbacks[i].identifier == identifier) {
       m_callbacks[i].function = nullptr;
@@ -108,7 +94,7 @@ bool Reader::removeCallback(Reader::callbackIdentifier_t identifier) {
 uint8_t Reader::getNumCallbacks() { return m_callback_count; }
 
 void Reader::removeAllProxiesOfParticipant(const GuidPrefix_t &guidPrefix) {
-  Lock lock{m_proxies_mutex};
+  std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
   auto isElementToRemove = [&](const WriterProxy &proxy) {
     return proxy.remoteWriterGuid.prefix == guidPrefix;
   };
@@ -120,7 +106,7 @@ void Reader::removeAllProxiesOfParticipant(const GuidPrefix_t &guidPrefix) {
 }
 
 bool Reader::removeProxy(const Guid_t &guid) {
-  Lock lock{m_proxies_mutex};
+  std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
   auto isElementToRemove = [&](const WriterProxy &proxy) {
     return proxy.remoteWriterGuid == guid;
   };
@@ -132,7 +118,7 @@ bool Reader::removeProxy(const Guid_t &guid) {
 }
 
 bool Reader::addNewMatchedWriter(const WriterProxy &newProxy) {
-  Lock lock{m_proxies_mutex};
+  std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
 #if (SFR_VERBOSE || SLR_VERBOSE) && RTPS_GLOBAL_VERBOSE
   SFR_LOG("New writer added with id: ");
   printGuid(newProxy.remoteWriterGuid);
@@ -152,7 +138,7 @@ int rtps::Reader::dumpAllProxies(dumpProxyCallback target, void *arg) {
   if (target == nullptr) {
     return 0;
   }
-  Lock lock{m_proxies_mutex};
+  std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
   int dump_count = 0;
   for (auto it = m_proxies.begin(); it != m_proxies.end(); ++it, ++dump_count) {
     target(this, *it, arg);

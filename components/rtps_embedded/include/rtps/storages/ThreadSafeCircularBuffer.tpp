@@ -2,7 +2,6 @@
 #ifndef RTPS_THREADSAFECIRCULARBUFFER_TPP
 #define RTPS_THREADSAFECIRCULARBUFFER_TPP
 
-#include "rtps/utils/Lock.h"
 #include "rtps/utils/Log.h"
 
 #if TSCB_VERBOSE && RTPS_GLOBAL_VERBOSE
@@ -20,23 +19,21 @@ namespace rtps {
 
 template <typename T, uint16_t SIZE>
 bool ThreadSafeCircularBuffer<T, SIZE>::init() {
+  std::lock_guard<std::mutex> init_lock(m_init_mutex);
   if (m_initialized) {
     return true;
   }
-  if (!platform::sync::createRecursiveMutex(&m_mutex)) {
-    TSCB_LOG("Failed to create mutex \n");
-    return false;
-  } else {
-    TSCB_LOG("Successfully created mutex at %p\n",
-             static_cast<void *>(&m_mutex));
-    m_initialized = true;
-    return true;
-  }
+  TSCB_LOG("Using std::mutex at %p\n", static_cast<void *>(&m_mutex));
+  m_initialized = true;
+  return true;
 }
 
 template <typename T, uint16_t SIZE>
 bool ThreadSafeCircularBuffer<T, SIZE>::moveElementIntoBuffer(T &&elem) {
-  Lock lock(m_mutex);
+  if (!init()) {
+    return false;
+  }
+  std::lock_guard<std::mutex> lock(m_mutex);
   if (!isFull()) {
     m_buffer[m_head] = std::move(elem);
     incrementHead();
@@ -49,7 +46,10 @@ bool ThreadSafeCircularBuffer<T, SIZE>::moveElementIntoBuffer(T &&elem) {
 
 template <typename T, uint16_t SIZE>
 bool ThreadSafeCircularBuffer<T, SIZE>::copyElementIntoBuffer(const T &elem) {
-  Lock lock(m_mutex);
+  if (!init()) {
+    return false;
+  }
+  std::lock_guard<std::mutex> lock(m_mutex);
   if (!isFull()) {
     m_buffer[m_head] = elem;
     incrementHead();
@@ -62,7 +62,10 @@ bool ThreadSafeCircularBuffer<T, SIZE>::copyElementIntoBuffer(const T &elem) {
 
 template <typename T, uint16_t SIZE>
 bool ThreadSafeCircularBuffer<T, SIZE>::moveFirstInto(T &hull) {
-  Lock lock(m_mutex);
+  if (!init()) {
+    return false;
+  }
+  std::lock_guard<std::mutex> lock(m_mutex);
   if (m_head != m_tail) {
     hull = std::move(m_buffer[m_tail]);
     incrementTail();
@@ -74,7 +77,10 @@ bool ThreadSafeCircularBuffer<T, SIZE>::moveFirstInto(T &hull) {
 
 template <typename T, uint16_t SIZE>
 bool ThreadSafeCircularBuffer<T, SIZE>::peakFirst(T &hull) {
-  Lock lock(m_mutex);
+  if (!init()) {
+    return false;
+  }
+  std::lock_guard<std::mutex> lock(m_mutex);
   if (m_head != m_tail) {
     hull = m_buffer[m_tail];
     return true;
@@ -85,12 +91,28 @@ bool ThreadSafeCircularBuffer<T, SIZE>::peakFirst(T &hull) {
 
 template <typename T, uint16_t SIZE>
 uint32_t ThreadSafeCircularBuffer<T, SIZE>::numElements() {
+  if (!init()) {
+    return 0;
+  }
+  std::lock_guard<std::mutex> lock(m_mutex);
   return m_num_elements;
 }
 
 template <typename T, uint16_t SIZE>
+uint32_t ThreadSafeCircularBuffer<T, SIZE>::insertionFailures() {
+  if (!init()) {
+    return 0;
+  }
+  std::lock_guard<std::mutex> lock(m_mutex);
+  return m_insertion_failures;
+}
+
+template <typename T, uint16_t SIZE>
 void ThreadSafeCircularBuffer<T, SIZE>::clear() {
-  Lock lock(m_mutex);
+  if (!init()) {
+    return;
+  }
+  std::lock_guard<std::mutex> lock(m_mutex);
   m_head = m_tail;
   m_num_elements = 0;
 }

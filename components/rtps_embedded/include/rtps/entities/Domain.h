@@ -33,8 +33,8 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/entities/StatefulWriter.h"
 #include "rtps/entities/StatelessReader.h"
 #include "rtps/entities/StatelessWriter.h"
-#include "rtps/platform/sync.h"
 #include "rtps/platform/transport.h"
+#include <mutex>
 #include <rtps/common/Locator.h>
 
 namespace rtps {
@@ -92,7 +92,7 @@ private:
   }
 
   bool m_initComplete = false;
-  platform::sync::RecursiveMutexHandle m_mutex = nullptr;
+  std::recursive_mutex m_mutex;
 
   void receiveCallback(const PacketInfo &packet);
   GuidPrefix_t generateGuidPrefix(ParticipantId_t id) const;

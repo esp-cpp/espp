@@ -4,6 +4,7 @@
 #include <rtps/entities/StatefulWriter.h>
 #include <rtps/entities/Writer.h>
 #include <rtps/storages/MemoryPool.h>
+#include <mutex>
 
 using namespace rtps;
 
@@ -13,7 +14,7 @@ bool rtps::Writer::addNewMatchedReader(const ReaderProxy &newProxy) {
   SFW_LOG("New reader added with id: ");
   printGuid(newProxy.remoteReaderGuid);
 #endif
-  Lock lock{m_mutex};
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
   bool success = m_proxies.add(newProxy);
   if (!m_enforceUnicast) {
     manageSendOptions();
@@ -23,7 +24,7 @@ bool rtps::Writer::addNewMatchedReader(const ReaderProxy &newProxy) {
 
 bool rtps::Writer::removeProxy(const Guid_t &guid) {
   INIT_GUARD()
-  Lock lock{m_mutex};
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
   auto isElementToRemove = [&](const ReaderProxy &proxy) {
     return proxy.remoteReaderGuid == guid;
   };
@@ -37,7 +38,7 @@ bool rtps::Writer::removeProxy(const Guid_t &guid) {
 }
 
 uint32_t rtps::Writer::getProxiesCount() {
-  Lock lock{m_mutex};
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
   return m_proxies.getNumElements();
 }
 
@@ -59,7 +60,7 @@ const rtps::CacheChange *rtps::Writer::newChange(ChangeKind_t kind,
 
 void rtps::Writer::manageSendOptions() {
   INIT_GUARD();
-  Lock lock{m_mutex};
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
   for (auto &proxy : m_proxies) {
     if (proxy.remoteMulticastLocator.kind ==
         LocatorKind_t::LOCATOR_KIND_INVALID) {
@@ -98,7 +99,7 @@ void rtps::Writer::manageSendOptions() {
 void rtps::Writer::removeAllProxiesOfParticipant(
     const GuidPrefix_t &guidPrefix) {
   INIT_GUARD();
-  Lock lock{m_mutex};
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
   auto isElementToRemove = [&](const ReaderProxy &proxy) {
     return proxy.remoteReaderGuid.prefix == guidPrefix;
   };
@@ -138,7 +139,7 @@ int rtps::Writer::dumpAllProxies(dumpProxyCallback target, void *arg) {
   if (target == nullptr) {
     return 0;
   }
-  Lock lock{m_mutex};
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
   int dump_count = 0;
   for (auto it = m_proxies.begin(); it != m_proxies.end(); ++it, ++dump_count) {
     target(this, *it, arg);

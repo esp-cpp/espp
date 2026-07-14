@@ -25,10 +25,10 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #ifndef RTPS_THREADSAFEQUEUE_H
 #define RTPS_THREADSAFEQUEUE_H
 
-#include "rtps/platform/sync.h"
-
 #include <array>
+#include <cstdint>
 #include <limits>
+#include <mutex>
 
 namespace rtps {
 
@@ -62,7 +62,8 @@ private:
   static_assert(SIZE + 1 < std::numeric_limits<decltype(m_head)>::max(),
                 "Iterator is large enough for given size");
 
-  platform::sync::RecursiveMutexHandle m_mutex = nullptr;
+  std::mutex m_mutex;
+  std::mutex m_init_mutex;
   bool m_initialized = false;
 
   inline bool isFull();
