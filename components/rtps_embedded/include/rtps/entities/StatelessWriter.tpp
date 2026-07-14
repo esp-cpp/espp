@@ -38,14 +38,9 @@ using rtps::StatelessWriterT;
 
 #if SLW_VERBOSE && RTPS_GLOBAL_VERBOSE
 #include "rtps/utils/printutils.h"
-#define SLW_LOG(...)                                                           \
-  if (true) {                                                                  \
-    printf("[StatelessWriter %s] ", &this->m_attributes.topicName[0]);         \
-    printf(__VA_ARGS__);                                                       \
-    printf("\n");                                                              \
-  }
+#define SLW_LOG(...) logger_.warn(__VA_ARGS__)
 #else
-#define SLW_LOG(...) //
+#define SLW_LOG(...) do { } while (0)
 #endif
 
 template <class NetworkDriver>
@@ -104,7 +99,7 @@ const CacheChange *StatelessWriterT<NetworkDriver>::newChange(
       m_nextSequenceNumberToSend =
           newMin; // Make sure we have the correct sn to send
     }
-    SLW_LOG("History is full, dropping oldest %s\r\n", this->m_attributes.topicName);
+    SLW_LOG("History is full, dropping oldest {}", this->m_attributes.topicName);
   }
 
   auto *result = m_history.addChange(data, size);
@@ -112,7 +107,7 @@ const CacheChange *StatelessWriterT<NetworkDriver>::newChange(
     mp_threadPool->addWorkload(this);
   }
 
-  SLW_LOG("Adding new data.\n");
+  SLW_LOG("Adding new data.");
   return result;
 }
 
@@ -149,12 +144,12 @@ void StatelessWriterT<NetworkDriver>::progress() {
   // after adjusting values.
 
   if (m_proxies.getNumElements() == 0) {
-    SLW_LOG("No Proxy!\n");
+    SLW_LOG("No proxy!");
   }
 
   for (const auto &proxy : m_proxies) {
 
-    SLW_LOG("Progess.\n");
+    SLW_LOG("Progress.");
     // Do nothing, if someone else sends for me... (Multicast)
     if (proxy.useMulticast || !proxy.suppressUnicast || m_enforceUnicast) {
       PacketInfo info;
@@ -175,7 +170,7 @@ void StatelessWriterT<NetworkDriver>::progress() {
                   m_nextSequenceNumberToSend.low);
           return;
         } else {
-          SLW_LOG("Sending change with SN (%li,%li)\n",
+            SLW_LOG("Sending change with SN ({},{})",
                   m_nextSequenceNumberToSend.high,
                   m_nextSequenceNumberToSend.low);
         }
@@ -207,7 +202,7 @@ void StatelessWriterT<NetworkDriver>::progress() {
         info.destAddr = proxy.remoteLocator.getIp4AddressBytes();
         info.destPort = (Ip4Port_t)proxy.remoteLocator.port;
       }
-      SLW_LOG("Sending to %u.%u.%u.%u:%d\n", info.destAddr[0], info.destAddr[1],
+      SLW_LOG("Sending to {}.{}.{}.{}:{}", info.destAddr[0], info.destAddr[1],
               info.destAddr[2], info.destAddr[3], info.destPort);
       if (info.payload.empty()) {
         continue;

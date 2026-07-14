@@ -33,20 +33,16 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #endif
 
 #if DOMAIN_VERBOSE && RTPS_GLOBAL_VERBOSE
-#define DOMAIN_LOG(...)                                                        \
-  if (true) {                                                                  \
-    printf("[Domain] ");                                                       \
-    printf(__VA_ARGS__);                                                       \
-    printf("\n");                                                              \
-  }
+#define DOMAIN_LOG(...) logger_.warn(__VA_ARGS__)
 #else
-#define DOMAIN_LOG(...) //
+#define DOMAIN_LOG(...) do { } while (0)
 #endif
 
 using rtps::Domain;
 
 Domain::Domain(const rtps::Ip4AddressBytes &localIpAddress)
-    : m_threadPool(receiveJumppad, this),
+    : espp::BaseComponent("RtpsDomain", espp::Logger::Verbosity::WARN),
+      m_threadPool(receiveJumppad, this),
       m_defaultTransport(ThreadPool::onDatagram, &m_threadPool),
       m_transport(&m_defaultTransport),
       m_localIpAddress(localIpAddress) {
@@ -55,7 +51,8 @@ Domain::Domain(const rtps::Ip4AddressBytes &localIpAddress)
 
 Domain::Domain(rtps::EsppTransport &transport,
                const rtps::Ip4AddressBytes &localIpAddress)
-    : m_threadPool(receiveJumppad, this),
+    : espp::BaseComponent("RtpsDomain", espp::Logger::Verbosity::WARN),
+      m_threadPool(receiveJumppad, this),
       m_defaultTransport(ThreadPool::onDatagram, &m_threadPool),
       m_transport(&transport),
       m_localIpAddress(localIpAddress) {
@@ -75,7 +72,7 @@ bool Domain::completeInit() {
   m_initComplete = m_threadPool.startThreads();
 
   if (!m_initComplete) {
-    DOMAIN_LOG("Failed starting threads\n");
+    DOMAIN_LOG("Failed starting threads");
   }
 
   for (auto i = 0; i < m_nextParticipantId; i++) {
@@ -93,7 +90,7 @@ void Domain::receiveJumppad(void *callee, const PacketInfo &packet) {
 
 void Domain::receiveCallback(const PacketInfo &packet) {
   if (packet.payload.empty()) {
-    DOMAIN_LOG("Dropping packet without payload\n");
+    DOMAIN_LOG("Dropping packet without payload");
     return;
   }
 
@@ -102,7 +99,7 @@ void Domain::receiveCallback(const PacketInfo &packet) {
 
   if (isMetaMultiCastPort(packet.destPort)) {
     // Pass to all
-    DOMAIN_LOG("Domain: Multicast to port %u\n", packet.destPort);
+    DOMAIN_LOG("Domain: Multicast to port {}", packet.destPort);
     for (auto i = 0; i < m_nextParticipantId - PARTICIPANT_START_ID; ++i) {
       m_participants[i].newMessage(payload, payload_size);
     }
@@ -110,11 +107,11 @@ void Domain::receiveCallback(const PacketInfo &packet) {
   } else if (isUserMultiCastPort(packet.destPort)) {
     // Pass to Participant with assigned Multicast Adress (Port ist everytime
     // the same)
-    DOMAIN_LOG("Domain: Got user multicast message on port %u\n",
+    DOMAIN_LOG("Domain: Got user multicast message on port {}",
                packet.destPort);
     for (auto i = 0; i < m_nextParticipantId - PARTICIPANT_START_ID; ++i) {
       if (m_participants[i].hasReaderWithMulticastLocator(packet.destAddr)) {
-        DOMAIN_LOG("Domain: Forward Multicast only to Participant: %u\n", i);
+        DOMAIN_LOG("Domain: Forward Multicast only to Participant: {}", i);
         m_participants[i].newMessage(payload, payload_size);
       }
     }
@@ -123,17 +120,17 @@ void Domain::receiveCallback(const PacketInfo &packet) {
     ParticipantId_t id = getParticipantIdFromUnicastPort(
         packet.destPort, isUserPort(packet.destPort));
     if (id != PARTICIPANT_ID_INVALID) {
-      DOMAIN_LOG("Domain: Got unicast message on port %u\n", packet.destPort);
+      DOMAIN_LOG("Domain: Got unicast message on port {}", packet.destPort);
       if (id < m_nextParticipantId &&
           id >= PARTICIPANT_START_ID) { // added extra check to avoid segfault
                                         // (id below START_ID)
         m_participants[id - PARTICIPANT_START_ID].newMessage(
           payload, payload_size);
       } else {
-        DOMAIN_LOG("Domain: Participant id too high or unplausible.\n");
+        DOMAIN_LOG("Domain: Participant id too high or unplausible.");
       }
     } else {
-      DOMAIN_LOG("Domain: Got message to port %u: no matching participant\n",
+      DOMAIN_LOG("Domain: Got message to port {}: no matching participant",
                  packet.destPort);
     }
   }
@@ -141,7 +138,7 @@ void Domain::receiveCallback(const PacketInfo &packet) {
 
 rtps::Participant *Domain::createParticipant() {
 
-  DOMAIN_LOG("Domain: Creating new participant.\n");
+  DOMAIN_LOG("Domain: Creating new participant.");
 
   auto nextSlot =
       static_cast<uint8_t>(m_nextParticipantId - PARTICIPANT_START_ID);
@@ -273,7 +270,7 @@ rtps::Reader *Domain::readerExists(Participant &part, const char *topicName,
           continue;
         }
 
-        DOMAIN_LOG("StatefulReader exists already [%s, %s]\n", topicName,
+        DOMAIN_LOG("StatefulReader exists already [{}, {}]", topicName,
                    typeName);
 
         return &m_statefulReaders[i];
@@ -292,7 +289,7 @@ rtps::Reader *Domain::readerExists(Participant &part, const char *topicName,
           continue;
         }
 
-        DOMAIN_LOG("StatelessReader exists [%s, %s]\n", topicName, typeName);
+        DOMAIN_LOG("StatelessReader exists [{}, {}]", topicName, typeName);
 
         return &m_statelessReaders[i];
       }
@@ -318,7 +315,7 @@ rtps::Writer *Domain::writerExists(Participant &part, const char *topicName,
           continue;
         }
 
-        DOMAIN_LOG("StatefulWriter exists [%s, %s]\n", topicName, typeName);
+        DOMAIN_LOG("StatefulWriter exists [{}, {}]", topicName, typeName);
 
         return &m_statefulWriters[i];
       }
@@ -336,7 +333,7 @@ rtps::Writer *Domain::writerExists(Participant &part, const char *topicName,
           continue;
         }
 
-        DOMAIN_LOG("StatelessWriter exists [%s, %s]\n", topicName, typeName);
+        DOMAIN_LOG("StatelessWriter exists [{}, {}]", topicName, typeName);
 
         return &m_statelessWriters[i];
       }
@@ -361,7 +358,7 @@ rtps::Writer *Domain::createWriter(Participant &part, const char *topicName,
   if ((reliable && statefulWriter == nullptr) ||
       (!reliable && statelessWriter == nullptr) || part.isWritersFull()) {
 
-    DOMAIN_LOG("No Writer created. Max Number of Writers reached.\n");
+    DOMAIN_LOG("No Writer created. Max Number of Writers reached.");
 
     return nullptr;
   }
@@ -383,14 +380,14 @@ rtps::Writer *Domain::createWriter(Participant &part, const char *topicName,
       getUserUnicastLocator(part.m_participantId, m_localIpAddress);
   attributes.durabilityKind = DurabilityKind_t::TRANSIENT_LOCAL;
 
-  DOMAIN_LOG("Creating writer[%s, %s]\n", topicName, typeName);
+  DOMAIN_LOG("Creating writer[{}, {}]", topicName, typeName);
 
   if (reliable) {
     attributes.reliabilityKind = ReliabilityKind_t::RELIABLE;
 
     if (!statefulWriter->init(attributes, TopicKind_t::NO_KEY, &m_threadPool,
                               *m_transport, enforceUnicast)) {
-      DOMAIN_LOG("StatefulWriter init failed.\n");
+      DOMAIN_LOG("StatefulWriter init failed.");
       return nullptr;
     }
 
@@ -403,7 +400,7 @@ rtps::Writer *Domain::createWriter(Participant &part, const char *topicName,
 
     if (!statelessWriter->init(attributes, TopicKind_t::NO_KEY, &m_threadPool,
                                *m_transport, enforceUnicast)) {
-      DOMAIN_LOG("StatelessWriter init failed.\n");
+      DOMAIN_LOG("StatelessWriter init failed.");
       return nullptr;
     }
 
@@ -428,7 +425,7 @@ rtps::Reader *Domain::createReader(Participant &part, const char *topicName,
   if ((reliable && statefulReader == nullptr) ||
       (!reliable && statelessReader == nullptr) || part.isReadersFull()) {
 
-    DOMAIN_LOG("No Reader created. Max Number of Readers reached.\n");
+    DOMAIN_LOG("No Reader created. Max Number of Readers reached.");
 
     return nullptr;
   }
@@ -460,16 +457,16 @@ rtps::Reader *Domain::createReader(Participant &part, const char *topicName,
            attributes.multicastLocator.address[15]});
       registerMulticastPort(attributes.multicastLocator);
 
-      DOMAIN_LOG("Multicast enabled!\n");
+      DOMAIN_LOG("Multicast enabled!");
 
     } else {
 
-      DOMAIN_LOG("This is not a Multicastaddress!\n");
+      DOMAIN_LOG("This is not a Multicastaddress!");
     }
   }
   attributes.durabilityKind = DurabilityKind_t::VOLATILE;
 
-  DOMAIN_LOG("Creating reader[%s, %s]\n", topicName, typeName);
+  DOMAIN_LOG("Creating reader[{}, {}]", topicName, typeName);
 
   if (reliable) {
 
@@ -478,7 +475,7 @@ rtps::Reader *Domain::createReader(Participant &part, const char *topicName,
     statefulReader->init(attributes, *m_transport);
 
     if (!part.addReader(statefulReader)) {
-      DOMAIN_LOG("Failed to add reader to participant.\n");
+      DOMAIN_LOG("Failed to add reader to participant.");
 
       return nullptr;
     }
@@ -524,7 +521,7 @@ bool rtps::Domain::deleteWriter(Participant &part, Writer *writer) {
 
 void rtps::Domain::printInfo() {
   for (unsigned int i = 0; i < m_participants.size(); i++) {
-    DOMAIN_LOG("Participant %u\r\n", i);
+    DOMAIN_LOG("Participant {}", i);
     m_participants[i].printInfo();
   }
 }

@@ -7,7 +7,10 @@
 
 using namespace rtps;
 
-Reader::Reader() { m_callbacks.fill({nullptr, nullptr, 0}); }
+Reader::Reader()
+    : espp::BaseComponent("RtpsReader", espp::Logger::Verbosity::WARN) {
+  m_callbacks.fill({nullptr, nullptr, 0});
+}
 
 void Reader::executeCallbacks(const ReaderCacheChange &cacheChange) {
   std::lock_guard<std::recursive_mutex> lock(m_callback_mutex);
@@ -122,7 +125,6 @@ bool Reader::addNewMatchedWriter(const WriterProxy &newProxy) {
 #if (SFR_VERBOSE || SLR_VERBOSE) && RTPS_GLOBAL_VERBOSE
   SFR_LOG("New writer added with id: ");
   printGuid(newProxy.remoteWriterGuid);
-  SFR_LOG("\n");
 #endif
   return m_proxies.add(newProxy);
 }

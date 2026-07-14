@@ -23,12 +23,18 @@ Author: i11 - Embedded Software, RWTH Aachen University
 */
 #include "rtps/discovery/TopicData.h"
 #include "rtps/messages/MessageTypes.h"
+#include "logger.hpp"
 #include <cstdio>
 #include <cstring>
 
 using rtps::TopicData;
 using rtps::TopicDataCompressed;
 using rtps::SMElement::ParameterId;
+
+namespace {
+espp::Logger s_topic_data_logger(
+  {.tag = "RtpsTopicData", .level = espp::Logger::Verbosity::WARN});
+}
 
 bool TopicData::isDisposedFlagSet() const {
   return statusInfoValid && ((statusInfo & 0b1));
@@ -51,7 +57,7 @@ bool TopicData::readFromUcdrBuffer(ucdrBuffer &buffer) {
 
   while (ucdr_buffer_remaining(&buffer) >= 4) {
     if (ucdr_buffer_has_error(&buffer)) {
-      printf("FAILED TO DESERIALIZE TOPIC DATA\n");
+      s_topic_data_logger.error("FAILED TO DESERIALIZE TOPIC DATA");
       return false;
       // while (1) {
       //   printf("FAILED TO DESERIALIZE TOPIC DATA\n");
@@ -101,12 +107,20 @@ bool TopicData::readFromUcdrBuffer(ucdrBuffer &buffer) {
       // unavailable (e.g. early startup) to avoid keeping placeholder defaults.
       if (uLoc.kind == LocatorKind_t::LOCATOR_KIND_UDPv4) {
         unicastLocator = uLoc;
-        printf ("Received unicast locator: %d.%d.%d.%d:%ld\n", uLoc.address[12], uLoc.address[13], uLoc.address[14], uLoc.address[15], uLoc.port);
+        const auto a0 = static_cast<unsigned int>(uLoc.address[12]);
+        const auto a1 = static_cast<unsigned int>(uLoc.address[13]);
+        const auto a2 = static_cast<unsigned int>(uLoc.address[14]);
+        const auto a3 = static_cast<unsigned int>(uLoc.address[15]);
+        const auto port = static_cast<unsigned long>(uLoc.port);
+        s_topic_data_logger.warn(
+            "Received unicast locator: {}.{}.{}.{}:{}", a0, a1, a2, a3,
+            port);
       }
       else {
         // print warning and the invalid locator for debugging
-        printf("Warning: Received invalid unicast locator with kind %d\n",
-               static_cast<int>(uLoc.kind));
+        s_topic_data_logger.warn(
+            "Warning: Received invalid unicast locator with kind {}",
+            static_cast<int>(uLoc.kind));
       }
       break;
     case ParameterId::PID_MULTICAST_LOCATOR:

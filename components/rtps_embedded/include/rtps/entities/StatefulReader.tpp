@@ -31,14 +31,9 @@ Author: i11 - Embedded Software, RWTH Aachen University
 
 #if SFR_VERBOSE && RTPS_GLOBAL_VERBOSE
 #include "rtps/utils/printutils.h"
-#define SFR_LOG(...)                                                           \
-  if (true) {                                                                  \
-    printf("[StatefulReader %s] ", &m_attributes.topicName[0]);                \
-    printf(__VA_ARGS__);                                                       \
-    printf("\r\n");                                                            \
-  }
+#define SFR_LOG(...) logger_.warn(__VA_ARGS__)
 #else
-#define SFR_LOG(...) //
+#define SFR_LOG(...) do { } while (0)
 #endif
 
 using rtps::StatefulReaderT;
@@ -71,7 +66,7 @@ void StatefulReaderT<NetworkDriver>::newChange(
   for (auto &proxy : m_proxies) {
     if (proxy.remoteWriterGuid == cacheChange.writerGuid) {
       if (proxy.expectedSN == cacheChange.sn) {
-        SFR_LOG("Delivering SN %u.%u | ! GUID %u %u %u %u \r\n",
+        SFR_LOG("Delivering SN {}.{} | GUID {} {} {} {}",
                 (int)cacheChange.sn.high, (int)cacheChange.sn.low,
                 cacheChange.writerGuid.prefix.id[0],
                 cacheChange.writerGuid.prefix.id[1],
@@ -79,13 +74,13 @@ void StatefulReaderT<NetworkDriver>::newChange(
                 cacheChange.writerGuid.prefix.id[3]);
         executeCallbacks(cacheChange);
         ++proxy.expectedSN;
-        SFR_LOG("Done processing SN %u.%u\r\n", (int)cacheChange.sn.high,
+        SFR_LOG("Done processing SN {}.{}", (int)cacheChange.sn.high,
                (int)cacheChange.sn.low);
         return;
       } else {
         Diagnostics::StatefulReader::sfr_unexpected_sn++;
         SFR_LOG(
-            "Unexpected SN %u.%u != %u.%u, dropping! GUID %u %u %u %u | \r\n",
+          "Unexpected SN {}.{} != {}.{}, dropping! GUID {} {} {} {}",
             (int)proxy.expectedSN.high, (int)proxy.expectedSN.low,
             (int)cacheChange.sn.high, (int)cacheChange.sn.low,
             cacheChange.writerGuid.prefix.id[0],
@@ -101,9 +96,7 @@ template <class NetworkDriver>
 bool StatefulReaderT<NetworkDriver>::addNewMatchedWriter(
     const WriterProxy &newProxy) {
 #if SFR_VERBOSE && RTPS_GLOBAL_VERBOSE
-  SFR_LOG("New writer added with id: ");
-  printGuid(newProxy.remoteWriterGuid);
-  SFR_LOG("\n");
+  SFR_LOG("New writer added");
 #endif
   return m_proxies.add(newProxy);
 }
@@ -115,7 +108,7 @@ bool StatefulReaderT<NetworkDriver>::onNewGapMessage(
   if (!m_is_initialized_) {
     return false;
   }
-    SFR_LOG("Processing gap message %d.%u %d.%u", (int)msg.gapStart.high,
+    SFR_LOG("Processing gap message {}.{} {}.{}", (int)msg.gapStart.high,
       (unsigned int)msg.gapStart.low, (int)msg.gapList.base.high,
       (unsigned int)msg.gapList.base.low);
 
@@ -127,10 +120,7 @@ bool StatefulReaderT<NetworkDriver>::onNewGapMessage(
   if (writer == nullptr) {
 
 #if SFR_VERBOSE && RTPS_GLOBAL_VERBOSE
-    SFR_LOG("Ignore GAP. Couldn't find a matching "
-            "writer with id:");
-    printEntityId(msg.writerId);
-    SFR_LOG("\n");
+    SFR_LOG("Ignore GAP. Couldn't find a matching writer");
 #endif
     return false;
   }
@@ -236,10 +226,7 @@ bool StatefulReaderT<NetworkDriver>::onNewHeartbeat(
   if (writer == nullptr) {
 
 #if SFR_VERBOSE && RTPS_GLOBAL_VERBOSE
-    SFR_LOG("Ignore heartbeat. Couldn't find a matching "
-            "writer with id:");
-    printEntityId(msg.writerId);
-    SFR_LOG("\n");
+    SFR_LOG("Ignore heartbeat. Couldn't find a matching writer");
 #endif
     return false;
   }
@@ -260,7 +247,7 @@ bool StatefulReaderT<NetworkDriver>::onNewHeartbeat(
                                    missing_sns, writer->getNextAckNackCount(),
                                    final_flag);
 
-  SFR_LOG("Sending acknack base %u bits %u .\n", (int)missing_sns.base.low,
+  SFR_LOG("Sending acknack base {} bits {}.", (int)missing_sns.base.low,
           (int)missing_sns.numBits);
   info.payload = std::move(payload.bytes);
   if (info.payload.empty()) {
@@ -293,7 +280,7 @@ bool StatefulReaderT<NetworkDriver>::sendPreemptiveAckNack(
       payload, writer.remoteWriterGuid.entityId,
       m_attributes.endpointGuid.entityId, number_set, Count_t{1}, false);
 
-  SFR_LOG("Sending preemptive acknack.\n");
+  SFR_LOG("Sending preemptive acknack.");
   info.payload = std::move(payload.bytes);
   if (info.payload.empty()) {
     return false;

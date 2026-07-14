@@ -22,13 +22,21 @@ This file is part of embeddedRTPS.
 Author: i11 - Embedded Software, RWTH Aachen University
 */
 
-#include "rtps/discovery/SPDPAgent.h"
+#include "rtps/discovery/ParticipantProxyData.h"
 #include "rtps/entities/Participant.h"
 #include "rtps/utils/Log.h"
 
 using rtps::ParticipantProxyData;
 
-ParticipantProxyData::ParticipantProxyData(Guid_t guid) : m_guid(guid) {}
+#if SPDP_VERBOSE && RTPS_GLOBAL_VERBOSE
+#define PPD_LOG(...) logger_.warn(__VA_ARGS__)
+#else
+#define PPD_LOG(...) do { } while (0)
+#endif
+
+ParticipantProxyData::ParticipantProxyData(Guid_t guid)
+    : espp::BaseComponent("RtpsParticipantProxy", espp::Logger::Verbosity::WARN),
+      m_guid(guid) {}
 
 void ParticipantProxyData::reset() {
   m_guid = Guid_t{GUIDPREFIX_UNKNOWN, ENTITYID_UNKNOWN};
@@ -48,24 +56,26 @@ bool ParticipantProxyData::readFromUcdrBuffer(ucdrBuffer &buffer,
   reset();
   SMElement::ParameterId pid;
   uint16_t length;
-  SPDP_LOG("Start deserializing ParticipantProxyData\n");
-  SPDP_LOG("Buffer has %u bytes remaining\n", ucdr_buffer_remaining(&buffer));
-  SPDP_LOG("first 20 bytes of data: ");
+  PPD_LOG("Start deserializing ParticipantProxyData");
+  PPD_LOG("Buffer has {} bytes remaining", ucdr_buffer_remaining(&buffer));
+  PPD_LOG("first 20 bytes of data:");
   for (int i = 0; i < 20 && i < ucdr_buffer_remaining(&buffer); ++i) {
-    SPDP_LOG("%02x ", buffer.iterator[i]);
+    PPD_LOG("{:02x}", buffer.iterator[i]);
   }
-  SPDP_LOG("\n");
-  SPDP_LOG("before start, buff length: %d. last data size: %d, offset: %d", ucdr_buffer_length(&buffer), buffer.last_data_size, buffer.offset);
+    PPD_LOG("before start, buff length: {}. last data size: {}",
+      ucdr_buffer_length(&buffer), buffer.last_data_size);
   while (ucdr_buffer_remaining(&buffer) >= 4) {
     ucdr_deserialize_uint16_t(&buffer, reinterpret_cast<uint16_t *>(&pid));
-    SPDP_LOG("buff length after get id: %d. last data size: %d, offset: %d", ucdr_buffer_length(&buffer), buffer.last_data_size, buffer.offset);
+      PPD_LOG("buff length after get id: {}. last data size: {}",
+        ucdr_buffer_length(&buffer), buffer.last_data_size);
 
     ucdr_deserialize_uint16_t(&buffer, &length);
-    SPDP_LOG("buff length after get length: %d. last data size: %d, offset: %d", ucdr_buffer_length(&buffer), buffer.last_data_size, buffer.offset);
-    SPDP_LOG("Deserializing parameter with id %u and length %u\n",
-             static_cast<uint16_t>(pid), length);
+      PPD_LOG("buff length after get length: {}. last data size: {}",
+        ucdr_buffer_length(&buffer), buffer.last_data_size);
+      PPD_LOG("Deserializing parameter with id {} and length {}",
+        static_cast<uint16_t>(pid), length);
     if (ucdr_buffer_remaining(&buffer) < length) {
-      SPDP_LOG("Not enough data left in buffer to read parameter with id %u and length %u\n",
+      PPD_LOG("Not enough data left in buffer to read parameter with id {} and length {}",
                static_cast<uint16_t>(pid), length);
       return false;
     }
@@ -79,24 +89,26 @@ bool ParticipantProxyData::readFromUcdrBuffer(ucdrBuffer &buffer,
     case ParameterId::PID_PROTOCOL_VERSION: {
       ucdr_deserialize_uint8_t(&buffer, &m_protocolVersion.major);
       if (m_protocolVersion.major < PROTOCOLVERSION.major) {
-        SPDP_LOG("Unsupported protocol version: %u.%u\n", m_protocolVersion.major,
+        PPD_LOG("Unsupported protocol version: {}.{}", m_protocolVersion.major,
                  m_protocolVersion.minor);
         return false;
       } else {
         ucdr_deserialize_uint8_t(&buffer, &m_protocolVersion.minor);
       }
-      SPDP_LOG("Protocol version: %u.%u\n", m_protocolVersion.major,
-               m_protocolVersion.minor);
-      SPDP_LOG("buff length: %d. last data size: %d, offset: %d", ucdr_buffer_length(&buffer), buffer.last_data_size, buffer.offset);
+                PPD_LOG("Protocol version: {}.{}", m_protocolVersion.major,
+                  m_protocolVersion.minor);
+                PPD_LOG("buff length: {}. last data size: {}",
+                  ucdr_buffer_length(&buffer), buffer.last_data_size);
       break;
     }
     case ParameterId::PID_VENDORID: {
       ucdr_deserialize_array_uint8_t(&buffer, m_vendorId.vendorId.data(),
                                      m_vendorId.vendorId.size());
-      SPDP_LOG(" vendor id struct size: %d\n", m_vendorId.vendorId.size());
-      SPDP_LOG("Vendor ID: %u %u\n", m_vendorId.vendorId[0],
-               m_vendorId.vendorId[1]);
-      SPDP_LOG("buff length: %d. last data size: %d, offset: %d", ucdr_buffer_length(&buffer), buffer.last_data_size, buffer.offset);
+                PPD_LOG("vendor id struct size: {}", m_vendorId.vendorId.size());
+                PPD_LOG("Vendor ID: {} {}", m_vendorId.vendorId[0],
+                  m_vendorId.vendorId[1]);
+                PPD_LOG("buff length: {}. last data size: {}",
+                  ucdr_buffer_length(&buffer), buffer.last_data_size);
       break;
     }
 
@@ -112,35 +124,35 @@ bool ParticipantProxyData::readFromUcdrBuffer(ucdrBuffer &buffer,
       ucdr_deserialize_uint8_t(
           &buffer, reinterpret_cast<uint8_t *>(&m_guid.entityId.entityKind));
       if (participant->findRemoteParticipant(m_guid.prefix)) {
-        SPDP_LOG("stopping deserialization early, participant is known\n");
+        PPD_LOG("stopping deserialization early, participant is known");
         return true;
       }
       break;
     }
     case ParameterId::PID_METATRAFFIC_MULTICAST_LOCATOR: {
       if (!readLocatorIntoList(buffer, m_metatrafficMulticastLocatorList)) {
-        SPDP_LOG("Failed to read metatraffic multicast locator\n");
+        PPD_LOG("Failed to read metatraffic multicast locator");
         return false;
       }
       break;
     }
     case ParameterId::PID_METATRAFFIC_UNICAST_LOCATOR: {
       if (!readLocatorIntoList(buffer, m_metatrafficUnicastLocatorList)) {
-        SPDP_LOG("Failed to read metatraffic unicast locator\n");
+        PPD_LOG("Failed to read metatraffic unicast locator");
         return false;
       }
       break;
     }
     case ParameterId::PID_DEFAULT_UNICAST_LOCATOR: {
       if (!readLocatorIntoList(buffer, m_defaultUnicastLocatorList)) {
-        SPDP_LOG("Failed to read default unicast locator\n");
+        PPD_LOG("Failed to read default unicast locator");
         return false;
       }
       break;
     }
     case ParameterId::PID_DEFAULT_MULTICAST_LOCATOR: {
       if (!readLocatorIntoList(buffer, m_defaultMulticastLocatorList)) {
-        SPDP_LOG("Failed to read default multicast locator\n");
+        PPD_LOG("Failed to read default multicast locator");
         return false;
       }
       break;
@@ -185,15 +197,15 @@ bool ParticipantProxyData::readFromUcdrBuffer(ucdrBuffer &buffer,
       // should not return false for unknown parameter, just skip it, otherwise we might miss some important information if the remote participant is using some vendor specific parameters that we do not know about.
       // TODO: GUO: need read out the data for the length of the parameter, otherwise the buffer will be in wrong state and the following parameters cannot be read correctly. For now just skip the data by moving the iterator forward, but we might want to actually read out the data and store it for future use if needed, especially for some vendor specific parameters that we do not know about.
       // buffer.iterator += length;
-      ucdr_advance_buffer(&buffer, length);
+      buffer.iterator += length;
+      buffer.last_data_size = 1;
       break; }
     }
       // Parameter lists are 4-byte aligned
     uint32_t alignment = ucdr_buffer_alignment(&buffer, 4);
-      SPDP_LOG("Alignment for next parameter: %lu\n", alignment);
-    ucdr_advance_buffer(&buffer, alignment);
-    // buffer.iterator += alignment;
-    // buffer.last_data_size = 4;
+      PPD_LOG("Alignment for next parameter: {}", alignment);
+    buffer.iterator += alignment;
+    buffer.last_data_size = 4;
   }
   return true;
 }
@@ -208,12 +220,12 @@ bool ParticipantProxyData::readLocatorIntoList(
       bool ret = full_length_locator.readFromUcdrBuffer(buffer);
       if (ret && full_length_locator.kind == LocatorKind_t::LOCATOR_KIND_UDPv4) {
         proxy_locator = LocatorIPv4(full_length_locator);
-        SPDP_LOG("Adding locator: %u %u %u %u",
+        PPD_LOG("Adding locator: {} {} {} {}",
                  (int)proxy_locator.address[0], (int)proxy_locator.address[1],
                  (int)proxy_locator.address[2], (int)proxy_locator.address[3]);
         return true;
       } else {
-        SPDP_LOG("Ignoring locator: %u %u %u %u",
+        PPD_LOG("Ignoring locator: {} {} {} {}",
                  (int)full_length_locator.address[12],
                  (int)full_length_locator.address[13],
                  (int)full_length_locator.address[14],
@@ -224,11 +236,12 @@ bool ParticipantProxyData::readLocatorIntoList(
       valid_locators++;
       if (valid_locators == Config::SPDP_MAX_NUM_LOCATORS) {
         buffer.iterator += sizeof(FullLengthLocator);
-        SPDP_LOG("Max number of valid locators exceed, ignoring this locator "
-                 "as we have at least one valid locator\n");
+        PPD_LOG("Max number of valid locators exceeded, ignoring this locator as we have at least one valid locator");
         return true;
       }
     }
   }
   return false;
 }
+
+#undef PPD_LOG

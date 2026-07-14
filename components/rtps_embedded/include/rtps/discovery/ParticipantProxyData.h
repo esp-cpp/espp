@@ -25,11 +25,14 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #ifndef RTPS_PARTICIPANTPROXYDATA_H
 #define RTPS_PARTICIPANTPROXYDATA_H
 
+#include "base_component.hpp"
 #include "rtps/config.h"
 #include "rtps/messages/MessageTypes.h"
 #include "ucdr/microcdr.h"
 #include <rtps/common/Locator.h>
+#include <algorithm>
 #include <chrono>
+#include <cstdint>
 #include <array>
 
 namespace rtps {
@@ -37,18 +40,22 @@ namespace rtps {
 class Participant;
 using SMElement::ParameterId;
 
-typedef uint32_t BuiltinEndpointSet_t;
+using BuiltinEndpointSet_t = uint32_t;
 
-class ParticipantProxyData {
+class ParticipantProxyData : public espp::BaseComponent {
 public:
-  ParticipantProxyData() { onAliveSignal(); }
+  ParticipantProxyData()
+      : espp::BaseComponent("RtpsParticipantProxy",
+                            espp::Logger::Verbosity::WARN) {
+    onAliveSignal();
+  }
   ParticipantProxyData(Guid_t guid);
 
   ProtocolVersion_t m_protocolVersion = PROTOCOLVERSION;
   Guid_t m_guid = Guid_t{GUIDPREFIX_UNKNOWN, ENTITYID_UNKNOWN};
   VendorId_t m_vendorId = VENDOR_UNKNOWN;
   bool m_expectsInlineQos = false;
-  BuiltinEndpointSet_t m_availableBuiltInEndpoints;
+  BuiltinEndpointSet_t m_availableBuiltInEndpoints{0};
   std::array<LocatorIPv4, Config::SPDP_MAX_NUM_LOCATORS>
       m_metatrafficUnicastLocatorList;
   std::array<LocatorIPv4, Config::SPDP_MAX_NUM_LOCATORS>
@@ -59,21 +66,22 @@ public:
       m_defaultMulticastLocatorList;
   Count_t m_manualLivelinessCount{1};
   Duration_t m_leaseDuration = Config::SPDP_DEFAULT_REMOTE_LEASE_DURATION;
-  std::chrono::time_point<std::chrono::steady_clock> m_lastLivelinessReceivedTimestamp;
+  std::chrono::time_point<std::chrono::steady_clock>
+      m_lastLivelinessReceivedTimestamp;
   void reset();
 
   bool readFromUcdrBuffer(ucdrBuffer &buffer, Participant *participant);
 
-  inline bool hasParticipantWriter();
-  inline bool hasParticipantReader();
-  inline bool hasPublicationWriter();
-  inline bool hasPublicationReader();
-  inline bool hasSubscriptionWriter();
-  inline bool hasSubscriptionReader();
+  inline bool hasParticipantWriter() const;
+  inline bool hasParticipantReader() const;
+  inline bool hasPublicationWriter() const;
+  inline bool hasPublicationReader() const;
+  inline bool hasSubscriptionWriter() const;
+  inline bool hasSubscriptionReader() const;
 
   inline void onAliveSignal();
-  inline bool isAlive();
-  inline uint32_t getAliveSignalAgeInMilliseconds();
+  inline bool isAlive() const;
+  inline uint32_t getAliveSignalAgeInMilliseconds() const;
 
 private:
   bool readLocatorIntoList(
@@ -107,32 +115,32 @@ private:
 };
 
 // Needs to be in header because they are marked with inline
-bool ParticipantProxyData::hasParticipantWriter() {
+bool ParticipantProxyData::hasParticipantWriter() const {
   return (m_availableBuiltInEndpoints &
           DISC_BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER) == 1;
 }
 
-bool ParticipantProxyData::hasParticipantReader() {
+bool ParticipantProxyData::hasParticipantReader() const {
   return (m_availableBuiltInEndpoints &
           DISC_BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR) != 0;
 }
 
-bool ParticipantProxyData::hasPublicationWriter() {
+bool ParticipantProxyData::hasPublicationWriter() const {
   return (m_availableBuiltInEndpoints &
           DISC_BUILTIN_ENDPOINT_PUBLICATION_ANNOUNCER) != 0;
 }
 
-bool ParticipantProxyData::hasPublicationReader() {
+bool ParticipantProxyData::hasPublicationReader() const {
   return (m_availableBuiltInEndpoints &
           DISC_BUILTIN_ENDPOINT_PUBLICATION_DETECTOR) != 0;
 }
 
-bool ParticipantProxyData::hasSubscriptionWriter() {
+bool ParticipantProxyData::hasSubscriptionWriter() const {
   return (m_availableBuiltInEndpoints &
           DISC_BUILTIN_ENDPOINT_SUBSCRIPTION_ANNOUNCER) != 0;
 }
 
-bool ParticipantProxyData::hasSubscriptionReader() {
+bool ParticipantProxyData::hasSubscriptionReader() const {
   return (m_availableBuiltInEndpoints &
           DISC_BUILTIN_ENDPOINT_SUBSCRIPTION_DETECTOR) != 0;
 }
@@ -141,17 +149,17 @@ void ParticipantProxyData::onAliveSignal() {
   m_lastLivelinessReceivedTimestamp = std::chrono::steady_clock::now();
 }
 
-uint32_t ParticipantProxyData::getAliveSignalAgeInMilliseconds() {
+uint32_t ParticipantProxyData::getAliveSignalAgeInMilliseconds() const {
   auto now = std::chrono::steady_clock::now();
-  auto duration =
-      std::chrono::duration_cast<std::chrono::milliseconds>(now - m_lastLivelinessReceivedTimestamp);
+  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+      now - m_lastLivelinessReceivedTimestamp);
   return static_cast<uint32_t>(duration.count());
 }
 
 /*
  *  Returns true if last heartbeat within lease duration, else false
  */
-bool ParticipantProxyData::isAlive() {
+bool ParticipantProxyData::isAlive() const {
   uint32_t lease_in_ms =
       m_leaseDuration.seconds * 1000 + m_leaseDuration.fraction * 1e-6;
 

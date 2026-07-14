@@ -24,7 +24,6 @@ Author: i11 - Embedded Software, RWTH Aachen University
 
 #include "rtps/communication/EsppTransport.h"
 
-#include "rtps/communication/PacketInfo.h"
 #include "task.hpp"
 
 #include <array>
@@ -70,7 +69,8 @@ bool isMulticastAddress(const rtps::Ip4AddressBytes &addr) {
 } // namespace
 
 EsppTransport::EsppTransport(RxCallback callback, void *args)
-    : m_rxCallback(callback), m_callbackArgs(args) {}
+    : espp::BaseComponent("RtpsTransport", espp::Logger::Verbosity::WARN),
+      m_rxCallback(callback), m_callbackArgs(args) {}
 
 EsppTransport::Channel *EsppTransport::findChannel(Ip4Port_t port) {
   for (auto &channel : m_channels) {
@@ -98,6 +98,7 @@ std::string EsppTransport::ip4ToString(
 
 bool EsppTransport::startReceiver(Channel &channel, Ip4Port_t receivePort) {
   if (!channel.socket) {
+    logger_.error("startReceiver called with null socket on port {}", receivePort);
     return false;
   }
 
@@ -117,7 +118,11 @@ bool EsppTransport::startReceiver(Channel &channel, Ip4Port_t receivePort) {
     return std::nullopt;
   };
 
-  return channel.socket->start_receiving(task_config, receive_config);
+  const bool started = channel.socket->start_receiving(task_config, receive_config);
+  if (!started) {
+    logger_.error("Failed to start UDP receiver on port {}", receivePort);
+  }
+  return started;
 }
 
 EsppTransport::Channel *EsppTransport::createChannel(Ip4Port_t receivePort) {
@@ -130,6 +135,7 @@ EsppTransport::Channel *EsppTransport::createChannel(Ip4Port_t receivePort) {
     socket_config.log_level = espp::Logger::Verbosity::WARN;
     channel.socket = std::make_unique<espp::UdpSocket>(socket_config);
     if (!channel.socket || !channel.socket->is_valid()) {
+      logger_.error("Failed to create valid UDP socket for port {}", receivePort);
       channel.socket.reset();
       return nullptr;
     }
@@ -159,7 +165,10 @@ void EsppTransport::onReceive(Ip4Port_t receivePort, std::vector<uint8_t> &data,
   }
 
   Ip4AddressBytes remoteAddress{0, 0, 0, 0};
-  (void)parseIp4Address(sender.address, remoteAddress);
+  if (!parseIp4Address(sender.address, remoteAddress)) {
+    logger_.warn("Could not parse sender IPv4 address '{}', using 0.0.0.0",
+                 sender.address);
+  }
 
   m_rxCallback(m_callbackArgs, data.data(), data.size(), receivePort,
                static_cast<Ip4Port_t>(sender.port), remoteAddress);
@@ -209,6 +218,7 @@ void EsppTransport::sendPacket(PacketInfo &info) {
   }
 
   if (channel == nullptr || !channel->socket) {
+    logger_.error("No UDP channel available for source port {}", info.srcPort);
     return;
   }
 

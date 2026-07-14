@@ -37,14 +37,9 @@ using rtps::StatefulWriterT;
 
 #if SFW_VERBOSE && RTPS_GLOBAL_VERBOSE
 #include "rtps/utils/printutils.h"
-#define SFW_LOG(...)                                                           \
-  if (true) {                                                                  \
-    printf("[Stateful Writer %s] ", this->m_attributes.topicName);             \
-    printf(__VA_ARGS__);                                                       \
-    printf("\r\n");                                                            \
-  }
+#define SFW_LOG(...) logger_.warn(__VA_ARGS__)
 #else
-#define SFW_LOG(...) //
+#define SFW_LOG(...) do { } while (0)
 #endif
 
 template <class NetworkDriver>
@@ -81,7 +76,7 @@ bool StatefulWriterT<NetworkDriver>::init(TopicData attributes,
   m_hbCount = {1};
 
   if (!m_disposeWithDelay.init()) {
-    SFW_LOG("Failed to initialize delayed dispose buffer mutex.\n");
+    SFW_LOG("Failed to initialize delayed dispose buffer mutex.");
     return false;
   }
 
@@ -149,7 +144,7 @@ const rtps::CacheChange *StatefulWriterT<NetworkDriver>::newChange(
       m_nextSequenceNumberToSend =
           newMin; // Make sure we have the correct sn to send
     }
-    SFW_LOG("History full! Dropping changes %s.\r\n", this->m_attributes.topicName);
+    SFW_LOG("History full! Dropping changes {}.", this->m_attributes.topicName);
   }
 
   auto *result =
@@ -158,7 +153,7 @@ const rtps::CacheChange *StatefulWriterT<NetworkDriver>::newChange(
     mp_threadPool->addWorkload(this);
   }
 
-  SFW_LOG("Adding new data.\n");
+  SFW_LOG("Adding new data.");
 
   return result;
 }
@@ -178,11 +173,11 @@ template <class NetworkDriver> void StatefulWriterT<NetworkDriver>::progress() {
       }
     }
 
-    SFW_LOG("Sending data with SN %u.%u", (int)m_nextSequenceNumberToSend.low,
+    SFW_LOG("Sending data with SN {}.{}", (int)m_nextSequenceNumberToSend.low,
             (int)m_nextSequenceNumberToSend.high);
 
     if (next->disposeAfterWrite) {
-      SFW_LOG("Dispose after write msg sent to %u proxies\r\n", (int)i);
+      SFW_LOG("Dispose after write msg sent to {} proxies", (int)i);
     }
 
     /*
@@ -199,7 +194,7 @@ template <class NetworkDriver> void StatefulWriterT<NetworkDriver>::progress() {
         SFW_LOG("Failed to enqueue dispose after write!");
         m_history.dropChange(next->sequenceNumber);
       } else {
-        SFW_LOG("Delayed dispose scheduled for sn %u %u\r\n",
+        SFW_LOG("Delayed dispose scheduled for sn {} {}",
                 (int)next->sequenceNumber.high, (int)next->sequenceNumber.low);
       }
     }
@@ -208,7 +203,7 @@ template <class NetworkDriver> void StatefulWriterT<NetworkDriver>::progress() {
     sendHeartBeat();
 
   } else {
-    SFW_LOG("Couldn't get a CacheChange with SN (%li,%lu)\n",
+    SFW_LOG("Couldn't get a CacheChange with SN ({},{})",
             m_nextSequenceNumberToSend.high, m_nextSequenceNumberToSend.low);
   }
 }
@@ -285,7 +280,7 @@ void StatefulWriterT<NetworkDriver>::onNewAckNack(
     return;
   }
 
-  SFW_LOG("Received non-preemptive acknack with %lu bits set.\r\n",
+  SFW_LOG("Received non-preemptive acknack with {} bits set.",
           msg.readerSNState.numBits);
   for (uint32_t i = 0; i < msg.readerSNState.numBits &&
                        nextSN <= m_history.getLastUsedSequenceNumber();
@@ -293,17 +288,17 @@ void StatefulWriterT<NetworkDriver>::onNewAckNack(
 
     if (msg.readerSNState.isSet(i)) {
 
-      SFW_LOG("Looking for change %lu | Bit %lu", nextSN.low, i);
+      SFW_LOG("Looking for change {} | Bit {}", nextSN.low, i);
       const rtps::CacheChange *cache = m_history.getChangeBySN(nextSN);
 
       // We still have the cache, send DATA
       if (cache != nullptr) {
         if (cache->disposeAfterWrite) {
-          SFW_LOG("SERVING FROM DISPOSE AFTER WRITE CACHE\r\n");
+          SFW_LOG("Serving from dispose-after-write cache");
         }
         sendData(*reader, cache);
       } else {
-        SFW_LOG("> Change not found, search for next valid SN %lu \r\n",
+        SFW_LOG("> Change not found, search for next valid SN {}",
                 nextSN.low);
         // Cache not found, look for next valid SN
         rtps::SequenceNumber_t gapBegin = nextSN;
@@ -459,7 +454,7 @@ void StatefulWriterT<NetworkDriver>::sendHeartBeatLoop() {
 
     // Temporarily increase HB frequency if there are unconfirmed remote changes
     if (unconfirmed_changes) {
-      SFW_LOG("HB SPEEDUP!\r\n");
+      SFW_LOG("HB speedup");
       std::this_thread::sleep_for(
           std::chrono::milliseconds(Config::SF_WRITER_HB_PERIOD_MS / 4));
     } else {
@@ -492,7 +487,7 @@ void StatefulWriterT<NetworkDriver>::dropDisposeAfterWriteChanges() {
     auto age = std::chrono::steady_clock::now() - change->sentTime;
     if (age > std::chrono::milliseconds(4000)) {
       m_history.dropChange(change->sequenceNumber);
-      SFW_LOG("Removing SN %u %u for good\r\n",
+      SFW_LOG("Removing SN {} {} for good",
               static_cast<unsigned int>(oldest_retained.low),
               static_cast<unsigned int>(oldest_retained.high));
       SequenceNumber_t tmp;
@@ -510,7 +505,7 @@ void StatefulWriterT<NetworkDriver>::sendHeartBeat() {
   INIT_GUARD()
   if (m_proxies.isEmpty() || !m_is_initialized_) {
 
-    SFW_LOG("Skipping heartbeat. No proxies.\n");
+    SFW_LOG("Skipping heartbeat. No proxies.");
     return;
   }
 
@@ -555,7 +550,7 @@ void StatefulWriterT<NetworkDriver>::sendHeartBeat() {
       }
     }
 
-    SFW_LOG("Sending HB with SN range [%lu.%lu;%lu.%lu]", firstSN.low, firstSN.high,
+    SFW_LOG("Sending HB with SN range [{}.{};{}.{}]", firstSN.low, firstSN.high,
             lastSN.low, lastSN.high);
 
     MessageFactory::addHeartbeat(

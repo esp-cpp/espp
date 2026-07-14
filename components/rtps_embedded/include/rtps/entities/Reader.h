@@ -25,6 +25,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #ifndef RTPS_READER_H
 #define RTPS_READER_H
 
+#include "base_component.hpp"
 #include "rtps/common/types.h"
 #include "rtps/config.h"
 #include "rtps/discovery/TopicData.h"
@@ -78,7 +79,7 @@ public:
 typedef void (*ddsReaderCallback_fp)(void *callee,
                                      const ReaderCacheChange &cacheChange);
 
-class Reader {
+class Reader : public espp::BaseComponent {
 public:
   using callbackFunction_t = void (*)(void *, const ReaderCacheChange &);
   using callbackIdentifier_t = uint32_t;

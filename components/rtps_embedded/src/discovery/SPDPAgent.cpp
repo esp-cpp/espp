@@ -39,6 +39,9 @@ using rtps::SPDPAgent;
 using rtps::SMElement::BuildInEndpointSet;
 using rtps::SMElement::ParameterId;
 
+SPDPAgent::SPDPAgent()
+  : espp::BaseComponent("RtpsSPDP", espp::Logger::Verbosity::WARN) {}
+
 void SPDPAgent::init(Participant &participant, BuiltInEndpoints &endpoints) {
   mp_participant = &participant;
   m_buildInEndpoints = endpoints;
@@ -106,13 +109,13 @@ void SPDPAgent::receiveCallback(void *callee,
 
 void SPDPAgent::handleSPDPPackage(const ReaderCacheChange &cacheChange) {
   if (!initialized) {
-    SPDP_LOG("Callback called without initialization\n");
+    SPDP_LOG("Callback called without initialization");
     return;
   }
 
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   if (cacheChange.size > m_inputBuffer.size()) {
-    SPDP_LOG("Input buffer to small\n");
+    SPDP_LOG("Input buffer too small");
     return;
   }
 
@@ -120,7 +123,7 @@ void SPDPAgent::handleSPDPPackage(const ReaderCacheChange &cacheChange) {
   if (!cacheChange.copyInto(m_inputBuffer.data(), m_inputBuffer.size())) {
     return;
   }
-  SPDP_LOG("SPDPPackage size: %d", cacheChange.size);
+  SPDP_LOG("SPDPPackage size: {}", cacheChange.size);
 
   ucdrBuffer buffer;
   ucdr_init_buffer(&buffer, m_inputBuffer.data(), m_inputBuffer.size());
@@ -133,7 +136,7 @@ void SPDPAgent::handleSPDPPackage(const ReaderCacheChange &cacheChange) {
       // TODO In case we store the history we can free the history mutex here
       processProxyData();
     } else {
-      SPDP_LOG("ParticipantProxyData deserializtaion failed\n");
+      SPDP_LOG("ParticipantProxyData deserialization failed");
     }
   } else {
     // TODO RemoveParticipant
@@ -160,7 +163,11 @@ void SPDPAgent::processProxyData() {
     return; // Our own packet
   }
 
-  SPDP_LOG("Message from GUID = %u %u %u %u", m_proxyDataBuffer.m_guid.prefix.id[4], m_proxyDataBuffer.m_guid.prefix.id[5], m_proxyDataBuffer.m_guid.prefix.id[6], m_proxyDataBuffer.m_guid.prefix.id[7]);
+  SPDP_LOG("Message from GUID = {} {} {} {}",
+           m_proxyDataBuffer.m_guid.prefix.id[4],
+           m_proxyDataBuffer.m_guid.prefix.id[5],
+           m_proxyDataBuffer.m_guid.prefix.id[6],
+           m_proxyDataBuffer.m_guid.prefix.id[7]);
   const rtps::ParticipantProxyData *remote_part;
   remote_part =
       mp_participant->findRemoteParticipant(m_proxyDataBuffer.m_guid.prefix);

@@ -25,6 +25,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #ifndef RTPS_PARTICIPANT_H
 #define RTPS_PARTICIPANT_H
 
+#include "base_component.hpp"
 #include "rtps/common/types.h"
 #include "rtps/config.h"
 #include "rtps/discovery/SEDPAgent.h"
@@ -40,7 +41,7 @@ namespace rtps {
 class Writer;
 class Reader;
 
-class Participant {
+class Participant : public espp::BaseComponent {
 public:
   GuidPrefix_t m_guidPrefix;
   ParticipantId_t m_participantId;

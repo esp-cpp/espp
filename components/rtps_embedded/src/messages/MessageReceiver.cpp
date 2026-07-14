@@ -34,17 +34,14 @@ using rtps::MessageReceiver;
 
 #if RECV_VERBOSE && RTPS_GLOBAL_VERBOSE
 #include "rtps/utils/printutils.h"
-#define RECV_LOG(...)                                                          \
-  if (true) {                                                                  \
-    printf("[RECV] ");                                                         \
-    printf(__VA_ARGS__);                                                       \
-    printf("\n");                                                              \
-  }
+#define RECV_LOG(...) logger_.warn(__VA_ARGS__)
 #else
-#define RECV_LOG(...) //
+#define RECV_LOG(...) do { } while (0)
 #endif
 
-MessageReceiver::MessageReceiver(Participant *part) : mp_part(part) {}
+MessageReceiver::MessageReceiver(Participant *part)
+    : espp::BaseComponent("RtpsMessageReceiver", espp::Logger::Verbosity::WARN),
+      mp_part(part) {}
 
 void MessageReceiver::resetState() {
   sourceGuidPrefix = GUIDPREFIX_UNKNOWN;
@@ -78,7 +75,7 @@ bool MessageReceiver::processHeader(MessageProcessingInfo &msgInfo) {
   }
 
   if (header.guidPrefix.id == mp_part->m_guidPrefix.id) {
-    RECV_LOG("[MessageReceiver]: Received own message.\n");
+    RECV_LOG("[MessageReceiver]: Received own message.");
     return false; // Don't process our own packet
   }
 
@@ -101,31 +98,31 @@ bool MessageReceiver::processSubmessage(MessageProcessingInfo &msgInfo,
 
   switch (submsgHeader.submessageId) {
   case SubmessageKind::ACKNACK:
-    RECV_LOG("Processing AckNack submessage\n");
+    RECV_LOG("Processing AckNack submessage");
     success = processAckNackSubmessage(msgInfo);
     break;
   case SubmessageKind::DATA:
-    RECV_LOG("Processing Data submessage\n");
+    RECV_LOG("Processing Data submessage");
     success = processDataSubmessage(msgInfo, submsgHeader);
     break;
   case SubmessageKind::HEARTBEAT:
-    RECV_LOG("Processing Heartbeat submessage\n");
+    RECV_LOG("Processing Heartbeat submessage");
     success = processHeartbeatSubmessage(msgInfo);
     break;
   case SubmessageKind::INFO_DST:
-    RECV_LOG("Info_DST submessage not relevant.\n");
+    RECV_LOG("Info_DST submessage not relevant.");
     success = true; // Not relevant
     break;
   case SubmessageKind::GAP:
-    RECV_LOG("Processing GAP submessage\n");
+    RECV_LOG("Processing GAP submessage");
     success = processGapSubmessage(msgInfo);
     break;
   case SubmessageKind::INFO_TS:
-    RECV_LOG("Info_TS submessage not relevant.\n");
+    RECV_LOG("Info_TS submessage not relevant.");
     success = true; // Not relevant now
     break;
   default:
-    RECV_LOG("Submessage of type %u currently not supported. Skipping..\n",
+    RECV_LOG("Submessage of type {} currently not supported. Skipping..",
              static_cast<uint8_t>(submsgHeader.submessageId));
     success = false;
   }
@@ -148,14 +145,13 @@ bool MessageReceiver::processDataSubmessage(
                           SubmessageData::getRawSize() +
                           SubmessageHeader::getRawSize();
 
-  RECV_LOG("Received data message size %u", (int)size);
+  RECV_LOG("Received data message size {}", static_cast<int>(size));
 
   Reader *reader;
   if (dataSubmsg.readerId == ENTITYID_UNKNOWN) {
 #if RECV_VERBOSE && RTPS_GLOBAL_VERBOSE
     RECV_LOG("Received ENTITYID_UNKNOWN readerID, searching for writer ID = ");
     printGuid(Guid_t{sourceGuidPrefix, dataSubmsg.writerId});
-    printf("\n");
 #endif
     reader = mp_part->getReaderByWriterId(
         Guid_t{sourceGuidPrefix, dataSubmsg.writerId});
@@ -170,7 +166,6 @@ bool MessageReceiver::processDataSubmessage(
     if (reader_by_writer == nullptr && reader != nullptr) {
       RECV_LOG("FOUND By READER ID, NOT BY WRITER ID =");
       printGuid(Guid_t{sourceGuidPrefix, dataSubmsg.writerId});
-      printf("\n");
     }
 #endif
   }
@@ -183,7 +178,6 @@ bool MessageReceiver::processDataSubmessage(
 #if RECV_VERBOSE && RTPS_GLOBAL_VERBOSE
     RECV_LOG("Couldn't find a reader with id: ");
     printEntityId(dataSubmsg.readerId);
-    printf("\n");
 #endif
   }
 

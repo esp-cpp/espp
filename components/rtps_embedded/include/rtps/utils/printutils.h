@@ -12,6 +12,8 @@ inline void printEntityId(rtps::EntityId_t id) {
     printf("%x", (int)byte);
   }
   printf("%x", static_cast<uint8_t>(id.entityKind));
+  printf("\n");
+
 }
 
 inline void printGuidPrefix(rtps::GuidPrefix_t prefix) {

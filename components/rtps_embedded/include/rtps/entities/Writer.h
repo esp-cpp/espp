@@ -25,6 +25,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #ifndef RTPS_WRITER_H
 #define RTPS_WRITER_H
 
+#include "base_component.hpp"
 #include "rtps/ThreadPool.h"
 #include "rtps/discovery/TopicData.h"
 #include "rtps/entities/ReaderProxy.h"
@@ -41,8 +42,9 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #ifdef COMPILE_INIT_GUARD
 #define INIT_GUARD()                                                           \
   if (!m_is_initialized_) {                                                    \
+    logger_.error("Using uninitialized endpoint");                            \
     while (1) {                                                                \
-      printf("using uninitalized endpoint\n;");                                \
+    }                                                                          \
     }                                                                          \
   }
 #else
@@ -51,7 +53,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 
 namespace rtps {
 
-class Writer {
+class Writer : public espp::BaseComponent {
 public:
   TopicData m_attributes;
   virtual bool addNewMatchedReader(const ReaderProxy &newProxy);
@@ -84,6 +86,7 @@ public:
   bool isBuiltinEndpoint();
 
 protected:
+  Writer();
   SequenceNumber_t m_sedp_sequence_number;
 
   std::recursive_mutex m_mutex;

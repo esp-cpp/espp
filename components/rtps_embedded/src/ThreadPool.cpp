@@ -35,18 +35,14 @@ using rtps::ThreadPool;
 
 #if THREAD_POOL_VERBOSE && RTPS_GLOBAL_VERBOSE
 #include "rtps/utils/printutils.h"
-#define THREAD_POOL_LOG(...)                                                   \
-  if (true) {                                                                  \
-    printf("[ThreadPool] ");                                                   \
-    printf(__VA_ARGS__);                                                       \
-    printf("\r\n");                                                            \
-  }
+#define THREAD_POOL_LOG(...) logger_.warn(__VA_ARGS__)
 #else
-#define THREAD_POOL_LOG(...) //
+#define THREAD_POOL_LOG(...) do { } while (0)
 #endif
 
 ThreadPool::ThreadPool(receiveJumppad_fp receiveCallback, void *callee)
-    : m_receiveJumppad(receiveCallback), m_callee(callee) {
+    : espp::BaseComponent("RtpsThreadPool", espp::Logger::Verbosity::WARN),
+      m_receiveJumppad(receiveCallback), m_callee(callee) {
 
   if (!m_outgoingMetaTraffic.init() || !m_outgoingUserTraffic.init() ||
       !m_incomingMetaTraffic.init() || !m_incomingUserTraffic.init()) {
@@ -201,7 +197,7 @@ bool ThreadPool::addNewPacket(PacketInfo &&packet) {
     res = m_incomingUserTraffic.moveElementIntoBuffer(std::move(packet));
   }
   if (!res) {
-    THREAD_POOL_LOG("failed to enqueue packet for port %u",
+    THREAD_POOL_LOG("failed to enqueue packet for port {}",
                     static_cast<unsigned int>(packet.destPort));
     return false;
   }
@@ -262,7 +258,7 @@ void ThreadPool::onDatagram(
   }
 
   if (!pool.addNewPacket(std::move(packet))) {
-    THREAD_POOL_LOG("ThreadPool: dropped packet\n");
+    pool.logger_.warn("ThreadPool: dropped packet");
     if (pool.isBuiltinPort(remotePort)) {
       rtps::Diagnostics::ThreadPool::dropped_incoming_packets_metatraffic++;
     } else {
@@ -298,7 +294,7 @@ void ThreadPool::doReaderWork() {
     if (isUserWorkToDo || isMetaWorkToDo) {
       continue;
     }
-    THREAD_POOL_LOG("ReaderWorker | User = %u, Meta = %u\r\n",
+    THREAD_POOL_LOG("ReaderWorker | User = {}, Meta = {}",
                     static_cast<unsigned int>(Diagnostics::ThreadPool::processed_incoming_usertraffic),
                     static_cast<unsigned int>(Diagnostics::ThreadPool::processed_incoming_metatraffic));
     updateDiagnostics();

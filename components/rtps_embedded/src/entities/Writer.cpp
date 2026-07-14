@@ -8,6 +8,9 @@
 
 using namespace rtps;
 
+Writer::Writer()
+  : espp::BaseComponent("RtpsWriter", espp::Logger::Verbosity::WARN) {}
+
 bool rtps::Writer::addNewMatchedReader(const ReaderProxy &newProxy) {
   INIT_GUARD();
 #if SFW_VERBOSE && RTPS_GLOBAL_VERBOSE

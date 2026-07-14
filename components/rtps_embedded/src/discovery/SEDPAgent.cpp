@@ -35,15 +35,13 @@ Author: i11 - Embedded Software, RWTH Aachen University
 using rtps::SEDPAgent;
 
 #if SEDP_VERBOSE && RTPS_GLOBAL_VERBOSE
-#define SEDP_LOG(...)                                                          \
-  if (true) {                                                                  \
-    printf("[SEDP] ");                                                         \
-    printf(__VA_ARGS__);                                                       \
-    printf("\r\n");                                                            \
-  }
+#define SEDP_LOG(...) logger_.warn(__VA_ARGS__)
 #else
-#define SEDP_LOG(...) //
+#define SEDP_LOG(...) do { } while (0)
 #endif
+
+SEDPAgent::SEDPAgent()
+    : espp::BaseComponent("RtpsSEDP", espp::Logger::Verbosity::WARN) {}
 
 void SEDPAgent::init(Participant &part, const BuiltInEndpoints &endpoints) {
   m_part = &part;
@@ -84,12 +82,12 @@ void SEDPAgent::jumppadSubscriptionReader(
 void SEDPAgent::handlePublisherReaderMessage(const ReaderCacheChange &change) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
 #if SEDP_VERBOSE
-  SEDP_LOG("New publisher\n");
+  SEDP_LOG("New publisher");
 #endif
 
   if (!change.copyInto(m_buffer, sizeof(m_buffer) / sizeof(m_buffer[0]))) {
 #if SEDP_VERBOSE
-    SEDP_LOG("EDPAgent: Buffer too small.\n");
+  SEDP_LOG("EDPAgent: Buffer too small.");
 #endif
     return;
   }
@@ -114,11 +112,11 @@ void SEDPAgent::addUnmatchedRemoteWriter(
     const TopicDataCompressed &writerData) {
   if (m_unmatchedRemoteWriters.isFull()) {
 #if SEDP_VERBOSE
-    SEDP_LOG("List of unmatched remote writers is full.\n");
+    SEDP_LOG("List of unmatched remote writers is full.");
 #endif
     return;
   }
-  SEDP_LOG("Adding unmatched remote writer %zx %zx.\n", writerData.topicHash,
+  SEDP_LOG("Adding unmatched remote writer {:x} {:x}.", writerData.topicHash,
            writerData.typeHash);
   m_unmatchedRemoteWriters.add(writerData);
 }
@@ -127,11 +125,11 @@ void SEDPAgent::addUnmatchedRemoteReader(
     const TopicDataCompressed &readerData) {
   if (m_unmatchedRemoteReaders.isFull()) {
 #if SEDP_VERBOSE
-    SEDP_LOG("List of unmatched remote readers is full.\n");
+    SEDP_LOG("List of unmatched remote readers is full.");
 #endif
     return;
   }
-  SEDP_LOG("Adding unmatched remote reader %zx %zx.\n", readerData.topicHash,
+  SEDP_LOG("Adding unmatched remote reader {:x} {:x}.", readerData.topicHash,
            readerData.typeHash);
   m_unmatchedRemoteReaders.add(readerData);
 }
@@ -186,12 +184,12 @@ void SEDPAgent::handlePublisherReaderMessage(const TopicData &writerData,
   }
 
 #if SEDP_VERBOSE
-  SEDP_LOG("PUB T/D %s/%s", writerData.topicName, writerData.typeName);
+  SEDP_LOG("PUB T/D {}/{}", writerData.topicName, writerData.typeName);
 #endif
   Reader *reader = m_part->getMatchingReader(writerData);
   if (reader == nullptr) {
 #if SEDP_VERBOSE
-    SEDP_LOG("SEDPAgent: Couldn't find reader for new Publisher[%s, %s] \n",
+  SEDP_LOG("SEDPAgent: Couldn't find reader for new Publisher[{}, {}]",
              writerData.topicName, writerData.typeName);
 #endif
     addUnmatchedRemoteWriter(writerData);
@@ -199,13 +197,11 @@ void SEDPAgent::handlePublisherReaderMessage(const TopicData &writerData,
   }
   // TODO check policies
 #if SEDP_VERBOSE
-  SEDP_LOG("Found a new ");
   if (writerData.reliabilityKind == ReliabilityKind_t::RELIABLE) {
-    SEDP_LOG("reliable ");
+    SEDP_LOG("Found a new reliable publisher");
   } else {
-    SEDP_LOG("best-effort ");
+    SEDP_LOG("Found a new best-effort publisher");
   }
-  SEDP_LOG("publisher\n");
 #endif
   reader->addNewMatchedWriter(
       WriterProxy{writerData.endpointGuid, writerData.unicastLocator,
@@ -219,7 +215,7 @@ void SEDPAgent::handleSubscriptionReaderMessage(
     const ReaderCacheChange &change) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
 #if SEDP_VERBOSE
-  SEDP_LOG("New subscriber\n");
+  SEDP_LOG("New subscriber");
 #endif
 
   if (!change.copyInto(m_buffer, sizeof(m_buffer) / sizeof(m_buffer[0]))) {
@@ -239,7 +235,7 @@ void SEDPAgent::handleSubscriptionReaderMessage(
 
 void SEDPAgent::handleRemoteEndpointDeletion(const TopicData &topic,
                                              const ReaderCacheChange &change) {
-  SEDP_LOG("Endpoint deletion message SN %u.%u GUID %u %u %u %u \r\n",
+  SEDP_LOG("Endpoint deletion message SN {}.{} GUID {} {} {} {}",
            (int)change.sn.high, (int)change.sn.low,
            change.writerGuid.prefix.id[0], change.writerGuid.prefix.id[1],
            change.writerGuid.prefix.id[2], change.writerGuid.prefix.id[3]);
@@ -271,11 +267,11 @@ void SEDPAgent::handleSubscriptionReaderMessage(
 
   Writer *writer = m_part->getMatchingWriter(readerData);
 #if SEDP_VERBOSE
-  SEDP_LOG("SUB T/D %s/%s", readerData.topicName, readerData.typeName);
+  SEDP_LOG("SUB T/D {}/{}", readerData.topicName, readerData.typeName);
 #endif
   if (writer == nullptr) {
 #if SEDP_VERBOSE
-    SEDP_LOG("SEDPAgent: Couldn't find writer for new subscriber[%s, %s]\n",
+  SEDP_LOG("SEDPAgent: Couldn't find writer for new subscriber[{}, {}]",
              readerData.topicName, readerData.typeName);
 #endif
     addUnmatchedRemoteReader(readerData);
@@ -284,13 +280,11 @@ void SEDPAgent::handleSubscriptionReaderMessage(
 
   // TODO check policies
 #if SEDP_VERBOSE
-  SEDP_LOG("Found a new ");
   if (readerData.reliabilityKind == ReliabilityKind_t::RELIABLE) {
-    SEDP_LOG("reliable ");
+    SEDP_LOG("Found a new reliable subscriber");
   } else {
-    SEDP_LOG("best-effort ");
+    SEDP_LOG("Found a new best-effort subscriber");
   }
-  SEDP_LOG("Subscriber\n");
 #endif
   if (readerData.multicastLocator.kind ==
       rtps::LocatorKind_t::LOCATOR_KIND_UDPv4) {
@@ -407,7 +401,7 @@ bool SEDPAgent::announceEndpointDeletion(A *local_endpoint,
   auto ret =
       sedp_endpoint->newChange(ChangeKind_t::ALIVE, m_buffer,
                                ucdr_buffer_length(&microbuffer), true, true);
-  SEDP_LOG("Annoucing endpoint delete, SN = %u.%u\r\n",
+  SEDP_LOG("Announcing endpoint delete, SN = {}.{}",
            (int)ret->sequenceNumber.low, (int)ret->sequenceNumber.high);
   return (ret != nullptr);
 }

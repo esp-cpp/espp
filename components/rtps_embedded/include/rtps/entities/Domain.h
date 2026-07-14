@@ -25,6 +25,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #ifndef RTPS_DOMAIN_H
 #define RTPS_DOMAIN_H
 
+#include "base_component.hpp"
 #include "rtps/ThreadPool.h"
 #include "rtps/communication/EsppTransport.h"
 #include "rtps/config.h"
@@ -38,11 +39,11 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include <rtps/common/Locator.h>
 
 namespace rtps {
-class Domain {
+class Domain : public espp::BaseComponent {
 public:
-    explicit Domain(const Ip4AddressBytes &localIpAddress);
+  explicit Domain(const Ip4AddressBytes &localIpAddress);
   Domain(EsppTransport &transport,
-      const Ip4AddressBytes &localIpAddress);
+         const Ip4AddressBytes &localIpAddress);
   ~Domain();
 
   bool completeInit();

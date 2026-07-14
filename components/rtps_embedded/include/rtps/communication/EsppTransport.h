@@ -25,6 +25,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #ifndef RTPS_ESPPTRANSPORT_H
 #define RTPS_ESPPTRANSPORT_H
 
+#include "base_component.hpp"
 #include "rtps/common/types.h"
 #include "rtps/config.h"
 #include "udp_socket.hpp"
@@ -38,7 +39,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 
 namespace rtps {
 
-class EsppTransport {
+class EsppTransport : public espp::BaseComponent {
 public:
   using RxCallback = ReceiveCallback;
 

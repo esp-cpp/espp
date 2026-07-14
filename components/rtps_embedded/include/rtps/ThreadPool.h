@@ -25,6 +25,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #ifndef RTPS_THREADPOOL_H
 #define RTPS_THREADPOOL_H
 
+#include "base_component.hpp"
 #include "rtps/communication/PacketInfo.h"
 #include "rtps/common/types.h"
 #include "rtps/config.h"
@@ -46,7 +47,7 @@ class ThreadPool;
 
 namespace rtps {
 
-class ThreadPool {
+class ThreadPool : public espp::BaseComponent {
 public:
   using receiveJumppad_fp = void (*)(void *callee, const PacketInfo &packet);
 

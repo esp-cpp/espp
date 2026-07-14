@@ -25,6 +25,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #ifndef RTPS_MESSAGERECEIVER_H
 #define RTPS_MESSAGERECEIVER_H
 
+#include "base_component.hpp"
 #include "rtps/common/types.h"
 #include "rtps/config.h"
 #include "rtps/discovery/BuiltInEndpoints.h"
@@ -36,7 +37,7 @@ class Writer;
 class Participant;
 class MessageProcessingInfo;
 
-class MessageReceiver {
+class MessageReceiver : public espp::BaseComponent {
 public:
   GuidPrefix_t sourceGuidPrefix = GUIDPREFIX_UNKNOWN;
   ProtocolVersion_t sourceVersion = PROTOCOLVERSION;

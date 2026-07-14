@@ -25,6 +25,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #ifndef RTPS_SPDP_H
 #define RTPS_SPDP_H
 
+#include "base_component.hpp"
 #include "rtps/common/types.h"
 #include "rtps/config.h"
 #include "rtps/discovery/BuiltInEndpoints.h"
@@ -38,14 +39,9 @@ Author: i11 - Embedded Software, RWTH Aachen University
 
 #if SPDP_VERBOSE && RTPS_GLOBAL_VERBOSE
 #include "rtps/utils/printutils.h"
-#define SPDP_LOG(...)                                                          \
-  if (true) {                                                                  \
-    printf("[SPDP] ");                                                         \
-    printf(__VA_ARGS__);                                                       \
-    printf("\r\n");                                                              \
-  }
+#define SPDP_LOG(...) logger_.warn(__VA_ARGS__)
 #else
-#define SPDP_LOG(...) //
+#define SPDP_LOG(...) do { } while (0)
 #endif
 
 namespace rtps {
@@ -54,8 +50,9 @@ class Writer;
 class Reader;
 class ReaderCacheChange;
 
-class SPDPAgent {
+class SPDPAgent : public espp::BaseComponent {
 public:
+  SPDPAgent();
   void init(Participant &participant, BuiltInEndpoints &endpoints);
   void start();
   void stop();

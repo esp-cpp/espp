@@ -25,6 +25,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #ifndef RTPS_SEDPAGENT_H
 #define RTPS_SEDPAGENT_H
 
+#include "base_component.hpp"
 #include "rtps/discovery/BuiltInEndpoints.h"
 #include "rtps/config.h"
 #include "rtps/discovery/TopicData.h"
@@ -39,8 +40,9 @@ class ReaderCacheChange;
 class Writer;
 class Reader;
 
-class SEDPAgent {
+class SEDPAgent : public espp::BaseComponent {
 public:
+  SEDPAgent();
   void init(Participant &part, const BuiltInEndpoints &endpoints);
   bool addWriter(Writer &writer);
   bool addReader(Reader &reader);
@@ -64,7 +66,7 @@ protected: // For testing purposes
                                        const ReaderCacheChange &change);
 
 private:
-  Participant *m_part;
+  Participant *m_part = nullptr;
   std::recursive_mutex m_mutex;
   uint8_t m_buffer[600]; // TODO check size, currently changed from 300 to 600
                          // (FastDDS gives too many options)

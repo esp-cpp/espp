@@ -61,7 +61,6 @@ bool StatelessReader::addNewMatchedWriter(const WriterProxy &newProxy) {
 #if (SLR_VERBOSE && RTPS_GLOBAL_VERBOSE)
   SLR_LOG("Adding WriterProxy");
   printGuid(newProxy.remoteWriterGuid);
-  printf("\n");
 #endif
   return m_proxies.add(newProxy);
 }
