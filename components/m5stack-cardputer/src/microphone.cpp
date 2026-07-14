@@ -73,6 +73,9 @@ bool M5StackCardputer::initialize_microphone(const microphone_callback_t &callba
   if (variant() == Variant::ADV) {
     if (!initialize_es8311_microphone()) {
       logger_.error("Could not initialize the ES8311 codec");
+      i2s_channel_disable(audio_rx_handle);
+      i2s_del_channel(audio_rx_handle);
+      audio_rx_handle = nullptr;
       return false;
     }
   }
