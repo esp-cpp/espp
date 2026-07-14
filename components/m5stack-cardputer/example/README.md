@@ -25,8 +25,12 @@ component to initialize and use the components on the M5Stack Cardputer:
 | Fn + `;` / `,` / `.` / `/` | Move the cursor (up / left / down / right) |
 | Fn + backspace | Delete forward |
 | Fn + `` ` `` | Clear the text area |
+| Fn + 1 (F1) | Show / hide the controls help popup |
+| Fn + 2 (F2) | Show / hide the IMU overlay (ADV) |
 | Fn + number row | Show F1-F12 in the status bar |
 | G0 (BOOT) button | Cycle the RGB LED color |
+
+The controls are also printed to the log at startup.
 
 The status bar at the bottom of the screen shows the most recent key /
 modifier activity and is updated with the battery voltage every few seconds.

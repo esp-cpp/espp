@@ -69,6 +69,9 @@ extern "C" void app_main(void) {
   // create the GUI (a small keyboard-driven text editor)
   static Gui gui({});
 
+  // print the controls (also available on-screen via the fn+1 help popup)
+  logger.info("Controls:\n{}", Gui::HELP_TEXT);
+
   // the keyboard scanner delivers one event per key state change; use it to
   // drive the text editor, play key-click sounds, and show what's happening
   // in the status bar
@@ -76,7 +79,17 @@ extern "C" void app_main(void) {
     if (!event.pressed) {
       return;
     }
-    if (event.special != espp::M5StackCardputer::SpecialKey::NONE) {
+    if (event.special == espp::M5StackCardputer::SpecialKey::F1) {
+      // toggle the help popup
+      bool shown = gui.toggle_help();
+      gui.set_status_text(shown ? "Help (fn+1 to close)" : "Ready");
+      play_beep(cardputer, 660.0f);
+    } else if (event.special == espp::M5StackCardputer::SpecialKey::F2) {
+      // toggle the IMU overlay
+      bool visible = gui.toggle_imu_visible();
+      gui.set_status_text(visible ? "IMU overlay shown" : "IMU overlay hidden");
+      play_beep(cardputer, 660.0f);
+    } else if (event.special != espp::M5StackCardputer::SpecialKey::NONE) {
       gui.handle_special_key(event.special);
       gui.set_status_text(espp::M5StackCardputer::special_key_name(event.special));
       play_beep(cardputer, 660.0f);
@@ -141,7 +154,7 @@ extern "C" void app_main(void) {
   int loops_per_battery_update = std::chrono::seconds(5) / imu_period;
   int loop_count = 0;
   while (true) {
-    if (have_imu) {
+    if (have_imu && gui.imu_visible()) {
       auto imu = cardputer.imu();
       std::error_code ec;
       if (imu->update(std::chrono::duration<float>(imu_period).count(), ec)) {

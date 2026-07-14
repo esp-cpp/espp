@@ -6,6 +6,7 @@ void Gui::init_ui() {
   init_textarea();
   init_status_bar();
   init_imu_label();
+  init_help_panel();
 }
 
 void Gui::deinit_ui() {
@@ -15,6 +16,7 @@ void Gui::deinit_ui() {
   textarea_ = nullptr;
   status_label_ = nullptr;
   imu_label_ = nullptr;
+  help_panel_ = nullptr;
 }
 
 void Gui::init_background() {
@@ -52,6 +54,45 @@ void Gui::init_imu_label() {
   imu_label_ = lv_label_create(background_);
   lv_obj_align(imu_label_, LV_ALIGN_TOP_RIGHT, 0, 0);
   lv_label_set_text(imu_label_, "");
+}
+
+void Gui::init_help_panel() {
+  // a centered popup listing the controls; hidden until toggled via fn+1
+  help_panel_ = lv_obj_create(background_);
+  lv_obj_set_size(help_panel_, lv_pct(92), lv_pct(92));
+  lv_obj_center(help_panel_);
+  lv_obj_add_flag(help_panel_, LV_OBJ_FLAG_HIDDEN);
+  auto *label = lv_label_create(help_panel_);
+  lv_label_set_text(label, HELP_TEXT);
+  lv_obj_align(label, LV_ALIGN_TOP_LEFT, 0, 0);
+}
+
+bool Gui::toggle_imu_visible() {
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  imu_visible_ = !imu_visible_;
+  if (imu_label_) {
+    if (imu_visible_) {
+      lv_obj_remove_flag(imu_label_, LV_OBJ_FLAG_HIDDEN);
+    } else {
+      lv_obj_add_flag(imu_label_, LV_OBJ_FLAG_HIDDEN);
+    }
+  }
+  return imu_visible_;
+}
+
+bool Gui::toggle_help() {
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  help_visible_ = !help_visible_;
+  if (help_panel_) {
+    if (help_visible_) {
+      lv_obj_remove_flag(help_panel_, LV_OBJ_FLAG_HIDDEN);
+      // make sure the popup is on top of the other UI elements
+      lv_obj_move_foreground(help_panel_);
+    } else {
+      lv_obj_add_flag(help_panel_, LV_OBJ_FLAG_HIDDEN);
+    }
+  }
+  return help_visible_;
 }
 
 void Gui::add_char(char c) {
