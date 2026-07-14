@@ -64,6 +64,11 @@ public:
   /// @param text The text to display
   void set_status_text(std::string_view text);
 
+  /// Set the text of the IMU overlay label (top-right corner; empty and
+  /// invisible until first set). Thread-safe.
+  /// @param text The text to display
+  void set_imu_text(std::string_view text);
+
 protected:
   void init_ui();
   void deinit_ui();
@@ -72,6 +77,7 @@ protected:
   void init_background();
   void init_textarea();
   void init_status_bar();
+  void init_imu_label();
 
   // the LVGL update task: calls lv_task_handler() under the mutex
   bool update(std::mutex &m, std::condition_variable &cv);
@@ -80,6 +86,7 @@ protected:
   lv_obj_t *background_{nullptr};
   lv_obj_t *textarea_{nullptr};
   lv_obj_t *status_label_{nullptr};
+  lv_obj_t *imu_label_{nullptr};
 
   espp::Task update_task_{{.callback = [this](auto &m, auto &cv) { return update(m, cv); },
                            .task_config = {.name = "gui", .stack_size_bytes = 6 * 1024}}};

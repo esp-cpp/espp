@@ -107,6 +107,16 @@ extern "C" void app_main(void) {
   }
   logger.info("Board variant: {}", espp::M5StackCardputer::variant_name(cardputer.variant()));
 
+  // the ADV has a BMI270 IMU on the internal I2C bus; initialize it if we're
+  // on one (warn and continue otherwise - the original has no IMU)
+  bool have_imu = false;
+  if (cardputer.variant() == espp::M5StackCardputer::Variant::ADV) {
+    have_imu = cardputer.initialize_imu();
+    if (!have_imu) {
+      logger.warn("Could not initialize the IMU!");
+    }
+  }
+
   // the G0 (BOOT) button cycles the RGB LED color
   static std::atomic<int> led_hue{0};
   auto button_callback = [&](const espp::Interrupt::Event &event) {
@@ -124,10 +134,29 @@ extern "C" void app_main(void) {
   // set the initial LED color
   cardputer.led(espp::Hsv(static_cast<float>(led_hue), 1.0f, 0.2f));
 
-  // periodically update the status bar with the battery voltage
+  // periodically update the status bar with the battery voltage / state of
+  // charge, and (on the ADV) the IMU overlay with the latest accelerometer
+  // and gyroscope readings
+  static constexpr auto imu_period = 100ms;
+  int loops_per_battery_update = std::chrono::seconds(5) / imu_period;
+  int loop_count = 0;
   while (true) {
-    gui.set_status_text(fmt::format("Battery: {:.2f} V", cardputer.battery_voltage()));
-    std::this_thread::sleep_for(5s);
+    if (have_imu) {
+      auto imu = cardputer.imu();
+      std::error_code ec;
+      if (imu->update(std::chrono::duration<float>(imu_period).count(), ec)) {
+        auto accel = imu->get_accelerometer();
+        auto gyro = imu->get_gyroscope();
+        gui.set_imu_text(fmt::format("a {:+.1f} {:+.1f} {:+.1f}\ng {:+5.0f} {:+5.0f} {:+5.0f}",
+                                     accel.x, accel.y, accel.z, gyro.x, gyro.y, gyro.z));
+      }
+    }
+    if ((loop_count % loops_per_battery_update) == 0) {
+      gui.set_status_text(fmt::format("Battery: {:.2f} V ({:.0f}%)", cardputer.battery_voltage(),
+                                      cardputer.battery_soc()));
+    }
+    loop_count++;
+    std::this_thread::sleep_for(imu_period);
   }
   //! [m5stack-cardputer example]
 }

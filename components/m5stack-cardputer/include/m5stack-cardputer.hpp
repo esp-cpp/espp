@@ -7,6 +7,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <esp_err.h>
@@ -25,6 +26,7 @@
 #include <freertos/stream_buffer.h>
 
 #include "base_component.hpp"
+#include "bmi270.hpp"
 #include "i2c.hpp"
 #include "interrupt.hpp"
 #include "led.hpp"
@@ -491,6 +493,44 @@ public:
   /// \note The battery voltage is measured through a 2:1 divider on GPIO 10
   float battery_voltage();
 
+  /// Get the battery state of charge
+  /// \return The battery state of charge as a percentage (0 - 100)
+  /// \note This is estimated from the battery voltage using a typical 1S
+  ///       lithium-ion discharge curve, so it is only an approximation - the
+  ///       voltage sags under load (e.g. with the backlight at full
+  ///       brightness or the speaker playing) which will lower the estimate.
+  float battery_soc();
+
+  /////////////////////////////////////////////////////////////////////////////
+  // IMU (Cardputer ADV only)
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// Alias for the IMU (BMI270) on the Cardputer ADV's internal I2C bus
+  using Imu = espp::Bmi270<espp::bmi270::Interface::I2C>;
+
+  /// Initialize the IMU (BMI270; Cardputer ADV only)
+  /// \param orientation_filter Optional filter function for orientation
+  ///        (e.g. a kalman or madgwick filter); called by Imu::update()
+  /// \param imu_config The IMU configuration
+  /// \return true if the IMU was successfully initialized, false otherwise
+  /// \note The original Cardputer has no IMU, so this fails (with an error
+  ///       log) unless the board is a Cardputer ADV.
+  bool initialize_imu(
+      const Imu::filter_fn &orientation_filter = nullptr,
+      const Imu::ImuConfig &imu_config = {
+          .accelerometer_range = Imu::AccelerometerRange::RANGE_4G,
+          .accelerometer_odr = Imu::AccelerometerODR::ODR_100_HZ,
+          .accelerometer_bandwidth = Imu::AccelerometerBandwidth::NORMAL_AVG4,
+          .gyroscope_range = Imu::GyroscopeRange::RANGE_1000DPS,
+          .gyroscope_odr = Imu::GyroscopeODR::ODR_100_HZ,
+          .gyroscope_bandwidth = Imu::GyroscopeBandwidth::NORMAL_MODE,
+          .gyroscope_performance_mode = Imu::GyroscopePerformanceMode::PERFORMANCE_OPTIMIZED});
+
+  /// Get a shared pointer to the IMU
+  /// \return A shared pointer to the IMU, or nullptr if it has not been
+  ///         (successfully) initialized
+  std::shared_ptr<Imu> imu() const { return imu_; }
+
   /////////////////////////////////////////////////////////////////////////////
   // Misc. pins (IR transmitter, Grove port)
   /////////////////////////////////////////////////////////////////////////////
@@ -713,6 +753,22 @@ protected:
 
   // Battery voltage measurement (2:1 divider into ADC1 on GPIO 10)
   static constexpr float BATTERY_VOLTAGE_SCALE = 2.0f / 1000.0f; // divider ratio, mV -> V
+
+  // Approximate resting discharge curve for a 1S lithium-ion cell, used to
+  // estimate the state of charge from the battery voltage. Entries are
+  // {voltage (V), state of charge (%)}, in descending voltage order.
+  static constexpr std::array<std::pair<float, float>, 10> BATTERY_SOC_CURVE{{
+      {4.20f, 100.0f},
+      {4.10f, 93.0f},
+      {4.00f, 81.0f},
+      {3.90f, 66.0f},
+      {3.80f, 49.0f},
+      {3.70f, 32.0f},
+      {3.60f, 17.0f},
+      {3.50f, 7.0f},
+      {3.40f, 2.0f},
+      {3.30f, 0.0f},
+  }};
   espp::AdcConfig battery_channel_{.unit = ADC_UNIT_1,
                                    .channel = ADC_CHANNEL_9, // GPIO 10 on ESP32-S3
                                    .attenuation = ADC_ATTEN_DB_12};
@@ -725,6 +781,9 @@ protected:
 
   // RGB LED
   std::shared_ptr<Neopixel> rgb_led_{nullptr};
+
+  // IMU (Cardputer ADV only)
+  std::shared_ptr<Imu> imu_{nullptr};
 
   // Interrupts
   espp::Interrupt::PinConfig button_interrupt_pin_{

@@ -5,6 +5,7 @@ void Gui::init_ui() {
   init_background();
   init_textarea();
   init_status_bar();
+  init_imu_label();
 }
 
 void Gui::deinit_ui() {
@@ -13,6 +14,7 @@ void Gui::deinit_ui() {
   background_ = nullptr;
   textarea_ = nullptr;
   status_label_ = nullptr;
+  imu_label_ = nullptr;
 }
 
 void Gui::init_background() {
@@ -42,6 +44,14 @@ void Gui::init_status_bar() {
   lv_obj_align(status_label_, LV_ALIGN_BOTTOM_MID, 0, 0);
   lv_label_set_long_mode(status_label_, LV_LABEL_LONG_CLIP);
   lv_label_set_text(status_label_, "Ready");
+}
+
+void Gui::init_imu_label() {
+  // floats over the top-right corner of the text area; empty (and therefore
+  // invisible) until the first set_imu_text() call
+  imu_label_ = lv_label_create(background_);
+  lv_obj_align(imu_label_, LV_ALIGN_TOP_RIGHT, 0, 0);
+  lv_label_set_text(imu_label_, "");
 }
 
 void Gui::add_char(char c) {
@@ -95,6 +105,16 @@ void Gui::set_status_text(std::string_view text) {
   // string_view is not guaranteed to be null-terminated
   const std::string text_str(text);
   lv_label_set_text(status_label_, text_str.c_str());
+}
+
+void Gui::set_imu_text(std::string_view text) {
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  if (!imu_label_) {
+    return;
+  }
+  // string_view is not guaranteed to be null-terminated
+  const std::string text_str(text);
+  lv_label_set_text(imu_label_, text_str.c_str());
 }
 
 bool Gui::update(std::mutex &m, std::condition_variable &cv) {

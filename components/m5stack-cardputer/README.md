@@ -28,13 +28,16 @@ singleton hardware abstraction for initializing and using the subsystems:
   the ES8311 codec's ADC.
 - **uSD card**: SPI-mode micro-SD mounted at `/sdcard`.
 - **RGB LED**: the StampS3's WS2812 via `espp::Neopixel`.
-- **Battery**: battery voltage measurement (2:1 divider into ADC1).
+- **Battery**: battery voltage measurement (2:1 divider into ADC1) and an
+  estimated state of charge from a 1S lithium-ion discharge curve.
 - **G0 (BOOT) button**: via `espp::Interrupt` with a callback.
 - **IR transmitter / Grove port**: pin accessors for use with your own RMT /
   I2C drivers.
+- **IMU** (ADV only): the BMI270 on the internal I2C bus via
+  `initialize_imu()` / `imu()` (espp `bmi270` driver, with optional
+  orientation filter).
 - **Internal I2C bus** (ADV only): accessor for the bus hosting the TCA8418
-  (0x34), ES8311 (0x18), and the ADV's BMI270 IMU (0x68) - the IMU can be
-  used with the espp `bmi270` component.
+  (0x34), ES8311 (0x18), and BMI270 (0x68).
 
 > [!NOTE]
 > The speaker and the microphone share I2S pins (GPIO 43 word-select / PDM

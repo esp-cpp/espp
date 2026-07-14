@@ -10,7 +10,9 @@ component to initialize and use the components on the M5Stack Cardputer:
 - The speaker (a key-click beep for every keypress)
 - The RGB LED (the G0 / BOOT button cycles its color)
 - The uSD card (mounted at startup if inserted)
-- The battery voltage measurement (shown in the status bar)
+- The battery voltage / state-of-charge measurement (shown in the status bar)
+- The IMU on the Cardputer ADV (live accelerometer / gyroscope readings shown
+  in the top-right corner)
 
 ## How to use example
 
