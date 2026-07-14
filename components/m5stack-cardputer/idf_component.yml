@@ -1,0 +1,31 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "M5Stack Cardputer Board Support Package (BSP) component in C++ for ESP32-S3"
+url: "https://github.com/esp-cpp/espp/tree/main/components/m5stack-cardputer"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/dev_boards/m5stack/m5stack_cardputer.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - M5Stack
+  - Cardputer
+  - BSP
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/adc: '>=1.0'
+  espp/base_component: '>=1.0'
+  espp/display: '>=1.0'
+  espp/display_drivers: '>=1.0'
+  espp/i2c: '>=1.0'
+  espp/interrupt: '>=1.0'
+  espp/led: '>=1.0'
+  espp/neopixel: '>=1.0'
+  espp/spi: '>=1.0'
+  espp/task: '>=1.0'
+targets:
+  - esp32s3
