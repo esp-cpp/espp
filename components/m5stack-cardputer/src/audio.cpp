@@ -64,6 +64,14 @@ bool M5StackCardputer::initialize_sound(uint32_t default_audio_rate,
   if (variant() == Variant::ADV) {
     if (!initialize_es8311_speaker()) {
       logger_.error("Could not initialize the ES8311 codec");
+      i2s_channel_disable(audio_tx_handle);
+      i2s_del_channel(audio_tx_handle);
+      audio_tx_handle = nullptr;
+      if (audio_tx_stream) {
+        vStreamBufferDelete(audio_tx_stream);
+        audio_tx_stream = nullptr;
+      }
+      audio_tx_buffer.clear();
       return false;
     }
   }
