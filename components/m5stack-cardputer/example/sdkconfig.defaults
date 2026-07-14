@@ -45,8 +45,3 @@ CONFIG_LV_USE_THEME_DEFAULT=y
 CONFIG_LV_THEME_DEFAULT_DARK=y
 CONFIG_LV_THEME_DEFAULT_GROW=y
 CONFIG_LV_THEME_DEFAULT_TRANSITION_TIME=80
-
-# The Cardputer's UART0 pins (GPIO43/44) are used by the speaker I2S and the
-# IR transmitter, so the console must use the USB-Serial-JTAG interface (the
-# board's USB-C port).
-CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
