@@ -148,9 +148,15 @@ bool M5StackCardputer::initialize_keyboard_tca8418() {
       break;
     }
   } while (event != 0 && ++guard < 16);
-  write_reg(TCA8418_REG_INT_STAT, 0xFF);
+  if (!write_reg(TCA8418_REG_INT_STAT, 0xFF)) {
+    logger_.error("Failed to clear the TCA8418 interrupt status");
+    return false;
+  }
   // enable key event processing / interrupt generation
-  write_reg(TCA8418_REG_CFG, 0x01);
+  if (!write_reg(TCA8418_REG_CFG, 0x01)) {
+    logger_.error("Failed to enable TCA8418 key event processing");
+    return false;
+  }
   return true;
 }
 
