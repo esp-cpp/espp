@@ -72,6 +72,10 @@ extern "C" void app_main(void) {
   // print the controls (also available on-screen via the fn+1 help popup)
   logger.info("Controls:\n{}", Gui::HELP_TEXT);
 
+  // whether the board has a working IMU; set after keyboard / variant
+  // detection below, referenced by the keypress callback
+  static bool have_imu = false;
+
   // the keyboard scanner delivers one event per key state change; use it to
   // drive the text editor, play key-click sounds, and show what's happening
   // in the status bar
@@ -85,9 +89,13 @@ extern "C" void app_main(void) {
       gui.set_status_text(shown ? "Help (fn+1 to close)" : "Ready");
       play_beep(cardputer, 660.0f);
     } else if (event.special == espp::M5StackCardputer::SpecialKey::F2) {
-      // toggle the IMU overlay
-      bool visible = gui.toggle_imu_visible();
-      gui.set_status_text(visible ? "IMU overlay shown" : "IMU overlay hidden");
+      // toggle the IMU popup
+      if (have_imu) {
+        bool visible = gui.toggle_imu_visible();
+        gui.set_status_text(visible ? "IMU popup shown" : "IMU popup hidden");
+      } else {
+        gui.set_status_text("No IMU on this board");
+      }
       play_beep(cardputer, 660.0f);
     } else if (event.special != espp::M5StackCardputer::SpecialKey::NONE) {
       gui.handle_special_key(event.special);
@@ -122,10 +130,12 @@ extern "C" void app_main(void) {
 
   // the ADV has a BMI270 IMU on the internal I2C bus; initialize it if we're
   // on one (warn and continue otherwise - the original has no IMU)
-  bool have_imu = false;
   if (cardputer.variant() == espp::M5StackCardputer::Variant::ADV) {
     have_imu = cardputer.initialize_imu();
-    if (!have_imu) {
+    if (have_imu) {
+      // show the IMU popup by default (fn+2 toggles it)
+      gui.toggle_imu_visible();
+    } else {
       logger.warn("Could not initialize the IMU!");
     }
   }

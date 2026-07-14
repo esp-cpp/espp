@@ -5,7 +5,7 @@ void Gui::init_ui() {
   init_background();
   init_textarea();
   init_status_bar();
-  init_imu_label();
+  init_imu_popup();
   init_help_panel();
 }
 
@@ -15,6 +15,7 @@ void Gui::deinit_ui() {
   background_ = nullptr;
   textarea_ = nullptr;
   status_label_ = nullptr;
+  imu_popup_ = nullptr;
   imu_label_ = nullptr;
   help_panel_ = nullptr;
 }
@@ -48,21 +49,33 @@ void Gui::init_status_bar() {
   lv_label_set_text(status_label_, "Ready");
 }
 
-void Gui::init_imu_label() {
-  // floats over the top-right corner of the text area; empty (and therefore
-  // invisible) until the first set_imu_text() call
-  imu_label_ = lv_label_create(background_);
-  lv_obj_align(imu_label_, LV_ALIGN_TOP_RIGHT, 0, 0);
-  lv_label_set_text(imu_label_, "");
+void Gui::init_imu_popup() {
+  // a small popup in the top-right corner holding the live IMU readings and
+  // a hint for how to close it
+  imu_popup_ = lv_obj_create(background_);
+  lv_obj_set_size(imu_popup_, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+  lv_obj_align(imu_popup_, LV_ALIGN_TOP_RIGHT, -2, 2);
+  lv_obj_set_style_pad_all(imu_popup_, 4, LV_PART_MAIN);
+  lv_obj_add_flag(imu_popup_, LV_OBJ_FLAG_HIDDEN);
+  imu_label_ = lv_label_create(imu_popup_);
+  lv_obj_align(imu_label_, LV_ALIGN_TOP_LEFT, 0, 0);
+  lv_label_set_text(imu_label_, "IMU...");
 }
 
 void Gui::init_help_panel() {
-  // a centered popup listing the controls; hidden until toggled via fn+1
+  // a centered popup listing the controls; hidden until toggled via fn+1.
+  // The content is taller than the panel, so the panel is scrollable (see
+  // handle_special_key(): the fn+arrow keys scroll it while it is open)
   help_panel_ = lv_obj_create(background_);
   lv_obj_set_size(help_panel_, lv_pct(92), lv_pct(92));
   lv_obj_center(help_panel_);
+  lv_obj_set_style_pad_all(help_panel_, 6, LV_PART_MAIN);
   lv_obj_add_flag(help_panel_, LV_OBJ_FLAG_HIDDEN);
   auto *label = lv_label_create(help_panel_);
+  // constrain the label to the panel's content width so long lines wrap
+  // instead of running off screen
+  lv_obj_set_width(label, lv_pct(100));
+  lv_label_set_long_mode(label, LV_LABEL_LONG_WRAP);
   lv_label_set_text(label, HELP_TEXT);
   lv_obj_align(label, LV_ALIGN_TOP_LEFT, 0, 0);
 }
@@ -70,11 +83,12 @@ void Gui::init_help_panel() {
 bool Gui::toggle_imu_visible() {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
   imu_visible_ = !imu_visible_;
-  if (imu_label_) {
+  if (imu_popup_) {
     if (imu_visible_) {
-      lv_obj_remove_flag(imu_label_, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_remove_flag(imu_popup_, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_move_foreground(imu_popup_);
     } else {
-      lv_obj_add_flag(imu_label_, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(imu_popup_, LV_OBJ_FLAG_HIDDEN);
     }
   }
   return imu_visible_;
@@ -109,6 +123,27 @@ void Gui::add_char(char c) {
 
 void Gui::handle_special_key(SpecialKey key) {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
+  if (help_visible_ && help_panel_) {
+    // while the help popup is open, the arrow keys scroll it and esc closes
+    // it instead of acting on the text area
+    switch (key) {
+    case SpecialKey::UP:
+      lv_obj_scroll_to_y(help_panel_, lv_obj_get_scroll_y(help_panel_) - 20, LV_ANIM_ON);
+      return;
+    case SpecialKey::DOWN:
+      lv_obj_scroll_to_y(help_panel_, lv_obj_get_scroll_y(help_panel_) + 20, LV_ANIM_ON);
+      return;
+    case SpecialKey::LEFT:
+    case SpecialKey::RIGHT:
+      // ignored while the help popup is open
+      return;
+    case SpecialKey::ESC:
+      toggle_help();
+      return;
+    default:
+      break;
+    }
+  }
   if (!textarea_) {
     return;
   }
@@ -153,8 +188,9 @@ void Gui::set_imu_text(std::string_view text) {
   if (!imu_label_) {
     return;
   }
-  // string_view is not guaranteed to be null-terminated
-  const std::string text_str(text);
+  // append the close hint so the popup is self-documenting (and copy since
+  // string_view is not guaranteed to be null-terminated)
+  const std::string text_str = std::string(text) + "\nfn+2 to close";
   lv_label_set_text(imu_label_, text_str.c_str());
 }
 

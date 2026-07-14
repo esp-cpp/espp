@@ -39,7 +39,11 @@ public:
                                            "fn+bksp      delete forward\n"
                                            "fn+1 (F1)    show/hide help\n"
                                            "fn+2 (F2)    show/hide IMU\n"
-                                           "G0 button    cycle LED color";
+                                           "G0 button    cycle LED color\n"
+                                           "\n"
+                                           "While help is open:\n"
+                                           "fn+; / fn+.  scroll\n"
+                                           "fn+` or fn+1 close";
 
   /// Configuration for the Gui
   struct Config {
@@ -75,17 +79,17 @@ public:
   /// @param text The text to display
   void set_status_text(std::string_view text);
 
-  /// Set the text of the IMU overlay label (top-right corner; empty and
-  /// invisible until first set). Thread-safe.
+  /// Set the text of the IMU popup (top-right corner). The popup also shows
+  /// how to close it (fn+2). Thread-safe.
   /// @param text The text to display
   void set_imu_text(std::string_view text);
 
-  /// Toggle the visibility of the IMU overlay label. Thread-safe.
-  /// @return true if the overlay is now visible
+  /// Toggle the visibility of the IMU popup. Thread-safe.
+  /// @return true if the popup is now visible
   bool toggle_imu_visible();
 
-  /// Get whether the IMU overlay is currently visible
-  /// @return true if the overlay is visible
+  /// Get whether the IMU popup is currently visible
+  /// @return true if the popup is visible
   bool imu_visible() const { return imu_visible_; }
 
   /// Toggle the help popup (which lists the controls). Thread-safe.
@@ -100,7 +104,7 @@ protected:
   void init_background();
   void init_textarea();
   void init_status_bar();
-  void init_imu_label();
+  void init_imu_popup();
   void init_help_panel();
 
   // the LVGL update task: calls lv_task_handler() under the mutex
@@ -110,10 +114,13 @@ protected:
   lv_obj_t *background_{nullptr};
   lv_obj_t *textarea_{nullptr};
   lv_obj_t *status_label_{nullptr};
+  lv_obj_t *imu_popup_{nullptr};
   lv_obj_t *imu_label_{nullptr};
   lv_obj_t *help_panel_{nullptr};
 
-  std::atomic<bool> imu_visible_{true};
+  // the IMU popup starts hidden; the app shows it (via toggle_imu_visible())
+  // once the IMU has been successfully initialized
+  std::atomic<bool> imu_visible_{false};
   std::atomic<bool> help_visible_{false};
 
   espp::Task update_task_{{.callback = [this](auto &m, auto &cv) { return update(m, cv); },
