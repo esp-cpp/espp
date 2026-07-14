@@ -93,7 +93,7 @@ void publisher_task(void *arg) {
 extern "C" void embedded_rtps_start(const char *node_name,
                                       const char *pub_topic,
                                       const char *sub_topic,
-                                      const rtps::platform::transport::Ip4AddressBytes &local_ip) {
+                                      const rtps::Ip4AddressBytes &local_ip) {
   if (s_started) {
     return;
   }
@@ -169,7 +169,7 @@ extern "C"  void app_main(void)
   }
   logger.info("WiFi connected, local IP {}", ip_address);
 
-  rtps::platform::transport::Ip4AddressBytes local_ip{0, 0, 0, 0};
+  rtps::Ip4AddressBytes local_ip{0, 0, 0, 0};
   if (std::sscanf(ip_address.c_str(), "%hhu.%hhu.%hhu.%hhu", &local_ip[0],
                   &local_ip[1], &local_ip[2], &local_ip[3]) != 4) {
     logger.error("Failed to parse local IP {}", ip_address);

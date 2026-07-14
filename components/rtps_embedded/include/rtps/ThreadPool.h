@@ -26,8 +26,8 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #define RTPS_THREADPOOL_H
 
 #include "rtps/communication/PacketInfo.h"
+#include "rtps/common/types.h"
 #include "rtps/config.h"
-#include "rtps/platform/transport.h"
 #include "rtps/storages/ThreadSafeCircularBuffer.h"
 
 #include <array>
@@ -64,7 +64,7 @@ public:
   static void onDatagram(
       void *arg, const uint8_t *data, std::size_t size, Ip4Port_t localPort,
       Ip4Port_t remotePort,
-      const platform::transport::Ip4AddressBytes &remoteAddress);
+      const Ip4AddressBytes &remoteAddress);
 
   bool addBuiltinPort(const Ip4Port_t &port);
 

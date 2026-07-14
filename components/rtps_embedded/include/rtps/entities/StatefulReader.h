@@ -28,11 +28,12 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/communication/PacketInfo.h"
 #include "rtps/config.h"
 #include "rtps/entities/Reader.h"
-#include "rtps/platform/transport.h"
+#include "rtps/common/types.h"
 #include "rtps/entities/WriterProxy.h"
 #include "rtps/storages/MemoryPool.h"
 
 namespace rtps {
+class EsppTransport;
 struct SubmessageHeartbeat;
 
 template <class NetworkDriver> class StatefulReaderT final : public Reader {
@@ -53,7 +54,7 @@ private:
   NetworkDriver *m_transport;
 };
 
-using StatefulReader = StatefulReaderT<platform::transport::ITransport>;
+using StatefulReader = StatefulReaderT<EsppTransport>;
 
 } // namespace rtps
 

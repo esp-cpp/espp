@@ -28,6 +28,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/common/types.h"
 
 #include <array>
+#include <cstddef>
 
 namespace rtps {
 
@@ -434,7 +435,7 @@ bool deserializeMessage(const MessageProcessingInfo &info,
 bool deserializeMessage(const MessageProcessingInfo &info, SubmessageGap &msg);
 
 void deserializeSNS(const uint8_t *&position, SequenceNumberSet &set,
-                    size_t num_bitfields);
+                    std::size_t num_bitfields);
 
 } // namespace rtps
 

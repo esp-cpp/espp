@@ -62,7 +62,7 @@ void Participant::reuse(const GuidPrefix_t &guidPrefix,
 
 void Participant::reuse(
     const GuidPrefix_t &guidPrefix, ParticipantId_t participantId,
-    const platform::transport::Ip4AddressBytes &localIpAddress) {
+  const Ip4AddressBytes &localIpAddress) {
   m_guidPrefix = guidPrefix;
   m_participantId = participantId;
   m_localIpAddress = localIpAddress;

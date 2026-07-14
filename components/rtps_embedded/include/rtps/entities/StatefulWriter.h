@@ -27,7 +27,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 
 #include "rtps/entities/ReaderProxy.h"
 #include "rtps/entities/Writer.h"
-#include "rtps/platform/transport.h"
+#include "rtps/common/types.h"
 #include "rtps/storages/HistoryCacheWithDeletion.h"
 #include "rtps/storages/MemoryPool.h"
 #include "task.hpp"
@@ -35,6 +35,8 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include <memory>
 
 namespace rtps {
+
+class EsppTransport;
 
 template <class NetworkDriver> class StatefulWriterT final : public Writer {
 public:
@@ -86,7 +88,7 @@ private:
                const SequenceNumber_t &nextValid);
 };
 
-using StatefulWriter = StatefulWriterT<platform::transport::ITransport>;
+using StatefulWriter = StatefulWriterT<EsppTransport>;
 } // namespace rtps
 
 #include "StatefulWriter.tpp"

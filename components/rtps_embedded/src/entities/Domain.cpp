@@ -45,7 +45,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 
 using rtps::Domain;
 
-Domain::Domain(const platform::transport::Ip4AddressBytes &localIpAddress)
+Domain::Domain(const rtps::Ip4AddressBytes &localIpAddress)
     : m_threadPool(receiveJumppad, this),
       m_defaultTransport(ThreadPool::onDatagram, &m_threadPool),
       m_transport(&m_defaultTransport),
@@ -53,8 +53,8 @@ Domain::Domain(const platform::transport::Ip4AddressBytes &localIpAddress)
   initializeTransport();
 }
 
-Domain::Domain(platform::transport::ITransport &transport,
-               const platform::transport::Ip4AddressBytes &localIpAddress)
+Domain::Domain(rtps::EsppTransport &transport,
+               const rtps::Ip4AddressBytes &localIpAddress)
     : m_threadPool(receiveJumppad, this),
       m_defaultTransport(ThreadPool::onDatagram, &m_threadPool),
       m_transport(&transport),
@@ -416,8 +416,7 @@ rtps::Writer *Domain::createWriter(Participant &part, const char *topicName,
 
 rtps::Reader *Domain::createReader(Participant &part, const char *topicName,
                                    const char *typeName, bool reliable,
-                                   platform::transport::Ip4AddressBytes
-                                       mcastaddress) {
+                                   rtps::Ip4AddressBytes mcastaddress) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   StatelessReader *statelessReader =
       getNextUnusedEndpoint<decltype(m_statelessReaders), StatelessReader>(

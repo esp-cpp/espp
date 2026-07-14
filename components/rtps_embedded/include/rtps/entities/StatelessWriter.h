@@ -28,11 +28,13 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/common/types.h"
 #include "rtps/config.h"
 #include "rtps/entities/Writer.h"
-#include "rtps/platform/transport.h"
+#include "rtps/common/types.h"
 #include "rtps/storages/MemoryPool.h"
 #include "rtps/storages/SimpleHistoryCache.h"
 
 namespace rtps {
+
+class EsppTransport;
 
 template <typename NetworkDriver> class StatelessWriterT : public Writer {
 public:
@@ -57,7 +59,7 @@ private:
   SimpleHistoryCache<Config::HISTORY_SIZE_STATELESS> m_history;
 };
 
-using StatelessWriter = StatelessWriterT<platform::transport::ITransport>;
+using StatelessWriter = StatelessWriterT<EsppTransport>;
 
 } // namespace rtps
 

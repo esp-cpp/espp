@@ -23,6 +23,8 @@ Author: i11 - Embedded Software, RWTH Aachen University
 */
 
 #include "rtps/messages/MessageTypes.h"
+
+#include <cstddef>
 #include <cstring>
 
 #include <stdio.h>
@@ -132,7 +134,7 @@ bool rtps::deserializeMessage(const MessageProcessingInfo &info,
 }
 
 void rtps::deserializeSNS(const uint8_t *&position, SequenceNumberSet &set,
-                          size_t num_bitfields) {
+                          std::size_t num_bitfields) {
 
   doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&set.base.high), position,
                   sizeof(SequenceNumber_t::high));
@@ -144,7 +146,8 @@ void rtps::deserializeSNS(const uint8_t *&position, SequenceNumberSet &set,
   // Ensure that we copy not more bits than our sequence number set can hold
   if (set.numBits != 0) {
     // equal to size = std::min(SNS_NUM_BYTES, num_bitfields)
-    size_t size = num_bitfields > SNS_NUM_BYTES ? SNS_NUM_BYTES : num_bitfields;
+    std::size_t size =
+      num_bitfields > SNS_NUM_BYTES ? SNS_NUM_BYTES : num_bitfields;
     doCopyAndMoveOn(reinterpret_cast<uint8_t *>(set.bitMap.data()), position,
                     size);
     position += (num_bitfields - size);
@@ -173,7 +176,8 @@ bool rtps::deserializeMessage(const MessageProcessingInfo &info,
                   msg.writerId.entityKey.size());
   msg.writerId.entityKind = static_cast<EntityKind_t>(*currentPos++);
 
-  size_t num_bitfields = msg.header.octetsToNextHeader - 4 - 4 - 8 - 4 - 4;
+  std::size_t num_bitfields =
+      msg.header.octetsToNextHeader - 4 - 4 - 8 - 4 - 4;
   deserializeSNS(currentPos, msg.readerSNState, num_bitfields);
 
   doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&msg.count.value), currentPos,
@@ -209,7 +213,8 @@ bool rtps::deserializeMessage(const MessageProcessingInfo &info,
   doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&msg.gapStart.low), currentPos,
                   sizeof(msg.gapStart.low));
 
-  size_t num_bitfields = msg.header.octetsToNextHeader - 4 - 4 - 8 - 8 - 4;
+  std::size_t num_bitfields =
+      msg.header.octetsToNextHeader - 4 - 4 - 8 - 8 - 4;
   deserializeSNS(currentPos, msg.gapList, num_bitfields);
 
   return true;

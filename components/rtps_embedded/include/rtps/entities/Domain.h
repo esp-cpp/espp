@@ -33,16 +33,16 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/entities/StatefulWriter.h"
 #include "rtps/entities/StatelessReader.h"
 #include "rtps/entities/StatelessWriter.h"
-#include "rtps/platform/transport.h"
+#include "rtps/common/types.h"
 #include <mutex>
 #include <rtps/common/Locator.h>
 
 namespace rtps {
 class Domain {
 public:
-  explicit Domain(const platform::transport::Ip4AddressBytes &localIpAddress);
-  Domain(platform::transport::ITransport &transport,
-         const platform::transport::Ip4AddressBytes &localIpAddress);
+    explicit Domain(const Ip4AddressBytes &localIpAddress);
+  Domain(EsppTransport &transport,
+      const Ip4AddressBytes &localIpAddress);
   ~Domain();
 
   bool completeInit();
@@ -54,7 +54,7 @@ public:
                        bool enforceUnicast = false);
   Reader *createReader(Participant &part, const char *topicName,
                        const char *typeName, bool reliable,
-                       platform::transport::Ip4AddressBytes mcastaddress =
+                         Ip4AddressBytes mcastaddress =
                            {0, 0, 0, 0});
 
   Writer *writerExists(Participant &part, const char *topicName,
@@ -72,9 +72,9 @@ private:
   ThreadPool m_threadPool;
   using DefaultTransport = EsppTransport;
   DefaultTransport m_defaultTransport;
-  platform::transport::ITransport *m_transport = nullptr;
+  EsppTransport *m_transport = nullptr;
   std::array<Participant, Config::MAX_NUM_PARTICIPANTS> m_participants;
-  platform::transport::Ip4AddressBytes m_localIpAddress{{0, 0, 0, 0}};
+  Ip4AddressBytes m_localIpAddress{{0, 0, 0, 0}};
   const uint8_t PARTICIPANT_START_ID = 0;
   ParticipantId_t m_nextParticipantId = PARTICIPANT_START_ID;
 

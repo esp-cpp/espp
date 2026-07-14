@@ -25,9 +25,8 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #ifndef RTPS_TYPES_H
 #define RTPS_TYPES_H
 
-#include "rtps/platform/platform_types.h"
-
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <initializer_list>
 #include <limits>
@@ -251,6 +250,13 @@ struct InstanceHandle_t { // TODO
 
 struct ParticipantMessageData { // TODO
 };
+
+using Ip4AddressBytes = std::array<uint8_t, 4>;
+
+using ReceiveCallback = void (*)(void *arg, const uint8_t *data,
+                                 std::size_t size, Ip4Port_t localPort,
+                                 Ip4Port_t remotePort,
+                                 const Ip4AddressBytes &remoteAddress);
 
 /* Default Values */
 const EntityId_t ENTITYID_UNKNOWN{};

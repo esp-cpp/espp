@@ -30,7 +30,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/discovery/SEDPAgent.h"
 #include "rtps/discovery/SPDPAgent.h"
 #include "rtps/messages/MessageReceiver.h"
-#include "rtps/platform/transport.h"
+#include "rtps/common/types.h"
 
 #include <cstdint>
 #include <mutex>
@@ -44,7 +44,7 @@ class Participant {
 public:
   GuidPrefix_t m_guidPrefix;
   ParticipantId_t m_participantId;
-  platform::transport::Ip4AddressBytes m_localIpAddress{{0, 0, 0, 0}};
+  Ip4AddressBytes m_localIpAddress{{0, 0, 0, 0}};
 
   Participant();
   explicit Participant(const GuidPrefix_t &guidPrefix,
@@ -62,7 +62,7 @@ public:
 
   void reuse(const GuidPrefix_t &guidPrefix, ParticipantId_t participantId);
   void reuse(const GuidPrefix_t &guidPrefix, ParticipantId_t participantId,
-             const platform::transport::Ip4AddressBytes &localIpAddress);
+             const Ip4AddressBytes &localIpAddress);
 
   std::array<uint8_t, 3> getNextUserEntityKey();
 

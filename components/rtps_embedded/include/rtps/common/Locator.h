@@ -26,7 +26,6 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #define RTPS_LOCATOR_T_H
 
 #include "rtps/common/types.h"
-#include "rtps/platform/platform_types.h"
 #include "rtps/utils/udpUtils.h"
 #include "ucdr/microcdr.h"
 
@@ -35,7 +34,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 namespace rtps {
 
 inline bool isSameSubnetAddress(
-    const platform::Ip4Address &addr,
+    const std::array<uint8_t, 4> &addr,
     const std::array<uint8_t, 4> &local) {
   return addr[0] == local[0] && addr[1] == local[1] && addr[2] == local[2];
 }
@@ -93,25 +92,25 @@ struct FullLengthLocator {
     }
   }
 
-  platform::Ip4Address getIp4Address() const {
-    return transformIP4ToU32(address[12], address[13], address[14],
-                             address[15]);
+  std::array<uint8_t, 4> getIp4Address() const {
+    return getIp4AddressBytes();
   }
 
   std::array<uint8_t, 4> getIp4AddressBytes() const {
     return {address[12], address[13], address[14], address[15]};
   }
 
-  bool isSameAddress(const platform::Ip4Address &ipAddress) {
-    return getIp4Address() == ipAddress;
+  bool isSameAddress(const std::array<uint8_t, 4> &ipAddress) {
+    return getIp4AddressBytes() == ipAddress;
   }
 
   inline bool isSameSubnet(const std::array<uint8_t, 4> &localIp) const {
-    return isSameSubnetAddress(getIp4Address(), localIp);
+    return isSameSubnetAddress(getIp4AddressBytes(), localIp);
   }
 
   inline bool isMulticastAddress() const {
-    return rtps::isMulticastAddress(getIp4Address());
+    const auto ip = getIp4AddressBytes();
+    return ip[0] >= 224 && ip[0] <= 239;
   }
 
   inline uint32_t getLocatorPort() { return static_cast<Ip4Port_t>(port); }
@@ -171,8 +170,8 @@ struct LocatorIPv4 {
     kind = locator.kind;
   }
 
-  platform::Ip4Address getIp4Address() const {
-    return transformIP4ToU32(address[0], address[1], address[2], address[3]);
+  std::array<uint8_t, 4> getIp4Address() const {
+    return getIp4AddressBytes();
   }
 
   std::array<uint8_t, 4> getIp4AddressBytes() const { return address; }
@@ -182,11 +181,12 @@ struct LocatorIPv4 {
   bool isValid() const { return kind != LocatorKind_t::LOCATOR_KIND_INVALID; }
 
   inline bool isSameSubnet(const std::array<uint8_t, 4> &localIp) const {
-    return isSameSubnetAddress(getIp4Address(), localIp);
+    return isSameSubnetAddress(getIp4AddressBytes(), localIp);
   }
 
   inline bool isMulticastAddress() const {
-    return rtps::isMulticastAddress(getIp4Address());
+    const auto ip = getIp4AddressBytes();
+    return ip[0] >= 224 && ip[0] <= 239;
   }
 };
 

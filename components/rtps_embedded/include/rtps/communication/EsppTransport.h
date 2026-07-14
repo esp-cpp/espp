@@ -25,9 +25,10 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #ifndef RTPS_ESPPTRANSPORT_H
 #define RTPS_ESPPTRANSPORT_H
 
+#include "rtps/common/types.h"
 #include "rtps/config.h"
-#include "rtps/platform/transport.h"
 #include "udp_socket.hpp"
+#include "rtps/communication/PacketInfo.h"
 
 #include <array>
 #include <memory>
@@ -37,17 +38,16 @@ Author: i11 - Embedded Software, RWTH Aachen University
 
 namespace rtps {
 
-class EsppTransport : public platform::transport::ITransport {
+class EsppTransport {
 public:
-  using RxCallback = platform::transport::ReceiveCallback;
+  using RxCallback = ReceiveCallback;
 
   EsppTransport(RxCallback callback, void *args);
-  ~EsppTransport() override = default;
+  ~EsppTransport() = default;
 
-  bool ensureReceivePort(Ip4Port_t receivePort) override;
-  bool joinMultiCastGroup(
-      const platform::transport::Ip4AddressBytes &addr) const override;
-  void sendPacket(PacketInfo &info) override;
+    bool ensureReceivePort(Ip4Port_t receivePort);
+    bool joinMultiCastGroup(const Ip4AddressBytes &addr) const;
+    void sendPacket(PacketInfo &info);
 
 private:
   struct Channel {
@@ -63,7 +63,7 @@ private:
   void onReceive(Ip4Port_t receivePort, std::vector<uint8_t> &data,
                  const espp::Socket::Info &sender) const;
 
-  static std::string ip4ToString(const platform::transport::Ip4AddressBytes &addr);
+  static std::string ip4ToString(const Ip4AddressBytes &addr);
 
   RxCallback m_rxCallback{nullptr};
   void *m_callbackArgs{nullptr};

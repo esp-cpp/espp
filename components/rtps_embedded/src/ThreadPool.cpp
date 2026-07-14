@@ -249,7 +249,7 @@ void ThreadPool::doWriterWork() {
 void ThreadPool::onDatagram(
     void *arg, const uint8_t *data, std::size_t size, Ip4Port_t localPort,
     Ip4Port_t remotePort,
-    const platform::transport::Ip4AddressBytes &remoteAddress) {
+    const Ip4AddressBytes &remoteAddress) {
   auto &pool = *static_cast<ThreadPool *>(arg);
 
   PacketInfo packet;
@@ -280,8 +280,6 @@ void ThreadPool::scheduleReaderWork() {
 }
 
 void ThreadPool::doReaderWork() {
-  uint32_t metatraffic = 0;
-  uint32_t usertraffic = 0;
   while (m_running) {
     PacketInfo packet_user;
     auto isUserWorkToDo = m_incomingUserTraffic.moveFirstInto(packet_user);

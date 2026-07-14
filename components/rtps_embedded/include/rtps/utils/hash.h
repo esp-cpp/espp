@@ -25,6 +25,8 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #ifndef RTPS_HASH_H
 #define RTPS_HASH_H
 
+#include <cstddef>
+
 namespace rtps {
 inline size_t hashCharArray(const char *p, size_t s) {
   size_t result = 0;

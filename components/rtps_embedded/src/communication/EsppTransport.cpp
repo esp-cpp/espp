@@ -37,8 +37,8 @@ using rtps::EsppTransport;
 namespace {
 
 bool parseIp4Address(const std::string &address,
-                     rtps::platform::transport::Ip4AddressBytes &out) {
-  rtps::platform::transport::Ip4AddressBytes parsed{0, 0, 0, 0};
+                     rtps::Ip4AddressBytes &out) {
+  rtps::Ip4AddressBytes parsed{0, 0, 0, 0};
   const char *cursor = address.c_str();
 
   for (std::size_t i = 0; i < parsed.size(); ++i) {
@@ -63,7 +63,7 @@ bool parseIp4Address(const std::string &address,
   return true;
 }
 
-bool isMulticastAddress(const rtps::platform::transport::Ip4AddressBytes &addr) {
+bool isMulticastAddress(const rtps::Ip4AddressBytes &addr) {
   return addr[0] >= 224 && addr[0] <= 239;
 }
 
@@ -91,7 +91,7 @@ const EsppTransport::Channel *EsppTransport::findChannel(Ip4Port_t port) const {
 }
 
 std::string EsppTransport::ip4ToString(
-    const platform::transport::Ip4AddressBytes &addr) {
+  const Ip4AddressBytes &addr) {
   return std::to_string(addr[0]) + "." + std::to_string(addr[1]) + "." +
          std::to_string(addr[2]) + "." + std::to_string(addr[3]);
 }
@@ -158,7 +158,7 @@ void EsppTransport::onReceive(Ip4Port_t receivePort, std::vector<uint8_t> &data,
     return;
   }
 
-  platform::transport::Ip4AddressBytes remoteAddress{0, 0, 0, 0};
+  Ip4AddressBytes remoteAddress{0, 0, 0, 0};
   (void)parseIp4Address(sender.address, remoteAddress);
 
   m_rxCallback(m_callbackArgs, data.data(), data.size(), receivePort,
@@ -178,7 +178,7 @@ bool EsppTransport::ensureReceivePort(Ip4Port_t receivePort) {
 }
 
 bool EsppTransport::joinMultiCastGroup(
-    const platform::transport::Ip4AddressBytes &addr) const {
+  const Ip4AddressBytes &addr) const {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
   const std::string group = ip4ToString(addr);
@@ -217,7 +217,7 @@ void EsppTransport::sendPacket(PacketInfo &info) {
   }
 
   espp::UdpSocket::SendConfig send_config;
-  const platform::transport::Ip4AddressBytes destination = info.destAddr;
+  const Ip4AddressBytes destination = info.destAddr;
   send_config.ip_address = ip4ToString(destination);
   send_config.port = info.destPort;
   send_config.is_multicast_endpoint = isMulticastAddress(info.destAddr);
