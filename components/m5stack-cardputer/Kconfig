@@ -1,0 +1,91 @@
+menu "M5Stack Cardputer Configuration"
+
+    config M5STACK_CARDPUTER_INTERRUPT_STACK_SIZE
+        int "Interrupt stack size"
+        default 4096
+        help
+            Size of the stack allocated for the interrupt task.
+
+    config M5STACK_CARDPUTER_INTERRUPT_PRIORITY
+        int "Interrupt task priority"
+        default 20
+        range 0 25
+        help
+            Priority of the interrupt task.
+
+    config M5STACK_CARDPUTER_INTERRUPT_CORE_ID
+        int "Interrupt task core ID"
+        default -1
+        range -1 1
+        help
+            Core ID of the interrupt task. -1 means it is not pinned to any core.
+
+    config M5STACK_CARDPUTER_KEYBOARD_TASK_STACK_SIZE
+        int "Keyboard task stack size"
+        default 8192
+        help
+            Size of the stack allocated for the keyboard scanner task. Note
+            that the keypress callback runs in this task's context, so the
+            stack must be large enough for whatever the callback calls into
+            (e.g. LVGL).
+
+    config M5STACK_CARDPUTER_KEYBOARD_TASK_PRIORITY
+        int "Keyboard task priority"
+        default 0
+        range 0 25
+        help
+            Priority of the keyboard scanner task.
+
+    config M5STACK_CARDPUTER_KEYBOARD_TASK_CORE_ID
+        int "Keyboard task core ID"
+        default -1
+        range -1 1
+        help
+            Core ID of the keyboard scanner task. -1 means it is not pinned to
+            any core.
+
+    config M5STACK_CARDPUTER_AUDIO_TASK_STACK_SIZE
+        int "Audio task stack size"
+        default 4096
+        help
+            Size of the stack allocated for the audio (speaker) task.
+
+    config M5STACK_CARDPUTER_AUDIO_TASK_PRIORITY
+        int "Audio task priority"
+        default 19
+        range 0 25
+        help
+            Priority of the audio (speaker) task.
+
+    config M5STACK_CARDPUTER_AUDIO_TASK_CORE_ID
+        int "Audio task core ID"
+        default 1
+        range -1 1
+        help
+            Core ID of the audio (speaker) task. -1 means it is not pinned to
+            any core.
+
+    config M5STACK_CARDPUTER_MICROPHONE_TASK_STACK_SIZE
+        int "Microphone task stack size"
+        default 4096
+        help
+            Size of the stack allocated for the microphone task. Note that the
+            microphone callback runs in this task's context, so the stack must
+            be large enough for whatever the callback does with the audio data.
+
+    config M5STACK_CARDPUTER_MICROPHONE_TASK_PRIORITY
+        int "Microphone task priority"
+        default 19
+        range 0 25
+        help
+            Priority of the microphone task.
+
+    config M5STACK_CARDPUTER_MICROPHONE_TASK_CORE_ID
+        int "Microphone task core ID"
+        default 1
+        range -1 1
+        help
+            Core ID of the microphone task. -1 means it is not pinned to any
+            core.
+
+endmenu
