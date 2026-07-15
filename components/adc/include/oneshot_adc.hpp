@@ -59,7 +59,11 @@ public:
    * @brief Delete and destroy the adc reader.
    */
   ~OneshotAdc() {
-    ESP_ERROR_CHECK(adc_oneshot_del_unit(adc_handle_));
+    // the handle is only created if init() got far enough (e.g. it returns
+    // early when no channels were provided)
+    if (adc_handle_ != nullptr) {
+      ESP_ERROR_CHECK(adc_oneshot_del_unit(adc_handle_));
+    }
     for (auto cali_handle : cali_handles_) {
       if (cali_handle == nullptr) {
         continue;
@@ -267,7 +271,7 @@ protected:
 
   std::recursive_mutex mutex_;
   std::vector<AdcConfig> configs_;
-  adc_oneshot_unit_handle_t adc_handle_;
+  adc_oneshot_unit_handle_t adc_handle_{nullptr};
   // one calibration handle per attenuation level (nullptr = not calibrated),
   // indexed by adc_atten_t
   std::array<adc_cali_handle_t, NUM_ATTENUATIONS> cali_handles_{};

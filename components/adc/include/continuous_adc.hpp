@@ -89,8 +89,13 @@ public:
       , result_data_(window_size_bytes_, 0xcc) {
     // set the rate limit for the logger
     logger_.set_rate_limit(std::chrono::milliseconds(100));
-    // initialize the adc continuous subsystem
-    init(config.channels);
+    // initialize the adc continuous subsystem; on validation failure the
+    // object is left in a safe (but non-functional) state: no driver handle,
+    // no reader task, and start() / get_mv() / get_rate() are no-ops
+    if (!init(config.channels)) {
+      logger_.error("Initialization failed; the continuous ADC will be non-functional");
+      return;
+    }
     // and start the task
     using namespace std::placeholders;
     task_ = espp::Task::make_unique(
@@ -118,8 +123,13 @@ public:
     if (task_handle_) {
       xTaskNotifyGive(task_handle_);
     }
-    task_->stop();
-    ESP_ERROR_CHECK(adc_continuous_deinit(handle_));
+    if (task_) {
+      task_->stop();
+    }
+    // the handle is only created if init() passed validation
+    if (handle_ != nullptr) {
+      ESP_ERROR_CHECK(adc_continuous_deinit(handle_));
+    }
     // clean up the calibration data
     for (auto cali_handle : cali_handles_) {
       if (cali_handle == nullptr) {
@@ -137,6 +147,10 @@ public:
    * @brief Start the continuous adc reader.
    */
   void start() {
+    if (handle_ == nullptr) {
+      logger_.error("Cannot start: initialization failed");
+      return;
+    }
     if (running_) {
       return;
     }
@@ -199,8 +213,13 @@ public:
 
 protected:
   // Unique id for a (unit, channel) pair. 32 is larger than the number of
-  // channels on any ESP32 chip, so the id is unique across units.
-  static constexpr int MAX_IDS = 2 * 32;
+  // channels on any ESP32 chip, so the id is unique across units. The id
+  // math (and the SOC_ADC_* capability macro lookups, and the comparison
+  // against the unit field of the DMA output data) all assume the adc_unit_t
+  // enum values are 0-based indices, which esp-idf guarantees:
+  static_assert(ADC_UNIT_1 == 0 && ADC_UNIT_2 == 1,
+                "adc_unit_t values are assumed to be 0-based unit indices");
+  static constexpr int MAX_IDS = SOC_ADC_PERIPH_NUM * 32;
   static constexpr uint8_t INVALID_INDEX = 0xFF;
 
   static constexpr int get_id(adc_unit_t unit, adc_channel_t channel) {
@@ -263,12 +282,17 @@ protected:
 #if !CONFIG_IDF_TARGET_ESP32
       if (output_format_ == ADC_DIGI_OUTPUT_FORMAT_TYPE2) {
         if (check_valid_data(p)) {
+#if SOC_ADC_PERIPH_NUM > 1
           parsed_unit = p->type2.unit;
+#else
+          // single-ADC chips (C2, C6, H2, ...) have no unit field in the
+          // output data
+          parsed_unit = 0;
+#endif
           parsed_channel = p->type2.channel;
           data = p->type2.data;
         } else {
-          logger_.warn_rate_limited("invalid data (unit {} channel {})!", (int)p->type2.unit,
-                                    (int)p->type2.channel);
+          logger_.warn_rate_limited("invalid data (channel {})!", (int)p->type2.channel);
           continue;
         }
       }
@@ -330,36 +354,50 @@ protected:
 
 #if !CONFIG_IDF_TARGET_ESP32
   static bool check_valid_data(const adc_digi_output_data_t *data) {
+#if SOC_ADC_PERIPH_NUM > 1
     const unsigned int unit = data->type2.unit;
     if (unit >= SOC_ADC_PERIPH_NUM)
       return false;
+#else
+    // single-ADC chips (C2, C6, H2, ...) have no unit field in the output
+    // data
+    const unsigned int unit = 0;
+#endif
     if (data->type2.channel >= SOC_ADC_CHANNEL_NUM(unit))
       return false;
     return true;
   }
 #endif
 
-  void init(const std::vector<AdcConfig> &channels) {
+  // Initialize the continuous adc driver. Returns false (without touching
+  // the driver) if the configuration fails validation, so failures are
+  // deterministic and reported with their root cause rather than aborting in
+  // a later driver call.
+  bool init(const std::vector<AdcConfig> &channels) {
     id_to_index_.fill(INVALID_INDEX);
     if (channels.empty()) {
       logger_.error("No channels provided!");
-      return;
+      return false;
     }
 
     // validate the channels against the chip's capabilities
+    bool valid = true;
     bool has_unit_1 = false;
     bool has_unit_2 = false;
     for (const auto &conf : channels) {
       int unit = static_cast<int>(conf.unit);
       if (unit >= SOC_ADC_PERIPH_NUM) {
         logger_.error("{} invalid: this chip only has {} ADC unit(s)", conf, SOC_ADC_PERIPH_NUM);
+        valid = false;
       } else if (static_cast<int>(conf.channel) >= SOC_ADC_CHANNEL_NUM(unit)) {
         logger_.error("{} invalid: the unit only has {} channels", conf, SOC_ADC_CHANNEL_NUM(unit));
+        valid = false;
       }
 #ifdef SOC_ADC_DIG_SUPPORTED_UNIT
       if (!SOC_ADC_DIG_SUPPORTED_UNIT(unit)) {
         logger_.error("{} invalid: this chip does not support continuous (DMA) mode on this unit",
                       conf);
+        valid = false;
       }
 #endif
       has_unit_1 |= conf.unit == ADC_UNIT_1;
@@ -396,6 +434,11 @@ protected:
       logger_.error("Aggregate sample frequency {} Hz (sample_rate_hz * number of channels) is "
                     "outside this chip's supported range [{}, {}] Hz",
                     sample_freq_hz, SOC_ADC_SAMPLE_FREQ_THRES_LOW, SOC_ADC_SAMPLE_FREQ_THRES_HIGH);
+      valid = false;
+    }
+
+    if (!valid) {
+      return false;
     }
 
     adc_continuous_handle_cfg_t adc_config;
@@ -479,6 +522,7 @@ protected:
     memset(&cbs, 0, sizeof(cbs));
     cbs.on_conv_done = s_conv_done_cb;
     ESP_ERROR_CHECK(adc_continuous_register_event_callbacks(handle_, &cbs, &task_handle_));
+    return true;
   }
 
   bool init_calibration(adc_unit_t unit, adc_atten_t atten, adc_bitwidth_t bitwidth,
@@ -543,7 +587,7 @@ protected:
   size_t sample_rate_hz_;
   size_t window_size_bytes_;
   size_t num_channels_;
-  adc_continuous_handle_t handle_;
+  adc_continuous_handle_t handle_{nullptr};
   adc_digi_convert_mode_t conv_mode_;
   adc_digi_output_format_t output_format_;
   std::vector<uint8_t> result_data_;
