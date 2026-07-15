@@ -5,6 +5,7 @@
 
 - [ESPP Library](#espp-library)
   - [Description](#description)
+  - [Installing the python package with pip](#installing-the-python-package-with-pip)
   - [Building for PC (C++ & Python)](#building-for-pc-c--python)
   - [Updating the python bindings](#updating-the-python-bindings)
     - [Setup](#setup)
@@ -34,8 +35,43 @@ Some examples can be found in these folders:
 - [../python](../python): This folder contains python code which uses the espp
   library.
 
-All the examples in these folders require that the espp library is built first,
-as described below.
+All the examples in these folders require that the espp library is either
+installed via pip or built first, as described below.
+
+## Installing the python package with pip
+
+The python bindings are packaged as the [`espp` package on
+PyPI](https://pypi.org/project/espp/) (see
+[README_PYPI.md](./README_PYPI.md)), built via scikit-build-core from the
+[pyproject.toml](../pyproject.toml) at the repository root:
+
+``` console
+pip install espp
+```
+
+You can also install straight from git (requires CMake >= 3.20 and a C++20
+compiler; pip clones the needed submodules automatically):
+
+``` console
+pip install git+https://github.com/esp-cpp/espp.git
+```
+
+When developing the bindings (or running the [../python](../python) example
+scripts against local changes), use an editable install from the repository
+root:
+
+``` console
+pip install -e .
+```
+
+Re-run it after changing C++ code to rebuild the extension (the CMake build
+dir is persistent, so rebuilds are incremental); pure-python changes are
+picked up automatically.
+
+Wheels for Linux (x86_64 / aarch64), macOS (universal2), and Windows
+(amd64) are built in CI by
+[build_wheels.yml](../.github/workflows/build_wheels.yml) and published to
+PyPI on each release.
 
 ## Building for PC (C++ & Python)
 
@@ -56,7 +92,9 @@ This will build and install the following files:
 
 * `./pc/libespp_pc` - C++ static library for use with other C++ code.
 * `./pc/include` - All the header files need for using the library from C++ code.
-* `./pc/espp.so` - C++ shared library for python binding for use with python code.
+* `./pc/espp/` - The `espp` python package (pure-python files, type stubs, and
+  the compiled `espp._espp` pybind11 extension) - add `./pc` to your
+  `PYTHONPATH` / `sys.path` to `import espp` from python code.
 
 ## Updating the python bindings
 
@@ -108,7 +146,13 @@ by hand:
 - `std::shared_ptr` holders + bases (the RTP packetizer hierarchy, `JpegFrame`),
 - unqualified RTSP nested types / nested-struct statics in named-ctor defaults
   (`espp::RtspClient::frame_callback_t`, `espp::RtspServer::Config::default_*`, ...),
-- `def_readwrite` → `def_readonly` for non-copyable members (`RtspSession::Track` sockets).
+- `def_readwrite` → `def_readonly` for non-copyable members (`RtspSession::Track` sockets),
+- `py::call_guard<py::gil_scoped_release>()` on blocking methods (`Task::stop`,
+  `Timer::cancel`, socket send/receive/accept, the RTSP request methods, ...).
+  Without it, any method that joins the task thread or blocks on I/O deadlocks
+  when called from python, because the blocked-on thread needs the GIL to invoke
+  its python callback (see `_GIL_RELEASE_METHODS` in `autogenerate_bindings.py`;
+  the hand-written `rtps` bindings apply the same guard).
 
 The litgen dependency is unpinned and recent versions (0.20–0.22) regressed
 nested-scope/template generation, which is why this automation is needed.

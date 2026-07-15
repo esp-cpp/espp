@@ -1,7 +1,7 @@
 import sys
 import time
 
-from support_loader import espp
+import espp
 
 udp_client = espp.UdpSocket(espp.UdpSocket.Config(espp.Logger.Verbosity.debug))
 

@@ -357,8 +357,10 @@ void py_init_module_espp(py::module &m) {
                "on.\n/ \\param root The root directory of the FTP server.")
           .def("start", &espp::FtpServer::start,
                "/ \\brief Start the FTP server.\n/ Bind to the port and start accepting "
-               "connections.\n/ \\return True if the server was started, False otherwise.")
-          .def("stop", &espp::FtpServer::stop, "/ \\brief Stop the FTP server.");
+               "connections.\n/ \\return True if the server was started, False otherwise.",
+               py::call_guard<py::gil_scoped_release>())
+          .def("stop", &espp::FtpServer::stop, "/ \\brief Stop the FTP server.",
+               py::call_guard<py::gil_scoped_release>());
   ////////////////////    </generated_from:ftp_server.hpp>    ////////////////////
 
   ////////////////////    <generated_from:logger.hpp>    ////////////////////
@@ -1798,7 +1800,8 @@ void py_init_module_espp(py::module &m) {
       .def("connect", &espp::TcpSocket::connect, py::arg("connect_config"),
            "*\n   * @brief Open a connection to the remote TCP server.\n   * @param connect_config "
            "ConnectConfig struct describing the server endpoint.\n   * @return True if the client "
-           "successfully connected to the server.\n")
+           "successfully connected to the server.\n",
+           py::call_guard<py::gil_scoped_release>())
       .def("get_remote_info", &espp::TcpSocket::get_remote_info,
            "*\n   * @brief Get the remote endpoint info.\n   * @return The remote endpoint info.\n")
       .def("transmit",
@@ -1811,7 +1814,8 @@ void py_init_module_espp(py::module &m) {
            "send_config which will be provided the response data for\n   *        processing.\n   "
            "* @param data vector of bytes to send to the remote endpoint.\n   * @param "
            "transmit_config TransmitConfig struct indicating whether to wait for a\n   *        "
-           "response.\n   * @return True if the data was sent, False otherwise.\n")
+           "response.\n   * @return True if the data was sent, False otherwise.\n",
+           py::call_guard<py::gil_scoped_release>())
       .def("transmit",
            py::overload_cast<const std::vector<char> &, const espp::TcpSocket::TransmitConfig &>(
                &espp::TcpSocket::transmit),
@@ -1822,7 +1826,8 @@ void py_init_module_espp(py::module &m) {
            "send_config which will be provided the response data for\n   *        processing.\n   "
            "* @param data vector of bytes to send to the remote endpoint.\n   * @param "
            "transmit_config TransmitConfig struct indicating whether to wait for a\n   *        "
-           "response.\n   * @return True if the data was sent, False otherwise.\n")
+           "response.\n   * @return True if the data was sent, False otherwise.\n",
+           py::call_guard<py::gil_scoped_release>())
       .def("transmit",
            py::overload_cast<std::string_view, const espp::TcpSocket::TransmitConfig &>(
                &espp::TcpSocket::transmit),
@@ -1833,7 +1838,8 @@ void py_init_module_espp(py::module &m) {
            "send_config which will be provided the response data for\n   *        processing.\n   "
            "* @param data string view of bytes to send to the remote endpoint.\n   * @param "
            "transmit_config TransmitConfig struct indicating whether to wait for a\n   *        "
-           "response.\n   * @return True if the data was sent, False otherwise.\n")
+           "response.\n   * @return True if the data was sent, False otherwise.\n",
+           py::call_guard<py::gil_scoped_release>())
       .def("transmit",
            py::overload_cast<std::span<const uint8_t>, const espp::TcpSocket::TransmitConfig &>(
                &espp::TcpSocket::transmit),
@@ -1844,13 +1850,15 @@ void py_init_module_espp(py::module &m) {
            "send_config which will be provided the response data for\n   *        processing.\n   "
            "* @param data span of bytes to send to the remote endpoint.\n   * @param "
            "transmit_config TransmitConfig struct indicating whether to wait for a\n   *        "
-           "response.\n   * @return True if the data was sent, False otherwise.\n")
+           "response.\n   * @return True if the data was sent, False otherwise.\n",
+           py::call_guard<py::gil_scoped_release>())
       .def("receive", py::overload_cast<std::vector<uint8_t> &, size_t>(&espp::TcpSocket::receive),
            py::arg("data"), py::arg("max_num_bytes"),
            "*\n   * @brief Call read on the socket, assuming it has already been configured\n   *  "
            "      appropriately.\n   *\n   * @param data Vector of bytes of received data.\n   * "
            "@param max_num_bytes Maximum number of bytes to receive.\n   * @return True if "
-           "successfully received, False otherwise.\n")
+           "successfully received, False otherwise.\n",
+           py::call_guard<py::gil_scoped_release>())
       .def("receive", py::overload_cast<uint8_t *, size_t>(&espp::TcpSocket::receive),
            py::arg("data"), py::arg("max_num_bytes"),
            "*\n   * @brief Call read on the socket, assuming it has already been configured\n   *  "
@@ -1858,7 +1866,8 @@ void py_init_module_espp(py::module &m) {
            "received or the\n   *       receive timeout is reached.\n   * @note The data pointed "
            "to by data must be at least max_num_bytes in size.\n   * @param data Pointer to buffer "
            "to receive data.\n   * @param max_num_bytes Maximum number of bytes to receive.\n   * "
-           "@return Number of bytes received.\n")
+           "@return Number of bytes received.\n",
+           py::call_guard<py::gil_scoped_release>())
       .def("bind", &espp::TcpSocket::bind, py::arg("port"),
            "*\n   * @brief Bind the socket as a server on \\p port.\n   * @param port The port to "
            "which to bind the socket.\n   * @return True if the socket was bound.\n")
@@ -1871,7 +1880,8 @@ void py_init_module_espp(py::module &m) {
            "*\n   * @brief Accept an incoming connection.\n   * @note Blocks until a connection is "
            "accepted.\n   * @note Must be called after listen.\n   * @note This function will "
            "block until a connection is accepted.\n   * @return A unique pointer to a "
-           "TcpClientSession if a connection was\n   *         accepted, None otherwise.\n");
+           "TcpClientSession if a connection was\n   *         accepted, None otherwise.\n",
+           py::call_guard<py::gil_scoped_release>());
   ////////////////////    </generated_from:tcp_socket.hpp>    ////////////////////
 
   ////////////////////    <generated_from:udp_socket.hpp>    ////////////////////
@@ -1997,7 +2007,8 @@ void py_init_module_espp(py::module &m) {
 
   pyClassUdpSocket.def(py::init<const espp::UdpSocket::Config &>())
       .def("stop_receiving", &espp::UdpSocket::stop_receiving,
-           "/ Stop the receive task, if one is running, and close the socket.")
+           "/ Stop the receive task, if one is running, and close the socket.",
+           py::call_guard<py::gil_scoped_release>())
       .def("send",
            py::overload_cast<const std::vector<uint8_t> &, const espp::UdpSocket::SendConfig &>(
                &espp::UdpSocket::send),
@@ -2010,7 +2021,8 @@ void py_init_module_espp(py::module &m) {
            "send_config which will be provided the response data for\n   *        processing.\n   "
            "* @param data vector of bytes to send to the remote endpoint.\n   * @param send_config "
            "SendConfig struct indicating where to send and whether\n   *        to wait for a "
-           "response.\n   * @return True if the data was sent, False otherwise.\n")
+           "response.\n   * @return True if the data was sent, False otherwise.\n",
+           py::call_guard<py::gil_scoped_release>())
       .def("send",
            py::overload_cast<std::string_view, const espp::UdpSocket::SendConfig &>(
                &espp::UdpSocket::send),
@@ -2023,7 +2035,8 @@ void py_init_module_espp(py::module &m) {
            "send_config which will be provided the response data for\n   *        processing.\n   "
            "* @param data String view of bytes to send to the remote endpoint.\n   * @param "
            "send_config SendConfig struct indicating where to send and whether\n   *        to "
-           "wait for a response.\n   * @return True if the data was sent, False otherwise.\n")
+           "wait for a response.\n   * @return True if the data was sent, False otherwise.\n",
+           py::call_guard<py::gil_scoped_release>())
       .def("send",
            py::overload_cast<std::span<const uint8_t>, const espp::UdpSocket::SendConfig &>(
                &espp::UdpSocket::send),
@@ -2036,7 +2049,8 @@ void py_init_module_espp(py::module &m) {
            "send_config which will be provided the response data for\n   *        processing.\n   "
            "* @param data std::span of bytes to send to the remote endpoint.\n   * @param "
            "send_config SendConfig struct indicating where to send and whether\n   *        to "
-           "wait for a response.\n   * @return True if the data was sent, False otherwise.\n")
+           "wait for a response.\n   * @return True if the data was sent, False otherwise.\n",
+           py::call_guard<py::gil_scoped_release>())
       .def("receive", &espp::UdpSocket::receive, py::arg("max_num_bytes"), py::arg("data"),
            py::arg("remote_info"),
            "*\n   * @brief Call recvfrom on the socket, assuming it has already been\n   *        "
@@ -2044,14 +2058,16 @@ void py_init_module_espp(py::module &m) {
            "receive.\n   * @param data Vector of bytes of received data.\n   * @param remote_info "
            "Socket::Info containing the sender's information. This\n   *        will be populated "
            "with the information about the sender.\n   * @return True if successfully received, "
-           "False otherwise.\n")
+           "False otherwise.\n",
+           py::call_guard<py::gil_scoped_release>())
       .def("start_receiving", &espp::UdpSocket::start_receiving, py::arg("task_config"),
            py::arg("receive_config"),
            "*\n   * @brief Configure a server socket and start a thread to continuously\n   *      "
            "  receive and handle data coming in on that socket.\n   *\n   * @param task_config "
            "Task::BaseConfig struct for configuring the receive task.\n   * @param receive_config "
            "ReceiveConfig struct with socket and callback info.\n   * @return True if the socket "
-           "was created and task was started, False otherwise.\n");
+           "was created and task was started, False otherwise.\n",
+           py::call_guard<py::gil_scoped_release>());
   ////////////////////    </generated_from:udp_socket.hpp>    ////////////////////
 
   ////////////////////    <generated_from:task.hpp>    ////////////////////
@@ -2134,12 +2150,14 @@ void py_init_module_espp(py::module &m) {
                     espp::Logger::Verbosity>())
       .def("start", &espp::Task::start,
            "*\n   * @brief Start executing the task.\n   *\n   * @return True if the task started, "
-           "False if it was already started.\n")
+           "False if it was already started.\n",
+           py::call_guard<py::gil_scoped_release>())
       .def("stop", &espp::Task::stop,
            "*\n   * @brief Stop the task execution.\n   * @details This will request the task to "
            "stop, notify the condition variable,\n   *          and (if this calling context is "
            "not the task context) join the\n   *          thread.\n   * @return True if the task "
-           "stopped, False if it was not started / already\n   *         stopped.\n")
+           "stopped, False if it was not started / already\n   *         stopped.\n",
+           py::call_guard<py::gil_scoped_release>())
       .def("is_started", &espp::Task::is_started,
            "*\n   * @brief Has the task been started or not?\n   *\n   * @return True if the task "
            "is started / running, False otherwise.\n")
@@ -2308,7 +2326,8 @@ void py_init_module_espp(py::module &m) {
       .def(
           "start", [](espp::Timer &self) { return self.start(); },
           "/ @brief Start the timer.\n/ @details Starts the timer. Does nothing if the timer is "
-          "already running.")
+          "already running.",
+          py::call_guard<py::gil_scoped_release>())
       .def("start", py::overload_cast<const std::chrono::duration<float> &>(&espp::Timer::start),
            py::arg("delay"),
            "/ @brief Start the timer with a delay.\n/ @details Starts the timer with a delay. If "
@@ -2316,12 +2335,15 @@ void py_init_module_espp(py::module &m) {
            "again with the new\n/          delay. If the timer is not running, this will start the "
            "timer\n/          with the delay. Overwrites any previous delay that might have\n/     "
            "     been set.\n/ @param delay The delay before the first execution of the timer "
-           "callback.")
+           "callback.",
+           py::call_guard<py::gil_scoped_release>())
       .def("stop", &espp::Timer::stop,
            "/ @brief Stop the timer, same as cancel().\n/ @details Stops the timer, same as "
-           "cancel().")
+           "cancel().",
+           py::call_guard<py::gil_scoped_release>())
       .def("cancel", &espp::Timer::cancel,
-           "/ @brief Cancel the timer.\n/ @details Cancels the timer.")
+           "/ @brief Cancel the timer.\n/ @details Cancels the timer.",
+           py::call_guard<py::gil_scoped_release>())
       .def("set_period", &espp::Timer::set_period, py::arg("period"),
            "/ @brief Set the period of the timer.\n/ @details Sets the period of the timer.\n/ "
            "@param period The period of the timer.\n/ @note If the period is 0, the timer will run "
@@ -3251,21 +3273,26 @@ void py_init_module_espp(py::module &m) {
            "and \"Session\" headers will be added automatically.\n/      The \"Accept\" header "
            "will be added automatically. The \"Transport\"\n/      header will be added "
            "automatically for the \"SETUP\" method. Defaults to\n/      an empty map.\n/ \\param "
-           "ec The error code to set if an error occurs\n/ \\return The response from the server")
+           "ec The error code to set if an error occurs\n/ \\return The response from the server",
+           py::call_guard<py::gil_scoped_release>())
       .def("connect", &espp::RtspClient::connect, py::arg("ec"),
            "/ Connect to the RTSP server\n/ Connects to the RTSP server and sends the OPTIONS "
-           "request.\n/ \\param ec The error code to set if an error occurs")
+           "request.\n/ \\param ec The error code to set if an error occurs",
+           py::call_guard<py::gil_scoped_release>())
       .def("disconnect", &espp::RtspClient::disconnect, py::arg("ec"),
            "/ Disconnect from the RTSP server\n/ Disconnects from the RTSP server and sends the "
-           "TEARDOWN request.\n/ \\param ec The error code to set if an error occurs")
+           "TEARDOWN request.\n/ \\param ec The error code to set if an error occurs",
+           py::call_guard<py::gil_scoped_release>())
       .def("describe", &espp::RtspClient::describe, py::arg("ec"),
            "/ Describe the RTSP stream\n/ Sends the DESCRIBE request to the RTSP server and parses "
-           "the response.\n/ \\param ec The error code to set if an error occurs")
+           "the response.\n/ \\param ec The error code to set if an error occurs",
+           py::call_guard<py::gil_scoped_release>())
       .def("setup", py::overload_cast<std::error_code &>(&espp::RtspClient::setup), py::arg("ec"),
            "/ Setup the RTSP stream\n/ \note Starts the RTP and RTCP threads.\n/ Sends the SETUP "
            "request to the RTSP server and parses the response.\n/ \note The default ports are "
            "5000 and 5001 for RTP and RTCP respectively.\n/ \note The default receive timeout is 5 "
-           "seconds.\n/ \\param ec The error code to set if an error occurs")
+           "seconds.\n/ \\param ec The error code to set if an error occurs",
+           py::call_guard<py::gil_scoped_release>())
       .def("setup",
            py::overload_cast<size_t, size_t, const std::chrono::duration<float> &,
                              std::error_code &>(&espp::RtspClient::setup),
@@ -3274,7 +3301,8 @@ void py_init_module_espp(py::module &m) {
            "response.\n/ \note Starts the RTP and RTCP threads.\n/ \\param rtp_port The RTP client "
            "port\n/ \\param rtcp_port The RTCP client port\n/ \\param receive_timeout The timeout "
            "for receiving RTP and RTCP packets\n/ \\param ec The error code to set if an error "
-           "occurs")
+           "occurs",
+           py::call_guard<py::gil_scoped_release>())
       .def("add_depacketizer", &espp::RtspClient::add_depacketizer, py::arg("payload_type"),
            py::arg("depacketizer"),
            "/ Register a depacketizer for a specific RTP payload type.\n/ When RTP packets with "
@@ -3283,13 +3311,16 @@ void py_init_module_espp(py::module &m) {
            "H264)\n/ @param depacketizer The depacketizer to handle packets of this type")
       .def("play", &espp::RtspClient::play, py::arg("ec"),
            "/ Play the RTSP stream\n/ Sends the PLAY request to the RTSP server and parses the "
-           "response.\n/ \\param ec The error code to set if an error occurs")
+           "response.\n/ \\param ec The error code to set if an error occurs",
+           py::call_guard<py::gil_scoped_release>())
       .def("pause", &espp::RtspClient::pause, py::arg("ec"),
            "/ Pause the RTSP stream\n/ Sends the PAUSE request to the RTSP server and parses the "
-           "response.\n/ \\param ec The error code to set if an error occurs")
+           "response.\n/ \\param ec The error code to set if an error occurs",
+           py::call_guard<py::gil_scoped_release>())
       .def("teardown", &espp::RtspClient::teardown, py::arg("ec"),
            "/ Teardown the RTSP stream\n/ Sends the TEARDOWN request to the RTSP server and parses "
-           "the response.\n/ \\param ec The error code to set if an error occurs")
+           "the response.\n/ \\param ec The error code to set if an error occurs",
+           py::call_guard<py::gil_scoped_release>())
       .def("tracks", &espp::RtspClient::tracks,
            "/ Get the parsed SDP track descriptions from the most recent DESCRIBE call.\n/ "
            "\\return The ordered set of discovered media tracks.");
@@ -3385,10 +3416,12 @@ void py_init_module_espp(py::module &m) {
       .def("start", &espp::RtspServer::start, py::arg("accept_timeout") = std::chrono::seconds(5),
            "/ @brief Start the RTSP server\n/ Starts the accept task, session task, and binds the "
            "RTSP socket\n/ @param accept_timeout The timeout for accepting new connections\n/ "
-           "@return True if the server was started successfully, False otherwise")
+           "@return True if the server was started successfully, False otherwise",
+           py::call_guard<py::gil_scoped_release>())
       .def("stop", &espp::RtspServer::stop,
            "/ @brief Stop the FTP server\n/ Stops the accept task, session task, and closes the "
-           "RTSP socket")
+           "RTSP socket",
+           py::call_guard<py::gil_scoped_release>())
       .def("add_track", &espp::RtspServer::add_track, py::arg("config"),
            "/ @brief Register a media track with the server.\n/ Each track has its own packetizer, "
            "SSRC, and sequence number.\n/ @param config Track configuration including the "
@@ -3408,20 +3441,23 @@ void py_init_module_espp(py::module &m) {
            "/ @brief Send a frame on a specific track.\n/ The track's packetizer splits the frame "
            "into RTP payload chunks,\n/ which are then wrapped with RTP headers and queued for "
            "delivery.\n/ @note Overwrites any existing pending packets for this track.\n/ @param "
-           "track_id The track to send on.\n/ @param frame_data Raw encoded frame data.")
+           "track_id The track to send on.\n/ @param frame_data Raw encoded frame data.",
+           py::call_guard<py::gil_scoped_release>())
       .def("send_frame", py::overload_cast<const espp::JpegFrame &>(&espp::RtspServer::send_frame),
            py::arg("frame"),
            "/ @brief Send a JPEG frame over the RTSP connection (backward compatible).\n/ If no "
            "tracks have been added, lazily creates a default MJPEG track on\n/ track 0. Uses the "
            "legacy RtpJpegPacket packetization to preserve the\n/ exact wire format for existing "
            "MJPEG users.\n/ @note Overwrites any existing frame that has not been sent.\n/ @param "
-           "frame The frame to send.")
+           "frame The frame to send.",
+           py::call_guard<py::gil_scoped_release>())
       .def("send_frame", py::overload_cast<std::span<const uint8_t>>(&espp::RtspServer::send_frame),
            py::arg("frame_data"),
            "/ @brief Send raw JPEG bytes over the default MJPEG track.\n/ Uses the legacy MJPEG "
            "RTP packetization path without copying the frame\n/ into an intermediate JpegFrame "
            "object.\n/ @note Overwrites any existing frame that has not been sent.\n/ @param "
-           "frame_data Complete JPEG bytes, including header and EOI marker.");
+           "frame_data Complete JPEG bytes, including header and EOI marker.",
+           py::call_guard<py::gil_scoped_release>());
   ////////////////////    </generated_from:rtsp_server.hpp>    ////////////////////
 
   ////////////////////    <generated_from:rtsp_session.hpp>    ////////////////////
@@ -3514,37 +3550,43 @@ void py_init_module_espp(py::module &m) {
            py::arg("track_id"), py::arg("packet"),
            "/ Send an RTP packet on a specific track\n/ @param track_id The track to send on\n/ "
            "@param packet The RTP packet to send\n/ @return True if the packet was sent "
-           "successfully, False otherwise")
+           "successfully, False otherwise",
+           py::call_guard<py::gil_scoped_release>())
       .def("send_rtp_packet",
            py::overload_cast<int, std::span<const uint8_t>>(&espp::RtspSession::send_rtp_packet),
            py::arg("track_id"), py::arg("packet_data"),
            "/ Send a serialized RTP packet on a specific track.\n/ @param track_id The track to "
            "send on\n/ @param packet_data Serialized RTP packet bytes\n/ @return True if the "
-           "packet was sent successfully, False otherwise")
+           "packet was sent successfully, False otherwise",
+           py::call_guard<py::gil_scoped_release>())
       .def("send_rtp_packet",
            py::overload_cast<const espp::RtpPacket &>(&espp::RtspSession::send_rtp_packet),
            py::arg("packet"),
            "/ Send an RTP packet to the client (backward compat — sends on default track 0)\n/ "
            "@param packet The RTP packet to send\n/ @return True if the packet was sent "
-           "successfully, False otherwise")
+           "successfully, False otherwise",
+           py::call_guard<py::gil_scoped_release>())
       .def("send_rtp_packet",
            py::overload_cast<std::span<const uint8_t>>(&espp::RtspSession::send_rtp_packet),
            py::arg("packet_data"),
            "/ Send a serialized RTP packet to the client (default track 0).\n/ @param packet_data "
            "Serialized RTP packet bytes\n/ @return True if the packet was sent successfully, False "
-           "otherwise")
+           "otherwise",
+           py::call_guard<py::gil_scoped_release>())
       .def("send_rtcp_packet",
            py::overload_cast<int, const espp::RtcpPacket &>(&espp::RtspSession::send_rtcp_packet),
            py::arg("track_id"), py::arg("packet"),
            "/ Send an RTCP packet on a specific track\n/ @param track_id The track to send on\n/ "
            "@param packet The RTCP packet to send\n/ @return True if the packet was sent "
-           "successfully, False otherwise")
+           "successfully, False otherwise",
+           py::call_guard<py::gil_scoped_release>())
       .def("send_rtcp_packet",
            py::overload_cast<const espp::RtcpPacket &>(&espp::RtspSession::send_rtcp_packet),
            py::arg("packet"),
            "/ Send an RTCP packet to the client (backward compat — sends on default track 0)\n/ "
            "@param packet The RTCP packet to send\n/ @return True if the packet was sent "
-           "successfully, False otherwise");
+           "successfully, False otherwise",
+           py::call_guard<py::gil_scoped_release>());
   ////////////////////    </generated_from:rtsp_session.hpp>    ////////////////////
 
   ////////////////////    <generated_from:lowpass_filter.hpp>    ////////////////////

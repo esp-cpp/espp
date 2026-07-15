@@ -1,5 +1,5 @@
-import litgen
-from srcmlcpp import SrcmlcppOptions
+# NOTE: litgen is imported lazily (inside the functions that need it) so the postprocess passes
+# below can be imported and reapplied to the generated file without a litgen environment.
 import os
 import re
 
@@ -226,16 +226,100 @@ def _fix_rtsp_qualifications(code: str) -> str:
     return code
 
 
+# Methods that can block on network I/O or on joining the task thread. Calling them with the GIL
+# held deadlocks whenever the blocked-on thread needs the GIL to invoke a python callback: e.g.
+# Task.stop() joins the task thread while that thread is waiting for the GIL to call the python
+# callback, so neither can proceed. pybind11 re-acquires the GIL automatically whenever a wrapped
+# python callback is invoked from C++, so releasing it around these calls is safe. We append
+# py::call_guard<py::gil_scoped_release>() as the last argument of each matching .def(...); the
+# class is identified by the def's argument text (member pointer or lambda self-parameter), so all
+# overloads (member pointer, py::overload_cast, lambda) are covered.
+_GIL_RELEASE_METHODS = {
+    "espp::Task": ["start", "stop"],
+    "espp::Timer": ["start", "stop", "cancel"],
+    "espp::FtpServer": ["start", "stop"],
+    "espp::TcpSocket": ["connect", "transmit", "receive", "accept"],
+    "espp::UdpSocket": ["send", "receive", "start_receiving", "stop_receiving"],
+    "espp::RtspClient": [
+        "send_request", "connect", "disconnect", "describe",
+        "setup", "play", "pause", "teardown",
+    ],
+    "espp::RtspServer": ["start", "stop", "send_frame"],
+    "espp::RtspSession": ["send_rtp_packet", "send_rtcp_packet"],
+}
+
+_GIL_GUARD = "py::call_guard<py::gil_scoped_release>()"
+
+
+def _find_call_end(code: str, open_paren: int) -> int:
+    """Return the index of the ')' closing the call whose '(' is at open_paren.
+
+    Skips over string literals (including escaped quotes) so parentheses inside docstrings do not
+    unbalance the scan.
+    """
+    depth = 0
+    i = open_paren
+    while i < len(code):
+        c = code[i]
+        if c == '"':
+            i += 1
+            while i < len(code) and code[i] != '"':
+                if code[i] == "\\":
+                    i += 1
+                i += 1
+        elif c == "(":
+            depth += 1
+        elif c == ")":
+            depth -= 1
+            if depth == 0:
+                return i
+        i += 1
+    raise ValueError("unbalanced parentheses while scanning a .def(...) call")
+
+
+def _add_gil_release_guards(code: str) -> str:
+    for cls, methods in _GIL_RELEASE_METHODS.items():
+        for name in methods:
+            pattern = re.compile(r"\.def\(\s*\"" + re.escape(name) + r"\",")
+            n = 0
+            pos = 0
+            while True:
+                m = pattern.search(code, pos)
+                if m is None:
+                    break
+                open_paren = m.start() + len(".def")
+                close = _find_call_end(code, open_paren)
+                body = code[m.start():close]
+                # `cls::` matches member pointers / overload_casts; `cls ` and `cls&` match a
+                # lambda's `(espp::Timer &self, ...)` parameter.
+                if f"{cls}::" in body or f"{cls} " in body or f"{cls}&" in body:
+                    if _GIL_GUARD not in body:
+                        code = code[:close] + f", {_GIL_GUARD}" + code[close:]
+                        n += 1
+                        pos = close + len(_GIL_GUARD) + 2
+                    else:
+                        n += 1  # already guarded (pass is idempotent)
+                        pos = close
+                else:
+                    pos = m.end()
+            if n == 0:
+                print(f"WARNING: gil-release guard for {cls}::{name} matched 0 defs")
+    return code
+
+
 def _postprocess_generated(code: str) -> str:
     code = _fix_implicit_default_ctors(code)
     code = _fix_template_class_nested(code)
     code = _remove_static_instance_dups(code)
     code = _fix_class_holders(code)
     code = _fix_rtsp_qualifications(code)
+    code = _add_gil_release_guards(code)
     return code
 
 
-def my_litgen_options() -> litgen.LitgenOptions:
+def my_litgen_options() -> "litgen.LitgenOptions":
+    import litgen
+
     # configure your options here
     options = litgen.LitgenOptions()
 
@@ -344,6 +428,8 @@ def my_litgen_options() -> litgen.LitgenOptions:
 
 
 def autogenerate() -> None:
+    import litgen
+
     repository_dir = os.path.realpath(os.path.dirname(__file__) + "/../")
     output_dir = repository_dir + "/lib/python_bindings"
 
