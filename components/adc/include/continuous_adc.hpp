@@ -9,7 +9,14 @@
 #include "esp_adc/adc_cali.h"
 #include "esp_adc/adc_cali_scheme.h"
 #include "esp_adc/adc_continuous.h"
+
 #include "esp_idf_version.h"
+#ifndef ESP_IDF_VERSION_VAL
+#define ESP_IDF_VERSION_VAL(major, minor, patch) (((major) << 16) | ((minor) << 8) | (patch))
+#endif
+#ifndef ESP_IDF_VERSION
+#define ESP_IDF_VERSION ESP_IDF_VERSION_VAL(0, 0, 0)
+#endif
 
 #include "adc_types.hpp"
 #include "base_component.hpp"
