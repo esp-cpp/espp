@@ -348,7 +348,7 @@ extern "C" void app_main(void) {
       {1, 1},
         // clang-format on
     };
-    std::vector<std::pair<float, float>> aggressive = {
+    std::array<std::pair<float, float>, 4> aggressive = {{
         // clang-format off
       // input (x), output (y)
       {0, 0},
@@ -356,7 +356,7 @@ extern "C" void app_main(void) {
       {0.6, 0.8},
       {1, 1},
         // clang-format on
-    };
+    }};
     std::vector<std::pair<float, float>> delayed = {
         // clang-format off
       // input (x), output (y)
