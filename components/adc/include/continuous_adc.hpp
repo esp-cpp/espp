@@ -432,6 +432,11 @@ protected:
     // provided
     if (static_cast<int>(conv_mode_) == 0) {
       if (has_unit_1 && has_unit_2) {
+        // ALTER (one conversion per trigger, alternating units) rather than
+        // BOTH (both units simultaneously per trigger): ALTER keeps the
+        // per-channel sample rate math correct for any mix of channels and
+        // spaces samples evenly, while BOTH is for deliberately synchronized
+        // sampling of the two units (pass it explicitly if that is desired)
         conv_mode_ = ADC_CONV_ALTER_UNIT;
       } else if (has_unit_2) {
         conv_mode_ = ADC_CONV_SINGLE_UNIT_2;
