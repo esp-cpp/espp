@@ -27,6 +27,7 @@
 
 #include "base_component.hpp"
 #include "bmi270.hpp"
+#include "fast_math.hpp"
 #include "i2c.hpp"
 #include "interrupt.hpp"
 #include "led.hpp"
@@ -756,18 +757,18 @@ protected:
 
   // Approximate resting discharge curve for a 1S lithium-ion cell, used to
   // estimate the state of charge from the battery voltage. Entries are
-  // {voltage (V), state of charge (%)}, in descending voltage order.
+  // {voltage (V), state of charge (%)}, in ascending voltage order
   static constexpr std::array<std::pair<float, float>, 10> BATTERY_SOC_CURVE{{
-      {4.20f, 100.0f},
-      {4.10f, 93.0f},
-      {4.00f, 81.0f},
-      {3.90f, 66.0f},
-      {3.80f, 49.0f},
-      {3.70f, 32.0f},
-      {3.60f, 17.0f},
-      {3.50f, 7.0f},
-      {3.40f, 2.0f},
       {3.30f, 0.0f},
+      {3.40f, 2.0f},
+      {3.50f, 7.0f},
+      {3.60f, 17.0f},
+      {3.70f, 32.0f},
+      {3.80f, 49.0f},
+      {3.90f, 66.0f},
+      {4.00f, 81.0f},
+      {4.10f, 93.0f},
+      {4.20f, 100.0f},
   }};
   espp::AdcConfig battery_channel_{.unit = ADC_UNIT_1,
                                    .channel = ADC_CHANNEL_9, // GPIO 10 on ESP32-S3

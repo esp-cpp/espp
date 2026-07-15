@@ -134,20 +134,5 @@ float M5StackCardputer::battery_voltage() {
 float M5StackCardputer::battery_soc() {
   float voltage = battery_voltage();
   const auto &curve = BATTERY_SOC_CURVE;
-  if (voltage >= curve.front().first) {
-    return curve.front().second;
-  }
-  if (voltage <= curve.back().first) {
-    return curve.back().second;
-  }
-  // linearly interpolate between the two surrounding curve points
-  for (size_t i = 1; i < curve.size(); i++) {
-    if (voltage >= curve[i].first) {
-      const auto &[v_high, soc_high] = curve[i - 1];
-      const auto &[v_low, soc_low] = curve[i];
-      float t = (voltage - v_low) / (v_high - v_low);
-      return soc_low + t * (soc_high - soc_low);
-    }
-  }
-  return 0.0f;
+  return piecewise_linear(curve, voltage);
 }
