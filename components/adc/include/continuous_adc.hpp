@@ -49,6 +49,37 @@ namespace espp {
  *       may be called concurrently from multiple tasks (though, as with any
  *       object, destruction must not race other calls).
  *
+ * @note When the configured channels span both ADC units (on chips whose
+ *       digital controller supports both units in DMA mode, e.g. ESP32-S2 /
+ *       ESP32-P4), the conversion mode - if not explicitly provided - is
+ *       derived as ADC_CONV_ALTER_UNIT: the controller performs one
+ *       conversion per trigger, alternating between the units. This keeps
+ *       every channel sampled evenly at approximately \c sample_rate_hz
+ *       regardless of how the channels are split across the units, and is
+ *       the right choice for general multi-channel monitoring - e.g. several
+ *       independent sensors that happen to be wired to pins on different
+ *       units:
+ *       @code
+ *       // joystick axes on ADC1 + battery divider on ADC2, each ~1 kHz
+ *       espp::ContinuousAdc adc({.sample_rate_hz = 1000,
+ *                                .channels = {joy_x, joy_y, vbat}});
+ *       @endcode
+ *       The alternative, ADC_CONV_BOTH_UNIT, makes both units convert
+ *       simultaneously (in lockstep) on every trigger. Choose it explicitly
+ *       when the relative timing of two signals matters - e.g. sampling a
+ *       voltage (on ADC1) and a current (on ADC2) at the same instant to
+ *       compute instantaneous power, or capturing phase-matched sensor
+ *       pairs:
+ *       @code
+ *       espp::ContinuousAdc adc({.sample_rate_hz = 1000,
+ *                                .channels = {v_sense, i_sense},
+ *                                .convert_mode = ADC_CONV_BOTH_UNIT});
+ *       @endcode
+ *       With BOTH_UNIT each unit converts on every trigger, so the effective
+ *       per-channel rate is higher than \c sample_rate_hz (twice, for a
+ *       one-channel-per-unit configuration); get_rate() reports the actual
+ *       rate.
+ *
  * @warning On ESP32-P4 (verified on hardware with esp-idf v6.0.1),
  *          initializing and then deleting the oneshot ADC driver (e.g. a
  *          destructed espp::OneshotAdc) before starting continuous mode
