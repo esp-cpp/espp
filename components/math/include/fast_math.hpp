@@ -5,8 +5,8 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <span>
 #include <utility>
-#include <vector>
 
 namespace espp {
 /**
@@ -102,7 +102,7 @@ template <typename T> int sgn(T x) { return (T(0) < x) - (x < T(0)); }
  */
 [[maybe_unused]] static float piecewise_linear(std::span<const std::pair<float, float>> points,
                                                float x) {
-  if (points.size() == 0) {
+  if (points.empty()) {
     return 0.0f;
   }
   if (x <= points.front().first) {
