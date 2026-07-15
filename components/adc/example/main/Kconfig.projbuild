@@ -83,4 +83,32 @@ menu "ADC Example Configuration"
             The second ADC channel to read. See EXAMPLE_ADC_CHANNEL_1 for the
             channel-to-GPIO mapping.
 
+    config EXAMPLE_ADC_SAMPLE_RATE_HZ
+        int "Continuous ADC Sample Rate (Hz)"
+        range 0 1000000
+        default 20000 if EXAMPLE_HARDWARE_QTPY_ESP32
+        default 20000 if EXAMPLE_HARDWARE_QTPY_ESP32S3
+        default 10000 if EXAMPLE_HARDWARE_M5STACK_TAB5
+        default 20000
+        help
+            The sample rate for the continuous ADC readings. The example
+            uses a DMA buffer to read samples from the ADC. The example prints the average of each
+            channel's samples every second, so if you set the sample rate to
+            1000 Hz, it will print the average of 1000 samples per channel
+            every second.
+
+    config EXAMPLE_ADC_WINDOW_SIZE_BYTES
+        int "Continuous ADC Window Size (Bytes)"
+        range 0 65536
+        default 1024 if EXAMPLE_HARDWARE_QTPY_ESP32
+        default 1024 if EXAMPLE_HARDWARE_QTPY_ESP32S3
+        default 256 if EXAMPLE_HARDWARE_M5STACK_TAB5
+        default 1024
+        help
+            The size of the DMA buffer used for continuous ADC readings. The
+            example prints the average of each channel's samples every second,
+            so if you set the sample rate to 1000 Hz and the window size to
+            1000 bytes, it will print the average of 1000 samples per channel
+            every second.
+
 endmenu

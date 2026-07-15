@@ -45,9 +45,9 @@ extern "C" void app_main(void) {
     // can also set it explicitly with e.g. .convert_mode =
     // ADC_CONV_SINGLE_UNIT_1 (chip-dependent: BOTH_UNIT, ALTER_UNIT,
     // SINGLE_UNIT_1, SINGLE_UNIT_2)
-    espp::ContinuousAdc adc({.sample_rate_hz = 20 * 1000,
+    espp::ContinuousAdc adc({.sample_rate_hz = CONFIG_EXAMPLE_ADC_SAMPLE_RATE_HZ,
                              .channels = channels,
-                             .window_size_bytes = 1024,
+                             .window_size_bytes = CONFIG_EXAMPLE_ADC_WINDOW_SIZE_BYTES,
                              .log_level = espp::Logger::Verbosity::WARN});
     adc.start();
     auto task_fn = [&adc, &channels](std::mutex &m, std::condition_variable &cv) {
