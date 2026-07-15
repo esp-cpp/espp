@@ -45,6 +45,10 @@ namespace espp {
  *       not burnt), \c get_mv() returns the filtered raw value for that
  *       channel instead of millivolts (matching OneshotAdc's behavior).
  *
+ * @note This class is thread-safe: start(), stop(), get_mv(), and get_rate()
+ *       may be called concurrently from multiple tasks (though, as with any
+ *       object, destruction must not race other calls).
+ *
  * @warning On ESP32-P4 (verified on hardware with esp-idf v6.0.1),
  *          initializing and then deleting the oneshot ADC driver (e.g. a
  *          destructed espp::OneshotAdc) before starting continuous mode
@@ -120,8 +124,9 @@ public:
     // wake the task if it is blocked waiting for a conversion notification
     // (its wait is bounded, so this just speeds up the shutdown), then stop
     // it
-    if (task_handle_) {
-      xTaskNotifyGive(task_handle_);
+    TaskHandle_t task_handle = task_handle_.load();
+    if (task_handle) {
+      xTaskNotifyGive(task_handle);
     }
     if (task_) {
       task_->stop();
@@ -151,6 +156,9 @@ public:
       logger_.error("Cannot start: initialization failed");
       return;
     }
+    // serialize start() / stop() so concurrent callers cannot double-start
+    // or double-stop the driver (which would return an error and abort)
+    std::lock_guard<std::mutex> lock(control_mutex_);
     if (running_) {
       return;
     }
@@ -162,6 +170,8 @@ public:
    * @brief Stop the continuous adc reader.
    */
   void stop() {
+    // serialize start() / stop(); see start()
+    std::lock_guard<std::mutex> lock(control_mutex_);
     if (!running_) {
       return;
     }
@@ -247,6 +257,11 @@ protected:
     // conversion-done callback
     if (ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(100)) == 0) {
       // timed out; no data ready
+      return false; // don't want to stop the task
+    }
+    if (!running_) {
+      // stopped (or being destroyed) while we were waiting; don't read from
+      // the stopped driver
       return false; // don't want to stop the task
     }
     auto current_timestamp = std::chrono::high_resolution_clock::now();
@@ -577,9 +592,10 @@ protected:
                                        const adc_continuous_evt_data_t *edata, void *user_data) {
     BaseType_t mustYield = pdFALSE;
     // Notify that ADC continuous driver has done enough number of conversions
-    auto s_task_handle = (TaskHandle_t *)user_data;
-    if (*s_task_handle) {
-      vTaskNotifyGiveFromISR(*s_task_handle, &mustYield);
+    auto *s_task_handle = static_cast<std::atomic<TaskHandle_t> *>(user_data);
+    TaskHandle_t task_handle = s_task_handle->load();
+    if (task_handle) {
+      vTaskNotifyGiveFromISR(task_handle, &mustYield);
     }
     return (mustYield == pdTRUE);
   }
@@ -592,7 +608,11 @@ protected:
   adc_digi_output_format_t output_format_;
   std::vector<uint8_t> result_data_;
   std::unique_ptr<Task> task_;
-  TaskHandle_t task_handle_{NULL};
+  // written by the reader task, read by the conversion-done ISR and the
+  // destructor
+  std::atomic<TaskHandle_t> task_handle_{nullptr};
+  // serializes start() / stop()
+  std::mutex control_mutex_;
   std::mutex data_mutex_;
   std::chrono::high_resolution_clock::time_point previous_timestamp_;
 

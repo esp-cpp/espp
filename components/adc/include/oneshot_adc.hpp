@@ -20,6 +20,10 @@ namespace espp {
  *        analog values. The \c read_mv() function will always take a new
  *        measurement (therefore it is blocking).
  *
+ * @note This class is thread-safe: the read functions may be called
+ *       concurrently from multiple tasks (though, as with any object,
+ *       destruction must not race other calls).
+ *
  * @warning On ESP32-P4 (verified on hardware with esp-idf v6.0.1), destroying
  *          a OneshotAdc before starting the continuous (DMA) ADC driver
  *          causes the continuous conversions to produce all-zero samples. If
