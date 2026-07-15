@@ -1,0 +1,86 @@
+menu "ADC Example Configuration"
+
+    choice EXAMPLE_HARDWARE
+        prompt "Hardware"
+        default EXAMPLE_HARDWARE_QTPY_ESP32 if IDF_TARGET_ESP32
+        default EXAMPLE_HARDWARE_QTPY_ESP32S3 if IDF_TARGET_ESP32S3
+        default EXAMPLE_HARDWARE_M5STACK_TAB5 if IDF_TARGET_ESP32P4
+        default EXAMPLE_HARDWARE_CUSTOM
+        help
+            Which hardware to run the example on. The board selections
+            configure the ADC unit and channels to pins which are usable
+            (exposed) on that board; select custom to choose the ADC unit and
+            channels yourself.
+
+        config EXAMPLE_HARDWARE_QTPY_ESP32
+            depends on IDF_TARGET_ESP32
+            bool "Adafruit QtPy ESP32 Pico"
+            help
+                Uses ADC unit 1, channels 4 and 5: the pins labeled 'TX'
+                (GPIO32) and 'SCL' (GPIO33), the only ADC1-capable pins
+                exposed on the board.
+
+        config EXAMPLE_HARDWARE_QTPY_ESP32S3
+            depends on IDF_TARGET_ESP32S3
+            bool "Adafruit QtPy ESP32-S3"
+            help
+                Uses ADC unit 1, channels 7 and 8: the pins labeled 'A3'
+                (GPIO8) and 'A2' (GPIO9).
+
+        config EXAMPLE_HARDWARE_M5STACK_TAB5
+            depends on IDF_TARGET_ESP32P4
+            bool "M5Stack Tab5"
+            help
+                Uses ADC unit 1, channels 0 and 1: GPIO16 and GPIO17, which
+                are exposed on the Tab5's expansion header.
+
+                NOTE: the Grove connector's signal pins (GPIO53/54) are ADC
+                unit 2 channels 4/5 and work with the oneshot ADC, but ADC2
+                continuous (DMA) conversions on the ESP32-P4 currently
+                produce all-zero samples with esp-idf, so this example uses
+                ADC1 pins instead.
+
+        config EXAMPLE_HARDWARE_CUSTOM
+            bool "Custom"
+            help
+                Select the ADC unit and channels yourself.
+    endchoice
+
+    config EXAMPLE_ADC_UNIT
+        int "ADC unit (1 or 2)" if EXAMPLE_HARDWARE_CUSTOM
+        range 1 2
+        default 1
+        help
+            The ADC unit both channels are read from.
+
+            NOTE: the continuous (DMA) part of the example requires a
+            DMA-capable unit; on ESP32, ESP32-C3, and ESP32-S3 that is only
+            unit 1. On ESP32-P4, ADC2 continuous conversions currently
+            produce all-zero samples with esp-idf, so prefer unit 1 there as
+            well.
+
+    config EXAMPLE_ADC_CHANNEL_1
+        int "First ADC channel" if EXAMPLE_HARDWARE_CUSTOM
+        range 0 9
+        default 4 if EXAMPLE_HARDWARE_QTPY_ESP32
+        default 7 if EXAMPLE_HARDWARE_QTPY_ESP32S3
+        default 0 if EXAMPLE_HARDWARE_M5STACK_TAB5
+        default 2
+        help
+            The first ADC channel to read. Which GPIO a channel maps to is
+            chip specific; see the ADC section of your chip's technical
+            reference manual (e.g. ADC1 channels 0-7 are GPIO 36-39/32-35 on
+            ESP32, GPIO 1-10 on ESP32-S3, GPIO 16-23 on ESP32-P4).
+
+    config EXAMPLE_ADC_CHANNEL_2
+        int "Second ADC channel" if EXAMPLE_HARDWARE_CUSTOM
+        range 0 9
+        default 5 if EXAMPLE_HARDWARE_QTPY_ESP32
+        default 8 if EXAMPLE_HARDWARE_QTPY_ESP32S3
+        default 1 if EXAMPLE_HARDWARE_M5STACK_TAB5
+        default 3
+        help
+            The second ADC channel to read. See EXAMPLE_ADC_CHANNEL_1 for the
+            channel-to-GPIO mapping.
+
+endmenu
