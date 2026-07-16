@@ -37,6 +37,3 @@
 [submodule "components/gfps_service/detail/nearby"]
 	path = components/gfps_service/detail/nearby
 	url = https://github.com/esp-cpp/nearby
-[submodule "components/rtps_embedded/thirdparty/Micro-CDR"]
-	path = components/rtps_embedded/thirdparty/Micro-CDR
-	url = git@github.com:eProsima/Micro-CDR.git
