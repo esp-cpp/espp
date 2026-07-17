@@ -32,6 +32,13 @@ Author: i11 - Embedded Software, RWTH Aachen University
 
 namespace rtps {
 
+#if defined(_MSC_VER)
+#define RTPS_EMBEDDED_PACKED
+#pragma pack(push, 1)
+#else
+#define RTPS_EMBEDDED_PACKED __attribute__((packed))
+#endif
+
 namespace SMElement {
 // TODO endianess
 enum ParameterId : uint16_t {
@@ -117,7 +124,7 @@ struct ParameterList_t {
   ParameterId pid;
   uint16_t length;
   // Values follow
-} __attribute__((packed));
+} RTPS_EMBEDDED_PACKED;
 } // namespace SMElement
 
 enum class SubmessageKind : uint8_t {
@@ -438,5 +445,10 @@ void deserializeSNS(const uint8_t *&position, SequenceNumberSet &set,
                     std::size_t num_bitfields);
 
 } // namespace rtps
+
+#if defined(_MSC_VER)
+#pragma pack(pop)
+#endif
+#undef RTPS_EMBEDDED_PACKED
 
 #endif // RTPS_MESSAGES_H

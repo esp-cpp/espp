@@ -37,6 +37,16 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #endif
 
 using rtps::StatefulReaderT;
+using rtps::GuidPrefix_t;
+using rtps::Guid_t;
+using rtps::PacketInfo;
+using rtps::ReaderCacheChange;
+using rtps::SequenceNumberSet;
+using rtps::SequenceNumber_t;
+using rtps::SubmessageGap;
+using rtps::SubmessageHeartbeat;
+using rtps::TopicData;
+using rtps::WriterProxy;
 
 template <class NetworkDriver>
 StatefulReaderT<NetworkDriver>::~StatefulReaderT() {}

@@ -33,8 +33,10 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include <mutex>
 
 using rtps::CacheChange;
+using rtps::GuidPrefix_t;
 using rtps::SequenceNumber_t;
 using rtps::StatelessWriterT;
+using rtps::SubmessageAckNack;
 
 #if SLW_VERBOSE && RTPS_GLOBAL_VERBOSE
 #include "rtps/utils/printutils.h"

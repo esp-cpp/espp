@@ -58,20 +58,20 @@ bool ParticipantProxyData::readFromUcdrBuffer(ucdrBuffer &buffer,
   uint16_t length;
   PPD_LOG("Start deserializing ParticipantProxyData");
   PPD_LOG("Buffer has {} bytes remaining", ucdr_buffer_remaining(&buffer));
-  PPD_LOG("first 20 bytes of data:");
-  for (int i = 0; i < 20 && i < ucdr_buffer_remaining(&buffer); ++i) {
-    PPD_LOG("{:02x}", buffer.iterator[i]);
-  }
-    PPD_LOG("before start, buff length: {}. last data size: {}",
-      ucdr_buffer_length(&buffer), buffer.last_data_size);
+  // PPD_LOG("first 20 bytes of data:");
+  // for (int i = 0; i < 20 && i < ucdr_buffer_remaining(&buffer); ++i) {
+  //   PPD_LOG("{:02x}", buffer.iterator[i]);
+  // }
+    // PPD_LOG("before start, buff length: {}. last data size: {}",
+      // ucdr_buffer_length(&buffer), buffer.last_data_size);
   while (ucdr_buffer_remaining(&buffer) >= 4) {
     ucdr_deserialize_uint16_t(&buffer, reinterpret_cast<uint16_t *>(&pid));
-      PPD_LOG("buff length after get id: {}. last data size: {}",
-        ucdr_buffer_length(&buffer), buffer.last_data_size);
+      // PPD_LOG("buff length after get id: {}. last data size: {}",
+        // ucdr_buffer_length(&buffer), buffer.last_data_size);
 
     ucdr_deserialize_uint16_t(&buffer, &length);
-      PPD_LOG("buff length after get length: {}. last data size: {}",
-        ucdr_buffer_length(&buffer), buffer.last_data_size);
+      // PPD_LOG("buff length after get length: {}. last data size: {}",
+      //   ucdr_buffer_length(&buffer), buffer.last_data_size);
       PPD_LOG("Deserializing parameter with id {} and length {}",
         static_cast<uint16_t>(pid), length);
     if (ucdr_buffer_remaining(&buffer) < length) {
@@ -127,6 +127,9 @@ bool ParticipantProxyData::readFromUcdrBuffer(ucdrBuffer &buffer,
         PPD_LOG("stopping deserialization early, participant is known");
         return true;
       }
+      PPD_LOG("Participant GUID: {} {} {} {} {} {} {} {} {} {}",
+               m_guid.prefix.id[0], m_guid.prefix.id[1], m_guid.prefix.id[2], m_guid.prefix.id[3],
+               m_guid.prefix.id[4], m_guid.prefix.id[5], m_guid.prefix.id[6], m_guid.prefix.id[7], m_guid.prefix.id[8], m_guid.prefix.id[9]);
       break;
     }
     case ParameterId::PID_METATRAFFIC_MULTICAST_LOCATOR: {
@@ -197,15 +200,19 @@ bool ParticipantProxyData::readFromUcdrBuffer(ucdrBuffer &buffer,
       // should not return false for unknown parameter, just skip it, otherwise we might miss some important information if the remote participant is using some vendor specific parameters that we do not know about.
       // TODO: GUO: need read out the data for the length of the parameter, otherwise the buffer will be in wrong state and the following parameters cannot be read correctly. For now just skip the data by moving the iterator forward, but we might want to actually read out the data and store it for future use if needed, especially for some vendor specific parameters that we do not know about.
       // buffer.iterator += length;
-      buffer.iterator += length;
-      buffer.last_data_size = 1;
+      // buffer.iterator += length;
+      // buffer.last_data_size = 1;
+      ucdr_advance_buffer(&buffer, length);
+
       break; }
     }
       // Parameter lists are 4-byte aligned
     uint32_t alignment = ucdr_buffer_alignment(&buffer, 4);
-      PPD_LOG("Alignment for next parameter: {}", alignment);
-    buffer.iterator += alignment;
-    buffer.last_data_size = 4;
+    PPD_LOG("Alignment for next parameter: {}", alignment);
+    ucdr_advance_buffer(&buffer, alignment);
+
+    // buffer.iterator += alignment;
+    // buffer.last_data_size = 4;
   }
   return true;
 }

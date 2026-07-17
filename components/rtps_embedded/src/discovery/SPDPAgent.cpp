@@ -260,7 +260,7 @@ bool SPDPAgent::addProxiesForBuiltInEndpoints() {
                             *locator,
                             true};
     m_buildInEndpoints.sedpSubReader->addNewMatchedWriter(proxy);
-    m_buildInEndpoints.sedpPubReader->sendPreemptiveAckNack(proxy);
+    m_buildInEndpoints.sedpSubReader->sendPreemptiveAckNack(proxy);
   }
 
   return true;

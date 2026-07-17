@@ -33,6 +33,13 @@ Author: i11 - Embedded Software, RWTH Aachen University
 
 namespace rtps {
 
+#if defined(_MSC_VER)
+#define RTPS_EMBEDDED_PACKED
+#pragma pack(push, 1)
+#else
+#define RTPS_EMBEDDED_PACKED __attribute__((packed))
+#endif
+
 inline bool isSameSubnetAddress(
     const std::array<uint8_t, 4> &addr,
     const std::array<uint8_t, 4> &local) {
@@ -115,7 +122,7 @@ struct FullLengthLocator {
 
   inline uint32_t getLocatorPort() { return static_cast<Ip4Port_t>(port); }
 
-} __attribute__((packed));
+} RTPS_EMBEDDED_PACKED;
 
 inline FullLengthLocator
 getBuiltInUnicastLocator(ParticipantId_t participantId,
@@ -191,5 +198,10 @@ struct LocatorIPv4 {
 };
 
 } // namespace rtps
+
+#if defined(_MSC_VER)
+#pragma pack(pop)
+#endif
+#undef RTPS_EMBEDDED_PACKED
 
 #endif // RTPS_LOCATOR_T_H

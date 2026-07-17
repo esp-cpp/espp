@@ -30,7 +30,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 
 #define RTPS_GLOBAL_VERBOSE 1
 
-#define SFW_VERBOSE 0
+#define SFW_VERBOSE 1
 #define SPDP_VERBOSE 0
 #define PBUF_WRAP_VERBOSE 0
 #define SEDP_VERBOSE 1

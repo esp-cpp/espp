@@ -34,6 +34,11 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include <thread>
 
 using rtps::StatefulWriterT;
+using rtps::CacheChange;
+using rtps::GuidPrefix_t;
+using rtps::ReaderProxy;
+using rtps::SequenceNumber_t;
+using rtps::SubmessageAckNack;
 
 #if SFW_VERBOSE && RTPS_GLOBAL_VERBOSE
 #include "rtps/utils/printutils.h"
@@ -200,6 +205,7 @@ template <class NetworkDriver> void StatefulWriterT<NetworkDriver>::progress() {
     }
 
     ++m_nextSequenceNumberToSend;
+    SFW_LOG("HB from progress");
     sendHeartBeat();
 
   } else {
@@ -255,14 +261,18 @@ void StatefulWriterT<NetworkDriver>::onNewAckNack(
 
   // Preemptive ack nack
   if (nextSN.low == 0 && nextSN.high == 0) {
+    SFW_LOG("Received preemptive acknack, sending heartbeat.");
     sendHeartBeat();
     return;
   }
 
   if (m_history.isEmpty()) {
-    // We have never sent anything -> heartbeat
+    // We have never sent anything. Do not immediately respond with another
+    // heartbeat here, otherwise reader/writer can get stuck in HB<->ACKNACK
+    // ping-pong. Periodic heartbeat still handles liveliness.
     if (m_history.getLastUsedSequenceNumber() == rtps::SequenceNumber_t{0, 0}) {
-      sendHeartBeat();
+      SFW_LOG("Ignoring acknack while history is empty and no samples were sent yet.");
+      return;
     } else {
       // No data but we have sent something in the past -> GapStart =
       // readerSNState.base, NextValid = lastUsedSequenceNumber+1
@@ -442,6 +452,7 @@ template <class NetworkDriver>
 void StatefulWriterT<NetworkDriver>::sendHeartBeatLoop() {
   m_thread_running = true;
   while (m_running) {
+    SFW_LOG("HB from loop");
     sendHeartBeat();
     dropDisposeAfterWriteChanges();
     bool unconfirmed_changes = false;
@@ -538,10 +549,24 @@ void StatefulWriterT<NetworkDriver>::sendHeartBeat() {
         // Proxy has confirmed all sequence numbers and set final flag
         if ((proxy.lastAckNackSequenceNumber > lastSN) && proxy.finalFlag &&
             proxy.ackNackCount.value > 0) {
+          SFW_LOG("Skipping heartbeat for proxy, all changes confirmed. lastSN {}.{}, lastAckNack {}.{}",
+                  (int)lastSN.low,
+                  (int)lastSN.high,
+                  (int)proxy.lastAckNackSequenceNumber.low,
+                  (int)proxy.lastAckNackSequenceNumber.high);
           continue;
         }
       } else if (m_history.getLastUsedSequenceNumber() ==
                  SequenceNumber_t{0, 0}) {
+        if ((proxy.lastAckNackSequenceNumber > m_history.getLastUsedSequenceNumber()) && proxy.finalFlag &&
+            proxy.ackNackCount.value > 0) {
+          SFW_LOG("Skipping heartbeat for proxy, all changes confirmed. lastUsedSN {}.{}, lastAckNack {}.{}",
+                  (int)m_history.getLastUsedSequenceNumber().low,
+                  (int)m_history.getLastUsedSequenceNumber().high,
+                  (int)proxy.lastAckNackSequenceNumber.low,
+                  (int)proxy.lastAckNackSequenceNumber.high);
+          continue;
+        }
         firstSN = SequenceNumber_t{0, 1};
         lastSN = SequenceNumber_t{0, 0};
       } else {
