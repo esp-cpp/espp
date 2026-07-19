@@ -40,10 +40,14 @@ singleton hardware abstraction for initializing and using the subsystems:
   (0x34), ES8311 (0x18), and BMI270 (0x68).
 
 > [!NOTE]
-> The speaker and the microphone share I2S pins (GPIO 43 word-select / PDM
-> clock on the original; the BCK/WS pair on the ADV), so they cannot be used
-> at the same time; initializing one while the other is active will fail.
-> This matches the boards' hardware design.
+> On the original Cardputer the speaker and microphone cannot be used at the
+> same time: GPIO 43 doubles as the speaker's I2S word-select and the PDM
+> microphone's (MHz-range) clock - two different signals on one physical pin
+> - so initializing one while the other is active will fail. On the
+> Cardputer ADV both go through the ES8311 codec in full duplex on a single
+> I2S bus (shared bit/word clocks, separate data pins), so the speaker and
+> microphone can be used simultaneously; they share the I2S sample rate,
+> which is set by whichever subsystem is initialized first.
 
 ## Example
 

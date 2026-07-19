@@ -27,10 +27,20 @@ component to initialize and use the components on the M5Stack Cardputer:
 | Fn + `` ` `` | Clear the text area |
 | Fn + 1 (F1) | Show / hide the controls help popup |
 | Fn + 2 (F2) | Show / hide the IMU overlay (ADV) |
+| Fn + 3 (F3) | Start / stop recording from the microphone (ADV) |
+| Fn + 4 (F4) | Play back / stop the recording (ADV) |
 | Fn + number row | Show F1-F12 in the status bar |
 | G0 (BOOT) button | Cycle the RGB LED color |
 
 The controls are also printed to the log at startup.
+
+On the ADV the ES8311 codec runs the speaker and microphone in full duplex,
+so recording works while the speaker is active (key clicks and all). The
+recording buffer prefers PSRAM when present; since neither Cardputer variant
+ships with PSRAM, it normally falls back to a few seconds of voice-rate
+(16 kHz mono) audio in internal RAM. The original Cardputer cannot record in
+this example: its PDM microphone clock shares GPIO 43 with the speaker
+word-select, and the example uses the speaker.
 
 The status bar at the bottom of the screen shows the most recent key /
 modifier activity and is updated with the battery voltage every few seconds.
