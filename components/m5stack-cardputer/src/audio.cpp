@@ -118,9 +118,28 @@ bool M5StackCardputer::initialize_sound(uint32_t default_audio_rate,
   }
 
   // size the transmit buffering from the actual (possibly shared) rate
-  auto buffer_size = calc_audio_buffer_size(audio_sample_rate());
+  size_t buffer_size = calc_audio_buffer_size(audio_sample_rate());
   audio_tx_buffer.resize(buffer_size);
   audio_tx_stream = xStreamBufferCreate(buffer_size * 4, 0);
+  if (audio_tx_stream == nullptr) {
+    logger_.error("Could not allocate the audio stream buffer");
+    audio_tx_buffer.clear();
+    if (is_adv) {
+      if (!microphone_initialized_) {
+        // the channels are shared with the microphone; only tear them down
+        // if it is not using them
+        i2s_del_channel(audio_tx_handle);
+        i2s_del_channel(audio_rx_handle);
+        audio_tx_handle = nullptr;
+        audio_rx_handle = nullptr;
+      }
+    } else {
+      i2s_channel_disable(audio_tx_handle);
+      i2s_del_channel(audio_tx_handle);
+      audio_tx_handle = nullptr;
+    }
+    return false;
+  }
   xStreamBufferReset(audio_tx_stream);
 
   if (is_adv) {

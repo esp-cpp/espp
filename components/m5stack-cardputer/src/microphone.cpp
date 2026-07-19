@@ -67,7 +67,11 @@ bool M5StackCardputer::initialize_microphone(const microphone_callback_t &callba
   // buffer roughly one update period's worth of samples (at the actual,
   // possibly shared, rate); a stereo capture carries two words per sample
   // period
-  audio_rx_buffer.resize((mic_stereo_capture_ ? 2 : 1) * calc_audio_buffer_size(mic_sample_rate_));
+  size_t rx_buffer_size = calc_audio_buffer_size(mic_sample_rate_);
+  if (mic_stereo_capture_) {
+    rx_buffer_size *= 2;
+  }
+  audio_rx_buffer.resize(rx_buffer_size);
 
   ESP_ERROR_CHECK(i2s_channel_enable(audio_rx_handle));
 
