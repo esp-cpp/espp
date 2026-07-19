@@ -1,3 +1,6 @@
+#include <algorithm>
+#include <iterator>
+
 #include "m5stack-cardputer.hpp"
 
 using namespace espp;
@@ -87,14 +90,15 @@ bool M5StackCardputer::es8311_ensure_common() {
       {0x02, 0x18}, // CLOCK_MANAGER: MULT_PRE = 3
       {0x0D, 0x01}, // SYSTEM: power up analog circuits
   };
-  for (const auto &entry : init) {
-    if (!es8311_write(entry[0], entry[1])) {
-      logger_.error("Failed to write ES8311 register {:#04x}", entry[0]);
-      return false;
-    }
-  }
-  es8311_common_initialized_ = true;
-  return true;
+  es8311_common_initialized_ =
+      std::all_of(std::begin(init), std::end(init), [this](const auto &entry) {
+        if (!es8311_write(entry[0], entry[1])) {
+          logger_.error("Failed to write ES8311 register {:#04x}", entry[0]);
+          return false;
+        }
+        return true;
+      });
+  return es8311_common_initialized_;
 }
 
 bool M5StackCardputer::initialize_es8311_speaker() {
@@ -110,13 +114,13 @@ bool M5StackCardputer::initialize_es8311_speaker() {
       {0x32, 0xBF}, // DAC: volume 0 dB
       {0x37, 0x08}, // DAC: bypass DAC equalizer
   };
-  for (const auto &entry : init) {
+  return std::all_of(std::begin(init), std::end(init), [this](const auto &entry) {
     if (!es8311_write(entry[0], entry[1])) {
       logger_.error("Failed to write ES8311 register {:#04x}", entry[0]);
       return false;
     }
-  }
-  return true;
+    return true;
+  });
 }
 
 bool M5StackCardputer::initialize_es8311_microphone() {
@@ -139,13 +143,13 @@ bool M5StackCardputer::initialize_es8311_microphone() {
       {0x17, 0xBF}, // ADC: volume 0 dB
       {0x1C, 0x6A}, // ADC: equalizer bypass
   };
-  for (const auto &entry : init) {
+  return std::all_of(std::begin(init), std::end(init), [this](const auto &entry) {
     if (!es8311_write(entry[0], entry[1])) {
       logger_.error("Failed to write ES8311 register {:#04x}", entry[0]);
       return false;
     }
-  }
-  return true;
+    return true;
+  });
 }
 
 ////////////////////////
