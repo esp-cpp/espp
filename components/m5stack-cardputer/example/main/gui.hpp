@@ -39,6 +39,8 @@ public:
                                            "fn+bksp      delete forward\n"
                                            "fn+1 (F1)    show/hide help\n"
                                            "fn+2 (F2)    show/hide IMU\n"
+                                           "fn+3 (F3)    record / stop\n"
+                                           "fn+4 (F4)    play recording\n"
                                            "G0 button    cycle LED color\n"
                                            "\n"
                                            "While help is open:\n"
