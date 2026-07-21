@@ -104,12 +104,12 @@ bool EsppTransport::startReceiver(Channel &channel, Ip4Port_t receivePort) {
 
   espp::Task::BaseConfig task_config;
   task_config.name = "rtps_rx_" + std::to_string(receivePort);
-  task_config.stack_size_bytes = Config::THREAD_POOL_READER_STACKSIZE;
+  task_config.stack_size_bytes = Config::THREAD_POOL_READER_STACKSIZE; // todo: should use socket config, not thread pool
   task_config.priority = Config::THREAD_POOL_READER_PRIO;
 
   espp::UdpSocket::ReceiveConfig receive_config;
   receive_config.port = receivePort;
-  receive_config.buffer_size = 4096;
+  receive_config.buffer_size = 1024*8;
   receive_config.on_receive_callback =
       [this, receivePort](std::vector<uint8_t> &data,
                           const espp::Socket::Info &sender)
@@ -132,7 +132,7 @@ EsppTransport::Channel *EsppTransport::createChannel(Ip4Port_t receivePort) {
     }
 
     espp::UdpSocket::Config socket_config;
-    socket_config.log_level = espp::Logger::Verbosity::WARN;
+    socket_config.log_level = espp::Logger::Verbosity::DEBUG;
     channel.socket = std::make_unique<espp::UdpSocket>(socket_config);
     if (!channel.socket || !channel.socket->is_valid()) {
       logger_.error("Failed to create valid UDP socket for port {}", receivePort);
@@ -169,7 +169,7 @@ void EsppTransport::onReceive(Ip4Port_t receivePort, std::vector<uint8_t> &data,
     logger_.warn("Could not parse sender IPv4 address '{}', using 0.0.0.0",
                  sender.address);
   }
-
+  logger_.warn("received {} bytes on port {}", static_cast<unsigned int>(data.size()), receivePort);
   m_rxCallback(m_callbackArgs, data.data(), data.size(), receivePort,
                static_cast<Ip4Port_t>(sender.port), remoteAddress);
 }

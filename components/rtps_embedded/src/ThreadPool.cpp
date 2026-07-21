@@ -288,6 +288,7 @@ void ThreadPool::doReaderWork() {
     auto isMetaWorkToDo = m_incomingMetaTraffic.moveFirstInto(packet_meta);
     if (isMetaWorkToDo) {
       Diagnostics::ThreadPool::processed_incoming_metatraffic++;
+      THREAD_POOL_LOG("ReaderWorker | Processing meta traffic with size {}", static_cast<unsigned int>(packet_meta.payload.size()));
       m_receiveJumppad(m_callee, const_cast<const PacketInfo &>(packet_meta));
     }
 

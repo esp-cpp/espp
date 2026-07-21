@@ -41,8 +41,8 @@ const GuidPrefix_t BASE_GUID_PREFIX{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13};
 const uint8_t DOMAIN_ID = 0; // 230 possible with UDP
 const uint8_t NUM_STATELESS_WRITERS = 5;
 const uint8_t NUM_STATELESS_READERS = 5;
-const uint8_t NUM_STATEFUL_READERS = 2;
-const uint8_t NUM_STATEFUL_WRITERS = 2;
+const uint8_t NUM_STATEFUL_READERS = 5;
+const uint8_t NUM_STATEFUL_WRITERS = 5;
 const uint8_t MAX_NUM_PARTICIPANTS = 1;
 const uint8_t NUM_WRITERS_PER_PARTICIPANT = 10;
 const uint8_t NUM_READERS_PER_PARTICIPANT = 10;
@@ -60,13 +60,13 @@ const uint8_t HISTORY_SIZE_STATEFUL = 10;
 const uint8_t MAX_TYPENAME_LENGTH = 64;
 const uint8_t MAX_TOPICNAME_LENGTH = 64;
 
-const int HEARTBEAT_STACKSIZE = 3072;           // byte
+const int HEARTBEAT_STACKSIZE = 1024*6;           // byte
 const int THREAD_POOL_WRITER_STACKSIZE = 4096;  // byte
-const int THREAD_POOL_READER_STACKSIZE = 4096;  // byte
+const int THREAD_POOL_READER_STACKSIZE = 1024*6;  // byte
 const uint16_t SPDP_WRITER_STACKSIZE = 4096;    // byte
 
 const uint16_t SF_WRITER_HB_PERIOD_MS = 4000;
-const uint16_t SPDP_RESEND_PERIOD_MS = 1000;
+const uint16_t SPDP_RESEND_PERIOD_MS = 2000;
 const uint8_t SPDP_CYCLECOUNT_HEARTBEAT =
     2; // skip x SPDP rounds before checking liveliness
 const uint8_t SPDP_WRITER_PRIO = 5;
