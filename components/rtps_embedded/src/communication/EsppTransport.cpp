@@ -1,6 +1,7 @@
 /*
 The MIT License
 Copyright (c) 2019 Lehrstuhl Informatik 11 - RWTH Aachen University
+Modifications Copyright (c) 2026 ATDev
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -104,7 +105,9 @@ bool EsppTransport::startReceiver(Channel &channel, Ip4Port_t receivePort) {
 
   espp::Task::BaseConfig task_config;
   task_config.name = "rtps_rx_" + std::to_string(receivePort);
-  task_config.stack_size_bytes = Config::THREAD_POOL_READER_STACKSIZE; // todo: should use socket config, not thread pool
+  // Reuse the reader-worker stack size for the UDP receive task. Both tasks
+  // perform similar deserialization work, so the value is a reasonable bound.
+  task_config.stack_size_bytes = Config::THREAD_POOL_READER_STACKSIZE;
   task_config.priority = Config::THREAD_POOL_READER_PRIO;
 
   espp::UdpSocket::ReceiveConfig receive_config;
@@ -169,7 +172,7 @@ void EsppTransport::onReceive(Ip4Port_t receivePort, std::vector<uint8_t> &data,
     logger_.warn("Could not parse sender IPv4 address '{}', using 0.0.0.0",
                  sender.address);
   }
-  logger_.warn("received {} bytes on port {}", static_cast<unsigned int>(data.size()), receivePort);
+  logger_.debug("received {} bytes on port {}", static_cast<unsigned int>(data.size()), receivePort);
   m_rxCallback(m_callbackArgs, data.data(), data.size(), receivePort,
                static_cast<Ip4Port_t>(sender.port), remoteAddress);
 }
