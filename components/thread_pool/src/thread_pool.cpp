@@ -30,6 +30,7 @@ ThreadPool::ThreadPool(const Config &config)
 ThreadPool::~ThreadPool() { stop(); }
 
 void ThreadPool::start() {
+  std::lock_guard<std::mutex> lifecycle_lock(lifecycle_mutex_);
   {
     std::lock_guard<std::mutex> lock(queue_mutex_);
     if (running_.load()) {
@@ -65,6 +66,7 @@ void ThreadPool::start() {
 }
 
 void ThreadPool::stop() {
+  std::lock_guard<std::mutex> lifecycle_lock(lifecycle_mutex_);
   if (!running_.exchange(false)) {
     return;
   }

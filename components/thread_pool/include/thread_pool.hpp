@@ -103,6 +103,7 @@ private:
 
   Config config_;
 
+  std::mutex lifecycle_mutex_;
   mutable std::mutex queue_mutex_;
   std::condition_variable queue_has_work_cv_;
   std::condition_variable queue_has_space_cv_;
