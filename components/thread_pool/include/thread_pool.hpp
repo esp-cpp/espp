@@ -96,8 +96,7 @@ public:
   Stats stats() const;
 
 private:
-  bool worker_task_fn(std::mutex &task_mutex, std::condition_variable &task_cv,
-                      bool &task_notified);
+  bool worker_task_fn();
 
   bool submit_impl(Job job, bool allow_blocking_when_full);
 

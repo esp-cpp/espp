@@ -14,9 +14,8 @@ ThreadPool::ThreadPool(const Config &config)
   for (std::size_t i = 0; i < config_.worker_count; ++i) {
     auto worker_config = config_.worker_task_config;
     worker_config.name = config_.worker_task_config.name + "_" + std::to_string(i);
-    using namespace std::placeholders;
     workers_.emplace_back(espp::Task::make_unique({
-        .callback = std::bind(&ThreadPool::worker_task_fn, this, _1, _2, _3),
+        .callback = [this]() { return worker_task_fn(); },
         .task_config = worker_config,
         .log_level = config_.log_level,
     }));
@@ -143,11 +142,7 @@ ThreadPool::Stats ThreadPool::stats() const {
   };
 }
 
-bool ThreadPool::worker_task_fn(std::mutex &task_mutex,
-                                std::condition_variable &task_cv,
-                                bool &task_notified) {
-  (void)task_cv;
-
+bool ThreadPool::worker_task_fn() {
   Job job;
   {
     std::unique_lock<std::mutex> lock(queue_mutex_);
@@ -155,11 +150,6 @@ bool ThreadPool::worker_task_fn(std::mutex &task_mutex,
 
     if (stopping_) {
       return true;
-    }
-
-    if (queue_.empty()) {
-      std::unique_lock<std::mutex> task_lock(task_mutex);
-      return task_notified;
     }
 
     job = std::move(queue_.front());
@@ -173,8 +163,5 @@ bool ThreadPool::worker_task_fn(std::mutex &task_mutex,
   job();
   executed_++;
 
-  std::lock_guard<std::mutex> task_lock(task_mutex);
-  const bool stop_requested = task_notified;
-  task_notified = false;
-  return stop_requested;
+  return false;
 }
