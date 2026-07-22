@@ -39,8 +39,13 @@ void ThreadPool::start() {
     stopping_ = false;
   }
 
-  for (auto &worker : workers_) {
-    worker->start();
+  for (std::size_t i = 0; i < workers_.size(); ++i) {
+    auto &worker = workers_[i];
+    if (!worker->start()) {
+      // Handle the error if needed, e.g., log it
+      logger_.warn("Failed to start worker thread {}. could be already started or not enough memory", i);
+    }
+
   }
 }
 
@@ -130,10 +135,8 @@ bool ThreadPool::worker_task_fn(std::mutex &task_mutex,
     queue_has_work_cv_.wait(lock, [&]() { return stopping_ || !queue_.empty(); });
 
     if (queue_.empty()) {
-      bool stopping = stopping_;
-      lock.unlock();
       std::unique_lock<std::mutex> task_lock(task_mutex);
-      return stopping || task_notified;
+      return stopping_ || task_notified;
     }
 
     job = std::move(queue_.front());
