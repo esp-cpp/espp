@@ -69,13 +69,13 @@ void ThreadPool::stop() {
 
 bool ThreadPool::is_running() const { return running_.load(); }
 
-bool ThreadPool::submit(const Job &job) {
-  return submit_impl(job, config_.block_on_submit_when_full);
+bool ThreadPool::submit(Job job) {
+  return submit_impl(std::move(job), config_.block_on_submit_when_full);
 }
 
-bool ThreadPool::try_submit(const Job &job) { return submit_impl(job, false); }
+bool ThreadPool::try_submit(Job job) { return submit_impl(std::move(job), false); }
 
-bool ThreadPool::submit_impl(const Job &job, bool allow_blocking_when_full) {
+bool ThreadPool::submit_impl(Job job, bool allow_blocking_when_full) {
   if (!job) {
     rejected_++;
     return false;
@@ -102,7 +102,7 @@ bool ThreadPool::submit_impl(const Job &job, bool allow_blocking_when_full) {
     }
   }
 
-  queue_.push_back(job);
+  queue_.push_back(std::move(job));
   submitted_++;
   lock.unlock();
   queue_has_work_cv_.notify_one();

@@ -72,16 +72,16 @@ public:
   ///
   /// Blocks if Config::block_on_submit_when_full is true and the queue has
   /// reached its capacity limit. Otherwise behaves identically to try_submit().
-  /// @param job Callable to enqueue.
+  /// @param job Callable to enqueue; moved into the queue on acceptance.
   /// @return true if the job was accepted, false if it was rejected.
-  bool submit(const Job &job);
+  bool submit(Job job);
 
   /// @brief Attempt to submit a job without blocking.
   ///
   /// Returns immediately with false when the queue is full.
-  /// @param job Callable to enqueue.
+  /// @param job Callable to enqueue; moved into the queue on acceptance.
   /// @return true if the job was accepted, false if it was rejected.
-  bool try_submit(const Job &job);
+  bool try_submit(Job job);
 
   /// @brief Return the number of jobs currently waiting in the queue.
   /// @return Pending job count.
@@ -99,7 +99,7 @@ private:
   bool worker_task_fn(std::mutex &task_mutex, std::condition_variable &task_cv,
                       bool &task_notified);
 
-  bool submit_impl(const Job &job, bool allow_blocking_when_full);
+  bool submit_impl(Job job, bool allow_blocking_when_full);
 
   Config config_;
 
