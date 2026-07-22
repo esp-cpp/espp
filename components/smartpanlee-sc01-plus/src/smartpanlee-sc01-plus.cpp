@@ -381,15 +381,17 @@ void SmartPanleeSc01Plus::volume(float volume) { volume_ = std::clamp(volume, 0.
 
 float SmartPanleeSc01Plus::volume() const { return volume_; }
 
-void SmartPanleeSc01Plus::play_audio(std::span<const uint8_t> data) {
-  play_audio(data.data(), static_cast<uint32_t>(data.size()));
+size_t SmartPanleeSc01Plus::play_audio(std::span<const uint8_t> data) {
+  return play_audio(data.data(), static_cast<uint32_t>(data.size()));
 }
 
-void SmartPanleeSc01Plus::play_audio(const uint8_t *data, uint32_t num_bytes) {
+size_t SmartPanleeSc01Plus::play_audio(const uint8_t *data, uint32_t num_bytes) {
   if (!audio_initialized_ || !audio_tx_stream_ || !data || num_bytes == 0) {
-    return;
+    return 0;
   }
-  xStreamBufferSend(audio_tx_stream_, data, num_bytes, 0);
+  // non-blocking: the number of bytes actually queued is returned so callers
+  // can stream data larger than the buffer
+  return xStreamBufferSend(audio_tx_stream_, data, num_bytes, 0);
 }
 
 size_t SmartPanleeSc01Plus::rotated_display_width() const {

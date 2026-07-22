@@ -34,3 +34,17 @@ CONFIG_LV_USE_THEME_DEFAULT=y
 CONFIG_LV_THEME_DEFAULT_DARK=y
 CONFIG_LV_THEME_DEFAULT_GROW=y
 CONFIG_LV_THEME_DEFAULT_TRANSITION_TIME=30
+
+# PSRAM (octal PSRAM on the WROOM-1 R8 / R16V modules); used for the audio
+# recording buffer in the example
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_MODE_OCT=y
+CONFIG_SPIRAM_SPEED_80M=y
+
+# catch task stack overflows immediately (debug watchpoint on the stack end)
+# instead of letting them silently corrupt the heap
+CONFIG_FREERTOS_WATCHPOINT_END_OF_STACK=y
+# The interrupt task (touch I2C) logs errors through the fmt color-print
+# path, which needs more than the 4 KB BSP default; give it 8 KB here so a
+# transient touch-bus error cannot overflow its stack. See the README.
+CONFIG_ESP_BOX_INTERRUPT_STACK_SIZE=8192

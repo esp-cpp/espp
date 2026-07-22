@@ -1,8 +1,15 @@
+#include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cmath>
+#include <cstdlib>
+#include <cstring>
 #include <stdlib.h>
 #include <utility>
 #include <vector>
+
+#include <esp_heap_caps.h>
+#include <esp_timer.h>
 
 #include "esp-box.hpp"
 
@@ -16,6 +23,21 @@ static std::vector<uint8_t> audio_bytes;
 
 static bool load_audio(size_t &out_size, size_t &out_sample_rate);
 static void play_click(espp::EspBox &box);
+
+// Audio recording state (written by the microphone callback, read/controlled
+// from the GUI button callbacks and main loop). The recorded data is 16-bit
+// interleaved stereo at the current audio sample rate.
+static constexpr size_t MAX_RECORDING_SECONDS = 30;     // when PSRAM is available
+static constexpr size_t FALLBACK_RECORDING_SECONDS = 2; // internal RAM fallback
+static uint8_t *recording_buffer = nullptr;
+static size_t recording_capacity = 0;
+static std::atomic<bool> recording{false};
+static std::atomic<size_t> recording_len{0};
+static std::atomic<bool> playing{false};
+// wall-clock bounds of the capture, for reporting the measured effective
+// sample rate (ordering is provided by the `recording` atomic)
+static int64_t recording_start_us = 0;
+static int64_t recording_last_us = 0;
 
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = "ESP BOX Example", .level = espp::Logger::Verbosity::INFO});
@@ -98,8 +120,9 @@ extern "C" void app_main(void) {
   // directly.
   static Gui gui({.log_level = espp::Logger::Verbosity::INFO});
   static const std::string instructions =
-      fmt::format("\n\n\n\nTouch the screen!\nPress the home button or the {} button to clear "
-                  "circles.\nPress the {} button to rotate the display.",
+      fmt::format("Touch the screen to draw!\nPress the home button or the {} button to clear "
+                  "circles.\nPress the {} button to rotate the display.\nThe IMU and Audio "
+                  "tabs show the other subsystems.",
                   LV_SYMBOL_TRASH, LV_SYMBOL_REFRESH);
   gui.set_label_text(instructions);
 
@@ -119,13 +142,18 @@ extern "C" void app_main(void) {
       if (touchpad_data.btn_state) {
         gui.clear_circles();
       }
-      // if there is a touch point, draw a circle and play a click sound
-      if (touchpad_data.num_touch_points > 0) {
+      // if there is a touch point on the Draw tab, draw a circle and play a
+      // click sound (touches on the other tabs go to their widgets)
+      if (touchpad_data.num_touch_points > 0 && gui.draw_page_active()) {
         play_click(box);
         gui.draw_circle(touchpad_data.x, touchpad_data.y, 10);
       }
     }
   };
+  // NOTE: this example raises the BSP interrupt-task stack size via
+  // sdkconfig.defaults (CONFIG_ESP_BOX_INTERRUPT_STACK_SIZE=8192); the
+  // touch controller is read from that task and its error-logging path
+  // needs more than the 4 KB BSP default. See the example README.
   if (!box.initialize_touch(touch_callback)) {
     logger.error("Failed to initialize touchpad!");
     return;
@@ -149,6 +177,95 @@ extern "C" void app_main(void) {
 
   // set the display brightness to be 75%
   box.brightness(75.0f);
+
+  // Initialize the microphones (the ES7210 shares the I2S bus with the
+  // speaker in full duplex, so recording runs at the speaker's sample rate)
+  // and buffer the recorded stereo frames; the recording auto-stops when the
+  // buffer is full and the main loop notices and updates the GUI
+  auto mic_callback = [](const uint8_t *data, size_t num_bytes) {
+    if (!recording) {
+      return;
+    }
+    size_t offset = recording_len;
+    size_t to_copy = std::min(num_bytes, recording_capacity - offset);
+    if (to_copy > 0) {
+      memcpy(recording_buffer + offset, data, to_copy);
+      recording_last_us = esp_timer_get_time();
+      recording_len = offset + to_copy;
+    }
+    if (recording_len >= recording_capacity) {
+      recording = false;
+    }
+  };
+  bool have_mic = box.initialize_microphone(mic_callback);
+  if (!have_mic) {
+    gui.set_audio_status("Mic unavailable (see log)");
+  }
+  if (have_mic) {
+    // start at a modest microphone gain: the BSP default is fairly hot and
+    // can clip on close / loud sound. Nudge it up with the mic + button if
+    // recordings are too quiet.
+    box.microphone_volume(40.0f);
+    // allocate the recording buffer (16-bit interleaved stereo at the
+    // current sample rate): prefer PSRAM, fall back to a couple of seconds
+    // in internal RAM
+    size_t bytes_per_second = box.audio_sample_rate() * 2 * sizeof(int16_t);
+    recording_capacity = MAX_RECORDING_SECONDS * bytes_per_second;
+    recording_buffer = static_cast<uint8_t *>(
+        heap_caps_malloc(recording_capacity, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+    if (recording_buffer == nullptr) {
+      recording_capacity = FALLBACK_RECORDING_SECONDS * bytes_per_second;
+      recording_buffer =
+          static_cast<uint8_t *>(heap_caps_malloc(recording_capacity, MALLOC_CAP_8BIT));
+    }
+    if (recording_buffer == nullptr) {
+      logger.warn("Could not allocate a recording buffer; recording disabled");
+      gui.set_audio_status("No recording buffer");
+      recording_capacity = 0;
+    } else {
+      logger.info("Recording buffer: {} KB ({} s at {} Hz stereo)", recording_capacity / 1024,
+                  recording_capacity / bytes_per_second, box.audio_sample_rate());
+    }
+  } else {
+    logger.warn("Could not initialize the microphone!");
+  }
+
+  // The record button toggles recording; the play button toggles playback of
+  // the recording (streamed to the speaker by the main loop)
+  gui.set_record_callback([&]() {
+    if (!have_mic || recording_capacity == 0) {
+      logger.warn("Recording unavailable (no microphone / no buffer)");
+      gui.set_audio_status("Mic unavailable (see log)");
+      return;
+    }
+    if (recording) {
+      recording = false; // the main loop notices and logs the summary
+    } else {
+      playing = false;
+      gui.set_play_active(false);
+      recording_len = 0;
+      recording_start_us = esp_timer_get_time();
+      recording_last_us = recording_start_us;
+      recording = true;
+      gui.set_record_active(true);
+      gui.set_audio_status("Recording...");
+    }
+  });
+  gui.set_play_callback([&]() {
+    if (playing) {
+      playing = false;
+      gui.set_play_active(false);
+      gui.set_audio_status("Playback stopped");
+    } else if (recording_len > 0) {
+      recording = false;
+      playing = true;
+      gui.set_play_active(true);
+      gui.set_audio_status("Playing...");
+    } else {
+      logger.info("Nothing recorded yet; press the record button first");
+      gui.set_audio_status("Nothing recorded yet");
+    }
+  });
 
   // make a task to read out the IMU data and update the GUI with it
   espp::Task imu_task(
@@ -185,7 +302,7 @@ extern "C" void app_main(void) {
            gravity_vector.y = -gravity_vector.y;
          }
 
-         std::string text = fmt::format("{}\n\n\n\n\n", instructions);
+         std::string text;
          text += fmt::format("Accel: {:02.2f} {:02.2f} {:02.2f}\n", accel.x, accel.y, accel.z);
          text += fmt::format("Gyro: {:03.2f} {:03.2f} {:03.2f}\n", espp::deg_to_rad(gyro.x),
                              espp::deg_to_rad(gyro.y), espp::deg_to_rad(gyro.z));
@@ -207,7 +324,7 @@ extern "C" void app_main(void) {
 
          // update the GUI with the new data; the Gui handles remapping the
          // vectors for the current display rotation
-         gui.set_label_text(text);
+         gui.set_imu_text(text);
          gui.set_kalman_down(gravity_vector.x, gravity_vector.y);
          gui.set_madgwick_down(vx, vy);
 
@@ -221,9 +338,67 @@ extern "C" void app_main(void) {
        }});
   imu_task.start();
 
-  // loop forever
+  // Main loop: stream any active playback to the speaker and notice when a
+  // recording stops (either button press or the buffer filling up)
+  size_t play_offset = 0;
+  bool was_recording = false;
   while (true) {
-    std::this_thread::sleep_for(1s);
+    // feed the active playback in chunks, advancing by however much the
+    // speaker's stream buffer accepted
+    if (playing) {
+      size_t len = recording_len;
+      if (play_offset >= len) {
+        playing = false;
+        play_offset = 0;
+        gui.set_play_active(false);
+        gui.set_audio_status("Playback done");
+        logger.info("Playback done");
+      } else {
+        play_offset += box.play_audio(recording_buffer + play_offset,
+                                      std::min<size_t>(len - play_offset, 16384));
+      }
+    } else {
+      play_offset = 0;
+    }
+    // notice when the recording stopped (button press or buffer full)
+    bool now_recording = recording;
+    if (was_recording && !now_recording) {
+      gui.set_record_active(false);
+      gui.set_audio_status(fmt::format("Recorded {:.1f}s ({} plays)",
+                                       static_cast<float>(recording_len) /
+                                           (box.audio_sample_rate() * 2 * sizeof(int16_t)),
+                                       LV_SYMBOL_PLAY));
+      // report the measured capture rate: stereo frames recorded over the
+      // wall clock they took to arrive should match the nominal sample rate
+      size_t num_frames = recording_len / (2 * sizeof(int16_t));
+      float elapsed_s = static_cast<float>(recording_last_us - recording_start_us) / 1e6f;
+      float effective_hz = elapsed_s > 0.0f ? num_frames / elapsed_s : 0.0f;
+      // Post-process the recording for playback on the box's MONO speaker: the
+      // ES7210 records 16-bit interleaved stereo (mic 1 -> left slot, mic 2 ->
+      // right), but the speaker only plays one I2S slot, so audio captured on
+      // the other slot would be inaudible. Downmix each L/R frame to the
+      // average and write it to BOTH slots so the mono speaker always plays
+      // it. Also report the peak amplitude per channel: a peak near 0 means
+      // the microphones captured silence (a codec / wiring problem), while a
+      // healthy peak means capture is fine.
+      auto *samples = reinterpret_cast<int16_t *>(recording_buffer);
+      int16_t peak_left = 0, peak_right = 0;
+      for (size_t i = 0; i < num_frames; i++) {
+        int16_t l = samples[2 * i];
+        int16_t r = samples[2 * i + 1];
+        peak_left = std::max<int16_t>(peak_left, static_cast<int16_t>(std::abs(l)));
+        peak_right = std::max<int16_t>(peak_right, static_cast<int16_t>(std::abs(r)));
+        int16_t mono = static_cast<int16_t>((static_cast<int32_t>(l) + r) / 2);
+        samples[2 * i] = mono;
+        samples[2 * i + 1] = mono;
+      }
+      logger.info("Recorded {} frames in {:.2f} s (~{:.0f} Hz effective, {} Hz nominal); "
+                  "peak L={} R={} (of 32767 - near 0 means the mics captured silence)",
+                  num_frames, elapsed_s, effective_hz, box.audio_sample_rate(), peak_left,
+                  peak_right);
+    }
+    was_recording = now_recording;
+    std::this_thread::sleep_for(50ms);
   }
   //! [esp box example]
 }

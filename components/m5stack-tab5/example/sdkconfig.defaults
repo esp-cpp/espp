@@ -36,7 +36,10 @@ CONFIG_FREERTOS_USE_TRACE_FACILITY=y
 CONFIG_FREERTOS_USE_STATS_FORMATTING_FUNCTIONS=y
 
 # M5Stack Tab5 BSP configuration
-CONFIG_M5STACK_TAB5_INTERRUPT_STACK_SIZE=4096
+# Raised from the 4 KB BSP default: the interrupt task runs the touch-
+# controller I2C reads and, on a bus error, logs through espp's fmt
+# color-print path, which needs more than 4 KB of stack. See the README.
+CONFIG_M5STACK_TAB5_INTERRUPT_STACK_SIZE=8192
 CONFIG_M5STACK_TAB5_AUDIO_TASK_STACK_SIZE=8192
 
 # PSRAM configuration

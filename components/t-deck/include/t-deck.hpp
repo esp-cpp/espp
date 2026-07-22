@@ -21,6 +21,7 @@
 #include <freertos/task.h>
 
 #include "base_component.hpp"
+#include "es7210.hpp"
 #include "gt911.hpp"
 #include "i2c.hpp"
 #include "interrupt.hpp"
@@ -194,8 +195,15 @@ public:
   /// \see trackball_data()
   /// \see trackball_read()
   /// \see set_trackball_sensitivity()
+  /// \param enable_center_button Whether to configure the trackball's center
+  ///        (click) button on GPIO0. Set this to false when the microphone is
+  ///        in use: per LilyGO's documentation GPIO0 is not available while the
+  ///        microphone is enabled, and leaving the button interrupt configured
+  ///        on GPIO0 while recording produces a burst of spurious interrupts
+  ///        that jitters the real-time audio capture. The four directional
+  ///        quadrature pins are unaffected and still work.
   bool initialize_trackball(const trackball_callback_t &trackball_cb = nullptr,
-                            int sensitivity = 10);
+                            int sensitivity = 10, bool enable_center_button = true);
 
   /// Get the trackball
   /// \return A shared pointer to the trackball
@@ -456,13 +464,64 @@ public:
   float volume() const;
 
   /// Play audio
-  /// \param data The audio data to play
-  void play_audio(const std::vector<uint8_t> &data);
+  /// \param data The audio data to play (16-bit signed interleaved stereo)
+  /// \return The number of bytes actually queued (may be less than the data
+  ///         size if the internal stream buffer is full)
+  /// \note This function is non-blocking and queues the data for the audio
+  ///       task to play; to stream data larger than the internal buffer,
+  ///       call it repeatedly, advancing by the returned number of bytes
+  size_t play_audio(const std::vector<uint8_t> &data);
 
   /// Play audio
-  /// \param data The audio data to play
+  /// \param data The audio data to play (16-bit signed interleaved stereo)
   /// \param num_bytes The number of bytes to play
-  void play_audio(const uint8_t *data, uint32_t num_bytes);
+  /// \return The number of bytes actually queued (may be less than \p
+  ///         num_bytes if the internal stream buffer is full)
+  /// \note This function is non-blocking and queues the data for the audio
+  ///       task to play; to stream data larger than the internal buffer,
+  ///       call it repeatedly, advancing by the returned number of bytes
+  size_t play_audio(const uint8_t *data, uint32_t num_bytes);
+
+  /////////////////////////////////////////////////////////////////////////////
+  // Microphone
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// Alias for the microphone callback, called with recorded audio data
+  using microphone_callback_t = std::function<void(const uint8_t *data, size_t num_bytes)>;
+
+  /// Initialize the microphones (the dual microphone array through the
+  /// ES7210 ADC, on its own I2S bus) and start delivering audio data to the
+  /// provided callback
+  /// \param callback The callback to call with recorded audio data: 16-bit
+  ///        signed interleaved stereo (microphone 1 on the left slot,
+  ///        microphone 2 on the right) at \p sample_rate
+  /// \param sample_rate The sample rate for the microphones, in Hz. The
+  ///        ES7210 is on a separate I2S bus from the speaker amplifier, so
+  ///        this is independent of the speaker's sample rate.
+  /// \param task_config The configuration for the microphone task
+  /// \return true if the microphone was successfully initialized, false
+  ///         otherwise
+  /// \note The callback runs in the microphone task's context, so the task's
+  ///       stack must be large enough for whatever the callback does with
+  ///       the audio data
+  bool initialize_microphone(const microphone_callback_t &callback, uint32_t sample_rate = 16000,
+                             const espp::Task::BaseConfig &task_config = {.name = "microphone",
+                                                                          .stack_size_bytes = 4096,
+                                                                          .priority = 10,
+                                                                          .core_id = 1});
+
+  /// Get the microphone sample rate
+  /// \return The microphone sample rate, in Hz
+  uint32_t microphone_sample_rate() const;
+
+  /// Set the microphone volume
+  /// \param volume The volume as a percentage (0 - 100), mapped onto the
+  ///        ES7210 analog microphone gain range (0 dB - +37.5 dB)
+  void microphone_volume(float volume);
+
+  /// Get the microphone volume
+  /// \return The microphone volume as a percentage (0 - 100)
+  float microphone_volume() const;
 
 protected:
   TDeck();
@@ -472,6 +531,7 @@ protected:
   void on_trackball_interrupt(const espp::Interrupt::Event &event);
   bool initialize_i2s(uint32_t default_audio_rate);
   bool audio_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
+  bool microphone_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
 
   // common:
   // internal i2c (touchscreen, keyboard)
@@ -495,6 +555,7 @@ protected:
   //
   // static constexpr gpio_num_t es7210_int_io = GPIO_NUM_17;
   static constexpr gpio_num_t dmic_clk_io = GPIO_NUM_17;
+  static constexpr auto mic_i2s_port = I2S_NUM_1;
 
   // Audio Out (MAX98357A)
   static constexpr auto i2s_port = I2S_NUM_0;
@@ -670,5 +731,16 @@ protected:
   std::vector<uint8_t> audio_tx_buffer;
   StreamBufferHandle_t audio_tx_stream;
   i2s_std_config_t audio_std_cfg;
+
+  // microphone (ES7210 on its own I2S bus)
+  std::shared_ptr<I2c::Device<uint8_t>> es7210_i2c_device_;
+  std::atomic<bool> microphone_initialized_{false};
+  microphone_callback_t microphone_callback_{nullptr};
+  std::unique_ptr<espp::Task> microphone_task_{nullptr};
+  i2s_chan_handle_t audio_rx_handle{nullptr};
+  std::vector<uint8_t> audio_rx_buffer;
+  std::atomic<uint32_t> mic_sample_rate_{0};
+  // microphone volume (percent), mapped onto the ES7210 analog gain range
+  std::atomic<float> mic_volume_{70.0f};
 }; // class TDeck
 } // namespace espp

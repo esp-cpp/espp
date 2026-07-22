@@ -1,3 +1,6 @@
+#include <algorithm>
+#include <cmath>
+
 #include "esp-box.hpp"
 
 using namespace espp;
@@ -5,6 +8,14 @@ using namespace espp;
 ////////////////////////
 // Audio Functions   //
 ////////////////////////
+
+// Map a 0-100% microphone volume onto the ES7210's analog gain steps
+// (GAIN_0DB .. GAIN_37_5DB)
+static es7210_gain_value_t microphone_gain_from_volume(float volume) {
+  int step = static_cast<int>(std::lround(volume / 100.0f * static_cast<float>(GAIN_37_5DB)));
+  step = std::clamp(step, static_cast<int>(GAIN_0DB), static_cast<int>(GAIN_37_5DB));
+  return static_cast<es7210_gain_value_t>(step);
+}
 
 bool EspBox::initialize_codec() {
   logger_.info("initializing codec");
@@ -156,7 +167,7 @@ void EspBox::mute(bool mute) {
 bool EspBox::is_muted() const { return mute_; }
 
 void EspBox::volume(float volume) {
-  volume_ = volume;
+  volume_ = std::clamp(volume, 0.0f, 100.0f);
   update_volume_output();
 }
 
@@ -183,9 +194,145 @@ void EspBox::audio_sample_rate(uint32_t sample_rate) {
   i2s_channel_enable(audio_tx_handle);
 }
 
-void EspBox::play_audio(const std::vector<uint8_t> &data) { play_audio(data.data(), data.size()); }
-
-void EspBox::play_audio(const uint8_t *data, uint32_t num_bytes) {
-  // don't block here
-  xStreamBufferSendFromISR(audio_tx_stream, data, num_bytes, NULL);
+size_t EspBox::play_audio(const std::vector<uint8_t> &data) {
+  return play_audio(data.data(), data.size());
 }
+
+size_t EspBox::play_audio(const uint8_t *data, uint32_t num_bytes) {
+  // don't block here: append what fits into the stream buffer and report how
+  // much was actually queued so callers can stream data larger than the
+  // buffer
+  return xStreamBufferSendFromISR(audio_tx_stream, data, num_bytes, NULL);
+}
+
+//////////////////////////
+// Microphone Functions //
+//////////////////////////
+
+bool EspBox::initialize_microphone(const microphone_callback_t &callback,
+                                   const espp::Task::BaseConfig &task_config) {
+  logger_.info("Initializing microphone");
+  if (microphone_initialized_) {
+    logger_.warn("Microphone already initialized, not initializing again!");
+    return false;
+  }
+  if (!sound_initialized_) {
+    logger_.error("The sound subsystem must be initialized first: the ES7210 shares the I2S bus "
+                  "with the ES8311 in full duplex");
+    return false;
+  }
+  if (!callback) {
+    logger_.error("A callback is required to receive the recorded audio data");
+    return false;
+  }
+  microphone_callback_ = callback;
+
+  // The RX channel was allocated alongside the TX channel in
+  // initialize_i2s(); in full-duplex mode it shares the TX BCLK/WS, so
+  // initialize it with the same standard-mode (16-bit stereo) config
+  ESP_ERROR_CHECK(i2s_channel_init_std_mode(audio_rx_handle, &audio_std_cfg));
+  audio_rx_buffer.resize(calc_audio_buffer_size(audio_sample_rate()));
+  ESP_ERROR_CHECK(i2s_channel_enable(audio_rx_handle));
+
+  // Configure the ES7210 ADC (microphone 1 -> left slot, microphone 2 ->
+  // right slot) now that the I2S clocks are running. Probe for the chip
+  // first: the address depends on how its AD pins are strapped, so accept
+  // either 0x40 or 0x41 and report clearly if neither responds.
+  uint8_t es7210_address = 0;
+  for (uint8_t address : {0x40, 0x41}) {
+    if (internal_i2c_.probe_device(address)) {
+      es7210_address = address;
+      break;
+    }
+  }
+  if (es7210_address == 0) {
+    logger_.error("No ES7210 found on the internal I2C bus (probed 0x40 and 0x41); "
+                  "cannot record from the microphones");
+    i2s_channel_disable(audio_rx_handle);
+    return false;
+  }
+  logger_.info("Found ES7210 at {:#04x}", es7210_address);
+  std::error_code ec;
+  es7210_i2c_device_ = internal_i2c_.add_device<uint8_t>(
+      {
+          .device_address = es7210_address,
+          .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
+          .scl_speed_hz = internal_i2c_.config().clk_speed,
+          .log_level = espp::Logger::Verbosity::WARN,
+      },
+      ec);
+  if (!es7210_i2c_device_) {
+    logger_.error("Could not initialize ES7210 I2C device: {}", ec.message());
+    i2s_channel_disable(audio_rx_handle);
+    return false;
+  }
+  set_es7210_write(espp::make_i2c_addressed_write(es7210_i2c_device_));
+  set_es7210_read(espp::make_i2c_addressed_read_register(es7210_i2c_device_));
+
+  // only the two microphones are wired on the box (the other ES7210 inputs
+  // are unused), and they map onto the two I2S slots
+  es7210_mic_select(static_cast<es7210_input_mics_t>(ES7210_INPUT_MIC1 | ES7210_INPUT_MIC2));
+
+  audio_hal_codec_config_t es7210_cfg{};
+  es7210_cfg.codec_mode = AUDIO_HAL_CODEC_MODE_ENCODE;
+  es7210_cfg.i2s_iface.bits = AUDIO_HAL_BIT_LENGTH_16BITS;
+  es7210_cfg.i2s_iface.fmt = AUDIO_HAL_I2S_NORMAL;
+  es7210_cfg.i2s_iface.mode = AUDIO_HAL_MODE_SLAVE;
+  es7210_cfg.i2s_iface.samples = AUDIO_HAL_48K_SAMPLES;
+  if (es7210_adc_init(&es7210_cfg) != ESP_OK) {
+    logger_.error("Could not initialize the ES7210 codec");
+    i2s_channel_disable(audio_rx_handle);
+    return false;
+  }
+  if (es7210_adc_config_i2s(AUDIO_HAL_CODEC_MODE_ENCODE, &es7210_cfg.i2s_iface) != ESP_OK) {
+    logger_.error("ES7210 I2S config failed");
+  }
+  // Enable the ES7210 digital high-pass filter on the ADC channels to strip
+  // the microphone DC offset. The espp es7210 driver leaves these registers
+  // at their reset value (HPF off), so the DC offset is amplified by the
+  // analog gain and rails the ADC to full scale - recordings come out as a
+  // near-constant DC level that the AC-coupled speaker plays as a click then
+  // silence. These are the driver's documented "quick setup" HPF values.
+  std::error_code hpf_ec;
+  es7210_i2c_device_->write_register(0x22, std::vector<uint8_t>{0x0a}, hpf_ec); // ADC1/2 HPF1
+  es7210_i2c_device_->write_register(0x23, std::vector<uint8_t>{0x2a}, hpf_ec); // ADC1/2 HPF2
+  es7210_i2c_device_->write_register(0x20, std::vector<uint8_t>{0x0a}, hpf_ec); // ADC3/4 HPF2
+  es7210_i2c_device_->write_register(0x21, std::vector<uint8_t>{0x2a}, hpf_ec); // ADC3/4 HPF1
+  if (hpf_ec) {
+    logger_.warn("Could not enable the ES7210 high-pass filter: {}", hpf_ec.message());
+  }
+  // apply the stored microphone volume (the driver's init leaves the analog
+  // gain at its 0 dB minimum, which records very quietly)
+  es7210_adc_set_gain_all(microphone_gain_from_volume(mic_volume_));
+  es7210_adc_ctrl_state(AUDIO_HAL_CODEC_MODE_ENCODE, AUDIO_HAL_CTRL_START);
+
+  using namespace std::placeholders;
+  microphone_task_ = espp::Task::make_unique({
+      .callback = std::bind(&EspBox::microphone_task_callback, this, _1, _2, _3),
+      .task_config = task_config,
+  });
+
+  microphone_initialized_ = true;
+
+  return microphone_task_->start();
+}
+
+bool EspBox::microphone_task_callback(std::mutex &m, std::condition_variable &cv,
+                                      bool &task_notified) {
+  size_t bytes_read = 0;
+  auto err = i2s_channel_read(audio_rx_handle, audio_rx_buffer.data(), audio_rx_buffer.size(),
+                              &bytes_read, portMAX_DELAY);
+  if (err == ESP_OK && bytes_read > 0 && microphone_callback_) {
+    microphone_callback_(audio_rx_buffer.data(), bytes_read);
+  }
+  return false; // don't stop the task
+}
+
+void EspBox::microphone_volume(float volume) {
+  mic_volume_ = std::clamp(volume, 0.0f, 100.0f);
+  if (microphone_initialized_) {
+    es7210_adc_set_gain_all(microphone_gain_from_volume(mic_volume_));
+  }
+}
+
+float EspBox::microphone_volume() const { return mic_volume_; }

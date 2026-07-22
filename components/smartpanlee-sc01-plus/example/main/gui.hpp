@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <functional>
 #include <mutex>
 #include <string>
 #include <string_view>
@@ -23,13 +24,18 @@
 ///   member functions, keeping all UI logic inside the class.
 ///
 /// For this example the Gui shows:
-/// * A wrapping info label (top-left) with instructions
-/// * A button (top-right) which rotates the display through 0/90/180/270
-/// * A button (below the rotate button) which clears the circles drawn on
-///   the screen
-/// * A custom-drawn layer of circles which trail the most recent touches
+/// The UI is organized as a tabview so each subsystem gets its own
+/// uncrowded page:
+/// * "Draw" tab: instructions, plus the rotate and clear buttons. Touching
+///   the screen while this tab is active draws circles (on a transparent
+///   overlay) and plays a click.
+/// * "Audio" tab: a play-sound button (wired to the example via a
+///   callback), a mute toggle, and volume down / up buttons (acting
+///   directly on the BSP), with a label showing the current volume.
 class Gui {
 public:
+  /// Callback invoked when the play-sound button is pressed
+  using audio_button_callback_t = std::function<void()>;
   /// Configuration for the Gui
   struct Config {
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; ///< Log verbosity
@@ -66,8 +72,18 @@ public:
   /// re-aligning the UI to match. Thread-safe.
   void next_rotation();
 
+  /// Whether the Draw tab is currently active (used by the example to only
+  /// draw circles / play clicks for touches on that tab). Thread-safe.
+  /// @return True if the Draw tab is the active tab
+  bool draw_page_active();
+
+  /// Set the callback invoked when the play-sound button is pressed
+  /// @param callback The callback to invoke
+  void set_play_callback(audio_button_callback_t callback) { play_callback_ = std::move(callback); }
+
 protected:
   static constexpr size_t MAX_CIRCLES = 100;
+  static constexpr int TAB_BAR_HEIGHT = 44;
 
   struct Circle {
     int x{0};
@@ -80,10 +96,15 @@ protected:
   void deinit_ui();
 
   // the individual pieces of the UI, called from init_ui()
-  void init_background();
+  void init_tabview();
   void init_label();
   void init_buttons();
+  void init_audio_controls();
   void init_circle_layer();
+
+  // update the audio volume label from the BSP's current volume / mute
+  // state; called with the mutex held
+  void update_audio_label();
 
   // re-size / re-align the UI to fill the (possibly rotated) display
   void update_layout();
@@ -95,6 +116,7 @@ protected:
   // functions below based on the event target
   static void event_callback(lv_event_t *e);
   void on_pressed(lv_event_t *e);
+  void on_tab_changed(lv_event_t *e);
 
   // custom drawing of the circle layer
   static void draw_circle_layer(lv_event_t *e);
@@ -105,18 +127,29 @@ protected:
   void clear_circles_impl();
 
   // LVGL objects
-  lv_obj_t *background_{nullptr};
+  lv_obj_t *tabview_{nullptr};
+  lv_obj_t *draw_tab_{nullptr};
+  lv_obj_t *audio_tab_{nullptr};
   lv_obj_t *label_{nullptr};
   lv_obj_t *rotate_button_{nullptr};
   lv_obj_t *clear_button_{nullptr};
+  lv_obj_t *play_button_{nullptr};
+  lv_obj_t *mute_button_{nullptr};
+  lv_obj_t *volume_down_button_{nullptr};
+  lv_obj_t *volume_up_button_{nullptr};
+  lv_obj_t *audio_label_{nullptr};
   lv_obj_t *circle_layer_{nullptr};
+
+  audio_button_callback_t play_callback_{nullptr};
 
   std::array<Circle, MAX_CIRCLES> circles_;
   size_t next_circle_index_{0};
   size_t visible_circle_count_{0};
 
   espp::Task update_task_{{.callback = [this](auto &m, auto &cv) { return update(m, cv); },
-                           .task_config = {.name = "gui", .stack_size_bytes = 6 * 1024}}};
+                           // NOTE: rendering the tabview (nested containers + flex layout) uses
+                           // noticeably more stack than a flat UI; 6 KB overflows
+                           .task_config = {.name = "gui", .stack_size_bytes = 12 * 1024}}};
   espp::Logger logger_;
   std::recursive_mutex mutex_;
 };

@@ -270,13 +270,59 @@ public:
   size_t audio_buffer_size() const;
 
   /// Play audio data
-  /// \param data The audio data to play
+  /// \param data The audio data to play (16-bit signed mono samples)
   /// \param num_bytes The number of bytes to play
-  void play_audio(const uint8_t *data, uint32_t num_bytes);
+  /// \return The number of bytes actually queued (may be less than \p
+  ///         num_bytes if the internal stream buffer is full)
+  /// \note This function is non-blocking and queues the data for the audio
+  ///       task to play; to stream data larger than the internal buffer,
+  ///       call it repeatedly, advancing by the returned number of bytes
+  size_t play_audio(const uint8_t *data, uint32_t num_bytes);
 
   /// Play audio data
-  /// \param data The audio data to play
-  void play_audio(std::span<const uint8_t> data);
+  /// \param data The audio data to play (16-bit signed mono samples)
+  /// \return The number of bytes actually queued (may be less than the data
+  ///         size if the internal stream buffer is full)
+  /// \note This function is non-blocking and queues the data for the audio
+  ///       task to play; to stream data larger than the internal buffer,
+  ///       call it repeatedly, advancing by the returned number of bytes
+  size_t play_audio(std::span<const uint8_t> data);
+
+  /////////////////////////////////////////////////////////////////////////////
+  // Microphone
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// Alias for the microphone callback, called with recorded audio data
+  using microphone_callback_t = std::function<void(const uint8_t *data, size_t num_bytes)>;
+
+  /// Initialize the microphone (the onboard analog microphone through the
+  /// ES8311 codec's ADC) and start delivering audio data to the provided
+  /// callback
+  /// \param callback The callback to call with recorded audio data (16-bit
+  ///        signed mono samples at audio_sample_rate())
+  /// \param task_config The configuration for the microphone task
+  /// \return true if the microphone was successfully initialized, false
+  ///         otherwise
+  /// \note The audio subsystem must be initialized first (the ES8311 is a
+  ///       full-duplex codec on a single I2S bus, so the microphone records
+  ///       at the speaker's sample rate)
+  /// \note The callback runs in the microphone task's context, so the task's
+  ///       stack must be large enough for whatever the callback does with
+  ///       the audio data
+  bool initialize_microphone(const microphone_callback_t &callback,
+                             const espp::Task::BaseConfig &task_config = {.name = "microphone",
+                                                                          .stack_size_bytes = 4096,
+                                                                          .priority = 10,
+                                                                          .core_id = 1});
+
+  /// Set the microphone volume
+  /// \param volume The volume as a percentage (0 - 100), mapped onto the
+  ///        ES8311 analog microphone gain range (0 dB - +42 dB)
+  void microphone_volume(float volume);
+
+  /// Get the microphone volume
+  /// \return The microphone volume as a percentage (0 - 100)
+  float microphone_volume() const;
 
   /////////////////////////////////////////////////////////////////////////////
   // uSD Card (4-bit SDMMC)
@@ -360,6 +406,7 @@ protected:
 
   bool update_touch();
   bool audio_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
+  bool microphone_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
 
   /////////////////////////////////////////////////////////////////////////////
   // Display geometry / per-panel parameters
@@ -538,6 +585,15 @@ protected:
   std::vector<uint8_t> audio_tx_buffer;
   StreamBufferHandle_t audio_tx_stream{nullptr};
   std::atomic<bool> has_sound{false};
+
+  // Microphone (ES8311 ADC, full duplex with the speaker)
+  std::atomic<bool> microphone_initialized_{false};
+  microphone_callback_t microphone_callback_{nullptr};
+  std::unique_ptr<espp::Task> microphone_task_{nullptr};
+  i2s_chan_handle_t audio_rx_handle{nullptr};
+  std::vector<uint8_t> audio_rx_buffer;
+  // microphone volume (percent), mapped onto the ES8311 analog gain range
+  std::atomic<float> mic_volume_{70.0f};
 
   // uSD card
   std::atomic<bool> sd_card_initialized_{false};

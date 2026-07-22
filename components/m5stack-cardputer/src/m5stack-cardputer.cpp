@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cmath>
 #include <iterator>
 
 #include "m5stack-cardputer.hpp"
@@ -135,13 +136,14 @@ bool M5StackCardputer::initialize_es8311_microphone() {
   // (hardware-proven with the esp-box microphone): M5Unified's minimal
   // sequence uses minimum PGA gain (0x14 = 0x10) and no digital mic gain,
   // which records at a near-mute level.
+  const uint8_t adc_volume = static_cast<uint8_t>(std::lround(mic_volume_ / 100.0f * 255.0f));
   const uint8_t init[][2] = {
-      {0x0E, 0x02}, // SYSTEM: enable analog PGA / ADC modulator
-      {0x14, 0x1A}, // SYSTEM: select Mic1p-Mic1n, raised analog PGA gain
-      {0x15, 0x40}, // ADC: soft-ramp / ALC configuration
-      {0x16, 0x24}, // ADC: mic digital gain scale
-      {0x17, 0xBF}, // ADC: volume 0 dB
-      {0x1C, 0x6A}, // ADC: equalizer bypass
+      {0x0E, 0x02},       // SYSTEM: enable analog PGA / ADC modulator
+      {0x14, 0x1A},       // SYSTEM: select Mic1p-Mic1n, raised analog PGA gain
+      {0x15, 0x40},       // ADC: soft-ramp / ALC configuration
+      {0x16, 0x24},       // ADC: mic digital gain scale
+      {0x17, adc_volume}, // ADC: volume (0x00 = -95.5 dB, 0xBF = 0 dB, 0xFF = +32 dB)
+      {0x1C, 0x6A},       // ADC: equalizer bypass
   };
   return std::all_of(std::begin(init), std::end(init), [this](const auto &entry) {
     if (!es8311_write(entry[0], entry[1])) {

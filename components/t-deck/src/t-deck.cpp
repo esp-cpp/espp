@@ -88,7 +88,8 @@ std::shared_ptr<espp::TKeyboard> TDeck::keyboard() const { return keyboard_; }
 // Trackball Functions //
 /////////////////////////
 
-bool TDeck::initialize_trackball(const TDeck::trackball_callback_t &trackball_cb, int sensitivity) {
+bool TDeck::initialize_trackball(const TDeck::trackball_callback_t &trackball_cb, int sensitivity,
+                                 bool enable_center_button) {
   if (pointer_input_) {
     logger_.warn("Trackball already initialized, not initializing again!");
     return false;
@@ -102,12 +103,20 @@ bool TDeck::initialize_trackball(const TDeck::trackball_callback_t &trackball_cb
   // store the callback
   trackball_callback_ = trackball_cb;
 
-  // add the interrupts for the trackball
+  // add the interrupts for the trackball directional (quadrature) pins
   interrupts_.add_interrupt(trackball_up_interrupt_pin);
   interrupts_.add_interrupt(trackball_down_interrupt_pin);
   interrupts_.add_interrupt(trackball_left_interrupt_pin);
   interrupts_.add_interrupt(trackball_right_interrupt_pin);
-  interrupts_.add_interrupt(trackball_btn_interrupt_pin);
+  // the center (click) button is on GPIO0, which LilyGO documents as
+  // unavailable while the microphone is enabled; skip it when requested so
+  // microphone recording is not disrupted by spurious GPIO0 interrupts
+  if (enable_center_button) {
+    interrupts_.add_interrupt(trackball_btn_interrupt_pin);
+  } else {
+    logger_.info("Skipping trackball center button (GPIO0) - unavailable while the microphone "
+                 "is in use");
+  }
 
   // set the sensitivity
   set_trackball_sensitivity(sensitivity);

@@ -67,10 +67,14 @@ extern "C" void app_main(void) {
   // thread-safe, so the touch callback below can call them directly.
   static Gui gui({.log_level = espp::Logger::Verbosity::INFO});
   gui.set_label_text(
-      fmt::format("Smart Panlee SC01 Plus\n\nTouch the screen to draw and play a click.\nPress {} "
-                  "to rotate.\nPress {} to clear.\nCheck serial output for SD card, pin, and "
-                  "audio info.",
+      fmt::format("Smart Panlee SC01 Plus\n\nTouch the screen to draw and play a click.\nPress "
+                  "{} to rotate.\nPress {} to clear.\nThe Audio tab plays the click sound and "
+                  "adjusts / mutes the volume.\nCheck serial output for SD card, pin, and audio "
+                  "info.",
                   LV_SYMBOL_REFRESH, LV_SYMBOL_TRASH));
+
+  // the play button on the audio row plays the same click sound as a touch
+  gui.set_play_callback([&]() { play_click(board); });
 
   // initialize the touchpad after the GUI exists so touch events can update
   // it immediately; each touch draws a circle and plays a click sound
@@ -79,12 +83,16 @@ extern "C" void app_main(void) {
     auto touchpad_data = board.touchpad_convert(touch);
     if (touchpad_data != previous_touchpad_data) {
       previous_touchpad_data = touchpad_data;
-      if (touchpad_data.num_touch_points > 0) {
+      if (touchpad_data.num_touch_points > 0 && gui.draw_page_active()) {
         play_click(board);
         gui.draw_circle(touchpad_data.x, touchpad_data.y, 10);
       }
     }
   };
+  // NOTE: this example raises the BSP interrupt-task stack size via
+  // sdkconfig.defaults (CONFIG_SMARTPANLEE_SC01_PLUS_INTERRUPT_STACK_SIZE=8192);
+  // the touch controller is read from that task and its error-logging path
+  // needs more than the 4 KB BSP default. See the example README.
   if (!board.initialize_touch(touch_callback)) {
     logger.warn("Touch initialization did not complete cleanly");
   }
