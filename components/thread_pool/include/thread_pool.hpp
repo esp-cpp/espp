@@ -29,9 +29,9 @@ public:
 
   /// @brief Snapshot of pool activity counters.
   struct Stats {
-    std::uint64_t submitted = 0; ///< Total jobs ever submitted (including rejected).
+    std::uint64_t submitted = 0; ///< Total jobs accepted into the queue.
     std::uint64_t executed = 0;  ///< Total jobs successfully executed.
-    std::uint64_t rejected = 0;  ///< Total jobs rejected because the queue was full.
+    std::uint64_t rejected = 0;  ///< Total jobs rejected (invalid job, stopped/stopping, or queue full).
   };
 
   /// @brief Configuration parameters for constructing a ThreadPool.
