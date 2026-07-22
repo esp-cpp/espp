@@ -60,8 +60,8 @@ public:
   /// @note No-op if the pool is already running.
   void start();
 
-  /// @brief Stop all worker threads and drain the queue.
-  /// @note Blocks until every worker has exited.
+  /// @brief Stop all worker threads and reject further submissions.
+  /// @note Blocks until every worker has exited; queued jobs may not be executed.
   void stop();
 
   /// @brief Query whether the pool is currently running.
