@@ -150,6 +150,8 @@ bool ThreadPool::worker_task_fn(std::mutex &task_mutex,
   job();
   executed_++;
 
-  std::unique_lock<std::mutex> task_lock(task_mutex);
-  return task_notified;
+  std::lock_guard<std::mutex> task_lock(task_mutex);
+  const bool stop_requested = task_notified;
+  task_notified = false;
+  return stop_requested;
 }
