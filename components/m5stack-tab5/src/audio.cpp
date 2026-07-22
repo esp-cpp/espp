@@ -180,9 +180,15 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
   audio_task_ = espp::Task::make_unique(
       {.callback = std::bind(&M5StackTab5::audio_task_callback, this, _1, _2, _3),
        .task_config = task_config});
+  // give the microphone task a distinct name from the playback task (they share
+  // the rest of the caller's task config) so the two are easy to tell apart in
+  // logs and while debugging
+  auto mic_task_config = task_config;
+  mic_task_config.name =
+      task_config.name.empty() ? std::string("microphone") : task_config.name + " microphone";
   microphone_task_ = espp::Task::make_unique(
       {.callback = std::bind(&M5StackTab5::microphone_task_callback, this, _1, _2, _3),
-       .task_config = task_config});
+       .task_config = mic_task_config});
 
   // Enable speaker output
   enable_audio(true);
