@@ -333,7 +333,9 @@ public:
   ///        signed interleaved stereo (ES7210 microphone 1 on the left slot,
   ///        microphone 2 on the right) at audio_sample_rate()
   /// \return True if recording started successfully
-  /// \note The callback runs in the audio task's context
+  /// \note The callback runs in the dedicated microphone task's context (a
+  ///       separate task from audio playback), so keep it quick and non-
+  ///       blocking and size that task's stack accordingly
   bool start_audio_recording(std::function<void(const uint8_t *data, size_t length)> callback);
 
   /// Stop recording audio
