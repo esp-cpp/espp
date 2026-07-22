@@ -149,11 +149,21 @@ void Gui::init_audio_tab() {
 
 void Gui::update_audio_label() {
   auto &tab5 = espp::M5StackTab5::get();
-  lv_label_set_text_fmt(audio_label_,
-                        "Speaker %d%% (" LV_SYMBOL_VOLUME_MID "/" LV_SYMBOL_VOLUME_MAX
-                        ")\nMic %d%% (teal " LV_SYMBOL_MINUS "/" LV_SYMBOL_PLUS ")",
-                        static_cast<int>(tab5.volume()),
-                        static_cast<int>(tab5.microphone_volume()));
+  int speaker_volume = static_cast<int>(tab5.volume());
+  int mic_volume = static_cast<int>(tab5.microphone_volume());
+  // this is called every GUI tick; only reformat the label when a value
+  // actually changes (lv_label_set_text_fmt formats a new string each call)
+  if (speaker_volume == last_speaker_volume_ && mic_volume == last_mic_volume_) {
+    return;
+  }
+  last_speaker_volume_ = speaker_volume;
+  last_mic_volume_ = mic_volume;
+  // Pass the LVGL symbols as %s arguments rather than concatenating them into
+  // the format-string literal: cppcheck cannot expand the LVGL symbol macros
+  // and flags the literal concatenation as an unknown macro.
+  lv_label_set_text_fmt(audio_label_, "Speaker %d%% (%s/%s)\nMic %d%% (teal %s/%s)", speaker_volume,
+                        LV_SYMBOL_VOLUME_MID, LV_SYMBOL_VOLUME_MAX, mic_volume, LV_SYMBOL_MINUS,
+                        LV_SYMBOL_PLUS);
 }
 
 void Gui::init_circle_layer() {

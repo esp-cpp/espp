@@ -165,6 +165,10 @@ protected:
   lv_obj_t *mic_down_button_{nullptr};
   lv_obj_t *mic_up_button_{nullptr};
   lv_obj_t *audio_label_{nullptr};
+  // last values shown on audio_label_, so update_audio_label() (called every
+  // GUI tick) only reformats the text when a value actually changes
+  int last_speaker_volume_{-1};
+  int last_mic_volume_{-1};
   lv_obj_t *audio_status_label_{nullptr};
   lv_obj_t *circle_layer_{nullptr};
 
