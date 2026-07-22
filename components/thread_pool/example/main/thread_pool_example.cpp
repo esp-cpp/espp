@@ -33,6 +33,7 @@ extern "C" void app_main(void) {
 
   logger.info("Submitting {} jobs", total_jobs);
 
+  int queued_jobs = 0;
   for (int i = 0; i < total_jobs; ++i) {
     bool queued = pool.submit([&, i]() {
       std::this_thread::sleep_for(100ms);
@@ -46,12 +47,14 @@ extern "C" void app_main(void) {
 
     if (!queued) {
       logger.error("Failed to queue job {}", i);
+    } else {
+      ++queued_jobs;
     }
   }
 
-  {
+  if (queued_jobs > 0) {
     std::unique_lock<std::mutex> lock(done_mutex);
-    done_cv.wait(lock, [&]() { return completed_jobs.load() == total_jobs; });
+    done_cv.wait(lock, [&]() { return completed_jobs.load() == queued_jobs; });
   }
 
   auto stats = pool.stats();
