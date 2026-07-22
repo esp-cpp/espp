@@ -229,6 +229,8 @@ jobs:
           target: esp32
         - path: 'components/task/example'
           target: esp32
+        - path: 'components/thread_pool/example'
+          target: esp32
         - path: 'components/thermistor/example'
           target: esp32
         - path: 'components/timer/example'

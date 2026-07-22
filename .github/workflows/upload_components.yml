@@ -133,6 +133,7 @@ jobs:
             components/t-dongle-s3
             components/tabulate
             components/task
+            components/thread_pool
             components/thermistor
             components/timer
             components/touch
