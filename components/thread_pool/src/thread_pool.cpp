@@ -30,22 +30,37 @@ ThreadPool::ThreadPool(const Config &config)
 ThreadPool::~ThreadPool() { stop(); }
 
 void ThreadPool::start() {
-  if (running_.exchange(true)) {
-    return;
-  }
-
   {
     std::lock_guard<std::mutex> lock(queue_mutex_);
+    if (running_.load()) {
+      return;
+    }
     stopping_ = false;
+    running_.store(true);
   }
 
+  std::size_t started_count = 0;
   for (std::size_t i = 0; i < workers_.size(); ++i) {
-    auto &worker = workers_[i];
-    if (!worker->start()) {
-      // Handle the error if needed, e.g., log it
-      logger_.warn("Failed to start worker thread {}. could be already started or not enough memory", i);
+    if (workers_[i]->start()) {
+      ++started_count;
+    } else {
+      logger_.warn("Failed to start worker {} (already started or insufficient memory)", i);
     }
+  }
 
+  if (started_count == 0) {
+    logger_.error("No workers started; rolling back pool start");
+    for (auto &worker : workers_) {
+      worker->stop();
+    }
+    {
+      std::lock_guard<std::mutex> lock(queue_mutex_);
+      running_.store(false);
+      stopping_ = true;
+      rejected_ += static_cast<std::uint64_t>(queue_.size());
+      queue_.clear();
+    }
+    queue_has_space_cv_.notify_all();
   }
 }
 
@@ -57,6 +72,8 @@ void ThreadPool::stop() {
   {
     std::lock_guard<std::mutex> lock(queue_mutex_);
     stopping_ = true;
+    rejected_ += static_cast<std::uint64_t>(queue_.size());
+    queue_.clear();
   }
 
   queue_has_work_cv_.notify_all();
@@ -134,17 +151,21 @@ bool ThreadPool::worker_task_fn(std::mutex &task_mutex,
     std::unique_lock<std::mutex> lock(queue_mutex_);
     queue_has_work_cv_.wait(lock, [&]() { return stopping_ || !queue_.empty(); });
 
+    if (stopping_) {
+      return true;
+    }
+
     if (queue_.empty()) {
       std::unique_lock<std::mutex> task_lock(task_mutex);
-      return stopping_ || task_notified;
+      return task_notified;
     }
 
     job = std::move(queue_.front());
     queue_.pop_front();
+  }
 
-    if (config_.max_queue_size > 0) {
-      queue_has_space_cv_.notify_one();
-    }
+  if (config_.max_queue_size > 0) {
+    queue_has_space_cv_.notify_one();
   }
 
   job();

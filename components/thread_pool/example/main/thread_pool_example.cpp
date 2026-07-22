@@ -39,10 +39,7 @@ extern "C" void app_main(void) {
       std::this_thread::sleep_for(100ms);
       int done = ++completed_jobs;
       logger.info("Job {} done ({}/{})", i, done, total_jobs);
-      if (done == total_jobs) {
-        std::lock_guard<std::mutex> lock(done_mutex);
-        done_cv.notify_one();
-      }
+      done_cv.notify_one();
     });
 
     if (!queued) {
