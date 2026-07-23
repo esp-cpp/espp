@@ -311,7 +311,7 @@ extern "C" void app_main(void) {
       gui.set_play_active(false);
       recording_len = 0;
       recording_start_us = esp_timer_get_time();
-      recording_last_us = recording_start_us;
+      recording_last_us = recording_start_us.load();
       recording = true;
       gui.set_record_active(true);
       gui.set_audio_status("Recording...");
