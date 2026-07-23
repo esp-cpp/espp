@@ -493,8 +493,9 @@ public:
   /// ES7210 ADC, on its own I2S bus) and start delivering audio data to the
   /// provided callback
   /// \param callback The callback to call with recorded audio data: 16-bit
-  ///        signed interleaved stereo (microphone 1 on the left slot,
-  ///        microphone 2 on the right) at \p sample_rate
+  ///        signed interleaved stereo. The two populated ES7210 microphones are
+  ///        delivered as MIC1 (TDM slot 0) on the left channel and MIC3 (TDM
+  ///        slot 2) on the right, at \p sample_rate
   /// \param sample_rate The sample rate for the microphones, in Hz. The
   ///        ES7210 is on a separate I2S bus from the speaker amplifier, so
   ///        this is independent of the speaker's sample rate.

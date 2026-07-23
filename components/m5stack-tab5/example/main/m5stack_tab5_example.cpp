@@ -576,7 +576,23 @@ static bool load_audio(size_t &out_size, size_t &out_sample_rate) {
 }
 
 static void play_click(espp::M5StackTab5 &tab5) {
-  if (audio_bytes.size() > 0) {
-    tab5.play_audio(audio_bytes);
+  // Stream the click through play_audio() in audio_buffer_size chunks,
+  // advancing by however many bytes were actually queued: play_audio() enqueues
+  // only whole frames and may accept less than requested when the stream buffer
+  // is full, so the whole click plays even if it is larger than that buffer.
+  if (audio_bytes.empty()) {
+    return;
+  }
+  auto audio_buffer_size = tab5.audio_buffer_size();
+  size_t offset = 0;
+  while (offset < audio_bytes.size()) {
+    size_t chunk = std::min(audio_buffer_size, audio_bytes.size() - offset);
+    size_t queued = tab5.play_audio(audio_bytes.data() + offset, chunk);
+    if (queued == 0) {
+      // stream buffer momentarily full; let the audio task drain, then retry
+      std::this_thread::sleep_for(1ms);
+      continue;
+    }
+    offset += queued;
   }
 }

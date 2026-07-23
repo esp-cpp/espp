@@ -143,10 +143,18 @@ static void play_click(espp::SmartPanleeSc01Plus &board) {
     return;
   }
 
+  // advance by however many bytes play_audio() actually queued: it enqueues
+  // only whole frames and may accept less than requested when the stream buffer
+  // is full, so advancing by the requested size would skip samples
   size_t offset = 0;
   while (offset < audio_bytes.size()) {
-    auto bytes_to_play = std::min(audio_buffer_size, audio_bytes.size() - offset);
-    board.play_audio(audio_bytes.data() + offset, static_cast<uint32_t>(bytes_to_play));
-    offset += bytes_to_play;
+    auto chunk = std::min(audio_buffer_size, audio_bytes.size() - offset);
+    size_t queued = board.play_audio(audio_bytes.data() + offset, static_cast<uint32_t>(chunk));
+    if (queued == 0) {
+      // stream buffer momentarily full; let the audio task drain, then retry
+      std::this_thread::sleep_for(1ms);
+      continue;
+    }
+    offset += queued;
   }
 }

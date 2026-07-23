@@ -199,17 +199,20 @@ size_t TDeck::play_audio(const uint8_t *data, uint32_t num_bytes) {
   if (!sound_initialized_ || !data || num_bytes == 0) {
     return 0;
   }
-  // only enqueue whole 16-bit stereo frames (4 bytes) so a partial sample
-  // cannot shift the L/R framing or strand 1-3 bytes in the stream buffer
-  num_bytes -= num_bytes % 4;
-  if (num_bytes == 0) {
+  // Enqueue only whole 16-bit stereo frames (4 bytes) that actually fit:
+  // xStreamBufferSend can accept fewer bytes than requested when the buffer is
+  // nearly full, and a partial (non-frame-aligned) send would strand 1-3 bytes
+  // and corrupt the L/R framing of subsequent appends. Cap the request to the
+  // free space rounded down to a whole frame so the send is always
+  // frame-aligned. This runs in task context, so the non-ISR send with a 0
+  // timeout never blocks. The number of bytes actually queued is returned so
+  // callers can stream data larger than the buffer.
+  size_t sendable = std::min<size_t>(num_bytes, xStreamBufferSpacesAvailable(audio_tx_stream));
+  sendable -= sendable % 4;
+  if (sendable == 0) {
     return 0;
   }
-  // don't block here: append what fits into the stream buffer and report how
-  // much was actually queued so callers can stream data larger than the buffer.
-  // This runs in task context, so use the non-ISR send with a 0 timeout (never
-  // blocks) rather than the FromISR variant.
-  return xStreamBufferSend(audio_tx_stream, data, num_bytes, 0);
+  return xStreamBufferSend(audio_tx_stream, data, sendable, 0);
 }
 
 //////////////////////////
@@ -283,8 +286,10 @@ bool TDeck::initialize_microphone(const microphone_callback_t &callback, uint32_
   audio_rx_buffer.resize(2 * calc_audio_buffer_size(sample_rate));
   ESP_ERROR_CHECK(i2s_channel_enable(audio_rx_handle));
 
-  // Configure the ES7210 ADC (microphone 1 -> left slot, microphone 2 ->
-  // right slot) now that its clocks are running
+  // Configure the ES7210 ADC now that its clocks are running. The ES7210 always
+  // emits a fixed 4-slot TDM frame; this board only populates MIC1 (slot 0) and
+  // MIC3 (slot 2), which the callback compacts to the left / right channels of
+  // the delivered 16-bit stereo.
   std::error_code ec;
   es7210_i2c_device_ = internal_i2c_.add_device<uint8_t>(
       {

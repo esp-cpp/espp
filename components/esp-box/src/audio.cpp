@@ -230,17 +230,20 @@ size_t EspBox::play_audio(const uint8_t *data, uint32_t num_bytes) {
   if (!sound_initialized_ || !data || num_bytes == 0) {
     return 0;
   }
-  // only enqueue whole 16-bit stereo frames (4 bytes) so a partial sample
-  // cannot shift the L/R framing or strand 1-3 bytes in the stream buffer
-  num_bytes -= num_bytes % 4;
-  if (num_bytes == 0) {
+  // Enqueue only whole 16-bit stereo frames (4 bytes) that actually fit:
+  // xStreamBufferSend can accept fewer bytes than requested when the buffer is
+  // nearly full, and a partial (non-frame-aligned) send would strand 1-3 bytes
+  // and corrupt the L/R framing of subsequent appends. Cap the request to the
+  // free space rounded down to a whole frame so the send is always
+  // frame-aligned. This runs in task context, so the non-ISR send with a 0
+  // timeout never blocks. The number of bytes actually queued is returned so
+  // callers can stream data larger than the buffer.
+  size_t sendable = std::min<size_t>(num_bytes, xStreamBufferSpacesAvailable(audio_tx_stream));
+  sendable -= sendable % 4;
+  if (sendable == 0) {
     return 0;
   }
-  // don't block here: append what fits into the stream buffer and report how
-  // much was actually queued so callers can stream data larger than the buffer.
-  // This runs in task context, so use the non-ISR send with a 0 timeout (never
-  // blocks) rather than the FromISR variant.
-  return xStreamBufferSend(audio_tx_stream, data, num_bytes, 0);
+  return xStreamBufferSend(audio_tx_stream, data, sendable, 0);
 }
 
 //////////////////////////
