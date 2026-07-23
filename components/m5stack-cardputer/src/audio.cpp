@@ -249,10 +249,19 @@ size_t M5StackCardputer::play_audio(const std::vector<uint8_t> &data) {
 }
 
 size_t M5StackCardputer::play_audio(const uint8_t *data, uint32_t num_bytes) {
-  if (!sound_initialized_) {
+  // guard against being called before initialize_sound() (audio_tx_stream is
+  // not valid until then) and against empty input
+  if (!sound_initialized_ || !data || num_bytes == 0) {
     return 0;
   }
-  // don't block here; report how much was actually queued so callers can
-  // stream data larger than the buffer
-  return xStreamBufferSendFromISR(audio_tx_stream, data, num_bytes, NULL);
+  // only enqueue whole 16-bit samples (2 bytes; the TX slot is mono) so a
+  // partial sample cannot strand a byte in the stream buffer or shift framing
+  num_bytes -= num_bytes % 2;
+  if (num_bytes == 0) {
+    return 0;
+  }
+  // don't block here; report how much was actually queued so callers can stream
+  // data larger than the buffer. This runs in task context, so use the non-ISR
+  // send with a 0 timeout (never blocks) rather than the FromISR variant.
+  return xStreamBufferSend(audio_tx_stream, data, num_bytes, 0);
 }

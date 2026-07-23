@@ -131,6 +131,12 @@ size_t Esp32P4FunctionEvBoard::play_audio(const uint8_t *data, uint32_t num_byte
   if (!audio_initialized_ || !data || num_bytes == 0) {
     return 0;
   }
+  // only enqueue whole 16-bit samples (2 bytes; the TX slot is mono) so a
+  // partial sample cannot strand a byte in the stream buffer or shift framing
+  num_bytes -= num_bytes % 2;
+  if (num_bytes == 0) {
+    return 0;
+  }
   // Non-blocking: enqueue as much as currently fits in the TX stream buffer for
   // the audio task to drain to I2S. This never blocks the caller, so it is safe
   // to call from a touch callback / any task. The number of bytes actually

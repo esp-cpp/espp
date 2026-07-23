@@ -389,6 +389,12 @@ size_t SmartPanleeSc01Plus::play_audio(const uint8_t *data, uint32_t num_bytes) 
   if (!audio_initialized_ || !audio_tx_stream_ || !data || num_bytes == 0) {
     return 0;
   }
+  // only enqueue whole 16-bit stereo frames (4 bytes) so a partial sample
+  // cannot shift the L/R framing or strand 1-3 bytes in the stream buffer
+  num_bytes -= num_bytes % 4;
+  if (num_bytes == 0) {
+    return 0;
+  }
   // non-blocking: the number of bytes actually queued is returned so callers
   // can stream data larger than the buffer
   return xStreamBufferSend(audio_tx_stream_, data, num_bytes, 0);

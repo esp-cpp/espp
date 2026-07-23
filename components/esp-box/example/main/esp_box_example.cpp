@@ -36,8 +36,8 @@ static std::atomic<size_t> recording_len{0};
 static std::atomic<bool> playing{false};
 // wall-clock bounds of the capture, for reporting the measured effective
 // sample rate (ordering is provided by the `recording` atomic)
-static int64_t recording_start_us = 0;
-static int64_t recording_last_us = 0;
+static std::atomic<int64_t> recording_start_us{0};
+static std::atomic<int64_t> recording_last_us{0};
 
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = "ESP BOX Example", .level = espp::Logger::Verbosity::INFO});

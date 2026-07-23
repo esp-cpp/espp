@@ -265,6 +265,12 @@ size_t M5StackTab5::play_audio(const uint8_t *data, uint32_t num_bytes) {
   if (!audio_initialized_ || !data || num_bytes == 0) {
     return 0;
   }
+  // only enqueue whole 16-bit stereo frames (4 bytes) so a partial sample
+  // cannot shift the L/R framing or strand 1-3 bytes in the stream buffer
+  num_bytes -= num_bytes % 4;
+  if (num_bytes == 0) {
+    return 0;
+  }
   // Don't block here: append what fits into the stream buffer and report how
   // much was actually queued so callers can stream data larger than the buffer.
   // The audio task drains it to the I2S peripheral. This runs in task context,
