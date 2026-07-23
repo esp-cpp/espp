@@ -131,7 +131,34 @@ extern "C" void app_main(void) {
     logger.info("--- {} ---", name);
     bool passed = true;
 
-    // 1 slow worker, capacity 2: 1 executing + 2 queued = 3 slots before rejection
+    // 1 worker, queue capacity 2: 1 executing + 2 queued = 3 total slots.
+    //
+    // Jobs are gated by an explicit barrier so workers cannot drain the queue
+    // before we assert rejection, making the test fully deterministic.
+    //
+    // To guarantee the queue is provably full we must also ensure the worker
+    // has dequeued (and is executing) the first job before we fill the two
+    // remaining queue slots.  We use a separate "started" CV for this.
+    std::mutex barrier_mutex;
+    std::condition_variable barrier_cv;
+    bool release_workers = false;
+
+    std::mutex started_mutex;
+    std::condition_variable started_cv;
+    std::atomic<int> jobs_started{0};
+
+    auto blocking_job = [&]() {
+      // Signal that this job is now executing (off the queue)
+      {
+        std::lock_guard<std::mutex> lock(started_mutex);
+        ++jobs_started;
+      }
+      started_cv.notify_one();
+      // Block until the test releases the barrier
+      std::unique_lock<std::mutex> lock(barrier_mutex);
+      barrier_cv.wait(lock, [&]() { return release_workers; });
+    };
+
     espp::ThreadPool pool({
         .worker_count = 1,
         .max_queue_size = 2,
@@ -146,16 +173,26 @@ extern "C" void app_main(void) {
         .log_level = espp::Logger::Verbosity::WARN,
     });
 
-    // Fill worker + queue
+    // Step 1: submit the first job and wait until it is executing
+    //         (it has been removed from the queue by the worker).
     int fill_accepted = 0;
-    for (int i = 0; i < 3; ++i) {
-      if (pool.try_submit([&]() { std::this_thread::sleep_for(300ms); })) {
+    if (pool.try_submit(blocking_job)) {
+      ++fill_accepted;
+    }
+    {
+      std::unique_lock<std::mutex> lock(started_mutex);
+      started_cv.wait(lock, [&]() { return jobs_started.load() >= 1; });
+    }
+
+    // Step 2: fill the 2 remaining queue slots.
+    for (int i = 0; i < 2; ++i) {
+      if (pool.try_submit(blocking_job)) {
         ++fill_accepted;
       }
     }
     passed &= check(name, fill_accepted == 3, "first 3 try_submit calls should be accepted");
 
-    // These should all be rejected immediately
+    // Step 3: queue is now provably full — every additional try_submit must be rejected.
     int rejected_count = 0;
     for (int i = 0; i < 3; ++i) {
       if (!pool.try_submit([&]() {})) {
@@ -168,6 +205,12 @@ extern "C" void app_main(void) {
     logger.info("  stats: {}", s);
     passed &= check(name, s.rejected == 3, "stats.rejected should be 3");
 
+    // Release the barrier so workers can finish, then stop cleanly.
+    {
+      std::lock_guard<std::mutex> lock(barrier_mutex);
+      release_workers = true;
+    }
+    barrier_cv.notify_all();
     pool.stop();
     results.push_back({name, passed});
   }

@@ -31,7 +31,7 @@ public:
   struct Stats {
     std::uint64_t submitted = 0; ///< Total jobs accepted into the queue.
     std::uint64_t executed = 0;  ///< Total jobs successfully executed.
-    std::uint64_t rejected = 0;  ///< Total jobs rejected (invalid job, stopped/stopping, or queue full).
+    std::uint64_t rejected = 0;  ///< Total jobs rejected (invalid job, stopped/stopping, or queue full) or dropped (due to stop, the enqueued jobs were dropped).
   };
 
   /// @brief Configuration parameters for constructing a ThreadPool.
@@ -57,7 +57,7 @@ public:
   ~ThreadPool();
 
   /// @brief Start all worker threads.
-  /// @return true if at all workers were successfully started, false otherwise.
+  /// @return True if all workers were successfully started, false otherwise.
   /// @note No-op if the pool is already running and return true immediately.
   /// @note If any workers could not be started, the pool will roll back to the stopped state.
   bool start();
