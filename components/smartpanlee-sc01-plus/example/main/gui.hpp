@@ -138,6 +138,10 @@ protected:
   lv_obj_t *volume_down_button_{nullptr};
   lv_obj_t *volume_up_button_{nullptr};
   lv_obj_t *audio_label_{nullptr};
+  // last values shown on audio_label_, so update_audio_label() (called every
+  // GUI tick) only reformats the text when a value actually changes
+  int last_volume_{-1};
+  bool last_muted_{false};
   lv_obj_t *circle_layer_{nullptr};
 
   audio_button_callback_t play_callback_{nullptr};
