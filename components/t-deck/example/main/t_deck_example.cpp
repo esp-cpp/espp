@@ -506,23 +506,23 @@ static bool load_audio(size_t &out_size, size_t &out_sample_rate) {
 }
 
 static void play_click(espp::TDeck &tdeck) {
-  // Stream the click through play_audio() in audio_buffer_size chunks,
-  // advancing by however many bytes were actually queued: play_audio() enqueues
-  // only whole frames and may accept less than requested when the stream buffer
-  // is full, so advancing by the requested size would skip samples and misalign
-  // the rest of the clip. (At 16 kHz audio_buffer_size is not a multiple of a
-  // 4-byte frame, so this matters here.)
+  // Enqueue the click without blocking the caller (this runs in the touch
+  // callback). play_audio() enqueues only whole frames and returns how many
+  // bytes it took, so advance by that count - advancing by the requested size
+  // would skip samples (at 16 kHz audio_buffer_size is not a multiple of a
+  // 4-byte frame, so this matters here). Stop as soon as the stream buffer is
+  // full rather than waiting for it to drain; blocking here would freeze the
+  // touch task for the whole click. The click comfortably fits in the stream
+  // buffer, so it plays in full in practice.
   auto audio_buffer_size = tdeck.audio_buffer_size();
   size_t offset = 0;
   while (offset < audio_bytes.size()) {
     size_t chunk = std::min(audio_buffer_size, audio_bytes.size() - offset);
     size_t queued = tdeck.play_audio(audio_bytes.data() + offset, chunk);
-    if (queued == 0) {
-      // stream buffer momentarily full; let the audio task drain, then retry
-      std::this_thread::sleep_for(1ms);
-      continue;
-    }
     offset += queued;
+    if (queued < chunk) {
+      break; // stream buffer full for now; do not block the caller
+    }
   }
 }
 

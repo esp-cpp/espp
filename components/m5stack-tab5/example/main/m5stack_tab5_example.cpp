@@ -576,10 +576,13 @@ static bool load_audio(size_t &out_size, size_t &out_sample_rate) {
 }
 
 static void play_click(espp::M5StackTab5 &tab5) {
-  // Stream the click through play_audio() in audio_buffer_size chunks,
-  // advancing by however many bytes were actually queued: play_audio() enqueues
-  // only whole frames and may accept less than requested when the stream buffer
-  // is full, so the whole click plays even if it is larger than that buffer.
+  // Enqueue the click without blocking the caller (this runs in the touch
+  // callback). play_audio() enqueues only whole frames and returns how many
+  // bytes it took, so advance by that count (advancing by the requested size
+  // would skip samples). Stop as soon as the stream buffer is full rather than
+  // waiting for it to drain - blocking here would freeze the touch task for the
+  // whole click. The click comfortably fits in the stream buffer, so it plays
+  // in full in practice.
   if (audio_bytes.empty()) {
     return;
   }
@@ -588,11 +591,9 @@ static void play_click(espp::M5StackTab5 &tab5) {
   while (offset < audio_bytes.size()) {
     size_t chunk = std::min(audio_buffer_size, audio_bytes.size() - offset);
     size_t queued = tab5.play_audio(audio_bytes.data() + offset, chunk);
-    if (queued == 0) {
-      // stream buffer momentarily full; let the audio task drain, then retry
-      std::this_thread::sleep_for(1ms);
-      continue;
-    }
     offset += queued;
+    if (queued < chunk) {
+      break; // stream buffer full for now; do not block the caller
+    }
   }
 }

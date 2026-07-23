@@ -143,18 +143,18 @@ static void play_click(espp::SmartPanleeSc01Plus &board) {
     return;
   }
 
-  // advance by however many bytes play_audio() actually queued: it enqueues
-  // only whole frames and may accept less than requested when the stream buffer
-  // is full, so advancing by the requested size would skip samples
+  // Advance by however many bytes play_audio() actually queued (it enqueues
+  // only whole frames), not the requested size, so no samples are skipped. Stop
+  // as soon as the stream buffer is full rather than waiting for it to drain -
+  // this runs in the touch callback, so blocking would freeze the touch task
+  // for the whole click. The click comfortably fits in the stream buffer.
   size_t offset = 0;
   while (offset < audio_bytes.size()) {
     auto chunk = std::min(audio_buffer_size, audio_bytes.size() - offset);
     size_t queued = board.play_audio(audio_bytes.data() + offset, static_cast<uint32_t>(chunk));
-    if (queued == 0) {
-      // stream buffer momentarily full; let the audio task drain, then retry
-      std::this_thread::sleep_for(1ms);
-      continue;
-    }
     offset += queued;
+    if (queued < chunk) {
+      break; // stream buffer full for now; do not block the caller
+    }
   }
 }
