@@ -2,7 +2,9 @@
 #include <chrono>
 #include <condition_variable>
 #include <mutex>
+#include <string>
 #include <thread>
+#include <vector>
 
 #include "logger.hpp"
 #include "thread_pool.hpp"
@@ -18,11 +20,30 @@ static void wait_for_jobs(std::condition_variable &cv, std::mutex &mtx, std::ato
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = "ThreadPool Example", .level = espp::Logger::Verbosity::INFO});
 
+  struct TestResult {
+    std::string name;
+    bool passed;
+  };
+  std::vector<TestResult> results;
+
+  // Returns false and logs on failure; used to accumulate per-test pass/fail.
+  auto check = [&](const std::string &test, bool condition, const std::string &desc) -> bool {
+    if (condition) {
+      logger.info("  PASS [{}]: {}", test, desc);
+    } else {
+      logger.error("  FAIL [{}]: {}", test, desc);
+    }
+    return condition;
+  };
+
   // -------------------------------------------------------------------------
   // 1. Manual start/stop + is_running() + worker_count()
   // -------------------------------------------------------------------------
-  logger.info("--- Test: auto_start=false, manual start() / stop() ---");
   {
+    const std::string name = "lifecycle: start/stop/is_running/worker_count";
+    logger.info("--- {} ---", name);
+    bool passed = true;
+
     espp::ThreadPool pool({
         .worker_count = 3,
         .max_queue_size = 0,
@@ -36,29 +57,33 @@ extern "C" void app_main(void) {
         .log_level = espp::Logger::Verbosity::WARN,
     });
 
-    logger.info("is_running before start: {}", pool.is_running());  // false
-    logger.info("worker_count: {}", pool.worker_count());           // 3
+    passed &= check(name, !pool.is_running(),       "pool should not be running before start()");
+    passed &= check(name, pool.worker_count() == 3, "worker_count() should be 3");
 
     pool.start();
-    logger.info("is_running after start: {}", pool.is_running());   // true
+    passed &= check(name, pool.is_running(), "pool should be running after start()");
 
-    // start() is a no-op when already running
-    pool.start();
-    logger.info("is_running after second start: {}", pool.is_running()); // true
+    pool.start(); // no-op
+    passed &= check(name, pool.is_running(), "pool should still be running after duplicate start()");
 
     pool.stop();
-    logger.info("is_running after stop: {}", pool.is_running());    // false
+    passed &= check(name, !pool.is_running(), "pool should not be running after stop()");
+
+    results.push_back({name, passed});
   }
 
   // -------------------------------------------------------------------------
-  // 2. submit() — normal job dispatch, queue_size()
+  // 2. submit() + queue_size() + stats()
   // -------------------------------------------------------------------------
-  logger.info("--- Test: submit() and queue_size() ---");
   {
+    const std::string name = "submit: normal dispatch + queue_size + stats";
+    logger.info("--- {} ---", name);
+    bool passed = true;
+
     std::mutex done_mutex;
     std::condition_variable done_cv;
     constexpr int total_jobs = 8;
-    std::atomic<int> completed_jobs = 0;
+    std::atomic<int> completed_jobs{0};
 
     espp::ThreadPool pool({
         .worker_count = 2,
@@ -73,27 +98,40 @@ extern "C" void app_main(void) {
         .log_level = espp::Logger::Verbosity::WARN,
     });
 
+    int accepted_count = 0;
     for (int i = 0; i < total_jobs; ++i) {
-      bool accepted = pool.submit([&, i]() {
-        std::this_thread::sleep_for(50ms);
-        int done = ++completed_jobs;
-        logger.info("Job {} done ({}/{})", i, done, total_jobs);
-        done_cv.notify_one();
-      });
-      logger.info("submit job {}: accepted={}, queue_size={}", i, accepted, pool.queue_size());
+      if (pool.submit([&, i]() {
+            std::this_thread::sleep_for(50ms);
+            ++completed_jobs;
+            done_cv.notify_one();
+          })) {
+        ++accepted_count;
+      }
     }
+    passed &= check(name, accepted_count == total_jobs, "all jobs should be accepted (unbounded queue)");
 
     wait_for_jobs(done_cv, done_mutex, completed_jobs, total_jobs);
-    logger.info("Stats after submit test: {}", pool.stats());
+
+    auto s = pool.stats();
+    logger.info("  stats: {}", s);
+    passed &= check(name, s.submitted == total_jobs, "submitted count should equal total_jobs");
+    passed &= check(name, s.executed == total_jobs,  "executed count should equal total_jobs");
+    passed &= check(name, s.rejected == 0,           "rejected count should be 0");
+    passed &= check(name, pool.queue_size() == 0,    "queue should be empty after all jobs finish");
+
     pool.stop();
+    results.push_back({name, passed});
   }
 
   // -------------------------------------------------------------------------
   // 3. try_submit() — non-blocking rejection when queue is full
   // -------------------------------------------------------------------------
-  logger.info("--- Test: try_submit() with bounded queue ---");
   {
-    // 1 slow worker, queue capacity 2 → easy to fill
+    const std::string name = "try_submit: rejection when queue full";
+    logger.info("--- {} ---", name);
+    bool passed = true;
+
+    // 1 slow worker, capacity 2: 1 executing + 2 queued = 3 slots before rejection
     espp::ThreadPool pool({
         .worker_count = 1,
         .max_queue_size = 2,
@@ -108,32 +146,43 @@ extern "C" void app_main(void) {
         .log_level = espp::Logger::Verbosity::WARN,
     });
 
-    // Fill the worker + queue
+    // Fill worker + queue
+    int fill_accepted = 0;
     for (int i = 0; i < 3; ++i) {
-      bool accepted = pool.try_submit([&]() { std::this_thread::sleep_for(200ms); });
-      if (i == 0) {
-        logger.info("First job accepted: {}", accepted);
+      if (pool.try_submit([&]() { std::this_thread::sleep_for(300ms); })) {
+        ++fill_accepted;
       }
     }
+    passed &= check(name, fill_accepted == 3, "first 3 try_submit calls should be accepted");
 
-    // These should be rejected (queue full)
+    // These should all be rejected immediately
+    int rejected_count = 0;
     for (int i = 0; i < 3; ++i) {
-      bool accepted = pool.try_submit([&]() { std::this_thread::sleep_for(50ms); });
-      logger.info("try_submit when full: accepted={}", accepted); // false
+      if (!pool.try_submit([&]() {})) {
+        ++rejected_count;
+      }
     }
+    passed &= check(name, rejected_count == 3, "try_submit when full should return false");
 
-    logger.info("Stats after try_submit test: {}", pool.stats());
+    auto s = pool.stats();
+    logger.info("  stats: {}", s);
+    passed &= check(name, s.rejected == 3, "stats.rejected should be 3");
+
     pool.stop();
+    results.push_back({name, passed});
   }
 
   // -------------------------------------------------------------------------
   // 4. submit() blocking when full (block_on_submit_when_full = true)
   // -------------------------------------------------------------------------
-  logger.info("--- Test: submit() blocking when queue is full ---");
   {
+    const std::string name = "submit: blocking when queue full";
+    logger.info("--- {} ---", name);
+    bool passed = true;
+
     std::mutex done_mutex;
     std::condition_variable done_cv;
-    std::atomic<int> completed_jobs = 0;
+    std::atomic<int> completed_jobs{0};
     constexpr int total_jobs = 6;
 
     espp::ThreadPool pool({
@@ -150,27 +199,38 @@ extern "C" void app_main(void) {
         .log_level = espp::Logger::Verbosity::WARN,
     });
 
-    // Submit more jobs than capacity — submit() will block until space is free
+    int accepted_count = 0;
     for (int i = 0; i < total_jobs; ++i) {
-      bool accepted = pool.submit([&, i]() {
-        std::this_thread::sleep_for(50ms);
-        int done = ++completed_jobs;
-        logger.info("Blocking-submit job {} done ({}/{})", i, done, total_jobs);
-        done_cv.notify_one();
-      });
-      logger.info("Blocking-submit job {}: accepted={}", i, accepted);
+      if (pool.submit([&, i]() {
+            std::this_thread::sleep_for(30ms);
+            ++completed_jobs;
+            done_cv.notify_one();
+          })) {
+        ++accepted_count;
+      }
     }
+    passed &= check(name, accepted_count == total_jobs, "all jobs should be accepted (blocking submit)");
 
     wait_for_jobs(done_cv, done_mutex, completed_jobs, total_jobs);
-    logger.info("Stats after blocking-submit test: {}", pool.stats());
+
+    auto s = pool.stats();
+    logger.info("  stats: {}", s);
+    passed &= check(name, s.submitted == total_jobs, "submitted count should equal total_jobs");
+    passed &= check(name, s.executed == total_jobs,  "executed count should equal total_jobs");
+    passed &= check(name, s.rejected == 0,           "rejected count should be 0");
+
     pool.stop();
+    results.push_back({name, passed});
   }
 
   // -------------------------------------------------------------------------
-  // 5. submit() after stop() — rejections via is_running() guard
+  // 5. submit() after stop() — rejected via is_running() guard
   // -------------------------------------------------------------------------
-  logger.info("--- Test: submit() on a stopped pool ---");
   {
+    const std::string name = "submit: rejected after stop()";
+    logger.info("--- {} ---", name);
+    bool passed = true;
+
     espp::ThreadPool pool({
         .worker_count = 1,
         .max_queue_size = 0,
@@ -186,11 +246,35 @@ extern "C" void app_main(void) {
 
     pool.stop();
     bool accepted = pool.submit([]() {});
-    logger.info("submit after stop: accepted={} (expected false)", accepted);
-    logger.info("Stats after stopped-pool test: {}", pool.stats());
+    passed &= check(name, !accepted,                   "submit() after stop() should return false");
+    passed &= check(name, pool.stats().submitted == 0, "submitted count should be 0");
+    passed &= check(name, pool.stats().rejected == 1,  "rejected count should be 1");
+
+    auto s = pool.stats();
+    logger.info("  stats: {}", s);
+    results.push_back({name, passed});
   }
 
-  logger.info("ThreadPool example complete");
+  // -------------------------------------------------------------------------
+  // Summary
+  // -------------------------------------------------------------------------
+  logger.info("==================== Results ====================");
+  int total_passed = 0;
+  for (const auto &r : results) {
+    if (r.passed) {
+      logger.info("  PASS  {}", r.name);
+      ++total_passed;
+    } else {
+      logger.error("  FAIL  {}", r.name);
+    }
+  }
+  logger.info("=================================================");
+  logger.info("{}/{} tests passed", total_passed, results.size());
+  if (total_passed == static_cast<int>(results.size())) {
+    logger.info("All tests passed!");
+  } else {
+    logger.error("{} test(s) FAILED", static_cast<int>(results.size()) - total_passed);
+  }
 
   while (true) {
     std::this_thread::sleep_for(1s);
