@@ -123,8 +123,11 @@ float M5StackCardputer::microphone_volume() const { return mic_volume_; }
 bool M5StackCardputer::microphone_task_callback(std::mutex &m, std::condition_variable &cv,
                                                 bool &task_notified) {
   size_t bytes_read = 0;
+  // Use a finite read timeout (not portMAX_DELAY) so this task returns
+  // periodically and can observe a stop request; an infinite read would block
+  // Task::stop() from joining during teardown.
   auto err = i2s_channel_read(audio_rx_handle, audio_rx_buffer.data(), audio_rx_buffer.size(),
-                              &bytes_read, portMAX_DELAY);
+                              &bytes_read, pdMS_TO_TICKS(100));
   if (err == ESP_OK && bytes_read > 0 && microphone_callback_) {
     if (mic_stereo_capture_) {
       // compact the L,R word pairs down to mono in place, keeping the left
@@ -151,5 +154,11 @@ bool M5StackCardputer::microphone_task_callback(std::mutex &m, std::condition_va
     }
     microphone_callback_(audio_rx_buffer.data(), bytes_read);
   }
-  return false; // don't stop the task
+  // honor a stop request per the Task contract: check/clear notified under m
+  std::unique_lock<std::mutex> lock(m);
+  if (task_notified) {
+    task_notified = false;
+    return true; // stop the task
+  }
+  return false; // keep running
 }

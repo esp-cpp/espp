@@ -213,8 +213,11 @@ bool Esp32P4FunctionEvBoard::initialize_microphone(const microphone_callback_t &
 bool Esp32P4FunctionEvBoard::microphone_task_callback(std::mutex &m, std::condition_variable &cv,
                                                       bool &task_notified) {
   size_t bytes_read = 0;
+  // Use a finite read timeout (not portMAX_DELAY) so this task returns
+  // periodically and can observe a stop request; an infinite read would block
+  // Task::stop() from joining during teardown.
   auto err = i2s_channel_read(audio_rx_handle, audio_rx_buffer.data(), audio_rx_buffer.size(),
-                              &bytes_read, portMAX_DELAY);
+                              &bytes_read, pdMS_TO_TICKS(100));
   if (err == ESP_OK && bytes_read > 0 && microphone_callback_) {
     // compact the L,R word pairs down to mono in place, keeping the left
     // slot (the ES8311's ADC data)
@@ -225,7 +228,13 @@ bool Esp32P4FunctionEvBoard::microphone_task_callback(std::mutex &m, std::condit
     }
     microphone_callback_(audio_rx_buffer.data(), num_frames * sizeof(int16_t));
   }
-  return false; // don't stop the task
+  // honor a stop request per the Task contract: check/clear notified under m
+  std::unique_lock<std::mutex> lock(m);
+  if (task_notified) {
+    task_notified = false;
+    return true; // stop the task
+  }
+  return false; // keep running
 }
 
 void Esp32P4FunctionEvBoard::microphone_volume(float volume) {

@@ -21,6 +21,33 @@ static es7210_gain_value_t microphone_gain_from_volume(float volume) {
   return static_cast<es7210_gain_value_t>(step);
 }
 
+// Map a PCM sample rate onto the codec's audio_hal sample-rate enum. The ES7210
+// coefficient table is selected by this enum, so it must match the rate the I2S
+// clocks actually generate; an unsupported rate falls back to 16 kHz (the rate
+// this board records at).
+static audio_hal_iface_samples_t audio_hal_samples_from_rate(uint32_t rate) {
+  switch (rate) {
+  case 8000:
+    return AUDIO_HAL_08K_SAMPLES;
+  case 11025:
+    return AUDIO_HAL_11K_SAMPLES;
+  case 16000:
+    return AUDIO_HAL_16K_SAMPLES;
+  case 22050:
+    return AUDIO_HAL_22K_SAMPLES;
+  case 24000:
+    return AUDIO_HAL_24K_SAMPLES;
+  case 32000:
+    return AUDIO_HAL_32K_SAMPLES;
+  case 44100:
+    return AUDIO_HAL_44K_SAMPLES;
+  case 48000:
+    return AUDIO_HAL_48K_SAMPLES;
+  default:
+    return AUDIO_HAL_16K_SAMPLES;
+  }
+}
+
 bool TDeck::initialize_i2s(uint32_t default_audio_rate) {
   logger_.info("initializing i2s driver");
   logger_.debug("Using newer I2S standard");
@@ -280,7 +307,9 @@ bool TDeck::initialize_microphone(const microphone_callback_t &callback, uint32_
   es7210_cfg.i2s_iface.bits = AUDIO_HAL_BIT_LENGTH_16BITS;
   es7210_cfg.i2s_iface.fmt = AUDIO_HAL_I2S_NORMAL;
   es7210_cfg.i2s_iface.mode = AUDIO_HAL_MODE_SLAVE;
-  es7210_cfg.i2s_iface.samples = AUDIO_HAL_16K_SAMPLES;
+  // configure the ES7210 for the requested capture rate (rather than assuming
+  // 16 kHz) so its coefficient table matches the I2S clocks
+  es7210_cfg.i2s_iface.samples = audio_hal_samples_from_rate(sample_rate);
   if (es7210_adc_init(&es7210_cfg) != ESP_OK) {
     logger_.error("Could not initialize the ES7210 codec");
     i2s_channel_disable(audio_rx_handle);
@@ -338,22 +367,31 @@ uint32_t TDeck::microphone_sample_rate() const { return mic_sample_rate_; }
 bool TDeck::microphone_task_callback(std::mutex &m, std::condition_variable &cv,
                                      bool &task_notified) {
   size_t bytes_read = 0;
+  // Use a finite read timeout (not portMAX_DELAY) so this task returns
+  // periodically and can observe a stop request; an infinite read would block
+  // Task::stop() from joining during teardown.
   auto err = i2s_channel_read(audio_rx_handle, audio_rx_buffer.data(), audio_rx_buffer.size(),
-                              &bytes_read, portMAX_DELAY);
-  if (err != ESP_OK || bytes_read == 0 || !microphone_callback_) {
-    return false; // don't stop the task
+                              &bytes_read, pdMS_TO_TICKS(100));
+  if (err == ESP_OK && bytes_read > 0 && microphone_callback_) {
+    // audio_rx_buffer holds 4-slot TDM frames: [MIC1, MIC2, MIC3, MIC4].
+    // Compact the populated microphones (MIC1 -> slot 0, MIC3 -> slot 2) down
+    // to 16-bit stereo in place (the output region is the front half, so this
+    // is safe).
+    auto *samples = reinterpret_cast<int16_t *>(audio_rx_buffer.data());
+    size_t num_frames = bytes_read / (4 * sizeof(int16_t));
+    for (size_t i = 0; i < num_frames; i++) {
+      samples[2 * i] = samples[4 * i];         // MIC1 -> left
+      samples[2 * i + 1] = samples[4 * i + 2]; // MIC3 -> right
+    }
+    microphone_callback_(audio_rx_buffer.data(), num_frames * 2 * sizeof(int16_t));
   }
-  // audio_rx_buffer holds 4-slot TDM frames: [MIC1, MIC2, MIC3, MIC4]. Compact
-  // the populated microphones (MIC1 -> slot 0, MIC3 -> slot 2) down to 16-bit
-  // stereo in place (the output region is the front half, so this is safe).
-  auto *samples = reinterpret_cast<int16_t *>(audio_rx_buffer.data());
-  size_t num_frames = bytes_read / (4 * sizeof(int16_t));
-  for (size_t i = 0; i < num_frames; i++) {
-    samples[2 * i] = samples[4 * i];         // MIC1 -> left
-    samples[2 * i + 1] = samples[4 * i + 2]; // MIC3 -> right
+  // honor a stop request per the Task contract: check/clear notified under m
+  std::unique_lock<std::mutex> lock(m);
+  if (task_notified) {
+    task_notified = false;
+    return true; // stop the task
   }
-  microphone_callback_(audio_rx_buffer.data(), num_frames * 2 * sizeof(int16_t));
-  return false; // don't stop the task
+  return false; // keep running
 }
 
 void TDeck::microphone_volume(float volume) {

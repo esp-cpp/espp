@@ -17,6 +17,32 @@ static es7210_gain_value_t microphone_gain_from_volume(float volume) {
   return static_cast<es7210_gain_value_t>(step);
 }
 
+// Map a PCM sample rate onto the codec's audio_hal sample-rate enum. The ES7210
+// coefficient table is selected by this enum, so it must match the rate the I2S
+// clocks actually generate; an unsupported rate falls back to 48 kHz.
+static audio_hal_iface_samples_t audio_hal_samples_from_rate(uint32_t rate) {
+  switch (rate) {
+  case 8000:
+    return AUDIO_HAL_08K_SAMPLES;
+  case 11025:
+    return AUDIO_HAL_11K_SAMPLES;
+  case 16000:
+    return AUDIO_HAL_16K_SAMPLES;
+  case 22050:
+    return AUDIO_HAL_22K_SAMPLES;
+  case 24000:
+    return AUDIO_HAL_24K_SAMPLES;
+  case 32000:
+    return AUDIO_HAL_32K_SAMPLES;
+  case 44100:
+    return AUDIO_HAL_44K_SAMPLES;
+  case 48000:
+    return AUDIO_HAL_48K_SAMPLES;
+  default:
+    return AUDIO_HAL_48K_SAMPLES;
+  }
+}
+
 bool EspBox::initialize_codec() {
   logger_.info("initializing codec");
 
@@ -278,7 +304,9 @@ bool EspBox::initialize_microphone(const microphone_callback_t &callback,
   es7210_cfg.i2s_iface.bits = AUDIO_HAL_BIT_LENGTH_16BITS;
   es7210_cfg.i2s_iface.fmt = AUDIO_HAL_I2S_NORMAL;
   es7210_cfg.i2s_iface.mode = AUDIO_HAL_MODE_SLAVE;
-  es7210_cfg.i2s_iface.samples = AUDIO_HAL_48K_SAMPLES;
+  // configure the ES7210 for the rate the I2S clocks are actually running at
+  // (rather than assuming 48 kHz) so its coefficient table matches
+  es7210_cfg.i2s_iface.samples = audio_hal_samples_from_rate(audio_sample_rate());
   if (es7210_adc_init(&es7210_cfg) != ESP_OK) {
     logger_.error("Could not initialize the ES7210 codec");
     i2s_channel_disable(audio_rx_handle);
@@ -320,12 +348,21 @@ bool EspBox::initialize_microphone(const microphone_callback_t &callback,
 bool EspBox::microphone_task_callback(std::mutex &m, std::condition_variable &cv,
                                       bool &task_notified) {
   size_t bytes_read = 0;
+  // Use a finite read timeout (not portMAX_DELAY) so this task returns
+  // periodically and can observe a stop request; an infinite read would block
+  // Task::stop() from joining during teardown.
   auto err = i2s_channel_read(audio_rx_handle, audio_rx_buffer.data(), audio_rx_buffer.size(),
-                              &bytes_read, portMAX_DELAY);
+                              &bytes_read, pdMS_TO_TICKS(100));
   if (err == ESP_OK && bytes_read > 0 && microphone_callback_) {
     microphone_callback_(audio_rx_buffer.data(), bytes_read);
   }
-  return false; // don't stop the task
+  // honor a stop request per the Task contract: check/clear notified under m
+  std::unique_lock<std::mutex> lock(m);
+  if (task_notified) {
+    task_notified = false;
+    return true; // stop the task
+  }
+  return false; // keep running
 }
 
 void EspBox::microphone_volume(float volume) {
