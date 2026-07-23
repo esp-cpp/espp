@@ -66,12 +66,12 @@ void ThreadPool::start() {
 
 void ThreadPool::stop() {
   std::lock_guard<std::mutex> lifecycle_lock(lifecycle_mutex_);
-  if (!running_.exchange(false)) {
-    return;
-  }
 
   {
     std::lock_guard<std::mutex> lock(queue_mutex_);
+    if (!running_.exchange(false)) {
+      return;
+    }
     stopping_ = true;
     rejected_ += static_cast<std::uint64_t>(queue_.size());
     queue_.clear();
