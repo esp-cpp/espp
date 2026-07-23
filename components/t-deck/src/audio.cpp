@@ -194,10 +194,16 @@ size_t TDeck::play_audio(const std::vector<uint8_t> &data) {
 }
 
 size_t TDeck::play_audio(const uint8_t *data, uint32_t num_bytes) {
+  // guard against being called before initialize_sound() (audio_tx_stream is
+  // not valid until then) and against empty input
+  if (!sound_initialized_ || !data || num_bytes == 0) {
+    return 0;
+  }
   // don't block here: append what fits into the stream buffer and report how
-  // much was actually queued so callers can stream data larger than the
-  // buffer
-  return xStreamBufferSendFromISR(audio_tx_stream, data, num_bytes, NULL);
+  // much was actually queued so callers can stream data larger than the buffer.
+  // This runs in task context, so use the non-ISR send with a 0 timeout (never
+  // blocks) rather than the FromISR variant.
+  return xStreamBufferSend(audio_tx_stream, data, num_bytes, 0);
 }
 
 //////////////////////////

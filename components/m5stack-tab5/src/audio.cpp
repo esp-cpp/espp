@@ -266,9 +266,11 @@ size_t M5StackTab5::play_audio(const uint8_t *data, uint32_t num_bytes) {
     return 0;
   }
   // Don't block here: append what fits into the stream buffer and report how
-  // much was actually queued so callers can stream data larger than the
-  // buffer. The audio task drains it to the I2S peripheral.
-  return xStreamBufferSendFromISR(audio_tx_stream, data, num_bytes, NULL);
+  // much was actually queued so callers can stream data larger than the buffer.
+  // The audio task drains it to the I2S peripheral. This runs in task context,
+  // so use the non-ISR send with a 0 timeout (never blocks) rather than the
+  // FromISR variant.
+  return xStreamBufferSend(audio_tx_stream, data, num_bytes, 0);
 }
 
 size_t M5StackTab5::play_audio(std::span<const uint8_t> data) {
@@ -290,10 +292,19 @@ bool M5StackTab5::start_audio_recording(
     logger_.error("Audio system not initialized");
     return false;
   }
+  // Reject a start while a recording is already in progress: the microphone
+  // task reads audio_rx_callback_ whenever recording_ is true, so reassigning
+  // the callback here (without stopping first) would race that task. The caller
+  // must stop_audio_recording() before starting a new one.
+  if (recording_) {
+    logger_.warn("Recording already in progress; stop it before starting a new one");
+    return false;
+  }
   // The microphone task drains the RX ring continuously, so there is no stale
   // backlog to flush here (and flushing would race that task on the same RX
-  // handle). Just install the callback and arm recording; the task starts
-  // forwarding samples on its next read.
+  // handle). Install the callback before arming recording_: the mic task only
+  // reads the callback once it observes recording_ == true, and the release/
+  // acquire on that atomic publishes the callback write to it.
   audio_rx_callback_ = callback;
   recording_ = true;
   logger_.info("Audio recording started");
