@@ -169,6 +169,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/t-dongle-s3/example/main/t_dongle_s3_example.cpp \
   $(PROJECT_PATH)/components/t_keyboard/example/main/t_keyboard_example.cpp \
   $(PROJECT_PATH)/components/task/example/main/task_example.cpp \
+  $(PROJECT_PATH)/components/thread_pool/example/main/thread_pool_example.cpp \
   $(PROJECT_PATH)/components/thermistor/example/main/thermistor_example.cpp \
   $(PROJECT_PATH)/components/timer/example/main/timer_example.cpp \
   $(PROJECT_PATH)/components/touch/example/main/touch_example.cpp \
@@ -382,6 +383,7 @@ INPUT = \
   $(PROJECT_PATH)/components/tabulate/include/tabulate.hpp \
   $(PROJECT_PATH)/components/task/include/task.hpp \
   $(PROJECT_PATH)/components/task/include/run_on_core.hpp \
+  $(PROJECT_PATH)/components/thread_pool/include/thread_pool.hpp \
   $(PROJECT_PATH)/components/thermistor/include/thermistor.hpp \
   $(PROJECT_PATH)/components/timer/include/high_resolution_timer.hpp \
   $(PROJECT_PATH)/components/timer/include/timer.hpp \

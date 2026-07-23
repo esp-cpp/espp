@@ -111,8 +111,7 @@ extern "C" void app_main(void) {
     // Fill the worker + queue
     for (int i = 0; i < 3; ++i) {
       bool accepted = pool.try_submit([&]() { std::this_thread::sleep_for(200ms); });
-      if (i == 0)
-      {
+      if (i == 0) {
         logger.info("First job accepted: {}", accepted);
       }
     }
