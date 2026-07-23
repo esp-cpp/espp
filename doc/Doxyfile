@@ -383,8 +383,8 @@ INPUT = \
   $(PROJECT_PATH)/components/tabulate/include/tabulate.hpp \
   $(PROJECT_PATH)/components/task/include/task.hpp \
   $(PROJECT_PATH)/components/task/include/run_on_core.hpp \
-  $(PROJECT_PATH)/components/thread_pool/include/thread_pool.hpp \
   $(PROJECT_PATH)/components/thermistor/include/thermistor.hpp \
+  $(PROJECT_PATH)/components/thread_pool/include/thread_pool.hpp \
   $(PROJECT_PATH)/components/timer/include/high_resolution_timer.hpp \
   $(PROJECT_PATH)/components/timer/include/timer.hpp \
   $(PROJECT_PATH)/components/touch/include/touch.hpp \

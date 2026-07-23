@@ -60,10 +60,10 @@ extern "C" void app_main(void) {
     passed &= check(name, !pool.is_running(),       "pool should not be running before start()");
     passed &= check(name, pool.worker_count() == 3, "worker_count() should be 3");
 
-    pool.start();
+    passed &= check(name, pool.start(),   "start() should return true on first call");
     passed &= check(name, pool.is_running(), "pool should be running after start()");
 
-    pool.start(); // no-op
+    passed &= check(name, pool.start(),   "start() should return true when already running (no-op)");
     passed &= check(name, pool.is_running(), "pool should still be running after duplicate start()");
 
     pool.stop();
@@ -252,6 +252,265 @@ extern "C" void app_main(void) {
 
     auto s = pool.stats();
     logger.info("  stats: {}", s);
+    results.push_back({name, passed});
+  }
+
+  // -------------------------------------------------------------------------
+  // 6. Concurrent start/stop from multiple threads
+  // -------------------------------------------------------------------------
+  {
+    const std::string name = "concurrent: start/stop from multiple threads";
+    logger.info("--- {} ---", name);
+    bool passed = true;
+
+    espp::ThreadPool pool({
+        .worker_count = 2,
+        .max_queue_size = 0,
+        .auto_start = false,
+        .worker_task_config = {
+            .name = "tp_worker",
+            .stack_size_bytes = 4096,
+            .priority = 5,
+            .core_id = -1,
+        },
+        .log_level = espp::Logger::Verbosity::WARN,
+    });
+
+    constexpr int num_threads = 4;
+    constexpr int iterations = 10;
+    std::vector<std::thread> threads;
+    threads.reserve(num_threads);
+
+    for (int t = 0; t < num_threads; ++t) {
+      threads.emplace_back([&pool, t]() {
+        for (int i = 0; i < iterations; ++i) {
+          if ((t + i) % 2 == 0) {
+            pool.start();
+          } else {
+            pool.stop();
+          }
+        }
+      });
+    }
+    for (auto &t : threads) {
+      t.join();
+    }
+
+    // Bring pool to a known stopped state and verify consistency
+    pool.stop();
+    passed &= check(name, !pool.is_running(), "pool should reach a clean stopped state");
+
+    auto s = pool.stats();
+    logger.info("  stats: {}", s);
+    // No jobs were submitted — all counters must be zero
+    passed &= check(name, s.submitted == 0 && s.executed == 0 && s.rejected == 0,
+                    "stats should all be zero (no jobs submitted)");
+
+    results.push_back({name, passed});
+  }
+
+  // -------------------------------------------------------------------------
+  // 7. Concurrent submit/try_submit from multiple producer threads
+  // -------------------------------------------------------------------------
+  {
+    const std::string name = "concurrent: multi-thread submit and try_submit";
+    logger.info("--- {} ---", name);
+    bool passed = true;
+
+    std::mutex done_mutex;
+    std::condition_variable done_cv;
+    constexpr int num_submit_threads = 3;
+    constexpr int num_try_submit_threads = 2;
+    constexpr int jobs_per_thread = 10;
+    constexpr int total_jobs =
+        (num_submit_threads + num_try_submit_threads) * jobs_per_thread;
+    std::atomic<int> completed_jobs{0};
+    std::atomic<int> total_accepted{0};
+
+    espp::ThreadPool pool({
+        .worker_count = 4,
+        .max_queue_size = 0,
+        .auto_start = true,
+        .worker_task_config = {
+            .name = "tp_worker",
+            .stack_size_bytes = 4096,
+            .priority = 5,
+            .core_id = -1,
+        },
+        .log_level = espp::Logger::Verbosity::WARN,
+    });
+
+    std::vector<std::thread> producers;
+    producers.reserve(num_submit_threads + num_try_submit_threads);
+
+    // submit() producers
+    for (int p = 0; p < num_submit_threads; ++p) {
+      producers.emplace_back([&]() {
+        for (int i = 0; i < jobs_per_thread; ++i) {
+          if (pool.submit([&]() {
+                std::this_thread::sleep_for(10ms);
+                ++completed_jobs;
+                done_cv.notify_one();
+              })) {
+            ++total_accepted;
+          }
+        }
+      });
+    }
+
+    // try_submit() producers
+    for (int p = 0; p < num_try_submit_threads; ++p) {
+      producers.emplace_back([&]() {
+        for (int i = 0; i < jobs_per_thread; ++i) {
+          if (pool.try_submit([&]() {
+                std::this_thread::sleep_for(10ms);
+                ++completed_jobs;
+                done_cv.notify_one();
+              })) {
+            ++total_accepted;
+          }
+        }
+      });
+    }
+
+    for (auto &p : producers) {
+      p.join();
+    }
+
+    wait_for_jobs(done_cv, done_mutex, completed_jobs, total_accepted.load());
+
+    auto s = pool.stats();
+    logger.info("  stats: {}", s);
+    passed &= check(name, s.submitted + s.rejected == total_jobs,
+                    "submitted + rejected should equal total attempted");
+    passed &= check(name, s.executed == s.submitted,
+                    "all accepted jobs should be executed (unbounded queue)");
+    passed &= check(name, s.rejected == 0, "unbounded queue should not reject any jobs");
+
+    pool.stop();
+    results.push_back({name, passed});
+  }
+
+  // -------------------------------------------------------------------------
+  // 8. Chained pools: a job in pool A submits work to pool B
+  // -------------------------------------------------------------------------
+  {
+    const std::string name = "chained: job in pool_a submits to pool_b";
+    logger.info("--- {} ---", name);
+    bool passed = true;
+
+    std::mutex done_mutex;
+    std::condition_variable done_cv;
+    constexpr int num_a_jobs = 5;
+    constexpr int b_jobs_per_a = 2;
+    constexpr int total_b_jobs = num_a_jobs * b_jobs_per_a;
+    std::atomic<int> completed_b{0};
+
+    espp::ThreadPool pool_b({
+        .worker_count = 2,
+        .max_queue_size = 0,
+        .auto_start = true,
+        .worker_task_config = {
+            .name = "pool_b_worker",
+            .stack_size_bytes = 4096,
+            .priority = 5,
+            .core_id = -1,
+        },
+        .log_level = espp::Logger::Verbosity::WARN,
+    });
+
+    espp::ThreadPool pool_a({
+        .worker_count = 2,
+        .max_queue_size = 0,
+        .auto_start = true,
+        .worker_task_config = {
+            .name = "pool_a_worker",
+            .stack_size_bytes = 4096,
+            .priority = 5,
+            .core_id = -1,
+        },
+        .log_level = espp::Logger::Verbosity::WARN,
+    });
+
+    for (int i = 0; i < num_a_jobs; ++i) {
+      pool_a.submit([&pool_b, &completed_b, &done_cv]() {
+        for (int j = 0; j < b_jobs_per_a; ++j) {
+          pool_b.submit([&completed_b, &done_cv]() {
+            std::this_thread::sleep_for(20ms);
+            ++completed_b;
+            done_cv.notify_one();
+          });
+        }
+      });
+    }
+
+    wait_for_jobs(done_cv, done_mutex, completed_b, total_b_jobs);
+
+    auto sa = pool_a.stats();
+    auto sb = pool_b.stats();
+    logger.info("  pool_a stats: {}", sa);
+    logger.info("  pool_b stats: {}", sb);
+    passed &= check(name, sa.executed == num_a_jobs,   "pool_a should execute all A jobs");
+    passed &= check(name, sb.executed == total_b_jobs, "pool_b should execute all chained B jobs");
+    passed &= check(name, sb.rejected == 0,            "pool_b should not reject any jobs");
+
+    pool_a.stop();
+    pool_b.stop();
+    results.push_back({name, passed});
+  }
+
+  // -------------------------------------------------------------------------
+  // 9. Self-submit: a job submits another job back to the same pool
+  // -------------------------------------------------------------------------
+  {
+    const std::string name = "self-submit: job submits to its own pool";
+    logger.info("--- {} ---", name);
+    bool passed = true;
+
+    std::mutex done_mutex;
+    std::condition_variable done_cv;
+    constexpr int num_initial_jobs = 4;
+    // Each initial job submits one follow-up job → 4 initial + 4 follow-up = 8 total
+    constexpr int total_executions = num_initial_jobs * 2;
+    std::atomic<int> completed{0};
+
+    espp::ThreadPool pool({
+        .worker_count = 2,
+        .max_queue_size = 0,
+        .auto_start = true,
+        .worker_task_config = {
+            .name = "tp_worker",
+            .stack_size_bytes = 4096,
+            .priority = 5,
+            .core_id = -1,
+        },
+        .log_level = espp::Logger::Verbosity::WARN,
+    });
+
+    for (int i = 0; i < num_initial_jobs; ++i) {
+      pool.submit([&pool, &completed, &done_cv]() {
+        ++completed;
+        done_cv.notify_one();
+        // Submit a follow-up job back to the same pool without deadlock
+        pool.submit([&completed, &done_cv]() {
+          std::this_thread::sleep_for(10ms);
+          ++completed;
+          done_cv.notify_one();
+        });
+      });
+    }
+
+    wait_for_jobs(done_cv, done_mutex, completed, total_executions);
+
+    auto s = pool.stats();
+    logger.info("  stats: {}", s);
+    passed &= check(name, s.submitted == total_executions,
+                    "all initial + follow-up jobs should be submitted");
+    passed &= check(name, s.executed == total_executions,
+                    "all initial + follow-up jobs should be executed");
+    passed &= check(name, s.rejected == 0, "no jobs should be rejected");
+
+    pool.stop();
     results.push_back({name, passed});
   }
 

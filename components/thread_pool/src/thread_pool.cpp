@@ -28,40 +28,44 @@ ThreadPool::ThreadPool(const Config &config)
 
 ThreadPool::~ThreadPool() { stop(); }
 
-void ThreadPool::start() {
+bool ThreadPool::start() {
   std::lock_guard<std::mutex> lifecycle_lock(lifecycle_mutex_);
   {
     std::lock_guard<std::mutex> lock(queue_mutex_);
     if (running_.load()) {
-      return;
+      return true;
     }
     stopping_ = false;
-    running_.store(true);
   }
 
-  std::size_t started_count = 0;
+  bool all_workers_started = true;
   for (std::size_t i = 0; i < workers_.size(); ++i) {
-    if (workers_[i]->start()) {
-      ++started_count;
-    } else {
+    if ((!workers_[i]->start()) && (!workers_[i]->is_running())) {
       logger_.warn("Failed to start worker {} (already started or insufficient memory)", i);
+      all_workers_started = false;
+      break;
     }
   }
 
-  if (started_count == 0) {
-    logger_.error("No workers started; rolling back pool start");
-    for (auto &worker : workers_) {
-      worker->stop();
-    }
+  if (!all_workers_started) {
+    logger_.error("Not all workers started; rolling back pool start");
     {
       std::lock_guard<std::mutex> lock(queue_mutex_);
-      running_.store(false);
       stopping_ = true;
-      rejected_ += static_cast<std::uint64_t>(queue_.size());
-      queue_.clear();
     }
-    queue_has_space_cv_.notify_all();
+    queue_has_work_cv_.notify_all();
+    queue_has_space_cv_.notify_all(); // thread should stopped after notify all.
+    for (auto &worker : workers_) {
+      worker->stop(); // stop and join heres
+    }
+    return false;
   }
+
+  {
+    std::lock_guard<std::mutex> lock(queue_mutex_);
+    running_.store(true);
+  }
+  return true;
 }
 
 void ThreadPool::stop() {
@@ -69,6 +73,9 @@ void ThreadPool::stop() {
 
   {
     std::lock_guard<std::mutex> lock(queue_mutex_);
+    if (!running_.load()) {
+      return;
+    }
     if (!running_.exchange(false)) {
       return;
     }

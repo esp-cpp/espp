@@ -57,8 +57,10 @@ public:
   ~ThreadPool();
 
   /// @brief Start all worker threads.
-  /// @note No-op if the pool is already running.
-  void start();
+  /// @return true if at all workers were successfully started, false otherwise.
+  /// @note No-op if the pool is already running and return true immediately.
+  /// @note If any workers could not be started, the pool will roll back to the stopped state.
+  bool start();
 
   /// @brief Stop all worker threads and reject further submissions.
   /// @note Blocks until every worker has exited; queued jobs may not be executed.
