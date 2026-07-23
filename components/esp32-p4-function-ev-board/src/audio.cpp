@@ -213,9 +213,14 @@ bool Esp32P4FunctionEvBoard::initialize_microphone(const microphone_callback_t &
       .task_config = task_config,
   });
 
-  microphone_initialized_ = true;
+  if (!microphone_task_->start()) {
+    i2s_channel_disable(audio_rx_handle);
+    microphone_task_.reset();
+    return false;
+  }
 
-  return microphone_task_->start();
+  microphone_initialized_ = true;
+  return true;
 }
 
 bool Esp32P4FunctionEvBoard::microphone_task_callback(std::mutex &m, std::condition_variable &cv,
