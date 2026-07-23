@@ -250,6 +250,7 @@ public:
   /// \return The number of bytes actually queued (may be less than the data
   ///         size if the internal stream buffer is full); stream longer data
   ///         by calling repeatedly, advancing by the returned count
+  /// \note Must be called from task context, not from an ISR.
   size_t play_audio(std::span<const uint8_t> data);
   /// Queue raw PCM audio bytes for playback.
   /// \param data Pointer to PCM audio bytes.
@@ -257,6 +258,7 @@ public:
   /// \return The number of bytes actually queued (may be less than \p
   ///         num_bytes if the internal stream buffer is full); stream longer
   ///         data by calling repeatedly, advancing by the returned count
+  /// \note Must be called from task context, not from an ISR.
   size_t play_audio(const uint8_t *data, uint32_t num_bytes);
 
   /// Initialize and mount the optional microSD card with default settings.

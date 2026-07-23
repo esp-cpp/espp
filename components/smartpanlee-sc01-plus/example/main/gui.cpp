@@ -107,7 +107,10 @@ void Gui::init_audio_controls() {
 
 void Gui::update_audio_label() {
   auto &board = espp::SmartPanleeSc01Plus::get();
-  lv_label_set_text_fmt(audio_label_, LV_SYMBOL_VOLUME_MAX " %d%%%s",
+  // pass the LVGL symbol as a %s argument rather than concatenating it into the
+  // format-string literal: cppcheck cannot expand the LVGL symbol macros and
+  // flags the literal concatenation as an unknown macro
+  lv_label_set_text_fmt(audio_label_, "%s %d%%%s", LV_SYMBOL_VOLUME_MAX,
                         static_cast<int>(board.volume()), board.is_muted() ? " (muted)" : "");
 }
 

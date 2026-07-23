@@ -180,9 +180,9 @@ bool M5StackCardputer::initialize_sound(uint32_t default_audio_rate,
 bool M5StackCardputer::audio_task_callback(std::mutex &m, std::condition_variable &cv,
                                            bool &task_notified) {
   // Queue the next I2S out frame to write
-  uint16_t available = xStreamBufferBytesAvailable(audio_tx_stream);
-  int buffer_size = audio_tx_buffer.size();
-  available = std::min<uint16_t>(available, buffer_size);
+  size_t available = xStreamBufferBytesAvailable(audio_tx_stream);
+  size_t buffer_size = audio_tx_buffer.size();
+  available = std::min(available, buffer_size);
   uint8_t *buffer = &audio_tx_buffer[0];
   memset(buffer, 0, buffer_size);
 

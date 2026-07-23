@@ -133,9 +133,9 @@ bool TDeck::initialize_sound(uint32_t default_audio_rate,
 
 bool TDeck::audio_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified) {
   // Queue the next I2S out frame to write
-  uint16_t available = xStreamBufferBytesAvailable(audio_tx_stream);
-  int buffer_size = audio_tx_buffer.size();
-  available = std::min<uint16_t>(available, buffer_size);
+  size_t available = xStreamBufferBytesAvailable(audio_tx_stream);
+  size_t buffer_size = audio_tx_buffer.size();
+  available = std::min(available, buffer_size);
   uint8_t *buffer = &audio_tx_buffer[0];
   memset(buffer, 0, buffer_size);
 
@@ -152,7 +152,7 @@ bool TDeck::audio_task_callback(std::mutex &m, std::condition_variable &cv, bool
       // NOTE: we are actually using int16_t samples, so we need to adjust the
       // pointers to the buffer to the correct positions.
       int16_t *ptr = reinterpret_cast<int16_t *>(buffer);
-      for (int i = 0; i < (available / 2); ++i) {
+      for (size_t i = 0; i < (available / 2); ++i) {
         int32_t sample = (ptr[i] * volume_) / 100.0f;
         ptr[i] = static_cast<int16_t>(std::clamp<int32_t>(sample, INT16_MIN, INT16_MAX));
       }
@@ -355,13 +355,21 @@ bool TDeck::initialize_microphone(const microphone_callback_t &callback, uint32_
   // These are the driver's documented "quick setup" HPF values, and are what
   // the (working) esp-box microphone path uses. The T-Deck populates MIC1 and
   // MIC3, one from each ADC pair, so both pairs' HPFs are enabled.
-  std::error_code hpf_ec;
-  es7210_i2c_device_->write_register(0x22, std::vector<uint8_t>{0x0a}, hpf_ec); // ADC1/2 HPF1
-  es7210_i2c_device_->write_register(0x23, std::vector<uint8_t>{0x2a}, hpf_ec); // ADC1/2 HPF2
-  es7210_i2c_device_->write_register(0x20, std::vector<uint8_t>{0x0a}, hpf_ec); // ADC3/4 HPF2
-  es7210_i2c_device_->write_register(0x21, std::vector<uint8_t>{0x2a}, hpf_ec); // ADC3/4 HPF1
-  if (hpf_ec) {
-    logger_.warn("Could not enable the ES7210 high-pass filter: {}", hpf_ec.message());
+  // write_register clears the error code on success, so a later successful
+  // write would mask an earlier failure; remember the first failure explicitly.
+  std::error_code hpf_ec, first_hpf_ec;
+  auto write_hpf = [&](uint8_t reg, uint8_t val) {
+    es7210_i2c_device_->write_register(reg, std::vector<uint8_t>{val}, hpf_ec);
+    if (hpf_ec && !first_hpf_ec) {
+      first_hpf_ec = hpf_ec;
+    }
+  };
+  write_hpf(0x22, 0x0a); // ADC1/2 HPF1
+  write_hpf(0x23, 0x2a); // ADC1/2 HPF2
+  write_hpf(0x20, 0x0a); // ADC3/4 HPF2
+  write_hpf(0x21, 0x2a); // ADC3/4 HPF1
+  if (first_hpf_ec) {
+    logger_.warn("Could not enable the ES7210 high-pass filter: {}", first_hpf_ec.message());
   }
   // apply the stored microphone volume (the driver's init leaves the analog
   // gain at its 0 dB minimum, which records very quietly)

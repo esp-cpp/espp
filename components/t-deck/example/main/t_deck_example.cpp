@@ -533,11 +533,15 @@ static void resample_click(uint32_t from_rate, uint32_t to_rate) {
   if (from_rate == to_rate || audio_bytes.empty() || to_rate == 0) {
     return;
   }
-  const auto *in = reinterpret_cast<const int16_t *>(audio_bytes.data());
   size_t in_frames = audio_bytes.size() / (2 * sizeof(int16_t));
   if (in_frames < 2) {
     return;
   }
+  // Copy the samples into a properly-aligned int16_t buffer: audio_bytes is a
+  // byte vector, so reinterpreting its storage as int16_t* and dereferencing it
+  // would be unaligned / undefined behavior.
+  std::vector<int16_t> in(in_frames * 2);
+  std::memcpy(in.data(), audio_bytes.data(), in.size() * sizeof(int16_t));
   size_t out_frames = static_cast<size_t>(static_cast<uint64_t>(in_frames) * to_rate / from_rate);
   std::vector<int16_t> out(out_frames * 2);
   double step = static_cast<double>(from_rate) / to_rate;
@@ -552,6 +556,6 @@ static void resample_click(uint32_t from_rate, uint32_t to_rate) {
       out[2 * j + ch] = static_cast<int16_t>(a + (b - a) * frac);
     }
   }
-  audio_bytes.assign(reinterpret_cast<uint8_t *>(out.data()),
-                     reinterpret_cast<uint8_t *>(out.data() + out.size()));
+  audio_bytes.resize(out.size() * sizeof(int16_t));
+  std::memcpy(audio_bytes.data(), out.data(), audio_bytes.size());
 }

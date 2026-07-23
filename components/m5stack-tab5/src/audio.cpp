@@ -182,13 +182,21 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
   // analog gain and rails the ADC to full scale - recordings come out as a
   // near-constant DC level that the AC-coupled speaker plays as a click then
   // silence. These are the driver's documented "quick setup" HPF values.
-  std::error_code hpf_ec;
-  es7210_i2c_device_->write_register(0x22, std::vector<uint8_t>{0x0a}, hpf_ec); // ADC1/2 HPF1
-  es7210_i2c_device_->write_register(0x23, std::vector<uint8_t>{0x2a}, hpf_ec); // ADC1/2 HPF2
-  es7210_i2c_device_->write_register(0x20, std::vector<uint8_t>{0x0a}, hpf_ec); // ADC3/4 HPF2
-  es7210_i2c_device_->write_register(0x21, std::vector<uint8_t>{0x2a}, hpf_ec); // ADC3/4 HPF1
-  if (hpf_ec) {
-    logger_.warn("Could not enable the ES7210 high-pass filter: {}", hpf_ec.message());
+  // write_register clears the error code on success, so a later successful
+  // write would mask an earlier failure; remember the first failure explicitly.
+  std::error_code hpf_ec, first_hpf_ec;
+  auto write_hpf = [&](uint8_t reg, uint8_t val) {
+    es7210_i2c_device_->write_register(reg, std::vector<uint8_t>{val}, hpf_ec);
+    if (hpf_ec && !first_hpf_ec) {
+      first_hpf_ec = hpf_ec;
+    }
+  };
+  write_hpf(0x22, 0x0a); // ADC1/2 HPF1
+  write_hpf(0x23, 0x2a); // ADC1/2 HPF2
+  write_hpf(0x20, 0x0a); // ADC3/4 HPF2
+  write_hpf(0x21, 0x2a); // ADC3/4 HPF1
+  if (first_hpf_ec) {
+    logger_.warn("Could not enable the ES7210 high-pass filter: {}", first_hpf_ec.message());
   }
   // apply the stored microphone volume (the driver's init leaves the analog
   // gain at its 0 dB minimum, which records very quietly)
@@ -330,9 +338,9 @@ bool M5StackTab5::audio_task_callback(std::mutex &m, std::condition_variable &cv
   // Queue the next I2S out frame to write (matches the esp-box / t-deck path):
   // always write a full, frame-aligned buffer with the queued samples zero-
   // padded up to buffer_size so the I2S DMA is fed at a constant cadence.
-  uint16_t available = xStreamBufferBytesAvailable(audio_tx_stream);
-  int buffer_size = audio_tx_buffer.size();
-  available = std::min<uint16_t>(available, buffer_size);
+  size_t available = xStreamBufferBytesAvailable(audio_tx_stream);
+  size_t buffer_size = audio_tx_buffer.size();
+  available = std::min(available, buffer_size);
   uint8_t *tx_buf = audio_tx_buffer.data();
   memset(tx_buf, 0, buffer_size);
   if (available == 0) {

@@ -256,12 +256,12 @@ float Esp32P4FunctionEvBoard::microphone_volume() const { return mic_volume_; }
 
 bool Esp32P4FunctionEvBoard::audio_task_callback(std::mutex &m, std::condition_variable &cv,
                                                  bool &task_notified) {
-  uint16_t available = xStreamBufferBytesAvailable(audio_tx_stream);
-  int buffer_size = audio_tx_buffer.size();
-  available = std::min<uint16_t>(available, buffer_size);
+  size_t available = xStreamBufferBytesAvailable(audio_tx_stream);
+  size_t buffer_size = audio_tx_buffer.size();
+  available = std::min(available, buffer_size);
   // only ever hand whole 16-bit samples to I2S; a partial sample would shift
   // the framing of everything after it
-  available &= ~static_cast<uint16_t>(1);
+  available &= ~static_cast<size_t>(1);
   uint8_t *tx_buf = audio_tx_buffer.data();
   memset(tx_buf, 0, buffer_size);
   if (available == 0) {
