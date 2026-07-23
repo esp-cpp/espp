@@ -48,3 +48,6 @@ _build/
 __pycache__/
 managed_components/
 .cache
+
+# local-only agent customizations
+.github/agents/
