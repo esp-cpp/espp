@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <cstdlib>
 
+#include <driver/ppa.h>
 #include <esp_lcd_mipi_dsi.h>
 #include <esp_lcd_panel_io.h>
 #include <esp_lcd_panel_ops.h>
@@ -271,7 +272,16 @@ bool M5StackTab5::initialize_lcd() {
   return true;
 }
 
+// Scratch buffer that holds the hardware-rotated frame produced by the PPA
+// before it is handed to the panel (see flush()). Kept in PSRAM and aligned to
+// the data-cache line size, which the PPA requires for its output buffer.
 static uint16_t *third_buffer = nullptr;
+static size_t third_buffer_bytes = 0;
+// PPA (Pixel Processing Accelerator) client used to rotate the frame in
+// hardware instead of on the CPU (lv_draw_sw_rotate). CPU rotation of a
+// full-frame PSRAM buffer is slow and, because the transpose strides PSRAM,
+// asymmetric between 90 and 270 degrees; the PPA is fast and symmetric.
+static ppa_client_handle_t g_ppa_client = nullptr;
 
 bool M5StackTab5::initialize_display(size_t pixel_buffer_size) {
   logger_.info("Initializing LVGL display with pixel buffer size: {} pixels", pixel_buffer_size);
@@ -289,13 +299,41 @@ bool M5StackTab5::initialize_display(size_t pixel_buffer_size) {
         Display<Pixel>::DynamicMemoryConfig{
             .pixel_buffer_size = pixel_buffer_size,
             .double_buffered = true,
-            .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_DMA,
+            // Allocate the LVGL draw buffers in PSRAM: a full-frame double
+            // buffer is ~3.7 MB, far larger than internal RAM, and the DPI
+            // panel's draw_bitmap reads the source straight from PSRAM (the
+            // esp32-p4-function-ev-board uses the same PSRAM buffers).
+            .allocation_flags = MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT,
         },
         Logger::Verbosity::WARN);
   }
 
-  third_buffer = (uint16_t *)heap_caps_malloc(pixel_buffer_size * sizeof(uint16_t),
-                                              MALLOC_CAP_8BIT | MALLOC_CAP_DMA);
+  // Register a PPA client for hardware rotation, and allocate the rotation
+  // scratch buffer that the PPA writes into. The PPA output buffer (external /
+  // PSRAM memory) must be aligned to the data cache line size, and both the
+  // pointer and the size must be a multiple of it.
+  if (g_ppa_client == nullptr) {
+    ppa_client_config_t ppa_cfg = {};
+    ppa_cfg.oper_type = PPA_OPERATION_SRM;
+    esp_err_t perr = ppa_register_client(&ppa_cfg, &g_ppa_client);
+    if (perr != ESP_OK) {
+      logger_.warn("Could not register PPA client ({}); rotation will fall back to software",
+                   esp_err_to_name(perr));
+      g_ppa_client = nullptr;
+    }
+  }
+  // Align to 128 bytes: the PPA output buffer in external (PSRAM) memory must
+  // be aligned to the L1 and L2 cache line size, and the ESP32-P4's L2 line is
+  // 128 bytes. Both the pointer and the size must be a multiple of it.
+  static constexpr size_t kCacheAlign = 128;
+  third_buffer_bytes = pixel_buffer_size * sizeof(uint16_t);
+  third_buffer_bytes = (third_buffer_bytes + kCacheAlign - 1) / kCacheAlign * kCacheAlign;
+  third_buffer = (uint16_t *)heap_caps_aligned_alloc(kCacheAlign, third_buffer_bytes,
+                                                     MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+  if (third_buffer == nullptr) {
+    logger_.error("Could not allocate the rotation scratch buffer ({} bytes)", third_buffer_bytes);
+    third_buffer_bytes = 0;
+  }
 
   logger_.info("LVGL display initialized");
   return true;
@@ -381,28 +419,60 @@ void IRAM_ATTR M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uin
   int offsety2 = area->y2;
 
   auto rotation = lv_display_get_rotation(lv_display_get_default());
-  if (rotation > LV_DISPLAY_ROTATION_0) {
-    /* SW rotation */
+  if (rotation > LV_DISPLAY_ROTATION_0 && third_buffer != nullptr) {
     int32_t ww = lv_area_get_width(area);
     int32_t hh = lv_area_get_height(area);
     lv_color_format_t cf = lv_display_get_color_format(disp);
-    uint32_t w_stride = lv_draw_buf_width_to_stride(ww, cf);
-    uint32_t h_stride = lv_draw_buf_width_to_stride(hh, cf);
-    if (rotation == LV_DISPLAY_ROTATION_180) {
-      lv_draw_sw_rotate(px_map, third_buffer, hh, ww, h_stride, h_stride, LV_DISPLAY_ROTATION_180,
-                        cf);
-    } else if (rotation == LV_DISPLAY_ROTATION_90) {
-      // printf("%ld %ld\n", w_stride, h_stride);
-      lv_draw_sw_rotate(px_map, third_buffer, ww, hh, w_stride, h_stride, LV_DISPLAY_ROTATION_90,
-                        cf);
-      // // rotate_copy_pixel((uint16_t*)color_map, (uint16_t*)third_buffer, offsetx1, offsety1,
-      // //                   offsetx2, offsety2, LV_HOR_RES, LV_VER_RES, 270);
-      // rotate_copy_pixel((uint16_t*)color_map, (uint16_t*)third_buffer, 0, 0, offsetx2 - offsetx1,
-      //                   offsety2 - offsety1, offsetx2 - offsetx1 + 1, offsety2 - offsety1 + 1,
-      //                   270);
-    } else if (rotation == LV_DISPLAY_ROTATION_270) {
-      lv_draw_sw_rotate(px_map, third_buffer, ww, hh, w_stride, h_stride, LV_DISPLAY_ROTATION_270,
-                        cf);
+    if (g_ppa_client != nullptr) {
+      // Hardware rotation via the PPA. NOTE: the PPA rotates COUNTER-clockwise
+      // while LVGL's rotation is clockwise, so LVGL 90 -> PPA 270 and LVGL 270
+      // -> PPA 90 (180 is the same). If the rotated image comes out turned the
+      // wrong way, swap the 90/270 mapping here. For 90/270 the output picture
+      // width/height are swapped.
+      ppa_srm_rotation_angle_t angle = PPA_SRM_ROTATION_ANGLE_0;
+      uint32_t out_w = ww, out_h = hh;
+      if (rotation == LV_DISPLAY_ROTATION_90) {
+        angle = PPA_SRM_ROTATION_ANGLE_90;
+        out_w = hh;
+        out_h = ww;
+      } else if (rotation == LV_DISPLAY_ROTATION_180) {
+        angle = PPA_SRM_ROTATION_ANGLE_180;
+      } else if (rotation == LV_DISPLAY_ROTATION_270) {
+        angle = PPA_SRM_ROTATION_ANGLE_270;
+        out_w = hh;
+        out_h = ww;
+      }
+      ppa_srm_oper_config_t srm = {};
+      srm.in.buffer = px_map;
+      srm.in.pic_w = ww;
+      srm.in.pic_h = hh;
+      srm.in.block_w = ww;
+      srm.in.block_h = hh;
+      srm.in.srm_cm = PPA_SRM_COLOR_MODE_RGB565;
+      srm.out.buffer = third_buffer;
+      srm.out.buffer_size = third_buffer_bytes;
+      srm.out.pic_w = out_w;
+      srm.out.pic_h = out_h;
+      srm.out.srm_cm = PPA_SRM_COLOR_MODE_RGB565;
+      srm.rotation_angle = angle;
+      srm.scale_x = 1.0f;
+      srm.scale_y = 1.0f;
+      srm.mode = PPA_TRANS_MODE_BLOCKING;
+      ppa_do_scale_rotate_mirror(g_ppa_client, &srm);
+    } else {
+      // Software fallback (used only if the PPA client failed to register)
+      uint32_t w_stride = lv_draw_buf_width_to_stride(ww, cf);
+      uint32_t h_stride = lv_draw_buf_width_to_stride(hh, cf);
+      if (rotation == LV_DISPLAY_ROTATION_180) {
+        lv_draw_sw_rotate(px_map, third_buffer, hh, ww, h_stride, h_stride, LV_DISPLAY_ROTATION_180,
+                          cf);
+      } else if (rotation == LV_DISPLAY_ROTATION_90) {
+        lv_draw_sw_rotate(px_map, third_buffer, ww, hh, w_stride, h_stride, LV_DISPLAY_ROTATION_90,
+                          cf);
+      } else if (rotation == LV_DISPLAY_ROTATION_270) {
+        lv_draw_sw_rotate(px_map, third_buffer, ww, hh, w_stride, h_stride, LV_DISPLAY_ROTATION_270,
+                          cf);
+      }
     }
     px_map = reinterpret_cast<uint8_t *>(third_buffer);
     lv_display_rotate_area(disp, const_cast<lv_area_t *>(area));

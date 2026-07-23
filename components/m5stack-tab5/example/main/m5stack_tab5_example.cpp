@@ -81,9 +81,15 @@ extern "C" void app_main(void) {
     return;
   }
 
-  // initialize the display with a pixel buffer (Tab5 is 1280x720 with 2 bytes per pixel)
+  // initialize the display with a full-frame pixel buffer (Tab5 is 1280x720 with
+  // 2 bytes per pixel). A full-frame LVGL draw buffer (allocated in PSRAM, see
+  // initialize_display) lets a full-screen redraw - e.g. a rotation change -
+  // flush in a single pass instead of ~72 ten-line strips, so the screen
+  // repaints at once rather than wiping progressively. Partial updates still
+  // only render/flush their dirty area, so the larger buffer costs nothing
+  // there (just PSRAM).
   logger.info("Initializing display...");
-  auto pixel_buffer_size = tab5.display_width() * 10; // tab5.display_height();
+  auto pixel_buffer_size = tab5.display_width() * tab5.display_height();
   if (!tab5.initialize_display(pixel_buffer_size)) {
     logger.error("Failed to initialize display!");
     return;
