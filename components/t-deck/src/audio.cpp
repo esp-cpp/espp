@@ -382,9 +382,16 @@ bool TDeck::initialize_microphone(const microphone_callback_t &callback, uint32_
       .task_config = task_config,
   });
 
-  microphone_initialized_ = true;
+  if (!microphone_task_->start()) {
+    i2s_channel_disable(audio_rx_handle);
+    i2s_del_channel(audio_rx_handle);
+    audio_rx_handle = nullptr;
+    microphone_task_.reset();
+    return false;
+  }
 
-  return microphone_task_->start();
+  microphone_initialized_ = true;
+  return true;
 }
 
 uint32_t TDeck::microphone_sample_rate() const { return mic_sample_rate_; }
