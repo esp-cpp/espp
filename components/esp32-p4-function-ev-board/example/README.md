@@ -15,7 +15,11 @@ It:
   card size, Ethernet IP, **RTPS publisher** status, and **system** info (free
   internal/PSRAM heap and uptime),
 - mounts the microSD card (if inserted),
-- initializes the ES8311 audio codec (and loads an embedded `click.wav`),
+- initializes the ES8311 audio codec (and loads an embedded `click.wav`);
+  the on-screen audio row (bottom-left) records from the onboard microphone
+  into a PSRAM-preferred buffer, plays the recording back through the
+  speaker, and adjusts the speaker / microphone volumes (the measured
+  effective capture rate is logged when a recording stops),
 - brings up Ethernet (IP101) with DHCP and, once it has an IP, starts an
   **RTPS participant** that publishes a counter on `espp/test/counter`, and
 - wires the BOOT button.
@@ -24,6 +28,22 @@ It:
 > The LCD adapter board's `RST_LCD` and `PWM` signals must be jumpered to the
 > ESP32-P4 main board (`RST_LCD` → J1 GPIO27, `PWM` → J1 GPIO26) or the screen
 > stays black. See the component README.
+
+## Configuration notes
+
+This example raises some espp BSP task stack sizes above their component
+defaults via `sdkconfig.defaults`, because the example does more work in
+those tasks than the defaults assume:
+
+- **Interrupt / touch task stack (`CONFIG_ESP_P4_EV_BOARD_INTERRUPT_STACK_SIZE` = 8192, up from the 4 KB
+  BSP default).** The interrupt task services the touch controller over
+  I2C; if an I2C transaction errors, the error is logged through espp's
+  `fmt`-based (colorized) logger, whose formatting path needs several KB of
+  stack. With only 4 KB this can overflow and corrupt memory. If you base
+  your own project on this example (or reproduce its functionality), keep
+  this override in your `sdkconfig` / `sdkconfig.defaults`.
+- **Polled touch task stack (`CONFIG_ESP_P4_EV_BOARD_TOUCH_TASK_STACK_SIZE` = 8192).** Same reason:
+  this board polls the GT911 over I2C from its own task.
 
 ## Configuration
 

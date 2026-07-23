@@ -15,6 +15,9 @@ subsystems.
 - GT911 capacitive touch input with LVGL integration helpers
 - T-Keyboard input and trackball pointer input
 - I2S speaker output with software volume / mute control
+- Dual microphone recording through the ES7210 ADC (on its own I2S bus),
+  delivering 16-bit stereo frames to a callback with adjustable analog gain
+  via `microphone_volume()`
 - microSD mounting over SDSPI on the shared SPI host
 - Backlight brightness control and exposed peripheral helpers
 

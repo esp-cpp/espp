@@ -323,13 +323,61 @@ public:
   float volume() const;
 
   /// Play audio
-  /// \param data The audio data to play
-  void play_audio(const std::vector<uint8_t> &data);
+  /// \param data The audio data to play (16-bit signed interleaved stereo)
+  /// \return The number of bytes actually queued (may be less than the data
+  ///         size if the internal stream buffer is full)
+  /// \note This function is non-blocking and queues the data for the audio
+  ///       task to play; to stream data larger than the internal buffer,
+  ///       call it repeatedly, advancing by the returned number of bytes
+  /// \note Must be called from task context, not from an ISR.
+  size_t play_audio(const std::vector<uint8_t> &data);
 
   /// Play audio
-  /// \param data The audio data to play
+  /// \param data The audio data to play (16-bit signed interleaved stereo)
   /// \param num_bytes The number of bytes to play
-  void play_audio(const uint8_t *data, uint32_t num_bytes);
+  /// \return The number of bytes actually queued (may be less than \p
+  ///         num_bytes if the internal stream buffer is full)
+  /// \note This function is non-blocking and queues the data for the audio
+  ///       task to play; to stream data larger than the internal buffer,
+  ///       call it repeatedly, advancing by the returned number of bytes
+  /// \note Must be called from task context, not from an ISR.
+  size_t play_audio(const uint8_t *data, uint32_t num_bytes);
+
+  /////////////////////////////////////////////////////////////////////////////
+  // Microphone
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// Alias for the microphone callback, called with recorded audio data
+  using microphone_callback_t = std::function<void(const uint8_t *data, size_t num_bytes)>;
+
+  /// Initialize the microphones (the dual microphone array through the
+  /// ES7210 ADC) and start delivering audio data to the provided callback
+  /// \param callback The callback to call with recorded audio data: 16-bit
+  ///        signed interleaved stereo (microphone 1 on the left slot,
+  ///        microphone 2 on the right) at audio_sample_rate()
+  /// \param task_config The configuration for the microphone task
+  /// \return true if the microphone was successfully initialized, false
+  ///         otherwise
+  /// \note The sound subsystem must be initialized first (the ES7210 shares
+  ///       the I2S bus with the ES8311 in full duplex, so the microphones
+  ///       record at the speaker's sample rate)
+  /// \note The callback runs in the microphone task's context, so the task's
+  ///       stack must be large enough for whatever the callback does with
+  ///       the audio data
+  bool initialize_microphone(const microphone_callback_t &callback,
+                             const espp::Task::BaseConfig &task_config = {.name = "microphone",
+                                                                          .stack_size_bytes = 4096,
+                                                                          .priority = 10,
+                                                                          .core_id = 1});
+
+  /// Set the microphone volume
+  /// \param volume The volume as a percentage (0 - 100), mapped onto the
+  ///        ES7210 analog microphone gain range (0 dB - +37.5 dB)
+  void microphone_volume(float volume);
+
+  /// Get the microphone volume
+  /// \return The microphone volume as a percentage (0 - 100)
+  float microphone_volume() const;
 
   /////////////////////////////////////////////////////////////////////////////
   // IMU
@@ -358,6 +406,7 @@ protected:
   bool update_touch();
   void update_volume_output();
   bool audio_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
+  bool microphone_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
   void lcd_wait_lines();
 
   // box 3:
@@ -535,6 +584,15 @@ protected:
   std::vector<uint8_t> audio_tx_buffer;
   StreamBufferHandle_t audio_tx_stream;
   i2s_std_config_t audio_std_cfg;
+
+  // microphone
+  std::shared_ptr<I2c::Device<uint8_t>> es7210_i2c_device_;
+  std::atomic<bool> microphone_initialized_{false};
+  microphone_callback_t microphone_callback_{nullptr};
+  std::unique_ptr<espp::Task> microphone_task_{nullptr};
+  std::vector<uint8_t> audio_rx_buffer;
+  // microphone volume (percent), mapped onto the ES7210 analog gain range
+  std::atomic<float> mic_volume_{70.0f};
 
   // IMU
   std::shared_ptr<I2c::Device<uint8_t>> imu_i2c_device_;

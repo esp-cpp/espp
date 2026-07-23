@@ -29,6 +29,8 @@ component to initialize and use the components on the M5Stack Cardputer:
 | Fn + 2 (F2) | Show / hide the IMU overlay (ADV) |
 | Fn + 3 (F3) | Start / stop recording from the microphone (ADV) |
 | Fn + 4 (F4) | Play back / stop the recording (ADV) |
+| Fn + 5 / 6 (F5 / F6) | Speaker volume down / up |
+| Fn + 7 / 8 (F7 / F8) | Microphone volume down / up (75% = 0 dB) |
 | Fn + number row | Show F1-F12 in the status bar |
 | G0 (BOOT) button | Cycle the RGB LED color |
 

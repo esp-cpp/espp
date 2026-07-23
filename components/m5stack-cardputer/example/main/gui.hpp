@@ -41,6 +41,8 @@ public:
                                            "fn+2 (F2)    show/hide IMU\n"
                                            "fn+3 (F3)    record / stop\n"
                                            "fn+4 (F4)    play recording\n"
+                                           "fn+5/6       speaker vol -/+\n"
+                                           "fn+7/8       mic vol -/+\n"
                                            "G0 button    cycle LED color\n"
                                            "\n"
                                            "While help is open:\n"

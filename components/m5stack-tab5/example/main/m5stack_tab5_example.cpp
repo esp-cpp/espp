@@ -7,10 +7,17 @@
  * and communication interfaces.
  */
 
+#include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cmath>
+#include <cstdlib>
+#include <cstring>
 #include <stdlib.h>
 #include <vector>
+
+#include <esp_heap_caps.h>
+#include <esp_timer.h>
 
 #include "m5stack-tab5.hpp"
 
@@ -24,6 +31,21 @@ static std::vector<uint8_t> audio_bytes;
 
 static bool load_audio(size_t &out_size, size_t &out_sample_rate);
 static void play_click(espp::M5StackTab5 &tab5);
+
+// Audio recording state (written by the recording callback, read/controlled
+// from the GUI button callbacks and main loop). The recorded data is 16-bit
+// interleaved stereo at the current audio sample rate.
+static constexpr size_t MAX_RECORDING_SECONDS = 30;     // when PSRAM is available
+static constexpr size_t FALLBACK_RECORDING_SECONDS = 2; // internal RAM fallback
+static uint8_t *recording_buffer = nullptr;
+static size_t recording_capacity = 0;
+static std::atomic<bool> recording{false};
+static std::atomic<size_t> recording_len{0};
+static std::atomic<bool> playing{false};
+// wall-clock bounds of the capture, for reporting the measured effective
+// sample rate (ordering is provided by the `recording` atomic)
+static std::atomic<int64_t> recording_start_us{0};
+static std::atomic<int64_t> recording_last_us{0};
 
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = "M5Stack Tab5 Example", .level = espp::Logger::Verbosity::INFO});
@@ -181,6 +203,11 @@ extern "C" void app_main(void) {
     return;
   }
 
+  // unmute the audio and set the volume to 60% (do this before the GUI is
+  // created so its volume label shows the right value)
+  tab5.mute(false);
+  tab5.volume(60.0f);
+
   // create the GUI: builds the UI (label, buttons, gravity lines, circle
   // layer) and starts the task which updates LVGL. All of its public methods
   // are thread-safe, so the touch callback, button callback, and data display
@@ -188,8 +215,9 @@ extern "C" void app_main(void) {
   logger.info("Setting up LVGL UI...");
   static Gui gui({.log_level = espp::Logger::Verbosity::INFO});
   static const std::string instructions =
-      fmt::format("\n\n\n\nTouch the screen!\nPress the {} button to clear circles.\nPress the {} "
-                  "button to rotate the display.\nPress the {} button to cycle the brightness.",
+      fmt::format("Touch the screen to draw!\nPress the {} button to clear circles.\nPress the "
+                  "{} button to rotate the display.\nPress the {} button to cycle the "
+                  "brightness.\nThe Status and Audio tabs show the other subsystems.",
                   LV_SYMBOL_TRASH, LV_SYMBOL_REFRESH, LV_SYMBOL_EYE_OPEN);
   gui.set_label_text(instructions);
 
@@ -222,14 +250,19 @@ extern "C" void app_main(void) {
       if (touchpad_data.btn_state) {
         gui.clear_circles();
       }
-      // if there is a touch point, draw a circle and play a click sound
-      if (touchpad_data.num_touch_points > 0) {
+      // if there is a touch point on the Draw tab, draw a circle and play a
+      // click sound (touches on the other tabs go to their widgets)
+      if (touchpad_data.num_touch_points > 0 && gui.draw_page_active()) {
         play_click(tab5);
         gui.draw_circle(touchpad_data.x, touchpad_data.y, 10);
       }
     }
   };
   logger.info("Initializing touch...");
+  // NOTE: this example raises the BSP interrupt-task stack size via
+  // sdkconfig.defaults (CONFIG_M5STACK_TAB5_INTERRUPT_STACK_SIZE=8192); the
+  // touch controller is read from that task and its error-logging path
+  // needs more than the 4 KB BSP default. See the example README.
   if (!tab5.initialize_touch(touch_callback)) {
     logger.error("Failed to initialize touch!");
     return;
@@ -247,12 +280,93 @@ extern "C" void app_main(void) {
   logger.info("Setting audio sample rate to {} Hz", wav_sample_rate);
   tab5.audio_sample_rate(wav_sample_rate);
 
-  // unmute the audio and set the volume to 60%
-  tab5.mute(false);
-  tab5.volume(60.0f);
-
   // set the brightness to 75%
   tab5.brightness(75.0f);
+
+  // Keep the analog microphone gain modest: the ES7210 front-end develops a
+  // high-frequency whine as the analog gain is raised, so the loudness comes
+  // from the RMS software makeup gain applied to the recording on stop (see
+  // below) rather than from the analog stage. The mic +/- buttons still adjust
+  // the analog gain if desired.
+  tab5.microphone_volume(40.0f);
+
+  // Allocate the recording buffer (16-bit interleaved stereo at the current
+  // sample rate): prefer PSRAM, fall back to a couple of seconds in internal
+  // RAM
+  size_t bytes_per_second = tab5.audio_sample_rate() * 2 * sizeof(int16_t);
+  recording_capacity = MAX_RECORDING_SECONDS * bytes_per_second;
+  recording_buffer = static_cast<uint8_t *>(
+      heap_caps_malloc(recording_capacity, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+  if (recording_buffer == nullptr) {
+    recording_capacity = FALLBACK_RECORDING_SECONDS * bytes_per_second;
+    recording_buffer =
+        static_cast<uint8_t *>(heap_caps_malloc(recording_capacity, MALLOC_CAP_8BIT));
+  }
+  if (recording_buffer == nullptr) {
+    gui.set_audio_status("No recording buffer");
+    logger.warn("Could not allocate a recording buffer; recording disabled");
+    recording_capacity = 0;
+  } else {
+    logger.info("Recording buffer: {} KB ({} s at {} Hz stereo)", recording_capacity / 1024,
+                recording_capacity / bytes_per_second, tab5.audio_sample_rate());
+  }
+
+  // The recording callback appends the recorded stereo frames to the buffer
+  // and auto-stops when it is full (the main loop notices and updates the
+  // GUI)
+  auto record_data_callback = [](const uint8_t *data, size_t length) {
+    if (!recording) {
+      return;
+    }
+    size_t offset = recording_len;
+    size_t to_copy = std::min(length, recording_capacity - offset);
+    if (to_copy > 0) {
+      memcpy(recording_buffer + offset, data, to_copy);
+      recording_last_us = esp_timer_get_time();
+      recording_len = offset + to_copy;
+    }
+    if (recording_len >= recording_capacity) {
+      recording = false;
+    }
+  };
+
+  // The record button toggles recording; the play button toggles playback of
+  // the recording (streamed to the speaker by the main loop)
+  gui.set_record_callback([&]() {
+    if (recording_capacity == 0) {
+      logger.warn("Recording unavailable (no buffer)");
+      gui.set_audio_status("Recording unavailable (see log)");
+      return;
+    }
+    if (recording) {
+      recording = false; // the main loop stops the BSP recording and logs
+    } else {
+      playing = false;
+      gui.set_play_active(false);
+      recording_len = 0;
+      recording_start_us = esp_timer_get_time();
+      recording_last_us = recording_start_us.load();
+      recording = true;
+      tab5.start_audio_recording(record_data_callback);
+      gui.set_record_active(true);
+      gui.set_audio_status("Recording...");
+    }
+  });
+  gui.set_play_callback([&]() {
+    if (playing) {
+      playing = false;
+      gui.set_play_active(false);
+      gui.set_audio_status("Playback stopped");
+    } else if (recording_len > 0) {
+      recording = false;
+      playing = true;
+      gui.set_play_active(true);
+      gui.set_audio_status("Playing...");
+    } else {
+      logger.info("Nothing recorded yet; press the record button first");
+      gui.set_audio_status("Nothing recorded yet");
+    }
+  });
 
   // make a task to read out various data such as IMU, battery monitoring, etc.
   // and print it to screen
@@ -262,7 +376,7 @@ extern "C" void app_main(void) {
          // sleep first in case we don't get IMU data and need to exit early
          {
            std::unique_lock<std::mutex> lock(m);
-           cv.wait_for(lock, 20ms);
+           cv.wait_for(lock, 10ms);
          }
          static auto &tab5 = espp::M5StackTab5::get();
          static auto imu = tab5.imu();
@@ -331,14 +445,14 @@ extern "C" void app_main(void) {
          vx = -vx;
          vy = -vy;
 
-         std::string text = fmt::format("{}\n\n\n\n\n", instructions);
+         std::string text;
          text += battery_text;
          text += rtc_text;
          text += imu_text;
 
          // update the GUI with the new data; the Gui handles remapping the
          // vectors for the current display rotation
-         gui.set_label_text(text);
+         gui.set_status_text(text);
          gui.set_kalman_down(gravity_vector.x, gravity_vector.y);
          gui.set_madgwick_down(vx, vy);
 
@@ -352,9 +466,83 @@ extern "C" void app_main(void) {
        }});
   imu_task.start();
 
-  // loop forever
+  // Main loop: stream any active playback to the speaker and notice when a
+  // recording stops (either button press or the buffer filling up)
+  size_t play_offset = 0;
+  bool was_recording = false;
   while (true) {
-    std::this_thread::sleep_for(1s);
+    // feed the active playback in chunks, advancing by however much the
+    // speaker's stream buffer accepted
+    if (playing) {
+      size_t len = recording_len;
+      if (play_offset >= len) {
+        playing = false;
+        play_offset = 0;
+        gui.set_play_active(false);
+        gui.set_audio_status("Playback done");
+        logger.info("Playback done");
+      } else {
+        play_offset += tab5.play_audio(recording_buffer + play_offset,
+                                       std::min<size_t>(len - play_offset, 16384));
+      }
+    } else {
+      play_offset = 0;
+    }
+    // notice when the recording stopped (button press or buffer full)
+    bool now_recording = recording;
+    if (was_recording && !now_recording) {
+      tab5.stop_audio_recording();
+      gui.set_record_active(false);
+      gui.set_audio_status(fmt::format("Recorded {:.1f}s ({} plays)",
+                                       static_cast<float>(recording_len) /
+                                           (tab5.audio_sample_rate() * 2 * sizeof(int16_t)),
+                                       LV_SYMBOL_PLAY));
+      // report the measured capture rate: stereo frames recorded over the
+      // wall clock they took to arrive should match the nominal sample rate
+      size_t num_frames = recording_len / (2 * sizeof(int16_t));
+      float elapsed_s = static_cast<float>(recording_last_us - recording_start_us) / 1e6f;
+      float effective_hz = elapsed_s > 0.0f ? num_frames / elapsed_s : 0.0f;
+      // Post-process the recording for playback on the Tab5's MONO speaker.
+      // The ES7210 records 16-bit interleaved stereo (mic 1 -> left slot, mic 2
+      // -> right); downmix each frame to the average (the speaker plays one I2S
+      // slot, so the result is written to both). The captured level is low, so
+      // rather than driving the analog gain hot (which whines), remove the DC
+      // offset and apply an RMS-normalized software makeup gain: this makes the
+      // recording play back at a consistent, audible level comparable to the
+      // click WAV, without a high analog mic gain or a high speaker volume.
+      auto *samples = reinterpret_cast<int16_t *>(recording_buffer);
+      int16_t peak = 0;
+      int64_t sum = 0;
+      for (size_t i = 0; i < num_frames; i++) {
+        int32_t mono = (static_cast<int32_t>(samples[2 * i]) + samples[2 * i + 1]) / 2;
+        samples[2 * i] = static_cast<int16_t>(mono);
+        peak = std::max<int16_t>(peak, static_cast<int16_t>(std::abs(mono)));
+        sum += mono;
+      }
+      int32_t dc = num_frames ? static_cast<int32_t>(sum / static_cast<int64_t>(num_frames)) : 0;
+      int64_t sum_sq = 0;
+      for (size_t i = 0; i < num_frames; i++) {
+        int32_t v = samples[2 * i] - dc;
+        sum_sq += static_cast<int64_t>(v) * v;
+      }
+      double rms = num_frames ? std::sqrt(static_cast<double>(sum_sq) / num_frames) : 0.0;
+      // target ~-15 dBFS leaves headroom; cap the gain so a near-silent capture
+      // is not blown up into noise
+      static constexpr double target_rms = 5500.0;
+      double gain = rms > 1.0 ? std::clamp(target_rms / rms, 1.0, 64.0) : 1.0;
+      for (size_t i = 0; i < num_frames; i++) {
+        int32_t v = static_cast<int32_t>((samples[2 * i] - dc) * gain);
+        int16_t mono = static_cast<int16_t>(std::clamp<int32_t>(v, -32768, 32767));
+        samples[2 * i] = mono;
+        samples[2 * i + 1] = mono;
+      }
+      logger.info("Recorded {} frames in {:.2f} s (~{:.0f} Hz effective, {} Hz nominal); "
+                  "peak={} dc={} rms={:.0f}; applied makeup gain {:.1f}x",
+                  num_frames, elapsed_s, effective_hz, tab5.audio_sample_rate(), peak, dc, rms,
+                  gain);
+    }
+    was_recording = now_recording;
+    std::this_thread::sleep_for(50ms);
   }
   //! [m5stack tab5 example]
 }
@@ -388,7 +576,24 @@ static bool load_audio(size_t &out_size, size_t &out_sample_rate) {
 }
 
 static void play_click(espp::M5StackTab5 &tab5) {
-  if (audio_bytes.size() > 0) {
-    tab5.play_audio(audio_bytes);
+  // Enqueue the click without blocking the caller (this runs in the touch
+  // callback). play_audio() enqueues only whole frames and returns how many
+  // bytes it took, so advance by that count (advancing by the requested size
+  // would skip samples). Stop as soon as the stream buffer is full rather than
+  // waiting for it to drain - blocking here would freeze the touch task for the
+  // whole click. The click comfortably fits in the stream buffer, so it plays
+  // in full in practice.
+  if (audio_bytes.empty()) {
+    return;
+  }
+  auto audio_buffer_size = tab5.audio_buffer_size();
+  size_t offset = 0;
+  while (offset < audio_bytes.size()) {
+    size_t chunk = std::min(audio_buffer_size, audio_bytes.size() - offset);
+    size_t queued = tab5.play_audio(audio_bytes.data() + offset, chunk);
+    offset += queued;
+    if (queued < chunk) {
+      break; // stream buffer full for now; do not block the caller
+    }
   }
 }

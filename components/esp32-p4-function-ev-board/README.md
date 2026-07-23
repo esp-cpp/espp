@@ -51,7 +51,11 @@ initializes and exposes the board's peripherals:
 - **GT911 capacitive multi-touch** — polled by default (the touch INT pin is not
   routed to the ESP32-P4 on this board), or **interrupt-driven** if you wire the
   INT pin from the LCD expansion header to a GPIO (see [Touch mode](#touch-mode-polling-vs-interrupt)).
-- **ES8311 audio codec** (+ NS4150B speaker amplifier) over I2S for playback.
+- **ES8311 audio codec** (+ NS4150B speaker amplifier) over I2S, full duplex:
+  16-bit mono playback via `play_audio()` and recording from the onboard
+  analog microphone via `initialize_microphone()` (16-bit mono at the
+  speaker's sample rate, with adjustable analog gain via
+  `microphone_volume()`).
 - **10/100 Ethernet** (EMAC + IP101 RMII PHY) with DHCP.
 - **microSD card** (4-bit SDMMC, powered via the on-chip LDO).
 - **MIPI-CSI camera** (SC2336/OV5647) — pins/SCCB wired, capture pipeline is a
