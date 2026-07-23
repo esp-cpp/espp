@@ -55,8 +55,7 @@ extern "C" void app_main(void) {
   }
 
   auto stats = pool.stats();
-  logger.info("ThreadPool stats: submitted={} executed={} rejected={}", stats.submitted,
-              stats.executed, stats.rejected);
+  logger.info("ThreadPool stats: {}", stats);
 
   pool.stop();
   logger.info("ThreadPool example complete");
