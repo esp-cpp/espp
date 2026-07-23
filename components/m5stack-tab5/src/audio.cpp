@@ -226,9 +226,6 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
       {.callback = std::bind(&M5StackTab5::microphone_task_callback, this, _1, _2, _3),
        .task_config = mic_task_config});
 
-  // Enable speaker output
-  enable_audio(true);
-
   // Start the tasks stepwise so a failure does not leave a half-initialized
   // state: if the microphone task fails to start, stop the already-running
   // playback task and report failure rather than leaving it running with
@@ -242,6 +239,9 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
     audio_task_->stop();
     return false;
   }
+
+  // Enable speaker output
+  enable_audio(true);
 
   audio_initialized_ = true;
   return true;
