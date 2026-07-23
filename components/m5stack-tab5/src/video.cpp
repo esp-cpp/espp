@@ -326,13 +326,21 @@ bool M5StackTab5::initialize_display(size_t pixel_buffer_size) {
   // be aligned to the L1 and L2 cache line size, and the ESP32-P4's L2 line is
   // 128 bytes. Both the pointer and the size must be a multiple of it.
   static constexpr size_t kCacheAlign = 128;
-  third_buffer_bytes = pixel_buffer_size * sizeof(uint16_t);
-  third_buffer_bytes = (third_buffer_bytes + kCacheAlign - 1) / kCacheAlign * kCacheAlign;
-  third_buffer = (uint16_t *)heap_caps_aligned_alloc(kCacheAlign, third_buffer_bytes,
-                                                     MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-  if (third_buffer == nullptr) {
-    logger_.error("Could not allocate the rotation scratch buffer ({} bytes)", third_buffer_bytes);
-    third_buffer_bytes = 0;
+  size_t required_bytes = pixel_buffer_size * sizeof(uint16_t);
+  required_bytes = (required_bytes + kCacheAlign - 1) / kCacheAlign * kCacheAlign;
+
+  if (third_buffer == nullptr || third_buffer_bytes != required_bytes) {
+    if (third_buffer != nullptr) {
+      free(third_buffer);
+      third_buffer = nullptr;
+    }
+    third_buffer_bytes = required_bytes;
+    third_buffer = (uint16_t *)heap_caps_aligned_alloc(kCacheAlign, third_buffer_bytes,
+                                                       MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    if (third_buffer == nullptr) {
+      logger_.error("Could not allocate the rotation scratch buffer ({} bytes)", third_buffer_bytes);
+      third_buffer_bytes = 0;
+    }
   }
 
   logger_.info("LVGL display initialized");
