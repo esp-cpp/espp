@@ -34,7 +34,12 @@ namespace espp {
 /// The class is a singleton and can be accessed via get().
 ///
 /// \section esp32_ethernet_kit_example Example
-/// \snippet esp32_ethernet_kit_example.cpp esp32 ethernet kit example
+/// \subsection esp32_ethernet_kit_get_instance Get Instance
+/// \snippet esp32_ethernet_kit_example.cpp esp32 ethernet kit get instance
+/// \subsection esp32_ethernet_kit_dhcp_server DHCP Server
+/// \snippet esp32_ethernet_kit_example.cpp esp32 ethernet kit dhcp server
+/// \subsection esp32_ethernet_kit_dhcp_client DHCP Client
+/// \snippet esp32_ethernet_kit_example.cpp esp32 ethernet kit dhcp client
 class Esp32EthernetKit : public BaseComponent {
 public:
   /// Callback invoked when the Ethernet link comes up and an IP is assigned
