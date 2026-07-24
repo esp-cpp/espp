@@ -49,6 +49,7 @@ _IMPLICIT_CTOR_FIX = {
         ".def(py::init<const espp::Timer::Config &>())\n"
         "      .def(py::init<const espp::Timer::AdvancedConfig &>())"
     ),
+    "pyClassThreadPool": ".def(py::init<const espp::ThreadPool::Config &>())",
     "pyClassBezier_espp_Vector2f": (
         ".def(py::init<const espp::Bezier<espp::Vector2f>::Config &>())\n"
         "      .def(py::init<const espp::Bezier<espp::Vector2f>::WeightedConfig &>())"

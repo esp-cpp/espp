@@ -458,8 +458,8 @@ void py_init_module_espp(py::module &m) {
       "*\n * @brief Implements rational / weighted and unweighted cubic bezier curves\n *        "
       "between control points.\n * @note See https://pomax.github.io/bezierinfo/ for information "
       "on bezier\n *       curves.\n * @note Template class which can be used individually on "
-      "floating point\n *       values directly or on containers such as Vector2<float>.\n * "
-      "@tparam T The type of the control points, e.g. float or Vector2<float>.\n * @note The "
+      "floating point\n *       values directly or on containers such as Vector2d<float>.\n * "
+      "@tparam T The type of the control points, e.g. float or Vector2d<float>.\n * @note The "
       "bezier curve is defined by 4 control points, P0, P1, P2, P3.\n *      The curve is defined "
       "by the equation:\n *      \\f$B(t) = (1-t)^3 * P0 + 3 * (1-t)^2 * t * P1 + 3 * (1-t) * t^2 "
       "* P2 + t^3 * P3\\f$\n *      where t is the evaluation parameter, [0, 1].\n *\n * @note The "
@@ -563,7 +563,7 @@ void py_init_module_espp(py::module &m) {
 
   m.def("fast_ln", espp::fast_ln, py::arg("x"),
         "*\n * @brief fast natural log function, ln(x).\n * @note This speed hack comes from:\n *  "
-        " https://gist.github.com/LingDong-/7e4c4cae5cbbc44400a05ba650623\n * @param x Value to "
+        " https://gist.github.com/LingDong-/7e4c4cae5cbbc44400a05fba65f06f23\n * @param x Value to "
         "take the natural log of.\n * @return ln(x)\n");
 
   m.def("fast_sin", espp::fast_sin, py::arg("angle"),
@@ -895,7 +895,7 @@ void py_init_module_espp(py::module &m) {
           m, "Vector2d_int", py::dynamic_attr(),
           "*\n * @brief Container representing a 2 dimensional vector.\n *\n * Provides "
           "getters/setters, index operator, and vector / scalar math\n * utilities.\n *\n * "
-          "\\section vector_ex1 Example\n * \\snippet math_example.cpp vector2 example\n")
+          "\\section vector_ex1 Example\n * \\snippet math_example.cpp vector2d example\n")
           .def(py::init<int, int>(), py::arg("x") = 0, py::arg("y") = 0,
                "*\n   * @brief Constructor for the vector, defaults to 0,0.\n   * @param x The "
                "starting X value.\n   * @param y The starting Y value.\n")
@@ -1014,10 +1014,6 @@ void py_init_module_espp(py::module &m) {
                "*\n   * @brief Return a scaled version of the vector, divided by the provided\n   "
                "*        value.\n   * @param v Value the vector should be divided by.\n   * "
                "@return Resultant scaled vector.\n")
-          .def("__itruediv__", py::overload_cast<const int &>(&espp::Vector2d<int>::operator/=),
-               py::arg("v"),
-               "*\n   * @brief Return the vector divided by the provided value.\n   * @param v "
-               "Value the vector should be divided by.\n   * @return Resultant scaled vector.\n")
           .def("__truediv__",
                py::overload_cast<const espp::Vector2d<int> &>(&espp::Vector2d<int>::operator/,
                                                               py::const_),
@@ -1025,6 +1021,10 @@ void py_init_module_espp(py::module &m) {
                "*\n   * @brief Return a scaled version of the vector, divided by the provided\n   "
                "*        vector value. Scales x and y independently.\n   * @param v Vector values "
                "the vector should be divided by.\n   * @return Resultant scaled vector.\n")
+          .def("__itruediv__", py::overload_cast<const int &>(&espp::Vector2d<int>::operator/=),
+               py::arg("v"),
+               "*\n   * @brief Return the vector divided by the provided value.\n   * @param v "
+               "Value the vector should be divided by.\n   * @return Resultant scaled vector.\n")
           .def("__itruediv__",
                py::overload_cast<const espp::Vector2d<int> &>(&espp::Vector2d<int>::operator/=),
                py::arg("v"),
@@ -1042,7 +1042,7 @@ void py_init_module_espp(py::module &m) {
           m, "Vector2d_float", py::dynamic_attr(),
           "*\n * @brief Container representing a 2 dimensional vector.\n *\n * Provides "
           "getters/setters, index operator, and vector / scalar math\n * utilities.\n *\n * "
-          "\\section vector_ex1 Example\n * \\snippet math_example.cpp vector2 example\n")
+          "\\section vector_ex1 Example\n * \\snippet math_example.cpp vector2d example\n")
           .def(py::init<float, float>(), py::arg("x") = 0, py::arg("y") = 0,
                "*\n   * @brief Constructor for the vector, defaults to 0,0.\n   * @param x The "
                "starting X value.\n   * @param y The starting Y value.\n")
@@ -1161,10 +1161,6 @@ void py_init_module_espp(py::module &m) {
                "*\n   * @brief Return a scaled version of the vector, divided by the provided\n   "
                "*        value.\n   * @param v Value the vector should be divided by.\n   * "
                "@return Resultant scaled vector.\n")
-          .def("__itruediv__", py::overload_cast<const float &>(&espp::Vector2d<float>::operator/=),
-               py::arg("v"),
-               "*\n   * @brief Return the vector divided by the provided value.\n   * @param v "
-               "Value the vector should be divided by.\n   * @return Resultant scaled vector.\n")
           .def("__truediv__",
                py::overload_cast<const espp::Vector2d<float> &>(&espp::Vector2d<float>::operator/,
                                                                 py::const_),
@@ -1172,6 +1168,10 @@ void py_init_module_espp(py::module &m) {
                "*\n   * @brief Return a scaled version of the vector, divided by the provided\n   "
                "*        vector value. Scales x and y independently.\n   * @param v Vector values "
                "the vector should be divided by.\n   * @return Resultant scaled vector.\n")
+          .def("__itruediv__", py::overload_cast<const float &>(&espp::Vector2d<float>::operator/=),
+               py::arg("v"),
+               "*\n   * @brief Return the vector divided by the provided value.\n   * @param v "
+               "Value the vector should be divided by.\n   * @return Resultant scaled vector.\n")
           .def("__itruediv__",
                py::overload_cast<const espp::Vector2d<float> &>(&espp::Vector2d<float>::operator/=),
                py::arg("v"),
@@ -1491,11 +1491,11 @@ void py_init_module_espp(py::module &m) {
                   "*\n   * @brief Static function to make an NDEF record for BT classic OOB "
                   "Pairing (Android).\n   * @param mac_addr 48 bit MAC Address of the BT radio\n   "
                   "* @note If the address is e.g. f4:12:fa:42:fe:9e then the mac_addr should be\n  "
-                  " *       0xf412a42e9e.\n   * @param device_class The bluetooth device class for "
-                  "this radio.\n   * @param name Name of the BT device.\n   * @param random_value "
-                  "The Simple pairing randomizer R for the pairing.\n   * @param confirm_value The "
-                  "Simple pairing hash C (confirm value) for the\n   *                      "
-                  "pairing.\n   * @return NDEF record object.\n")
+                  " *       0xf412fa42fe9e.\n   * @param device_class The bluetooth device class "
+                  "for this radio.\n   * @param name Name of the BT device.\n   * @param "
+                  "random_value The Simple pairing randomizer R for the pairing.\n   * @param "
+                  "confirm_value The Simple pairing hash C (confirm value) for the\n   *           "
+                  "           pairing.\n   * @return NDEF record object.\n")
       .def_static(
           "make_le_oob_pairing", &espp::Ndef::make_le_oob_pairing, py::arg("mac_addr"),
           py::arg("role"), py::arg("name") = "",
@@ -1503,7 +1503,7 @@ void py_init_module_espp(py::module &m) {
           py::arg("confirm_value") = "", py::arg("tk") = "",
           "*\n   * @brief Static function to make an NDEF record for BLE OOB Pairing (Android).\n  "
           " * @param mac_addr 48 bit MAC Address of the BLE radio.\n   * @note If the address is "
-          "e.g. f4:12:fa:42:fe:9e then the mac_addr should be\n   *       0xf412a42e9e.\n   * "
+          "e.g. f4:12:fa:42:fe:9e then the mac_addr should be\n   *       0xf412fa42fe9e.\n   * "
           "@param role The BLE role of the device (central / peripheral / dual)\n   * @param name "
           "Name of the BLE device. Optional.\n   * @param appearance BtAppearance of the device. "
           "Optional.\n   * @param random_value The Simple pairing randomizer R for the pairing. "
@@ -2354,6 +2354,129 @@ void py_init_module_espp(py::module &m) {
            "/ @brief Check if the timer is running.\n/ @details Checks if the timer is running.\n/ "
            "@return True if the timer is running, False otherwise.");
   ////////////////////    </generated_from:timer.hpp>    ////////////////////
+
+  ////////////////////    <generated_from:thread_pool.hpp>    ////////////////////
+  auto pyClassThreadPool = py::class_<espp::ThreadPool>(
+      m, "ThreadPool", py::dynamic_attr(),
+      "*\n * @brief A thread pool that dispatches submitted jobs to a fixed set of worker "
+      "threads.\n *\n * Workers are implemented as espp::Task instances. Jobs are queued and\n * "
+      "consumed in FIFO order. The queue can be optionally bounded; when full,\n * new submissions "
+      "are either rejected immediately or blocked until space\n * becomes available, depending on "
+      "the configuration.\n *\n * \\section thread_pool_ex1 Lifecycle: start / stop / is_running / "
+      "worker_count\n * \\snippet thread_pool_example.cpp lifecycle example\n * \\section "
+      "thread_pool_ex2 Submit Jobs\n * \\snippet thread_pool_example.cpp submit example\n * "
+      "\\section thread_pool_ex3 try_submit — Non-Blocking Rejection When Full\n * \\snippet "
+      "thread_pool_example.cpp try_submit example\n * \\section thread_pool_ex4 Blocking Submit "
+      "When Full\n * \\snippet thread_pool_example.cpp blocking submit example\n * \\section "
+      "thread_pool_ex5 Submit Rejected After stop()\n * \\snippet thread_pool_example.cpp submit "
+      "after stop example\n * \\section thread_pool_ex6 Concurrent start / stop\n * \\snippet "
+      "thread_pool_example.cpp concurrent lifecycle example\n * \\section thread_pool_ex7 "
+      "Concurrent submit and try_submit\n * \\snippet thread_pool_example.cpp concurrent submit "
+      "example\n * \\section thread_pool_ex8 Chained Pools\n * \\snippet thread_pool_example.cpp "
+      "chained pools example\n * \\section thread_pool_ex9 Self-Submit\n * \\snippet "
+      "thread_pool_example.cpp self-submit example\n");
+
+  { // inner classes & enums of ThreadPool
+    auto pyClassThreadPool_ClassStats =
+        py::class_<espp::ThreadPool::Stats>(pyClassThreadPool, "Stats", py::dynamic_attr(),
+                                            "/ @brief Snapshot of pool activity counters.")
+            .def(py::init<>([](std::uint64_t submitted = 0, std::uint64_t executed = 0,
+                               std::uint64_t rejected = 0) {
+                   auto r_ctor_ = std::make_unique<espp::ThreadPool::Stats>();
+                   r_ctor_->submitted = submitted;
+                   r_ctor_->executed = executed;
+                   r_ctor_->rejected = rejected;
+                   return r_ctor_;
+                 }),
+                 py::arg("submitted") = 0, py::arg("executed") = 0, py::arg("rejected") = 0)
+            .def_readwrite("submitted", &espp::ThreadPool::Stats::submitted,
+                           "/< Total jobs accepted into the queue.")
+            .def_readwrite("executed", &espp::ThreadPool::Stats::executed,
+                           "/< Total jobs successfully executed.")
+            .def_readwrite("rejected", &espp::ThreadPool::Stats::rejected,
+                           "/< Total jobs rejected (invalid job, stopped/stopping, or queue full) "
+                           "or dropped (due to stop, the enqueued jobs were dropped).");
+    auto pyClassThreadPool_ClassConfig =
+        py::class_<espp::ThreadPool::Config>(
+            pyClassThreadPool, "Config", py::dynamic_attr(),
+            "/ @brief Configuration parameters for constructing a ThreadPool.")
+            .def(py::init<>([](std::size_t worker_count = 1, std::size_t max_queue_size = 0,
+                               bool auto_start = true, bool block_on_submit_when_full = false,
+                               espp::Task::BaseConfig worker_task_config =
+                                   {
+                                       ///< Base configuration applied to every worker task.
+                                       .name = "thread_pool_worker",
+                                       .stack_size_bytes = 4096,
+                                       .priority = 5,
+                                       .core_id = -1,
+                                   },
+                               espp::Logger::Verbosity log_level = espp::Logger::Verbosity::WARN) {
+                   auto r_ctor_ = std::make_unique<espp::ThreadPool::Config>();
+                   r_ctor_->worker_count = worker_count;
+                   r_ctor_->max_queue_size = max_queue_size;
+                   r_ctor_->auto_start = auto_start;
+                   r_ctor_->block_on_submit_when_full = block_on_submit_when_full;
+                   r_ctor_->worker_task_config = worker_task_config;
+                   r_ctor_->log_level = log_level;
+                   return r_ctor_;
+                 }),
+                 py::arg("worker_count") = 1, py::arg("max_queue_size") = 0,
+                 py::arg("auto_start") = true, py::arg("block_on_submit_when_full") = false,
+                 py::arg("worker_task_config") =
+                     espp::Task::BaseConfig{
+                         ///< Base configuration applied to every worker task.
+                         .name = "thread_pool_worker",
+                         .stack_size_bytes = 4096,
+                         .priority = 5,
+                         .core_id = -1,
+                     },
+                 py::arg("log_level") = espp::Logger::Verbosity::WARN)
+            .def_readwrite("worker_count", &espp::ThreadPool::Config::worker_count,
+                           "/< Number of worker threads to spawn.")
+            .def_readwrite("max_queue_size", &espp::ThreadPool::Config::max_queue_size,
+                           "/< Maximum pending jobs (0 = unbounded).")
+            .def_readwrite("auto_start", &espp::ThreadPool::Config::auto_start,
+                           "/< Start workers immediately on construction.")
+            .def_readwrite(
+                "block_on_submit_when_full", &espp::ThreadPool::Config::block_on_submit_when_full,
+                "/< If True, submit() blocks when the queue is full instead of rejecting.")
+            .def_readwrite("worker_task_config", &espp::ThreadPool::Config::worker_task_config, "")
+            .def_readwrite("log_level", &espp::ThreadPool::Config::log_level,
+                           "/< Logger verbosity level.");
+  } // end of inner classes & enums of ThreadPool
+
+  pyClassThreadPool.def(py::init<const espp::ThreadPool::Config &>())
+      .def("start", &espp::ThreadPool::start,
+           "/ @brief Start all worker threads.\n/ @return True if all workers were successfully "
+           "started, False otherwise.\n/ @note No-op if the pool is already running and return "
+           "True immediately.\n/ @note If any workers could not be started, the pool will roll "
+           "back to the stopped state.")
+      .def("stop", &espp::ThreadPool::stop,
+           "/ @brief Stop all worker threads and reject further submissions.\n/ @note Blocks until "
+           "every worker has exited; queued jobs may not be executed.")
+      .def("is_running", &espp::ThreadPool::is_running,
+           "/ @brief Query whether the pool is currently running.\n/ @return True if workers are "
+           "active, False otherwise.")
+      .def("submit", &espp::ThreadPool::submit, py::arg("job"),
+           "/ @brief Submit a job, optionally blocking when the queue is full.\n/\n/ Blocks if "
+           "Config::block_on_submit_when_full is True and the queue has\n/ reached its capacity "
+           "limit. Otherwise behaves identically to try_submit().\n/ @param job Callable to "
+           "enqueue; moved into the queue on acceptance.\n/ @return True if the job was accepted, "
+           "False if it was rejected.")
+      .def("try_submit", &espp::ThreadPool::try_submit, py::arg("job"),
+           "/ @brief Attempt to submit a job without blocking.\n/\n/ Returns immediately with "
+           "False when the queue is full.\n/ @param job Callable to enqueue; moved into the queue "
+           "on acceptance.\n/ @return True if the job was accepted, False if it was rejected.")
+      .def("queue_size", &espp::ThreadPool::queue_size,
+           "/ @brief Return the number of jobs currently waiting in the queue.\n/ @return Pending "
+           "job count.")
+      .def("worker_count", &espp::ThreadPool::worker_count,
+           "/ @brief Return the number of worker threads in the pool.\n/ @return Worker thread "
+           "count.")
+      .def("stats", &espp::ThreadPool::stats,
+           "/ @brief Return a snapshot of the pool's activity counters.\n/ @return Stats struct "
+           "with submitted, executed, and rejected counts.");
+  ////////////////////    </generated_from:thread_pool.hpp>    ////////////////////
 
   ////////////////////    <generated_from:joystick.hpp>    ////////////////////
   auto pyClassJoystick = py::class_<espp::Joystick>(
