@@ -1,3 +1,6 @@
+#include <algorithm>
+#include <cmath>
+
 #include "m5stack-cardputer.hpp"
 
 using namespace espp;
@@ -106,11 +109,25 @@ bool M5StackCardputer::initialize_microphone(const microphone_callback_t &callba
 
 uint32_t M5StackCardputer::microphone_sample_rate() const { return mic_sample_rate_; }
 
+void M5StackCardputer::microphone_volume(float volume) {
+  mic_volume_ = std::clamp(volume, 0.0f, 100.0f);
+  if (variant() == Variant::ADV && microphone_initialized_) {
+    // the ES8311 scales in hardware; initialize_es8311_microphone() applies
+    // the stored volume when the microphone is initialized later
+    es8311_write(0x17, static_cast<uint8_t>(std::lround(mic_volume_ / 100.0f * 255.0f)));
+  }
+}
+
+float M5StackCardputer::microphone_volume() const { return mic_volume_; }
+
 bool M5StackCardputer::microphone_task_callback(std::mutex &m, std::condition_variable &cv,
                                                 bool &task_notified) {
   size_t bytes_read = 0;
+  // Use a finite read timeout (not portMAX_DELAY) so this task returns
+  // periodically and can observe a stop request; an infinite read would block
+  // Task::stop() from joining during teardown.
   auto err = i2s_channel_read(audio_rx_handle, audio_rx_buffer.data(), audio_rx_buffer.size(),
-                              &bytes_read, portMAX_DELAY);
+                              &bytes_read, pdMS_TO_TICKS(100));
   if (err == ESP_OK && bytes_read > 0 && microphone_callback_) {
     if (mic_stereo_capture_) {
       // compact the L,R word pairs down to mono in place, keeping the left
@@ -121,8 +138,27 @@ bool M5StackCardputer::microphone_task_callback(std::mutex &m, std::condition_va
         samples[i] = samples[2 * i];
       }
       bytes_read = num_frames * sizeof(int16_t);
+    } else {
+      // the original's PDM microphone has no hardware gain, so apply the
+      // microphone volume in software (75% = unity; the ADV scales in the
+      // codec instead)
+      float scale = mic_volume_ / 75.0f;
+      if (scale != 1.0f) {
+        auto *samples = reinterpret_cast<int16_t *>(audio_rx_buffer.data());
+        size_t num_samples = bytes_read / sizeof(int16_t);
+        for (size_t i = 0; i < num_samples; i++) {
+          auto v = static_cast<int32_t>(samples[i] * scale);
+          samples[i] = static_cast<int16_t>(std::clamp<int32_t>(v, INT16_MIN, INT16_MAX));
+        }
+      }
     }
     microphone_callback_(audio_rx_buffer.data(), bytes_read);
   }
-  return false; // don't stop the task
+  // honor a stop request per the Task contract: check/clear notified under m
+  std::unique_lock<std::mutex> lock(m);
+  if (task_notified) {
+    task_notified = false;
+    return true; // stop the task
+  }
+  return false; // keep running
 }

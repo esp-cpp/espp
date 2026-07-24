@@ -51,6 +51,10 @@ CONFIG_LV_THEME_DEFAULT_GROW=y
 CONFIG_LV_THEME_DEFAULT_TRANSITION_TIME=30
 
 # ESP32-P4 Function EV Board BSP configuration
-CONFIG_ESP_P4_EV_BOARD_INTERRUPT_STACK_SIZE=4096
-CONFIG_ESP_P4_EV_BOARD_TOUCH_TASK_STACK_SIZE=4096
+# Raised from the 4 KB BSP defaults: the interrupt task and the polled
+# touch task run touch-controller I2C and, on a bus error, log through
+# espp's fmt color-print path, which needs more than 4 KB of stack. See
+# the README.
+CONFIG_ESP_P4_EV_BOARD_INTERRUPT_STACK_SIZE=8192
+CONFIG_ESP_P4_EV_BOARD_TOUCH_TASK_STACK_SIZE=8192
 CONFIG_ESP_P4_EV_BOARD_AUDIO_TASK_STACK_SIZE=8192

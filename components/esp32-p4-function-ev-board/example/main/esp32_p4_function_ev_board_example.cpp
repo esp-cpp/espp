@@ -10,6 +10,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstring>
 #include <mutex>
 #include <optional>
 #include <string>
@@ -38,6 +39,21 @@ static std::string g_peer_addr;
 static std::vector<uint8_t> audio_bytes;
 
 static bool load_audio(size_t &out_size, size_t &out_sample_rate);
+
+// Audio recording state (written by the microphone callback, read/controlled
+// from the GUI button callbacks and main loop). The recorded data is 16-bit
+// mono at the audio sample rate.
+static constexpr size_t MAX_RECORDING_SECONDS = 30;     // when PSRAM is available
+static constexpr size_t FALLBACK_RECORDING_SECONDS = 2; // internal RAM fallback
+static uint8_t *recording_buffer = nullptr;
+static size_t recording_capacity = 0;
+static std::atomic<bool> recording{false};
+static std::atomic<size_t> recording_len{0};
+static std::atomic<bool> playing{false};
+// wall-clock bounds of the capture, for reporting the measured effective
+// sample rate (ordering is provided by the `recording` atomic)
+static std::atomic<int64_t> recording_start_us{0};
+static std::atomic<int64_t> recording_last_us{0};
 
 // Ping a target host a few times and log the result (uses the espp Ping helper).
 static void ping_target(espp::Logger &logger, const char *name, const std::string &ip) {
@@ -187,6 +203,11 @@ extern "C" void app_main(void) {
   // touch-down or once the point has moved at least one radius, so a stationary
   // touch draws a single circle and a drag leaves a spaced trail.
   static constexpr int kCircleRadius = 10;
+  // NOTE: this example raises the BSP interrupt- and touch-task stack sizes
+  // via sdkconfig.defaults (CONFIG_ESP_P4_EV_BOARD_INTERRUPT_STACK_SIZE /
+  // _TOUCH_TASK_STACK_SIZE = 8192); the touch controller is read (polled)
+  // from those tasks and their error-logging path needs more than the 4 KB
+  // BSP default. See the example README.
   board.initialize_touch([&](const auto &data) {
     auto td = board.touchpad_convert(data);
     static Board::TouchpadData prev_td = {};
@@ -198,7 +219,7 @@ extern "C" void app_main(void) {
       if (new_touch && !audio_bytes.empty()) {
         board.play_audio(audio_bytes); // non-blocking, touch-down edge only
       }
-      if (new_touch) {
+      if (new_touch && gui.draw_page_active()) {
         gui.draw_circle(td.x, td.y, kCircleRadius);
       }
     }
@@ -229,7 +250,88 @@ extern "C" void app_main(void) {
     if (have_audio) {
       logger.info("Loaded {} bytes of click audio @ {} Hz", wav_size, wav_sample_rate);
     }
+
+    // Microphone: the ES8311 is full duplex, so the onboard microphone
+    // records at the speaker's sample rate. Buffer the recorded mono samples
+    // and auto-stop when the buffer is full (the main loop notices and
+    // updates the GUI).
+    auto mic_callback = [](const uint8_t *data, size_t num_bytes) {
+      if (!recording) {
+        return;
+      }
+      size_t offset = recording_len;
+      size_t to_copy = std::min(num_bytes, recording_capacity - offset);
+      if (to_copy > 0) {
+        memcpy(recording_buffer + offset, data, to_copy);
+        recording_last_us = esp_timer_get_time();
+        recording_len = offset + to_copy;
+      }
+      if (recording_len >= recording_capacity) {
+        recording = false;
+      }
+    };
+    if (board.initialize_microphone(mic_callback)) {
+      // allocate the recording buffer (16-bit mono at the current sample
+      // rate): prefer PSRAM, fall back to a couple of seconds in internal RAM
+      size_t bytes_per_second = board.audio_sample_rate() * sizeof(int16_t);
+      recording_capacity = MAX_RECORDING_SECONDS * bytes_per_second;
+      recording_buffer = static_cast<uint8_t *>(
+          heap_caps_malloc(recording_capacity, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+      if (recording_buffer == nullptr) {
+        recording_capacity = FALLBACK_RECORDING_SECONDS * bytes_per_second;
+        recording_buffer =
+            static_cast<uint8_t *>(heap_caps_malloc(recording_capacity, MALLOC_CAP_8BIT));
+      }
+      if (recording_buffer == nullptr) {
+        logger.warn("Could not allocate a recording buffer; recording disabled");
+        gui.set_audio_status("No recording buffer");
+        recording_capacity = 0;
+      } else {
+        logger.info("Recording buffer: {} KB ({} s at {} Hz mono)", recording_capacity / 1024,
+                    recording_capacity / bytes_per_second, board.audio_sample_rate());
+      }
+    } else {
+      logger.warn("Could not initialize the microphone!");
+      gui.set_audio_status("Mic unavailable (see log)");
+    }
   }
+
+  // The record button toggles recording; the play button toggles playback of
+  // the recording (streamed to the speaker by the main loop)
+  gui.set_record_callback([&]() {
+    if (recording_capacity == 0) {
+      logger.warn("Recording unavailable (no microphone / no buffer)");
+      gui.set_audio_status("Mic unavailable (see log)");
+      return;
+    }
+    if (recording) {
+      recording = false; // the main loop notices and logs the summary
+    } else {
+      playing = false;
+      gui.set_play_active(false);
+      recording_len = 0;
+      recording_start_us = esp_timer_get_time();
+      recording_last_us = recording_start_us.load();
+      recording = true;
+      gui.set_record_active(true);
+      gui.set_audio_status("Recording...");
+    }
+  });
+  gui.set_play_callback([&]() {
+    if (playing) {
+      playing = false;
+      gui.set_play_active(false);
+      gui.set_audio_status("Playback stopped");
+    } else if (recording_len > 0) {
+      recording = false;
+      playing = true;
+      gui.set_play_active(true);
+      gui.set_audio_status("Playing...");
+    } else {
+      logger.info("Nothing recorded yet; press the record button first");
+      gui.set_audio_status("Nothing recorded yet");
+    }
+  });
 
   // Ethernet (IP101) — DHCP; the callback fires once an IP is acquired
   static std::atomic<bool> have_ip{false};
@@ -379,6 +481,43 @@ extern "C" void app_main(void) {
     // Publish the RTPS counter/peer state for the status task to render.
     rtps_value = value;
     rtps_has_peers = published;
+
+    // Stream any active playback to the speaker in chunks, advancing by
+    // however much the stream buffer accepted
+    static size_t play_offset = 0;
+    if (playing) {
+      size_t len = recording_len;
+      if (play_offset >= len) {
+        playing = false;
+        play_offset = 0;
+        gui.set_play_active(false);
+        gui.set_audio_status("Playback done");
+        logger.info("Playback done");
+      } else {
+        play_offset += board.play_audio(recording_buffer + play_offset,
+                                        std::min<size_t>(len - play_offset, 16384));
+      }
+    } else {
+      play_offset = 0;
+    }
+    // Notice when the recording stopped (button press or buffer full)
+    static bool was_recording = false;
+    bool now_recording = recording;
+    if (was_recording && !now_recording) {
+      gui.set_record_active(false);
+      gui.set_audio_status(fmt::format("Recorded {:.1f}s ({} plays)",
+                                       static_cast<float>(recording_len) /
+                                           (board.audio_sample_rate() * sizeof(int16_t)),
+                                       LV_SYMBOL_PLAY));
+      // report the measured capture rate: samples recorded over the wall
+      // clock they took to arrive should match the nominal sample rate
+      size_t num_samples = recording_len / sizeof(int16_t);
+      float elapsed_s = static_cast<float>(recording_last_us - recording_start_us) / 1e6f;
+      float effective_hz = elapsed_s > 0.0f ? num_samples / elapsed_s : 0.0f;
+      logger.info("Recorded {} samples in {:.2f} s (~{:.0f} Hz effective, {} Hz nominal)",
+                  num_samples, elapsed_s, effective_hz, board.audio_sample_rate());
+    }
+    was_recording = now_recording;
 
     std::this_thread::sleep_for(loop_tick);
   }

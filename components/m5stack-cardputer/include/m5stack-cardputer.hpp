@@ -415,6 +415,7 @@ public:
   /// \note This function is non-blocking and queues the data for the audio
   ///       task to play; to stream data larger than the internal buffer,
   ///       call it repeatedly, advancing by the returned number of bytes
+  /// \note Must be called from task context, not from an ISR.
   size_t play_audio(const std::vector<uint8_t> &data);
 
   /// Play the audio data
@@ -425,6 +426,7 @@ public:
   /// \note This function is non-blocking and queues the data for the audio
   ///       task to play; to stream data larger than the internal buffer,
   ///       call it repeatedly, advancing by the returned number of bytes
+  /// \note Must be called from task context, not from an ISR.
   size_t play_audio(const uint8_t *data, uint32_t num_bytes);
 
   /////////////////////////////////////////////////////////////////////////////
@@ -462,6 +464,20 @@ public:
   /// Get the microphone sample rate
   /// \return The microphone sample rate, in Hz
   uint32_t microphone_sample_rate() const;
+
+  /// Set the microphone volume
+  /// \param volume The volume as a percentage (0 - 100); 75 is unity (0 dB,
+  ///        the default)
+  /// \note On the ADV this adjusts the ES8311 codec's digital ADC volume
+  ///       (values above 75 amplify, up to +32 dB at 100); on the original
+  ///       the samples are scaled in software in the microphone task (values
+  ///       above 75 amplify with saturation)
+  void microphone_volume(float volume);
+
+  /// Get the microphone volume
+  /// \return The microphone volume as a percentage (0 - 100); 75 is unity
+  ///         (0 dB)
+  float microphone_volume() const;
 
   /////////////////////////////////////////////////////////////////////////////
   // uSD Card
@@ -853,6 +869,8 @@ protected:
 
   // microphone sample rate (Hz), set by initialize_microphone()
   std::atomic<uint32_t> mic_sample_rate_{0};
+  // microphone volume (percent, 75 = unity / 0 dB)
+  std::atomic<float> mic_volume_{75.0f};
 
   // display
   std::shared_ptr<Display<Pixel>> display_;

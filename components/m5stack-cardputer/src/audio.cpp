@@ -180,9 +180,9 @@ bool M5StackCardputer::initialize_sound(uint32_t default_audio_rate,
 bool M5StackCardputer::audio_task_callback(std::mutex &m, std::condition_variable &cv,
                                            bool &task_notified) {
   // Queue the next I2S out frame to write
-  uint16_t available = xStreamBufferBytesAvailable(audio_tx_stream);
-  int buffer_size = audio_tx_buffer.size();
-  available = std::min<uint16_t>(available, buffer_size);
+  size_t available = xStreamBufferBytesAvailable(audio_tx_stream);
+  size_t buffer_size = audio_tx_buffer.size();
+  available = std::min(available, buffer_size);
   uint8_t *buffer = &audio_tx_buffer[0];
   memset(buffer, 0, buffer_size);
 
@@ -249,10 +249,22 @@ size_t M5StackCardputer::play_audio(const std::vector<uint8_t> &data) {
 }
 
 size_t M5StackCardputer::play_audio(const uint8_t *data, uint32_t num_bytes) {
-  if (!sound_initialized_) {
+  // guard against being called before initialize_sound() (audio_tx_stream is
+  // not valid until then) and against empty input
+  if (!sound_initialized_ || !data || num_bytes == 0) {
     return 0;
   }
-  // don't block here; report how much was actually queued so callers can
-  // stream data larger than the buffer
-  return xStreamBufferSendFromISR(audio_tx_stream, data, num_bytes, NULL);
+  // Enqueue only whole 16-bit samples (2 bytes; the TX slot is mono) that
+  // actually fit: xStreamBufferSend can accept fewer bytes than requested when
+  // the buffer is nearly full, and a partial (odd) send would strand a byte and
+  // shift framing on subsequent appends. Cap the request to the free space
+  // rounded down to a whole sample. This runs in task context, so the non-ISR
+  // send with a 0 timeout never blocks; the number of bytes actually queued is
+  // returned so callers can stream data larger than the buffer.
+  size_t sendable = std::min<size_t>(num_bytes, xStreamBufferSpacesAvailable(audio_tx_stream));
+  sendable -= sendable % 2;
+  if (sendable == 0) {
+    return 0;
+  }
+  return xStreamBufferSend(audio_tx_stream, data, sendable, 0);
 }

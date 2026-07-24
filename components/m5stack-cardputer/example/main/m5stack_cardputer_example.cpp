@@ -154,6 +154,21 @@ extern "C" void app_main(void) {
         gui.set_status_text("Playing... (fn+4 stops)");
       }
       play_beep(cardputer, 660.0f);
+    } else if (event.special == espp::M5StackCardputer::SpecialKey::F5 ||
+               event.special == espp::M5StackCardputer::SpecialKey::F6) {
+      // speaker volume down / up (the beep gives immediate feedback)
+      float delta = event.special == espp::M5StackCardputer::SpecialKey::F5 ? -10.0f : 10.0f;
+      cardputer.volume(cardputer.volume() + delta);
+      gui.set_status_text(fmt::format("Speaker volume: {:.0f}%", cardputer.volume()));
+      play_beep(cardputer, 660.0f);
+    } else if (event.special == espp::M5StackCardputer::SpecialKey::F7 ||
+               event.special == espp::M5StackCardputer::SpecialKey::F8) {
+      // microphone volume down / up (heard on the next recording)
+      float delta = event.special == espp::M5StackCardputer::SpecialKey::F7 ? -5.0f : 5.0f;
+      cardputer.microphone_volume(cardputer.microphone_volume() + delta);
+      gui.set_status_text(
+          fmt::format("Mic volume: {:.0f}% (75% = 0 dB)", cardputer.microphone_volume()));
+      play_beep(cardputer, 660.0f);
     } else if (event.special != espp::M5StackCardputer::SpecialKey::NONE) {
       gui.handle_special_key(event.special);
       gui.set_status_text(espp::M5StackCardputer::special_key_name(event.special));
