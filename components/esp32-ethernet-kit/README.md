@@ -14,8 +14,59 @@ Board Support Package (BSP) for the Espressif **ESP32-Ethernet-Kit A V1.2**.
 
 The `espp::Esp32EthernetKit` class is a singleton hardware abstraction for:
 
-- **10/100 Ethernet** — internal ESP32 EMAC + IP101GRI RMII PHY with DHCP
-- **BOOT button** — GPIO0 (see pin conflict note below)
+- **10/100 Ethernet** — internal ESP32 EMAC + IP101GRI RMII PHY, selectable
+  DHCP client **or** DHCP server mode
+
+## DHCP modes
+
+`initialize_ethernet` accepts a `DhcpMode` parameter (default `CLIENT`).
+
+### DHCP client (default)
+
+The ESP32 requests an IP address from an upstream router/switch.
+The `on_link_up` callback fires once the DHCP lease is granted.
+
+```cpp
+auto &board = espp::Esp32EthernetKit::get();
+
+board.initialize_ethernet(
+    [](esp_ip4_addr_t ip) {
+      // called when lease is acquired
+    },
+    espp::Esp32EthernetKit::DhcpMode::CLIENT); // default — can be omitted
+```
+
+### DHCP server
+
+The ESP32 assigns IP addresses to connected hosts using a static IP.
+The `on_link_up` callback fires when the cable is connected (IP is static, so
+it is known immediately). An optional `on_client_assigned` callback fires each
+time a client receives a lease.
+
+```cpp
+using DhcpMode    = espp::Esp32EthernetKit::DhcpMode;
+using ServerConfig = espp::Esp32EthernetKit::ServerConfig;
+
+auto &board = espp::Esp32EthernetKit::get();
+
+ServerConfig cfg;
+// Leave cfg.ip_info zero to use the built-in default: 192.168.4.1 / 255.255.255.0
+// Or set a custom address:
+//   IP4_ADDR(&cfg.ip_info.ip,      10, 0, 0, 1);
+//   IP4_ADDR(&cfg.ip_info.netmask, 255, 255, 255, 0);
+//   IP4_ADDR(&cfg.ip_info.gw,      10, 0, 0, 1);
+
+cfg.on_client_assigned = [](esp_ip4_addr_t ip, std::array<uint8_t, 6> mac) {
+  // fired each time a client gets a DHCP lease
+};
+
+board.initialize_ethernet(
+    [](esp_ip4_addr_t ip) {
+      // called when link is up (static IP is already known)
+    },
+    DhcpMode::SERVER,
+    cfg);
+```
 
 ## RMII pin mapping
 
@@ -37,26 +88,11 @@ routed via the GPIO matrix.
 | PHY_RST      |    5 | Active-low; set `eth_phy_reset_gpio = -1` to skip |
 
 > [!WARNING]
-> **GPIO0 conflict.** GPIO0 is both the RMII REF_CLK input (driven by the
-> on-board 50 MHz oscillator) and the BOOT strapping pin / BOOT button.
-> Pressing BOOT while Ethernet is running briefly pulls the clock line to GND,
-> disrupting the 50 MHz clock and corrupting active traffic. This also puts the
-> ESP32 into ROM bootloader mode. Do **not** use the BOOT button as a runtime
-> input while Ethernet is active.
-
-## Usage
-
-```cpp
-#include "esp32-ethernet-kit.hpp"
-
-auto &board = espp::Esp32EthernetKit::get();
-
-board.initialize_ethernet([](esp_ip4_addr_t ip) {
-  printf("Got IP: %d.%d.%d.%d\n",
-         esp_ip4_addr1_16(&ip), esp_ip4_addr2_16(&ip),
-         esp_ip4_addr3_16(&ip), esp_ip4_addr4_16(&ip));
-});
-```
+> **GPIO0 / REF_CLK conflict.** GPIO0 is both the RMII REF_CLK input (driven by
+> the on-board 50 MHz oscillator) and the BOOT strapping pin. Pressing BOOT while
+> Ethernet is running briefly pulls the clock line to GND, disrupting the 50 MHz
+> clock and corrupting active traffic. Do **not** use GPIO0 as a runtime input
+> while Ethernet is active.
 
 ## sdkconfig requirements
 
