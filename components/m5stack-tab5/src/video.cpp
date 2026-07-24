@@ -329,17 +329,25 @@ bool M5StackTab5::initialize_display(size_t pixel_buffer_size) {
   size_t required_bytes = pixel_buffer_size * sizeof(uint16_t);
   required_bytes = (required_bytes + kCacheAlign - 1) / kCacheAlign * kCacheAlign;
 
+  // Reuse the existing scratch buffer if it is already the right size; otherwise
+  // free it first so a repeated initialize_display() call (e.g. re-init with a
+  // different pixel buffer size) cannot leak the previous allocation.
   if (third_buffer == nullptr || third_buffer_bytes != required_bytes) {
     if (third_buffer != nullptr) {
-      free(third_buffer);
+      heap_caps_free(third_buffer);
       third_buffer = nullptr;
     }
     third_buffer_bytes = required_bytes;
     third_buffer = (uint16_t *)heap_caps_aligned_alloc(kCacheAlign, third_buffer_bytes,
                                                        MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
     if (third_buffer == nullptr) {
-      logger_.error("Could not allocate the rotation scratch buffer ({} bytes)", third_buffer_bytes);
+      // The scratch buffer is required for display rotation - both the PPA path
+      // and the software fallback rotate into it - so without it a non-zero
+      // rotation (settable at runtime) would silently flush incorrect output.
+      // Fail initialization rather than come up with rotation quietly broken.
+      logger_.error("Could not allocate the rotation scratch buffer ({} bytes)", required_bytes);
       third_buffer_bytes = 0;
+      return false;
     }
   }
 
@@ -412,9 +420,11 @@ float M5StackTab5::brightness() const {
 // DSI write helpers
 // -----------------
 
-void IRAM_ATTR M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) {
-  // Note: This function may be called from ISR context via DPI callback
-  // Avoid using floating-point operations, logging, or other coprocessor functions
+void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) {
+  // This is LVGL's flush callback; it runs in the LVGL task context (from
+  // lv_display_flush / the LVGL timer), not from an ISR - the DPI transfer-done
+  // interrupt is handled separately in notify_lvgl_flush_ready(). Blocking work
+  // (the PPA rotation and esp_lcd_panel_draw_bitmap) is therefore safe here.
 
   if (lcd_handles_.panel == nullptr) {
     lv_display_flush_ready(disp);
@@ -431,12 +441,13 @@ void IRAM_ATTR M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uin
     int32_t ww = lv_area_get_width(area);
     int32_t hh = lv_area_get_height(area);
     lv_color_format_t cf = lv_display_get_color_format(disp);
+    bool rotated = false;
     if (g_ppa_client != nullptr) {
-      // Hardware rotation via the PPA. NOTE: the PPA rotates COUNTER-clockwise
-      // while LVGL's rotation is clockwise, so LVGL 90 -> PPA 270 and LVGL 270
-      // -> PPA 90 (180 is the same). If the rotated image comes out turned the
-      // wrong way, swap the 90/270 mapping here. For 90/270 the output picture
-      // width/height are swapped.
+      // Hardware rotation via the PPA. The LVGL rotation maps directly onto the
+      // PPA rotation angle (LVGL 90 -> PPA 90, 180 -> 180, 270 -> 270); this is
+      // the mapping verified on hardware. For 90/270 the output picture
+      // width/height are swapped. If a different panel comes out turned the
+      // wrong way, swap the 90 and 270 cases here.
       ppa_srm_rotation_angle_t angle = PPA_SRM_ROTATION_ANGLE_0;
       uint32_t out_w = ww, out_h = hh;
       if (rotation == LV_DISPLAY_ROTATION_90) {
@@ -466,9 +477,13 @@ void IRAM_ATTR M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uin
       srm.scale_x = 1.0f;
       srm.scale_y = 1.0f;
       srm.mode = PPA_TRANS_MODE_BLOCKING;
-      ppa_do_scale_rotate_mirror(g_ppa_client, &srm);
-    } else {
-      // Software fallback (used only if the PPA client failed to register)
+      // On failure third_buffer holds stale/partial data; leave rotated=false so
+      // we fall through to the software rotation below rather than flushing it.
+      rotated = (ppa_do_scale_rotate_mirror(g_ppa_client, &srm) == ESP_OK);
+    }
+    if (!rotated) {
+      // Software fallback: the PPA client failed to register or the PPA
+      // operation failed. Rotates into third_buffer, fully overwriting it.
       uint32_t w_stride = lv_draw_buf_width_to_stride(ww, cf);
       uint32_t h_stride = lv_draw_buf_width_to_stride(hh, cf);
       if (rotation == LV_DISPLAY_ROTATION_180) {
