@@ -1,4 +1,3 @@
-// [esp32 ethernet kit example]
 #include <chrono>
 #include <thread>
 
@@ -15,6 +14,7 @@ using namespace std::chrono_literals;
 using DhcpMode = espp::Esp32EthernetKit::DhcpMode;
 
 extern "C" void app_main(void) {
+  //! [esp32 ethernet kit example]
   espp::Logger logger({.tag = "EthKitExample", .level = espp::Logger::Verbosity::INFO});
   logger.info("ESP32-Ethernet-Kit A V1.2 example starting");
 
@@ -80,6 +80,6 @@ extern "C" void app_main(void) {
       logger.warn("Ethernet not connected");
     }
   }
+  //! [esp32 ethernet kit example]
 }
-// [esp32 ethernet kit example]
 
