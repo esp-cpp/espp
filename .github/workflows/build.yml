@@ -231,6 +231,8 @@ jobs:
           target: esp32
         - path: 'components/thermistor/example'
           target: esp32
+        - path: 'components/thread_pool/example'
+          target: esp32
         - path: 'components/timer/example'
           target: esp32
         - path: 'components/touch/example'
