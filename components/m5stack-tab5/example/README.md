@@ -18,6 +18,29 @@ This example demonstrates the comprehensive functionality of the M5Stack Tab5 de
   before playback, and the per-channel peak amplitude is logged so you can
   tell a silent capture (peak near 0) from a playback issue.
 - **BMI270 6-axis IMU**: Real-time motion sensing
+- **MIPI-CSI Camera (SC202CS)**: The **Camera** tab shows the live camera feed.
+  The BSP brings up the camera via Espressif's `esp_video` (V4L2) pipeline
+  (CSI + ISP, RAW8 -> RGB565) and streams frames to a capture task; each frame is
+  downscaled and rotated to the current display orientation by the PPA, then the
+  example copies it into an `lv_canvas` on the Camera tab. Pulls in the managed
+  `espressif/esp_video` + `espressif/esp_cam_sensor` components (see
+  `main/idf_component.yml`), so this example builds with the IDF component
+  manager enabled. The ISP pipeline controller (auto exposure / white balance)
+  is enabled so the feed is correctly white-balanced.
+  - **Known upstream quirks (both benign, image unaffected):**
+    - The stock SC202CS auto color-correction sometimes computes a CCM value
+      beyond the ESP32-P4 ISP's `+/-4.0` limit under certain lighting. The ISP
+      safely rejects it and keeps the previous CCM, but the pipeline logs the
+      rejection every frame - enough blocking UART logging to drop frames - so
+      the BSP's `initialize_camera()` silences those ISP/CCM log tags. See the
+      comment in `components/m5stack-tab5/src/camera.cpp`.
+    - You may also see occasional `ISP: gamma xcoord error` lines (a few at
+      startup, then rarely on big scene-brightness changes). The precompiled
+      auto-enhancement (AEN) hands the ISP a gamma table the hardware rejects;
+      the ISP keeps the previous gamma, so the picture is fine and no frames are
+      dropped. It is logged from an ISR (`ESP_EARLY_LOGE`), which ignores the
+      runtime log-level controls, so it cannot be silenced the way the CCM spam
+      is without also hiding real errors - it is left as-is.
 - **Battery Management**: INA226 power monitoring with charging control
 
 ### Communication Interfaces

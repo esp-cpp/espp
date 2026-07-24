@@ -265,6 +265,13 @@ public:
   /// @return True if device responds
   bool probe(uint16_t device_address, int32_t timeout_ms, std::error_code &ec);
 
+  /// @brief Get the native ESP-IDF I2C master bus handle
+  /// @return The underlying i2c_master_bus_handle_t (nullptr if not initialized)
+  /// @note This is provided so the bus can be shared with ESP-IDF drivers that
+  ///       require the native handle (e.g. camera SCCB via esp_video). The bus
+  ///       remains owned by this object.
+  i2c_master_bus_handle_t native_handle() const { return bus_handle_; }
+
 protected:
   Config config_;
   i2c_master_bus_handle_t bus_handle_ = nullptr;
