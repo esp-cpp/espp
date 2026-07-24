@@ -41,6 +41,7 @@ extern "C" void app_main(void) {
   // -------------------------------------------------------------------------
   {
     const std::string name = "lifecycle: start/stop/is_running/worker_count";
+    //! [lifecycle example]
     logger.info("--- {} ---", name);
     bool passed = true;
 
@@ -68,6 +69,7 @@ extern "C" void app_main(void) {
 
     pool.stop();
     passed &= check(name, !pool.is_running(), "pool should not be running after stop()");
+    //! [lifecycle example]
 
     results.push_back({name, passed});
   }
@@ -77,6 +79,7 @@ extern "C" void app_main(void) {
   // -------------------------------------------------------------------------
   {
     const std::string name = "submit: normal dispatch + queue_size + stats";
+    //! [submit example]
     logger.info("--- {} ---", name);
     bool passed = true;
 
@@ -120,6 +123,7 @@ extern "C" void app_main(void) {
     passed &= check(name, pool.queue_size() == 0,    "queue should be empty after all jobs finish");
 
     pool.stop();
+    //! [submit example]
     results.push_back({name, passed});
   }
 
@@ -128,6 +132,7 @@ extern "C" void app_main(void) {
   // -------------------------------------------------------------------------
   {
     const std::string name = "try_submit: rejection when queue full";
+    //! [try_submit example]
     logger.info("--- {} ---", name);
     bool passed = true;
 
@@ -212,6 +217,7 @@ extern "C" void app_main(void) {
     }
     barrier_cv.notify_all();
     pool.stop();
+    //! [try_submit example]
     results.push_back({name, passed});
   }
 
@@ -220,6 +226,7 @@ extern "C" void app_main(void) {
   // -------------------------------------------------------------------------
   {
     const std::string name = "submit: blocking when queue full";
+    //! [blocking submit example]
     logger.info("--- {} ---", name);
     bool passed = true;
 
@@ -263,6 +270,7 @@ extern "C" void app_main(void) {
     passed &= check(name, s.rejected == 0,           "rejected count should be 0");
 
     pool.stop();
+    //! [blocking submit example]
     results.push_back({name, passed});
   }
 
@@ -271,6 +279,7 @@ extern "C" void app_main(void) {
   // -------------------------------------------------------------------------
   {
     const std::string name = "submit: rejected after stop()";
+    //! [submit after stop example]
     logger.info("--- {} ---", name);
     bool passed = true;
 
@@ -295,6 +304,7 @@ extern "C" void app_main(void) {
 
     auto s = pool.stats();
     logger.info("  stats: {}", s);
+    //! [submit after stop example]
     results.push_back({name, passed});
   }
 
@@ -303,6 +313,7 @@ extern "C" void app_main(void) {
   // -------------------------------------------------------------------------
   {
     const std::string name = "concurrent: start/stop from multiple threads";
+    //! [concurrent lifecycle example]
     logger.info("--- {} ---", name);
     bool passed = true;
 
@@ -348,6 +359,7 @@ extern "C" void app_main(void) {
     // No jobs were submitted — all counters must be zero
     passed &= check(name, s.submitted == 0 && s.executed == 0 && s.rejected == 0,
                     "stats should all be zero (no jobs submitted)");
+    //! [concurrent lifecycle example]
 
     results.push_back({name, passed});
   }
@@ -357,6 +369,7 @@ extern "C" void app_main(void) {
   // -------------------------------------------------------------------------
   {
     const std::string name = "concurrent: multi-thread submit and try_submit";
+    //! [concurrent submit example]
     logger.info("--- {} ---", name);
     bool passed = true;
 
@@ -431,6 +444,7 @@ extern "C" void app_main(void) {
     passed &= check(name, s.rejected == 0, "unbounded queue should not reject any jobs");
 
     pool.stop();
+    //! [concurrent submit example]
     results.push_back({name, passed});
   }
 
@@ -439,6 +453,7 @@ extern "C" void app_main(void) {
   // -------------------------------------------------------------------------
   {
     const std::string name = "chained: job in pool_a submits to pool_b";
+    //! [chained pools example]
     logger.info("--- {} ---", name);
     bool passed = true;
 
@@ -499,6 +514,7 @@ extern "C" void app_main(void) {
 
     pool_a.stop();
     pool_b.stop();
+    //! [chained pools example]
     results.push_back({name, passed});
   }
 
@@ -507,6 +523,7 @@ extern "C" void app_main(void) {
   // -------------------------------------------------------------------------
   {
     const std::string name = "self-submit: job submits to its own pool";
+    //! [self-submit example]
     logger.info("--- {} ---", name);
     bool passed = true;
 
@@ -554,6 +571,7 @@ extern "C" void app_main(void) {
     passed &= check(name, s.rejected == 0, "no jobs should be rejected");
 
     pool.stop();
+    //! [self-submit example]
     results.push_back({name, passed});
   }
 

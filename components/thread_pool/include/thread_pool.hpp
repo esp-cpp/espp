@@ -16,12 +16,33 @@
 
 namespace espp {
 
-/// @brief A thread pool that dispatches submitted jobs to a fixed set of worker threads.
-///
-/// Workers are implemented as espp::Task instances. Jobs are queued and
-/// consumed in FIFO order. The queue can be optionally bounded; when full,
-/// new submissions are either rejected immediately or blocked until space
-/// becomes available, depending on the configuration.
+/**
+ * @brief A thread pool that dispatches submitted jobs to a fixed set of worker threads.
+ *
+ * Workers are implemented as espp::Task instances. Jobs are queued and
+ * consumed in FIFO order. The queue can be optionally bounded; when full,
+ * new submissions are either rejected immediately or blocked until space
+ * becomes available, depending on the configuration.
+ *
+ * \section thread_pool_ex1 Lifecycle: start / stop / is_running / worker_count
+ * \snippet thread_pool_example.cpp lifecycle example
+ * \section thread_pool_ex2 Submit Jobs
+ * \snippet thread_pool_example.cpp submit example
+ * \section thread_pool_ex3 try_submit — Non-Blocking Rejection When Full
+ * \snippet thread_pool_example.cpp try_submit example
+ * \section thread_pool_ex4 Blocking Submit When Full
+ * \snippet thread_pool_example.cpp blocking submit example
+ * \section thread_pool_ex5 Submit Rejected After stop()
+ * \snippet thread_pool_example.cpp submit after stop example
+ * \section thread_pool_ex6 Concurrent start / stop
+ * \snippet thread_pool_example.cpp concurrent lifecycle example
+ * \section thread_pool_ex7 Concurrent submit and try_submit
+ * \snippet thread_pool_example.cpp concurrent submit example
+ * \section thread_pool_ex8 Chained Pools
+ * \snippet thread_pool_example.cpp chained pools example
+ * \section thread_pool_ex9 Self-Submit
+ * \snippet thread_pool_example.cpp self-submit example
+ */
 class ThreadPool : public espp::BaseComponent {
 public:
   /// @brief A callable job that can be submitted to the pool.
