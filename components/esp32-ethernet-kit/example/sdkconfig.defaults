@@ -1,0 +1,13 @@
+CONFIG_IDF_TARGET="esp32"
+
+# Ethernet
+CONFIG_ETH_ENABLED=y
+CONFIG_ETH_USE_ESP32_EMAC=y
+CONFIG_ETH_PHY_ENABLE_IP101=y
+
+# FreeRTOS tick rate
+CONFIG_FREERTOS_HZ=1000
+
+# Allow RMII clock on GPIO0 (strapping pin warning suppressed by IDF when used
+# as EMAC_CLK_EXT_IN input — GPIO0 is configured as input by the EMAC driver).
+CONFIG_ESP_SYSTEM_GPIO_MATRIX_BYPASS=n
