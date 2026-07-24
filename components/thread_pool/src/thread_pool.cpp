@@ -54,9 +54,9 @@ bool ThreadPool::start() {
       stopping_ = true;
     }
     queue_has_work_cv_.notify_all();
-    queue_has_space_cv_.notify_all(); // thread should stopped after notify all.
+    queue_has_space_cv_.notify_all(); // threads should be stopped after notify all.
     for (auto &worker : workers_) {
-      worker->stop(); // stop and join heres
+      worker->stop(); // stop and join here
     }
     return false;
   }
