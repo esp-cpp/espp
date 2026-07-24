@@ -30,13 +30,11 @@ ThreadPool::~ThreadPool() { stop(); }
 
 bool ThreadPool::start() {
   std::lock_guard<std::mutex> lifecycle_lock(lifecycle_mutex_);
-  {
-    std::lock_guard<std::mutex> lock(queue_mutex_);
-    if (running_.load()) {
-      return true;
-    }
-    stopping_ = false;
+
+  if (running_.load()) {
+    return true;
   }
+  stopping_ = false;
 
   bool all_workers_started = true;
   for (std::size_t i = 0; i < workers_.size(); ++i) {
@@ -49,37 +47,29 @@ bool ThreadPool::start() {
 
   if (!all_workers_started) {
     logger_.error("Not all workers started; rolling back pool start");
-    {
-      std::lock_guard<std::mutex> lock(queue_mutex_);
-      stopping_ = true;
-    }
+    stopping_ = true;
     queue_has_work_cv_.notify_all();
-    queue_has_space_cv_.notify_all(); // threads should be stopped after notify all.
+    queue_has_space_cv_.notify_all();
     for (auto &worker : workers_) {
-      worker->stop(); // stop and join here
+      worker->stop();
     }
     return false;
   }
 
-  {
-    std::lock_guard<std::mutex> lock(queue_mutex_);
-    running_.store(true);
-  }
+  running_.store(true);
   return true;
 }
 
 void ThreadPool::stop() {
   std::lock_guard<std::mutex> lifecycle_lock(lifecycle_mutex_);
 
+  if (!running_.exchange(false)) {
+    return;
+  }
+  stopping_ = true;
+
   {
     std::lock_guard<std::mutex> lock(queue_mutex_);
-    if (!running_.load()) {
-      return;
-    }
-    if (!running_.exchange(false)) {
-      return;
-    }
-    stopping_ = true;
     rejected_ += static_cast<std::uint64_t>(queue_.size());
     queue_.clear();
   }
@@ -94,13 +84,13 @@ void ThreadPool::stop() {
 
 bool ThreadPool::is_running() const { return running_.load(); }
 
-bool ThreadPool::submit(Job job) {
+bool ThreadPool::submit(Job &&job) {
   return submit_impl(std::move(job), config_.block_on_submit_when_full);
 }
 
-bool ThreadPool::try_submit(Job job) { return submit_impl(std::move(job), false); }
+bool ThreadPool::try_submit(Job &&job) { return submit_impl(std::move(job), false); }
 
-bool ThreadPool::submit_impl(Job job, bool allow_blocking_when_full) {
+bool ThreadPool::submit_impl(Job &&job, bool allow_blocking_when_full) {
   if (!job) {
     rejected_++;
     return false;

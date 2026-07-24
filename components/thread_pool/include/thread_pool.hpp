@@ -97,14 +97,14 @@ public:
   /// reached its capacity limit. Otherwise behaves identically to try_submit().
   /// @param job Callable to enqueue; moved into the queue on acceptance.
   /// @return true if the job was accepted, false if it was rejected.
-  bool submit(Job job);
+  bool submit(Job &&job);
 
   /// @brief Attempt to submit a job without blocking.
   ///
   /// Returns immediately with false when the queue is full.
   /// @param job Callable to enqueue; moved into the queue on acceptance.
   /// @return true if the job was accepted, false if it was rejected.
-  bool try_submit(Job job);
+  bool try_submit(Job &&job);
 
   /// @brief Return the number of jobs currently waiting in the queue.
   /// @return Pending job count.
@@ -121,7 +121,7 @@ public:
 private:
   bool worker_task_fn();
 
-  bool submit_impl(Job job, bool allow_blocking_when_full);
+  bool submit_impl(Job &&job, bool allow_blocking_when_full);
 
   Config config_;
 
@@ -133,7 +133,7 @@ private:
 
   std::vector<std::unique_ptr<espp::Task>> workers_;
   std::atomic<bool> running_{false};
-  bool stopping_ = false;
+  std::atomic<bool> stopping_{false};
 
   std::atomic<std::uint64_t> submitted_{0};
   std::atomic<std::uint64_t> executed_{0};
