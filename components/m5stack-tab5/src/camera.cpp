@@ -1,3 +1,5 @@
+#include <cerrno>
+
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
@@ -303,18 +305,28 @@ void M5StackTab5::apply_camera_controls() {
     c = camera_controls_;
   }
 
-  // Scale: reallocate the preview buffer if the requested scale changed. On
-  // failure (OOM) the current buffer is kept and the scale is not marked
-  // applied; log it rather than silently dropping the request.
-  if (c.scale != camera_active_scale_) {
-    if (!allocate_camera_preview_buffer(c.scale)) {
-      logger_.warn("Could not apply camera scale change (out of memory); keeping the current size");
-    }
-  }
   // Mirror / flip are applied by the PPA pass (the sensor rejects V4L2_CID_HFLIP
-  // / VFLIP on the capture device); just record the requested state here.
+  // / VFLIP on the capture device); just record the requested state here. These
+  // cannot fail.
   camera_active_hmirror_ = c.hmirror;
   camera_active_vflip_ = c.vflip;
+
+  // Scale: reallocate the preview buffer if the requested scale changed. On
+  // failure (OOM) keep the current buffer and re-queue the request so a later
+  // iteration retries when memory frees, rather than silently dropping it. The
+  // warning is rate-limited so a sustained OOM does not spam.
+  if (c.scale != camera_active_scale_) {
+    if (allocate_camera_preview_buffer(c.scale)) {
+      camera_scale_alloc_warned_ = false;
+    } else {
+      if (!camera_scale_alloc_warned_) {
+        logger_.warn("Could not apply camera scale change (out of memory); will retry");
+        camera_scale_alloc_warned_ = true;
+      }
+      std::lock_guard<std::mutex> lock(camera_controls_mutex_);
+      camera_controls_dirty_ = true;
+    }
+  }
 }
 
 void M5StackTab5::set_camera_controls(const CameraControls &controls) {
@@ -353,15 +365,10 @@ bool M5StackTab5::camera_task_callback(std::mutex &m, std::condition_variable &c
       // kCameraMountSteps (0..3, each step = 90 deg CCW). For a net 90/270 turn
       // the output width/height are swapped.
       static constexpr int kCameraMountSteps = 3; // +270 CCW == 90 deg clockwise
-      int disp_steps = 0;
-      auto rotation = lv_display_get_rotation(lv_display_get_default());
-      if (rotation == LV_DISPLAY_ROTATION_90) {
-        disp_steps = 1;
-      } else if (rotation == LV_DISPLAY_ROTATION_180) {
-        disp_steps = 2;
-      } else if (rotation == LV_DISPLAY_ROTATION_270) {
-        disp_steps = 3;
-      }
+      // Read the display rotation from the atomic cached by the display flush;
+      // the LVGL rotation enum values are 0/1/2/3 quarter-turns. Do not call
+      // LVGL from this (non-GUI) thread.
+      int disp_steps = camera_display_rotation_.load(std::memory_order_relaxed) & 3;
       int steps = (disp_steps + kCameraMountSteps) & 3;
       ppa_srm_rotation_angle_t angle = PPA_SRM_ROTATION_ANGLE_0;
       uint16_t out_w = camera_preview_width_;
@@ -406,9 +413,20 @@ bool M5StackTab5::camera_task_callback(std::mutex &m, std::condition_variable &c
         camera_callback_(camera_preview_buffer_, out_w, out_h, preview_len);
       }
     }
-    ioctl(camera_fd_, VIDIOC_QBUF, &buf);
-  } else {
+    // Requeue the buffer. If this fails the capture queue drains and the stream
+    // stalls, so treat it as fatal to the task rather than spinning silently.
+    if (ioctl(camera_fd_, VIDIOC_QBUF, &buf) != 0) {
+      logger_.error("VIDIOC_QBUF failed (errno {}); stopping the camera task", errno);
+      return true; // stop the task; the owner can stop_camera() / re-init
+    }
+  } else if (errno == EAGAIN) {
+    // No frame ready yet on the non-blocking fd; wait briefly and retry.
     vTaskDelay(pdMS_TO_TICKS(5));
+  } else {
+    // A real capture error (device/stream/driver): surface it and stop the task
+    // instead of spinning forever with no diagnostics.
+    logger_.error("VIDIOC_DQBUF failed (errno {}); stopping the camera task", errno);
+    return true;
   }
   // honor a stop request per the Task contract: check/clear notified under m
   std::unique_lock<std::mutex> lock(m);
@@ -448,17 +466,18 @@ void M5StackTab5::stop_camera() {
     camera_preview_buffer_ = nullptr;
     camera_preview_bytes_ = 0;
   }
-  if (camera_video_inited_) {
-    esp_video_deinit();
-    camera_video_inited_ = false;
-  }
-  // Restore the ISP log tags we muted while streaming.
+  // Restore the ISP log tags we muted while streaming BEFORE deinit, so any
+  // teardown diagnostics esp_video_deinit() emits under those tags are visible.
   if (camera_logs_silenced_) {
     for (size_t i = 0; i < std::size(kCameraSilencedLogTags); ++i) {
       esp_log_level_set(kCameraSilencedLogTags[i],
                         static_cast<esp_log_level_t>(camera_prev_log_levels_[i]));
     }
     camera_logs_silenced_ = false;
+  }
+  if (camera_video_inited_) {
+    esp_video_deinit();
+    camera_video_inited_ = false;
   }
   camera_initialized_ = false;
   camera_callback_ = nullptr;

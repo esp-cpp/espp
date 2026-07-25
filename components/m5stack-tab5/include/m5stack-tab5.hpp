@@ -880,11 +880,16 @@ protected:
   mutable std::mutex camera_controls_mutex_;
   CameraControls camera_controls_{};
   bool camera_controls_dirty_{false};
+  bool camera_scale_alloc_warned_{false}; // rate-limit the OOM-on-scale warning
   CameraScale camera_active_scale_{CameraScale::HALF};
   // Mirror / flip are done in the PPA pass; the task reads these when building
   // the PPA operation.
   bool camera_active_hmirror_{false};
   bool camera_active_vflip_{false};
+  // Current display rotation (LVGL enum value 0..3), cached by the display
+  // flush (which runs on the GUI thread and already reads it) so the camera
+  // task can read the rotation without calling LVGL from its own thread.
+  std::atomic<uint8_t> camera_display_rotation_{0};
   void apply_camera_controls();
   bool allocate_camera_preview_buffer(CameraScale scale);
 

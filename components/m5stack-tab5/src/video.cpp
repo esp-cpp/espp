@@ -437,6 +437,10 @@ void M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_m
   int offsety2 = area->y2;
 
   auto rotation = lv_display_get_rotation(lv_display_get_default());
+  // Cache the rotation for the camera task, which must not call LVGL from its
+  // own thread. flush() runs on the LVGL (GUI) thread, so reading it here is
+  // safe; the camera task reads the cached atomic instead.
+  camera_display_rotation_.store(static_cast<uint8_t>(rotation), std::memory_order_relaxed);
   if (rotation > LV_DISPLAY_ROTATION_0 && third_buffer != nullptr) {
     int32_t ww = lv_area_get_width(area);
     int32_t hh = lv_area_get_height(area);
