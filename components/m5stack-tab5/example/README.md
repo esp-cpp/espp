@@ -22,11 +22,13 @@ This example demonstrates the comprehensive functionality of the M5Stack Tab5 de
   The BSP brings up the camera via Espressif's `esp_video` (V4L2) pipeline
   (CSI + ISP, RAW8 -> RGB565) and streams frames to a capture task; each frame is
   downscaled and rotated to the current display orientation by the PPA, then the
-  example copies it into an `lv_canvas` on the Camera tab. Pulls in the managed
-  `espressif/esp_video` + `espressif/esp_cam_sensor` components (see
-  `main/idf_component.yml`), so this example builds with the IDF component
-  manager enabled. The ISP pipeline controller (auto exposure / white balance)
-  is enabled so the feed is correctly white-balanced.
+  example copies it into an `lv_canvas` on the Camera tab. The managed
+  `espressif/esp_video` + `espressif/esp_cam_sensor` components are declared as
+  dependencies of the `m5stack-tab5` BSP (see
+  `components/m5stack-tab5/idf_component.yml`) and fetched transitively, so this
+  example builds with the IDF component manager enabled. The ISP pipeline
+  controller (auto exposure / white balance) is enabled so the feed is correctly
+  white-balanced.
   - **Known upstream quirks (both benign, image unaffected):**
     - The stock SC202CS auto color-correction sometimes computes a CCM value
       beyond the ESP32-P4 ISP's `+/-4.0` limit under certain lighting. The ISP

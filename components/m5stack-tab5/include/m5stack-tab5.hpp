@@ -865,6 +865,7 @@ protected:
   static constexpr int CAMERA_BUFFER_COUNT = 2;
   void *camera_buffers_[CAMERA_BUFFER_COUNT]{nullptr, nullptr};
   size_t camera_buffer_sizes_[CAMERA_BUFFER_COUNT]{0, 0};
+  int camera_buffer_count_{0}; // buffers VIDIOC_REQBUFS actually allocated
   // Each captured frame is run through the PPA (Pixel Processing Accelerator)
   // in one hardware pass to downscale it (a full-resolution frame is expensive
   // to re-render every frame) and rotate it to match the current display

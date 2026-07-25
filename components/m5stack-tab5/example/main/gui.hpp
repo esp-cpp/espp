@@ -265,4 +265,7 @@ protected:
            .name = "gui", .stack_size_bytes = 12 * 1024, .priority = 20, .core_id = 1}}};
   espp::Logger logger_;
   std::recursive_mutex mutex_;
+  // True between init_ui() and deinit_ui(). Guards set_camera_frame() (called
+  // from the camera task) against touching the LVGL tree after teardown.
+  bool ui_ready_{false};
 };

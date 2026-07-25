@@ -14,15 +14,30 @@ void Gui::init_ui() {
   init_audio_tab();
   init_camera_tab();
   init_circle_layer();
+  ui_ready_ = true;
 }
 
 void Gui::deinit_ui() {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
+  // Mark the UI down first so a camera frame arriving mid-teardown (the camera
+  // task runs independently) is dropped rather than touching freed objects.
+  ui_ready_ = false;
   lv_obj_clean(lv_screen_active());
-  // lv_obj_clean() deletes the canvas object but not its external PSRAM buffer,
-  // which is a member we own; free it so tearing down / recreating the Gui does
-  // not leak PSRAM.
+  // lv_obj_clean() deleted every object under the screen; null the pointers we
+  // hold so nothing dereferences a freed object. It does not free the canvas's
+  // external PSRAM buffer (a member we own), so release that too.
+  tabview_ = nullptr;
+  draw_tab_ = nullptr;
+  status_tab_ = nullptr;
+  audio_tab_ = nullptr;
+  camera_tab_ = nullptr;
   camera_canvas_ = nullptr;
+  camera_settings_btn_ = nullptr;
+  camera_panel_ = nullptr;
+  camera_scale_dd_ = nullptr;
+  camera_mirror_sw_ = nullptr;
+  camera_flip_sw_ = nullptr;
+  camera_label_ = nullptr;
   if (camera_buf_) {
     heap_caps_free(camera_buf_);
     camera_buf_ = nullptr;
@@ -325,6 +340,11 @@ void Gui::set_camera_frame(const uint8_t *rgb565, int w, int h) {
     return;
   }
   std::lock_guard<std::recursive_mutex> lock(mutex_);
+  // The camera task may still deliver a frame after the UI is torn down; drop it
+  // rather than create objects under a freed camera_tab_.
+  if (!ui_ready_ || !camera_tab_) {
+    return;
+  }
   // (Re)allocate the canvas buffer and (re)create the canvas on the first frame
   // or whenever the frame size changes. The buffer must outlive the canvas, so
   // it is a member kept in PSRAM.

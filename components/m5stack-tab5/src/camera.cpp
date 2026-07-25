@@ -1,4 +1,6 @@
+#include <algorithm>
 #include <cerrno>
+#include <cstring>
 
 #include <fcntl.h>
 #include <sys/ioctl.h>
@@ -105,14 +107,15 @@ bool M5StackTab5::initialize_camera(const camera_frame_callback_t &callback,
   // later initialize_camera() retry would fail).
   camera_fd_ = open(ESP_VIDEO_MIPI_CSI_DEVICE_NAME, O_RDWR | O_NONBLOCK);
   if (camera_fd_ < 0) {
-    logger_.error("Could not open camera device {}", ESP_VIDEO_MIPI_CSI_DEVICE_NAME);
+    logger_.error("Could not open camera device {} (errno {}: {})", ESP_VIDEO_MIPI_CSI_DEVICE_NAME,
+                  errno, strerror(errno));
     stop_camera();
     return false;
   }
 
   struct v4l2_capability capability = {};
   if (ioctl(camera_fd_, VIDIOC_QUERYCAP, &capability) != 0) {
-    logger_.error("VIDIOC_QUERYCAP failed");
+    logger_.error("VIDIOC_QUERYCAP failed (errno {}: {})", errno, strerror(errno));
     stop_camera();
     return false;
   }
@@ -151,7 +154,8 @@ bool M5StackTab5::initialize_camera(const camera_frame_callback_t &callback,
   format.fmt.pix.height = want_h;
   format.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB565;
   if (ioctl(camera_fd_, VIDIOC_S_FMT, &format) != 0) {
-    logger_.error("VIDIOC_S_FMT (RGB565 {}x{}) failed", want_w, want_h);
+    logger_.error("VIDIOC_S_FMT (RGB565 {}x{}) failed (errno {}: {})", want_w, want_h, errno,
+                  strerror(errno));
     stop_camera();
     return false;
   }
@@ -159,23 +163,35 @@ bool M5StackTab5::initialize_camera(const camera_frame_callback_t &callback,
   camera_height_ = static_cast<uint16_t>(format.fmt.pix.height);
   logger_.info("Camera format: {}x{} RGB565", camera_width_, camera_height_);
 
-  // Request and memory-map the capture buffers.
+  // Request and memory-map the capture buffers. REQBUFS may hand back fewer
+  // buffers than requested; use the count it actually allocated (and require at
+  // least one, capped at our array size).
   struct v4l2_requestbuffers req = {};
   req.count = CAMERA_BUFFER_COUNT;
   req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
   req.memory = V4L2_MEMORY_MMAP;
   if (ioctl(camera_fd_, VIDIOC_REQBUFS, &req) != 0) {
-    logger_.error("VIDIOC_REQBUFS failed");
+    logger_.error("VIDIOC_REQBUFS failed (errno {}: {})", errno, strerror(errno));
     stop_camera();
     return false;
   }
-  for (int i = 0; i < CAMERA_BUFFER_COUNT; ++i) {
+  if (req.count < 1) {
+    logger_.error("VIDIOC_REQBUFS allocated 0 buffers");
+    stop_camera();
+    return false;
+  }
+  camera_buffer_count_ = std::min<uint32_t>(req.count, CAMERA_BUFFER_COUNT);
+  if (req.count < CAMERA_BUFFER_COUNT) {
+    logger_.warn("VIDIOC_REQBUFS allocated {} of {} requested buffers", req.count,
+                 CAMERA_BUFFER_COUNT);
+  }
+  for (int i = 0; i < camera_buffer_count_; ++i) {
     struct v4l2_buffer buf = {};
     buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     buf.memory = V4L2_MEMORY_MMAP;
     buf.index = i;
     if (ioctl(camera_fd_, VIDIOC_QUERYBUF, &buf) != 0) {
-      logger_.error("VIDIOC_QUERYBUF {} failed", i);
+      logger_.error("VIDIOC_QUERYBUF {} failed (errno {}: {})", i, errno, strerror(errno));
       stop_camera();
       return false;
     }
@@ -184,12 +200,12 @@ bool M5StackTab5::initialize_camera(const camera_frame_callback_t &callback,
         mmap(NULL, buf.length, PROT_READ | PROT_WRITE, MAP_SHARED, camera_fd_, buf.m.offset);
     if (camera_buffers_[i] == MAP_FAILED) {
       camera_buffers_[i] = nullptr;
-      logger_.error("mmap of camera buffer {} failed", i);
+      logger_.error("mmap of camera buffer {} failed (errno {}: {})", i, errno, strerror(errno));
       stop_camera();
       return false;
     }
     if (ioctl(camera_fd_, VIDIOC_QBUF, &buf) != 0) {
-      logger_.error("VIDIOC_QBUF {} failed", i);
+      logger_.error("VIDIOC_QBUF {} failed (errno {}: {})", i, errno, strerror(errno));
       stop_camera();
       return false;
     }
@@ -197,7 +213,7 @@ bool M5StackTab5::initialize_camera(const camera_frame_callback_t &callback,
 
   int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
   if (ioctl(camera_fd_, VIDIOC_STREAMON, &type) != 0) {
-    logger_.error("VIDIOC_STREAMON failed");
+    logger_.error("VIDIOC_STREAMON failed (errno {}: {})", errno, strerror(errno));
     stop_camera();
     return false;
   }
@@ -479,6 +495,13 @@ void M5StackTab5::stop_camera() {
     esp_video_deinit();
     camera_video_inited_ = false;
   }
+  // Reset the reported dimensions so camera_width()/height() honor their
+  // documented "0 when not initialized" contract after a stop or a failure.
+  camera_buffer_count_ = 0;
+  camera_width_ = 0;
+  camera_height_ = 0;
+  camera_preview_width_ = 0;
+  camera_preview_height_ = 0;
   camera_initialized_ = false;
   camera_callback_ = nullptr;
 }
