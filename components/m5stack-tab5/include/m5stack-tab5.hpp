@@ -856,8 +856,10 @@ protected:
   std::atomic<bool> camera_initialized_{false};
   camera_frame_callback_t camera_callback_{nullptr};
   std::unique_ptr<espp::Task> camera_task_{nullptr};
-  int camera_fd_{-1};               // MIPI-CSI capture device (/dev/video0)
-  bool camera_video_inited_{false}; // esp_video_init() succeeded (needs deinit)
+  int camera_fd_{-1};                // MIPI-CSI capture device (/dev/video0)
+  bool camera_video_inited_{false};  // esp_video_init() succeeded (needs deinit)
+  bool camera_logs_silenced_{false}; // ISP log tags muted (restore on stop)
+  int camera_prev_log_levels_[4]{};  // their prior levels (esp_log_level_t)
   uint16_t camera_width_{0};
   uint16_t camera_height_{0};
   static constexpr int CAMERA_BUFFER_COUNT = 2;

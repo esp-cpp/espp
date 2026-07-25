@@ -16,6 +16,11 @@
 
 using namespace espp;
 
+// ISP / esp_video log tags silenced during streaming (see initialize_camera).
+// Kept in one place so stop_camera() can restore their prior levels.
+static constexpr const char *kCameraSilencedLogTags[] = {"ISP_CCM", "ISP", "isp_video",
+                                                         "esp_video"};
+
 ////////////////////////
 //  Camera Functions  //
 ////////////////////////
@@ -43,10 +48,21 @@ bool M5StackTab5::initialize_camera(const camera_frame_callback_t &callback,
   // Pulse the (active-low) camera reset for a clean sensor power-up, then
   // release it and give the sensor a moment before esp_video probes it over
   // SCCB. The IO expander defaults this pin HIGH, so the camera is normally
-  // out of reset already; the pulse just guarantees a known start state.
-  camera_reset(true);
+  // out of reset already; the pulse just guarantees a known start state. The
+  // reset goes through the IO expander, so a write failure here (e.g. the IO
+  // expander was not initialized) means the sensor state is unknown - fail
+  // rather than let esp_video probe a possibly-held-in-reset sensor.
+  if (!camera_reset(true)) {
+    logger_.error("Camera reset (assert) failed; is the IO expander initialized?");
+    camera_callback_ = nullptr;
+    return false;
+  }
   vTaskDelay(pdMS_TO_TICKS(10));
-  camera_reset(false);
+  if (!camera_reset(false)) {
+    logger_.error("Camera reset (release) failed");
+    camera_callback_ = nullptr;
+    return false;
+  }
   vTaskDelay(pdMS_TO_TICKS(20));
 
   // Bring up the CSI receiver + ISP + sensor. The SC202CS's SCCB shares the
@@ -195,11 +211,13 @@ bool M5StackTab5::initialize_camera(const camera_frame_callback_t &callback,
   // inside the precompiled esp_ipa and cannot be fully bounded from the JSON
   // config, so silence just these tags (done after esp_video_init so its
   // bring-up diagnostics are still printed). A genuine CSI/ISP failure still
-  // surfaces as a missing feed.
-  esp_log_level_set("ISP_CCM", ESP_LOG_NONE);
-  esp_log_level_set("ISP", ESP_LOG_NONE);
-  esp_log_level_set("isp_video", ESP_LOG_NONE);
-  esp_log_level_set("esp_video", ESP_LOG_NONE);
+  // surfaces as a missing feed. The prior levels are cached so stop_camera()
+  // can restore them - muting must not outlive the camera.
+  for (size_t i = 0; i < std::size(kCameraSilencedLogTags); ++i) {
+    camera_prev_log_levels_[i] = esp_log_level_get(kCameraSilencedLogTags[i]);
+    esp_log_level_set(kCameraSilencedLogTags[i], ESP_LOG_NONE);
+  }
+  camera_logs_silenced_ = true;
 
   // Register a PPA client and allocate a downscaled preview buffer. Each frame
   // is run through the PPA to (1) halve its size - a full-resolution frame is
@@ -433,6 +451,14 @@ void M5StackTab5::stop_camera() {
   if (camera_video_inited_) {
     esp_video_deinit();
     camera_video_inited_ = false;
+  }
+  // Restore the ISP log tags we muted while streaming.
+  if (camera_logs_silenced_) {
+    for (size_t i = 0; i < std::size(kCameraSilencedLogTags); ++i) {
+      esp_log_level_set(kCameraSilencedLogTags[i],
+                        static_cast<esp_log_level_t>(camera_prev_log_levels_[i]));
+    }
+    camera_logs_silenced_ = false;
   }
   camera_initialized_ = false;
   camera_callback_ = nullptr;

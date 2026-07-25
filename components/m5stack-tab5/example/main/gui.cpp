@@ -329,20 +329,23 @@ void Gui::set_camera_frame(const uint8_t *rgb565, int w, int h) {
   // or whenever the frame size changes. The buffer must outlive the canvas, so
   // it is a member kept in PSRAM.
   if (camera_buf_ == nullptr || w != camera_w_ || h != camera_h_) {
+    // Allocate the new buffer BEFORE freeing the old one / deleting the canvas,
+    // so that on OOM we keep showing the previous frame instead of blanking the
+    // tab.
+    const size_t bytes = static_cast<size_t>(w) * static_cast<size_t>(h) * 2;
+    auto *new_buf =
+        static_cast<uint8_t *>(heap_caps_malloc(bytes, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+    if (!new_buf) {
+      return; // out of memory; keep the current canvas / preview
+    }
     if (camera_canvas_) {
       lv_obj_del(camera_canvas_);
       camera_canvas_ = nullptr;
     }
     if (camera_buf_) {
       heap_caps_free(camera_buf_);
-      camera_buf_ = nullptr;
     }
-    const size_t bytes = static_cast<size_t>(w) * static_cast<size_t>(h) * 2;
-    camera_buf_ =
-        static_cast<uint8_t *>(heap_caps_malloc(bytes, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
-    if (!camera_buf_) {
-      return; // out of memory; keep the placeholder label
-    }
+    camera_buf_ = new_buf;
     camera_w_ = w;
     camera_h_ = h;
     camera_canvas_ = lv_canvas_create(camera_tab_);
