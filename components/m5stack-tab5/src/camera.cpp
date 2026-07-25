@@ -112,9 +112,9 @@ bool M5StackTab5::initialize_camera(const camera_frame_callback_t &callback,
         break;
       }
       uint32_t w = frmsize.discrete.width;
-      if (w <= 1280 && w >= best_w) {
+      uint32_t h = frmsize.discrete.height;
+      if (w <= 1280 && (w > best_w || (w == best_w && h > best_h))) {
         best_w = w;
-        uint32_t h = frmsize.discrete.height;
         best_h = h;
       }
     }
