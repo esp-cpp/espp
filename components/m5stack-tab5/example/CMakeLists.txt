@@ -3,8 +3,10 @@
 cmake_minimum_required(VERSION 3.20)
 
 # The component manager is needed to pull the managed camera components
-# (espressif/esp_video + espressif/esp_cam_sensor) declared in main/idf_component.yml;
-# the espp components are still provided locally via EXTRA_COMPONENT_DIRS below.
+# (espressif/esp_video + espressif/esp_cam_sensor). They are declared as
+# dependencies of the m5stack-tab5 BSP (components/m5stack-tab5/idf_component.yml)
+# and fetched transitively, so they do not need to be listed here. The espp
+# components are provided locally via EXTRA_COMPONENT_DIRS below.
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
 # add the component directories that we want to use
@@ -41,7 +43,7 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py m5stack-tab5 filters display lvgl esp_video"
+  "main esptool_py m5stack-tab5 filters display lvgl"
   CACHE STRING
   "List of components to include"
   )
