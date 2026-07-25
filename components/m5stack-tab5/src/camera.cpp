@@ -245,19 +245,19 @@ bool M5StackTab5::allocate_camera_preview_buffer(CameraScale scale) {
   static constexpr size_t kCacheAlign = 128; // PPA output buffer alignment (L2 line)
   const size_t data_bytes = static_cast<size_t>(w) * h * 2;
   const size_t needed = (data_bytes + kCacheAlign - 1) / kCacheAlign * kCacheAlign;
-  // Reuse the buffer if the size is unchanged; otherwise free and reallocate.
-  if (camera_preview_buffer_ != nullptr && camera_preview_bytes_ != needed) {
-    heap_caps_free(camera_preview_buffer_);
-    camera_preview_buffer_ = nullptr;
-    camera_preview_bytes_ = 0;
-  }
-  if (camera_preview_buffer_ == nullptr) {
-    camera_preview_buffer_ = static_cast<uint8_t *>(
+  // Reuse the buffer if the size is unchanged; otherwise allocate a new one
+  // first so we don't lose the current preview on OOM.
+  if (camera_preview_buffer_ == nullptr || camera_preview_bytes_ != needed) {
+    auto *new_buf = static_cast<uint8_t *>(
         heap_caps_aligned_alloc(kCacheAlign, needed, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
-    if (camera_preview_buffer_ == nullptr) {
+    if (new_buf == nullptr) {
       logger_.error("Could not allocate the camera preview buffer ({} bytes)", needed);
       return false;
     }
+    if (camera_preview_buffer_ != nullptr) {
+      heap_caps_free(camera_preview_buffer_);
+    }
+    camera_preview_buffer_ = new_buf;
     camera_preview_bytes_ = needed;
   }
   camera_preview_width_ = w;
