@@ -19,6 +19,16 @@ void Gui::init_ui() {
 void Gui::deinit_ui() {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
   lv_obj_clean(lv_screen_active());
+  // lv_obj_clean() deletes the canvas object but not its external PSRAM buffer,
+  // which is a member we own; free it so tearing down / recreating the Gui does
+  // not leak PSRAM.
+  camera_canvas_ = nullptr;
+  if (camera_buf_) {
+    heap_caps_free(camera_buf_);
+    camera_buf_ = nullptr;
+  }
+  camera_w_ = 0;
+  camera_h_ = 0;
 }
 
 void Gui::init_tabview() {

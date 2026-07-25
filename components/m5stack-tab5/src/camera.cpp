@@ -79,13 +79,16 @@ bool M5StackTab5::initialize_camera(const camera_frame_callback_t &callback,
     camera_callback_ = nullptr;
     return false;
   }
+  camera_video_inited_ = true;
 
   // Open the MIPI-CSI capture device. Non-blocking so the capture task can
-  // observe a stop request even when no frame is ready.
+  // observe a stop request even when no frame is ready. From here on, failures
+  // go through stop_camera() so the esp_video pipeline is torn down (otherwise a
+  // later initialize_camera() retry would fail).
   camera_fd_ = open(ESP_VIDEO_MIPI_CSI_DEVICE_NAME, O_RDWR | O_NONBLOCK);
   if (camera_fd_ < 0) {
     logger_.error("Could not open camera device {}", ESP_VIDEO_MIPI_CSI_DEVICE_NAME);
-    camera_callback_ = nullptr;
+    stop_camera();
     return false;
   }
 
@@ -234,8 +237,13 @@ bool M5StackTab5::initialize_camera(const camera_frame_callback_t &callback,
       .callback = std::bind(&M5StackTab5::camera_task_callback, this, _1, _2, _3),
       .task_config = task_config,
   });
+  if (!camera_task_->start()) {
+    logger_.error("Could not start the camera task");
+    stop_camera();
+    return false;
+  }
   camera_initialized_ = true;
-  return camera_task_->start();
+  return true;
 }
 
 bool M5StackTab5::allocate_camera_preview_buffer(CameraScale scale) {
@@ -277,9 +285,13 @@ void M5StackTab5::apply_camera_controls() {
     c = camera_controls_;
   }
 
-  // Scale: reallocate the preview buffer if the requested scale changed.
+  // Scale: reallocate the preview buffer if the requested scale changed. On
+  // failure (OOM) the current buffer is kept and the scale is not marked
+  // applied; log it rather than silently dropping the request.
   if (c.scale != camera_active_scale_) {
-    allocate_camera_preview_buffer(c.scale);
+    if (!allocate_camera_preview_buffer(c.scale)) {
+      logger_.warn("Could not apply camera scale change (out of memory); keeping the current size");
+    }
   }
   // Mirror / flip are applied by the PPA pass (the sensor rejects V4L2_CID_HFLIP
   // / VFLIP on the capture device); just record the requested state here.
@@ -417,6 +429,10 @@ void M5StackTab5::stop_camera() {
     heap_caps_free(camera_preview_buffer_);
     camera_preview_buffer_ = nullptr;
     camera_preview_bytes_ = 0;
+  }
+  if (camera_video_inited_) {
+    esp_video_deinit();
+    camera_video_inited_ = false;
   }
   camera_initialized_ = false;
   camera_callback_ = nullptr;
