@@ -66,6 +66,14 @@ public:
   /// @param text The text to display
   void set_status_text(std::string_view text);
 
+  /// Show a camera frame on the Camera tab. Thread-safe.
+  /// @param rgb565 The frame pixel data (RGB565, w*h*2 bytes)
+  /// @param w The frame width in pixels
+  /// @param h The frame height in pixels
+  /// @note The data is copied, so it need not outlive the call. The first call
+  ///       (allocating the canvas buffer for the given size) sizes the display.
+  void set_camera_frame(const uint8_t *rgb565, int w, int h);
+
   /// Whether the Draw tab is currently active (used by the example to only
   /// draw circles / play clicks for touches on that tab). Thread-safe.
   /// @return True if the Draw tab is the active tab
@@ -148,6 +156,7 @@ protected:
   void init_draw_tab();
   void init_status_tab();
   void init_audio_tab();
+  void init_camera_tab();
   void init_circle_layer();
 
   // update the audio volume label from the BSP's current volumes; called
@@ -168,6 +177,18 @@ protected:
   void on_pressed(lv_event_t *e);
   void on_tab_changed(lv_event_t *e);
 
+  // Camera controls overlay: build the collapsible settings panel, toggle it,
+  // read the widgets into a CameraControls and push it to the BSP, and
+  // show/hide the manual sliders depending on the auto toggle.
+  void build_camera_controls();
+  static void camera_settings_toggle_cb(lv_event_t *e);
+  static void camera_control_event_cb(lv_event_t *e);
+  void sync_camera_controls();
+  // keep the settings overlay above the (lazily (re)created) camera canvas
+  void raise_camera_controls();
+  // drag the camera feed around within the tab (LV_EVENT_PRESSING handler)
+  static void camera_canvas_drag_cb(lv_event_t *e);
+
   // custom drawing of the circle layer
   static void draw_circle_layer(lv_event_t *e);
   void draw_circles(lv_event_t *e) const;
@@ -181,6 +202,23 @@ protected:
   lv_obj_t *draw_tab_{nullptr};
   lv_obj_t *status_tab_{nullptr};
   lv_obj_t *audio_tab_{nullptr};
+  lv_obj_t *camera_tab_{nullptr};
+
+  // Camera-feed widgets: a canvas bound to a PSRAM RGB565 buffer, (re)allocated
+  // on the first frame (or a size change) once the true frame size is known.
+  lv_obj_t *camera_canvas_{nullptr};
+  lv_obj_t *camera_label_{nullptr};
+  uint8_t *camera_buf_{nullptr};
+  int camera_w_{0};
+  int camera_h_{0};
+  // Camera controls overlay (a gear button + a collapsible panel floating over
+  // the feed) and the widgets inside it.
+  lv_obj_t *camera_settings_btn_{nullptr};
+  lv_obj_t *camera_panel_{nullptr};
+  lv_obj_t *camera_scale_dd_{nullptr};
+  lv_obj_t *camera_mirror_sw_{nullptr};
+  lv_obj_t *camera_flip_sw_{nullptr};
+  espp::M5StackTab5::CameraControls camera_controls_{};
   lv_obj_t *label_{nullptr};
   lv_obj_t *status_label_{nullptr};
   lv_obj_t *kalman_line_{nullptr};
@@ -227,4 +265,7 @@ protected:
            .name = "gui", .stack_size_bytes = 12 * 1024, .priority = 20, .core_id = 1}}};
   espp::Logger logger_;
   std::recursive_mutex mutex_;
+  // True between init_ui() and deinit_ui(). Guards set_camera_frame() (called
+  // from the camera task) against touching the LVGL tree after teardown.
+  bool ui_ready_{false};
 };

@@ -62,3 +62,22 @@ CONFIG_LV_USE_THEME_DEFAULT=y
 CONFIG_LV_THEME_DEFAULT_DARK=y
 CONFIG_LV_THEME_DEFAULT_GROW=y
 CONFIG_LV_THEME_DEFAULT_TRANSITION_TIME=30
+
+# On-board MIPI-CSI camera: esp_video (V4L2) capture pipeline + SC202CS sensor.
+# Enabling the MIPI-CSI video device auto-selects the ISP (RAW8 -> RGB565). The
+# SC202CS is auto-detected on the shared SCCB/I2C bus at startup.
+CONFIG_ESP_VIDEO_ENABLE_MIPI_CSI_VIDEO_DEVICE=y
+CONFIG_CAMERA_SC202CS=y
+CONFIG_CAMERA_SC202CS_AUTO_DETECT_MIPI_INTERFACE_SENSOR=y
+# Enable the ISP pipeline controller (isp_task): auto exposure / white balance.
+# Without it the ISP runs with static gains and the feed has a heavy green cast.
+# NOTE: the stock SC202CS IPA config is used. Its auto color-correction (ACC)
+# algorithm occasionally computes a CCM coefficient beyond the ESP32-P4 ISP's
+# +/-4.0 hardware limit under some illuminants; the ISP safely rejects it and
+# keeps the previous CCM (the image is unaffected), but the stock pipeline logs
+# the rejection several times per frame. That per-frame blocking UART logging is
+# what dropped frames, so initialize_camera() silences those specific tags. See
+# the BSP camera.cpp for details. (A custom clamped JSON via
+# CONFIG_CAMERA_SC202CS_CUSTOMIZED_IPA_JSON_CONFIGURATION_FILE cannot fully bound
+# the runtime CCM - the amplification happens inside the precompiled esp_ipa.)
+CONFIG_ESP_VIDEO_ENABLE_ISP_PIPELINE_CONTROLLER=y
