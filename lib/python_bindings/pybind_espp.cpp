@@ -2463,7 +2463,8 @@ void py_init_module_espp(py::module &m) {
            "Config::block_on_submit_when_full is True and the queue has\n/ reached its capacity "
            "limit. Otherwise behaves identically to try_submit().\n/ @param job Callable to "
            "enqueue; moved into the queue on acceptance.\n/ @return True if the job was accepted, "
-           "False if it was rejected.")
+           "False if it was rejected.",
+           py::call_guard<py::gil_scoped_release>())
       .def("try_submit", &espp::ThreadPool::try_submit, py::arg("job"),
            "/ @brief Attempt to submit a job without blocking.\n/\n/ Returns immediately with "
            "False when the queue is full.\n/ @param job Callable to enqueue; moved into the queue "

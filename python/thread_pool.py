@@ -268,7 +268,7 @@ def _submit_producer():
             time.sleep(0.01)
             with c7_lock:
                 c7[0] += 1
-                if c7[0] >= total_accepted7[0]:
+                if c7[0] >= TOTAL:
                     c7_done.set()
         if pool.submit(_w):
             with ta7_lock:
@@ -280,7 +280,7 @@ def _try_submit_producer():
             time.sleep(0.01)
             with c7_lock:
                 c7[0] += 1
-                if c7[0] >= total_accepted7[0]:
+                if c7[0] >= TOTAL:
                     c7_done.set()
         if pool.try_submit(_w):
             with ta7_lock:

@@ -247,7 +247,7 @@ _GIL_RELEASE_METHODS = {
     ],
     "espp::RtspServer": ["start", "stop", "send_frame"],
     "espp::RtspSession": ["send_rtp_packet", "send_rtcp_packet"],
-    "espp::ThreadPool": ["start", "stop"],
+    "espp::ThreadPool": ["start", "stop", "submit"],
 }
 
 _GIL_GUARD = "py::call_guard<py::gil_scoped_release>()"
