@@ -28,10 +28,6 @@ def check(test: str, condition: bool, desc: str) -> bool:
     return condition
 
 
-def wait_for_jobs(event: threading.Event, counter, expected: int, timeout: float = 5.0) -> None:
-    event.wait(timeout=timeout)
-
-
 # ---------------------------------------------------------------------------
 # 1. Lifecycle: start / stop / is_running / worker_count
 # ---------------------------------------------------------------------------
@@ -76,7 +72,8 @@ for i in range(TOTAL_JOBS):
         accepted += 1
 
 passed &= check(name, accepted == TOTAL_JOBS, "all jobs should be accepted (unbounded queue)")
-all_done.wait(timeout=10.0)
+if not all_done.wait(timeout=10.0):
+    passed &= check(name, False, "all jobs should complete within 10 s timeout")
 s = pool.stats()
 print(f"  stats: {s.submitted} submitted, {s.executed} executed, {s.rejected} rejected")
 passed &= check(name, s.submitted == TOTAL_JOBS, "submitted count should equal total_jobs")
@@ -119,7 +116,8 @@ pool = espp.ThreadPool(espp.ThreadPool.Config(worker_count=1, max_queue_size=2))
 
 # Submit first job and wait until it is executing (off the queue)
 pool.try_submit(_make_fill_job(signal_start=True))
-first_started.wait(timeout=2.0)
+if not first_started.wait(timeout=2.0):
+    passed &= check(name, False, "first fill job should start within 2 s timeout")
 
 # Fill the 2-slot queue
 fill_accepted = 1  # first job counted above
@@ -141,7 +139,8 @@ barrier.set()
 # stop(). Waiting only for the first job is not enough — after it finishes,
 # the worker immediately picks up the queued jobs and needs the GIL to execute
 # them. stop() would deadlock if called while those callbacks are running.
-all_fill_done.wait(timeout=5.0)
+if not all_fill_done.wait(timeout=5.0):
+    passed &= check(name, False, "all fill jobs should complete within 5 s timeout")
 pool.stop()
 results.append((name, passed))
 
@@ -181,7 +180,8 @@ for i in range(TOTAL_JOBS):
     accepted2 += 1
 
 passed &= check(name, accepted2 == TOTAL_JOBS, "all jobs should be accepted (try_submit retry)")
-all_done2.wait(timeout=10.0)
+if not all_done2.wait(timeout=10.0):
+    passed &= check(name, False, "all backpressure jobs should complete within 10 s timeout")
 s = pool.stats()
 print(f"  stats: {s.submitted} submitted, {s.executed} executed, {s.rejected} rejected")
 passed &= check(name, s.submitted == TOTAL_JOBS, "submitted count should equal total_jobs")
@@ -293,7 +293,8 @@ for p in producers:
 for p in producers:
     p.join()
 
-c7_done.wait(timeout=10.0)
+if not c7_done.wait(timeout=10.0):
+    passed &= check(name, False, "all concurrent jobs should complete within 10 s timeout")
 s = pool.stats()
 print(f"  stats: {s.submitted} submitted, {s.executed} executed, {s.rejected} rejected")
 passed &= check(name, s.submitted + s.rejected == TOTAL,
@@ -334,7 +335,8 @@ for _ in range(NUM_A_JOBS):
             pool_b.submit(_b_job)
     pool_a.submit(_a_job)
 
-c8_done.wait(timeout=10.0)
+if not c8_done.wait(timeout=10.0):
+    passed &= check(name, False, "all chained B jobs should complete within 10 s timeout")
 sa = pool_a.stats()
 sb = pool_b.stats()
 print(f"  pool_a stats: {sa.submitted} submitted, {sa.executed} executed, {sa.rejected} rejected")
@@ -377,7 +379,8 @@ for _ in range(NUM_INITIAL):
         pool.submit(_followup)
     pool.submit(_initial)
 
-c9_done.wait(timeout=5.0)
+if not c9_done.wait(timeout=5.0):
+    passed &= check(name, False, "all self-submit jobs should complete within 5 s timeout")
 s = pool.stats()
 print(f"  stats: {s.submitted} submitted, {s.executed} executed, {s.rejected} rejected")
 passed &= check(name, s.submitted == TOTAL_EXEC,
