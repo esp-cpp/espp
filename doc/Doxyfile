@@ -113,6 +113,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/ftp/example/main/ftp_example.cpp \
   $(PROJECT_PATH)/components/ft5x06/example/main/ft5x06_example.cpp \
   $(PROJECT_PATH)/components/gfps_service/example/main/gfps_service_example.cpp \
+  $(PROJECT_PATH)/components/gps/example/main/gps_example.cpp \
   $(PROJECT_PATH)/components/gt911/example/main/gt911_example.cpp \
   $(PROJECT_PATH)/components/hid-rp/example/main/hid_rp_example.cpp \
   $(PROJECT_PATH)/components/hid_service/example/main/hid_service_example.cpp \
@@ -139,6 +140,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/motorgo-mini/example/main/motorgo_mini_example.cpp \
   $(PROJECT_PATH)/components/motorgo-plink/example/main/motorgo_plink_example.cpp \
   $(PROJECT_PATH)/components/mcp23x17/example/main/mcp23x17_example.cpp \
+  $(PROJECT_PATH)/components/meshtastic/example/main/meshtastic_example.cpp \
   $(PROJECT_PATH)/components/mt6701/example/main/mt6701_example.cpp \
   $(PROJECT_PATH)/components/neopixel/example/main/neopixel_example.cpp \
   $(PROJECT_PATH)/components/nvs/example/main/nvs_example.cpp \
@@ -164,6 +166,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/st25dv/example/main/st25dv_example.cpp \
   $(PROJECT_PATH)/components/st7123touch/example/main/st7123touch_example.cpp \
   $(PROJECT_PATH)/components/state_machine/example/main/hfsm_example.cpp \
+  $(PROJECT_PATH)/components/sx126x/example/main/sx126x_example.cpp \
   $(PROJECT_PATH)/components/tabulate/example/main/tabulate_example.cpp \
   $(PROJECT_PATH)/components/t-deck/example/main/t_deck_example.cpp \
   $(PROJECT_PATH)/components/t-dongle-s3/example/main/t_dongle_s3_example.cpp \
@@ -275,6 +278,9 @@ INPUT = \
   $(PROJECT_PATH)/components/gfps_service/include/gfps.hpp \
   $(PROJECT_PATH)/components/gfps_service/include/gfps_characteristic_callbacks.hpp \
   $(PROJECT_PATH)/components/gfps_service/include/gfps_service.hpp \
+  $(PROJECT_PATH)/components/gps/include/gps.hpp \
+  $(PROJECT_PATH)/components/gps/include/gps_fix.hpp \
+  $(PROJECT_PATH)/components/gps/include/nmea_parser.hpp \
   $(PROJECT_PATH)/components/gt911/include/gt911.hpp \
   $(PROJECT_PATH)/components/hid-rp/include/gamepad_hat.hpp \
   $(PROJECT_PATH)/components/hid-rp/include/gamepad_imu.hpp \
@@ -331,6 +337,11 @@ INPUT = \
   $(PROJECT_PATH)/components/nvs/include/nvs.hpp \
   $(PROJECT_PATH)/components/nvs/include/nvs_handle_espp.hpp \
   $(PROJECT_PATH)/components/mcp23x17/include/mcp23x17.hpp \
+  $(PROJECT_PATH)/components/meshtastic/include/meshtastic.hpp \
+  $(PROJECT_PATH)/components/meshtastic/include/meshtastic_crypto.hpp \
+  $(PROJECT_PATH)/components/meshtastic/include/meshtastic_protobuf.hpp \
+  $(PROJECT_PATH)/components/meshtastic/include/meshtastic_protocol.hpp \
+  $(PROJECT_PATH)/components/meshtastic/include/meshtastic_types.hpp \
   $(PROJECT_PATH)/components/mt6701/include/mt6701.hpp \
   $(PROJECT_PATH)/components/odrive_ascii/include/odrive_ascii.hpp \
   $(PROJECT_PATH)/components/pcf85063/include/pcf85063.hpp \
@@ -377,6 +388,7 @@ INPUT = \
   $(PROJECT_PATH)/components/state_machine/include/shallow_history_state.hpp \
   $(PROJECT_PATH)/components/state_machine/include/state_base.hpp \
   $(PROJECT_PATH)/components/state_machine/include/state_machine.hpp \
+  $(PROJECT_PATH)/components/sx126x/include/sx126x.hpp \
   $(PROJECT_PATH)/components/t-deck/include/t-deck.hpp \
   $(PROJECT_PATH)/components/t-dongle-s3/include/t-dongle-s3.hpp \
   $(PROJECT_PATH)/components/t_keyboard/include/t_keyboard.hpp \

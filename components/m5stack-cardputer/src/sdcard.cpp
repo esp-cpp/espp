@@ -16,19 +16,10 @@ bool M5StackCardputer::initialize_sdcard(const SdCardConfig &config) {
 
   logger_.info("Initializing SD card");
 
-  // The uSD card is on its own SPI bus (not shared with the LCD)
-  spi_bus_config_t bus_cfg;
-  memset(&bus_cfg, 0, sizeof(bus_cfg));
-  bus_cfg.mosi_io_num = sdcard_mosi;
-  bus_cfg.miso_io_num = sdcard_miso;
-  bus_cfg.sclk_io_num = sdcard_sclk;
-  bus_cfg.quadwp_io_num = -1;
-  bus_cfg.quadhd_io_num = -1;
-  bus_cfg.max_transfer_sz = 4092;
-
-  auto ret = spi_bus_initialize(sdcard_spi_num, &bus_cfg, SDSPI_DEFAULT_DMA);
-  if (ret != ESP_OK) {
-    logger_.error("Failed to initialize SPI bus for SD card: {}", esp_err_to_name(ret));
+  // The uSD card is on its own SPI bus (not shared with the LCD, but shared
+  // with the LoRa+GPS Cap's radio)
+  if (!ensure_expansion_spi_bus()) {
+    logger_.error("Failed to initialize SPI bus for SD card");
     return false;
   }
 
@@ -46,7 +37,7 @@ bool M5StackCardputer::initialize_sdcard(const SdCardConfig &config) {
   mount_config.allocation_unit_size = config.allocation_unit_size;
 
   logger_.debug("Mounting filesystem");
-  ret = esp_vfs_fat_sdspi_mount(mount_point, &host, &slot_config, &mount_config, &sdcard_);
+  auto ret = esp_vfs_fat_sdspi_mount(mount_point, &host, &slot_config, &mount_config, &sdcard_);
 
   if (ret != ESP_OK) {
     if (ret == ESP_FAIL) {
@@ -57,7 +48,11 @@ bool M5StackCardputer::initialize_sdcard(const SdCardConfig &config) {
                     "resistors in place.",
                     esp_err_to_name(ret));
     }
-    spi_bus_free(sdcard_spi_num);
+    // only free the bus if the LoRa radio isn't using it
+    if (!lora_) {
+      spi_bus_free(sdcard_spi_num);
+      expansion_spi_bus_initialized_ = false;
+    }
     sdcard_ = nullptr;
     return false;
   }

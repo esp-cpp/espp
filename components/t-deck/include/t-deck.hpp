@@ -22,6 +22,7 @@
 
 #include "base_component.hpp"
 #include "es7210.hpp"
+#include "gps.hpp"
 #include "gt911.hpp"
 #include "i2c.hpp"
 #include "interrupt.hpp"
@@ -29,6 +30,7 @@
 #include "pointer_input.hpp"
 #include "spi.hpp"
 #include "st7789.hpp"
+#include "sx126x.hpp"
 #include "t_keyboard.hpp"
 #include "touchpad_input.hpp"
 
@@ -44,6 +46,8 @@ namespace espp {
 /// - Interrupts
 /// - I2C
 /// - microSD (uSD) card
+/// - LoRa radio (SX1262)
+/// - GPS (T-Deck Plus only)
 ///
 /// For more information, see
 /// https://github.com/Xinyuan-LilyGO/T-Deck/tree/master and
@@ -145,6 +149,72 @@ public:
   /// \note The uSD card is only available if it was successfully initialized
   ///       and the mount point is valid
   sdmmc_card_t *sdcard() const { return sdcard_; }
+
+  /////////////////////////////////////////////////////////////////////////////
+  // LoRa Radio (SX1262, HPD16A module)
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// Initialize the LoRa radio (SX1262)
+  /// \param radio_config The radio (modem) configuration to apply
+  /// \return True if the radio was initialized properly
+  /// \note The radio shares the SPI bus with the display and uSD card.
+  /// \note The radio's DIO1 interrupt is automatically serviced via the
+  ///       board's interrupt handler, so packets are delivered through the
+  ///       callbacks registered on the returned driver (see
+  ///       espp::Sx126x::set_receive_callback and friends).
+  /// \note The radio's reset line (GPIO 17) is also routed to the T-Deck's
+  ///       PDM digital-microphone clock / ES7210 interrupt line. The espp
+  ///       microphone path (the ES7210 array) uses a different set of pins, so
+  ///       the radio and microphone can be used together; only a PDM
+  ///       microphone (which would drive GPIO 17) would conflict.
+  bool initialize_lora(const Sx126x::RadioConfig &radio_config = {});
+
+  /// Get the LoRa radio
+  /// \return A shared pointer to the LoRa radio driver
+  /// \note The radio is only available if initialize_lora() succeeded
+  std::shared_ptr<Sx126x> lora() const { return lora_; }
+
+  /// Get the GPIO pin for the LoRa radio chip select
+  /// \return The GPIO pin for the LoRa radio chip select
+  static constexpr auto lora_cs_gpio() { return lora_cs_io; }
+
+  /// Get the GPIO pin for the LoRa radio DIO1 (interrupt) line
+  /// \return The GPIO pin for the LoRa radio DIO1 line
+  static constexpr auto lora_dio1_gpio() { return lora_dio1_io; }
+
+  /// Get the GPIO pin for the LoRa radio BUSY line
+  /// \return The GPIO pin for the LoRa radio BUSY line
+  static constexpr auto lora_busy_gpio() { return lora_busy_io; }
+
+  /// Get the GPIO pin for the LoRa radio reset line
+  /// \return The GPIO pin for the LoRa radio reset line
+  static constexpr auto lora_reset_gpio() { return lora_reset_io; }
+
+  /////////////////////////////////////////////////////////////////////////////
+  // GPS (T-Deck Plus only, u-blox MIA-M10Q)
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// Initialize the GPS (T-Deck Plus only)
+  /// \param fix_cb Optional callback invoked on each fix update
+  /// \param baud_rate The baud rate of the GPS UART (9600 by default)
+  /// \return True if the GPS was initialized properly
+  /// \note The GPS UART pins are routed to the Grove connector on the base
+  ///       T-Deck; on the T-Deck Plus they connect to the internal u-blox
+  ///       MIA-M10Q receiver.
+  bool initialize_gps(const Gps::fix_callback_fn &fix_cb = nullptr, uint32_t baud_rate = 9600);
+
+  /// Get the GPS
+  /// \return A shared pointer to the GPS driver
+  /// \note The GPS is only available if initialize_gps() succeeded
+  std::shared_ptr<Gps> gps() const { return gps_; }
+
+  /// Get the GPIO pin for the GPS UART TX (ESP32 -> GPS)
+  /// \return The GPIO pin for the GPS UART TX
+  static constexpr auto gps_tx_gpio() { return gps_tx_io; }
+
+  /// Get the GPIO pin for the GPS UART RX (GPS -> ESP32)
+  /// \return The GPIO pin for the GPS UART RX
+  static constexpr auto gps_rx_gpio() { return gps_rx_io; }
 
   /////////////////////////////////////////////////////////////////////////////
   // Keyboard
@@ -619,10 +689,19 @@ protected:
   static constexpr gpio_num_t sdcard_cs = GPIO_NUM_39;
 
   // LoRa (HPD16A)
-  static constexpr gpio_num_t lora_enable_io = GPIO_NUM_17;
+  // NOTE: the reset line is shared with the digital microphone clock
+  //       (dmic_clk_io), so the radio and microphone are mutually exclusive
+  static constexpr gpio_num_t lora_reset_io = GPIO_NUM_17;
   static constexpr gpio_num_t lora_cs_io = GPIO_NUM_9;
   static constexpr gpio_num_t lora_dio1_io = GPIO_NUM_45;
   static constexpr gpio_num_t lora_busy_io = GPIO_NUM_13;
+  static constexpr int lora_spi_clock_speed = 8 * 1000 * 1000;
+
+  // GPS (T-Deck Plus, u-blox MIA-M10Q); these pins go to the Grove
+  // connector on the base T-Deck
+  static constexpr gpio_num_t gps_tx_io = GPIO_NUM_43;
+  static constexpr gpio_num_t gps_rx_io = GPIO_NUM_44;
+  static constexpr auto gps_uart_port = UART_NUM_1;
 
   // TODO: allow core id configuration
   I2c internal_i2c_{{.port = internal_i2c_port,
@@ -734,6 +813,24 @@ protected:
   std::vector<uint8_t> audio_tx_buffer;
   StreamBufferHandle_t audio_tx_stream;
   i2s_std_config_t audio_std_cfg;
+
+  // LoRa radio
+  std::shared_ptr<Spi::Device> lora_spi_device_;
+  std::shared_ptr<Sx126x> lora_;
+  espp::Interrupt::PinConfig lora_dio1_interrupt_pin_{
+      .gpio_num = lora_dio1_io,
+      .callback =
+          [this](const auto &event) {
+            if (lora_) {
+              std::error_code ec;
+              lora_->handle_dio1_interrupt(ec);
+            }
+          },
+      .active_level = espp::Interrupt::ActiveLevel::HIGH,
+      .interrupt_type = espp::Interrupt::Type::RISING_EDGE};
+
+  // GPS
+  std::shared_ptr<Gps> gps_;
 
   // microphone (ES7210 on its own I2S bus)
   std::shared_ptr<I2c::Device<uint8_t>> es7210_i2c_device_;
