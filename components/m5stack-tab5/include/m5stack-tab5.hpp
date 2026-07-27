@@ -693,7 +693,7 @@ protected:
                      .scl_pullup_en = GPIO_PULLUP_ENABLE,
                      .timeout_ms = 200,
                      // Standard-mode (100 kHz) shared internal bus. At 400 kHz the
-                     // bus is marginal with this many devices on it — the ST7123
+                     // bus is marginal with this many devices on it - the ST7123
                      // touch reads time out and a hung transaction corrupts a
                      // concurrent BMI270 read (correlated touch I/O errors + IMU
                      // vector jumps while dragging). Per-device speed mixing

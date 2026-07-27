@@ -2365,7 +2365,7 @@ void py_init_module_espp(py::module &m) {
       "the configuration.\n *\n * \\section thread_pool_ex1 Lifecycle: start / stop / is_running / "
       "worker_count\n * \\snippet thread_pool_example.cpp lifecycle example\n * \\section "
       "thread_pool_ex2 Submit Jobs\n * \\snippet thread_pool_example.cpp submit example\n * "
-      "\\section thread_pool_ex3 try_submit — Non-Blocking Rejection When Full\n * \\snippet "
+      "\\section thread_pool_ex3 try_submit - Non-Blocking Rejection When Full\n * \\snippet "
       "thread_pool_example.cpp try_submit example\n * \\section thread_pool_ex4 Blocking Submit "
       "When Full\n * \\snippet thread_pool_example.cpp blocking submit example\n * \\section "
       "thread_pool_ex5 Submit Rejected After stop()\n * \\snippet thread_pool_example.cpp submit "
@@ -2869,7 +2869,7 @@ void py_init_module_espp(py::module &m) {
       m, "H264Depacketizer", py::dynamic_attr(),
       "/ @brief RTP depacketizer for H.264 video per RFC 6184.\n/\n/ Reassembles H.264 access "
       "units from incoming RTP packets. Supports:\n/   - **Single NAL unit** packets (NAL type "
-      "1–23)\n/   - **STAP-A** aggregation packets (NAL type 24)\n/   - **FU-A** fragmentation "
+      "1-23)\n/   - **STAP-A** aggregation packets (NAL type 24)\n/   - **FU-A** fragmentation "
       "packets (NAL type 28)\n/\n/ When the RTP marker bit is set, the accumulated NAL units are "
       "delivered\n/ as one Annex B byte-stream (each NAL prefixed with 0x00 0x00 0x00 0x01)\n/ via "
       "the frame callback set with set_frame_callback().\n/\n/ \\section h264_depacketizer_ex1 "
@@ -2907,7 +2907,7 @@ void py_init_module_espp(py::module &m) {
           "in Annex B byte-stream format (NAL units\n/ separated by 0x00000001 or 0x000001 start "
           "codes) and produces a sequence\n/ of RTP payload chunks suitable for "
           "transmission.\n/\n/ Supports two NAL-unit packetization strategies:\n/   - **Single NAL "
-          "unit mode** — NAL fits within max_payload_size.\n/   - **FU-A fragmentation** — NAL "
+          "unit mode** - NAL fits within max_payload_size.\n/   - **FU-A fragmentation** - NAL "
           "exceeds max_payload_size (packetization_mode >= 1).\n/\n/ @note This class does not "
           "manage RTP headers (sequence numbers, timestamps,\n/       SSRC). The caller wraps each "
           "returned chunk into an RtpPacket.\n/\n/ \\section h264_packetizer_ex1 Example\n/ "
@@ -2942,7 +2942,7 @@ void py_init_module_espp(py::module &m) {
             .def_readwrite("max_payload_size", &espp::H264Packetizer::Config::max_payload_size,
                            "/< Maximum payload bytes per RTP packet")
             .def_readwrite("payload_type", &espp::H264Packetizer::Config::payload_type,
-                           "/< Dynamic RTP payload type (typically 96–127).")
+                           "/< Dynamic RTP payload type (typically 96-127).")
             .def_readwrite("profile_level_id", &espp::H264Packetizer::Config::profile_level_id,
                            "/< H.264 profile-level-id hex string, e.g. \"42C01E\".")
             .def_readwrite("packetization_mode", &espp::H264Packetizer::Config::packetization_mode,
@@ -3685,7 +3685,7 @@ void py_init_module_espp(py::module &m) {
       .def("send_rtp_packet",
            py::overload_cast<const espp::RtpPacket &>(&espp::RtspSession::send_rtp_packet),
            py::arg("packet"),
-           "/ Send an RTP packet to the client (backward compat — sends on default track 0)\n/ "
+           "/ Send an RTP packet to the client (backward compat - sends on default track 0)\n/ "
            "@param packet The RTP packet to send\n/ @return True if the packet was sent "
            "successfully, False otherwise",
            py::call_guard<py::gil_scoped_release>())
@@ -3706,7 +3706,7 @@ void py_init_module_espp(py::module &m) {
       .def("send_rtcp_packet",
            py::overload_cast<const espp::RtcpPacket &>(&espp::RtspSession::send_rtcp_packet),
            py::arg("packet"),
-           "/ Send an RTCP packet to the client (backward compat — sends on default track 0)\n/ "
+           "/ Send an RTCP packet to the client (backward compat - sends on default track 0)\n/ "
            "@param packet The RTCP packet to send\n/ @return True if the packet was sent "
            "successfully, False otherwise",
            py::call_guard<py::gil_scoped_release>());

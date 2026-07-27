@@ -3796,7 +3796,7 @@ class ThreadPool:
      * \snippet thread_pool_example.cpp lifecycle example
      * \section thread_pool_ex2 Submit Jobs
      * \snippet thread_pool_example.cpp submit example
-     * \section thread_pool_ex3 try_submit — Non-Blocking Rejection When Full
+     * \section thread_pool_ex3 try_submit - Non-Blocking Rejection When Full
      * \snippet thread_pool_example.cpp try_submit example
      * \section thread_pool_ex4 Blocking Submit When Full
      * \snippet thread_pool_example.cpp blocking submit example
@@ -4450,7 +4450,7 @@ class H264Depacketizer:
     """/ @brief RTP depacketizer for H.264 video per RFC 6184.
     /
     / Reassembles H.264 access units from incoming RTP packets. Supports:
-    /   - **Single NAL unit** packets (NAL type 1–23)
+    /   - **Single NAL unit** packets (NAL type 1-23)
     /   - **STAP-A** aggregation packets (NAL type 24)
     /   - **FU-A** fragmentation packets (NAL type 28)
     /
@@ -4505,8 +4505,8 @@ class H264Packetizer:
     / of RTP payload chunks suitable for transmission.
     /
     / Supports two NAL-unit packetization strategies:
-    /   - **Single NAL unit mode** — NAL fits within max_payload_size.
-    /   - **FU-A fragmentation** — NAL exceeds max_payload_size (packetization_mode >= 1).
+    /   - **Single NAL unit mode** - NAL fits within max_payload_size.
+    /   - **FU-A fragmentation** - NAL exceeds max_payload_size (packetization_mode >= 1).
     /
     / @note This class does not manage RTP headers (sequence numbers, timestamps,
     /       SSRC). The caller wraps each returned chunk into an RtpPacket.
@@ -4517,7 +4517,7 @@ class H264Packetizer:
     class Config:
         """/ Configuration for the H264Packetizer."""
         max_payload_size: int = int(1400)                                      #/< Maximum payload bytes per RTP packet
-        payload_type: int = int(96)                                            #/< Dynamic RTP payload type (typically 96–127).
+        payload_type: int = int(96)                                            #/< Dynamic RTP payload type (typically 96-127).
         profile_level_id: str                                                  #/< H.264 profile-level-id hex string, e.g. "42C01E".
         packetization_mode: int = int(1)                                       #/< 0 = single NAL only, 1 = non-interleaved (FU-A allowed).
         sps: List[int]                                                         #/< Sequence Parameter Set raw bytes (without start code).
@@ -5725,7 +5725,7 @@ class RtspSession:
         pass
     @overload
     def send_rtp_packet(self, packet: RtpPacket) -> bool:
-        """/ Send an RTP packet to the client (backward compat — sends on default track 0)
+        """/ Send an RTP packet to the client (backward compat - sends on default track 0)
         / @param packet The RTP packet to send
         / @return True if the packet was sent successfully, False otherwise
         """
@@ -5751,7 +5751,7 @@ class RtspSession:
         pass
     @overload
     def send_rtcp_packet(self, packet: RtcpPacket) -> bool:
-        """/ Send an RTCP packet to the client (backward compat — sends on default track 0)
+        """/ Send an RTCP packet to the client (backward compat - sends on default track 0)
         / @param packet The RTCP packet to send
         / @return True if the packet was sent successfully, False otherwise
         """

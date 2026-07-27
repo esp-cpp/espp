@@ -18,7 +18,7 @@ namespace espp {
 /// @note The ST7123's touch engine is gated by the LCD reset (LCD_RST) line,
 ///       NOT the TP_RST line used by standalone touch controllers such as the
 ///       GT911. When used in a system that has a separate TP_RST signal
-///       (e.g. M5Stack Tab5), do NOT toggle TP_RST for this chip — doing so
+///       (e.g. M5Stack Tab5), do NOT toggle TP_RST for this chip - doing so
 ///       may knock the touch I2C endpoint offline.
 ///
 /// Touch data reading sequence (based on ST7123 TDDI Interface Protocol):
@@ -79,7 +79,7 @@ public:
       return false;
 
     if (!(adv_info & ADV_INFO_WITH_COORD)) {
-      // No coordinate data in this interrupt — clear touch state so LVGL sees
+      // No coordinate data in this interrupt - clear touch state so LVGL sees
       // the finger as lifted.
       num_touch_points_ = 0;
       x_ = 0;
@@ -155,7 +155,7 @@ public:
   }
 
   /// @brief Get the home-button state
-  /// @return Always false — the ST7123 does not expose a home button via I2C
+  /// @return Always false - the ST7123 does not expose a home button via I2C
   bool get_home_button_state() const { return false; }
 
 protected:

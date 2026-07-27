@@ -123,7 +123,7 @@ public:
   /// @return True if the packet was sent successfully, false otherwise
   bool send_rtp_packet(int track_id, std::span<const uint8_t> packet_data);
 
-  /// Send an RTP packet to the client (backward compat — sends on default track 0)
+  /// Send an RTP packet to the client (backward compat - sends on default track 0)
   /// @param packet The RTP packet to send
   /// @return True if the packet was sent successfully, false otherwise
   bool send_rtp_packet(const espp::RtpPacket &packet);
@@ -139,7 +139,7 @@ public:
   /// @return True if the packet was sent successfully, false otherwise
   bool send_rtcp_packet(int track_id, const espp::RtcpPacket &packet);
 
-  /// Send an RTCP packet to the client (backward compat — sends on default track 0)
+  /// Send an RTCP packet to the client (backward compat - sends on default track 0)
   /// @param packet The RTCP packet to send
   /// @return True if the packet was sent successfully, false otherwise
   bool send_rtcp_packet(const espp::RtcpPacket &packet);
