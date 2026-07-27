@@ -80,8 +80,15 @@ bool M5StackCardputer::initialize_lora(const Sx126x::RadioConfig &radio_config) 
 
   logger_.info("Initializing LoRa radio");
 
-  // connect the antenna (via the Cap's IO expander, if present)
-  enable_cap_expander_outputs(cap_expander_lora_rf_switch_mask);
+  // connect the antenna (via the Cap's IO expander, if present). A false return
+  // here means the expander is present but could not be configured (a hardwired
+  // Cap with no expander returns true), so the RF switch may be left Hi-Z and
+  // the antenna disconnected - warn loudly but continue so the radio still comes
+  // up for diagnostics.
+  if (!enable_cap_expander_outputs(cap_expander_lora_rf_switch_mask)) {
+    logger_.warn("Failed to enable the LoRa RF switch on the Cap's IO expander; the antenna may "
+                 "be disconnected and range will be severely degraded");
+  }
 
   // add the radio to the SPI bus
   spi_device_interface_config_t dev_cfg;

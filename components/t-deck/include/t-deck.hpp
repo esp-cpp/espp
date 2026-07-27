@@ -689,8 +689,11 @@ protected:
   static constexpr gpio_num_t sdcard_cs = GPIO_NUM_39;
 
   // LoRa (HPD16A)
-  // NOTE: the reset line is shared with the digital microphone clock
-  //       (dmic_clk_io), so the radio and microphone are mutually exclusive
+  // NOTE: the reset line (GPIO 17) is shared with the PDM digital-microphone
+  //       clock / ES7210 interrupt line. The espp microphone path (the ES7210
+  //       array) uses a different set of pins, so the radio and microphone can
+  //       be used together; only a PDM microphone (which would drive GPIO 17)
+  //       would conflict.
   static constexpr gpio_num_t lora_reset_io = GPIO_NUM_17;
   static constexpr gpio_num_t lora_cs_io = GPIO_NUM_9;
   static constexpr gpio_num_t lora_dio1_io = GPIO_NUM_45;

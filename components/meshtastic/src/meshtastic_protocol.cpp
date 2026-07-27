@@ -1,6 +1,7 @@
 #include "meshtastic_protocol.hpp"
 
 #include <cmath>
+#include <numeric>
 
 namespace espp::meshtastic {
 
@@ -55,19 +56,15 @@ PresetParams preset_params(ModemPreset preset) {
 } // namespace
 
 uint32_t djb2_hash(std::string_view str) {
-  uint32_t hash = 5381;
-  for (unsigned char c : str) {
-    hash = ((hash << 5) + hash) + c; // hash * 33 + c
-  }
-  return hash;
+  return std::accumulate(str.begin(), str.end(), uint32_t{5381},
+                         [](uint32_t hash, unsigned char c) {
+                           return ((hash << 5) + hash) + c; // hash * 33 + c
+                         });
 }
 
 uint8_t xor_hash(std::span<const uint8_t> data) {
-  uint8_t hash = 0;
-  for (auto b : data) {
-    hash ^= b;
-  }
-  return hash;
+  return std::accumulate(data.begin(), data.end(), uint8_t{0},
+                         [](uint8_t hash, uint8_t b) -> uint8_t { return hash ^ b; });
 }
 
 uint8_t channel_hash(std::string_view channel_name, std::span<const uint8_t> psk) {

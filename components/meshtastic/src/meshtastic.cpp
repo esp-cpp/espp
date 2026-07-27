@@ -1,5 +1,6 @@
 #include "meshtastic.hpp"
 
+#include <algorithm>
 #include <cstdio>
 
 #include <esp_mac.h>
@@ -27,6 +28,16 @@ MeshtasticNode::MeshtasticNode(const Config &config)
 
   // expand the PSK and compute the channel hash
   key_ = expand_psk(config_.psk);
+  // expand_psk() returns an empty key both when encryption is intentionally
+  // disabled (empty PSK, or the single sentinel byte 0) and when the PSK length
+  // is invalid. Distinguish the two so an invalid key does not silently fall
+  // back to an unencrypted channel without any indication.
+  const bool psk_disabled = config_.psk.empty() || (config_.psk.size() == 1 && config_.psk[0] == 0);
+  if (key_.empty() && !psk_disabled) {
+    logger_.error("Invalid PSK length {} (expected 1, 16, or 32 bytes); channel will be "
+                  "UNENCRYPTED",
+                  config_.psk.size());
+  }
   resolved_channel_name_ =
       config_.channel_name.empty() ? preset_display_name(config_.preset) : config_.channel_name;
   // the channel hash uses the expanded key; for an unencrypted channel the
@@ -45,20 +56,26 @@ std::string MeshtasticNode::node_id() const {
 }
 
 uint32_t MeshtasticNode::next_packet_id() {
-  // packet ids must be nonzero and non-repeating; seed from the hardware RNG
-  uint32_t id = esp_random();
-  if (id == 0) {
-    id = 1;
+  // Packet ids must be nonzero and non-repeating within a session. Seed the
+  // counter once from the hardware RNG (so two nodes are unlikely to start on
+  // the same id) then increment monotonically. Returning a fresh esp_random()
+  // each time can repeat, which makes peers treat new packets as duplicates
+  // and breaks ACK / response matching.
+  if (packet_id_counter_ == 0) {
+    packet_id_counter_ = esp_random() | 1u; // nonzero seed
+  }
+  uint32_t id = packet_id_counter_++;
+  if (packet_id_counter_ == 0) {
+    packet_id_counter_ = 1; // skip 0 on wrap so it stays the "unseeded" sentinel
   }
   return id;
 }
 
 bool MeshtasticNode::already_seen(uint32_t from, uint32_t id) {
   uint64_t key = ((uint64_t)from << 32) | id;
-  for (auto seen : seen_packets_) {
-    if (seen == key) {
-      return true;
-    }
+  if (std::any_of(seen_packets_.begin(), seen_packets_.end(),
+                  [key](uint64_t seen) { return seen == key; })) {
+    return true;
   }
   seen_packets_.push_back(key);
   if (seen_packets_.size() > MAX_SEEN_PACKETS) {

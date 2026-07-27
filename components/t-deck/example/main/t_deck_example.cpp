@@ -600,11 +600,9 @@ static bool load_audio(size_t &out_size, size_t &out_sample_rate) {
 }
 
 static std::string printable(const std::vector<uint8_t> &data) {
-  std::string out;
-  out.reserve(data.size());
-  for (uint8_t b : data) {
-    out.push_back((b >= 0x20 && b < 0x7f) ? static_cast<char>(b) : '.');
-  }
+  std::string out(data.size(), '.');
+  std::transform(data.begin(), data.end(), out.begin(),
+                 [](uint8_t b) { return (b >= 0x20 && b < 0x7f) ? static_cast<char>(b) : '.'; });
   return out;
 }
 

@@ -1,6 +1,7 @@
 #include <chrono>
 #include <memory>
 #include <string>
+#include <thread>
 
 #include "logger.hpp"
 #include "meshtastic.hpp"
@@ -132,7 +133,9 @@ extern "C" void app_main(void) {
   node->send_node_info();
   //! [meshtastic example]
 
+#if CONFIG_EXAMPLE_TEXT_INTERVAL_S > 0
   int text_count = 0;
+#endif
   auto last_nodeinfo = std::chrono::steady_clock::now();
   while (true) {
 #if CONFIG_EXAMPLE_TEXT_INTERVAL_S > 0

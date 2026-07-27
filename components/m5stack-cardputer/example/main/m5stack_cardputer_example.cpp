@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cmath>
@@ -52,11 +53,9 @@ static std::string lora_tx_message;
 // from an unrelated transmission on the same frequency, are shown as '.') so a
 // stray frame cannot corrupt the on-screen log
 static std::string printable(const std::vector<uint8_t> &data) {
-  std::string out;
-  out.reserve(data.size());
-  for (uint8_t b : data) {
-    out.push_back((b >= 0x20 && b < 0x7f) ? static_cast<char>(b) : '.');
-  }
+  std::string out(data.size(), '.');
+  std::transform(data.begin(), data.end(), out.begin(),
+                 [](uint8_t b) { return (b >= 0x20 && b < 0x7f) ? static_cast<char>(b) : '.'; });
   return out;
 }
 
