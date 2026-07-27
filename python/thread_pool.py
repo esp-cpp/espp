@@ -148,11 +148,9 @@ results.append((name, passed))
 # ---------------------------------------------------------------------------
 # 4. Queue backpressure: all jobs accepted despite bounded queue
 # ---------------------------------------------------------------------------
-# NOTE: pool.submit() with block_on_submit_when_full=True cannot be called
-# from a Python thread: it blocks in C++ while holding the GIL, preventing
-# worker threads from executing their Python callbacks (they also need the
-# GIL), causing a deadlock. Instead, we use try_submit() with a sleep-retry
-# loop which releases the GIL on each iteration and achieves the same
+# NOTE: ThreadPool.submit() is bound with a GIL-release guard, so blocking submit does not
+# inherently deadlock Python worker callbacks due to the GIL. This section uses a try_submit()
+# + sleep-retry loop to apply backpressure without blocking the calling thread.
 # backpressure semantics safely.
 name = "submit: queue backpressure (try_submit retry)"
 print(f"--- {name} ---")
