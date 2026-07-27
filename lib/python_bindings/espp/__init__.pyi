@@ -3817,7 +3817,8 @@ class ThreadPool:
         """/ @brief Snapshot of pool activity counters."""
         submitted: std.int = 0                               #/< Total jobs accepted into the queue.
         executed: std.int = 0                                #/< Total jobs successfully executed.
-        rejected: std.int = 0                                #/< Total jobs rejected (invalid job, stopped/stopping, or queue full) or dropped (due to stop, the enqueued jobs were dropped).
+        rejected: std.int = 0                                #/< Total jobs rejected (invalid job, stopped/stopping, or queue
+        #/< full) or dropped (due to stop, the enqueued jobs were dropped).
         def __init__(
             self,
             submitted: std.int = 0,
@@ -3833,7 +3834,8 @@ class ThreadPool:
         max_queue_size: std.int = 0                          #/< Maximum pending jobs (0 = unbounded).
         auto_start: bool = True                              #/< Start workers immediately on construction.
         block_on_submit_when_full: bool = False              #/< If True, submit() blocks when the queue is full instead of rejecting.
-        worker_task_config: Task.BaseConfig = Task.BaseConfig( ///< Base configuration applied to every worker task.
+        worker_task_config: Task.BaseConfig = Task.BaseConfig(
+                ///< Base configuration applied to every worker task.
                 .name = "thread_pool_worker",
                 .stack_size_bytes = 4096,
                 .priority = 5,

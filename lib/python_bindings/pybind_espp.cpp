@@ -2394,8 +2394,7 @@ void py_init_module_espp(py::module &m) {
             .def_readwrite("executed", &espp::ThreadPool::Stats::executed,
                            "/< Total jobs successfully executed.")
             .def_readwrite("rejected", &espp::ThreadPool::Stats::rejected,
-                           "/< Total jobs rejected (invalid job, stopped/stopping, or queue full) "
-                           "or dropped (due to stop, the enqueued jobs were dropped).");
+                           "/< Total jobs rejected (invalid job, stopped/stopping, or queue");
     auto pyClassThreadPool_ClassConfig =
         py::class_<espp::ThreadPool::Config>(
             pyClassThreadPool, "Config", py::dynamic_attr(),
@@ -2450,10 +2449,12 @@ void py_init_module_espp(py::module &m) {
            "/ @brief Start all worker threads.\n/ @return True if all workers were successfully "
            "started, False otherwise.\n/ @note No-op if the pool is already running and return "
            "True immediately.\n/ @note If any workers could not be started, the pool will roll "
-           "back to the stopped state.")
+           "back to the stopped state.",
+           py::call_guard<py::gil_scoped_release>())
       .def("stop", &espp::ThreadPool::stop,
            "/ @brief Stop all worker threads and reject further submissions.\n/ @note Blocks until "
-           "every worker has exited; queued jobs may not be executed.")
+           "every worker has exited; queued jobs may not be executed.",
+           py::call_guard<py::gil_scoped_release>())
       .def("is_running", &espp::ThreadPool::is_running,
            "/ @brief Query whether the pool is currently running.\n/ @return True if workers are "
            "active, False otherwise.")
