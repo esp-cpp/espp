@@ -72,7 +72,7 @@ bool TDeck::initialize_lora(const Sx126x::RadioConfig &radio_config) {
       return false;
     }
     alignas(4) uint8_t tx[kMaxTransfer] = {0};
-    alignas(4) uint8_t rx[kMaxTransfer];
+    alignas(4) uint8_t rx[kMaxTransfer] = {0};
     std::memcpy(tx, write_data, write_length);
     std::error_code ec;
     if (!device->transfer(std::span{tx, total}, std::span{rx, total}, {}, ec)) {

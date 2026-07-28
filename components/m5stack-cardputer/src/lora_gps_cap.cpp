@@ -131,7 +131,7 @@ bool M5StackCardputer::initialize_lora(const Sx126x::RadioConfig &radio_config) 
       return false;
     }
     alignas(4) uint8_t tx[kMaxTransfer] = {0};
-    alignas(4) uint8_t rx[kMaxTransfer];
+    alignas(4) uint8_t rx[kMaxTransfer] = {0};
     memcpy(tx, write_data, write_length);
     spi_transaction_t t;
     memset(&t, 0, sizeof(t));

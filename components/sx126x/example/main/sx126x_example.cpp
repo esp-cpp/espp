@@ -108,7 +108,7 @@ extern "C" void app_main(void) {
       return false;
     }
     alignas(4) uint8_t tx[kMaxTransfer] = {0};
-    alignas(4) uint8_t rx[kMaxTransfer];
+    alignas(4) uint8_t rx[kMaxTransfer] = {0};
     std::memcpy(tx, write_data, write_length);
     std::error_code ec;
     if (!radio_device->transfer(std::span{tx, total}, std::span{rx, total}, {}, ec)) {
