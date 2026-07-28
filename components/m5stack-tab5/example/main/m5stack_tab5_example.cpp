@@ -472,6 +472,16 @@ extern "C" void app_main(void) {
        }});
   imu_task.start();
 
+  // Initialize the on-board MIPI-CSI camera and stream its frames to the Camera
+  // tab. The BSP runs a capture task that hands each RGB565 frame to this
+  // callback; forward it to the thread-safe GUI. Non-fatal: the rest of the
+  // example still runs if the camera is unavailable.
+  logger.info("Initializing camera...");
+  if (!tab5.initialize_camera(
+          [&](const uint8_t *data, int w, int h, size_t) { gui.set_camera_frame(data, w, h); })) {
+    logger.warn("Failed to initialize camera; the Camera tab will stay blank");
+  }
+
   // Main loop: stream any active playback to the speaker and notice when a
   // recording stops (either button press or the buffer filling up)
   size_t play_offset = 0;

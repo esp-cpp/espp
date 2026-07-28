@@ -230,7 +230,7 @@ public:
     uint16_t participant_id{0}; ///< RTPS participant ID used for GUID and port derivation.
     bool randomize_guid_prefix{true}; ///< When true (default), mix per-instance entropy into the
                                       ///< participant GUID so a restarted participant is seen as a
-                                      ///< new participant — DDS/ROS 2 peers then accept its
+                                      ///< new participant - DDS/ROS 2 peers then accept its
                                       ///< republished samples instead of dropping them as
                                       ///< already-seen duplicates. Set false for a deterministic
                                       ///< GUID derived only from node_name/domain/participant id

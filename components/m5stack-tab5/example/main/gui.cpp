@@ -1,5 +1,8 @@
 #include <algorithm>
+#include <cstring>
 #include <utility>
+
+#include <esp_heap_caps.h>
 
 #include "gui.hpp"
 
@@ -9,12 +12,38 @@ void Gui::init_ui() {
   init_draw_tab();
   init_status_tab();
   init_audio_tab();
+  init_camera_tab();
   init_circle_layer();
+  ui_ready_ = true;
 }
 
 void Gui::deinit_ui() {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
+  // Mark the UI down first so a camera frame arriving mid-teardown (the camera
+  // task runs independently) is dropped rather than touching freed objects.
+  ui_ready_ = false;
   lv_obj_clean(lv_screen_active());
+  // lv_obj_clean() deleted every object under the screen; null the pointers we
+  // hold so nothing dereferences a freed object. It does not free the canvas's
+  // external PSRAM buffer (a member we own), so release that too.
+  tabview_ = nullptr;
+  draw_tab_ = nullptr;
+  status_tab_ = nullptr;
+  audio_tab_ = nullptr;
+  camera_tab_ = nullptr;
+  camera_canvas_ = nullptr;
+  camera_settings_btn_ = nullptr;
+  camera_panel_ = nullptr;
+  camera_scale_dd_ = nullptr;
+  camera_mirror_sw_ = nullptr;
+  camera_flip_sw_ = nullptr;
+  camera_label_ = nullptr;
+  if (camera_buf_) {
+    heap_caps_free(camera_buf_);
+    camera_buf_ = nullptr;
+  }
+  camera_w_ = 0;
+  camera_h_ = 0;
 }
 
 void Gui::init_tabview() {
@@ -28,6 +57,7 @@ void Gui::init_tabview() {
   draw_tab_ = lv_tabview_add_tab(tabview_, "Draw");
   status_tab_ = lv_tabview_add_tab(tabview_, "Status");
   audio_tab_ = lv_tabview_add_tab(tabview_, "Audio");
+  camera_tab_ = lv_tabview_add_tab(tabview_, "Camera");
   // switching tabs is done with the tab buttons only: disable swipe
   // scrolling of the content so drawing on the Draw tab cannot accidentally
   // change pages
@@ -164,6 +194,211 @@ void Gui::update_audio_label() {
   lv_label_set_text_fmt(audio_label_, "Speaker %d%% (%s/%s)\nMic %d%% (teal %s/%s)", speaker_volume,
                         LV_SYMBOL_VOLUME_MID, LV_SYMBOL_VOLUME_MAX, mic_volume, LV_SYMBOL_MINUS,
                         LV_SYMBOL_PLUS);
+}
+
+void Gui::init_camera_tab() {
+  // Center the camera feed; show a placeholder label until the first frame
+  // arrives. The canvas that displays the live feed is created lazily in
+  // set_camera_frame() once the true frame size is known. The settings controls
+  // float on top of the feed (see build_camera_controls).
+  lv_obj_set_flex_flow(camera_tab_, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_flex_align(camera_tab_, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
+                        LV_FLEX_ALIGN_CENTER);
+  // No padding, so a full-size feed can sit flush in the top-left corner.
+  lv_obj_set_style_pad_all(camera_tab_, 0, 0);
+  camera_label_ = lv_label_create(camera_tab_);
+  lv_label_set_text(camera_label_, "Waiting for camera...");
+  build_camera_controls();
+}
+
+void Gui::build_camera_controls() {
+  // A gear button in the top-right corner, floating (not part of the tab's flex
+  // layout) so it overlays the feed and is always visible. Tapping it toggles
+  // the settings panel.
+  camera_settings_btn_ = lv_btn_create(camera_tab_);
+  lv_obj_add_flag(camera_settings_btn_, LV_OBJ_FLAG_FLOATING);
+  lv_obj_set_size(camera_settings_btn_, 48, 48);
+  lv_obj_align(camera_settings_btn_, LV_ALIGN_TOP_RIGHT, -8, 8);
+  lv_obj_t *gear = lv_label_create(camera_settings_btn_);
+  lv_label_set_text(gear, LV_SYMBOL_SETTINGS);
+  lv_obj_center(gear);
+  lv_obj_add_event_cb(camera_settings_btn_, camera_settings_toggle_cb, LV_EVENT_CLICKED, this);
+
+  // The panel: floating, semi-transparent, sized to its content so it stays
+  // compact. Starts collapsed (hidden).
+  camera_panel_ = lv_obj_create(camera_tab_);
+  lv_obj_add_flag(camera_panel_, LV_OBJ_FLAG_FLOATING);
+  lv_obj_set_size(camera_panel_, 240, LV_SIZE_CONTENT);
+  lv_obj_align(camera_panel_, LV_ALIGN_TOP_RIGHT, -8, 64);
+  lv_obj_set_flex_flow(camera_panel_, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_style_pad_row(camera_panel_, 8, 0);
+  lv_obj_set_style_bg_opa(camera_panel_, LV_OPA_80, 0);
+  lv_obj_add_flag(camera_panel_, LV_OBJ_FLAG_HIDDEN);
+
+  lv_obj_t *title = lv_label_create(camera_panel_);
+  lv_label_set_text(title, "Camera settings");
+
+  // Image size dropdown.
+  lv_obj_t *size_label = lv_label_create(camera_panel_);
+  lv_label_set_text(size_label, "Image size");
+  camera_scale_dd_ = lv_dropdown_create(camera_panel_);
+  lv_dropdown_set_options(camera_scale_dd_, "Full\nHalf\nQuarter");
+  lv_dropdown_set_selected(camera_scale_dd_, 1); // Half (the BSP default)
+  lv_obj_set_width(camera_scale_dd_, lv_pct(100));
+  lv_obj_add_event_cb(camera_scale_dd_, camera_control_event_cb, LV_EVENT_VALUE_CHANGED, this);
+
+  // A labeled switch row helper.
+  auto add_switch = [&](const char *text, bool on) {
+    lv_obj_t *row = lv_obj_create(camera_panel_);
+    lv_obj_remove_style_all(row);
+    lv_obj_set_size(row, lv_pct(100), LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(row, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_t *l = lv_label_create(row);
+    lv_label_set_text(l, text);
+    lv_obj_t *sw = lv_switch_create(row);
+    if (on) {
+      lv_obj_add_state(sw, LV_STATE_CHECKED);
+    }
+    lv_obj_add_event_cb(sw, camera_control_event_cb, LV_EVENT_VALUE_CHANGED, this);
+    return sw;
+  };
+  camera_mirror_sw_ = add_switch("Mirror", false);
+  camera_flip_sw_ = add_switch("Flip", false);
+}
+
+void Gui::camera_settings_toggle_cb(lv_event_t *e) {
+  auto *gui = static_cast<Gui *>(lv_event_get_user_data(e));
+  if (!gui || !gui->camera_panel_) {
+    return;
+  }
+  if (lv_obj_has_flag(gui->camera_panel_, LV_OBJ_FLAG_HIDDEN)) {
+    lv_obj_clear_flag(gui->camera_panel_, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_move_foreground(gui->camera_panel_);
+  } else {
+    lv_obj_add_flag(gui->camera_panel_, LV_OBJ_FLAG_HIDDEN);
+  }
+}
+
+void Gui::camera_control_event_cb(lv_event_t *e) {
+  auto *gui = static_cast<Gui *>(lv_event_get_user_data(e));
+  if (gui) {
+    gui->sync_camera_controls();
+  }
+}
+
+void Gui::sync_camera_controls() {
+  // Read every widget into camera_controls_ and push it to the BSP. (Called
+  // from an LVGL event, i.e. already under the GUI mutex via lv_task_handler.)
+  using Scale = espp::M5StackTab5::CameraScale;
+  uint32_t scale_idx = lv_dropdown_get_selected(camera_scale_dd_);
+  camera_controls_.scale = (scale_idx == 0)   ? Scale::FULL
+                           : (scale_idx == 2) ? Scale::QUARTER
+                                              : Scale::HALF;
+  camera_controls_.hmirror = lv_obj_has_state(camera_mirror_sw_, LV_STATE_CHECKED);
+  camera_controls_.vflip = lv_obj_has_state(camera_flip_sw_, LV_STATE_CHECKED);
+  espp::M5StackTab5::get().set_camera_controls(camera_controls_);
+}
+
+void Gui::raise_camera_controls() {
+  // Keep the overlay above the camera canvas, which is (re)created lazily and
+  // would otherwise cover the controls.
+  if (camera_settings_btn_) {
+    lv_obj_move_foreground(camera_settings_btn_);
+  }
+  if (camera_panel_) {
+    lv_obj_move_foreground(camera_panel_);
+  }
+}
+
+void Gui::camera_canvas_drag_cb(lv_event_t *e) {
+  auto *canvas = static_cast<lv_obj_t *>(lv_event_get_target(e));
+  lv_indev_t *indev = lv_indev_active();
+  if (!canvas || !indev) {
+    return;
+  }
+  // Move the feed by the drag delta since the last event.
+  lv_point_t vect;
+  lv_indev_get_vect(indev, &vect);
+  lv_obj_t *parent = lv_obj_get_parent(canvas);
+  int32_t x = lv_obj_get_x(canvas) + vect.x;
+  int32_t y = lv_obj_get_y(canvas) + vect.y;
+  // Keep the feed within the tab; if it is larger than the tab, the range goes
+  // negative so its far edges can still be panned into view.
+  int32_t range_x = lv_obj_get_width(parent) - lv_obj_get_width(canvas);
+  int32_t range_y = lv_obj_get_height(parent) - lv_obj_get_height(canvas);
+  int32_t lo_x = LV_MIN(0, range_x), hi_x = LV_MAX(0, range_x);
+  int32_t lo_y = LV_MIN(0, range_y), hi_y = LV_MAX(0, range_y);
+  x = x < lo_x ? lo_x : (x > hi_x ? hi_x : x);
+  y = y < lo_y ? lo_y : (y > hi_y ? hi_y : y);
+  lv_obj_set_pos(canvas, x, y);
+}
+
+void Gui::set_camera_frame(const uint8_t *rgb565, int w, int h) {
+  if (!rgb565 || w <= 0 || h <= 0) {
+    return;
+  }
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  // The camera task may still deliver a frame after the UI is torn down; drop it
+  // rather than create objects under a freed camera_tab_.
+  if (!ui_ready_ || !camera_tab_) {
+    return;
+  }
+  // (Re)allocate the canvas buffer and (re)create the canvas on the first frame
+  // or whenever the frame size changes. The buffer must outlive the canvas, so
+  // it is a member kept in PSRAM.
+  if (camera_buf_ == nullptr || w != camera_w_ || h != camera_h_) {
+    // Allocate the new buffer BEFORE freeing the old one / deleting the canvas,
+    // so that on OOM we keep showing the previous frame instead of blanking the
+    // tab.
+    const size_t bytes = static_cast<size_t>(w) * static_cast<size_t>(h) * 2;
+    auto *new_buf =
+        static_cast<uint8_t *>(heap_caps_malloc(bytes, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+    if (!new_buf) {
+      return; // out of memory; keep the current canvas / preview
+    }
+    if (camera_canvas_) {
+      lv_obj_del(camera_canvas_);
+      camera_canvas_ = nullptr;
+    }
+    if (camera_buf_) {
+      heap_caps_free(camera_buf_);
+    }
+    camera_buf_ = new_buf;
+    camera_w_ = w;
+    camera_h_ = h;
+    camera_canvas_ = lv_canvas_create(camera_tab_);
+    lv_canvas_set_buffer(camera_canvas_, camera_buf_, w, h, LV_COLOR_FORMAT_RGB565);
+    // Frame the feed (a border + rounded corners so it reads as a distinct
+    // element when it is smaller than the tab), and make it draggable within the
+    // tab. LV_OBJ_FLAG_FLOATING takes it out of the tab's flex layout so it can
+    // be freely positioned; the border brightens while it is pressed to hint
+    // that it can be moved.
+    lv_obj_add_flag(camera_canvas_, LV_OBJ_FLAG_FLOATING);
+    lv_obj_add_flag(camera_canvas_, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_style_border_width(camera_canvas_, 2, 0);
+    lv_obj_set_style_border_color(camera_canvas_, lv_palette_main(LV_PALETTE_GREY), 0);
+    lv_obj_set_style_border_color(camera_canvas_, lv_palette_main(LV_PALETTE_BLUE),
+                                  LV_STATE_PRESSED);
+    lv_obj_set_style_radius(camera_canvas_, 6, 0);
+    lv_obj_add_event_cb(camera_canvas_, camera_canvas_drag_cb, LV_EVENT_PRESSING, this);
+    // Center the feed when it fits within the tab; otherwise pin it to the
+    // top-left so it fills from the corner (drag to pan the overflow).
+    lv_obj_update_layout(camera_tab_);
+    const int32_t tab_w = lv_obj_get_width(camera_tab_);
+    const int32_t tab_h = lv_obj_get_height(camera_tab_);
+    const bool fits = (w <= tab_w) && (h <= tab_h);
+    lv_obj_set_pos(camera_canvas_, fits ? (tab_w - w) / 2 : 0, fits ? (tab_h - h) / 2 : 0);
+    if (camera_label_) {
+      lv_obj_add_flag(camera_label_, LV_OBJ_FLAG_HIDDEN);
+    }
+    // the canvas was just created on top of the settings overlay; restore the
+    // overlay to the foreground so the gear button / panel stay tappable.
+    raise_camera_controls();
+  }
+  std::memcpy(camera_buf_, rgb565, static_cast<size_t>(w) * static_cast<size_t>(h) * 2);
+  lv_obj_invalidate(camera_canvas_);
 }
 
 void Gui::init_circle_layer() {

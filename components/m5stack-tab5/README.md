@@ -21,9 +21,12 @@ The `espp::M5StackTab5` component provides a singleton hardware abstraction for 
 - Hi-Fi recording and playback capabilities
 
 ### Camera
-- SC2356 2MP camera (1600 × 1200) via MIPI-CSI
-- HD video recording and image processing
-- Support for edge-AI applications
+- MIPI-CSI camera (SC202CS) brought up via Espressif's `esp_video` (V4L2)
+  pipeline (CSI receiver + ISP), with the ISP converting the sensor's RAW8
+  output to RGB565
+- `initialize_camera(callback)` streams frames to the callback from a capture
+  task; the sensor's SCCB shares the internal I2C bus
+- See the example's Camera tab for a live-feed display
 
 ### Sensors & IMU
 - BMI270 6-axis sensor (accelerometer + gyroscope)

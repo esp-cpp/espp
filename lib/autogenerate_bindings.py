@@ -49,6 +49,7 @@ _IMPLICIT_CTOR_FIX = {
         ".def(py::init<const espp::Timer::Config &>())\n"
         "      .def(py::init<const espp::Timer::AdvancedConfig &>())"
     ),
+    "pyClassThreadPool": ".def(py::init<const espp::ThreadPool::Config &>())",
     "pyClassBezier_espp_Vector2f": (
         ".def(py::init<const espp::Bezier<espp::Vector2f>::Config &>())\n"
         "      .def(py::init<const espp::Bezier<espp::Vector2f>::WeightedConfig &>())"
@@ -246,6 +247,7 @@ _GIL_RELEASE_METHODS = {
     ],
     "espp::RtspServer": ["start", "stop", "send_frame"],
     "espp::RtspSession": ["send_rtp_packet", "send_rtcp_packet"],
+    "espp::ThreadPool": ["start", "stop", "submit"],
 }
 
 _GIL_GUARD = "py::call_guard<py::gil_scoped_release>()"
@@ -456,6 +458,9 @@ def autogenerate() -> None:
                     include_dir + "socket/include/udp_socket.hpp",
                     include_dir + "task/include/task.hpp",
                     include_dir + "timer/include/timer.hpp",
+
+                    # NOTE: this must come after task and base_component since it depends on them
+                    include_dir + "thread_pool/include/thread_pool.hpp",
 
                     # NOTE: this must come after vector2d.hpp and range_mapper.hpp since it depends on them!
                     include_dir + "joystick/include/joystick.hpp",

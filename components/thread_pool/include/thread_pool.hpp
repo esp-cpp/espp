@@ -28,7 +28,7 @@ namespace espp {
  * \snippet thread_pool_example.cpp lifecycle example
  * \section thread_pool_ex2 Submit Jobs
  * \snippet thread_pool_example.cpp submit example
- * \section thread_pool_ex3 try_submit — Non-Blocking Rejection When Full
+ * \section thread_pool_ex3 try_submit - Non-Blocking Rejection When Full
  * \snippet thread_pool_example.cpp try_submit example
  * \section thread_pool_ex4 Blocking Submit When Full
  * \snippet thread_pool_example.cpp blocking submit example
@@ -52,16 +52,19 @@ public:
   struct Stats {
     std::uint64_t submitted = 0; ///< Total jobs accepted into the queue.
     std::uint64_t executed = 0;  ///< Total jobs successfully executed.
-    std::uint64_t rejected = 0;  ///< Total jobs rejected (invalid job, stopped/stopping, or queue full) or dropped (due to stop, the enqueued jobs were dropped).
+    std::uint64_t rejected = 0;  ///< Total jobs rejected (invalid job, stopped/stopping, or queue
+                                ///< full) or dropped (due to stop, the enqueued jobs were dropped).
   };
 
   /// @brief Configuration parameters for constructing a ThreadPool.
   struct Config {
-    std::size_t worker_count = 1;              ///< Number of worker threads to spawn.
-    std::size_t max_queue_size = 0;            ///< Maximum pending jobs (0 = unbounded).
-    bool auto_start = true;                    ///< Start workers immediately on construction.
-    bool block_on_submit_when_full = false;    ///< If true, submit() blocks when the queue is full instead of rejecting.
-    espp::Task::BaseConfig worker_task_config = { ///< Base configuration applied to every worker task.
+    std::size_t worker_count = 1;   ///< Number of worker threads to spawn.
+    std::size_t max_queue_size = 0; ///< Maximum pending jobs (0 = unbounded).
+    bool auto_start = true;         ///< Start workers immediately on construction.
+    bool block_on_submit_when_full =
+        false; ///< If true, submit() blocks when the queue is full instead of rejecting.
+    espp::Task::BaseConfig worker_task_config = {
+        ///< Base configuration applied to every worker task.
         .name = "thread_pool_worker",
         .stack_size_bytes = 4096,
         .priority = 5,

@@ -50,7 +50,7 @@ namespace espp {
 /// - ES8311 audio codec (+ NS4150B speaker amplifier) over I2S
 /// - 10/100 Ethernet (EMAC + IP101 RMII PHY)
 /// - microSD card (4-bit SDMMC)
-/// - MIPI-CSI camera (SC2336/OV5647) — pins wired, capture pipeline is a stub
+/// - MIPI-CSI camera (SC2336/OV5647) - pins wired, capture pipeline is a stub
 ///
 /// \note The BOOT button cannot be used simultaneously with the ethernet PHY,
 ///       since the BOOT button is connected to the PHY's RMII_TXD1 pin. If you
@@ -380,12 +380,12 @@ public:
 #endif // CONFIG_ESP_P4_EV_BOARD_ETHERNET || defined(_DOXYGEN_)
 
   /////////////////////////////////////////////////////////////////////////////
-  // Camera (MIPI-CSI) — pins wired, capture pipeline is a stub
+  // Camera (MIPI-CSI) - pins wired, capture pipeline is a stub
   /////////////////////////////////////////////////////////////////////////////
 
   /// Initialize the MIPI-CSI camera (SC2336/OV5647).
   /// \return True if successful
-  /// \note Not yet implemented — the camera pins/SCCB are documented in this
+  /// \note Not yet implemented - the camera pins/SCCB are documented in this
   ///       BSP but the esp_video capture pipeline is not wired up. This always
   ///       returns false for now.
   bool initialize_camera();
@@ -482,7 +482,7 @@ protected:
   static constexpr gpio_num_t internal_i2c_sda = GPIO_NUM_7;
   static constexpr gpio_num_t internal_i2c_scl = GPIO_NUM_8;
 
-  // Touch (GT911) — interrupt/reset are NOT connected on this board
+  // Touch (GT911) - interrupt/reset are NOT connected on this board
   static constexpr uint8_t gt911_default_address = 0x5D;
   static constexpr uint8_t gt911_backup_address = 0x14;
 
@@ -510,7 +510,7 @@ protected:
   static constexpr gpio_num_t sd_d3_io = GPIO_NUM_42;
 
   /////////////////////////////////////////////////////////////////////////////
-  // Camera (MIPI-CSI) — SCCB shares the internal I2C bus; reset/xclk not connected
+  // Camera (MIPI-CSI) - SCCB shares the internal I2C bus; reset/xclk not connected
   /////////////////////////////////////////////////////////////////////////////
   static constexpr gpio_num_t camera_reset_io = GPIO_NUM_NC;
   static constexpr gpio_num_t camera_xclk_io = GPIO_NUM_NC;
