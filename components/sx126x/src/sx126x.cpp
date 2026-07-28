@@ -220,7 +220,7 @@ void Sx126x::set_frequency(uint32_t frequency_hz, std::error_code &ec) {
 void Sx126x::set_tx_power(int8_t power_dbm, std::error_code &ec) {
   std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   if (config_.variant == Variant::SX1261) {
-    power_dbm = std::clamp<int8_t>(power_dbm, -17, 14);
+    power_dbm = std::clamp<int8_t>(power_dbm, -17, 15);
   } else {
     power_dbm = std::clamp<int8_t>(power_dbm, -9, 22);
   }
