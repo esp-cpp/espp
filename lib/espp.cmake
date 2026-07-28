@@ -39,6 +39,7 @@ set(ESPP_INCLUDES
   ${ESPP_COMPONENTS}/serialization/include
   ${ESPP_COMPONENTS}/tabulate/include
   ${ESPP_COMPONENTS}/task/include
+  ${ESPP_COMPONENTS}/thread_pool/include
   ${ESPP_COMPONENTS}/timer/include
   ${ESPP_COMPONENTS}/socket/include
   ${ESPP_COMPONENTS}/state_machine/include
@@ -69,6 +70,7 @@ set(ESPP_SOURCES
   ${ESPP_COMPONENTS}/rtsp/src/mjpeg_depacketizer.cpp
   ${ESPP_COMPONENTS}/rtsp/src/mjpeg_packetizer.cpp
   ${ESPP_COMPONENTS}/task/src/task.cpp
+  ${ESPP_COMPONENTS}/thread_pool/src/thread_pool.cpp
   ${ESPP_COMPONENTS}/timer/src/timer.cpp
   ${ESPP_COMPONENTS}/socket/src/socket.cpp
   ${ESPP_COMPONENTS}/socket/src/tcp_socket.cpp

@@ -47,7 +47,7 @@ public:
   /// Function type for the callback to call when a JPEG frame is received
   typedef std::function<void(std::shared_ptr<espp::JpegFrame> jpeg_frame)> jpeg_frame_callback_t;
 
-  /// Generic frame callback — called for any track/codec with raw frame data
+  /// Generic frame callback - called for any track/codec with raw frame data
   using frame_callback_t = std::function<void(int track_id, std::vector<uint8_t> &&data)>;
 
   /// Callback invoked when the RTSP server disappears after playback starts.
