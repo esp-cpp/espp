@@ -216,38 +216,56 @@ bool MeshtasticNode::handle_frame(std::span<const uint8_t> frame, float rssi, fl
   logger_.debug("Received {} packet 0x{:08x} from 0x{:08x} ({} hops, RSSI {:.0f}, SNR {:.1f})",
                 (int)data->portnum, header.id, header.from, metadata.hops_taken, rssi, snr);
 
+  // Snapshot the callbacks (and rebroadcast flag) under the lock so a
+  // concurrent set_*_callback() cannot race with dispatch, then invoke the
+  // copies *outside* the lock so a callback that calls back into the node
+  // cannot deadlock.
+  text_callback_fn on_text;
+  nodeinfo_callback_fn on_nodeinfo;
+  position_callback_fn on_position;
+  data_callback_fn on_data;
+  bool rebroadcast;
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    on_text = config_.on_text;
+    on_nodeinfo = config_.on_nodeinfo;
+    on_position = config_.on_position;
+    on_data = config_.on_data;
+    rebroadcast = config_.rebroadcast;
+  }
+
   // dispatch to the specific callbacks
   switch (data->portnum) {
   case PortNum::TEXT_MESSAGE_APP:
-    if (config_.on_text) {
-      config_.on_text(std::string(data->payload.begin(), data->payload.end()), metadata);
+    if (on_text) {
+      on_text(std::string(data->payload.begin(), data->payload.end()), metadata);
     }
     break;
   case PortNum::NODEINFO_APP:
-    if (config_.on_nodeinfo) {
+    if (on_nodeinfo) {
       auto user = decode_user(data->payload);
       if (user) {
-        config_.on_nodeinfo(*user, metadata);
+        on_nodeinfo(*user, metadata);
       }
     }
     break;
   case PortNum::POSITION_APP:
-    if (config_.on_position) {
+    if (on_position) {
       auto position = decode_position(data->payload);
       if (position) {
-        config_.on_position(*position, metadata);
+        on_position(*position, metadata);
       }
     }
     break;
   default:
     break;
   }
-  if (config_.on_data) {
-    config_.on_data(*data, metadata);
+  if (on_data) {
+    on_data(*data, metadata);
   }
 
   // rebroadcast (managed flood) if configured and there are hops remaining
-  if (config_.rebroadcast && header.to != config_.node_num) {
+  if (rebroadcast && header.to != config_.node_num) {
     maybe_rebroadcast(header, frame);
   }
 

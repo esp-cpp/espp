@@ -121,18 +121,27 @@ bool M5StackCardputer::initialize_lora(const Sx126x::RadioConfig &radio_config) 
   };
   auto write_then_read_fn = [handle](const uint8_t *write_data, size_t write_length,
                                      uint8_t *read_data, size_t read_length) -> bool {
-    std::vector<uint8_t> tx(write_length + read_length, 0);
-    std::vector<uint8_t> rx(write_length + read_length, 0);
-    memcpy(tx.data(), write_data, write_length);
+    // This is a hot path (called for every SX126x command / IRQ read), so use
+    // fixed, DMA-aligned stack buffers instead of allocating a vector pair on
+    // every call. The largest SX126x transfer is a 255-byte FIFO read plus a
+    // few opcode/param bytes, so kMaxTransfer comfortably covers any command.
+    static constexpr size_t kMaxTransfer = 264;
+    const size_t total = write_length + read_length;
+    if (total > kMaxTransfer) {
+      return false;
+    }
+    alignas(4) uint8_t tx[kMaxTransfer] = {0};
+    alignas(4) uint8_t rx[kMaxTransfer];
+    memcpy(tx, write_data, write_length);
     spi_transaction_t t;
     memset(&t, 0, sizeof(t));
-    t.length = tx.size() * 8;
-    t.tx_buffer = tx.data();
-    t.rx_buffer = rx.data();
+    t.length = total * 8;
+    t.tx_buffer = tx;
+    t.rx_buffer = rx;
     if (spi_device_polling_transmit(handle, &t) != ESP_OK) {
       return false;
     }
-    memcpy(read_data, rx.data() + write_length, read_length);
+    memcpy(read_data, rx + write_length, read_length);
     return true;
   };
 

@@ -62,14 +62,23 @@ bool TDeck::initialize_lora(const Sx126x::RadioConfig &radio_config) {
   };
   auto write_then_read_fn = [device](const uint8_t *write_data, size_t write_length,
                                      uint8_t *read_data, size_t read_length) -> bool {
-    std::vector<uint8_t> tx(write_length + read_length, 0);
-    std::vector<uint8_t> rx(write_length + read_length, 0);
-    std::memcpy(tx.data(), write_data, write_length);
-    std::error_code ec;
-    if (!device->transfer(tx, rx, {}, ec)) {
+    // This is a hot path (called for every SX126x command / IRQ read), so use
+    // fixed, DMA-aligned stack buffers instead of allocating a vector pair on
+    // every call. The largest SX126x transfer is a 255-byte FIFO read plus a
+    // few opcode/param bytes, so kMaxTransfer comfortably covers any command.
+    static constexpr size_t kMaxTransfer = 264;
+    const size_t total = write_length + read_length;
+    if (total > kMaxTransfer) {
       return false;
     }
-    std::memcpy(read_data, rx.data() + write_length, read_length);
+    alignas(4) uint8_t tx[kMaxTransfer] = {0};
+    alignas(4) uint8_t rx[kMaxTransfer];
+    std::memcpy(tx, write_data, write_length);
+    std::error_code ec;
+    if (!device->transfer(std::span{tx, total}, std::span{rx, total}, {}, ec)) {
+      return false;
+    }
+    std::memcpy(read_data, rx + write_length, read_length);
     return true;
   };
 
