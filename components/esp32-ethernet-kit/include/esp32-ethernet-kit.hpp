@@ -42,15 +42,19 @@ namespace espp {
 /// \snippet esp32_ethernet_kit_example.cpp esp32 ethernet kit dhcp client
 class Esp32EthernetKit : public BaseComponent {
 public:
-  /// Callback invoked when the Ethernet link comes up and an IP is assigned
-  using ethernet_link_callback_t = std::function<void(esp_ip4_addr_t ip)>;
-
   /// Callback invoked (SERVER mode only) each time the DHCP server assigns an
   /// IP address to a connected client.
-  /// \param ip  IPv4 address that was assigned.
-  /// \param mac MAC address of the client.
-  using client_ip_callback_t =
-      std::function<void(esp_ip4_addr_t ip, std::array<uint8_t, 6> mac)>;
+  using client_ip_callback_t = std::function<void(esp_ip4_addr_t ip, std::array<uint8_t, 6> mac)>;
+
+  /// Callback invoked when the Ethernet link state changes (comes up or goes
+  /// down) or when the IP address is lost.
+  /// \note Runs in the ESP-IDF event-loop task context — return quickly, do not block.
+  using EthernetLinkCallback = std::function<void()>;
+
+  /// Callback invoked when the interface obtains an IPv4 address.
+  /// \param ip The assigned IPv4 address.
+  /// \note Runs in the ESP-IDF event-loop task context — return quickly, do not block.
+  using EthernetIpCallback = std::function<void(esp_ip4_addr_t ip)>;
 
   /// DHCP operating mode for the Ethernet interface
   enum class DhcpMode {
@@ -62,8 +66,32 @@ public:
   /// Leave \c ip_info zero-initialised to use the built-in defaults
   /// (192.168.4.1 / 255.255.255.0 / gw 192.168.4.1).
   struct ServerConfig {
-    esp_netif_ip_info_t ip_info;           ///< IP / netmask / gateway; zero → 192.168.4.1/24
+    esp_netif_ip_info_t ip_info;             ///< IP / netmask / gateway; zero → 192.168.4.1/24
     client_ip_callback_t on_client_assigned; ///< Called each time a client is assigned an IP
+  };
+
+  /// Configuration for the Ethernet interface.
+  struct EthernetConfig {
+    /// DHCP operating mode (CLIENT or SERVER).
+    DhcpMode mode{DhcpMode::CLIENT};
+
+    /// Static IP / DHCP server settings — only used when mode == SERVER.
+    ServerConfig server_config{};
+
+    /// Called when the physical link comes up (cable connected + negotiated).
+    EthernetLinkCallback on_link_up{nullptr};
+
+    /// Called when the physical link goes down (cable disconnected).
+    EthernetLinkCallback on_link_down{nullptr};
+
+    /// Called when the interface is assigned an IPv4 address.
+    /// CLIENT mode: fired by the DHCP lease.
+    /// SERVER mode: fired immediately when the link comes up (static IP).
+    EthernetIpCallback on_got_ip{nullptr};
+
+    /// Called when the interface loses its IPv4 address
+    /// (DHCP lease loss in CLIENT mode, or link-down in SERVER mode).
+    EthernetLinkCallback on_lost_ip{nullptr};
   };
 
   /// @brief Access the singleton instance
@@ -82,26 +110,25 @@ public:
   // Ethernet (EMAC + IP101GRI RMII PHY)
   /////////////////////////////////////////////////////////////////////////////
 
-  /// Initialize the Ethernet interface (EMAC + IP101GRI RMII PHY)
-  /// \param on_link_up  Optional callback invoked once a usable IP is available.
-  ///                    CLIENT mode: called when DHCP assigns an IP.
-  ///                    SERVER mode: called immediately when the link comes up
-  ///                                 (the static IP is already known).
-  /// \param mode        DHCP operating mode (CLIENT or SERVER, default CLIENT).
-  /// \param server_config  Static IP configuration for SERVER mode.
-  ///                       Ignored in CLIENT mode.
+  /// Initialize the Ethernet interface (EMAC + IP101GRI RMII PHY).
+  /// \param config  Ethernet configuration (DHCP mode, callbacks).
+  ///                All fields have defaults so \c EthernetConfig{} gives a
+  ///                plain DHCP-client interface with no callbacks.
   /// \return True if Ethernet was successfully initialized and started.
   /// \note Requires the ESP-IDF default event loop. The BSP creates it if needed.
-  bool initialize_ethernet(const ethernet_link_callback_t &on_link_up = nullptr,
-                           DhcpMode mode = DhcpMode::CLIENT,
-                           const ServerConfig &server_config = ServerConfig{});
+  bool initialize_ethernet(const EthernetConfig &config);
 
-  /// Check whether the Ethernet link is up (cable connected + negotiated)
-  /// \return True if the link is up
+  /// Initialize Ethernet with default configuration (DHCP client mode).
+  /// \return True if Ethernet was successfully initialized and started.
+  bool initialize_ethernet();
+
+  /// Check whether the interface has a usable IP address
+  /// (DHCP lease granted in CLIENT mode, or link is up in SERVER mode).
+  /// \return True if the interface is connected with a valid IP.
   bool is_ethernet_connected() const { return ethernet_connected_; }
 
-  /// Get the most recently acquired IPv4 address (0 if none)
-  /// \return The IPv4 address
+  /// Get the most recently acquired IPv4 address (0 if none).
+  /// \return The IPv4 address.
   esp_ip4_addr_t ethernet_ip() const { return ethernet_ip_; }
 
 protected:
@@ -119,12 +146,12 @@ protected:
   static constexpr int rmii_clk_gpio = 0; // EMAC_CLK_IN_GPIO — fixed by ESP32 IO_MUX
 
   // SMI (management interface) — routable via GPIO matrix
-  static constexpr int eth_mdc_io  = 23;
+  static constexpr int eth_mdc_io = 23;
   static constexpr int eth_mdio_io = 18;
 
   // IP101GRI PHY
   static constexpr int eth_phy_reset_gpio = 5; ///< Active-low; set to -1 to disable
-  static constexpr int eth_phy_addr       = 1;
+  static constexpr int eth_phy_addr = 1;
 
   /////////////////////////////////////////////////////////////////////////////
   // Member variables
@@ -133,19 +160,24 @@ protected:
   // Ethernet
   DhcpMode dhcp_mode_{DhcpMode::CLIENT};
   esp_netif_ip_info_t server_ip_info_{}; ///< Resolved static IP (server mode only)
-  client_ip_callback_t client_ip_callback_{nullptr}; ///< Per-client lease callback (server mode)
+  client_ip_callback_t client_ip_callback_{nullptr};
+  EthernetLinkCallback on_link_up_{};
+  EthernetLinkCallback on_link_down_{};
+  EthernetIpCallback on_got_ip_{};
+  EthernetLinkCallback on_lost_ip_{};
   std::atomic<bool> ethernet_initialized_{false};
   std::atomic<bool> ethernet_connected_{false};
   esp_ip4_addr_t ethernet_ip_{};
-  ethernet_link_callback_t ethernet_link_callback_{nullptr};
   esp_eth_handle_t eth_handle_{nullptr};
-  void *eth_glue_{nullptr}; // esp_eth_netif_glue_handle_t
+  esp_eth_netif_glue_handle_t eth_glue_{nullptr}; // esp_eth_netif_glue_handle_t
   esp_netif_t *eth_netif_{nullptr};
 
   static void ethernet_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id,
                                      void *event_data);
   static void ethernet_got_ip_handler(void *arg, esp_event_base_t event_base, int32_t event_id,
                                       void *event_data);
+  static void ethernet_lost_ip_handler(void *arg, esp_event_base_t event_base, int32_t event_id,
+                                       void *event_data);
   static void ethernet_client_ip_handler(void *arg, esp_event_base_t event_base, int32_t event_id,
                                          void *event_data);
 }; // class Esp32EthernetKit
