@@ -17,55 +17,82 @@ The `espp::Esp32EthernetKit` class is a singleton hardware abstraction for:
 - **10/100 Ethernet** — internal ESP32 EMAC + IP101GRI RMII PHY, selectable
   DHCP client **or** DHCP server mode
 
-## DHCP modes
+## Initialization API
 
-`initialize_ethernet` accepts a `DhcpMode` parameter (default `CLIENT`).
+The BSP exposes two initialization entry points:
 
-### DHCP client (default)
+- `initialize_ethernet()`
+- `initialize_ethernet(const EthernetConfig &config)`
 
-The ESP32 requests an IP address from an upstream router/switch.
-The `on_link_up` callback fires once the DHCP lease is granted.
+The no-argument overload is equivalent to `EthernetConfig{}` (DHCP client mode,
+no callbacks).
 
 ```cpp
 auto &board = espp::Esp32EthernetKit::get();
+bool ok = board.initialize_ethernet();
+```
 
-board.initialize_ethernet(
-    [](esp_ip4_addr_t ip) {
-      // called when lease is acquired
-    },
-    espp::Esp32EthernetKit::DhcpMode::CLIENT); // default — can be omitted
+## DHCP modes and callbacks
+
+Mode selection is done through `EthernetConfig::mode`:
+
+- `DhcpMode::CLIENT` (default): obtains an address from an upstream DHCP server.
+- `DhcpMode::SERVER`: serves leases to connected hosts from a static interface IP.
+
+Callback behavior:
+
+- `on_link_up`: cable/link negotiated.
+- `on_link_down`: link lost.
+- `on_got_ip`: IPv4 becomes usable.
+  - Client mode: after DHCP lease is obtained.
+  - Server mode: when link comes up (static IP is already known).
+- `on_lost_ip`: IPv4 no longer usable.
+- `server_config.on_client_assigned` (server mode only): fires for each lease assignment.
+
+### DHCP client (default)
+
+```cpp
+using Kit = espp::Esp32EthernetKit;
+
+Kit::EthernetConfig cfg;
+cfg.mode = Kit::DhcpMode::CLIENT;
+cfg.on_link_up = []() {
+  // physical link is up
+};
+cfg.on_got_ip = [](esp_ip4_addr_t ip) {
+  // DHCP lease acquired
+};
+cfg.on_lost_ip = []() {
+  // lease lost or interface disconnected
+};
+
+auto &board = Kit::get();
+bool ok = board.initialize_ethernet(cfg);
 ```
 
 ### DHCP server
 
-The ESP32 assigns IP addresses to connected hosts using a static IP.
-The `on_link_up` callback fires when the cable is connected (IP is static, so
-it is known immediately). An optional `on_client_assigned` callback fires each
-time a client receives a lease.
-
 ```cpp
-using DhcpMode    = espp::Esp32EthernetKit::DhcpMode;
-using ServerConfig = espp::Esp32EthernetKit::ServerConfig;
+using Kit = espp::Esp32EthernetKit;
 
-auto &board = espp::Esp32EthernetKit::get();
+Kit::EthernetConfig cfg;
+cfg.mode = Kit::DhcpMode::SERVER;
 
-ServerConfig cfg;
-// Leave cfg.ip_info zero to use the built-in default: 192.168.4.1 / 255.255.255.0
-// Or set a custom address:
-//   IP4_ADDR(&cfg.ip_info.ip,      10, 0, 0, 1);
-//   IP4_ADDR(&cfg.ip_info.netmask, 255, 255, 255, 0);
-//   IP4_ADDR(&cfg.ip_info.gw,      10, 0, 0, 1);
+// Leave ip_info all-zero to use default 192.168.4.1/24.
+// Or set custom static address information:
+// IP4_ADDR(&cfg.server_config.ip_info.ip, 10, 0, 0, 1);
+// IP4_ADDR(&cfg.server_config.ip_info.netmask, 255, 255, 255, 0);
+// IP4_ADDR(&cfg.server_config.ip_info.gw, 10, 0, 0, 1);
 
-cfg.on_client_assigned = [](esp_ip4_addr_t ip, std::array<uint8_t, 6> mac) {
-  // fired each time a client gets a DHCP lease
+cfg.on_got_ip = [](esp_ip4_addr_t ip) {
+  // server interface IP became active
+};
+cfg.server_config.on_client_assigned = [](esp_ip4_addr_t ip, std::array<uint8_t, 6> mac) {
+  // a client received a lease
 };
 
-board.initialize_ethernet(
-    [](esp_ip4_addr_t ip) {
-      // called when link is up (static IP is already known)
-    },
-    DhcpMode::SERVER,
-    cfg);
+auto &board = Kit::get();
+bool ok = board.initialize_ethernet(cfg);
 ```
 
 ## RMII pin mapping

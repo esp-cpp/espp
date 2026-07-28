@@ -66,8 +66,10 @@ public:
   /// Leave \c ip_info zero-initialised to use the built-in defaults
   /// (192.168.4.1 / 255.255.255.0 / gw 192.168.4.1).
   struct ServerConfig {
-    esp_netif_ip_info_t ip_info;             ///< IP / netmask / gateway; zero → 192.168.4.1/24
-    client_ip_callback_t on_client_assigned; ///< Called each time a client is assigned an IP
+    esp_netif_ip_info_t ip_info{
+        .ip = 0, .netmask = 0, .gw = 0}; ///< IP / netmask / gateway; zero → 192.168.4.1/24
+    client_ip_callback_t on_client_assigned{
+        nullptr}; ///< Called each time a client is assigned an IP
   };
 
   /// Configuration for the Ethernet interface.
