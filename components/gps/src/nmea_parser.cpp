@@ -1,5 +1,6 @@
 #include "nmea_parser.hpp"
 
+#include <algorithm>
 #include <array>
 #include <charconv>
 #include <cstdlib>
