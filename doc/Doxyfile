@@ -89,6 +89,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/bldc_haptics/example/main/bldc_haptics_example.cpp \
   $(PROJECT_PATH)/components/bm8563/example/main/bm8563_example.cpp \
   $(PROJECT_PATH)/components/bmi270/example/main/bmi270_example.cpp \
+  $(PROJECT_PATH)/components/bq27220/example/main/bq27220_example.cpp \
   $(PROJECT_PATH)/components/button/example/main/button_example.cpp \
   $(PROJECT_PATH)/components/byte90/example/main/byte90_example.cpp \
   $(PROJECT_PATH)/components/chsc6x/example/main/chsc6x_example.cpp \
@@ -129,6 +130,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/pi4ioe5v/example/main/pi4ioe5v_example.cpp \
   $(PROJECT_PATH)/components/led/example/main/led_example.cpp \
   $(PROJECT_PATH)/components/led_strip/example/main/led_strip_example.cpp \
+  $(PROJECT_PATH)/components/lilygo-t5-47/example/main/lilygo-t5-47_example.cpp \
   $(PROJECT_PATH)/components/logger/example/main/logger_example.cpp \
   $(PROJECT_PATH)/components/lsm6dso/example/main/lsm6dso_example.cpp \
   $(PROJECT_PATH)/components/m5stack-cardputer/example/main/m5stack_cardputer_example.cpp \
@@ -146,6 +148,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/neopixel/example/main/neopixel_example.cpp \
   $(PROJECT_PATH)/components/nvs/example/main/nvs_example.cpp \
   $(PROJECT_PATH)/components/odrive_ascii/example/main/odrive_ascii_example.cpp \
+  $(PROJECT_PATH)/components/pca9535/example/main/pca9535_example.cpp \
   $(PROJECT_PATH)/components/pcf85063/example/main/pcf85063_example.cpp \
   $(PROJECT_PATH)/components/pid/example/main/pid_example.cpp \
   $(PROJECT_PATH)/components/provisioning/example/main/provisioning_example.cpp \
@@ -229,6 +232,7 @@ INPUT = \
   $(PROJECT_PATH)/components/bm8563/include/bm8563.hpp \
   $(PROJECT_PATH)/components/bmi270/include/bmi270.hpp \
   $(PROJECT_PATH)/components/bmi270/include/bmi270_detail.hpp \
+  $(PROJECT_PATH)/components/bq27220/include/bq27220.hpp \
   $(PROJECT_PATH)/components/button/include/button.hpp \
   $(PROJECT_PATH)/components/byte90/include/byte90.hpp \
   $(PROJECT_PATH)/components/chsc6x/include/chsc6x.hpp \
@@ -316,6 +320,7 @@ INPUT = \
   $(PROJECT_PATH)/components/pi4ioe5v/include/pi4ioe5v.hpp \
   $(PROJECT_PATH)/components/led/include/led.hpp \
   $(PROJECT_PATH)/components/led_strip/include/led_strip.hpp \
+  $(PROJECT_PATH)/components/lilygo-t5-47/include/lilygo-t5-47.hpp \
   $(PROJECT_PATH)/components/logger/include/logger.hpp \
   $(PROJECT_PATH)/components/lp5817/include/lp5817.hpp \
   $(PROJECT_PATH)/components/lsm6dso/include/lsm6dso.hpp \
@@ -346,6 +351,7 @@ INPUT = \
   $(PROJECT_PATH)/components/meshtastic/include/meshtastic_types.hpp \
   $(PROJECT_PATH)/components/mt6701/include/mt6701.hpp \
   $(PROJECT_PATH)/components/odrive_ascii/include/odrive_ascii.hpp \
+  $(PROJECT_PATH)/components/pca9535/include/pca9535.hpp \
   $(PROJECT_PATH)/components/pcf85063/include/pcf85063.hpp \
   $(PROJECT_PATH)/components/pid/include/pid.hpp \
   $(PROJECT_PATH)/components/ping/include/ping.hpp \
