@@ -20,6 +20,16 @@ public:
   /// \return True if the sentence was valid (good checksum) and recognized
   bool parse(std::string_view sentence);
 
+  /// Parse a single NMEA sentence whose checksum has ALREADY been validated,
+  /// updating the fix state. This skips the checksum check, so callers on a
+  /// hot path that have already gated on checksum_valid() can avoid computing
+  /// the checksum a second time. Use parse() instead if you want the checksum
+  /// validated for you.
+  /// \param sentence The sentence, from '$' through the checksum (trailing
+  ///        CR/LF permitted)
+  /// \return True if the sentence was recognized (RMC/GGA) and parsed
+  bool parse_unchecked(std::string_view sentence);
+
   /// Get the current fix state, assembled from all sentences parsed so far.
   /// \return The current fix
   const GpsFix &fix() const { return fix_; }

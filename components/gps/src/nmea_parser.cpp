@@ -106,9 +106,23 @@ bool NmeaParser::parse(std::string_view sentence) {
   if (!checksum_valid(sentence)) {
     return false;
   }
+  return parse_unchecked(sentence);
+}
+
+bool NmeaParser::parse_unchecked(std::string_view sentence) {
+  // strip trailing CR/LF (parse() already does this, but parse_unchecked may
+  // be called directly)
+  while (!sentence.empty() && (sentence.back() == '\r' || sentence.back() == '\n')) {
+    sentence.remove_suffix(1);
+  }
   // "$GPRMC,...*XX" -> type "RMC" (skipping the 2-character talker id),
-  // body between the first comma and the '*'
+  // body between the first comma and the '*'. The checksum is assumed already
+  // validated, so guard against a missing '*' (which checksum_valid would
+  // otherwise have rejected).
   size_t star = sentence.find('*');
+  if (star == std::string_view::npos) {
+    return false;
+  }
   size_t comma = sentence.find(',');
   if (comma == std::string_view::npos || comma < 4 || comma > star) {
     return false;

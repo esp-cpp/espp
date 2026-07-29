@@ -142,7 +142,8 @@ void Gps::handle_line(std::string_view line) {
   GpsFix fix_copy;
   {
     std::lock_guard<std::mutex> lock(fix_mutex_);
-    parser_.parse(line);
+    // checksum already validated above; parse_unchecked avoids recomputing it
+    parser_.parse_unchecked(line);
     fix_copy = parser_.fix();
   }
   // RMC is the last sentence of interest in a typical update cycle, so use

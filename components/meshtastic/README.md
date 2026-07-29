@@ -69,3 +69,15 @@ menuconfig. It initializes the board's SX1262 radio via the BSP, applies the
 modem configuration, periodically broadcasts node info and a text ping, and
 prints received text messages, node info and positions. Point a stock
 Meshtastic device at the same region/channel and the two will see each other.
+
+This has been verified over the air: the example running on a Cardputer-Adv
+successfully exchanges text messages with, and appears as a node on, a T-Deck
+running the stock Meshtastic firmware on the US LongFast channel.
+
+> [!IMPORTANT]
+> The LoRa **region must be set on every device**, including any stock
+> Meshtastic node you are talking to. A device with an *unset* region will not
+> transmit or receive at all (this is the most common reason a node appears
+> "silent"). Set the region on this node via menuconfig (it must be legal
+> where you are) and make sure it matches the region configured on the other
+> devices.
