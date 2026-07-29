@@ -28,6 +28,7 @@
 #include "base_component.hpp"
 #include "bmi270.hpp"
 #include "fast_math.hpp"
+#include "gps.hpp"
 #include "i2c.hpp"
 #include "interrupt.hpp"
 #include "led.hpp"
@@ -35,6 +36,7 @@
 #include "oneshot_adc.hpp"
 #include "spi.hpp"
 #include "st7789.hpp"
+#include "sx126x.hpp"
 #include "task.hpp"
 
 namespace espp {
@@ -59,6 +61,8 @@ namespace espp {
 /// - IR transmitter and Grove port pin definitions
 /// - Internal I2C bus accessor (ADV only; also hosts a BMI270 IMU at 0x68
 ///   which can be used with the espp bmi270 component)
+/// - LoRa radio + GNSS receiver on the LoRa+GPS Cap (U201 / U214) expansion
+///   module for the Cardputer ADV (SX1262 + ATGM336H)
 ///
 /// The class is a singleton and can be accessed using the get() method.
 ///
@@ -567,6 +571,67 @@ public:
   std::shared_ptr<Imu> imu() const { return imu_; }
 
   /////////////////////////////////////////////////////////////////////////////
+  // LoRa + GPS Cap (U201 / U214 expansion module for the Cardputer ADV)
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// Initialize the LoRa radio (SX1262) on the LoRa+GPS Cap
+  /// \param radio_config The radio (modem) configuration to apply
+  /// \return True if the radio was initialized properly
+  /// \note The Cap mounts on the Cardputer ADV's rear expansion connector;
+  ///       the radio shares the uSD card's SPI bus with its own chip select,
+  ///       so the radio and uSD card can be used together.
+  /// \note On the U214 Cap the radio's RF switch is controlled through a
+  ///       PI4IOE5V6408 I2C IO expander, which this method configures to
+  ///       connect the antenna. If no expander is found (e.g. the older U201
+  ///       Cap), initialization proceeds without it.
+  /// \note The radio's DIO1 interrupt is automatically serviced via the
+  ///       board's interrupt handler, so packets are delivered through the
+  ///       callbacks registered on the returned driver (see
+  ///       espp::Sx126x::set_receive_callback and friends).
+  bool initialize_lora(const Sx126x::RadioConfig &radio_config = {});
+
+  /// Get the LoRa radio
+  /// \return A shared pointer to the LoRa radio driver
+  /// \note The radio is only available if initialize_lora() succeeded
+  std::shared_ptr<Sx126x> lora() const { return lora_; }
+
+  /// Initialize the GNSS receiver (ATGM336H) on the LoRa+GPS Cap
+  /// \param fix_cb Optional callback invoked on each fix update
+  /// \param baud_rate The baud rate of the GPS UART. The Cap ships
+  ///        configured for 115200 baud.
+  /// \return True if the GPS was initialized properly
+  bool initialize_gps(const Gps::fix_callback_fn &fix_cb = nullptr, uint32_t baud_rate = 115200);
+
+  /// Get the GPS
+  /// \return A shared pointer to the GPS driver
+  /// \note The GPS is only available if initialize_gps() succeeded
+  std::shared_ptr<Gps> gps() const { return gps_; }
+
+  /// Get the GPIO pin for the LoRa radio chip select
+  /// \return The GPIO pin for the LoRa radio chip select
+  static constexpr auto lora_cs_gpio() { return lora_cs_io; }
+
+  /// Get the GPIO pin for the LoRa radio DIO1 (interrupt) line
+  /// \return The GPIO pin for the LoRa radio DIO1 line
+  static constexpr auto lora_dio1_gpio() { return lora_dio1_io; }
+
+  /// Get the GPIO pin for the LoRa radio BUSY line
+  /// \return The GPIO pin for the LoRa radio BUSY line
+  static constexpr auto lora_busy_gpio() { return lora_busy_io; }
+
+  /// Get the GPIO pin for the LoRa radio reset line
+  /// \return The GPIO pin for the LoRa radio reset line
+  static constexpr auto lora_reset_gpio() { return lora_reset_io; }
+
+  /// Get the GPIO pin for the GPS UART TX (ESP32 -> GPS)
+  /// \return The GPIO pin for the GPS UART TX
+  static constexpr auto gps_tx_gpio() { return gps_tx_io; }
+
+  /// Get the GPIO pin for the GPS UART RX (GPS -> ESP32)
+  /// \return The GPIO pin for the GPS UART RX
+  static constexpr auto gps_rx_gpio() { return gps_rx_io; }
+
+  /////////////////////////////////////////////////////////////////////////////
   // Misc. pins (IR transmitter, Grove port)
   /////////////////////////////////////////////////////////////////////////////
 
@@ -593,6 +658,8 @@ protected:
   bool keyboard_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
   void detect_variant();
   bool initialize_keyboard_matrix();
+  bool ensure_expansion_spi_bus();
+  bool enable_cap_expander_outputs(uint8_t mask);
   bool initialize_keyboard_tca8418();
   void scan_keyboard_matrix();
   void process_tca8418_events();
@@ -783,6 +850,22 @@ protected:
   static constexpr gpio_num_t sdcard_miso = GPIO_NUM_39;
   static constexpr gpio_num_t sdcard_cs = GPIO_NUM_12;
 
+  // LoRa + GPS Cap (U201 / U214) on the rear expansion connector. The
+  // SX1262 shares the uSD card's SPI bus with its own chip select.
+  static constexpr gpio_num_t lora_cs_io = GPIO_NUM_5;
+  static constexpr gpio_num_t lora_dio1_io = GPIO_NUM_4;
+  static constexpr gpio_num_t lora_busy_io = GPIO_NUM_6;
+  static constexpr gpio_num_t lora_reset_io = GPIO_NUM_3;
+  static constexpr int lora_spi_clock_speed = 8 * 1000 * 1000;
+  static constexpr gpio_num_t gps_tx_io = GPIO_NUM_13; // ESP32 -> GPS
+  static constexpr gpio_num_t gps_rx_io = GPIO_NUM_15; // GPS -> ESP32
+  static constexpr auto gps_uart_port = UART_NUM_1;
+  // PI4IOE5V6408 IO expander on the U214 Cap (internal I2C bus):
+  // P0 = LoRa RF switch (high = antenna connected), P1 = GPS LNA enable
+  static constexpr uint8_t cap_expander_address = 0x43;
+  static constexpr uint8_t cap_expander_lora_rf_switch_mask = 0x01;
+  static constexpr uint8_t cap_expander_gps_lna_mask = 0x02;
+
   // RGB LED (WS2812 on the StampS3 module)
   static constexpr gpio_num_t rgb_led_io = GPIO_NUM_21;
 
@@ -820,6 +903,24 @@ protected:
 
   // sdcard
   sdmmc_card_t *sdcard_{nullptr};
+  // whether the (shared) uSD / LoRa Cap SPI bus has been initialized
+  bool expansion_spi_bus_initialized_{false};
+
+  // LoRa + GPS Cap
+  spi_device_handle_t lora_spi_handle_{nullptr};
+  std::shared_ptr<Sx126x> lora_{nullptr};
+  std::shared_ptr<Gps> gps_{nullptr};
+  espp::Interrupt::PinConfig lora_dio1_interrupt_pin_{
+      .gpio_num = lora_dio1_io,
+      .callback =
+          [this](const auto &event) {
+            if (lora_) {
+              std::error_code ec;
+              lora_->handle_dio1_interrupt(ec);
+            }
+          },
+      .active_level = espp::Interrupt::ActiveLevel::HIGH,
+      .interrupt_type = espp::Interrupt::Type::RISING_EDGE};
 
   // RGB LED
   std::shared_ptr<Neopixel> rgb_led_{nullptr};

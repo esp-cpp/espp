@@ -105,6 +105,8 @@ jobs:
           target: esp32s3
         - path: 'components/gfps_service/example'
           target: esp32s3
+        - path: 'components/gps/example'
+          target: esp32s3
         - path: 'components/gt911/example'
           target: esp32s3
         - path: 'components/hid-rp/example'
@@ -165,6 +167,8 @@ jobs:
           target: esp32s3
         - path: 'components/mcp23x17/example'
           target: esp32s3
+        - path: 'components/meshtastic/example'
+          target: esp32s3
         - path: 'components/mt6701/example'
           target: esp32s3
         - path: 'components/neopixel/example'
@@ -219,6 +223,8 @@ jobs:
           target: esp32s3
         - path: 'components/state_machine/example'
           target: esp32
+        - path: 'components/sx126x/example'
+          target: esp32s3
         - path: 'components/t-deck/example'
           target: esp32s3
         - path: 'components/t-dongle-s3/example'

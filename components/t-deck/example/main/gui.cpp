@@ -8,6 +8,7 @@ void Gui::init_ui() {
   init_tabview();
   init_draw_tab();
   init_audio_tab();
+  init_lora_tab();
   init_circle_layer();
 }
 
@@ -26,6 +27,7 @@ void Gui::init_tabview() {
                   lv_display_get_vertical_resolution(lv_display_get_default()));
   draw_tab_ = lv_tabview_add_tab(tabview_, "Draw");
   audio_tab_ = lv_tabview_add_tab(tabview_, "Audio");
+  lora_tab_ = lv_tabview_add_tab(tabview_, "LoRa");
   // switching tabs is done with the tab buttons only: disable swipe
   // scrolling of the content so drawing on the Draw tab cannot accidentally
   // change pages
@@ -133,6 +135,141 @@ void Gui::refresh_audio_label() {
   update_audio_label();
 }
 
+void Gui::init_lora_tab() {
+  // a column: status line, an input row (text box + Send button), then a
+  // scrolling message log
+  lv_obj_set_flex_flow(lora_tab_, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_style_pad_row(lora_tab_, 8, 0);
+
+  lora_status_label_ = lv_label_create(lora_tab_);
+  lv_label_set_long_mode(lora_status_label_, LV_LABEL_LONG_WRAP);
+  lv_obj_set_width(lora_status_label_, lv_pct(100));
+  lv_label_set_text(lora_status_label_, "LoRa: initializing...");
+
+  // input row: a one-line text box (grows to fill) + a Send button
+  lv_obj_t *input_row = lv_obj_create(lora_tab_);
+  lv_obj_remove_style_all(input_row);
+  lv_obj_set_width(input_row, lv_pct(100));
+  lv_obj_set_height(input_row, LV_SIZE_CONTENT);
+  lv_obj_set_flex_flow(input_row, LV_FLEX_FLOW_ROW);
+  lv_obj_set_flex_align(input_row, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+  lv_obj_set_style_pad_column(input_row, 6, 0);
+
+  lora_input_ = lv_textarea_create(input_row);
+  lv_obj_set_flex_grow(lora_input_, 1);
+  lv_textarea_set_one_line(lora_input_, true);
+  lv_textarea_set_placeholder_text(lora_input_, "Type a message...");
+  // the physical keyboard drives this text box (routed by the example); there
+  // is no on-screen keyboard, so it does not need to be touch-clickable
+  lv_obj_remove_flag(lora_input_, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_add_state(lora_input_, LV_STATE_FOCUSED);
+
+  lora_send_button_ = lv_btn_create(input_row);
+  lv_obj_set_height(lora_send_button_, LV_SIZE_CONTENT);
+  lv_obj_t *send_label = lv_label_create(lora_send_button_);
+  lv_label_set_text(send_label, LV_SYMBOL_UPLOAD " Send");
+  lv_obj_center(send_label);
+  lv_obj_add_event_cb(lora_send_button_, event_callback, LV_EVENT_PRESSED, this);
+
+  // the message log grows to fill the remaining space and scrolls
+  lv_obj_t *log_container = lv_obj_create(lora_tab_);
+  lv_obj_set_width(log_container, lv_pct(100));
+  lv_obj_set_flex_grow(log_container, 1);
+  lv_obj_set_style_pad_all(log_container, 4, 0);
+  lora_log_label_ = lv_label_create(log_container);
+  lv_label_set_long_mode(lora_log_label_, LV_LABEL_LONG_WRAP);
+  lv_obj_set_width(lora_log_label_, lv_pct(100));
+  lv_label_set_text(lora_log_label_, "No messages yet.");
+}
+
+void Gui::update_lora_log() {
+  if (!lora_log_label_) {
+    return;
+  }
+  if (lora_messages_.empty()) {
+    lv_label_set_text(lora_log_label_, "No messages yet.");
+    return;
+  }
+  std::string text;
+  for (const auto &message : lora_messages_) {
+    if (!text.empty()) {
+      text += "\n";
+    }
+    text += message;
+  }
+  lv_label_set_text(lora_log_label_, text.c_str());
+}
+
+void Gui::set_lora_status(std::string_view text) {
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  lv_label_set_text(lora_status_label_, std::string(text).c_str());
+}
+
+void Gui::set_lora_send_enabled(bool enabled) {
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  auto apply = [enabled](lv_obj_t *obj) {
+    if (!obj) {
+      return;
+    }
+    if (enabled) {
+      lv_obj_clear_state(obj, LV_STATE_DISABLED);
+    } else {
+      lv_obj_add_state(obj, LV_STATE_DISABLED);
+    }
+  };
+  apply(lora_send_button_);
+  apply(lora_input_);
+}
+
+void Gui::add_lora_message(std::string_view text) {
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  lora_messages_.emplace_front(text);
+  while (lora_messages_.size() > MAX_LORA_MESSAGES) {
+    lora_messages_.pop_back();
+  }
+  update_lora_log();
+}
+
+bool Gui::lora_page_active() {
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  // tab order: Draw (0), Audio (1), LoRa (2)
+  return lv_tabview_get_tab_active(tabview_) == 2;
+}
+
+void Gui::lora_input_add_char(char c) {
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  if (!lora_input_) {
+    return;
+  }
+  if (c == '\b') {
+    lv_textarea_delete_char(lora_input_);
+  } else {
+    lv_textarea_add_char(lora_input_, c);
+  }
+}
+
+void Gui::send_lora_message() {
+  std::string text;
+  lora_send_callback_t callback;
+  {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    if (!lora_input_) {
+      return;
+    }
+    const char *current = lv_textarea_get_text(lora_input_);
+    text = current ? current : "";
+    if (text.empty()) {
+      return;
+    }
+    callback = lora_send_callback_;
+    lv_textarea_set_text(lora_input_, "");
+  }
+  // invoke the callback outside the GUI lock
+  if (callback) {
+    callback(text);
+  }
+}
+
 void Gui::init_circle_layer() {
   // a transparent, click-through overlay above the tabview which shows the
   // touch trail (only populated while the Draw tab is active)
@@ -208,6 +345,11 @@ void Gui::on_pressed(lv_event_t *e) {
     if (play_callback_) {
       play_callback_();
     }
+    return;
+  }
+  if (target == lora_send_button_) {
+    logger_.info("LoRa send button pressed");
+    send_lora_message();
     return;
   }
   if (target == volume_down_button_ || target == volume_up_button_) {

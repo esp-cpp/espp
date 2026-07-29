@@ -3,10 +3,14 @@
 This example shows how to use the `espp::TDeck` hardware abstraction component
 to initialize the components on the LilyGo T-Deck.
 
-It initializes the touch panel, display, keyboard, trackball, sound output, and
-optional microSD card support. Touching the screen draws a cyan trail overlay,
-the delete key clears the trail, the space key or on-screen refresh button
-rotates the display, and the keyboard also exposes simple mute/volume controls.
+It initializes the touch panel, display, keyboard, trackball, sound output, the
+SX1262 LoRa radio, and optional microSD card support. Touching the screen draws
+a cyan trail overlay, the delete key clears the trail, the space key or
+on-screen refresh button rotates the display, and the keyboard also exposes
+simple mute/volume controls.
+
+The UI is a tabview with three tabs: **Draw** (the touch trail), **Audio**
+(record / play and volume), and **LoRa** (send / receive text over the radio).
 
 https://github.com/user-attachments/assets/5d7e7086-fc2c-4477-8948-07b5bab3e51f
 
@@ -61,6 +65,19 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 - Trackball initialization and callback wiring
 - Optional uSD card mounting over SDSPI on the same SPI host
 - WAV playback through the onboard audio path
+- LoRa radio (SX1262) send / receive on the **LoRa** tab: type a message in the
+  text box and press **Send** (or **Enter**) to transmit it, and received
+  packets are shown in a scrolling log with their RSSI / SNR. (While the LoRa
+  tab is active, the keyboard types into the text box rather than driving the
+  Draw / Audio shortcuts.) Two boards running this example - e.g. a T-Deck and a
+  Cardputer with the LoRa+GPS Cap - will talk to each other. This is a raw-LoRa
+  link on a private sync word (0x12), *not* Meshtastic - see the `meshtastic`
+  component for Meshtastic interoperability.
+  The radio shares the SPI bus with the display and uSD card, and its DIO1
+  interrupt is serviced by the BSP. (GPIO 17 is shared between the radio reset
+  and the T-Deck's unused PDM-microphone clock line; the ES7210 microphone this
+  example records from uses different pins, so the radio and the recording demo
+  coexist.)
 - Microphone recording and playback: the on-screen audio row (or the 'r' /
   'p' keys) records from the ES7210 into a PSRAM-preferred buffer and streams
   it back through the mono speaker, with speaker / microphone volume buttons;

@@ -4,7 +4,10 @@
 #include <cstdlib>
 #include <cstring>
 #include <functional>
+#include <mutex>
+#include <span>
 #include <stdlib.h>
+#include <string>
 #include <vector>
 
 #include <esp_heap_caps.h>
@@ -21,6 +24,18 @@ static std::vector<uint8_t> audio_bytes;
 static bool load_audio(size_t &out_size, size_t &out_sample_rate);
 static void play_click(espp::TDeck &tdeck);
 static void resample_click(uint32_t from_rate, uint32_t to_rate);
+// render a received LoRa payload as a printable string (non-printable bytes,
+// e.g. from an unrelated LoRa transmission on the same frequency, are shown as
+// '.') so a stray frame cannot corrupt the on-screen log
+static std::string printable(const std::vector<uint8_t> &data);
+
+// A LoRa transmit requested from the GUI (the Send button / Enter run in the
+// LVGL / keyboard tasks; the actual transmit is done from the main loop so a
+// multi-hundred-ms time-on-air does not block the UI). The message text is
+// handed over under lora_tx_mutex.
+static std::atomic<bool> lora_send_requested{false};
+static std::mutex lora_tx_mutex;
+static std::string lora_tx_message;
 
 // Run all audio at 16 kHz - the rate LilyGO's own T-Deck firmware uses for
 // the ES7210 (the codec sounds clean there, and higher rates on this board
@@ -96,13 +111,28 @@ extern "C" void app_main(void) {
       fmt::format("Touch the screen to draw!\nPress the delete key or the {} button to clear "
                   "circles.\nPress the space key or the {} button to rotate the display.\n"
                   "The Audio tab (or the 'r' / 'p' keys) records and plays back audio; "
-                  "'n' / '$' / 'm' adjust / mute the speaker volume.",
+                  "'n' / '$' / 'm' adjust / mute the speaker volume.\n"
+                  "On the LoRa tab, type a message and press Send (or Enter) to transmit "
+                  "it over the SX1262 radio.",
                   LV_SYMBOL_TRASH, LV_SYMBOL_REFRESH));
 
   // initialize the Keyboard after the Gui exists so key presses can act on it
   // immediately
   auto keypress_callback = [&](uint8_t key) {
     logger.info("Key pressed: {}", key);
+    // When the LoRa tab is active, the keyboard composes a message in its text
+    // box: Enter sends, backspace deletes, and printable keys are appended.
+    // (This takes over the keys from the Draw / Audio shortcuts while typing.)
+    if (gui.lora_page_active()) {
+      if (key == '\r' || key == '\n') {
+        gui.send_lora_message();
+      } else if (key == 8) {
+        gui.lora_input_add_char('\b');
+      } else if (key >= 0x20 && key < 0x7f) {
+        gui.lora_input_add_char(static_cast<char>(key));
+      }
+      return;
+    }
     if (key == 8) {
       // delete key will clear the circles
       logger.info("Clearing circles");
@@ -328,11 +358,75 @@ extern "C" void app_main(void) {
   gui.set_record_callback(toggle_record);
   gui.set_play_callback(toggle_play);
 
+  // Initialize the LoRa radio (SX1262) and wire it to the LoRa tab. This is a
+  // simple raw-LoRa demo: type a message in the LoRa tab's text box and press
+  // Send (or Enter) to transmit it; received messages appear in the log. A
+  // private sync word (0x12) is used so this link does not pick up Meshtastic
+  // traffic (which uses 0x2B - see the meshtastic component/example for actual
+  // Meshtastic interop). The radio shares the SPI bus with the display and uSD
+  // card, and its DIO1 interrupt is serviced by the BSP, so received packets
+  // arrive on the callback below.
+  espp::Sx126x::RadioConfig lora_config{};
+  lora_config.sync_word = 0x12; // private link, not Meshtastic
+  std::shared_ptr<espp::Sx126x> radio;
+  bool have_lora = tdeck.initialize_lora(lora_config);
+  if (have_lora) {
+    radio = tdeck.lora();
+    // deliver received packets to the LoRa tab (runs in the BSP interrupt task)
+    radio->set_receive_callback([&](const espp::Sx126x::RxPacket &packet) {
+      gui.add_lora_message(fmt::format("RX {:.0f}dBm/{:.1f}dB: {}", packet.status.rssi,
+                                       packet.status.snr, printable(packet.data)));
+    });
+    std::error_code ec;
+    if (radio->start_receive(ec)) {
+      gui.set_lora_status(fmt::format("Listening @ {:.3f} MHz, SF11/BW250 (private)",
+                                      radio->radio_config().frequency_hz / 1e6f));
+      // the Send button / Enter hand the message text here; the main loop
+      // performs the (blocking) transmit
+      gui.set_lora_send_callback([](const std::string &text) {
+        {
+          std::lock_guard<std::mutex> lock(lora_tx_mutex);
+          lora_tx_message = text;
+        }
+        lora_send_requested = true;
+      });
+    } else {
+      logger.error("Failed to start LoRa receive: {}", ec.message());
+      gui.set_lora_status(fmt::format("LoRa RX failed: {}", ec.message()));
+      gui.set_lora_send_enabled(false);
+      have_lora = false;
+    }
+  } else {
+    logger.warn("Could not initialize the LoRa radio!");
+    gui.set_lora_status("LoRa unavailable (see log)");
+    gui.set_lora_send_enabled(false);
+  }
+
   // Main loop: stream any active playback to the speaker and notice when a
   // recording stops (either button press or the buffer filling up)
   size_t play_offset = 0;
   bool was_recording = false;
   while (true) {
+    // service a LoRa send requested from the GUI. transmit() blocks for the
+    // packet's time-on-air (a few hundred ms at SF11) then returns the radio
+    // to receive, so doing it here keeps the LVGL task responsive.
+    if (have_lora && lora_send_requested.exchange(false)) {
+      std::string message;
+      {
+        std::lock_guard<std::mutex> lock(lora_tx_mutex);
+        message = lora_tx_message;
+      }
+      std::span<const uint8_t> payload{reinterpret_cast<const uint8_t *>(message.data()),
+                                       message.size()};
+      std::error_code ec;
+      if (radio->transmit(payload, 3s, ec)) {
+        gui.add_lora_message("TX: " + message);
+        logger.info("LoRa sent: {}", message);
+      } else {
+        gui.add_lora_message(fmt::format("TX failed: {}", ec.message()));
+        logger.error("LoRa transmit failed: {}", ec.message());
+      }
+    }
     // feed the active playback in chunks, advancing by however much the
     // speaker's stream buffer accepted
     if (playing) {
@@ -503,6 +597,13 @@ static bool load_audio(size_t &out_size, size_t &out_sample_rate) {
   out_size = audio_bytes.size();
   out_sample_rate = sample_rate;
   return true;
+}
+
+static std::string printable(const std::vector<uint8_t> &data) {
+  std::string out(data.size(), '.');
+  std::transform(data.begin(), data.end(), out.begin(),
+                 [](uint8_t b) { return (b >= 0x20 && b < 0x7f) ? static_cast<char>(b) : '.'; });
+  return out;
 }
 
 static void play_click(espp::TDeck &tdeck) {
