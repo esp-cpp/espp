@@ -26,9 +26,11 @@ template <> struct fmt::formatter<espp::TrajectoryPlanner::Config> {
     return fmt::format_to(
         ctx.out(),
         "max_v={:.3f} m/s, max_w={:.3f} rad/s, max_a_v={:.3f} m/s², max_a_w={:.3f} rad/s², "
-        "max_j_v={:.3f} m/s³, max_j_w={:.3f} rad/s³, envelope={}",
+        "max_j_v={:.3f} m/s³, max_j_w={:.3f} rad/s³, envelope={}, max_a_c={:.3f} m/s², "
+        "max_decel_v={:.3f} m/s², max_decel_w={:.3f} rad/s²",
         cfg.max_linear_velocity, cfg.max_angular_velocity, cfg.max_linear_acceleration,
         cfg.max_angular_acceleration, cfg.max_linear_jerk, cfg.max_angular_jerk,
-        cfg.enforce_motion_envelope);
+        cfg.enforce_motion_envelope, cfg.max_centripetal_acceleration, cfg.max_linear_deceleration,
+        cfg.max_angular_deceleration);
   }
 };
