@@ -21,7 +21,7 @@ bool M5StackTab5::initialize_io_expanders() {
           .device_address = 0x43,
           .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
           .scl_speed_hz = internal_i2c_.config().clk_speed,
-          .log_level = Logger::Verbosity::INFO,
+          .log_level = Logger::Verbosity::WARN,
       },
       ec);
   if (!ioexp_0x43_i2c_device_) {
@@ -33,7 +33,7 @@ bool M5StackTab5::initialize_io_expanders() {
           .device_address = 0x44,
           .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
           .scl_speed_hz = internal_i2c_.config().clk_speed,
-          .log_level = Logger::Verbosity::INFO,
+          .log_level = Logger::Verbosity::WARN,
       },
       ec);
   if (!ioexp_0x44_i2c_device_) {

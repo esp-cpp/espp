@@ -134,6 +134,7 @@ jobs:
             components/tabulate
             components/task
             components/thermistor
+            components/thread_pool
             components/timer
             components/touch
             components/tla2528

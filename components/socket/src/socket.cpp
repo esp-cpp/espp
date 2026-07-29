@@ -15,15 +15,18 @@ struct sockaddr_in *Socket::Info::ipv4_ptr() {
   return reinterpret_cast<struct sockaddr_in *>(&raw);
 }
 
+#if !defined(ESP_PLATFORM) || LWIP_IPV6
 struct sockaddr_in6 *Socket::Info::ipv6_ptr() {
   return reinterpret_cast<struct sockaddr_in6 *>(&raw);
 }
+#endif // !defined(ESP_PLATFORM) || LWIP_IPV6
 
 void Socket::Info::update() {
   if (raw.ss_family == PF_INET) {
     const auto *ipv4 = reinterpret_cast<const struct sockaddr_in *>(&raw);
     address = inet_ntoa(ipv4->sin_addr);
     port = ntohs(ipv4->sin_port);
+#if !defined(ESP_PLATFORM) || LWIP_IPV6
   } else if (raw.ss_family == PF_INET6) {
     const auto *ipv6 = reinterpret_cast<const struct sockaddr_in6 *>(&raw);
 #if defined(ESP_PLATFORM)
@@ -34,6 +37,7 @@ void Socket::Info::update() {
     address = str;
 #endif
     port = ntohs(ipv6->sin6_port);
+#endif // !defined(ESP_PLATFORM) || LWIP_IPV6
   }
 }
 
@@ -48,6 +52,7 @@ void Socket::Info::from_sockaddr(const struct sockaddr_in &source_address) {
   port = ntohs(source_address.sin_port);
 }
 
+#if !defined(ESP_PLATFORM) || LWIP_IPV6
 void Socket::Info::from_sockaddr(const struct sockaddr_in6 &source_address) {
 #if defined(ESP_PLATFORM)
   address = inet_ntoa(source_address.sin6_addr);
@@ -59,6 +64,7 @@ void Socket::Info::from_sockaddr(const struct sockaddr_in6 &source_address) {
   port = ntohs(source_address.sin6_port);
   memcpy(&raw, &source_address, sizeof(source_address));
 }
+#endif // !defined(ESP_PLATFORM) || LWIP_IPV6
 
 [[maybe_unused]] static bool _socket_initialized = false;
 Socket::Socket(sock_type_t socket_fd, const Logger::Config &logger_config)

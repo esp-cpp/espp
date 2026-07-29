@@ -381,15 +381,27 @@ void SmartPanleeSc01Plus::volume(float volume) { volume_ = std::clamp(volume, 0.
 
 float SmartPanleeSc01Plus::volume() const { return volume_; }
 
-void SmartPanleeSc01Plus::play_audio(std::span<const uint8_t> data) {
-  play_audio(data.data(), static_cast<uint32_t>(data.size()));
+size_t SmartPanleeSc01Plus::play_audio(std::span<const uint8_t> data) {
+  return play_audio(data.data(), static_cast<uint32_t>(data.size()));
 }
 
-void SmartPanleeSc01Plus::play_audio(const uint8_t *data, uint32_t num_bytes) {
+size_t SmartPanleeSc01Plus::play_audio(const uint8_t *data, uint32_t num_bytes) {
   if (!audio_initialized_ || !audio_tx_stream_ || !data || num_bytes == 0) {
-    return;
+    return 0;
   }
-  xStreamBufferSend(audio_tx_stream_, data, num_bytes, 0);
+  // Enqueue only whole 16-bit stereo frames (4 bytes) that actually fit:
+  // xStreamBufferSend can accept fewer bytes than requested when the buffer is
+  // nearly full, and a partial (non-frame-aligned) send would strand 1-3 bytes
+  // and corrupt the L/R framing of subsequent appends. Cap the request to the
+  // free space rounded down to a whole frame so the send is always
+  // frame-aligned; the number of bytes actually queued is returned so callers
+  // can stream data larger than the buffer.
+  size_t sendable = std::min<size_t>(num_bytes, xStreamBufferSpacesAvailable(audio_tx_stream_));
+  sendable -= sendable % 4;
+  if (sendable == 0) {
+    return 0;
+  }
+  return xStreamBufferSend(audio_tx_stream_, data, sendable, 0);
 }
 
 size_t SmartPanleeSc01Plus::rotated_display_width() const {

@@ -578,6 +578,13 @@ public:
   /// \return The active configuration.
   const Config &config() const { return config_; }
 
+  /// Get the native ESP-IDF I2C master bus handle.
+  /// \return The underlying i2c_master_bus_handle_t (nullptr if not initialized).
+  /// \note Provided so the bus can be shared with ESP-IDF drivers that require
+  ///       the native handle (e.g. camera SCCB via esp_video). The bus remains
+  ///       owned by this object. Only available with the new I2C master API.
+  i2c_master_bus_handle_t native_bus_handle() const { return master_bus_.native_handle(); }
+
   /// Initialize the I2C bus.
   /// \param ec Error code populated on failure.
   void init(std::error_code &ec) {

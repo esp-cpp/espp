@@ -24,8 +24,9 @@ singleton hardware abstraction for initializing and using the subsystems:
   an NS4168 amplifier directly; on the ADV it goes through an ES8311 codec
   (initialized automatically) into an NS4150B amplifier.
 - **Microphone**: a recording task delivers 16-bit mono samples to a
-  callback. Original: SPM1423 PDM microphone; ADV: analog MEMS microphone via
-  the ES8311 codec's ADC.
+  callback, with adjustable volume via `microphone_volume()`. Original:
+  SPM1423 PDM microphone (volume applied in software); ADV: analog MEMS
+  microphone via the ES8311 codec's ADC (volume applied in the codec).
 - **uSD card**: SPI-mode micro-SD mounted at `/sdcard`.
 - **RGB LED**: the StampS3's WS2812 via `espp::Neopixel`.
 - **Battery**: battery voltage measurement (2:1 divider into ADC1) and an

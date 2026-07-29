@@ -2,7 +2,15 @@
 # in this exact order for cmake to work correctly
 cmake_minimum_required(VERSION 3.20)
 
-set(ENV{IDF_COMPONENT_MANAGER} "0")
+# The component manager is needed to pull the managed camera components
+# (espressif/esp_video + espressif/esp_cam_sensor). They are declared as
+# dependencies of the m5stack-tab5 BSP (components/m5stack-tab5/idf_component.yml)
+# and fetched transitively, so they do not need to be listed here. The espp
+# components are provided locally via EXTRA_COMPONENT_DIRS below.
+#
+# Enable the component manager explicitly so this example configures even if the
+# build environment defaults it off (it is on by default in a normal ESP-IDF).
+set(ENV{IDF_COMPONENT_MANAGER} "1")
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
 # add the component directories that we want to use

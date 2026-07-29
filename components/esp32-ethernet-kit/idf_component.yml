@@ -1,0 +1,22 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "ESP32-Ethernet-Kit A V1.2 Board Support Package (BSP) component in C++"
+url: "https://github.com/esp-cpp/espp/tree/main/components/esp32-ethernet-kit"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/dev_boards/espressif/esp32_ethernet_kit.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - BSP
+  - ESP32
+  - Ethernet
+  - EthernetKit
+dependencies:
+  idf: ">=5.0"
+  espp/base_component: ">=1.0"
+targets:
+  - esp32
