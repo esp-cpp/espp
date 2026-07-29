@@ -8,8 +8,74 @@ using namespace std::chrono_literals;
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = "TrajectoryPlanner Example", .level = espp::Logger::Verbosity::INFO});
 
+  // ---------------------------------------------------------------------------
+  // Quick-start: all public API in one place
+  // ---------------------------------------------------------------------------
   {
-    logger.info("=== Example 1: Trapezoidal profile with built-in task ===");
+    logger.info("=== Quick-start: public API overview ===");
+    //! [trajectory_planner quickstart]
+
+    // 1. Construct with a Config — task starts automatically.
+    espp::TrajectoryPlanner planner({
+        .max_linear_velocity = 1.0f,          // m/s
+        .max_angular_velocity = 3.14159f,     // rad/s
+        .max_linear_acceleration = 2.0f,      // m/s²
+        .max_angular_acceleration = 6.28f,    // rad/s²
+        .max_linear_deceleration = 5.0f,      // m/s² — faster braking
+        .max_angular_deceleration = 10.0f,    // rad/s²
+        .enforce_motion_envelope = true,      // keep (v/vmax)²+(ω/ωmax)²≤1
+        .max_centripetal_acceleration = 0.4f, // m/s²
+        .output_callback =
+            [&logger](const espp::TrajectoryPlanner::MotionCommand &cmd) {
+              logger.debug("callback: {}", cmd);
+            },
+        .update_period = 20ms,
+        .task_config = {.name = "QuickStart", .stack_size_bytes = 4096},
+    });
+
+    // 2. is_running() — confirm the task started.
+    logger.info("Task running: {}", planner.is_running());
+
+    // 3. get_config() — inspect active configuration.
+    auto cfg = planner.get_config();
+    logger.info("Config: {}", cfg);
+
+    // 4. set_target(linear, angular) — normalized [-1, +1] joystick inputs.
+    //    +1.0 linear = max_linear_velocity forward.
+    planner.set_target(1.0f, 0.0f);
+    std::this_thread::sleep_for(600ms);
+
+    // 5. output() — poll the latest smoothed command at any time.
+    auto cmd = planner.output();
+    logger.info("Polled output: {}", cmd);
+
+    // 6. set_target with combined motion — forward + right turn.
+    planner.set_target(0.6f, -0.5f);
+    std::this_thread::sleep_for(600ms);
+
+    // 7. set_config() — change parameters at runtime; resets state by default.
+    espp::TrajectoryPlanner::Config new_cfg = planner.get_config();
+    new_cfg.max_linear_velocity = 0.5f; // half speed cap
+    planner.set_config(new_cfg, /*reset_state=*/false);
+    logger.info("Updated max_linear_velocity to 0.5 m/s");
+    planner.set_target(1.0f, 0.0f); // still clamped to new 0.5 m/s
+    std::this_thread::sleep_for(600ms);
+
+    // 8. stop() — ramp down to zero respecting deceleration limits.
+    logger.info("Commanding stop (ramp-down)");
+    planner.stop();
+    std::this_thread::sleep_for(400ms);
+
+    // 9. reset() — zero state immediately (e.g. after e-stop).
+    logger.info("Emergency reset");
+    planner.reset();
+    logger.info("Output after reset: {}", planner.output());
+
+    // 10. Destructor stops the task automatically when planner leaves scope.
+    //! [trajectory_planner quickstart]
+  }
+
+  {
     //! [trajectory_planner example]
     std::atomic<int> tick{0};
 
@@ -28,7 +94,6 @@ extern "C" void app_main(void) {
               tick++;
             },
         .update_period = 20ms, // 50 Hz
-        .auto_start = true,
         .task_config =
             {.name = "TrajPlanner1", .stack_size_bytes = 4096, .priority = 5, .core_id = -1},
     });
@@ -47,8 +112,7 @@ extern "C" void app_main(void) {
     logger.info("Stopping");
     planner.stop();
     std::this_thread::sleep_for(500ms);
-
-    planner.stop_task();
+    // task stops automatically when planner goes out of scope
     //! [trajectory_planner example]
   }
 
@@ -74,7 +138,6 @@ extern "C" void app_main(void) {
               tick++;
             },
         .update_period = 20ms,
-        .auto_start = true,
         .task_config =
             {.name = "TrajPlanner2", .stack_size_bytes = 4096, .priority = 5, .core_id = -1},
     });
@@ -93,8 +156,7 @@ extern "C" void app_main(void) {
     logger.info("Stopping");
     planner.stop();
     std::this_thread::sleep_for(500ms);
-
-    planner.stop_task();
+    // task stops automatically when planner goes out of scope
     //! [trajectory_planner jerk example]
   }
 

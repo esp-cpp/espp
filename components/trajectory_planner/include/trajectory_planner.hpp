@@ -77,9 +77,7 @@ public:
                                                      Leave as nullptr to disable. */
     // --- Periodic task configuration ---
     std::chrono::duration<float> update_period{std::chrono::milliseconds(20)}; /**< Period between
-                                                     automatic update() calls (default 50 Hz).
-                                                     Only used when start_task() is called. */
-    bool auto_start{false}; /**< Start the periodic update task on construction. */
+                                                     automatic update() calls (default 50 Hz). */
     espp::Task::BaseConfig task_config{.name = "TrajectoryPlanner",
                                        .stack_size_bytes = 4096,
                                        .priority = 0,
@@ -90,9 +88,15 @@ public:
 
   /**
    * @brief Construct the planner with the given configuration.
+   *        The periodic update task is started automatically.
    * @param config Configuration parameters.
    */
   explicit TrajectoryPlanner(const Config &config);
+
+  /**
+   * @brief Destructor. Stops the periodic update task before destruction.
+   */
+  ~TrajectoryPlanner();
 
   /**
    * @brief Update the planner configuration.
@@ -125,34 +129,6 @@ public:
   void set_target(float linear, float angular);
 
   /**
-   * @brief Start the periodic update task.
-   *
-   * The task calls update() at the rate configured by Config::update_period
-   * and fires the output_callback after each step. Has no effect if the task
-   * is already running.
-   *
-   * @return true if the task was started, false if it was already running.
-   */
-  bool start_task();
-
-  /**
-   * @brief Stop the periodic update task.
-   *
-   * Does not reset velocity state — the last output remains valid. Use
-   * stop() first if a controlled deceleration is desired before halting the
-   * task.
-   *
-   * @return true if the task was stopped, false if it was not running.
-   */
-  bool stop_task();
-
-  /**
-   * @brief Check whether the periodic update task is currently running.
-   * @return true if the task is running.
-   */
-  bool is_running() const;
-
-  /**
    * @brief Get the current smoothed motion command.
    * @return MotionCommand containing the trajectory-limited (v_ref, ω_ref).
    */
@@ -174,6 +150,12 @@ public:
    */
   void reset();
 
+  /**
+   * @brief Check whether the periodic update task is currently running.
+   * @return true if the task is running.
+   */
+  bool is_running() const;
+
 protected:
   /// Internal motion state tracked between update() calls.
   struct State {
@@ -182,6 +164,24 @@ protected:
     float a_v{0.0f}; /**< Current linear acceleration (m/s²) — jerk-limited mode only. */
     float a_w{0.0f}; /**< Current angular acceleration (rad/s²) — jerk-limited mode only. */
   };
+
+  /**
+   * @brief Start the periodic update task.
+   *
+   * The task calls update() at the rate configured by Config::update_period
+   * and fires the output_callback after each step. Has no effect if the task
+   * is already running.
+   *
+   * @return true if the task was started, false if it was already running.
+   */
+  bool start_task();
+
+  /**
+   * @brief Stop the periodic update task.
+   *
+   * @return true if the task was stopped, false if it was not running.
+   */
+  bool stop_task();
 
   /**
    * @brief Advance the planner by one time step.

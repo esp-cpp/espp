@@ -23,14 +23,23 @@ template <> struct fmt::formatter<espp::TrajectoryPlanner::Config> {
 
   template <typename FormatContext>
   auto format(espp::TrajectoryPlanner::Config const &cfg, FormatContext &ctx) const {
-    return fmt::format_to(
-        ctx.out(),
-        "max_v={:.3f} m/s, max_w={:.3f} rad/s, max_a_v={:.3f} m/s², max_a_w={:.3f} rad/s², "
-        "max_j_v={:.3f} m/s³, max_j_w={:.3f} rad/s³, envelope={}, max_a_c={:.3f} m/s², "
-        "max_decel_v={:.3f} m/s², max_decel_w={:.3f} rad/s²",
-        cfg.max_linear_velocity, cfg.max_angular_velocity, cfg.max_linear_acceleration,
-        cfg.max_angular_acceleration, cfg.max_linear_jerk, cfg.max_angular_jerk,
-        cfg.enforce_motion_envelope, cfg.max_centripetal_acceleration, cfg.max_linear_deceleration,
-        cfg.max_angular_deceleration);
+    return fmt::format_to(ctx.out(),
+                          "TrajectoryPlanner::Config{{\n"
+                          "  max_linear_velocity:        {:.3f} m/s\n"
+                          "  max_angular_velocity:       {:.3f} rad/s\n"
+                          "  max_linear_acceleration:    {:.3f} m/s²\n"
+                          "  max_angular_acceleration:   {:.3f} rad/s²\n"
+                          "  max_linear_deceleration:    {:.3f} m/s²\n"
+                          "  max_angular_deceleration:   {:.3f} rad/s²\n"
+                          "  max_linear_jerk:            {:.3f} m/s³\n"
+                          "  max_angular_jerk:           {:.3f} rad/s³\n"
+                          "  enforce_motion_envelope:    {}\n"
+                          "  max_centripetal_accel:      {:.3f} m/s²\n"
+                          "}}",
+                          cfg.max_linear_velocity, cfg.max_angular_velocity,
+                          cfg.max_linear_acceleration, cfg.max_angular_acceleration,
+                          cfg.max_linear_deceleration, cfg.max_angular_deceleration,
+                          cfg.max_linear_jerk, cfg.max_angular_jerk, cfg.enforce_motion_envelope,
+                          cfg.max_centripetal_acceleration);
   }
 };

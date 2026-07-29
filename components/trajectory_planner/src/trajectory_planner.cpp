@@ -5,10 +5,10 @@ namespace espp {
 TrajectoryPlanner::TrajectoryPlanner(const Config &config)
     : BaseComponent("TrajectoryPlanner", config.log_level) {
   set_config(config, /*reset_state=*/true);
-  if (config.auto_start) {
-    start_task();
-  }
+  start_task();
 }
+
+TrajectoryPlanner::~TrajectoryPlanner() { stop_task(); }
 
 void TrajectoryPlanner::set_config(const Config &config, bool reset_state) {
   std::lock_guard<std::recursive_mutex> lk(mutex_);
