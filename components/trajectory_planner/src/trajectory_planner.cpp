@@ -33,94 +33,98 @@ void TrajectoryPlanner::update(float dt) {
   if (dt <= 0.0f) {
     return;
   }
-  std::unique_lock<std::recursive_mutex> lk(mutex_);
-  const bool is_stopping = (target_v_ == 0.0f && target_w_ == 0.0f);
-  const float lin_accel = is_stopping && config_.max_linear_deceleration > 0.0f
-                              ? config_.max_linear_deceleration
-                              : config_.max_linear_acceleration;
-  const float ang_accel = is_stopping && config_.max_angular_deceleration > 0.0f
-                              ? config_.max_angular_deceleration
-                              : config_.max_angular_acceleration;
 
-  const bool jerk_limited = (config_.max_linear_jerk > 0.0f) || (config_.max_angular_jerk > 0.0f);
+  // Capture everything needed for the callback while holding the lock.
+  // Using a scoped lock_guard avoids the manual unlock() / destructor double-unlock
+  // issue that can corrupt std::recursive_mutex on FreeRTOS.
+  MotionCommand cmd;
+  output_callback_t cb;
 
-  if (jerk_limited) {
-    // S-curve mode: rate-limit the acceleration (jerk limit), then integrate velocity.
+  {
+    std::lock_guard<std::recursive_mutex> lk(mutex_);
 
-    // Desired acceleration: close velocity error as fast as the accel limit allows.
-    auto desired_accel = [](float target, float current, float dt_, float max_accel) -> float {
-      return std::clamp((target - current) / dt_, -max_accel, max_accel);
-    };
+    const bool is_stopping = (target_v_ == 0.0f && target_w_ == 0.0f);
+    const MotionProfile &profile = is_stopping ? config_.stopping_profile : config_.driving_profile;
 
-    float a_v_des = desired_accel(target_v_, state_.v, dt, lin_accel);
-    float a_w_des = desired_accel(target_w_, state_.w, dt, ang_accel);
+    const bool jerk_limited = (profile.max_linear_jerk > 0.0f) || (profile.max_angular_jerk > 0.0f);
 
-    // Rate-limit change in acceleration by jerk limit.
-    auto apply_jerk_limit = [](float current, float desired, float max_jerk, float dt_) -> float {
-      float max_delta = max_jerk * dt_;
-      return current + std::clamp(desired - current, -max_delta, max_delta);
-    };
+    if (jerk_limited) {
+      // S-curve mode: rate-limit the acceleration (jerk limit), then integrate velocity.
 
-    float max_lj = config_.max_linear_jerk > 0.0f ? config_.max_linear_jerk : 1e9f;
-    float max_aj = config_.max_angular_jerk > 0.0f ? config_.max_angular_jerk : 1e9f;
+      // Desired acceleration: close velocity error as fast as the accel limit allows.
+      auto desired_accel = [](float target, float current, float dt_, float max_accel) -> float {
+        return std::clamp((target - current) / dt_, -max_accel, max_accel);
+      };
 
-    state_.a_v =
-        std::clamp(apply_jerk_limit(state_.a_v, a_v_des, max_lj, dt), -lin_accel, lin_accel);
-    state_.a_w =
-        std::clamp(apply_jerk_limit(state_.a_w, a_w_des, max_aj, dt), -ang_accel, ang_accel);
+      float a_v_des = desired_accel(target_v_, state_.v, dt, profile.max_linear_acceleration);
+      float a_w_des = desired_accel(target_w_, state_.w, dt, profile.max_angular_acceleration);
 
-    state_.v = std::clamp(state_.v + state_.a_v * dt, -config_.max_linear_velocity,
-                          config_.max_linear_velocity);
-    state_.w = std::clamp(state_.w + state_.a_w * dt, -config_.max_angular_velocity,
-                          config_.max_angular_velocity);
-  } else {
-    // Trapezoidal mode: rate-limit velocity directly by acceleration limit.
-    auto rate_limit = [](float current, float target, float max_accel, float dt_) -> float {
-      float max_delta = max_accel * dt_;
-      return current + std::clamp(target - current, -max_delta, max_delta);
-    };
+      // Rate-limit change in acceleration by jerk limit.
+      auto apply_jerk_limit = [](float current, float desired, float max_jerk, float dt_) -> float {
+        float max_delta = max_jerk * dt_;
+        return current + std::clamp(desired - current, -max_delta, max_delta);
+      };
 
-    state_.v = std::clamp(rate_limit(state_.v, target_v_, lin_accel, dt),
-                          -config_.max_linear_velocity, config_.max_linear_velocity);
-    state_.w = std::clamp(rate_limit(state_.w, target_w_, ang_accel, dt),
-                          -config_.max_angular_velocity, config_.max_angular_velocity);
-  }
+      float max_lj = profile.max_linear_jerk > 0.0f ? profile.max_linear_jerk : 1e9f;
+      float max_aj = profile.max_angular_jerk > 0.0f ? profile.max_angular_jerk : 1e9f;
 
-  // Motion envelope enforcement: (v/vmax)² + (w/wmax)² ≤ 1
-  if (config_.enforce_motion_envelope) {
-    float vmax = config_.max_linear_velocity;
-    float wmax = config_.max_angular_velocity;
-    if (vmax > 0.0f && wmax > 0.0f) {
-      float nv = state_.v / vmax;
-      float nw = state_.w / wmax;
-      float scale = std::sqrt(nv * nv + nw * nw);
-      if (scale > 1.0f) {
-        state_.v /= scale;
-        state_.w /= scale;
+      state_.a_v = std::clamp(apply_jerk_limit(state_.a_v, a_v_des, max_lj, dt),
+                              -profile.max_linear_acceleration, profile.max_linear_acceleration);
+      state_.a_w = std::clamp(apply_jerk_limit(state_.a_w, a_w_des, max_aj, dt),
+                              -profile.max_angular_acceleration, profile.max_angular_acceleration);
+
+      state_.v = std::clamp(state_.v + state_.a_v * dt, -config_.max_linear_velocity,
+                            config_.max_linear_velocity);
+      state_.w = std::clamp(state_.w + state_.a_w * dt, -config_.max_angular_velocity,
+                            config_.max_angular_velocity);
+    } else {
+      // Trapezoidal mode: rate-limit velocity directly by acceleration limit.
+      auto rate_limit = [](float current, float target, float max_accel, float dt_) -> float {
+        float max_delta = max_accel * dt_;
+        return current + std::clamp(target - current, -max_delta, max_delta);
+      };
+
+      state_.v = std::clamp(rate_limit(state_.v, target_v_, profile.max_linear_acceleration, dt),
+                            -config_.max_linear_velocity, config_.max_linear_velocity);
+      state_.w = std::clamp(rate_limit(state_.w, target_w_, profile.max_angular_acceleration, dt),
+                            -config_.max_angular_velocity, config_.max_angular_velocity);
+    }
+
+    // Motion envelope enforcement: (v/vmax)² + (w/wmax)² ≤ 1
+    if (config_.enforce_motion_envelope) {
+      float vmax = config_.max_linear_velocity;
+      float wmax = config_.max_angular_velocity;
+      if (vmax > 0.0f && wmax > 0.0f) {
+        float nv = state_.v / vmax;
+        float nw = state_.w / wmax;
+        float scale = std::sqrt(nv * nv + nw * nw);
+        if (scale > 1.0f) {
+          state_.v /= scale;
+          state_.w /= scale;
+        }
       }
     }
-  }
 
-  // Centripetal acceleration limit: |v · ω| ≤ a_c_max
-  // Scale both v and ω proportionally to preserve the turning radius.
-  if (config_.max_centripetal_acceleration > 0.0f) {
-    float a_c = std::abs(state_.v * state_.w);
-    if (a_c > config_.max_centripetal_acceleration) {
-      float scale = std::sqrt(config_.max_centripetal_acceleration / a_c);
-      state_.v *= scale;
-      state_.w *= scale;
+    // Centripetal acceleration limit: |v · ω| ≤ a_c_max
+    // Scale both v and ω proportionally to preserve the turning radius.
+    if (config_.max_centripetal_acceleration > 0.0f) {
+      float a_c = std::abs(state_.v * state_.w);
+      if (a_c > config_.max_centripetal_acceleration) {
+        float scale = std::sqrt(config_.max_centripetal_acceleration / a_c);
+        state_.v *= scale;
+        state_.w *= scale;
+      }
     }
-  }
 
-  logger_.debug("State: v={:.3f}, w={:.3f}, a_v={:.3f}, a_w={:.3f}", state_.v, state_.w, state_.a_v,
-                state_.a_w);
+    logger_.debug("State: v={:.3f}, w={:.3f}, a_v={:.3f}, a_w={:.3f}", state_.v, state_.w,
+                  state_.a_v, state_.a_w);
 
-  // Capture output before releasing the lock.
-  MotionCommand cmd{.linear_velocity = state_.v, .angular_velocity = state_.w};
-  lk.unlock(); // release before callback to avoid re-entrant deadlock
+    cmd = {.linear_velocity = state_.v, .angular_velocity = state_.w};
+    cb = output_callback_; // copy callback under the lock — eliminates the data race
+  }                        // mutex released here
 
-  if (output_callback_) {
-    output_callback_(cmd);
+  if (cb) {
+    cb(cmd);
   }
 }
 

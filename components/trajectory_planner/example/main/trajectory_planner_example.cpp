@@ -17,12 +17,14 @@ extern "C" void app_main(void) {
 
     // 1. Construct with a Config — task starts automatically.
     espp::TrajectoryPlanner planner({
-        .max_linear_velocity = 1.0f,          // m/s
-        .max_angular_velocity = 3.14159f,     // rad/s
-        .max_linear_acceleration = 2.0f,      // m/s²
-        .max_angular_acceleration = 6.28f,    // rad/s²
-        .max_linear_deceleration = 5.0f,      // m/s² — faster braking
-        .max_angular_deceleration = 10.0f,    // rad/s²
+        .max_linear_velocity = 1.0f,      // m/s
+        .max_angular_velocity = 3.14159f, // rad/s
+        .driving_profile = {.max_linear_acceleration = 2.0f,
+                            .max_angular_acceleration = 6.28f,
+                            .max_linear_jerk = 8.0f,
+                            .max_angular_jerk = 20.0f},
+        // Trapezoidal stop (no jerk) — fast, clean, no overshoot
+        .stopping_profile = {.max_linear_acceleration = 5.0f, .max_angular_acceleration = 10.0f},
         .enforce_motion_envelope = true,      // keep (v/vmax)²+(ω/ωmax)²≤1
         .max_centripetal_acceleration = 0.4f, // m/s²
         .output_callback =
@@ -30,7 +32,7 @@ extern "C" void app_main(void) {
               logger.debug("callback: {}", cmd);
             },
         .update_period = 20ms,
-        .task_config = {.name = "QuickStart", .stack_size_bytes = 4096},
+        .task_config = {.name = "QuickStart", .stack_size_bytes = 8192},
     });
 
     // 2. is_running() — confirm the task started.
@@ -80,12 +82,15 @@ extern "C" void app_main(void) {
     std::atomic<int> tick{0};
 
     espp::TrajectoryPlanner planner({
-        .max_linear_velocity = 1.0f,       // m/s
-        .max_angular_velocity = 3.14159f,  // rad/s
-        .max_linear_acceleration = 2.0f,   // m/s²  — driving ramp
-        .max_angular_acceleration = 6.28f, // rad/s²
-        .max_linear_deceleration = 6.0f,   // m/s²  — 3× faster braking stop
-        .max_angular_deceleration = 12.0f, // rad/s²
+        .max_linear_velocity = 1.0f,      // m/s
+        .max_angular_velocity = 3.14159f, // rad/s
+        // S-curve driving: smooth ramp with jerk limiting
+        .driving_profile = {.max_linear_acceleration = 2.0f,
+                            .max_angular_acceleration = 6.28f,
+                            .max_linear_jerk = 10.0f,
+                            .max_angular_jerk = 25.0f},
+        // Trapezoidal stop: no jerk = immediate deceleration, no overshoot
+        .stopping_profile = {.max_linear_acceleration = 6.0f, .max_angular_acceleration = 12.0f},
         .enforce_motion_envelope = true,
         .max_centripetal_acceleration = 0.5f, // m/s²
         .output_callback =
@@ -95,7 +100,7 @@ extern "C" void app_main(void) {
             },
         .update_period = 20ms, // 50 Hz
         .task_config =
-            {.name = "TrajPlanner1", .stack_size_bytes = 4096, .priority = 5, .core_id = -1},
+            {.name = "TrajPlanner1", .stack_size_bytes = 8192, .priority = 5, .core_id = -1},
     });
 
     // Full forward (normalized: 1.0 = max_linear_velocity)
@@ -124,12 +129,13 @@ extern "C" void app_main(void) {
     espp::TrajectoryPlanner planner({
         .max_linear_velocity = 4.47f,            // 10 mph
         .max_angular_velocity = 3.14159f / 2.0f, // 90 deg/s
-        .max_linear_acceleration = 2.0f,         // m/s²
-        .max_angular_acceleration = 6.28f,       // rad/s²
-        .max_linear_deceleration = 4.0f,         // m/s²
-        .max_angular_deceleration = 8.0f,        // rad/s²
-        .max_linear_jerk = 10.0f,                // m/s³ — enables S-curve mode
-        .max_angular_jerk = 30.0f,               // rad/s³
+        // S-curve driving: smooth acceleration with jerk limits
+        .driving_profile = {.max_linear_acceleration = 2.0f,
+                            .max_angular_acceleration = 6.28f,
+                            .max_linear_jerk = 10.0f,
+                            .max_angular_jerk = 30.0f},
+        // Trapezoidal stop: no jerk limit = clean stop, no overshoot
+        .stopping_profile = {.max_linear_acceleration = 4.0f, .max_angular_acceleration = 8.0f},
         .enforce_motion_envelope = true,
         .max_centripetal_acceleration = 0.3f,
         .output_callback =
@@ -139,7 +145,7 @@ extern "C" void app_main(void) {
             },
         .update_period = 20ms,
         .task_config =
-            {.name = "TrajPlanner2", .stack_size_bytes = 4096, .priority = 5, .core_id = -1},
+            {.name = "TrajPlanner2", .stack_size_bytes = 8192, .priority = 5, .core_id = -1},
     });
 
     // Forward + left turn (0.8 = 80% max linear, 0.5 = 50% max angular)

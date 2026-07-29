@@ -21,17 +21,25 @@ namespace espp {
  *  (optionally) jerk limits on chassis-level commands. The downstream
  *  kinematics layer converts (v_ref, ω_ref) into individual motor commands.
  *
- *  Two generation modes are selected automatically based on configuration:
- *  - **Acceleration-limited** (trapezoidal profile): set max_linear_jerk and
- *    max_angular_jerk to 0.
- *  - **Jerk-limited** (S-curve profile): set non-zero jerk limits.
+ *  Motion limits are grouped into two MotionProfile objects inside Config:
+ *  - **driving_profile** — used whenever the target is non-zero. Use non-zero
+ *    jerk limits here for smooth S-curve acceleration.
+ *  - **stopping_profile** — used when the target is (0, 0). Setting jerk to 0
+ *    gives a trapezoidal stop with no overshoot; higher acceleration than the
+ *    driving profile gives faster, firmer braking.
  *
- *  This class is thread-safe: set_target(), update(), output(), stop(), and
- *  reset() may be called from different threads concurrently.
+ *  A MotionProfile automatically selects its generation mode:
+ *  - **Trapezoidal** (ramp): `max_linear_jerk == 0 && max_angular_jerk == 0`
+ *  - **S-curve**: either jerk field is non-zero
  *
- * \section trajectory_planner_ex1 Acceleration-Limited Example
+ *  This class is thread-safe: set_target(), output(), stop(), and reset()
+ *  may be called from different threads concurrently.
+ *
+ * \section trajectory_planner_ex0 Quick-Start: Full Public API
+ * \snippet trajectory_planner_example.cpp trajectory_planner quickstart
+ * \section trajectory_planner_ex1 S-Curve Driving / Trapezoidal Stop
  * \snippet trajectory_planner_example.cpp trajectory_planner example
- * \section trajectory_planner_ex2 Jerk-Limited Example
+ * \section trajectory_planner_ex2 High-Speed S-Curve with Centripetal Limiting
  * \snippet trajectory_planner_example.cpp trajectory_planner jerk example
  */
 class TrajectoryPlanner : public BaseComponent {
@@ -54,19 +62,33 @@ public:
   typedef std::function<void(const MotionCommand &)> output_callback_t;
 
   /**
+   * @brief Acceleration and jerk limits for one phase of motion.
+   *
+   * Set max_linear_jerk / max_angular_jerk to 0 for a trapezoidal (ramp)
+   * profile, or to a positive value for an S-curve profile.
+   *
+   * @note Using a trapezoidal stopping profile (jerk = 0) is recommended to
+   *       avoid S-curve overshoot past zero when the planner decelerates from
+   *       a jerk-limited driving phase.
+   */
+  struct MotionProfile {
+    float max_linear_acceleration;  /**< Linear acceleration limit (m/s²). */
+    float max_angular_acceleration; /**< Angular acceleration limit (rad/s²). */
+    float max_linear_jerk{0.0f};    /**< Linear jerk limit (m/s³). 0 = trapezoidal. */
+    float max_angular_jerk{0.0f};   /**< Angular jerk limit (rad/s³). 0 = trapezoidal. */
+  };
+
+  /**
    * @brief Configuration for the TrajectoryPlanner.
    */
   struct Config {
-    float max_linear_velocity;            /**< Maximum linear velocity magnitude (m/s). */
-    float max_angular_velocity;           /**< Maximum angular velocity magnitude (rad/s). */
-    float max_linear_acceleration;        /**< Maximum linear acceleration magnitude (m/s²). */
-    float max_angular_acceleration;       /**< Maximum angular acceleration magnitude (rad/s²). */
-    float max_linear_deceleration{0.0f};  /**< Braking deceleration for stops (m/s²).
-                                               0 = fall back to max_linear_acceleration. */
-    float max_angular_deceleration{0.0f}; /**< Braking deceleration for stops (rad/s²).
-                                               0 = fall back to max_angular_acceleration. */
-    float max_linear_jerk{0.0f};  /**< Maximum linear jerk (m/s³). 0 disables jerk limiting. */
-    float max_angular_jerk{0.0f}; /**< Maximum angular jerk (rad/s³). 0 disables jerk limiting. */
+    float max_linear_velocity;           /**< Maximum linear velocity magnitude (m/s). */
+    float max_angular_velocity;          /**< Maximum angular velocity magnitude (rad/s). */
+    MotionProfile driving_profile;       /**< Accel/jerk limits used when target != (0, 0). */
+    MotionProfile stopping_profile;      /**< Accel/jerk limits used when target == (0, 0).
+                                              Set jerk to 0 here for a clean trapezoidal stop
+                                              with no overshoot. Higher acceleration than the
+                                              driving profile gives faster, firmer braking. */
     bool enforce_motion_envelope{false}; /**< When true, enforces (v/vmax)²+(ω/ωmax)²≤1 on
                                               output to prevent infeasible combined commands. */
     float max_centripetal_acceleration{0.1f}; /**< Maximum centripetal acceleration |v·ω| (m/s²).
