@@ -98,8 +98,16 @@ struct Decoder {
       for (size_t i = 0; i < count; i++) {
         length = (length << 8) | slice.data[pos++];
       }
+      // Reject absurd long-form lengths early: a valid TLV can never claim more
+      // bytes than the entire slice contains.
+      if (length > slice.size) {
+        return false;
+      }
     }
-    if (pos + length > slice.size) {
+    // Overflow-safe bounds check: `pos + length` can wrap around on 32-bit
+    // targets for a large (malicious) length and spuriously pass. Compare
+    // against the remaining bytes instead.
+    if (pos > slice.size || length > slice.size - pos) {
       return false;
     }
     value = Slice{slice.data + pos, length, slice.absolute_offset + pos};
@@ -147,30 +155,22 @@ struct EngineCache {
   bool localized{false};
 };
 
-std::mutex &snmp_mutex() {
-  static std::mutex mutex;
-  return mutex;
-}
+} // namespace
 
-std::unordered_map<const Snmp *, EngineCache> &engine_cache_map() {
-  static std::unordered_map<const Snmp *, EngineCache> cache_map;
-  return cache_map;
-}
+namespace espp {
+// Per-instance protocol state, owned by each Snmp object (see snmp.hpp forward
+// declaration). All access is serialized by `mutex`; the counter/cache helpers
+// below assume the caller already holds it.
+struct SnmpInstanceState {
+  std::mutex mutex;
+  EngineCache engine_cache;
+  uint32_t request_counter{0};
+  uint32_t message_counter{0};
+  uint64_t salt_counter{0};
+};
+} // namespace espp
 
-std::unordered_map<const Snmp *, uint32_t> &request_counter_map() {
-  static std::unordered_map<const Snmp *, uint32_t> counters;
-  return counters;
-}
-
-std::unordered_map<const Snmp *, uint32_t> &message_counter_map() {
-  static std::unordered_map<const Snmp *, uint32_t> counters;
-  return counters;
-}
-
-std::unordered_map<const Snmp *, uint64_t> &salt_counter_map() {
-  static std::unordered_map<const Snmp *, uint64_t> counters;
-  return counters;
-}
+namespace {
 
 bytes make_octet_string(std::string_view value) { return bytes(value.begin(), value.end()); }
 
@@ -271,13 +271,22 @@ int64_t decode_signed_integer(const Slice &slice, bool &ok) {
 }
 
 uint64_t decode_unsigned_integer(const Slice &slice, bool &ok) {
-  ok = slice.size <= sizeof(uint64_t);
+  size_t offset = 0;
+  size_t size = slice.size;
+  // A Counter64/Unsigned value >= 2^63 is BER-encoded as 9 bytes with a leading
+  // 0x00 sign byte so it is not misread as negative. Drop that pad byte so the
+  // remaining 8 bytes decode normally instead of failing the whole PDU.
+  if (size == sizeof(uint64_t) + 1 && slice.data[0] == 0x00) {
+    offset = 1;
+    size -= 1;
+  }
+  ok = size <= sizeof(uint64_t);
   if (!ok) {
     return 0;
   }
   uint64_t value = 0;
-  for (size_t i = 0; i < slice.size; i++) {
-    value = (value << 8) | slice.data[i];
+  for (size_t i = 0; i < size; i++) {
+    value = (value << 8) | slice.data[offset + i];
   }
   return value;
 }
@@ -846,7 +855,8 @@ std::string bytes_to_hex(std::span<const uint8_t> data) {
 
 bytes encode_usm_security_params(const bytes &engine_id, uint32_t engine_boots,
                                  uint32_t engine_time, std::string_view username,
-                                 const bytes &auth_parameters, const bytes &privacy_parameters) {
+                                 const bytes &auth_parameters, const bytes &privacy_parameters,
+                                 size_t *auth_value_offset = nullptr) {
   auto engine_id_tlv = make_tlv(kTagOctetString, engine_id);
   auto engine_boots_tlv = make_tlv(kTagInteger, encode_unsigned_integer(engine_boots));
   auto engine_time_tlv = make_tlv(kTagInteger, encode_unsigned_integer(engine_time));
@@ -855,7 +865,23 @@ bytes encode_usm_security_params(const bytes &engine_id, uint32_t engine_boots,
   auto priv_tlv = make_tlv(kTagOctetString, privacy_parameters);
   auto inner = encode_sequence(
       {engine_id_tlv, engine_boots_tlv, engine_time_tlv, user_tlv, auth_tlv, priv_tlv});
-  return make_tlv(kTagOctetString, inner);
+  auto outer = make_tlv(kTagOctetString, inner);
+  if (auth_value_offset != nullptr) {
+    // Compute where the authentication-parameters value bytes land inside the
+    // returned buffer, so the caller can blank/fill them without searching for
+    // a placeholder pattern. Layout:
+    //   outer = [octet-string tag][len][inner]
+    //   inner = [sequence tag][len][engine_id][boots][time][user][auth][priv]
+    size_t outer_prefix = outer.size() - inner.size();
+    size_t inner_content = engine_id_tlv.size() + engine_boots_tlv.size() + engine_time_tlv.size() +
+                           user_tlv.size() + auth_tlv.size() + priv_tlv.size();
+    size_t inner_prefix = inner.size() - inner_content;
+    size_t auth_tlv_start = outer_prefix + inner_prefix + engine_id_tlv.size() +
+                            engine_boots_tlv.size() + engine_time_tlv.size() + user_tlv.size();
+    size_t auth_value_prefix = auth_tlv.size() - auth_parameters.size();
+    *auth_value_offset = auth_tlv_start + auth_value_prefix;
+  }
+  return outer;
 }
 
 bytes encode_scoped_pdu(const bytes &context_engine_id, std::string_view context_name,
@@ -901,52 +927,38 @@ Snmp::VarBind make_null_varbind(const Snmp::Oid &oid) {
   return Snmp::VarBind{.oid = oid, .value = Snmp::Value::null()};
 }
 
-int32_t next_request_id(const Snmp *snmp) {
-  std::lock_guard<std::mutex> lock(snmp_mutex());
-  auto &counter = request_counter_map()[snmp];
-  if (counter == 0) {
-    counter = 1;
+// The helpers below mutate per-instance state and assume the caller already
+// holds `state.mutex` (see exchange_v3, which locks for the whole exchange).
+
+int32_t next_request_id(SnmpInstanceState &state) {
+  if (state.request_counter == 0) {
+    state.request_counter = 1;
   }
-  return static_cast<int32_t>(counter++);
+  return static_cast<int32_t>(state.request_counter++);
 }
 
-int32_t next_message_id(const Snmp *snmp) {
-  std::lock_guard<std::mutex> lock(snmp_mutex());
-  auto &counter = message_counter_map()[snmp];
-  if (counter == 0) {
-    counter = 1;
+int32_t next_message_id(SnmpInstanceState &state) {
+  if (state.message_counter == 0) {
+    state.message_counter = 1;
   }
-  return static_cast<int32_t>(counter++);
+  return static_cast<int32_t>(state.message_counter++);
 }
 
-uint64_t next_salt(const Snmp *snmp) {
-  std::lock_guard<std::mutex> lock(snmp_mutex());
-  auto &counter = salt_counter_map()[snmp];
-  if (counter == 0) {
-    counter = 1;
+uint64_t next_salt(SnmpInstanceState &state) {
+  if (state.salt_counter == 0) {
+    state.salt_counter = 1;
   }
-  return counter++;
+  return state.salt_counter++;
 }
 
-void clear_instance_state(const Snmp *snmp) {
-  std::lock_guard<std::mutex> lock(snmp_mutex());
-  engine_cache_map().erase(snmp);
-  request_counter_map().erase(snmp);
-  message_counter_map().erase(snmp);
-  salt_counter_map().erase(snmp);
+EngineCache get_engine_cache(SnmpInstanceState &state) { return state.engine_cache; }
+
+void set_engine_cache(SnmpInstanceState &state, const EngineCache &cache) {
+  state.engine_cache = cache;
 }
 
-EngineCache get_engine_cache(const Snmp *snmp) {
-  std::lock_guard<std::mutex> lock(snmp_mutex());
-  return engine_cache_map()[snmp];
-}
-
-void set_engine_cache(const Snmp *snmp, const EngineCache &cache) {
-  std::lock_guard<std::mutex> lock(snmp_mutex());
-  engine_cache_map()[snmp] = cache;
-}
-
-bool localize_engine_keys(const Snmp *snmp, const Snmp::Config &config, EngineCache &cache) {
+bool localize_engine_keys(const Snmp::Config &config, EngineCache &cache,
+                          SnmpInstanceState &state) {
   std::array<uint8_t, kSha1DigestLength> auth_ku{};
   std::array<uint8_t, kSha1DigestLength> priv_ku{};
   if (!password_to_key_sha1(config.v3.auth_password, auth_ku) ||
@@ -958,19 +970,19 @@ bool localize_engine_keys(const Snmp *snmp, const Snmp::Config &config, EngineCa
     return false;
   }
   cache.localized = true;
-  set_engine_cache(snmp, cache);
+  set_engine_cache(state, cache);
   return true;
 }
 
-bool update_engine_cache_from_response(const Snmp *snmp, const V3Message &message,
-                                       EngineCache &cache) {
+bool update_engine_cache_from_response(const V3Message &message, EngineCache &cache,
+                                       SnmpInstanceState &state) {
   if (!message.usm.authoritative_engine_id.empty()) {
     cache.engine_id = message.usm.authoritative_engine_id;
     cache.engine_boots = message.usm.authoritative_engine_boots;
     cache.engine_time = message.usm.authoritative_engine_time;
     cache.observed_at = std::chrono::steady_clock::now();
     cache.discovered = true;
-    set_engine_cache(snmp, cache);
+    set_engine_cache(state, cache);
   }
   return cache.discovered;
 }
@@ -1005,11 +1017,11 @@ bool build_v3_discovery_packet(const Snmp::Config &config, const PduEncoding &pd
   return true;
 }
 
-bool build_v3_authpriv_packet(const Snmp *snmp, const Snmp::Config &config,
-                              const EngineCache &cache, const PduEncoding &pdu, int32_t message_id,
-                              bytes &packet) {
+bool build_v3_authpriv_packet(const Snmp::Config &config, const EngineCache &cache,
+                              const PduEncoding &pdu, int32_t message_id, bytes &packet,
+                              SnmpInstanceState &state) {
   auto engine_time = cache.engine_time + seconds_since(cache);
-  uint64_t salt_value = next_salt(snmp);
+  uint64_t salt_value = next_salt(state);
   bytes salt(8, 0);
   for (size_t i = 0; i < salt.size(); i++) {
     salt[salt.size() - i - 1] = static_cast<uint8_t>((salt_value >> (i * 8)) & 0xFF);
@@ -1028,23 +1040,35 @@ bool build_v3_authpriv_packet(const Snmp *snmp, const Snmp::Config &config,
       make_tlv(kTagOctetString, flags),
       make_tlv(kTagInteger, encode_signed_integer(kUsmSecurityModel)),
   });
-  bytes auth_placeholder(kUsmAuthParamLength, 0xAB);
+  // The auth digest is computed over the whole message with the auth field
+  // zeroed, then written back in place. Track the exact offset the encoder
+  // placed it at rather than scanning for a placeholder byte pattern.
+  bytes auth_field(kUsmAuthParamLength, 0x00);
+  size_t auth_value_offset_in_security = 0;
   auto security = encode_usm_security_params(cache.engine_id, cache.engine_boots, engine_time,
-                                             config.v3.username, auth_placeholder, salt);
+                                             config.v3.username, auth_field, salt,
+                                             &auth_value_offset_in_security);
   auto encrypted = make_tlv(kEncryptedPduTag, encrypted_scoped);
-  packet = encode_sequence({version, header, security, encrypted});
 
-  auto auth_it =
-      std::search(packet.begin(), packet.end(), auth_placeholder.begin(), auth_placeholder.end());
-  if (auth_it == packet.end()) {
+  bytes content;
+  content.insert(content.end(), version.begin(), version.end());
+  content.insert(content.end(), header.begin(), header.end());
+  size_t security_offset_in_content = content.size();
+  content.insert(content.end(), security.begin(), security.end());
+  content.insert(content.end(), encrypted.begin(), encrypted.end());
+  packet = make_tlv(kTagSequence, content);
+  size_t outer_prefix = packet.size() - content.size();
+  size_t auth_offset = outer_prefix + security_offset_in_content + auth_value_offset_in_security;
+
+  if (auth_offset + kUsmAuthParamLength > packet.size()) {
     return false;
   }
-  std::fill(auth_it, auth_it + kUsmAuthParamLength, 0x00);
+  // The field is already zero-filled from `auth_field`; hash then overwrite.
   std::array<uint8_t, kSha1DigestLength> digest{};
   if (!hmac_sha1(cache.auth_key, packet, digest)) {
     return false;
   }
-  std::copy_n(digest.begin(), kUsmAuthParamLength, auth_it);
+  std::copy_n(digest.begin(), kUsmAuthParamLength, packet.begin() + auth_offset);
   return true;
 }
 
@@ -1072,9 +1096,8 @@ bool decrypt_v3_scoped_pdu(const EngineCache &cache, const V3Message &message, b
                           MBEDTLS_AES_DECRYPT);
 }
 
-bool exchange_v2c(const Snmp *snmp, const Snmp::Config &config, const PduEncoding &pdu,
-                  Snmp::Response &response, std::error_code &ec) {
-  (void)snmp;
+bool exchange_v2c(const Snmp::Config &config, const PduEncoding &pdu, Snmp::Response &response,
+                  std::error_code &ec) {
   bytes packet;
   if (!build_v2c_packet(config, pdu, packet)) {
     ec = SnmpErrc::encode_failed;
@@ -1104,16 +1127,16 @@ bool exchange_v2c(const Snmp *snmp, const Snmp::Config &config, const PduEncodin
   return false;
 }
 
-bool discover_engine(const Snmp *snmp, const Snmp::Config &config, const PduEncoding &pdu,
-                     EngineCache &cache, std::error_code &ec) {
-  (void)pdu;
-  auto discovery_pdu = encode_pdu(Snmp::RequestType::Get, next_request_id(snmp), 0, 0, {});
+// Assumes the caller holds state.mutex (invoked only from exchange_v3).
+bool discover_engine(const Snmp::Config &config, EngineCache &cache, SnmpInstanceState &state,
+                     std::error_code &ec) {
+  auto discovery_pdu = encode_pdu(Snmp::RequestType::Get, next_request_id(state), 0, 0, {});
   if (discovery_pdu.encoded.empty()) {
     ec = SnmpErrc::encode_failed;
     return false;
   }
   bytes packet;
-  if (!build_v3_discovery_packet(config, discovery_pdu, next_message_id(snmp), packet)) {
+  if (!build_v3_discovery_packet(config, discovery_pdu, next_message_id(state), packet)) {
     ec = SnmpErrc::encode_failed;
     return false;
   }
@@ -1127,12 +1150,12 @@ bool discover_engine(const Snmp *snmp, const Snmp::Config &config, const PduEnco
     ec = SnmpErrc::decode_failed;
     return false;
   }
-  update_engine_cache_from_response(snmp, message, cache);
+  update_engine_cache_from_response(message, cache, state);
   if (!cache.discovered) {
     ec = SnmpErrc::discovery_failed;
     return false;
   }
-  if (!localize_engine_keys(snmp, config, cache)) {
+  if (!localize_engine_keys(config, cache, state)) {
     ec = SnmpErrc::authentication_failed;
     return false;
   }
@@ -1140,8 +1163,8 @@ bool discover_engine(const Snmp *snmp, const Snmp::Config &config, const PduEnco
   return true;
 }
 
-bool exchange_v3(const Snmp *snmp, const Snmp::Config &config, const PduEncoding &pdu,
-                 Snmp::Response &response, std::error_code &ec) {
+bool exchange_v3(const Snmp::Config &config, const PduEncoding &pdu, Snmp::Response &response,
+                 std::error_code &ec, SnmpInstanceState &state) {
   if (config.v3.security_level != Snmp::SecurityLevel::AuthPriv) {
     ec = SnmpErrc::unsupported_security_level;
     return false;
@@ -1152,15 +1175,22 @@ bool exchange_v3(const Snmp *snmp, const Snmp::Config &config, const PduEncoding
     return false;
   }
 
-  auto cache = get_engine_cache(snmp);
-  if (!cache.discovered && !discover_engine(snmp, config, pdu, cache, ec)) {
+  // Serialize the whole v3 exchange for this instance: the engine-cache
+  // read-modify-write (discover -> build -> update -> set) and the message-id /
+  // salt counters must not interleave across concurrent requests, or a peer
+  // would see reused message-ids / stale engine boots. The inner helpers assume
+  // this lock is held and do not lock again.
+  std::lock_guard<std::mutex> lock(state.mutex);
+
+  auto cache = get_engine_cache(state);
+  if (!cache.discovered && !discover_engine(config, cache, state, ec)) {
     return false;
   }
 
   for (size_t attempt = 0; attempt <= config.retries; attempt++) {
     bytes packet;
-    auto message_id = next_message_id(snmp);
-    if (!build_v3_authpriv_packet(snmp, config, cache, pdu, message_id, packet)) {
+    auto message_id = next_message_id(state);
+    if (!build_v3_authpriv_packet(config, cache, pdu, message_id, packet, state)) {
       ec = SnmpErrc::encode_failed;
       return false;
     }
@@ -1174,7 +1204,7 @@ bool exchange_v3(const Snmp *snmp, const Snmp::Config &config, const PduEncoding
       ec = SnmpErrc::decode_failed;
       continue;
     }
-    update_engine_cache_from_response(snmp, message, cache);
+    update_engine_cache_from_response(message, cache, state);
     if (!verify_v3_authentication(cache, message, raw_response)) {
       ec = SnmpErrc::authentication_failed;
       continue;
@@ -1199,8 +1229,8 @@ bool exchange_v3(const Snmp *snmp, const Snmp::Config &config, const PduEncoding
     if (response.is_report()) {
       if (is_report_oid(response, kUsmStatsUnknownEngineIds)) {
         cache.discovered = false;
-        set_engine_cache(snmp, cache);
-        if (!discover_engine(snmp, config, pdu, cache, ec)) {
+        set_engine_cache(state, cache);
+        if (!discover_engine(config, cache, state, ec)) {
           return false;
         }
         continue;
@@ -1209,7 +1239,7 @@ bool exchange_v3(const Snmp *snmp, const Snmp::Config &config, const PduEncoding
         cache.engine_boots = message.usm.authoritative_engine_boots;
         cache.engine_time = message.usm.authoritative_engine_time;
         cache.observed_at = std::chrono::steady_clock::now();
-        set_engine_cache(snmp, cache);
+        set_engine_cache(state, cache);
         ec = SnmpErrc::not_in_time_window;
         continue;
       }
@@ -1508,15 +1538,24 @@ std::string Snmp::Value::to_string() const {
 }
 
 Snmp::Snmp(const Config &config)
-    : BaseComponent("Snmp", config.log_level) {
+    : BaseComponent("Snmp", config.log_level)
+    , state_(std::make_unique<SnmpInstanceState>()) {
   set_config(config);
 }
 
-Snmp::~Snmp() { clear_instance_state(this); }
+Snmp::~Snmp() = default;
 
 void Snmp::set_config(const Config &config) {
   set_log_level(config.log_level);
-  clear_instance_state(this);
+  {
+    // Reset per-instance protocol state so a changed endpoint/credentials do not
+    // reuse a stale engine cache or counters.
+    std::lock_guard<std::mutex> lock(state_->mutex);
+    state_->engine_cache = {};
+    state_->request_counter = 0;
+    state_->message_counter = 0;
+    state_->salt_counter = 0;
+  }
   std::lock_guard<std::mutex> lock(config_mutex_);
   config_ = config;
 }
@@ -1533,13 +1572,14 @@ bool Snmp::request(RequestType type, const std::vector<VarBind> &request_varbind
     ec = SnmpErrc::invalid_configuration;
     return false;
   }
-  std::string resolved_ip;
-  if (!resolve_host_ipv4(config.endpoint.host, resolved_ip)) {
-    ec = SnmpErrc::name_resolution_failed;
-    return false;
-  }
 
-  auto request_id = next_request_id(this);
+  // Host resolution happens once per attempt inside udp_round_trip(); there is
+  // no separate up-front lookup to keep in sync.
+  int32_t request_id = 0;
+  {
+    std::lock_guard<std::mutex> lock(state_->mutex);
+    request_id = next_request_id(*state_);
+  }
   auto pdu =
       encode_pdu(type, request_id, type == RequestType::GetBulk ? bulk_options.non_repeaters : 0,
                  type == RequestType::GetBulk ? bulk_options.max_repetitions : 0, request_varbinds);
@@ -1551,7 +1591,7 @@ bool Snmp::request(RequestType type, const std::vector<VarBind> &request_varbind
   response = {};
   switch (config.version) {
   case Version::V2C:
-    if (!exchange_v2c(this, config, pdu, response, ec)) {
+    if (!exchange_v2c(config, pdu, response, ec)) {
       if (response.has_error()) {
         logger_.warn("{}", response_error_to_string(response.error_status, response.error_index));
       }
@@ -1559,7 +1599,7 @@ bool Snmp::request(RequestType type, const std::vector<VarBind> &request_varbind
     }
     return true;
   case Version::V3:
-    if (!exchange_v3(this, config, pdu, response, ec)) {
+    if (!exchange_v3(config, pdu, response, ec, *state_)) {
       if (response.is_report() && !response.varbinds.empty()) {
         logger_.warn("SNMPv3 report: {}", response.varbinds.front().oid.to_string());
       }
@@ -1701,16 +1741,27 @@ bool Snmp::get_system_group(SystemGroup &system, std::error_code &ec) const {
     ec = SnmpErrc::decode_failed;
     return false;
   }
-  auto sys_descr = response.varbinds[0].value.as_string();
-  auto sys_object_id = response.varbinds[1].value.as_oid();
-  auto sys_up_time = response.varbinds[2].value.as_unsigned32();
-  auto sys_contact = response.varbinds[3].value.as_string();
-  auto sys_name = response.varbinds[4].value.as_string();
-  auto sys_location = response.varbinds[5].value.as_string();
-  if (response.varbinds[0].value.is_exception() || response.varbinds[1].value.is_exception() ||
-      response.varbinds[2].value.is_exception() || response.varbinds[3].value.is_exception() ||
-      response.varbinds[4].value.is_exception() || response.varbinds[5].value.is_exception() ||
-      !sys_descr.has_value() || !sys_object_id.has_value() || !sys_up_time.has_value() ||
+  // A real agent may legitimately omit some scalars (commonly sysContact and
+  // sysLocation), returning a noSuchObject/noSuchInstance/endOfMibView exception
+  // for that varbind. Map any such exception to an empty/default value for that
+  // one field instead of failing the whole call; only a genuine type mismatch
+  // on a present value is treated as a decode error.
+  const auto &vbs = response.varbinds;
+  auto string_field = [](const Value &value) -> std::optional<std::string> {
+    if (value.is_exception()) {
+      return std::string();
+    }
+    return value.as_string();
+  };
+  auto sys_descr = string_field(vbs[0].value);
+  auto sys_object_id =
+      vbs[1].value.is_exception() ? std::optional<Oid>(Oid{}) : vbs[1].value.as_oid();
+  auto sys_up_time =
+      vbs[2].value.is_exception() ? std::optional<uint32_t>(0) : vbs[2].value.as_unsigned32();
+  auto sys_contact = string_field(vbs[3].value);
+  auto sys_name = string_field(vbs[4].value);
+  auto sys_location = string_field(vbs[5].value);
+  if (!sys_descr.has_value() || !sys_object_id.has_value() || !sys_up_time.has_value() ||
       !sys_contact.has_value() || !sys_name.has_value() || !sys_location.has_value()) {
     ec = SnmpErrc::decode_failed;
     return false;
@@ -1737,23 +1788,31 @@ bool Snmp::get_interface(uint32_t if_index, InterfaceInfo &info, std::error_code
     ec = SnmpErrc::decode_failed;
     return false;
   }
-  auto parsed_index = nonnegative_integer_to_u32(response.varbinds[0].value);
-  auto if_descr = response.varbinds[1].value.as_string();
-  auto if_type = nonnegative_integer_to_u32(response.varbinds[2].value);
-  auto if_mtu = nonnegative_integer_to_u32(response.varbinds[3].value);
-  auto if_speed = response.varbinds[4].value.as_unsigned32();
-  auto if_admin = response.varbinds[5].value.as_integer();
-  auto if_oper = response.varbinds[6].value.as_integer();
-  auto if_alias = response.varbinds[7].value.is_exception()
-                      ? std::optional<std::string>("")
-                      : response.varbinds[7].value.as_string();
-  if (response.varbinds[0].value.is_exception() || response.varbinds[1].value.is_exception() ||
-      response.varbinds[2].value.is_exception() || response.varbinds[3].value.is_exception() ||
-      response.varbinds[4].value.is_exception() || response.varbinds[5].value.is_exception() ||
-      response.varbinds[6].value.is_exception() || !parsed_index.has_value() ||
-      !if_descr.has_value() || !if_type.has_value() || !if_mtu.has_value() ||
-      !if_speed.has_value() || !if_admin.has_value() || !if_oper.has_value() ||
-      !if_alias.has_value()) {
+  // As with the system group, tolerate agents that omit individual columns
+  // (e.g. ifAlias) by mapping an exception varbind to an empty/default value for
+  // that field rather than failing the whole interface read.
+  const auto &vbs = response.varbinds;
+  auto parsed_index = vbs[0].value.is_exception() ? std::optional<uint32_t>(if_index)
+                                                  : nonnegative_integer_to_u32(vbs[0].value);
+  auto if_descr =
+      vbs[1].value.is_exception() ? std::optional<std::string>("") : vbs[1].value.as_string();
+  auto if_type = vbs[2].value.is_exception() ? std::optional<uint32_t>(0)
+                                             : nonnegative_integer_to_u32(vbs[2].value);
+  auto if_mtu = vbs[3].value.is_exception() ? std::optional<uint32_t>(0)
+                                            : nonnegative_integer_to_u32(vbs[3].value);
+  auto if_speed =
+      vbs[4].value.is_exception() ? std::optional<uint32_t>(0) : vbs[4].value.as_unsigned32();
+  auto if_admin = vbs[5].value.is_exception()
+                      ? std::optional<int32_t>(static_cast<int32_t>(InterfaceAdminStatus::Down))
+                      : vbs[5].value.as_integer();
+  auto if_oper = vbs[6].value.is_exception()
+                     ? std::optional<int32_t>(static_cast<int32_t>(InterfaceOperStatus::Down))
+                     : vbs[6].value.as_integer();
+  auto if_alias =
+      vbs[7].value.is_exception() ? std::optional<std::string>("") : vbs[7].value.as_string();
+  if (!parsed_index.has_value() || !if_descr.has_value() || !if_type.has_value() ||
+      !if_mtu.has_value() || !if_speed.has_value() || !if_admin.has_value() ||
+      !if_oper.has_value() || !if_alias.has_value()) {
     ec = SnmpErrc::decode_failed;
     return false;
   }
