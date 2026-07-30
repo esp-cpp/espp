@@ -114,9 +114,6 @@ std::string to_websocket_url(std::string_view base_url, std::string_view explici
   if (!starts_with(normalized, "ws://") && !starts_with(normalized, "wss://")) {
     return {};
   }
-  if (!starts_with(normalized, "ws://") && !starts_with(normalized, "wss://")) {
-    return {};
-  }
   if (normalized.find("/api/websocket") == std::string::npos) {
     normalized += "/api/websocket";
   }
@@ -272,8 +269,11 @@ bool HomeAssistant::connect_websocket(std::error_code &ec) {
 
   disconnect_websocket();
 
-  websocket_last_error_.clear();
-  websocket_last_error_message_.clear();
+  websocket_last_error_.store(0);
+  {
+    std::lock_guard<std::mutex> lock(websocket_mutex_);
+    websocket_last_error_message_.clear();
+  }
   websocket_authenticated_ = false;
   websocket_transport_connected_ = false;
 
@@ -322,15 +322,16 @@ bool HomeAssistant::connect_websocket(std::error_code &ec) {
       ec.clear();
       return true;
     }
-    if (websocket_last_error_) {
-      ec = websocket_last_error_;
+    int last_error = websocket_last_error_.load();
+    if (last_error != 0) {
+      ec = static_cast<HomeAssistantErrc>(last_error);
       return false;
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
   }
 
-  websocket_last_error_ = HomeAssistantErrc::timeout;
-  ec = websocket_last_error_;
+  websocket_last_error_.store(static_cast<int>(HomeAssistantErrc::timeout));
+  ec = HomeAssistantErrc::timeout;
   return false;
 }
 
@@ -449,9 +450,17 @@ bool HomeAssistant::perform_http_request(esp_http_client_method_t method, std::s
     }
   }
 
-  esp_http_client_fetch_headers(client);
+  if (esp_http_client_fetch_headers(client) < 0) {
+    logger_.error("Failed to fetch HTTP response headers");
+    esp_http_client_close(client);
+    esp_http_client_cleanup(client);
+    ec = HomeAssistantErrc::http_error;
+    return false;
+  }
 
+  static constexpr size_t max_response_size = 64 * 1024;
   char buffer[256];
+  bool truncated = false;
   while (true) {
     int read = esp_http_client_read(client, buffer, sizeof(buffer));
     if (read < 0) {
@@ -464,7 +473,20 @@ bool HomeAssistant::perform_http_request(esp_http_client_method_t method, std::s
     if (read == 0) {
       break;
     }
-    response.append(buffer, read);
+    if (response.size() >= max_response_size) {
+      truncated = true;
+      break;
+    }
+    size_t remaining = max_response_size - response.size();
+    size_t to_append = std::min(remaining, static_cast<size_t>(read));
+    response.append(buffer, to_append);
+    if (to_append < static_cast<size_t>(read)) {
+      truncated = true;
+      break;
+    }
+  }
+  if (truncated) {
+    logger_.warn("Home Assistant HTTP response exceeded {} bytes; truncating", max_response_size);
   }
 
   int status_code = esp_http_client_get_status_code(client);
@@ -481,7 +503,7 @@ bool HomeAssistant::perform_http_request(esp_http_client_method_t method, std::s
   return true;
 }
 
-bool HomeAssistant::get_config(std::string &json, std::error_code &ec) {
+bool HomeAssistant::fetch_config(std::string &json, std::error_code &ec) {
   return perform_http_request(HTTP_METHOD_GET, "/api/config", "", json, ec);
 }
 
@@ -609,6 +631,9 @@ bool HomeAssistant::publish_state(std::string_view topic, std::string_view state
 
 bool HomeAssistant::publish_entity_state(std::string_view object_id, std::string_view state,
                                          std::error_code &ec, bool retain) {
+  // Entity state is retained by default (config.mqtt.retain_state) so entities survive a
+  // Home Assistant restart; an explicit retain argument can still force retention.
+  bool effective_retain = retain || get_config().mqtt.retain_state;
   std::lock_guard<std::mutex> lock(entity_mutex_);
   auto object_it = object_lookup_.find(sanitize_token(object_id));
   if (object_it == object_lookup_.end()) {
@@ -620,7 +645,7 @@ bool HomeAssistant::publish_entity_state(std::string_view object_id, std::string
     ec = HomeAssistantErrc::entity_not_found;
     return false;
   }
-  return publish_state(entity_it->second.primary_state_topic, state, ec, retain);
+  return publish_state(entity_it->second.primary_state_topic, state, ec, effective_retain);
 }
 
 bool HomeAssistant::publish_availability(std::string_view payload, std::error_code &ec) {
@@ -649,7 +674,10 @@ bool HomeAssistant::publish_discovery(const RegisteredEntity &entity, std::error
     return false;
   }
   for (const auto &[topic, _] : entity.command_callbacks) {
-    esp_mqtt_client_subscribe(mqtt_client_, topic.c_str(), config.mqtt.qos);
+    int subscribe_id = esp_mqtt_client_subscribe(mqtt_client_, topic.c_str(), config.mqtt.qos);
+    if (subscribe_id < 0) {
+      logger_.warn("Failed to subscribe to command topic '{}'", topic);
+    }
   }
   ec.clear();
   return true;
@@ -657,14 +685,19 @@ bool HomeAssistant::publish_discovery(const RegisteredEntity &entity, std::error
 
 bool HomeAssistant::register_entity(RegisteredEntity entity, std::error_code &ec) {
   std::lock_guard<std::mutex> lock(entity_mutex_);
-  if (entities_.contains(entity.key) || object_lookup_.contains(sanitize_token(entity.object_id))) {
+  // Entities are keyed by "component:object_id" so, for example, a sensor and a number can
+  // share the same object_id / name.
+  if (entities_.contains(entity.key)) {
     ec = HomeAssistantErrc::entity_already_exists;
     return false;
   }
 
-  object_lookup_[sanitize_token(entity.object_id)] = entity.key;
-  entities_.emplace(entity.key, std::move(entity));
-  auto stored = entities_.find(object_lookup_[sanitize_token(entity.object_id)]);
+  auto key = entity.key;
+  auto object_key = sanitize_token(entity.object_id);
+  // Convenience lookup for publish_entity_state(object_id); first registration wins if two
+  // entities share an object_id.
+  object_lookup_.emplace(object_key, key);
+  auto [stored, inserted] = entities_.emplace(key, std::move(entity));
   if (mqtt_connected_ && stored != entities_.end()) {
     return publish_discovery(stored->second, ec);
   }
@@ -693,7 +726,12 @@ bool HomeAssistant::remove_entity(std::string_view component, std::string_view o
     }
   }
 
-  object_lookup_.erase(sanitize_token(object_id));
+  // Only clear the convenience lookup if it still points at the entity being removed.
+  auto object_key = sanitize_token(object_id);
+  auto lookup_it = object_lookup_.find(object_key);
+  if (lookup_it != object_lookup_.end() && lookup_it->second == key) {
+    object_lookup_.erase(lookup_it);
+  }
   entities_.erase(it);
   ec.clear();
   return true;
@@ -713,6 +751,21 @@ void HomeAssistant::handle_mqtt_command(std::string_view topic, std::string_view
   }
   if (callback) {
     callback(topic, payload);
+  }
+}
+
+void HomeAssistant::handle_birth_message(std::string_view topic, std::string_view payload) {
+  auto config = get_config();
+  auto status_topic = trim_trailing_slash(config.mqtt.discovery_prefix) + "/status";
+  if (topic != status_topic || payload != config.availability_payload_online) {
+    return;
+  }
+  logger_.info("Home Assistant is online; re-publishing discovery and availability");
+  std::error_code ec;
+  publish_availability(config.availability_payload_online, ec);
+  std::lock_guard<std::mutex> lock(entity_mutex_);
+  for (const auto &[_, entity] : entities_) {
+    publish_discovery(entity, ec);
   }
 }
 
@@ -741,16 +794,21 @@ void HomeAssistant::handle_websocket_message(std::string_view json) {
       }
     } else if (type_string == "auth_ok") {
       websocket_authenticated_ = true;
-      websocket_last_error_.clear();
+      websocket_last_error_.store(0);
       logger_.info("Home Assistant WebSocket authenticated");
     } else if (type_string == "auth_invalid") {
-      websocket_last_error_ = HomeAssistantErrc::websocket_auth_failed;
+      websocket_last_error_.store(static_cast<int>(HomeAssistantErrc::websocket_auth_failed));
       websocket_authenticated_ = false;
+      std::string message_string;
       auto message = cJSON_GetObjectItemCaseSensitive(root, "message");
       if (cJSON_IsString(message) && message->valuestring) {
-        websocket_last_error_message_ = message->valuestring;
+        message_string = message->valuestring;
       }
-      logger_.error("Home Assistant WebSocket auth failed: {}", websocket_last_error_message_);
+      {
+        std::lock_guard<std::mutex> lock(websocket_mutex_);
+        websocket_last_error_message_ = message_string;
+      }
+      logger_.error("Home Assistant WebSocket auth failed: {}", message_string);
     }
   }
 
@@ -773,8 +831,17 @@ void HomeAssistant::mqtt_event_handler(void *handler_args, esp_event_base_t, int
   case MQTT_EVENT_CONNECTED: {
     self->mqtt_connected_ = true;
     self->logger_.info("Connected to MQTT broker");
+    auto config = self->get_config();
     std::error_code ec;
-    self->publish_availability(self->get_config().availability_payload_online, ec);
+    self->publish_availability(config.availability_payload_online, ec);
+    // Subscribe to the Home Assistant birth/status topic so we can re-announce discovery when
+    // Home Assistant restarts (it publishes "online" to <discovery_prefix>/status).
+    auto status_topic = trim_trailing_slash(config.mqtt.discovery_prefix) + "/status";
+    int subscribe_id =
+        esp_mqtt_client_subscribe(self->mqtt_client_, status_topic.c_str(), config.mqtt.qos);
+    if (subscribe_id < 0) {
+      self->logger_.warn("Failed to subscribe to status topic '{}'", status_topic);
+    }
     std::lock_guard<std::mutex> lock(self->entity_mutex_);
     for (const auto &[_, entity] : self->entities_) {
       self->publish_discovery(entity, ec);
@@ -788,6 +855,7 @@ void HomeAssistant::mqtt_event_handler(void *handler_args, esp_event_base_t, int
   case MQTT_EVENT_DATA: {
     std::string topic(event->topic, event->topic_len);
     std::string payload(event->data, event->data_len);
+    self->handle_birth_message(topic, payload);
     self->handle_mqtt_command(topic, payload);
     break;
   }
@@ -819,18 +887,31 @@ void HomeAssistant::websocket_event_handler(void *handler_args, esp_event_base_t
     self->logger_.warn("Home Assistant WebSocket disconnected");
     break;
   case WEBSOCKET_EVENT_ERROR:
-    self->websocket_last_error_ = HomeAssistantErrc::websocket_error;
+    self->websocket_last_error_.store(static_cast<int>(HomeAssistantErrc::websocket_error));
     self->logger_.warn("Home Assistant WebSocket error");
     break;
   case WEBSOCKET_EVENT_DATA: {
-    std::lock_guard<std::mutex> lock(self->websocket_mutex_);
-    if (event->payload_offset == 0) {
-      self->websocket_buffer_.clear();
+    // Only accumulate/parse text (0x1) and continuation (0x0) frames; ignore control frames
+    // such as PING (0x9) / PONG (0xA) / CLOSE (0x8) for message parsing.
+    if (event->op_code != 0x0 && event->op_code != 0x1) {
+      break;
     }
-    self->websocket_buffer_.append(event->data_ptr, event->data_len);
-    if ((event->payload_offset + event->data_len) >= event->payload_len || event->fin) {
-      auto complete_message = self->websocket_buffer_;
-      self->websocket_buffer_.clear();
+    std::string complete_message;
+    bool have_complete_message = false;
+    {
+      std::lock_guard<std::mutex> lock(self->websocket_mutex_);
+      if (event->payload_offset == 0) {
+        self->websocket_buffer_.clear();
+      }
+      self->websocket_buffer_.append(event->data_ptr, event->data_len);
+      if ((event->payload_offset + event->data_len) >= event->payload_len || event->fin) {
+        complete_message = self->websocket_buffer_;
+        self->websocket_buffer_.clear();
+        have_complete_message = true;
+      }
+    }
+    // Invoke the user callback (via handle_websocket_message) without holding websocket_mutex_.
+    if (have_complete_message) {
       self->handle_websocket_message(complete_message);
     }
     break;

@@ -129,29 +129,12 @@ extern "C" void app_main(void) {
     }
   }
 
-  if (home_assistant.is_mqtt_connected()) {
-    for (int i = 0; i < 3; i++) {
-      float temperature = 22.5f + static_cast<float>(i) * 0.4f;
-      home_assistant.publish_entity_state("temperature", std::to_string(temperature), ec);
-      if (ec) {
-        logger.warn("Failed to publish temperature: {}", ec.message());
-      }
-
-      home_assistant.publish_entity_state("relay", switch_state ? "ON" : "OFF", ec);
-      if (ec) {
-        logger.warn("Failed to publish relay state: {}", ec.message());
-      }
-
-      std::this_thread::sleep_for(1s);
-    }
-  }
-
   if (got_ip && has_api) {
     std::string json;
-    if (home_assistant.get_config(json, ec)) {
+    if (home_assistant.fetch_config(json, ec)) {
       logger.info("REST /api/config response: {}", json);
     } else {
-      logger.warn("REST get_config failed: {}", ec.message());
+      logger.warn("REST fetch_config failed: {}", ec.message());
     }
 
     if (enable_websocket && home_assistant.is_websocket_connected()) {
@@ -167,9 +150,24 @@ extern "C" void app_main(void) {
         "Skipping REST / WebSocket demo because Home Assistant URL or token is not configured");
   }
 
-  if (home_assistant.is_mqtt_connected() || home_assistant.is_websocket_connected()) {
-    std::this_thread::sleep_for(2s);
-  }
+  // Keep the example running: periodically publish an updated sensor value and keep the switch
+  // state in Home Assistant in sync with commands received via MQTT. This lets the entities be
+  // exercised live in Home Assistant instead of the app exiting after a couple of seconds.
+  int tick = 0;
+  while (true) {
+    if (home_assistant.is_mqtt_connected()) {
+      float temperature = 22.5f + static_cast<float>(tick % 10) * 0.4f;
+      home_assistant.publish_entity_state("temperature", std::to_string(temperature), ec);
+      if (ec) {
+        logger.warn("Failed to publish temperature: {}", ec.message());
+      }
 
-  logger.info("Home Assistant example complete");
+      home_assistant.publish_entity_state("relay", switch_state ? "ON" : "OFF", ec);
+      if (ec) {
+        logger.warn("Failed to publish relay state: {}", ec.message());
+      }
+    }
+    tick++;
+    std::this_thread::sleep_for(5s);
+  }
 }

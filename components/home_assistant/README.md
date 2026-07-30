@@ -86,6 +86,17 @@ ha.publish_entity_state("relay", "OFF", ec);
 - REST and WebSocket helpers expose raw JSON responses for flexibility.
 - HTTPS / WSS support uses the ESP certificate bundle when enabled.
 
+## Security
+
+The bundled example is written for lab / bench use, not production:
+
+- It defaults to a plaintext `mqtt://` broker URI, so MQTT credentials and state
+  travel unencrypted. Use `mqtts://` (and `https://` / `wss://` for the REST and
+  WebSocket APIs) with the certificate bundle enabled for anything exposed.
+- It logs the full REST `/api/config` response body at `INFO`, which can contain
+  sensitive details about your Home Assistant instance. Lower the log level or
+  remove that logging before deploying.
+
 ## Example
 
 See [./example](./example) for a WiFi STA example that publishes MQTT discovery,
