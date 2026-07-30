@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cstdint>
 #include <initializer_list>
+#include <memory>
 #include <mutex>
 #include <optional>
 #include <string>
@@ -38,6 +39,11 @@ enum class SnmpErrc {
 };
 
 std::error_code make_error_code(SnmpErrc e);
+
+// Per-instance mutable protocol state (engine cache, request/message/salt
+// counters) guarded by an internal mutex. Defined in snmp.cpp so the crypto
+// details stay out of the public header.
+struct SnmpInstanceState;
 
 class Snmp : public BaseComponent {
 public:
@@ -279,6 +285,9 @@ protected:
 
   mutable std::mutex config_mutex_;
   Config config_;
+
+private:
+  std::unique_ptr<SnmpInstanceState> state_;
 };
 } // namespace espp
 
