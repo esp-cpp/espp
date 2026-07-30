@@ -115,7 +115,13 @@ public:
     Logger::Verbosity log_level{Logger::Verbosity::WARN};
   };
 
-  explicit AndroidTvRemote(const Config &config = {});
+  // NOTE: `Config` is an aggregate (so callers can use designated initializers),
+  // which means it cannot have a user-declared constructor. Providing a
+  // defaulted argument via `= {}` on the Config-taking constructor fails to
+  // synthesize under C++23, so we expose an explicit no-argument overload that
+  // delegates to a default-constructed Config instead.
+  AndroidTvRemote();
+  explicit AndroidTvRemote(const Config &config);
   ~AndroidTvRemote();
 
   bool discover(std::vector<DeviceInfo> &devices, std::error_code &ec);

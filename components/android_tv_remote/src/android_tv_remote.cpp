@@ -30,14 +30,10 @@
 namespace {
 constexpr uint32_t kPairingProtocolVersion = 2;
 constexpr uint32_t kPairingStatusOk = 200;
-constexpr uint32_t kFeaturePing = 1u << 0;
-constexpr uint32_t kFeatureKey = 1u << 1;
-constexpr uint32_t kFeatureIme = 1u << 2;
-constexpr uint32_t kFeatureVoice = 1u << 3;
-constexpr uint32_t kFeatureUnknown1 = 1u << 4;
-constexpr uint32_t kFeaturePower = 1u << 5;
-constexpr uint32_t kFeatureVolume = 1u << 6;
-constexpr uint32_t kFeatureAppLink = 1u << 9;
+// Constant the reference clients (androidtvremote2, louis49/androidtv-remote)
+// send back in the RemoteConfigure response's code1 field. It is a fixed
+// protocol value, NOT a negotiated feature bitmask.
+constexpr uint32_t kRemoteConfigureCode = 622;
 
 enum class WireType : uint8_t { Varint = 0, LengthDelimited = 2 };
 
@@ -241,6 +237,7 @@ struct ParsedRemoteMessage {
 
   Type type{Type::Unknown};
   uint32_t code1{0};
+  uint32_t active{0};
   bool started{false};
   int32_t ping_value{0};
   int32_t ime_counter{0};
@@ -326,7 +323,14 @@ bool parse_remote_message(const std::vector<uint8_t> &data, ParsedRemoteMessage 
     }
     if (field.number == 2 && field.wire_type == WireType::LengthDelimited) {
       message.type = ParsedRemoteMessage::Type::SetActive;
-      return true;
+      // RemoteSetActive { int32 active = 1; } - capture the value so we can echo
+      // it straight back to the server.
+      return for_each_proto_field(field.bytes, field.size, [&](const ProtoField &set_active_field) {
+        if (set_active_field.number == 1 && set_active_field.wire_type == WireType::Varint) {
+          message.active = static_cast<uint32_t>(set_active_field.varint_value);
+        }
+        return true;
+      });
     }
     if (field.number == 3 && field.wire_type == WireType::LengthDelimited) {
       message.type = ParsedRemoteMessage::Type::Error;
@@ -366,7 +370,7 @@ bool parse_remote_message(const std::vector<uint8_t> &data, ParsedRemoteMessage 
   });
 }
 
-std::vector<uint8_t> make_remote_configure(uint32_t active_features) {
+std::vector<uint8_t> make_remote_configure() {
   std::vector<uint8_t> device_info;
   append_uint32(3, 1, device_info);
   append_string(4, "1", device_info);
@@ -374,7 +378,9 @@ std::vector<uint8_t> make_remote_configure(uint32_t active_features) {
   append_string(6, "1.0.0", device_info);
 
   std::vector<uint8_t> configure;
-  append_uint32(1, active_features, configure);
+  // Reply with the fixed code the reference clients use plus our device info;
+  // this is not a negotiated feature mask.
+  append_uint32(1, kRemoteConfigureCode, configure);
   append_message(2, device_info, configure);
 
   std::vector<uint8_t> message;
@@ -382,9 +388,10 @@ std::vector<uint8_t> make_remote_configure(uint32_t active_features) {
   return message;
 }
 
-std::vector<uint8_t> make_remote_set_active(uint32_t active_features) {
+std::vector<uint8_t> make_remote_set_active(uint32_t active) {
+  // Echo back the exact value the server sent in RemoteSetActive.
   std::vector<uint8_t> set_active;
-  append_uint32(1, active_features, set_active);
+  append_uint32(1, active, set_active);
 
   std::vector<uint8_t> message;
   append_message(2, set_active, message);
@@ -401,9 +408,10 @@ std::vector<uint8_t> make_remote_ping_response(int32_t ping_value) {
 }
 
 std::vector<uint8_t> make_remote_key(uint32_t key_code, uint32_t direction) {
+  // RemoteKeyInject { RemoteDirection direction = 1; RemoteKeyCode key_code = 2; }
   std::vector<uint8_t> key;
-  append_uint32(1, key_code, key);
-  append_uint32(2, direction, key);
+  append_uint32(1, direction, key);
+  append_uint32(2, key_code, key);
 
   std::vector<uint8_t> message;
   append_message(10, key, message);
@@ -500,9 +508,23 @@ bool extract_public_key_bytes(const mbedtls_pk_context &pk, std::vector<uint8_t>
   if (!mbedtls_pk_can_do(&pk, MBEDTLS_PK_RSA))
     return false;
   auto *rsa = mbedtls_pk_rsa(pk);
-  modulus = mpi_to_bytes(rsa->N);
-  exponent = mpi_to_bytes(rsa->E);
-  return true;
+  // In mbedtls 3.x the fields of mbedtls_rsa_context (N, E, ...) are opaque, so
+  // export them into local MPIs. mpi_to_bytes() writes the minimal unsigned
+  // big-endian representation (no leading sign byte), which is exactly what the
+  // pairing-hash computation expects.
+  mbedtls_mpi n;
+  mbedtls_mpi e;
+  mbedtls_mpi_init(&n);
+  mbedtls_mpi_init(&e);
+  bool ok = false;
+  if (mbedtls_rsa_export(rsa, &n, nullptr, nullptr, nullptr, &e) == 0) {
+    modulus = mpi_to_bytes(n);
+    exponent = mpi_to_bytes(e);
+    ok = true;
+  }
+  mbedtls_mpi_free(&n);
+  mbedtls_mpi_free(&e);
+  return ok;
 }
 
 bool parse_certificate_public_key(std::string_view cert_pem, std::vector<uint8_t> &modulus,
@@ -525,18 +547,19 @@ bool generate_self_signed_identity(std::string_view common_name, std::string &ce
                                    std::string &key_pem) {
   mbedtls_pk_context key;
   mbedtls_x509write_cert crt;
-  mbedtls_mpi serial;
   mbedtls_entropy_context entropy;
   mbedtls_ctr_drbg_context ctr_drbg;
   mbedtls_pk_init(&key);
   mbedtls_x509write_crt_init(&crt);
-  mbedtls_mpi_init(&serial);
   mbedtls_entropy_init(&entropy);
   mbedtls_ctr_drbg_init(&ctr_drbg);
 
   bool ok = false;
   std::string subject;
   const char *personalization = "espp_android_tv_remote";
+  // mbedtls 3.x removed mbedtls_x509write_crt_set_serial(); use the raw variant
+  // with a fixed-size big-endian serial buffer instead of an mbedtls_mpi.
+  unsigned char serial_bytes[16] = {0};
   int ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy,
                                   reinterpret_cast<const unsigned char *>(personalization),
                                   strlen(personalization));
@@ -551,14 +574,13 @@ bool generate_self_signed_identity(std::string_view common_name, std::string &ce
   if (ret != 0)
     goto cleanup;
 
-  ret = mbedtls_mpi_fill_random(&serial, 16, mbedtls_ctr_drbg_random, &ctr_drbg);
+  ret = mbedtls_ctr_drbg_random(&ctr_drbg, serial_bytes, sizeof(serial_bytes));
   if (ret != 0)
     goto cleanup;
-  if (mbedtls_mpi_cmp_int(&serial, 0) == 0) {
-    ret = mbedtls_mpi_lset(&serial, 1);
-    if (ret != 0)
-      goto cleanup;
-  }
+  // Keep the serial positive (clear the top bit) and non-zero, both of which
+  // are required for a valid X.509 serial number.
+  serial_bytes[0] &= 0x7f;
+  serial_bytes[0] |= 0x01;
 
   subject = "CN=" + sanitize_common_name(common_name);
   mbedtls_x509write_crt_set_subject_key(&crt, &key);
@@ -572,7 +594,7 @@ bool generate_self_signed_identity(std::string_view common_name, std::string &ce
   ret = mbedtls_x509write_crt_set_issuer_name(&crt, subject.c_str());
   if (ret != 0)
     goto cleanup;
-  ret = mbedtls_x509write_crt_set_serial(&crt, &serial);
+  ret = mbedtls_x509write_crt_set_serial_raw(&crt, serial_bytes, sizeof(serial_bytes));
   if (ret != 0)
     goto cleanup;
   ret = mbedtls_x509write_crt_set_validity(&crt, "20240101000000", "20501231235959");
@@ -610,7 +632,6 @@ bool generate_self_signed_identity(std::string_view common_name, std::string &ce
 cleanup:
   mbedtls_pk_free(&key);
   mbedtls_x509write_crt_free(&crt);
-  mbedtls_mpi_free(&serial);
   mbedtls_ctr_drbg_free(&ctr_drbg);
   mbedtls_entropy_free(&entropy);
   return ok;
@@ -624,8 +645,8 @@ public:
   ~TlsConnection() { close(); }
 
   bool connect(std::string_view host, uint16_t port, const std::string &certificate_pem,
-               const std::string &private_key_pem, int timeout_ms, int handshake_timeout_ms,
-               bool skip_common_name_check, std::error_code &ec) {
+               const std::string &private_key_pem, int timeout_ms, bool skip_common_name_check,
+               std::error_code &ec) {
     close();
     tls_.reset(esp_tls_init());
     if (!tls_) {
@@ -638,8 +659,9 @@ public:
     cfg.clientcert_bytes = static_cast<unsigned int>(certificate_pem.size() + 1);
     cfg.clientkey_buf = reinterpret_cast<const unsigned char *>(private_key_pem.c_str());
     cfg.clientkey_bytes = static_cast<unsigned int>(private_key_pem.size() + 1);
+    // esp_tls_cfg_t only exposes a single timeout_ms budget (there is no
+    // separate handshake timeout field in IDF 5.5).
     cfg.timeout_ms = timeout_ms;
-    cfg.tls_handshake_timeout_ms = handshake_timeout_ms;
     cfg.skip_common_name = skip_common_name_check;
 
     int ret =
@@ -657,6 +679,17 @@ public:
       return false;
     }
     return true;
+  }
+
+  // Wake a blocking read (select()/esp_tls_conn_read) on the reader thread by
+  // shutting the underlying socket down for both directions, without destroying
+  // the TLS context. This must be safe to call while another thread is inside
+  // read_frame(); we only touch the raw fd, and closing happens later.
+  void shutdown() {
+    int fd = sockfd_;
+    if (fd >= 0) {
+      ::shutdown(fd, SHUT_RDWR);
+    }
   }
 
   void close() {
@@ -714,6 +747,7 @@ public:
 
   bool read_frame(std::vector<uint8_t> &payload, int timeout_ms, std::error_code &ec) {
     payload.clear();
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeout_ms);
     for (;;) {
       if (try_extract_frame(payload)) {
         return true;
@@ -724,25 +758,44 @@ public:
         return false;
       }
 
-      fd_set read_fds;
-      FD_ZERO(&read_fds);
-      FD_SET(sockfd_, &read_fds);
-      timeval timeout = {
-          .tv_sec = timeout_ms / 1000,
-          .tv_usec = (timeout_ms % 1000) * 1000,
-      };
-      int ready = select(sockfd_ + 1, &read_fds, nullptr, nullptr, &timeout);
-      if (ready == 0) {
-        ec = espp::AndroidTvRemoteErrc::timeout;
-        return false;
-      }
-      if (ready < 0) {
-        ec = espp::AndroidTvRemoteErrc::transport_error;
-        return false;
+      // mbedtls may already hold decrypted application data that is invisible to
+      // select() on the raw socket (a full TLS record was read but not yet
+      // consumed). If so, read it immediately so we don't stall until timeout
+      // and miss a buffered frame (e.g. ConfigurationAck / SecretAck).
+      ssize_t pending = esp_tls_get_bytes_avail(tls_.get());
+      if (pending <= 0) {
+        auto now = std::chrono::steady_clock::now();
+        if (now >= deadline) {
+          ec = espp::AndroidTvRemoteErrc::timeout;
+          return false;
+        }
+        int remaining_ms = static_cast<int>(
+            std::chrono::duration_cast<std::chrono::milliseconds>(deadline - now).count());
+        fd_set read_fds;
+        FD_ZERO(&read_fds);
+        FD_SET(sockfd_, &read_fds);
+        timeval timeout = {
+            .tv_sec = remaining_ms / 1000,
+            .tv_usec = (remaining_ms % 1000) * 1000,
+        };
+        int ready = select(sockfd_ + 1, &read_fds, nullptr, nullptr, &timeout);
+        if (ready == 0) {
+          ec = espp::AndroidTvRemoteErrc::timeout;
+          return false;
+        }
+        if (ready < 0) {
+          ec = espp::AndroidTvRemoteErrc::transport_error;
+          return false;
+        }
       }
 
       std::array<uint8_t, 1024> buffer{};
       ssize_t read = esp_tls_conn_read(tls_.get(), buffer.data(), buffer.size());
+      if (read == MBEDTLS_ERR_SSL_WANT_READ || read == MBEDTLS_ERR_SSL_WANT_WRITE) {
+        // No application data available yet (e.g. partial record); retry within
+        // the remaining timeout budget.
+        continue;
+      }
       if (read <= 0) {
         ec = espp::AndroidTvRemoteErrc::transport_error;
         return false;
@@ -847,13 +900,7 @@ struct AndroidTvRemote::Impl {
   explicit Impl(AndroidTvRemote &owner, const Config &config)
       : owner(owner)
       , config(config)
-      , logger({.tag = "AndroidTvRemote", .level = config.log_level})
-      , control(logger) {}
-
-  uint32_t requested_features() const {
-    return kFeaturePing | kFeatureKey | kFeaturePower | kFeatureVolume | kFeatureAppLink |
-           (config.transport.enable_ime ? kFeatureIme : 0u);
-  }
+      , control(owner.logger_) {}
 
   bool validate_config(std::error_code &ec) const {
     if (config.persistence.nvs_namespace.empty() || config.persistence.nvs_namespace.size() > 15 ||
@@ -939,7 +986,7 @@ struct AndroidTvRemote::Impl {
     }
 
     mdns_result_t *results = nullptr;
-    esp_err_t err = mdns_query_ptr("_googlecast", "_tcp", config.discovery.timeout_ms,
+    esp_err_t err = mdns_query_ptr("_androidtvremote2", "_tcp", config.discovery.timeout_ms,
                                    config.discovery.max_results, &results);
     if (err != ESP_OK) {
       ec = AndroidTvRemoteErrc::discovery_failed;
@@ -1005,9 +1052,8 @@ struct AndroidTvRemote::Impl {
     if (!ensure_identity(ec))
       return false;
 
-    TlsConnection pairing(logger);
+    TlsConnection pairing(owner.logger_);
     if (!pairing.connect(host, config.pairing.port, certificate_pem, private_key_pem,
-                         static_cast<int>(config.transport.connect_timeout.count()),
                          static_cast<int>(config.transport.connect_timeout.count()),
                          config.transport.skip_common_name_check, ec)) {
       return false;
@@ -1151,18 +1197,17 @@ struct AndroidTvRemote::Impl {
 
     {
       std::scoped_lock lock(state_mutex);
-      active_features = requested_features();
       remote_started = false;
       async_error.reset();
       ime_counter = 0;
       ime_field_counter = 0;
+      ime_active = false;
       connected_host = std::string(host);
       connected = false;
       stop_requested = false;
     }
 
     if (!control.connect(host, config.transport.port, certificate_pem, private_key_pem,
-                         static_cast<int>(config.transport.connect_timeout.count()),
                          static_cast<int>(config.transport.connect_timeout.count()),
                          config.transport.skip_common_name_check, ec)) {
       return false;
@@ -1192,10 +1237,15 @@ struct AndroidTvRemote::Impl {
   void disconnect() {
     stop_requested = true;
     connected = false;
-    control.close();
+    // Wake any blocking read on the reader thread FIRST (shutting down the
+    // socket without destroying the TLS context), then join it, and only then
+    // destroy the TLS context. Destroying it before the join would free memory
+    // the reader may still be reading from inside esp_tls_conn_read().
+    control.shutdown();
     if (reader_thread.joinable() && reader_thread.get_id() != std::this_thread::get_id()) {
       reader_thread.join();
     }
+    control.close();
     {
       std::scoped_lock lock(state_mutex);
       remote_started = false;
@@ -1221,12 +1271,24 @@ struct AndroidTvRemote::Impl {
       ec = AndroidTvRemoteErrc::invalid_argument;
       return false;
     }
-    if ((active_features & kFeatureIme) == 0) {
-      ec = AndroidTvRemoteErrc::unsupported;
-      return false;
+    // IME text can only be injected when the client was configured for IME and
+    // the server has actually opened an IME/edit session (i.e. a text field is
+    // focused). Gate on that real protocol state, and snapshot the counters the
+    // reader thread maintains, under state_mutex.
+    int32_t ime_counter_snapshot = 0;
+    int32_t ime_field_counter_snapshot = 0;
+    {
+      std::scoped_lock lock(state_mutex);
+      if (!config.transport.enable_ime || !ime_active) {
+        ec = AndroidTvRemoteErrc::unsupported;
+        return false;
+      }
+      ime_counter_snapshot = ime_counter;
+      ime_field_counter_snapshot = ime_field_counter;
     }
     std::scoped_lock lock(io_mutex);
-    return control.write_frame(make_remote_text(text, ime_counter, ime_field_counter), ec);
+    return control.write_frame(
+        make_remote_text(text, ime_counter_snapshot, ime_field_counter_snapshot), ec);
   }
 
   void set_async_error(std::error_code ec) {
@@ -1260,33 +1322,43 @@ struct AndroidTvRemote::Impl {
       std::vector<uint8_t> response;
       switch (message.type) {
       case ParsedRemoteMessage::Type::Configure:
-        active_features &= message.code1;
-        response = make_remote_configure(active_features);
+        // Reply with the fixed configure code and our device info (no feature
+        // negotiation).
+        response = make_remote_configure();
         break;
       case ParsedRemoteMessage::Type::SetActive:
-        response = make_remote_set_active(active_features);
+        // Echo back exactly what the server asked us to activate.
+        response = make_remote_set_active(message.active);
         break;
       case ParsedRemoteMessage::Type::PingRequest:
         response = make_remote_ping_response(message.ping_value);
         break;
-      case ParsedRemoteMessage::Type::ImeBatchEdit:
+      case ParsedRemoteMessage::Type::ImeBatchEdit: {
+        std::scoped_lock lock(state_mutex);
         ime_counter = message.ime_counter;
         ime_field_counter = message.field_counter;
+        ime_active = true;
         break;
-      case ParsedRemoteMessage::Type::ImeKeyInject:
+      }
+      case ParsedRemoteMessage::Type::ImeKeyInject: {
+        std::scoped_lock lock(state_mutex);
         current_app = message.app_package;
+        ime_active = true;
         break;
+      }
       case ParsedRemoteMessage::Type::Start: {
         std::scoped_lock lock(state_mutex);
         remote_started = true;
       }
         state_cv.notify_all();
         break;
-      case ParsedRemoteMessage::Type::SetVolumeLevel:
+      case ParsedRemoteMessage::Type::SetVolumeLevel: {
+        std::scoped_lock lock(state_mutex);
         volume_level = message.volume_level;
         volume_max = message.volume_max;
         volume_muted = message.volume_muted;
         break;
+      }
       case ParsedRemoteMessage::Type::Error:
         set_async_error(AndroidTvRemoteErrc::protocol_error);
         break;
@@ -1308,7 +1380,6 @@ struct AndroidTvRemote::Impl {
 
   AndroidTvRemote &owner;
   Config config;
-  Logger logger;
   TlsConnection control;
   std::string certificate_pem;
   std::string private_key_pem;
@@ -1321,15 +1392,18 @@ struct AndroidTvRemote::Impl {
   mutable std::mutex state_mutex;
   std::condition_variable state_cv;
   std::optional<std::error_code> async_error;
-  uint32_t active_features{0};
   int32_t ime_counter{0};
   int32_t ime_field_counter{0};
+  bool ime_active{false};
   uint32_t volume_level{0};
   uint32_t volume_max{0};
   bool volume_muted{false};
   bool remote_started{false};
   std::optional<DeviceInfo> last_device_info;
 };
+
+AndroidTvRemote::AndroidTvRemote()
+    : AndroidTvRemote(Config{}) {}
 
 AndroidTvRemote::AndroidTvRemote(const Config &config)
     : BaseComponent("AndroidTvRemote", config.log_level)
@@ -1339,8 +1413,10 @@ AndroidTvRemote::~AndroidTvRemote() { disconnect(); }
 
 bool AndroidTvRemote::discover(std::vector<DeviceInfo> &devices, std::error_code &ec) {
   bool ok = impl_->discover(devices, ec);
-  if (ok && !devices.empty())
+  if (ok && !devices.empty()) {
+    std::scoped_lock lock(impl_->state_mutex);
     impl_->last_device_info = devices.front();
+  }
   return ok;
 }
 

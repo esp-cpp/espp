@@ -1,5 +1,8 @@
 #include <atomic>
 #include <chrono>
+#include <cstdio>
+#include <optional>
+#include <string>
 #include <thread>
 #include <vector>
 
@@ -11,6 +14,31 @@
 #include "wifi_sta.hpp"
 
 using namespace std::chrono_literals;
+
+// Blocks reading a line from the serial console (stdin) so the tester can type
+// the pairing code that the TV displays *after* the pairing connection is made.
+// This is what makes the example pairing-testable in a single session.
+[[maybe_unused]] static std::optional<std::string> read_code_from_console(espp::Logger &logger) {
+  logger.info("Enter the 6-character pairing code shown on the TV, then press Enter:");
+  std::string line;
+  while (true) {
+    int c = fgetc(stdin);
+    if (c == EOF) {
+      // The default UART console returns EOF when no byte is available; clear
+      // the sticky EOF/error state and poll again.
+      clearerr(stdin);
+      std::this_thread::sleep_for(20ms);
+      continue;
+    }
+    if (c == '\r' || c == '\n') {
+      if (line.empty())
+        continue; // ignore leading newlines
+      break;
+    }
+    line.push_back(static_cast<char>(c));
+  }
+  return line;
+}
 
 extern "C" void app_main(void) {
   //! [android tv remote example]
@@ -48,6 +76,7 @@ extern "C" void app_main(void) {
   }
 
   espp::AndroidTvRemote remote({
+      .discovery = {},
       .pairing =
           {
               .client_name = CONFIG_ANDROID_TV_REMOTE_EXAMPLE_CLIENT_NAME,
@@ -92,21 +121,18 @@ extern "C" void app_main(void) {
   }
 
 #ifdef CONFIG_ANDROID_TV_REMOTE_EXAMPLE_PAIR_IF_CONFIGURED
-  if (strlen(CONFIG_ANDROID_TV_REMOTE_EXAMPLE_PAIRING_CODE) > 0) {
-    logger.info("Attempting pairing with {}", target_host);
-    if (!remote.pair(
-            target_host,
-            []() -> std::optional<std::string> {
-              return std::string(CONFIG_ANDROID_TV_REMOTE_EXAMPLE_PAIRING_CODE);
-            },
-            ec)) {
-      logger.warn("Pairing failed: {}", ec.message());
-      ec.clear();
-    } else {
-      logger.info("Pairing completed");
-    }
+  logger.info("Attempting pairing with {}", target_host);
+  // The TV only shows the pairing code once the pairing connection is
+  // established, so read it live from the serial console instead of a
+  // compile-time value. pair() invokes this provider after it connects.
+  if (!remote.pair(
+          target_host,
+          [&logger]() -> std::optional<std::string> { return read_code_from_console(logger); },
+          ec)) {
+    logger.warn("Pairing failed: {}", ec.message());
+    ec.clear();
   } else {
-    logger.info("Pairing enabled but no pairing code configured, skipping");
+    logger.info("Pairing completed");
   }
 #endif
 
