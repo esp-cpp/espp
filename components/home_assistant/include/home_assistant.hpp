@@ -63,13 +63,13 @@ public:
     std::string state_prefix{"espp/home_assistant"};
     std::string availability_topic;
     int qos{0};
-    bool retain_state{false};
+    bool retain_state{true};
     bool publish_availability{true};
     bool auto_reconnect{true};
     bool use_crt_bundle{true};
     int keepalive_seconds{120};
     int network_timeout_ms{10000};
-    int buffer_size{1024};
+    int buffer_size{2048};
     int task_stack_size{6144};
   };
 
@@ -201,7 +201,7 @@ public:
   bool subscribe_websocket_events(std::string_view event_type, uint32_t &subscription_id,
                                   std::error_code &ec);
 
-  bool get_config(std::string &json, std::error_code &ec);
+  bool fetch_config(std::string &json, std::error_code &ec);
   bool get_state(std::string_view entity_id, std::string &json, std::error_code &ec);
   bool set_state(std::string_view entity_id, std::string_view state,
                  std::string_view attributes_json, std::string &json, std::error_code &ec);
@@ -252,6 +252,7 @@ protected:
   bool send_websocket_text(std::string_view json, std::error_code &ec, bool require_auth);
   void handle_websocket_message(std::string_view json);
   void handle_mqtt_command(std::string_view topic, std::string_view payload);
+  void handle_birth_message(std::string_view topic, std::string_view payload);
   bool publish_discovery(const RegisteredEntity &entity, std::error_code &ec);
   bool publish_availability(std::string_view payload, std::error_code &ec);
   bool register_entity(RegisteredEntity entity, std::error_code &ec);
@@ -267,7 +268,10 @@ protected:
 
   mutable std::mutex websocket_mutex_;
   std::string websocket_buffer_;
-  std::error_code websocket_last_error_;
+  // Error state written from the WebSocket task and read from the connect poll loop.
+  // Stored as an atomic HomeAssistantErrc value (0 == no error); the human-readable
+  // message string is guarded by websocket_mutex_.
+  std::atomic<int> websocket_last_error_{0};
   std::string websocket_last_error_message_;
 
   esp_mqtt_client_handle_t mqtt_client_{nullptr};
