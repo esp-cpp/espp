@@ -393,17 +393,28 @@ extern "C" void app_main(void) {
 
     // 1) Periodicity: a 20 ms periodic timer should fire ~50x/s and stay on a
     //    fixed schedule (the k-th callback lands near k*period, i.e. no
-    //    cumulative drift).
+    //    cumulative drift) with small per-fire jitter.
     {
       std::atomic<int> count{0};
       std::atomic<float> last_fire{0.0f};
+      // worst-case deviation of any fire from its ideal time (k * period).
+      // Single writer (the timer task), so a plain load/store RMW is race-free.
+      std::atomic<float> max_dev{0.0f};
+      const float period_s = 0.020f;
       auto t0 = steady_clock::now();
       auto timer = espp::Timer({.name = "test-periodicity",
                                 .period = 20ms,
                                 .callback =
-                                    [&count, &last_fire, t0]() {
-                                      last_fire = duration<float>(steady_clock::now() - t0).count();
-                                      ++count;
+                                    [&count, &last_fire, &max_dev, period_s, t0]() {
+                                      const int k = count.fetch_add(1);
+                                      const float t =
+                                          duration<float>(steady_clock::now() - t0).count();
+                                      last_fire = t;
+                                      const float expected = k * period_s;
+                                      const float dev = t > expected ? t - expected : expected - t;
+                                      if (dev > max_dev.load()) {
+                                        max_dev.store(dev);
+                                      }
                                       return false;
                                     },
                                 .log_level = espp::Logger::Verbosity::WARN});
@@ -413,10 +424,16 @@ extern "C" void app_main(void) {
       // first fires immediately, then every 20 ms -> ~51 in 1 s
       check("periodic timer fires ~50 times in 1 s (20 ms period)", n >= 45 && n <= 56);
       // the last callback should land near (n-1)*20 ms if there is no drift
-      const float expected_last = (n - 1) * 0.020f;
+      const float expected_last = (n - 1) * period_s;
       const float actual_last = last_fire.load();
       check("periodic timer stays on schedule (no cumulative drift)",
             n >= 2 && actual_last > expected_last - 0.030f && actual_last < expected_last + 0.030f);
+      // periodicity is "good enough" if no single fire strays far from its
+      // ideal slot (bounds worst-case jitter, not just the endpoint).
+      const float worst_ms = max_dev.load() * 1000.0f;
+      auto jmsg = fmt::format("periodic timer jitter is small (worst deviation {:.1f} ms < 15 ms)",
+                              worst_ms);
+      check(jmsg, n >= 2 && max_dev.load() < 0.015f);
     }
 
     // 2) A callback that overruns the period should run back-to-back (bounded by
@@ -481,6 +498,7 @@ extern "C" void app_main(void) {
                                 .log_level = espp::Logger::Verbosity::WARN});
       std::this_thread::sleep_for(400ms);
       check("one-shot timer (period 0) fires exactly once", count.load() == 1);
+      check("one-shot timer is not running after it completes", !timer.is_running());
     }
 
     // 5) start() / is_running() / cancel().
@@ -532,6 +550,211 @@ extern "C" void app_main(void) {
       std::this_thread::sleep_for(300ms);
       timer.cancel();
       check("negative period is clamped (runs once, not repeatedly)", count.load() == 1);
+    }
+
+    // 8) Fixed-rate: a callback that does work but finishes within the period
+    //    must not stretch the period (its run time is absorbed). A naive "sleep
+    //    for the period after the callback" would fire at ~1/(period + work).
+    {
+      std::atomic<int> count{0};
+      auto timer = espp::Timer({.name = "test-absorb",
+                                .period = 40ms,
+                                .callback =
+                                    [&count]() {
+                                      ++count;
+                                      std::this_thread::sleep_for(15ms); // < period
+                                      return false;
+                                    },
+                                .log_level = espp::Logger::Verbosity::WARN});
+      std::this_thread::sleep_for(1s);
+      timer.cancel();
+      const int n = count.load();
+      // 40 ms period with the 15 ms callback absorbed -> ~25 in 1 s (not ~18)
+      auto msg =
+          fmt::format("callback shorter than the period does not stretch it: 22 <= {} <= 28", n);
+      check(msg, n >= 22 && n <= 28);
+    }
+
+    // 9) Delay + period together: the first callback fires at ~the delay, the
+    //    second one period later.
+    {
+      std::atomic<int> count{0};
+      std::atomic<float> first_fire{-1.0f};
+      std::atomic<float> second_fire{-1.0f};
+      auto t0 = steady_clock::now();
+      auto timer = espp::Timer({.name = "test-delay-period",
+                                .period = 100ms,
+                                .delay = 200ms,
+                                .callback =
+                                    [&count, &first_fire, &second_fire, t0]() {
+                                      float t = duration<float>(steady_clock::now() - t0).count();
+                                      int c = count.fetch_add(1);
+                                      if (c == 0) {
+                                        first_fire = t;
+                                      } else if (c == 1) {
+                                        second_fire = t;
+                                      }
+                                      return false;
+                                    },
+                                .log_level = espp::Logger::Verbosity::WARN});
+      std::this_thread::sleep_for(500ms);
+      timer.cancel();
+      const float f = first_fire.load();
+      const float s = second_fire.load();
+      check("delay+period: first fires at ~the delay", f > 0.15f && f < 0.28f);
+      check("delay+period: second fires ~one period after the first",
+            s - f > 0.07f && s - f < 0.14f);
+    }
+
+    // 10) start(delay) overload: starts with the given initial delay.
+    {
+      std::atomic<int> count{0};
+      std::atomic<float> first_fire{-1.0f};
+      auto t0 = steady_clock::now();
+      auto timer = espp::Timer({.name = "test-start-delay",
+                                .period = 50ms,
+                                .callback =
+                                    [&count, &first_fire, t0]() {
+                                      if (count.fetch_add(1) == 0) {
+                                        first_fire =
+                                            duration<float>(steady_clock::now() - t0).count();
+                                      }
+                                      return false;
+                                    },
+                                .auto_start = false,
+                                .log_level = espp::Logger::Verbosity::WARN});
+      const bool started = timer.start(200ms);
+      std::this_thread::sleep_for(400ms);
+      timer.cancel();
+      const float f = first_fire.load();
+      check("start(delay) returns true", started);
+      check("start(delay) delays the first fire", f > 0.15f && f < 0.30f);
+    }
+
+    // 11) cancel() then start() again resumes; stop() is an alias for cancel().
+    {
+      std::atomic<int> count{0};
+      auto timer = espp::Timer({.name = "test-restart",
+                                .period = 40ms,
+                                .callback =
+                                    [&count]() {
+                                      ++count;
+                                      return false;
+                                    },
+                                .log_level = espp::Logger::Verbosity::WARN});
+      std::this_thread::sleep_for(150ms);
+      timer.stop(); // alias for cancel()
+      const bool stopped = !timer.is_running();
+      const int c_paused = count.load();
+      std::this_thread::sleep_for(150ms);
+      const bool no_fire_while_stopped = (count.load() == c_paused);
+      const bool restarted = timer.start();
+      std::this_thread::sleep_for(150ms);
+      timer.cancel();
+      const bool resumed = (count.load() > c_paused);
+      check("stop() stops the timer (no more callbacks)", stopped && no_fire_while_stopped);
+      check("start() after cancel resumes the timer", restarted && resumed);
+    }
+
+    // 12) set_period() changes the rate of a running timer.
+    {
+      std::atomic<int> count{0};
+      auto timer = espp::Timer({.name = "test-set-period",
+                                .period = 100ms,
+                                .callback =
+                                    [&count]() {
+                                      ++count;
+                                      return false;
+                                    },
+                                .log_level = espp::Logger::Verbosity::WARN});
+      std::this_thread::sleep_for(250ms); // ~2-3 fires at 100 ms
+      timer.set_period(20ms);             // speed up
+      count = 0;
+      std::this_thread::sleep_for(250ms); // now ~10-12 fires at 20 ms
+      const int n_fast = count.load();
+      auto msg = fmt::format("set_period() speeds up a running timer: {} >= 8", n_fast);
+      check(msg, n_fast >= 8);
+      timer.set_period(200ms); // slow down
+      count = 0;
+      std::this_thread::sleep_for(300ms); // at most ~2 fires at 200 ms
+      const int n_slow = count.load();
+      timer.cancel();
+      auto slow_msg = fmt::format("set_period() slows down a running timer: {} <= 3", n_slow);
+      check(slow_msg, n_slow <= 3);
+    }
+
+    // 13) set_period(0) turns a running periodic timer into a one-shot (it stops
+    //     after the current callback).
+    {
+      std::atomic<int> count{0};
+      auto timer = espp::Timer({.name = "test-set-period-zero",
+                                .period = 50ms,
+                                .callback =
+                                    [&count]() {
+                                      ++count;
+                                      return false;
+                                    },
+                                .log_level = espp::Logger::Verbosity::WARN});
+      std::this_thread::sleep_for(120ms);
+      timer.set_period(0ms); // -> one-shot
+      std::this_thread::sleep_for(200ms);
+      const bool stopped = !timer.is_running();
+      const int c = count.load();
+      std::this_thread::sleep_for(120ms);
+      check("set_period(0) stops a running timer", stopped && count.load() == c);
+    }
+
+    // 14) Input validation: start() with a negative delay is rejected.
+    {
+      std::atomic<int> count{0};
+      auto timer = espp::Timer({.name = "test-neg-delay",
+                                .period = 50ms,
+                                .callback =
+                                    [&count]() {
+                                      ++count;
+                                      return false;
+                                    },
+                                .auto_start = false,
+                                .log_level = espp::Logger::Verbosity::WARN});
+      const bool result = timer.start(-100ms);
+      std::this_thread::sleep_for(150ms);
+      check("start() with a negative delay is rejected",
+            !result && count.load() == 0 && !timer.is_running());
+    }
+
+    // 15) A timer with a null callback stops itself without crashing.
+    {
+      auto timer = espp::Timer({.name = "test-null-callback",
+                                .period = 50ms,
+                                .callback = nullptr,
+                                .log_level = espp::Logger::Verbosity::WARN});
+      std::this_thread::sleep_for(150ms);
+      check("timer with a null callback stops itself (no crash)", !timer.is_running());
+    }
+
+    // 16) Watchdog: a timer whose callback overruns the watchdog is reported by
+    //     get_watchdog_info().
+    {
+      espp::Task::configure_task_watchdog(50ms, false); // 50 ms, don't panic
+      std::atomic<int> count{0};
+      auto timer = espp::Timer({.name = "test-watchdog",
+                                .period = 200ms,
+                                .callback =
+                                    [&count]() {
+                                      ++count;
+                                      std::this_thread::sleep_for(120ms); // > 50 ms watchdog
+                                      return false;
+                                    },
+                                .log_level = espp::Logger::Verbosity::WARN});
+      const bool wd_started = timer.start_watchdog();
+      std::this_thread::sleep_for(300ms);
+      std::error_code ec;
+      const std::string info = espp::Task::get_watchdog_info(ec);
+      const bool flagged = !ec && info.find("test-watchdog") != std::string::npos;
+      timer.stop_watchdog();
+      timer.cancel();
+      check("start_watchdog() returns true", wd_started);
+      check("watchdog reports an overrunning timer's task", flagged);
     }
 
     // ---- summary ----
