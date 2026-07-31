@@ -157,9 +157,12 @@ public:
 protected:
   bool timer_callback_fn(std::mutex &m, std::condition_variable &cv, bool &task_notified);
 
+  std::recursive_mutex mutex_;          ///< Mutex to protect the timer state.
   std::chrono::microseconds period_{0}; ///< The period of the timer. If 0, the timer will run once.
   std::chrono::microseconds delay_{0};  ///< The delay before the timer starts.
   std::atomic<bool> running_{false};    ///< True if the timer is running, false otherwise.
+  std::chrono::time_point<std::chrono::steady_clock>
+      wakeup_time_; ///< The time point when the timer will wake up.
   float period_float;
   float delay_float;
   callback_fn callback_;             ///< The callback function to call when the timer expires.

@@ -51,6 +51,26 @@ extern "C" void app_main(void) {
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
   }
 
+  // timer periodicity testing, with different durations
+  {
+    logger.info("Starting timer periodicity testing example");
+    auto timer_fn = []() {
+      static size_t iterations{0};
+      if (iterations % 50 == 0) {
+        fmt::print("[{:.3f}] #iterations = {}\n", elapsed(), iterations);
+        std::this_thread::sleep_for(9ms); // simulate a long callback
+      }
+      iterations++;
+      // we don't want to stop, so return false
+      return false;
+    };
+    auto timer = espp::Timer({.name = "Timer 1",
+                              .period = 10ms,
+                              .callback = timer_fn,
+                              .log_level = espp::Logger::Verbosity::WARN});
+    std::this_thread::sleep_for(num_seconds_to_run * 1s);
+  }
+
   // timer watchdog example
   {
     logger.info("Starting timer watchdog example");
@@ -67,7 +87,7 @@ extern "C" void app_main(void) {
     auto timer = espp::Timer({.name = "Timer 1",
                               .period = 500ms,
                               .callback = timer_fn,
-                              .log_level = espp::Logger::Verbosity::DEBUG});
+                              .log_level = espp::Logger::Verbosity::INFO});
     timer.start_watchdog(); // start the watchdog timer for this timer
     std::this_thread::sleep_for(500ms);
     std::error_code ec;
@@ -101,7 +121,7 @@ extern "C" void app_main(void) {
                      .delay = 500ms,
                      .callback = timer_fn,
                      .auto_start = false, // don't start the timer automatically, we'll call start()
-                     .log_level = espp::Logger::Verbosity::DEBUG});
+                     .log_level = espp::Logger::Verbosity::INFO});
     timer.start();
     std::this_thread::sleep_for(2s);
     logger.info("Cancelling timer for 2 seconds");
@@ -132,7 +152,7 @@ extern "C" void app_main(void) {
                               .period = 0ms, // one shot timer
                               .delay = 500ms,
                               .callback = timer_fn,
-                              .log_level = espp::Logger::Verbosity::DEBUG});
+                              .log_level = espp::Logger::Verbosity::INFO});
     //! [timer oneshot example]
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
   }
@@ -156,7 +176,7 @@ extern "C" void app_main(void) {
                               .period = 500ms,
                               .callback = timer_fn,
                               .stack_size_bytes = 6192,
-                              .log_level = espp::Logger::Verbosity::DEBUG});
+                              .log_level = espp::Logger::Verbosity::INFO});
     //! [timer cancel itself example]
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
   }
@@ -177,7 +197,7 @@ extern "C" void app_main(void) {
                               .delay = 500ms,
                               .callback = timer_fn,
                               .stack_size_bytes = 4096,
-                              .log_level = espp::Logger::Verbosity::DEBUG});
+                              .log_level = espp::Logger::Verbosity::INFO});
     std::this_thread::sleep_for(2s);
     timer.cancel();  // it will have already been cancelled by here, but this should be harmless
     timer.start(1s); // restart the timer with a 1 second delay
@@ -200,7 +220,7 @@ extern "C" void app_main(void) {
                               .period = 500ms,
                               .callback = timer_fn,
                               .stack_size_bytes = 4096,
-                              .log_level = espp::Logger::Verbosity::DEBUG});
+                              .log_level = espp::Logger::Verbosity::INFO});
     std::this_thread::sleep_for(2s);
     logger.info("Updating period to 100ms");
     timer.set_period(100ms);
@@ -224,11 +244,11 @@ extern "C" void app_main(void) {
                               .task_config =
                                   {
                                       .name = "Advanced Config Timer",
-                                      .stack_size_bytes = 4096,
+                                      .stack_size_bytes = 4 * 1024,
                                       .priority = 10,
                                       .core_id = 1,
                                   },
-                              .log_level = espp::Logger::Verbosity::DEBUG});
+                              .log_level = espp::Logger::Verbosity::INFO});
     //! [timer advanced config example]
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
   }
@@ -248,7 +268,7 @@ extern "C" void app_main(void) {
     auto high_resolution_timer =
         espp::HighResolutionTimer({.name = "High Resolution Timer",
                                    .callback = timer_fn,
-                                   .log_level = espp::Logger::Verbosity::DEBUG});
+                                   .log_level = espp::Logger::Verbosity::INFO});
     uint64_t period_us = 100;
     bool started = high_resolution_timer.start(period_us);
     logger.info("High resolution timer started: {}", started);
@@ -294,7 +314,7 @@ extern "C" void app_main(void) {
     auto high_resolution_timer =
         espp::HighResolutionTimer({.name = "High Resolution Timer 1",
                                    .callback = timer_fn,
-                                   .log_level = espp::Logger::Verbosity::DEBUG});
+                                   .log_level = espp::Logger::Verbosity::INFO});
     uint64_t period_us = 100;
     bool started = high_resolution_timer.start(period_us);
     logger.info("High resolution timer 1 started: {}", started);
@@ -309,7 +329,7 @@ extern "C" void app_main(void) {
     auto high_resolution_timer2 =
         espp::HighResolutionTimer({.name = "High Resolution Timer 2",
                                    .callback = timer2_fn,
-                                   .log_level = espp::Logger::Verbosity::DEBUG});
+                                   .log_level = espp::Logger::Verbosity::INFO});
 
     // configure the task watchdog
     static constexpr bool panic_on_watchdog_timeout = false;
