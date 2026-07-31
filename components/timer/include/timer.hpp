@@ -99,7 +99,9 @@ public:
 
   /// @brief Start the timer.
   /// @details Starts the timer. Does nothing if the timer is already running.
-  void start();
+  /// @return true if the timer was started or is already running, false if the
+  ///         timer could not be started.
+  bool start();
 
   /// @brief Start the timer with a delay.
   /// @details Starts the timer with a delay. If the timer is already running,
@@ -108,7 +110,9 @@ public:
   ///          with the delay. Overwrites any previous delay that might have
   ///          been set.
   /// @param delay The delay before the first execution of the timer callback.
-  void start(const std::chrono::duration<float> &delay);
+  /// @return true if the timer was started or restarted, false if the timer
+  ///         could not be started.
+  bool start(const std::chrono::duration<float> &delay);
 
   /// @brief Stop the timer, same as cancel().
   /// @details Stops the timer, same as cancel().

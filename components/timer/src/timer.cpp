@@ -44,7 +44,17 @@ Timer::Timer(const Timer::AdvancedConfig &config)
       .log_level = config.log_level,
   });
   period_float = std::chrono::duration<float>(period_).count();
+  if (period_float < 0) {
+    logger_.warn("period cannot be negative, setting to 0");
+    period_ = std::chrono::microseconds(0);
+    period_float = 0;
+  }
   delay_float = std::chrono::duration<float>(delay_).count();
+  if (delay_float < 0) {
+    logger_.warn("delay cannot be negative, setting to 0");
+    delay_ = std::chrono::microseconds(0);
+    delay_float = 0;
+  }
   if (config.auto_start) {
     start();
   }
@@ -52,7 +62,11 @@ Timer::Timer(const Timer::AdvancedConfig &config)
 
 Timer::~Timer() { cancel(); }
 
-void Timer::start() {
+bool Timer::start() {
+  if (is_running()) {
+    logger_.info("timer is already running, not starting");
+    return true;
+  }
   logger_.info("starting with period {:.3f} s and delay {:.3f} s", period_float, delay_float);
   {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
@@ -64,15 +78,18 @@ void Timer::start() {
       wakeup_time_ += period_;
     }
   }
-  running_ = true;
-  // start the task
-  task_->start();
+  if (task_->start()) {
+    running_ = true;
+    return true;
+  }
+  logger_.error("failed to start timer task");
+  return false;
 }
 
-void Timer::start(const std::chrono::duration<float> &delay) {
+bool Timer::start(const std::chrono::duration<float> &delay) {
   if (delay.count() < 0) {
     logger_.warn("delay cannot be negative, not starting");
-    return;
+    return false;
   }
   if (is_running()) {
     logger_.info("restarting with delay {:.3f} s", delay.count());
@@ -83,7 +100,7 @@ void Timer::start(const std::chrono::duration<float> &delay) {
     delay_ = std::chrono::duration_cast<std::chrono::microseconds>(delay);
     delay_float = std::chrono::duration<float>(delay_).count();
   }
-  start();
+  return start();
 }
 
 void Timer::stop() { cancel(); }
@@ -196,6 +213,7 @@ bool Timer::timer_callback_fn(std::mutex &m, std::condition_variable &cv, bool &
   }
   // now that we've waited, make sure the next wakeup time is the next multiple
   // of the period after the last
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
   wakeup_time_ += period_;
   // keep the timer running
   return false;
