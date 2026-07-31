@@ -162,12 +162,27 @@ bool Timer::timer_callback_fn(std::mutex &m, std::condition_variable &cv, bool &
     // next wakeup time), log a warning and ensure that the next wakeup time is
     // the closest multiple of the period after the current
     float elapsed = std::chrono::duration<float>(end - start_time).count();
-    if (elapsed > period_float) {
-      logger_.warn_rate_limited("callback took longer ({:.3f} s) than period ({:.3f} s)", elapsed,
-                                period_float);
+    std::chrono::microseconds period;
+    float local_period_float;
+    {
+      std::lock_guard<std::recursive_mutex> lock(mutex_);
+      period = period_;
+      local_period_float = period_float;
     }
-    while (wakeup_time_ < end) {
-      wakeup_time_ += period_;
+    if (elapsed > local_period_float) {
+      logger_.warn_rate_limited("callback took longer ({:.3f} s) than period ({:.3f} s)", elapsed,
+                                local_period_float);
+    }
+    if (period.count() <= 0) {
+      // period changed to oneshot while running; stop after this callback
+      running_ = false;
+      return true;
+    }
+    {
+      std::lock_guard<std::recursive_mutex> lock(mutex_);
+      while (wakeup_time_ < end) {
+        wakeup_time_ += period;
+      }
     }
     return false;
   }
