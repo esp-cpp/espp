@@ -6,9 +6,10 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <utility>
 
 #include "base_component.hpp"
-#include "task.hpp"
+#include "timer.hpp"
 
 namespace espp {
 
@@ -98,14 +99,24 @@ public:
                                                      with the latest MotionCommand output.
                                                      Leave as nullptr to disable. */
     // --- Periodic task configuration ---
-    std::chrono::duration<float> update_period{std::chrono::milliseconds(20)}; /**< Period between
-                                                     automatic update() calls (default 50 Hz). */
-    espp::Task::BaseConfig task_config{.name = "TrajectoryPlanner",
-                                       .stack_size_bytes = 4096,
-                                       .priority = 0,
-                                       .core_id = -1}; /**< Task configuration (name, stack,
-                                                            priority, core affinity). */
-    espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; /**< Logger verbosity. */
+    std::chrono::duration<float> planning_period{std::chrono::milliseconds(20)}; /**< Planner update
+                                                     rate (default 50 Hz). Recommended: 5–200 ms
+                                                     on microcontrollers. */
+    std::chrono::duration<float> callback_period{std::chrono::milliseconds(40)}; /**< Output
+                                                     callback rate (default 50 Hz). Should be
+                                                     ≥ 2× planning_period (Nyquist); a faster
+                                                     rate will repeat the same output. */
+    espp::Task::BaseConfig planning_task_config{
+        .name = "TP_planning",
+        .stack_size_bytes = 4096,
+        .priority = 0,
+        .core_id = -1}; /**< Underlying task config for the timer. */
+    espp::Task::BaseConfig callback_task_config{
+        .name = "TP_cb",
+        .stack_size_bytes = 8192,
+        .priority = 0,
+        .core_id = -1}; /**< Underlying task config for the callback timer. */
+    espp::Logger::Verbosity log_level{espp::Logger::Verbosity::INFO}; /**< Logger verbosity. */
   };
 
   /**
@@ -149,6 +160,14 @@ public:
    *                +1 = full left turn, -1 = full right turn.
    */
   void set_target(float linear, float angular);
+
+  /**
+   * @brief Get the current normalized velocity target.
+   * @note  If enforce_motion_envelope is enabled the stored target may differ
+   *        from the value passed to set_target() (it is projected onto the unit circle).
+   * @return Pair of {linear, angular} in [-1, +1].
+   */
+  std::pair<float, float> get_target() const;
 
   /**
    * @brief Get the current smoothed motion command.
@@ -220,7 +239,8 @@ protected:
   float target_v_{0.0f};
   float target_w_{0.0f};
   output_callback_t output_callback_{nullptr};
-  std::unique_ptr<espp::Task> task_;
+  std::unique_ptr<espp::Timer> timer_;
+  std::unique_ptr<espp::Timer> callback_timer_;
   std::chrono::steady_clock::time_point last_update_time_;
   mutable std::recursive_mutex mutex_;
 };
