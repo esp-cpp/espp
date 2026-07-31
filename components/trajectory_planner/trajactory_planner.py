@@ -141,13 +141,6 @@ t, v, a, j, target = jerk_limited_velocity_profile(
     dt=0.051
 )
 
-overshoot_mask = v > v_target
-if overshoot_mask.any():
-    print(f"Overshoot detected at {overshoot_mask.sum()} point(s):")
-    for ti, vi in zip(t[overshoot_mask], v[overshoot_mask]):
-        print(f"  t={ti:.4f}s  v={vi:.6f}  (excess={vi - v_target:.6f})")
-else:
-    print("No overshoot detected.")
 
 fig, ax = plt.subplots(3, 1, figsize=(10, 8))
 
