@@ -19,22 +19,36 @@ namespace espp {
  *
  *  The planner is drive-system independent — it does not know about wheel
  *  geometry or kinematics. It only enforces velocity, acceleration, and
- *  (optionally) jerk limits on chassis-level commands. The downstream
- *  kinematics layer converts (v_ref, ω_ref) into individual motor commands.
+ *  jerk limits on chassis-level commands. The downstream kinematics layer
+ *  converts (v_ref, ω_ref) into individual motor commands.
  *
+ *  ### Algorithm
+ *  The jerk-limited mode uses a discrete optimal-control approach: at each
+ *  step the planner computes the minimum velocity-change distance needed to
+ *  decelerate the current acceleration to zero, then decides whether to
+ *  accelerate, maintain, or decelerate to land exactly on the target without
+ *  overshoot — equivalent to a time-optimal S-curve under jerk and
+ *  acceleration constraints.
+ *
+ *  ### Profiles
  *  Motion limits are grouped into two MotionProfile objects inside Config:
- *  - **driving_profile** — used whenever the target is non-zero. Use non-zero
- *    jerk limits here for smooth S-curve acceleration.
+ *  - **driving_profile** — used whenever the target is non-zero.
  *  - **stopping_profile** — used when the target is (0, 0). Setting jerk to 0
- *    gives a trapezoidal stop with no overshoot; higher acceleration than the
- *    driving profile gives faster, firmer braking.
+ *    gives a trapezoidal stop; higher acceleration gives faster, firmer braking.
  *
- *  A MotionProfile automatically selects its generation mode:
- *  - **Trapezoidal** (ramp): `max_linear_jerk == 0 && max_angular_jerk == 0`
+ *  A MotionProfile selects its mode automatically:
+ *  - **Trapezoidal**: `max_linear_jerk == 0 && max_angular_jerk == 0`
  *  - **S-curve**: either jerk field is non-zero
  *
- *  This class is thread-safe: set_target(), output(), stop(), and reset()
- *  may be called from different threads concurrently.
+ *  ### Timing
+ *  Two independent `espp::Timer` instances run internally:
+ *  - **planning timer** — calls `update()` at `planning_period` (default 20 ms / 50 Hz).
+ *    Recommended range: 5–200 ms on microcontrollers.
+ *  - **callback timer** — fires `output_callback` at `callback_period` (default 40 ms).
+ *    Should be ≥ 2× planning_period (Nyquist); faster rates repeat the same output.
+ *
+ *  This class is thread-safe: set_target(), get_target(), output(), stop(),
+ *  and reset() may be called from different threads concurrently.
  *
  * \section trajectory_planner_ex0 Quick-Start: Full Public API
  * \snippet trajectory_planner_example.cpp trajectory_planner quickstart
@@ -42,6 +56,8 @@ namespace espp {
  * \snippet trajectory_planner_example.cpp trajectory_planner example
  * \section trajectory_planner_ex2 High-Speed S-Curve with Centripetal Limiting
  * \snippet trajectory_planner_example.cpp trajectory_planner jerk example
+ * \section trajectory_planner_ex3 Constraint Validation
+ * \snippet trajectory_planner_example.cpp trajectory_planner validation
  */
 class TrajectoryPlanner : public BaseComponent {
 public:
@@ -116,7 +132,7 @@ public:
         .stack_size_bytes = 8192,
         .priority = 0,
         .core_id = -1}; /**< Underlying task config for the callback timer. */
-    espp::Logger::Verbosity log_level{espp::Logger::Verbosity::INFO}; /**< Logger verbosity. */
+    espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; /**< Logger verbosity. */
   };
 
   /**
@@ -207,13 +223,13 @@ protected:
   };
 
   /**
-   * @brief Start the periodic update task.
+   * @brief Start the periodic planning and callback timers.
    *
-   * The task calls update() at the rate configured by Config::update_period
-   * and fires the output_callback after each step. Has no effect if the task
-   * is already running.
+   * The planning timer calls update() at Config::planning_period and the
+   * callback timer fires output_callback at Config::callback_period.
+   * Has no effect if the timers are already running.
    *
-   * @return true if the task was started, false if it was already running.
+   * @return true if both timers were started successfully.
    */
   bool start_task();
 
