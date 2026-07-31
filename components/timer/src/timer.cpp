@@ -67,21 +67,36 @@ bool Timer::start() {
     logger_.info("timer is already running, not starting");
     return true;
   }
-  logger_.info("starting with period {:.3f} s and delay {:.3f} s", period_float, delay_float);
+  // set the flag here to avoid race condition
+  running_ = true;
+  float local_period_float;
+  float local_delay_float;
+  std::chrono::time_point<std::chrono::steady_clock> local_wakeup_time;
+  std::chrono::time_point<std::chrono::steady_clock> local_start_time;
   {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    wakeup_time_ = std::chrono::steady_clock::now();
+    start_time_ = std::chrono::steady_clock::now();
+    wakeup_time_ = start_time_;
     if (delay_float > 0) {
       wakeup_time_ += delay_;
+      delay_wakeup_time_ = wakeup_time_;
     }
     if (period_float > 0) {
       wakeup_time_ += period_;
     }
+    local_period_float = period_float;
+    local_delay_float = delay_float;
+    local_wakeup_time = wakeup_time_;
+    local_start_time = start_time_;
   }
   if (task_->start()) {
-    running_ = true;
+    logger_.info("Started with period {:.3f} s and delay {:.3f} s. Will wake up in {:.3f} s",
+                 local_period_float, local_delay_float,
+                 std::chrono::duration<float>(local_wakeup_time - local_start_time).count());
     return true;
   }
+  // reset the flag if the task failed to start
+  running_ = false;
   logger_.error("failed to start timer task");
   return false;
 }
@@ -128,7 +143,7 @@ void Timer::set_period(const std::chrono::duration<float> &period) {
     period_ = std::chrono::duration_cast<std::chrono::microseconds>(period);
     period_float = std::chrono::duration<float>(period_).count();
   }
-  logger_.info("setting period to {:.3f} s", period_float);
+  logger_.info("Period set to {:.3f} s", period.count());
 }
 
 bool Timer::is_running() const { return running_ && task_->is_running(); }
@@ -146,75 +161,104 @@ bool Timer::timer_callback_fn(std::mutex &m, std::condition_variable &cv, bool &
     running_ = false;
     return true;
   }
+
   // initial delay, if any - this is only used the first time the timer
   // runs
-  if (delay_float > 0) {
-    auto start_time = std::chrono::steady_clock::now();
-    logger_.debug("waiting for delay {:.3f} s", delay_float);
-    std::unique_lock<std::mutex> lock(m);
-    cv.wait_until(lock, start_time + delay_, [&task_notified] { return task_notified; });
-    // reset the task_notified flag
-    task_notified = false;
+  float local_delay_float;
+  {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    local_delay_float = delay_float;
+  }
+  if (local_delay_float > 0) {
+    std::chrono::time_point<std::chrono::steady_clock> local_delay_wakeup_time;
+    {
+      std::lock_guard<std::recursive_mutex> lock(mutex_);
+      local_delay_wakeup_time = delay_wakeup_time_;
+    }
+    logger_.debug("waiting for delay {:.3f} s", local_delay_float);
+    {
+      std::unique_lock<std::mutex> lock(m);
+      cv.wait_until(lock, local_delay_wakeup_time, [&task_notified] { return task_notified; });
+      // reset the task_notified flag
+      task_notified = false;
+    }
     if (!running_) {
       logger_.debug("delay canceled, stopping");
       return true;
     }
     // now set the delay to 0
-    delay_ = std::chrono::microseconds(0);
-    delay_float = 0;
+    {
+      std::lock_guard<std::recursive_mutex> lock(mutex_);
+      delay_ = std::chrono::microseconds(0);
+      delay_float = 0;
+    }
   }
+
   // now run the callback
-  auto start_time = std::chrono::steady_clock::now();
   logger_.debug("running callback");
+  auto start_time = std::chrono::steady_clock::now();
   bool requested_stop = callback_();
-  if (requested_stop || period_float <= 0) {
+  auto end = std::chrono::steady_clock::now();
+
+  std::chrono::time_point<std::chrono::steady_clock> local_wakeup_time;
+  std::chrono::microseconds local_period;
+  float local_period_float;
+  {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    local_wakeup_time = wakeup_time_;
+    local_period = period_;
+    local_period_float = period_float;
+  }
+
+  if (requested_stop || local_period_float <= 0) {
     // stop the timer if requested or if the period is <= 0
     logger_.debug("callback requested stop or period is <= 0, stopping");
     running_ = false;
     return true;
   }
-  auto end = std::chrono::steady_clock::now();
-  if (wakeup_time_ < end) {
-    // if the callback took longer than the period (so it is already past the
-    // next wakeup time), log a warning and ensure that the next wakeup time is
-    // the closest multiple of the period after the current
+
+  if (local_wakeup_time <= end) {
+    // if the callback took longer (or just as long) than the period (so it is
+    // already past the next wakeup time), log a warning and ensure that the
+    // next wakeup time is the closest multiple of the period after the current
     float elapsed = std::chrono::duration<float>(end - start_time).count();
-    std::chrono::microseconds period;
-    float local_period_float;
-    {
-      std::lock_guard<std::recursive_mutex> lock(mutex_);
-      period = period_;
-      local_period_float = period_float;
-    }
-    if (elapsed > local_period_float) {
-      logger_.warn_rate_limited("callback took longer ({:.3f} s) than period ({:.3f} s)", elapsed,
+    if (elapsed >= local_period_float) {
+      logger_.warn_rate_limited("callback took ~longer ({:.3f} s) than period ({:.3f} s)", elapsed,
                                 local_period_float);
     }
-    if (period.count() <= 0) {
+    if (local_period.count() <= 0) {
       // period changed to oneshot while running; stop after this callback
       running_ = false;
       return true;
     }
-    {
-      std::lock_guard<std::recursive_mutex> lock(mutex_);
-      while (wakeup_time_ < end) {
-        wakeup_time_ += period;
-      }
+    // update the next wakeup time to the closest multiple of the period after the current time
+    size_t n = (end - local_wakeup_time) / local_period + 1;
+    // only log if we are skipping more than one period
+    if (n > 1) {
+      logger_.warn("Already passed expected wakeup time, skipping {} periods", n);
     }
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    wakeup_time_ += n * local_period;
+    // return immediately to execute the next callback iteration
     return false;
   }
+
   // now wait for the period (taking into account the time it took to run
   // the callback)
   {
     std::unique_lock<std::mutex> lock(m);
-    cv.wait_until(lock, wakeup_time_, [&task_notified] { return task_notified; });
+    cv.wait_until(lock, local_wakeup_time, [&task_notified] { return task_notified; });
     // reset the task_notified flag
     task_notified = false;
   }
+
   // now that we've waited, make sure the next wakeup time is the next multiple
   // of the period after the last
-  std::lock_guard<std::recursive_mutex> lock(mutex_);
-  wakeup_time_ += period_;
+  {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    wakeup_time_ += period_;
+  }
+
   // keep the timer running
   return false;
 }

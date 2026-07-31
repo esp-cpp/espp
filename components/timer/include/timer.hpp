@@ -166,6 +166,10 @@ protected:
   std::chrono::microseconds delay_{0};  ///< The delay before the timer starts.
   std::atomic<bool> running_{false};    ///< True if the timer is running, false otherwise.
   std::chrono::time_point<std::chrono::steady_clock>
+      start_time_; ///< The time point when the timer was started.
+  std::chrono::time_point<std::chrono::steady_clock>
+      delay_wakeup_time_; ///< The time point when the timer will wake up after the delay if any.
+  std::chrono::time_point<std::chrono::steady_clock>
       wakeup_time_; ///< The time point when the timer will wake up.
   float period_float;
   float delay_float;

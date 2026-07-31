@@ -56,11 +56,11 @@ extern "C" void app_main(void) {
   // timer periodicity testing, with different durations
   {
     logger.info("Starting timer periodicity testing example");
-    auto timer_fn = []() {
-      static size_t iterations{0};
+    size_t iterations{0};
+    auto timer_fn = [&iterations]() {
       if (iterations % 50 == 0) {
         fmt::print("[{:.3f}] #iterations = {}\n", elapsed(), iterations);
-        std::this_thread::sleep_for(9ms); // simulate a long callback
+        std::this_thread::sleep_for(12ms); // simulate a long callback
       }
       iterations++;
       // we don't want to stop, so return false
@@ -436,7 +436,9 @@ extern "C" void app_main(void) {
       timer.cancel();
       const int n = count.load();
       // ~30 ms per callback -> ~33 in 1 s
-      check("timer with a long (overrunning) callback runs continuously", n >= 27 && n <= 40);
+      auto msg = fmt::format(
+          "Timer with a long (overrunning) callback runs continuously 27 <= {} <= 40", n);
+      check(msg, n >= 27 && n <= 40);
     }
 
     // 3) Delay: the first callback fires at ~the configured delay, not before.
