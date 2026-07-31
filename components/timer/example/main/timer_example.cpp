@@ -1,6 +1,8 @@
 #include <sdkconfig.h>
 
+#include <atomic>
 #include <chrono>
+#include <string>
 #include <vector>
 
 #include <esp_pm.h>
@@ -363,6 +365,181 @@ extern "C" void app_main(void) {
     std::this_thread::sleep_for(500ms);
 
     //! [high resolution timer watchdog example]
+  }
+
+  // ===========================================================================
+  // Timer test suite
+  //
+  // A set of self-checking tests that run at the end of the example and print
+  // PASS/FAIL for each, then an overall PASS/FAIL summary for the suite. These
+  // exercise the timer's periodicity (fixed-rate scheduling / no drift), delay,
+  // one-shot behavior, start()/is_running()/cancel(), self-cancel, and input
+  // validation. Timings use generous tolerances so the suite is not flaky.
+  // ===========================================================================
+  {
+    using namespace std::chrono;
+    logger.info("");
+    logger.info("======== Running Timer test suite ========");
+    int passed = 0;
+    int failed = 0;
+    auto check = [&](const std::string &name, bool condition) {
+      fmt::print("  [{}] {}\n", condition ? "PASS" : "FAIL", name);
+      if (condition) {
+        ++passed;
+      } else {
+        ++failed;
+      }
+    };
+
+    // 1) Periodicity: a 20 ms periodic timer should fire ~50x/s and stay on a
+    //    fixed schedule (the k-th callback lands near k*period, i.e. no
+    //    cumulative drift).
+    {
+      std::atomic<int> count{0};
+      std::atomic<float> last_fire{0.0f};
+      auto t0 = steady_clock::now();
+      auto timer = espp::Timer({.name = "test-periodicity",
+                                .period = 20ms,
+                                .callback =
+                                    [&count, &last_fire, t0]() {
+                                      last_fire = duration<float>(steady_clock::now() - t0).count();
+                                      ++count;
+                                      return false;
+                                    },
+                                .log_level = espp::Logger::Verbosity::WARN});
+      std::this_thread::sleep_for(1s);
+      timer.cancel();
+      const int n = count.load();
+      // first fires immediately, then every 20 ms -> ~51 in 1 s
+      check("periodic timer fires ~50 times in 1 s (20 ms period)", n >= 45 && n <= 56);
+      // the last callback should land near (n-1)*20 ms if there is no drift
+      const float expected_last = (n - 1) * 0.020f;
+      const float actual_last = last_fire.load();
+      check("periodic timer stays on schedule (no cumulative drift)",
+            n >= 2 && actual_last > expected_last - 0.030f && actual_last < expected_last + 0.030f);
+    }
+
+    // 2) A callback that overruns the period should run back-to-back (bounded by
+    //    the callback duration), not stall or spiral.
+    {
+      std::atomic<int> count{0};
+      auto timer = espp::Timer({.name = "test-overrun",
+                                .period = 20ms,
+                                .callback =
+                                    [&count]() {
+                                      ++count;
+                                      std::this_thread::sleep_for(30ms); // longer than the period
+                                      return false;
+                                    },
+                                .log_level = espp::Logger::Verbosity::WARN});
+      std::this_thread::sleep_for(1s);
+      timer.cancel();
+      const int n = count.load();
+      // ~30 ms per callback -> ~33 in 1 s
+      check("timer with a long (overrunning) callback runs continuously", n >= 27 && n <= 40);
+    }
+
+    // 3) Delay: the first callback fires at ~the configured delay, not before.
+    {
+      std::atomic<int> count{0};
+      std::atomic<float> first_fire{-1.0f};
+      auto t0 = steady_clock::now();
+      auto timer = espp::Timer({.name = "test-delay",
+                                .period = 50ms,
+                                .delay = 300ms,
+                                .callback =
+                                    [&count, &first_fire, t0]() {
+                                      if (count.fetch_add(1) == 0) {
+                                        first_fire =
+                                            duration<float>(steady_clock::now() - t0).count();
+                                      }
+                                      return false;
+                                    },
+                                .log_level = espp::Logger::Verbosity::WARN});
+      std::this_thread::sleep_for(200ms); // still within the 300 ms delay
+      const bool none_before_delay = (count.load() == 0);
+      std::this_thread::sleep_for(400ms); // total 600 ms, past the delay
+      timer.cancel();
+      const float ff = first_fire.load();
+      check("delayed timer does not fire before the delay", none_before_delay);
+      check("delayed timer first fires at ~the delay", ff > 0.25f && ff < 0.40f);
+    }
+
+    // 4) One-shot (period 0) fires exactly once.
+    {
+      std::atomic<int> count{0};
+      auto timer = espp::Timer({.name = "test-oneshot",
+                                .period = 0ms,
+                                .delay = 100ms,
+                                .callback =
+                                    [&count]() {
+                                      ++count;
+                                      return false;
+                                    },
+                                .log_level = espp::Logger::Verbosity::WARN});
+      std::this_thread::sleep_for(400ms);
+      check("one-shot timer (period 0) fires exactly once", count.load() == 1);
+    }
+
+    // 5) start() / is_running() / cancel().
+    {
+      std::atomic<int> count{0};
+      auto timer = espp::Timer({.name = "test-startstop",
+                                .period = 50ms,
+                                .callback =
+                                    [&count]() {
+                                      ++count;
+                                      return false;
+                                    },
+                                .auto_start = false,
+                                .log_level = espp::Logger::Verbosity::WARN});
+      check("timer is not running before start()", !timer.is_running());
+      const bool started = timer.start();
+      check("start() returns true and the timer is running", started && timer.is_running());
+      check("start() on an already-running timer returns true", timer.start());
+      std::this_thread::sleep_for(200ms);
+      timer.cancel();
+      const int after_cancel = count.load();
+      std::this_thread::sleep_for(150ms);
+      check("cancel() stops the timer (no more callbacks)",
+            !timer.is_running() && count.load() == after_cancel);
+    }
+
+    // 6) A callback that returns true stops the timer.
+    {
+      std::atomic<int> count{0};
+      auto timer = espp::Timer({.name = "test-selfstop",
+                                .period = 50ms,
+                                .callback = [&count]() { return ++count >= 3; },
+                                .log_level = espp::Logger::Verbosity::WARN});
+      std::this_thread::sleep_for(400ms);
+      check("callback returning true stops the timer", count.load() == 3 && !timer.is_running());
+    }
+
+    // 7) Input validation: a negative period is clamped (behaves as one-shot).
+    {
+      std::atomic<int> count{0};
+      auto timer = espp::Timer({.name = "test-negative-period",
+                                .period = -50ms,
+                                .callback =
+                                    [&count]() {
+                                      ++count;
+                                      return false;
+                                    },
+                                .log_level = espp::Logger::Verbosity::WARN});
+      std::this_thread::sleep_for(300ms);
+      timer.cancel();
+      check("negative period is clamped (runs once, not repeatedly)", count.load() == 1);
+    }
+
+    // ---- summary ----
+    fmt::print("\n");
+    logger.info("======== Timer test suite: {}/{} passed ========", passed, passed + failed);
+    if (failed == 0) {
+      logger.info("TIMER TESTS RESULT: PASS ({} tests)", passed);
+    } else {
+      logger.error("TIMER TESTS RESULT: FAIL ({} passed, {} failed)", passed, failed);
+    }
   }
 
   logger.info("Example complete!");
