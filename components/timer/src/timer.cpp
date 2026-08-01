@@ -1,6 +1,33 @@
 #include "timer.hpp"
 
+#if defined(ESP_PLATFORM)
+#include <sdkconfig.h>
+#endif
+
 using namespace espp;
+
+void Timer::warn_if_below_tick_period(const std::chrono::microseconds &duration,
+                                      const char *what) const {
+#if defined(ESP_PLATFORM) && defined(CONFIG_FREERTOS_HZ)
+  if (duration.count() <= 0) {
+    // 0 period means one-shot; 0 delay means no delay - nothing to warn about.
+    return;
+  }
+  // The FreeRTOS scheduler resolves timing to a single tick, so a period/delay
+  // shorter than - or within ~2 ticks of - the tick period cannot be honored
+  // accurately (it will be rounded up and/or jitter by up to a full tick).
+  static constexpr int64_t tick_period_us = 1000000 / CONFIG_FREERTOS_HZ;
+  if (duration.count() < 2 * tick_period_us) {
+    logger_.warn("Requested {} of {} us is at or near the FreeRTOS tick period "
+                 "({} us at CONFIG_FREERTOS_HZ={}); timing cannot be honored "
+                 "accurately - use a longer {} or increase CONFIG_FREERTOS_HZ",
+                 what, duration.count(), tick_period_us, CONFIG_FREERTOS_HZ, what);
+  }
+#else
+  (void)duration;
+  (void)what;
+#endif
+}
 
 Timer::Timer(const Timer::Config &config)
     : BaseComponent(config.name, config.log_level)
@@ -24,6 +51,18 @@ Timer::Timer(const Timer::Config &config)
   });
   period_float = std::chrono::duration<float>(period_).count();
   delay_float = std::chrono::duration<float>(delay_).count();
+  if (period_float < 0) {
+    logger_.warn("period cannot be negative, setting to 0");
+    period_ = std::chrono::microseconds(0);
+    period_float = 0;
+  }
+  if (delay_float < 0) {
+    logger_.warn("delay cannot be negative, setting to 0");
+    delay_ = std::chrono::microseconds(0);
+    delay_float = 0;
+  }
+  warn_if_below_tick_period(period_, "period");
+  warn_if_below_tick_period(delay_, "delay");
   if (config.auto_start) {
     start();
   }
@@ -44,17 +83,19 @@ Timer::Timer(const Timer::AdvancedConfig &config)
       .log_level = config.log_level,
   });
   period_float = std::chrono::duration<float>(period_).count();
+  delay_float = std::chrono::duration<float>(delay_).count();
   if (period_float < 0) {
     logger_.warn("period cannot be negative, setting to 0");
     period_ = std::chrono::microseconds(0);
     period_float = 0;
   }
-  delay_float = std::chrono::duration<float>(delay_).count();
   if (delay_float < 0) {
     logger_.warn("delay cannot be negative, setting to 0");
     delay_ = std::chrono::microseconds(0);
     delay_float = 0;
   }
+  warn_if_below_tick_period(period_, "period");
+  warn_if_below_tick_period(delay_, "delay");
   if (config.auto_start) {
     start();
   }
@@ -115,6 +156,7 @@ bool Timer::start(const std::chrono::duration<float> &delay) {
     delay_ = std::chrono::duration_cast<std::chrono::microseconds>(delay);
     delay_float = std::chrono::duration<float>(delay_).count();
   }
+  warn_if_below_tick_period(std::chrono::duration_cast<std::chrono::microseconds>(delay), "delay");
   return start();
 }
 
@@ -143,6 +185,8 @@ void Timer::set_period(const std::chrono::duration<float> &period) {
     period_ = std::chrono::duration_cast<std::chrono::microseconds>(period);
     period_float = std::chrono::duration<float>(period_).count();
   }
+  warn_if_below_tick_period(std::chrono::duration_cast<std::chrono::microseconds>(period),
+                            "period");
   logger_.info("Period set to {:.3f} s", period.count());
 }
 

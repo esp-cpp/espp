@@ -161,6 +161,16 @@ public:
 protected:
   bool timer_callback_fn(std::mutex &m, std::condition_variable &cv, bool &task_notified);
 
+  /// @brief Warn if a period/delay is at or near the FreeRTOS tick period.
+  /// @details On ESP / FreeRTOS the scheduler can only resolve timing to a
+  ///          single tick (1 / CONFIG_FREERTOS_HZ), so a period or delay that
+  ///          is shorter than - or similar to - the tick period cannot be
+  ///          honored accurately. This logs a warning in that case.
+  /// @param duration The period or delay to check.
+  /// @param what A short label ("period" or "delay") used in the warning.
+  /// @note Does nothing off ESP_PLATFORM or when the duration is <= 0.
+  void warn_if_below_tick_period(const std::chrono::microseconds &duration, const char *what) const;
+
   std::recursive_mutex mutex_;          ///< Mutex to protect the timer state.
   std::chrono::microseconds period_{0}; ///< The period of the timer. If 0, the timer will run once.
   std::chrono::microseconds delay_{0};  ///< The delay before the timer starts.
