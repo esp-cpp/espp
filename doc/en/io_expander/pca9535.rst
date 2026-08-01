@@ -1,0 +1,23 @@
+PCA9535 / PCA9555 I/O Expander
+******************************
+
+The `PCA9535` (and the register-identical `PCA9555`) is a 16-bit I2C GPIO
+expander with two 8-bit ports. Each pin can be configured as an input or an
+output, with optional input polarity inversion. The `PCA9535` additionally
+provides an open-drain interrupt output.
+
+The `espp::Pca9535` component allows the user to read the input pins, drive the
+output pins, and configure per-port direction and polarity over I2C.
+
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   pca9535_example
+
+.. ---------------------------- API Reference ----------------------------------
+
+API Reference
+-------------
+
+.. include-build-file:: inc/pca9535.inc

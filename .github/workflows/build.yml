@@ -57,6 +57,8 @@ jobs:
           target: esp32
         - path: 'components/bmi270/example'
           target: esp32p4
+        - path: 'components/bq27220/example'
+          target: esp32
         - path: 'components/button/example'
           target: esp32
         - path: 'components/byte90/example'
@@ -141,6 +143,8 @@ jobs:
           target: esp32
         - path: 'components/led_strip/example'
           target: esp32
+        - path: 'components/lilygo-t5-47/example'
+          target: esp32s3
         - path: 'components/logger/example'
           target: esp32
         - path: 'components/lp5817/example'
@@ -177,6 +181,8 @@ jobs:
           target: esp32s3
         - path: 'components/odrive_ascii/example'
           target: esp32
+        - path: 'components/pca9535/example'
+          target: esp32s3
         - path: 'components/pcf85063/example'
           target: esp32s3
         - path: 'components/pi4ioe5v/example'
