@@ -104,12 +104,14 @@ Timer::Timer(const Timer::AdvancedConfig &config)
 Timer::~Timer() { cancel(); }
 
 bool Timer::start() {
-  if (is_running()) {
+  // Atomically claim the start: only one caller can flip running_ from false to
+  // true. This closes the race where two concurrent start() calls both observe
+  // "not running" and both go on to start the task.
+  bool expected = false;
+  if (!running_.compare_exchange_strong(expected, true)) {
     logger_.info("timer is already running, not starting");
     return true;
   }
-  // set the flag here to avoid race condition
-  running_ = true;
   float local_period_float;
   float local_delay_float;
   std::chrono::time_point<std::chrono::steady_clock> local_wakeup_time;

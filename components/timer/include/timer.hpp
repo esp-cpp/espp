@@ -35,6 +35,20 @@ namespace espp {
 ///       long time, then the timer will not be able to keep up with the
 ///       period.
 ///
+/// @note Timing resolution. On ESP / FreeRTOS the timer waits on the
+///       scheduler, which can only resolve time to a single tick
+///       (1 / CONFIG_FREERTOS_HZ seconds; e.g. 10 ms at the 100 Hz default,
+///       1 ms at 1000 Hz). A period or delay that is shorter than - or within
+///       a couple of ticks of - the tick period cannot be honored accurately:
+///       it will be rounded up to a whole number of ticks and can jitter by up
+///       to a full tick. The constructor, set_period() and start(delay) log a
+///       warning when the requested period/delay is at or near the tick
+///       period. For sub-tick or highly accurate periodic work, either raise
+///       CONFIG_FREERTOS_HZ or use the esp_timer-based HighResolutionTimer
+///       instead. The timer schedules against an absolute wake-up time (the
+///       k-th callback targets start + k*period), so it does not accumulate
+///       drift even when individual iterations jitter.
+///
 /// \section timer_ex1 Timer Example 1
 /// \snippet timer_example.cpp timer example
 /// \section timer_ex2 Timer Watchdog Example
