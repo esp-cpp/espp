@@ -36,8 +36,6 @@ class Gui {
 public:
   /// Configuration for the Gui
   struct Config {
-    // A reference member is always bound at aggregate init (false positive).
-    // cppcheck-suppress uninitMemberVarNoCtor
     espp::LilyGoT547 &board;                                          ///< The board BSP
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; ///< Log verbosity
   };
