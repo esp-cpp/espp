@@ -90,6 +90,8 @@ public:
     NONE,  /**< No verbosity - logger will not print anything. */
   };
 
+  using clock_t = std::chrono::steady_clock; /**< The clock type used for rate limiting. */
+
   /**
    * @brief Configuration struct for the logger.
    */
@@ -330,8 +332,9 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
     if (level_ > espp::Logger::Verbosity::DEBUG)
       return;
     if (rate_limit_ > std::chrono::duration<float>::zero()) {
-      auto now = std::chrono::high_resolution_clock::now();
-      if (now - last_print_ < rate_limit_)
+      auto now = Logger::clock_t::now();
+      auto duration = std::chrono::duration_cast<std::chrono::duration<float>>(now - last_print_);
+      if (duration < rate_limit_)
         return;
       last_print_ = now;
     }
@@ -352,8 +355,9 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
     if (level_ > espp::Logger::Verbosity::INFO)
       return;
     if (rate_limit_ > std::chrono::duration<float>::zero()) {
-      auto now = std::chrono::high_resolution_clock::now();
-      if (now - last_print_ < rate_limit_)
+      auto now = Logger::clock_t::now();
+      auto duration = std::chrono::duration_cast<std::chrono::duration<float>>(now - last_print_);
+      if (duration < rate_limit_)
         return;
       last_print_ = now;
     }
@@ -374,8 +378,9 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
     if (level_ > espp::Logger::Verbosity::WARN)
       return;
     if (rate_limit_ > std::chrono::duration<float>::zero()) {
-      auto now = std::chrono::high_resolution_clock::now();
-      if (now - last_print_ < rate_limit_)
+      auto now = Logger::clock_t::now();
+      auto duration = std::chrono::duration_cast<std::chrono::duration<float>>(now - last_print_);
+      if (duration < rate_limit_)
         return;
       last_print_ = now;
     }
@@ -396,8 +401,9 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
     if (level_ > espp::Logger::Verbosity::ERROR)
       return;
     if (rate_limit_ > std::chrono::duration<float>::zero()) {
-      auto now = std::chrono::high_resolution_clock::now();
-      if (now - last_print_ < rate_limit_)
+      auto now = Logger::clock_t::now();
+      auto duration = std::chrono::duration_cast<std::chrono::duration<float>>(now - last_print_);
+      if (duration < rate_limit_)
         return;
       last_print_ = now;
     }
@@ -482,7 +488,7 @@ protected:
   std::string tag_;              ///< Name of the logger to be prepended to all logs.
   std::chrono::duration<float> rate_limit_{
       0.0f}; ///< Rate limit for the logger. If set to 0, no rate limiting will be performed.
-  std::chrono::high_resolution_clock::time_point
+  Logger::clock_t::time_point
       last_print_{};                     ///< Last time a log was printed. Used for rate limiting.
   std::atomic<bool> include_time_{true}; ///< Whether to include the time in the log.
   std::atomic<espp::Logger::Verbosity> level_ =
