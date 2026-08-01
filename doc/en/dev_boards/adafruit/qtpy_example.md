@@ -1,2 +1,2 @@
-```{include} ../../components/qtpy/example/README.md
+```{include} ../../../../components/qtpy/example/README.md
 ```
