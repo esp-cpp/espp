@@ -1,2 +1,2 @@
-```{include} ../../components/t-dongle-s3/example/README.md
+```{include} ../../../../components/t-dongle-s3/example/README.md
 ```

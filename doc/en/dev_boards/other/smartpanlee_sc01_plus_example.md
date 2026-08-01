@@ -1,2 +1,2 @@
-```{include} ../../components/smartpanlee-sc01-plus/example/README.md
+```{include} ../../../../components/smartpanlee-sc01-plus/example/README.md
 ```

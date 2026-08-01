@@ -1,2 +1,2 @@
-```{include} ../../components/motorgo-axis/example/README.md
+```{include} ../../../../components/motorgo-axis/example/README.md
 ```
