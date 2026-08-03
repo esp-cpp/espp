@@ -1642,10 +1642,6 @@ void py_init_module_espp(py::module &m) {
                  "*\n     * @brief Gives access to IPv4 sockaddr structure (sockaddr_in) for use\n "
                  "    *        with low level socket calls like sendto / recvfrom.\n     * @return "
                  "*sockaddr_in pointer to ipv4 data structure\n")
-            .def("ipv6_ptr", &espp::Socket::Info::ipv6_ptr,
-                 "*\n     * @brief Gives access to IPv6 sockaddr structure (sockaddr_in6) for "
-                 "use\n     *        with low level socket calls like sendto / recvfrom.\n     * "
-                 "@return *sockaddr_in6 pointer to ipv6 data structure\n")
             .def("update", &espp::Socket::Info::update,
                  "*\n     * @brief Will update address and port based on the curent data in raw.\n")
             .def("from_sockaddr",
@@ -1656,11 +1652,6 @@ void py_init_module_espp(py::module &m) {
                  "@param &source_address sockaddr info filled out by recvfrom.\n")
             .def("from_sockaddr",
                  py::overload_cast<const struct sockaddr_in &>(&espp::Socket::Info::from_sockaddr),
-                 py::arg("source_address"),
-                 "*\n     * @brief Fill this Info from the provided sockaddr struct.\n     * "
-                 "@param &source_address sockaddr info filled out by recvfrom.\n")
-            .def("from_sockaddr",
-                 py::overload_cast<const struct sockaddr_in6 &>(&espp::Socket::Info::from_sockaddr),
                  py::arg("source_address"),
                  "*\n     * @brief Fill this Info from the provided sockaddr struct.\n     * "
                  "@param &source_address sockaddr info filled out by recvfrom.\n");
@@ -2354,6 +2345,238 @@ void py_init_module_espp(py::module &m) {
            "/ @brief Check if the timer is running.\n/ @details Checks if the timer is running.\n/ "
            "@return True if the timer is running, False otherwise.");
   ////////////////////    </generated_from:timer.hpp>    ////////////////////
+
+  ////////////////////    <generated_from:trajectory_planner.hpp>    ////////////////////
+  auto pyClassTrajectoryPlanner = py::class_<espp::TrajectoryPlanner>(
+      m, "TrajectoryPlanner", py::dynamic_attr(),
+      "*\n *  @brief Converts normalized joystick velocity commands into smooth,\n *         "
+      "dynamically feasible chassis motion commands (v, w).\n *\n *  The planner is drive-system "
+      "independent — it does not know about wheel\n *  geometry or kinematics. It only enforces "
+      "velocity, acceleration, and\n *  jerk limits on chassis-level commands. The downstream "
+      "kinematics layer\n *  converts (v_ref, w_ref) into individual motor commands.\n *\n *  ### "
+      "Algorithm\n *  The jerk-limited mode uses a discrete optimal-control approach: at each\n *  "
+      "step the planner computes the minimum velocity-change distance needed to\n *  decelerate "
+      "the current acceleration to zero, then decides whether to\n *  accelerate, maintain, or "
+      "decelerate to land exactly on the target without\n *  overshoot — equivalent to a "
+      "time-optimal S-curve under jerk and\n *  acceleration constraints.\n *\n *  ### Profiles\n "
+      "*  Motion limits are grouped into two MotionProfile objects inside Config:\n *  - "
+      "**driving_profile** — used whenever the target is non-zero.\n *  - **stopping_profile** — "
+      "used when the target is (0, 0). Setting jerk to 0\n *    gives a trapezoidal stop; higher "
+      "acceleration gives faster, firmer braking.\n *\n *  A MotionProfile selects its mode "
+      "automatically:\n *  - **Trapezoidal**: `max_linear_jerk == 0 && max_angular_jerk == 0`\n *  "
+      "- **S-curve**: either jerk field is non-zero\n *\n *  ### Timing\n *  Two independent "
+      "`espp::Timer` instances run internally:\n *  - **planning timer** — calls `update()` at "
+      "`planning_period` (default 20 ms / 50 Hz).\n *    Recommended range: 5–200 ms on "
+      "microcontrollers.\n *  - **callback timer** — fires `output_callback` at `callback_period` "
+      "(default 40 ms).\n *    Should be >= 2× planning_period (Nyquist); faster rates repeat the "
+      "same output.\n *\n *  This class is thread-safe: set_target(), get_target(), output(), "
+      "stop(),\n *  and reset() may be called from different threads concurrently.\n *\n * "
+      "\\section trajectory_planner_ex0 Quick-Start: Full Public API\n * \\snippet "
+      "trajectory_planner_example.cpp trajectory_planner quickstart\n * \\section "
+      "trajectory_planner_ex1 S-Curve Driving / Trapezoidal Stop\n * \\snippet "
+      "trajectory_planner_example.cpp trajectory_planner example\n * \\section "
+      "trajectory_planner_ex2 High-Speed S-Curve with Centripetal Limiting\n * \\snippet "
+      "trajectory_planner_example.cpp trajectory_planner jerk example\n * \\section "
+      "trajectory_planner_ex3 Constraint Validation\n * \\snippet trajectory_planner_example.cpp "
+      "trajectory_planner validation\n");
+
+  { // inner classes & enums of TrajectoryPlanner
+    auto pyClassTrajectoryPlanner_ClassMotionCommand =
+        py::class_<espp::TrajectoryPlanner::MotionCommand>(
+            pyClassTrajectoryPlanner, "MotionCommand", py::dynamic_attr(),
+            "*\n   * @brief Chassis motion command produced by the planner.\n")
+            .def(py::init<>([](float linear_velocity = 0.0f, float angular_velocity = 0.0f) {
+                   auto r_ctor_ = std::make_unique<espp::TrajectoryPlanner::MotionCommand>();
+                   r_ctor_->linear_velocity = linear_velocity;
+                   r_ctor_->angular_velocity = angular_velocity;
+                   return r_ctor_;
+                 }),
+                 py::arg("linear_velocity") = 0.0f, py::arg("angular_velocity") = 0.0f)
+            .def_readwrite("linear_velocity",
+                           &espp::TrajectoryPlanner::MotionCommand::linear_velocity,
+                           "*< Linear velocity reference (m/s).")
+            .def_readwrite("angular_velocity",
+                           &espp::TrajectoryPlanner::MotionCommand::angular_velocity,
+                           "*< Angular velocity reference (rad/s).");
+    auto pyClassTrajectoryPlanner_ClassMotionProfile =
+        py::class_<espp::TrajectoryPlanner::MotionProfile>(
+            pyClassTrajectoryPlanner, "MotionProfile", py::dynamic_attr(),
+            "*\n   * @brief Acceleration and jerk limits for one phase of motion.\n   *\n   * Set "
+            "max_linear_jerk / max_angular_jerk to 0 for a trapezoidal (ramp)\n   * profile, or to "
+            "a positive value for an S-curve profile.\n   *\n   * @note Using a trapezoidal "
+            "stopping profile (jerk = 0) is recommended to\n   *       avoid S-curve overshoot "
+            "past zero when the planner decelerates from\n   *       a jerk-limited driving "
+            "phase.\n")
+            .def(py::init<>([](float max_linear_acceleration = 0.0f,
+                               float max_angular_acceleration = 0.0f, float max_linear_jerk = 0.0f,
+                               float max_angular_jerk = 0.0f) {
+                   auto r_ctor_ = std::make_unique<espp::TrajectoryPlanner::MotionProfile>();
+                   r_ctor_->max_linear_acceleration = max_linear_acceleration;
+                   r_ctor_->max_angular_acceleration = max_angular_acceleration;
+                   r_ctor_->max_linear_jerk = max_linear_jerk;
+                   r_ctor_->max_angular_jerk = max_angular_jerk;
+                   return r_ctor_;
+                 }),
+                 py::arg("max_linear_acceleration") = 0.0f,
+                 py::arg("max_angular_acceleration") = 0.0f, py::arg("max_linear_jerk") = 0.0f,
+                 py::arg("max_angular_jerk") = 0.0f)
+            .def_readwrite("max_linear_acceleration",
+                           &espp::TrajectoryPlanner::MotionProfile::max_linear_acceleration,
+                           "*< Linear acceleration limit (m/s²).")
+            .def_readwrite("max_angular_acceleration",
+                           &espp::TrajectoryPlanner::MotionProfile::max_angular_acceleration,
+                           "*< Angular acceleration limit (rad/s²).")
+            .def_readwrite("max_linear_jerk",
+                           &espp::TrajectoryPlanner::MotionProfile::max_linear_jerk,
+                           "*< Linear jerk limit (m/s³). 0 = trapezoidal.")
+            .def_readwrite("max_angular_jerk",
+                           &espp::TrajectoryPlanner::MotionProfile::max_angular_jerk,
+                           "*< Angular jerk limit (rad/s³). 0 = trapezoidal.");
+    auto pyClassTrajectoryPlanner_ClassConfig =
+        py::class_<espp::TrajectoryPlanner::Config>(
+            pyClassTrajectoryPlanner, "Config", py::dynamic_attr(),
+            "*\n   * @brief Configuration for the TrajectoryPlanner.\n")
+            .def(
+                py::init<>(
+                    [](float max_linear_velocity = float(), float max_angular_velocity = float(),
+                       espp::TrajectoryPlanner::MotionProfile driving_profile =
+                           espp::TrajectoryPlanner::MotionProfile(),
+                       espp::TrajectoryPlanner::MotionProfile stopping_profile =
+                           espp::TrajectoryPlanner::MotionProfile(),
+                       bool enforce_motion_envelope = false,
+                       float max_centripetal_acceleration = 0.1f,
+                       espp::TrajectoryPlanner::output_callback_t output_callback = nullptr,
+                       std::chrono::duration<float> planning_period = std::chrono::milliseconds(20),
+                       std::chrono::duration<float> callback_period = std::chrono::milliseconds(40),
+                       espp::Task::BaseConfig planning_task_config = {.name = "TP_planning",
+                                                                      .stack_size_bytes = 4096,
+                                                                      .priority = 0,
+                                                                      .core_id = -1},
+                       espp::Task::BaseConfig callback_task_config = {.name = "TP_cb",
+                                                                      .stack_size_bytes = 8192,
+                                                                      .priority = 0,
+                                                                      .core_id = -1},
+                       espp::Logger::Verbosity log_level = espp::Logger::Verbosity::WARN) {
+                      auto r_ctor_ = std::make_unique<espp::TrajectoryPlanner::Config>();
+                      r_ctor_->max_linear_velocity = max_linear_velocity;
+                      r_ctor_->max_angular_velocity = max_angular_velocity;
+                      r_ctor_->driving_profile = driving_profile;
+                      r_ctor_->stopping_profile = stopping_profile;
+                      r_ctor_->enforce_motion_envelope = enforce_motion_envelope;
+                      r_ctor_->max_centripetal_acceleration = max_centripetal_acceleration;
+                      r_ctor_->output_callback = output_callback;
+                      r_ctor_->planning_period = planning_period;
+                      r_ctor_->callback_period = callback_period;
+                      r_ctor_->planning_task_config = planning_task_config;
+                      r_ctor_->callback_task_config = callback_task_config;
+                      r_ctor_->log_level = log_level;
+                      return r_ctor_;
+                    }),
+                py::arg("max_linear_velocity") = float(), py::arg("max_angular_velocity") = float(),
+                py::arg("driving_profile") = espp::TrajectoryPlanner::MotionProfile(),
+                py::arg("stopping_profile") = espp::TrajectoryPlanner::MotionProfile(),
+                py::arg("enforce_motion_envelope") = false,
+                py::arg("max_centripetal_acceleration") = 0.1f,
+                py::arg("output_callback") = py::none(),
+                py::arg("planning_period") = std::chrono::milliseconds(20),
+                py::arg("callback_period") = std::chrono::milliseconds(40),
+                py::arg("planning_task_config") = espp::Task::BaseConfig{.name = "TP_planning",
+                                                                         .stack_size_bytes = 4096,
+                                                                         .priority = 0,
+                                                                         .core_id = -1},
+                py::arg("callback_task_config") =
+                    espp::Task::BaseConfig{
+                        .name = "TP_cb", .stack_size_bytes = 8192, .priority = 0, .core_id = -1},
+                py::arg("log_level") = espp::Logger::Verbosity::WARN)
+            .def_readwrite("max_linear_velocity",
+                           &espp::TrajectoryPlanner::Config::max_linear_velocity,
+                           "*< Maximum linear velocity magnitude (m/s).")
+            .def_readwrite("max_angular_velocity",
+                           &espp::TrajectoryPlanner::Config::max_angular_velocity,
+                           "*< Maximum angular velocity magnitude (rad/s).")
+            .def_readwrite("driving_profile", &espp::TrajectoryPlanner::Config::driving_profile,
+                           "*< Accel/jerk limits used when target != (0, 0).")
+            .def_readwrite("stopping_profile", &espp::TrajectoryPlanner::Config::stopping_profile,
+                           "*< Accel/jerk limits used when target == (0, 0).\n                     "
+                           "                         Set jerk to 0 here for a clean trapezoidal "
+                           "stop\n                                              with no overshoot. "
+                           "Higher acceleration than the\n                                         "
+                           "     driving profile gives faster, firmer braking.")
+            .def_readwrite(
+                "enforce_motion_envelope",
+                &espp::TrajectoryPlanner::Config::enforce_motion_envelope,
+                "*< When True, enforces (v/vmax)²+(w/wmax)²<=1 on\n                                "
+                "              output to prevent infeasible combined commands.")
+            .def_readwrite(
+                "max_centripetal_acceleration",
+                &espp::TrajectoryPlanner::Config::max_centripetal_acceleration,
+                "*< Maximum centripetal acceleration |v·w| (m/s²).\n                               "
+                "                    0 disables the limit. Both v and w are scaled\n               "
+                "                                    proportionally when the limit is exceeded.")
+            .def_readwrite("output_callback", &espp::TrajectoryPlanner::Config::output_callback,
+                           "/**< Optional callback invoked after each update()\n                   "
+                           "                                  with the latest MotionCommand "
+                           "output.\n                                                     Leave as "
+                           "None to disable. */\n --- Periodic task configuration ---")
+            .def_readwrite("planning_period", &espp::TrajectoryPlanner::Config::planning_period,
+                           "*< Planner update\n                                                    "
+                           " rate (default 50 Hz). Recommended: 5–200 ms\n                         "
+                           "                            on microcontrollers.")
+            .def_readwrite(
+                "callback_period", &espp::TrajectoryPlanner::Config::callback_period,
+                "*< Output\n                                                     callback rate "
+                "(default 50 Hz). Should be\n                                                     "
+                ">= 2× planning_period (Nyquist); a faster\n                                       "
+                "              rate will repeat the same output.")
+            .def_readwrite("planning_task_config",
+                           &espp::TrajectoryPlanner::Config::planning_task_config,
+                           "*< Underlying task config for the timer.")
+            .def_readwrite("callback_task_config",
+                           &espp::TrajectoryPlanner::Config::callback_task_config,
+                           "*< Underlying task config for the callback timer.")
+            .def_readwrite("log_level", &espp::TrajectoryPlanner::Config::log_level,
+                           "*< Logger verbosity.");
+  } // end of inner classes & enums of TrajectoryPlanner
+
+  pyClassTrajectoryPlanner.def(py::init<const espp::TrajectoryPlanner::Config &>())
+      .def("set_config", &espp::TrajectoryPlanner::set_config, py::arg("config"),
+           py::arg("reset_state") = true,
+           "*\n   * @brief Update the planner configuration.\n   * @param config New configuration "
+           "parameters.\n   * @param reset_state If True (default), resets velocity/acceleration "
+           "state to zero.\n")
+      .def("get_config", &espp::TrajectoryPlanner::get_config,
+           "*\n   * @brief Get the current configuration.\n   * @return Const reference to the "
+           "active Config.\n")
+      .def("set_target", &espp::TrajectoryPlanner::set_target, py::arg("linear"),
+           py::arg("angular"),
+           "*\n   * @brief Set the desired chassis velocity target using normalized joystick "
+           "inputs.\n   *\n   * Both inputs are in the range [-1, +1] and are scaled internally:\n "
+           "  * @code\n   *   v_target  = linear  * max_linear_velocity\n   *   w_target  = "
+           "angular * max_angular_velocity\n   * @endcode\n   * Values outside [-1, +1] are "
+           "clamped before scaling.\n   *\n   * @param linear  Normalized linear velocity command  "
+           "[-1, +1].\n   *                +1 = full forward, -1 = full reverse.\n   * @param "
+           "angular Normalized angular velocity command [-1, +1].\n   *                +1 = full "
+           "left turn, -1 = full right turn.\n")
+      .def("get_target", &espp::TrajectoryPlanner::get_target,
+           "*\n   * @brief Get the current normalized velocity target.\n   * @note  If "
+           "enforce_motion_envelope is enabled the stored target may differ\n   *        from the "
+           "value passed to set_target() (it is projected onto the unit circle).\n   * @return "
+           "Pair of {linear, angular} in [-1, +1].\n")
+      .def("output", &espp::TrajectoryPlanner::output,
+           "*\n   * @brief Get the current smoothed motion command.\n   * @return MotionCommand "
+           "containing the trajectory-limited (v_ref, w_ref).\n")
+      .def("stop", &espp::TrajectoryPlanner::stop,
+           "*\n   * @brief Command the planner to decelerate to a full stop.\n   *\n   * "
+           "Equivalent to set_target(0, 0). The planner ramps down respecting all\n   * configured "
+           "limits rather than cutting output immediately.\n")
+      .def("reset", &espp::TrajectoryPlanner::reset,
+           "*\n   * @brief Reset velocity, acceleration state, and target to zero immediately.\n   "
+           "*\n   * The next call to output() will return (0, 0). Use after an emergency stop\n   "
+           "* or before re-initialising with a new configuration.\n")
+      .def("is_running", &espp::TrajectoryPlanner::is_running,
+           "*\n   * @brief Check whether the periodic update task is currently running.\n   * "
+           "@return True if the task is running.\n");
+  ////////////////////    </generated_from:trajectory_planner.hpp>    ////////////////////
 
   ////////////////////    <generated_from:thread_pool.hpp>    ////////////////////
   auto pyClassThreadPool = py::class_<espp::ThreadPool>(

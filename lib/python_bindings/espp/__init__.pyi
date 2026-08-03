@@ -2775,14 +2775,6 @@ class Socket:
             """
             pass
 
-        def ipv6_ptr(self) -> struct sockaddr_in6:
-            """*
-                 * @brief Gives access to IPv6 sockaddr structure (sockaddr_in6) for use
-                 *        with low level socket calls like sendto / recvfrom.
-                 * @return *sockaddr_in6 pointer to ipv6 data structure
-
-            """
-            pass
 
         def update(self) -> None:
             """*
@@ -2801,14 +2793,6 @@ class Socket:
             pass
         @overload
         def from_sockaddr(self, source_address: struct sockaddr_in) -> None:
-            """*
-                 * @brief Fill this Info from the provided sockaddr struct.
-                 * @param &source_address sockaddr info filled out by recvfrom.
-
-            """
-            pass
-        @overload
-        def from_sockaddr(self, source_address: struct sockaddr_in6) -> None:
             """*
                  * @brief Fill this Info from the provided sockaddr struct.
                  * @param &source_address sockaddr info filled out by recvfrom.
@@ -3776,6 +3760,261 @@ class Timer:
         pass
 
 ####################    </generated_from:timer.hpp>    ####################
+
+
+####################    <generated_from:trajectory_planner.hpp>    ####################
+
+
+
+
+class TrajectoryPlanner:
+    """*
+     *  @brief Converts normalized joystick velocity commands into smooth,
+     *         dynamically feasible chassis motion commands (v, w).
+     *
+     *  The planner is drive-system independent — it does not know about wheel
+     *  geometry or kinematics. It only enforces velocity, acceleration, and
+     *  jerk limits on chassis-level commands. The downstream kinematics layer
+     *  converts (v_ref, w_ref) into individual motor commands.
+     *
+     *  ### Algorithm
+     *  The jerk-limited mode uses a discrete optimal-control approach: at each
+     *  step the planner computes the minimum velocity-change distance needed to
+     *  decelerate the current acceleration to zero, then decides whether to
+     *  accelerate, maintain, or decelerate to land exactly on the target without
+     *  overshoot — equivalent to a time-optimal S-curve under jerk and
+     *  acceleration constraints.
+     *
+     *  ### Profiles
+     *  Motion limits are grouped into two MotionProfile objects inside Config:
+     *  - **driving_profile** — used whenever the target is non-zero.
+     *  - **stopping_profile** — used when the target is (0, 0). Setting jerk to 0
+     *    gives a trapezoidal stop; higher acceleration gives faster, firmer braking.
+     *
+     *  A MotionProfile selects its mode automatically:
+     *  - **Trapezoidal**: `max_linear_jerk == 0 && max_angular_jerk == 0`
+     *  - **S-curve**: either jerk field is non-zero
+     *
+     *  ### Timing
+     *  Two independent `espp::Timer` instances run internally:
+     *  - **planning timer** — calls `update()` at `planning_period` (default 20 ms / 50 Hz).
+     *    Recommended range: 5–200 ms on microcontrollers.
+     *  - **callback timer** — fires `output_callback` at `callback_period` (default 40 ms).
+     *    Should be >= 2× planning_period (Nyquist); faster rates repeat the same output.
+     *
+     *  This class is thread-safe: set_target(), get_target(), output(), stop(),
+     *  and reset() may be called from different threads concurrently.
+     *
+     * \section trajectory_planner_ex0 Quick-Start: Full Public API
+     * \snippet trajectory_planner_example.cpp trajectory_planner quickstart
+     * \section trajectory_planner_ex1 S-Curve Driving / Trapezoidal Stop
+     * \snippet trajectory_planner_example.cpp trajectory_planner example
+     * \section trajectory_planner_ex2 High-Speed S-Curve with Centripetal Limiting
+     * \snippet trajectory_planner_example.cpp trajectory_planner jerk example
+     * \section trajectory_planner_ex3 Constraint Validation
+     * \snippet trajectory_planner_example.cpp trajectory_planner validation
+
+    """
+    class MotionCommand:
+        """*
+           * @brief Chassis motion command produced by the planner.
+
+        """
+        linear_velocity: float = 0.0                                               #*< Linear velocity reference (m/s).
+        angular_velocity: float = 0.0                                              #*< Angular velocity reference (rad/s).
+        def __init__(
+            self,
+            linear_velocity: float = 0.0,
+            angular_velocity: float = 0.0
+            ) -> None:
+            """Auto-generated default constructor with named params"""
+            pass
+
+
+    class MotionProfile:
+        """*
+           * @brief Acceleration and jerk limits for one phase of motion.
+           *
+           * Set max_linear_jerk / max_angular_jerk to 0 for a trapezoidal (ramp)
+           * profile, or to a positive value for an S-curve profile.
+           *
+           * @note Using a trapezoidal stopping profile (jerk = 0) is recommended to
+           *       avoid S-curve overshoot past zero when the planner decelerates from
+           *       a jerk-limited driving phase.
+
+        """
+        max_linear_acceleration: float = 0.0                                       #*< Linear acceleration limit (m/s²).
+        max_angular_acceleration: float = 0.0                                      #*< Angular acceleration limit (rad/s²).
+        max_linear_jerk: float = 0.0                                               #*< Linear jerk limit (m/s³). 0 = trapezoidal.
+        max_angular_jerk: float = 0.0                                              #*< Angular jerk limit (rad/s³). 0 = trapezoidal.
+        def __init__(
+            self,
+            max_linear_acceleration: float = 0.0,
+            max_angular_acceleration: float = 0.0,
+            max_linear_jerk: float = 0.0,
+            max_angular_jerk: float = 0.0
+            ) -> None:
+            """Auto-generated default constructor with named params"""
+            pass
+
+    class Config:
+        """*
+           * @brief Configuration for the TrajectoryPlanner.
+
+        """
+        max_linear_velocity: float                                                 #*< Maximum linear velocity magnitude (m/s).
+        max_angular_velocity: float                                                #*< Maximum angular velocity magnitude (rad/s).
+        driving_profile: TrajectoryPlanner.MotionProfile                           #*< Accel/jerk limits used when target != (0, 0).
+        stopping_profile: TrajectoryPlanner.MotionProfile                          #*< Accel/jerk limits used when target == (0, 0).
+                                                      Set jerk to 0 here for a clean trapezoidal stop
+                                                      with no overshoot. Higher acceleration than the
+                                                      driving profile gives faster, firmer braking.
+        enforce_motion_envelope: bool = False                                      #*< When True, enforces (v/vmax)²+(w/wmax)²<=1 on
+                                                      output to prevent infeasible combined commands.
+        max_centripetal_acceleration: float = 0.1                                  #*< Maximum centripetal acceleration |v·w| (m/s²).
+                                                           0 disables the limit. Both v and w are scaled
+                                                           proportionally when the limit is exceeded.
+        output_callback: TrajectoryPlanner.output_callback_t = None                #/**< Optional callback invoked after each update()
+                                                             with the latest MotionCommand output.
+                                                             Leave as None to disable. */
+         --- Periodic task configuration ---
+        planning_period: std.chrono.duration[float] = std.chrono.milliseconds(20)  #*< Planner update
+                                                             rate (default 50 Hz). Recommended: 5–200 ms
+                                                             on microcontrollers.
+        callback_period: std.chrono.duration[float] = std.chrono.milliseconds(40)  #*< Output
+                                                             callback rate (default 50 Hz). Should be
+                                                             >= 2× planning_period (Nyquist); a faster
+                                                             rate will repeat the same output.
+        planning_task_config: Task.BaseConfig = Task.BaseConfig(
+                .name = "TP_planning",
+                .stack_size_bytes = 4096,
+                .priority = 0,
+                .core_id = -1)                                                     #*< Underlying task config for the timer.
+        callback_task_config: Task.BaseConfig = Task.BaseConfig(
+                .name = "TP_cb",
+                .stack_size_bytes = 8192,
+                .priority = 0,
+                .core_id = -1)                                                     #*< Underlying task config for the callback timer.
+        log_level: Logger.Verbosity = Logger.Verbosity.WARN                        #*< Logger verbosity.
+        def __init__(
+            self,
+            max_linear_velocity: float = float(),
+            max_angular_velocity: float = float(),
+            driving_profile: TrajectoryPlanner.MotionProfile = TrajectoryPlanner.MotionProfile(),
+            stopping_profile: TrajectoryPlanner.MotionProfile = TrajectoryPlanner.MotionProfile(),
+            enforce_motion_envelope: bool = False,
+            max_centripetal_acceleration: float = 0.1,
+            output_callback: TrajectoryPlanner.output_callback_t = None,
+            planning_period: std.chrono.duration[float] = std.chrono.milliseconds(20),
+            callback_period: std.chrono.duration[float] = std.chrono.milliseconds(40),
+            planning_task_config: Task.BaseConfig = Task.BaseConfig(.name = "TP_planning",
+                    .stack_size_bytes = 4096,
+                    .priority = 0,
+                    .core_id = -1),
+            callback_task_config: Task.BaseConfig = Task.BaseConfig(.name = "TP_cb",
+                    .stack_size_bytes = 8192,
+                    .priority = 0,
+                    .core_id = -1),
+            log_level: Logger.Verbosity = Logger.Verbosity.WARN
+            ) -> None:
+            """Auto-generated default constructor with named params"""
+            pass
+
+
+
+    def set_config(
+        self,
+        config: TrajectoryPlanner.Config,
+        reset_state: bool = True
+        ) -> None:
+        """*
+           * @brief Update the planner configuration.
+           * @param config New configuration parameters.
+           * @param reset_state If True (default), resets velocity/acceleration state to zero.
+
+        """
+        pass
+
+    def get_config(self) -> TrajectoryPlanner.Config:
+        """*
+           * @brief Get the current configuration.
+           * @return Const reference to the active Config.
+
+        """
+        pass
+
+    def set_target(self, linear: float, angular: float) -> None:
+        """*
+           * @brief Set the desired chassis velocity target using normalized joystick inputs.
+           *
+           * Both inputs are in the range [-1, +1] and are scaled internally:
+           * @code
+           *   v_target  = linear  * max_linear_velocity
+           *   w_target  = angular * max_angular_velocity
+           * @endcode
+           * Values outside [-1, +1] are clamped before scaling.
+           *
+           * @param linear  Normalized linear velocity command  [-1, +1].
+           *                +1 = full forward, -1 = full reverse.
+           * @param angular Normalized angular velocity command [-1, +1].
+           *                +1 = full left turn, -1 = full right turn.
+
+        """
+        pass
+
+    def get_target(self) -> Tuple[float, float]:
+        """*
+           * @brief Get the current normalized velocity target.
+           * @note  If enforce_motion_envelope is enabled the stored target may differ
+           *        from the value passed to set_target() (it is projected onto the unit circle).
+           * @return Pair of {linear, angular} in [-1, +1].
+
+        """
+        pass
+
+    def output(self) -> TrajectoryPlanner.MotionCommand:
+        """*
+           * @brief Get the current smoothed motion command.
+           * @return MotionCommand containing the trajectory-limited (v_ref, w_ref).
+
+        """
+        pass
+
+    def stop(self) -> None:
+        """*
+           * @brief Command the planner to decelerate to a full stop.
+           *
+           * Equivalent to set_target(0, 0). The planner ramps down respecting all
+           * configured limits rather than cutting output immediately.
+
+        """
+        pass
+
+    def reset(self) -> None:
+        """*
+           * @brief Reset velocity, acceleration state, and target to zero immediately.
+           *
+           * The next call to output() will return (0, 0). Use after an emergency stop
+           * or before re-initialising with a new configuration.
+
+        """
+        pass
+
+    def is_running(self) -> bool:
+        """*
+           * @brief Check whether the periodic update task is currently running.
+           * @return True if the task is running.
+
+        """
+        pass
+
+    def __init__(self) -> None:
+        """Auto-generated default constructor"""
+        pass
+
+
+
+####################    </generated_from:trajectory_planner.hpp>    ####################
 
 
 ####################    <generated_from:thread_pool.hpp>    ####################

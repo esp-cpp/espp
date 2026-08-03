@@ -50,6 +50,7 @@ _IMPLICIT_CTOR_FIX = {
         "      .def(py::init<const espp::Timer::AdvancedConfig &>())"
     ),
     "pyClassThreadPool": ".def(py::init<const espp::ThreadPool::Config &>())",
+    "pyClassTrajectoryPlanner": ".def(py::init<const espp::TrajectoryPlanner::Config &>())",
     "pyClassBezier_espp_Vector2f": (
         ".def(py::init<const espp::Bezier<espp::Vector2f>::Config &>())\n"
         "      .def(py::init<const espp::Bezier<espp::Vector2f>::WeightedConfig &>())"
@@ -458,6 +459,9 @@ def autogenerate() -> None:
                     include_dir + "socket/include/udp_socket.hpp",
                     include_dir + "task/include/task.hpp",
                     include_dir + "timer/include/timer.hpp",
+
+                    # NOTE: depends on timer and base_component
+                    include_dir + "trajectory_planner/include/trajectory_planner.hpp",
 
                     # NOTE: this must come after task and base_component since it depends on them
                     include_dir + "thread_pool/include/thread_pool.hpp",

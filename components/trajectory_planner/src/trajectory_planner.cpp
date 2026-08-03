@@ -90,8 +90,8 @@ void TrajectoryPlanner::set_target(float linear, float angular) {
   target_v_ = linear * config_.max_linear_velocity;
   target_w_ = angular * config_.max_angular_velocity;
 
-  // Centripetal acceleration limit: |v · ω| ≤ a_c_max
-  // Scale both v and ω proportionally to preserve the turning radius.
+  // Centripetal acceleration limit: |v · w| ≤ a_c_max
+  // Scale both v and w proportionally to preserve the turning radius.
   if (config_.max_centripetal_acceleration > 0.0f) {
     float a_c = std::abs(target_v_ * target_w_);
     if (a_c > config_.max_centripetal_acceleration) {

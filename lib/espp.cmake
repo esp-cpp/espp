@@ -41,6 +41,7 @@ set(ESPP_INCLUDES
   ${ESPP_COMPONENTS}/task/include
   ${ESPP_COMPONENTS}/thread_pool/include
   ${ESPP_COMPONENTS}/timer/include
+  ${ESPP_COMPONENTS}/trajectory_planner/include
   ${ESPP_COMPONENTS}/socket/include
   ${ESPP_COMPONENTS}/state_machine/include
   ${CMAKE_CURRENT_LIST_DIR}/include
@@ -72,6 +73,7 @@ set(ESPP_SOURCES
   ${ESPP_COMPONENTS}/task/src/task.cpp
   ${ESPP_COMPONENTS}/thread_pool/src/thread_pool.cpp
   ${ESPP_COMPONENTS}/timer/src/timer.cpp
+  ${ESPP_COMPONENTS}/trajectory_planner/src/trajectory_planner.cpp
   ${ESPP_COMPONENTS}/socket/src/socket.cpp
   ${ESPP_COMPONENTS}/socket/src/tcp_socket.cpp
   ${ESPP_COMPONENTS}/socket/src/udp_socket.cpp

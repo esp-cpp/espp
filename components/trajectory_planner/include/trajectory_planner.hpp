@@ -15,12 +15,12 @@ namespace espp {
 
 /**
  *  @brief Converts normalized joystick velocity commands into smooth,
- *         dynamically feasible chassis motion commands (v, ω).
+ *         dynamically feasible chassis motion commands (v, w).
  *
  *  The planner is drive-system independent — it does not know about wheel
  *  geometry or kinematics. It only enforces velocity, acceleration, and
  *  jerk limits on chassis-level commands. The downstream kinematics layer
- *  converts (v_ref, ω_ref) into individual motor commands.
+ *  converts (v_ref, w_ref) into individual motor commands.
  *
  *  ### Algorithm
  *  The jerk-limited mode uses a discrete optimal-control approach: at each
@@ -45,7 +45,7 @@ namespace espp {
  *  - **planning timer** — calls `update()` at `planning_period` (default 20 ms / 50 Hz).
  *    Recommended range: 5–200 ms on microcontrollers.
  *  - **callback timer** — fires `output_callback` at `callback_period` (default 40 ms).
- *    Should be ≥ 2× planning_period (Nyquist); faster rates repeat the same output.
+ *    Should be >= 2× planning_period (Nyquist); faster rates repeat the same output.
  *
  *  This class is thread-safe: set_target(), get_target(), output(), stop(),
  *  and reset() may be called from different threads concurrently.
@@ -65,8 +65,8 @@ public:
    * @brief Chassis motion command produced by the planner.
    */
   struct MotionCommand {
-    float linear_velocity{0.0f};  /**< Linear velocity reference (m/s). */
-    float angular_velocity{0.0f}; /**< Angular velocity reference (rad/s). */
+    float linear_velocity = 0.0f;  /**< Linear velocity reference (m/s). */
+    float angular_velocity = 0.0f; /**< Angular velocity reference (rad/s). */
   };
 
   /**
@@ -89,50 +89,52 @@ public:
    *       a jerk-limited driving phase.
    */
   struct MotionProfile {
-    float max_linear_acceleration;  /**< Linear acceleration limit (m/s²). */
-    float max_angular_acceleration; /**< Angular acceleration limit (rad/s²). */
-    float max_linear_jerk{0.0f};    /**< Linear jerk limit (m/s³). 0 = trapezoidal. */
-    float max_angular_jerk{0.0f};   /**< Angular jerk limit (rad/s³). 0 = trapezoidal. */
+    float max_linear_acceleration = 0.0f;  /**< Linear acceleration limit (m/s²). */
+    float max_angular_acceleration = 0.0f; /**< Angular acceleration limit (rad/s²). */
+    float max_linear_jerk = 0.0f;          /**< Linear jerk limit (m/s³). 0 = trapezoidal. */
+    float max_angular_jerk = 0.0f;         /**< Angular jerk limit (rad/s³). 0 = trapezoidal. */
   };
 
   /**
    * @brief Configuration for the TrajectoryPlanner.
    */
   struct Config {
-    float max_linear_velocity;           /**< Maximum linear velocity magnitude (m/s). */
-    float max_angular_velocity;          /**< Maximum angular velocity magnitude (rad/s). */
-    MotionProfile driving_profile;       /**< Accel/jerk limits used when target != (0, 0). */
-    MotionProfile stopping_profile;      /**< Accel/jerk limits used when target == (0, 0).
-                                              Set jerk to 0 here for a clean trapezoidal stop
-                                              with no overshoot. Higher acceleration than the
-                                              driving profile gives faster, firmer braking. */
-    bool enforce_motion_envelope{false}; /**< When true, enforces (v/vmax)²+(ω/ωmax)²≤1 on
-                                              output to prevent infeasible combined commands. */
-    float max_centripetal_acceleration{0.1f}; /**< Maximum centripetal acceleration |v·ω| (m/s²).
-                                                   0 disables the limit. Both v and ω are scaled
+    float max_linear_velocity;  /**< Maximum linear velocity magnitude (m/s). */
+    float max_angular_velocity; /**< Maximum angular velocity magnitude (rad/s). */
+    espp::TrajectoryPlanner::MotionProfile
+        driving_profile; /**< Accel/jerk limits used when target != (0, 0). */
+    espp::TrajectoryPlanner::MotionProfile stopping_profile; /**< Accel/jerk limits used when target
+                                         == (0, 0). Set jerk to 0 here for a clean trapezoidal stop
+                                         with no overshoot. Higher acceleration than the
+                                         driving profile gives faster, firmer braking. */
+    bool enforce_motion_envelope = false;      /**< When true, enforces (v/vmax)²+(w/wmax)²<=1 on
+                                                   output to prevent infeasible combined commands. */
+    float max_centripetal_acceleration = 0.1f; /**< Maximum centripetal acceleration |v·w| (m/s²).
+                                                   0 disables the limit. Both v and w are scaled
                                                    proportionally when the limit is exceeded. */
-    output_callback_t output_callback{nullptr}; /**< Optional callback invoked after each update()
-                                                     with the latest MotionCommand output.
-                                                     Leave as nullptr to disable. */
+    espp::TrajectoryPlanner::output_callback_t output_callback =
+        nullptr; /**< Optional callback invoked after each update()
+with the latest MotionCommand output.
+Leave as nullptr to disable. */
     // --- Periodic task configuration ---
-    std::chrono::duration<float> planning_period{std::chrono::milliseconds(20)}; /**< Planner update
-                                                     rate (default 50 Hz). Recommended: 5–200 ms
-                                                     on microcontrollers. */
-    std::chrono::duration<float> callback_period{std::chrono::milliseconds(40)}; /**< Output
+    std::chrono::duration<float> planning_period = std::chrono::milliseconds(20); /**< Planner
+                                                     update rate (default 50 Hz). Recommended: 5–200
+                                                     ms on microcontrollers. */
+    std::chrono::duration<float> callback_period = std::chrono::milliseconds(40); /**< Output
                                                      callback rate (default 50 Hz). Should be
-                                                     ≥ 2× planning_period (Nyquist); a faster
+                                                     >= 2× planning_period (Nyquist); a faster
                                                      rate will repeat the same output. */
-    espp::Task::BaseConfig planning_task_config{
+    espp::Task::BaseConfig planning_task_config = {
         .name = "TP_planning",
         .stack_size_bytes = 4096,
         .priority = 0,
         .core_id = -1}; /**< Underlying task config for the timer. */
-    espp::Task::BaseConfig callback_task_config{
+    espp::Task::BaseConfig callback_task_config = {
         .name = "TP_cb",
         .stack_size_bytes = 8192,
         .priority = 0,
         .core_id = -1}; /**< Underlying task config for the callback timer. */
-    espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; /**< Logger verbosity. */
+    espp::Logger::Verbosity log_level = espp::Logger::Verbosity::WARN; /**< Logger verbosity. */
   };
 
   /**
@@ -166,7 +168,7 @@ public:
    * Both inputs are in the range [-1, +1] and are scaled internally:
    * @code
    *   v_target  = linear  * max_linear_velocity
-   *   ω_target  = angular * max_angular_velocity
+   *   w_target  = angular * max_angular_velocity
    * @endcode
    * Values outside [-1, +1] are clamped before scaling.
    *
@@ -187,9 +189,9 @@ public:
 
   /**
    * @brief Get the current smoothed motion command.
-   * @return MotionCommand containing the trajectory-limited (v_ref, ω_ref).
+   * @return MotionCommand containing the trajectory-limited (v_ref, w_ref).
    */
-  MotionCommand output() const;
+  espp::TrajectoryPlanner::MotionCommand output() const;
 
   /**
    * @brief Command the planner to decelerate to a full stop.
@@ -216,10 +218,10 @@ public:
 protected:
   /// Internal motion state tracked between update() calls.
   struct State {
-    float v{0.0f};   /**< Current linear velocity (m/s). */
-    float w{0.0f};   /**< Current angular velocity (rad/s). */
-    float a_v{0.0f}; /**< Current linear acceleration (m/s²) — jerk-limited mode only. */
-    float a_w{0.0f}; /**< Current angular acceleration (rad/s²) — jerk-limited mode only. */
+    float v = 0.0f;   /**< Current linear velocity (m/s). */
+    float w = 0.0f;   /**< Current angular velocity (rad/s). */
+    float a_v = 0.0f; /**< Current linear acceleration (m/s²) — jerk-limited mode only. */
+    float a_w = 0.0f; /**< Current angular acceleration (rad/s²) — jerk-limited mode only. */
   };
 
   /**
@@ -251,13 +253,13 @@ protected:
   void update(float dt);
 
   Config config_;
-  State state_{};
-  float target_v_{0.0f};
-  float target_w_{0.0f};
-  output_callback_t output_callback_{nullptr};
-  std::unique_ptr<espp::Timer> timer_;
-  std::unique_ptr<espp::Timer> callback_timer_;
-  std::chrono::steady_clock::time_point last_update_time_;
+  State state_ = {};
+  float target_v_ = 0.0f;
+  float target_w_ = 0.0f;
+  espp::TrajectoryPlanner::output_callback_t output_callback_ = nullptr;
+  std::unique_ptr<espp::Timer> timer_ = nullptr;
+  std::unique_ptr<espp::Timer> callback_timer_ = nullptr;
+  std::chrono::steady_clock::time_point last_update_time_ = std::chrono::steady_clock::now();
   mutable std::recursive_mutex mutex_;
 };
 
