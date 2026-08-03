@@ -87,23 +87,4 @@ menu "RTPS Example Configuration"
         help
             IPv4 multicast group used for the <topic-prefix>/response topic.
 
-    config ESP_WIFI_SSID
-        string "WiFi SSID"
-        default ""
-        help
-            SSID (network name) for the example to connect to.
-
-    config ESP_WIFI_PASSWORD
-        string "WiFi Password"
-        default ""
-        help
-            WiFi password (WPA or WPA2) for the example to use.
-
-    config ESP_MAXIMUM_RETRY
-        int "Maximum retry"
-        default 5
-        help
-            Set the maximum retry count to avoid reconnecting forever when the
-            network is unavailable.
-
 endmenu

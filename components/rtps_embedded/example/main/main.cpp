@@ -2,14 +2,15 @@
 #include <cstdio>
 #include <cstring>
 #include <string>
+#include <thread>
 
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-#include "rtps/entities/Domain.h"
+#include "esp32-ethernet-kit.hpp"
 #include "logger.hpp"
-#include "wifi_sta.hpp"
+#include "rtps/entities/Domain.h"
 
 using namespace std::chrono_literals;
 
@@ -28,9 +29,9 @@ bool send_text_message(const char *text) {
   }
 
   const size_t len = strnlen(text, 127);
-  const rtps::CacheChange *change = s_writer->newChange(
-      rtps::ChangeKind_t::ALIVE, reinterpret_cast<const uint8_t *>(text),
-      static_cast<rtps::DataSize_t>(len + 1));
+  const rtps::CacheChange *change =
+      s_writer->newChange(rtps::ChangeKind_t::ALIVE, reinterpret_cast<const uint8_t *>(text),
+                          static_cast<rtps::DataSize_t>(len + 1));
 
   return change != nullptr;
 }
@@ -42,8 +43,7 @@ void reader_cb(void * /*callee*/, const rtps::ReaderCacheChange &change) {
           ? change.getDataSize()
           : static_cast<rtps::DataSize_t>(sizeof(buffer) - 1);
 
-  if (copy_len == 0 ||
-      !change.copyInto(reinterpret_cast<uint8_t *>(buffer), sizeof(buffer))) {
+  if (copy_len == 0 || !change.copyInto(reinterpret_cast<uint8_t *>(buffer), sizeof(buffer))) {
     return;
   }
 
@@ -108,15 +108,15 @@ extern "C" void embedded_rtps_start(const rtps::Ip4AddressBytes &local_ip) {
     return;
   }
 
-  s_writer = s_domain->createWriter(*s_participant, pub_topic.c_str(),
-                                    "std_msgs::msg::String", false);
+  s_writer =
+      s_domain->createWriter(*s_participant, pub_topic.c_str(), "std_msgs::msg::String", false);
   if (s_writer == nullptr) {
     ESP_LOGE(TAG, "Failed to create RTPS writer");
     return;
   }
 
-  s_reader = s_domain->createReader(*s_participant, sub_topic.c_str(),
-                                    "std_msgs::msg::String", false);
+  s_reader =
+      s_domain->createReader(*s_participant, sub_topic.c_str(), "std_msgs::msg::String", false);
   if (s_reader == nullptr) {
     ESP_LOGE(TAG, "Failed to create RTPS reader");
     return;
@@ -132,40 +132,52 @@ extern "C" void embedded_rtps_start(const rtps::Ip4AddressBytes &local_ip) {
 #endif
 
   s_started = true;
-  ESP_LOGI(TAG, "started as '%s': pub=%s sub=%s",
-           CONFIG_RTPS_EXAMPLE_NODE_NAME, pub_topic.c_str(), sub_topic.c_str());
+  ESP_LOGI(TAG, "started as '%s': pub=%s sub=%s", CONFIG_RTPS_EXAMPLE_NODE_NAME, pub_topic.c_str(),
+           sub_topic.c_str());
 }
-
 
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = TAG, .level = espp::Logger::Verbosity::INFO});
 
   //! [rtps example]
-  std::string ip_address;
-  espp::WifiSta wifi_sta({
-      .ssid = CONFIG_ESP_WIFI_SSID,
-      .password = CONFIG_ESP_WIFI_PASSWORD,
-      .num_connect_retries = CONFIG_ESP_MAXIMUM_RETRY,
-      .on_connected = nullptr,
-      .on_disconnected = nullptr,
-      .on_got_ip = [&ip_address](ip_event_got_ip_t *eventdata) {
-        ip_address = fmt::format("{}.{}.{}.{}", IP2STR(&eventdata->ip_info.ip));
-        fmt::print("got IP: {}\n", ip_address);
-      },
+  auto &board = espp::Esp32EthernetKit::get();
+
+  // Static IP 192.168.4.1/24 — ip_info zero-initialised uses that default.
+  espp::Esp32EthernetKit::ServerConfig srv_cfg;
+
+  bool eth_ok = board.initialize_ethernet({
+      .mode = espp::Esp32EthernetKit::DhcpMode::SERVER,
+      .server_config = srv_cfg,
+      .on_link_up = [&]() { logger.info("Ethernet link up"); },
+      .on_link_down = [&]() { logger.warn("Ethernet link down"); },
+      .on_got_ip =
+          [&](esp_ip4_addr_t ip) {
+            logger.info("Ethernet DHCP server ready at {}.{}.{}.{}", esp_ip4_addr1_16(&ip),
+                        esp_ip4_addr2_16(&ip), esp_ip4_addr3_16(&ip), esp_ip4_addr4_16(&ip));
+          },
+      .on_lost_ip = [&]() { logger.warn("Ethernet lost IP"); },
   });
 
-  logger.info("Waiting for WiFi connection...");
-  while (!wifi_sta.is_connected()) {
-    std::this_thread::sleep_for(100ms);
-  }
-  logger.info("WiFi connected, local IP {}", ip_address);
-
-  rtps::Ip4AddressBytes local_ip{0, 0, 0, 0};
-  if (std::sscanf(ip_address.c_str(), "%hhu.%hhu.%hhu.%hhu",
-                  &local_ip[0], &local_ip[1], &local_ip[2], &local_ip[3]) != 4) {
-    logger.error("Failed to parse local IP {}", ip_address);
+  if (!eth_ok) {
+    logger.error("Ethernet initialization failed");
     return;
   }
+
+  logger.info("Waiting for Ethernet link...");
+  while (!board.is_ethernet_connected()) {
+    std::this_thread::sleep_for(100ms);
+  }
+
+  auto eth_ip = board.ethernet_ip();
+  logger.info("Ethernet up, IP {}.{}.{}.{}", esp_ip4_addr1_16(&eth_ip), esp_ip4_addr2_16(&eth_ip),
+              esp_ip4_addr3_16(&eth_ip), esp_ip4_addr4_16(&eth_ip));
+
+  rtps::Ip4AddressBytes local_ip{
+      static_cast<uint8_t>(esp_ip4_addr1_16(&eth_ip)),
+      static_cast<uint8_t>(esp_ip4_addr2_16(&eth_ip)),
+      static_cast<uint8_t>(esp_ip4_addr3_16(&eth_ip)),
+      static_cast<uint8_t>(esp_ip4_addr4_16(&eth_ip)),
+  };
 
   embedded_rtps_start(local_ip);
   //! [rtps example]
