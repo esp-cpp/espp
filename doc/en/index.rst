@@ -80,6 +80,7 @@ capability; all supported development boards are collected under
    ble/index
    ftp/index
    nfc/index
+   wireless/index
    protocols/index
 
 .. toctree::

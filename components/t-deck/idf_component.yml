@@ -20,11 +20,13 @@ dependencies:
   espp/base_component: '>=1.0'
   espp/display: '>=1.0'
   espp/display_drivers: '>=1.0'
+  espp/gps: '>=1.0'
   espp/gt911: '>=1.0'
   espp/i2c: '>=1.0'
   espp/input_drivers: '>=1.0'
   espp/interrupt: '>=1.0'
   espp/spi: '>=1.0'
+  espp/sx126x: '>=1.0'
   espp/task: '>=1.0'
   espp/t_keyboard: '>=1.0'
 targets:

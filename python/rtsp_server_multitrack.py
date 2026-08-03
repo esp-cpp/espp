@@ -36,7 +36,7 @@ import numpy as np
 from zeroconf import IPVersion, ServiceInfo, Zeroconf
 from simplejpeg import encode_jpeg
 
-from support_loader import espp
+import espp
 
 try:
     import sounddevice as sd

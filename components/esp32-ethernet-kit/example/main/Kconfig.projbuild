@@ -1,0 +1,45 @@
+menu "ESP32-Ethernet-Kit Example Configuration"
+
+  choice EXAMPLE_ETH_DHCP_MODE
+    prompt "DHCP mode"
+    default EXAMPLE_ETH_DHCP_CLIENT
+    help
+      Select whether the board acts as a DHCP client (acquires an IP from
+      an upstream router) or as a DHCP server (assigns IPs to connected hosts).
+
+    config EXAMPLE_ETH_DHCP_CLIENT
+      bool "DHCP client"
+      help
+        The ESP32 requests an IP address from the network's DHCP server.
+
+    config EXAMPLE_ETH_DHCP_SERVER
+      bool "DHCP server"
+      help
+        The ESP32 acts as a DHCP server. It gets a static IP and hands out
+        addresses to connected hosts. Configure the static IP below.
+  endchoice
+
+  if EXAMPLE_ETH_DHCP_SERVER
+
+    config EXAMPLE_ETH_SERVER_IP
+      string "Server static IP address"
+      default "192.168.4.1"
+      help
+        Static IPv4 address assigned to the ESP32's Ethernet interface when
+        operating as a DHCP server.
+
+    config EXAMPLE_ETH_SERVER_NETMASK
+      string "Server netmask"
+      default "255.255.255.0"
+      help
+        Netmask for the DHCP server subnet.
+
+    config EXAMPLE_ETH_SERVER_GW
+      string "Server gateway"
+      default "192.168.4.1"
+      help
+        Gateway address advertised to DHCP clients (usually the server's own IP).
+
+  endif # EXAMPLE_ETH_DHCP_SERVER
+
+endmenu

@@ -65,12 +65,14 @@ public:
      */
     struct sockaddr_in *ipv4_ptr();
 
+#if !defined(ESP_PLATFORM) || LWIP_IPV6
     /**
      * @brief Gives access to IPv6 sockaddr structure (sockaddr_in6) for use
      *        with low level socket calls like sendto / recvfrom.
      * @return *sockaddr_in6 pointer to ipv6 data structure
      */
     struct sockaddr_in6 *ipv6_ptr();
+#endif // !defined(ESP_PLATFORM) || LWIP_IPV6
 
     /**
      * @brief Will update address and port based on the curent data in raw.
@@ -89,11 +91,13 @@ public:
      */
     void from_sockaddr(const struct sockaddr_in &source_address);
 
+#if !defined(ESP_PLATFORM) || LWIP_IPV6
     /**
      * @brief Fill this Info from the provided sockaddr struct.
      * @param &source_address sockaddr info filled out by recvfrom.
      */
     void from_sockaddr(const struct sockaddr_in6 &source_address);
+#endif // !defined(ESP_PLATFORM) || LWIP_IPV6
   };
 
   /**

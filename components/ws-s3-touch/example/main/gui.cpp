@@ -1,0 +1,304 @@
+#include <utility>
+
+#include "gui.hpp"
+
+void Gui::init_ui() {
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  init_background();
+  init_label();
+  init_clock_label();
+  init_gravity_lines();
+  init_buttons();
+  init_circle_layer();
+  // disable scrolling on the screen (so that it doesn't behave weirdly when
+  // rotated and drawing with your finger)
+  lv_obj_set_scrollbar_mode(lv_screen_active(), LV_SCROLLBAR_MODE_OFF);
+  lv_obj_clear_flag(lv_screen_active(), LV_OBJ_FLAG_SCROLLABLE);
+}
+
+void Gui::deinit_ui() {
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  lv_obj_clean(lv_screen_active());
+}
+
+void Gui::init_background() {
+  auto &bsp = Bsp::get();
+  background_ = lv_obj_create(lv_screen_active());
+  lv_obj_set_size(background_, bsp.lcd_width(), bsp.lcd_height());
+  lv_obj_set_style_bg_color(background_, lv_color_make(0, 0, 0), 0);
+}
+
+void Gui::init_label() {
+  auto &bsp = Bsp::get();
+  label_ = lv_label_create(lv_screen_active());
+  lv_label_set_text(label_, "");
+  lv_label_set_long_mode(label_, LV_LABEL_LONG_WRAP);
+  lv_obj_set_width(label_, bsp.lcd_width());
+  lv_obj_align(label_, LV_ALIGN_TOP_LEFT, 0, 0);
+  lv_obj_set_style_text_align(label_, LV_TEXT_ALIGN_LEFT, 0);
+}
+
+void Gui::init_clock_label() {
+  // a label centered at the very top for the RTC time, offset down so that
+  // it's always visible
+  clock_label_ = lv_label_create(lv_screen_active());
+  lv_label_set_text(clock_label_, "");
+  lv_obj_align(clock_label_, LV_ALIGN_TOP_MID, 0, 20);
+  lv_obj_set_style_text_align(clock_label_, LV_TEXT_ALIGN_LEFT, 0);
+}
+
+void Gui::init_gravity_lines() {
+  auto &bsp = Bsp::get();
+
+  lv_style_init(&kalman_line_style_);
+  lv_style_set_line_width(&kalman_line_style_, 8);
+  lv_style_set_line_color(&kalman_line_style_, lv_palette_main(LV_PALETTE_BLUE));
+  lv_style_set_line_rounded(&kalman_line_style_, true);
+
+  kalman_line_ = lv_line_create(lv_screen_active());
+  kalman_line_points_[0] = {0, 0};
+  kalman_line_points_[1] = {bsp.lcd_width(), bsp.lcd_height()};
+  lv_line_set_points(kalman_line_, kalman_line_points_, 2);
+  lv_obj_add_style(kalman_line_, &kalman_line_style_, 0);
+
+  lv_style_init(&madgwick_line_style_);
+  lv_style_set_line_width(&madgwick_line_style_, 8);
+  lv_style_set_line_color(&madgwick_line_style_, lv_palette_main(LV_PALETTE_RED));
+  lv_style_set_line_rounded(&madgwick_line_style_, true);
+
+  madgwick_line_ = lv_line_create(lv_screen_active());
+  madgwick_line_points_[0] = {0, 0};
+  madgwick_line_points_[1] = {bsp.lcd_width(), bsp.lcd_height()};
+  lv_line_set_points(madgwick_line_, madgwick_line_points_, 2);
+  lv_obj_add_style(madgwick_line_, &madgwick_line_style_, 0);
+}
+
+void Gui::init_buttons() {
+  // a button in the top left which rotates the display through
+  // 0/90/180/270 degrees
+  rotate_button_ = lv_btn_create(lv_screen_active());
+  lv_obj_set_size(rotate_button_, 50, 50);
+  lv_obj_align(rotate_button_, LV_ALIGN_TOP_LEFT, 0, 0);
+  lv_obj_t *rotate_label = lv_label_create(rotate_button_);
+  lv_label_set_text(rotate_label, LV_SYMBOL_REFRESH);
+  lv_obj_align(rotate_label, LV_ALIGN_CENTER, 0, 0);
+  lv_obj_add_event_cb(rotate_button_, event_callback, LV_EVENT_PRESSED, this);
+
+  // a button in the top right which clears the circles
+  clear_button_ = lv_btn_create(lv_screen_active());
+  lv_obj_set_size(clear_button_, 50, 50);
+  lv_obj_align(clear_button_, LV_ALIGN_TOP_RIGHT, 0, 0);
+  lv_obj_t *clear_label = lv_label_create(clear_button_);
+  lv_label_set_text(clear_label, LV_SYMBOL_TRASH);
+  lv_obj_align(clear_label, LV_ALIGN_CENTER, 0, 0);
+  lv_obj_add_event_cb(clear_button_, event_callback, LV_EVENT_PRESSED, this);
+}
+
+void Gui::init_circle_layer() {
+  auto &bsp = Bsp::get();
+  circle_layer_ = lv_obj_create(lv_screen_active());
+  lv_obj_remove_style_all(circle_layer_);
+  lv_obj_set_size(circle_layer_, bsp.lcd_width(), bsp.lcd_height());
+  lv_obj_align(circle_layer_, LV_ALIGN_CENTER, 0, 0);
+  lv_obj_clear_flag(circle_layer_, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_clear_flag(circle_layer_, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_style_bg_opa(circle_layer_, LV_OPA_TRANSP, 0);
+  lv_obj_set_style_border_width(circle_layer_, 0, 0);
+  lv_obj_set_style_outline_width(circle_layer_, 0, 0);
+  lv_obj_set_style_shadow_width(circle_layer_, 0, 0);
+  lv_obj_add_event_cb(circle_layer_, draw_circle_layer, LV_EVENT_DRAW_MAIN, this);
+  lv_obj_move_foreground(circle_layer_);
+}
+
+bool Gui::update(std::mutex &m, std::condition_variable &cv) {
+  {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    lv_task_handler();
+  }
+  std::unique_lock<std::mutex> lock(m);
+  cv.wait_for(lock, std::chrono::milliseconds(16));
+  return false; // don't stop the task
+}
+
+void Gui::event_callback(lv_event_t *e) {
+  auto *gui = static_cast<Gui *>(lv_event_get_user_data(e));
+  if (!gui) {
+    return;
+  }
+  switch (lv_event_get_code(e)) {
+  case LV_EVENT_PRESSED:
+    gui->on_pressed(e);
+    break;
+  default:
+    break;
+  }
+}
+
+void Gui::on_pressed(lv_event_t *e) {
+  const auto *target = static_cast<const lv_obj_t *>(lv_event_get_target(e));
+  if (target == rotate_button_) {
+    logger_.info("Rotate button pressed");
+    next_rotation();
+  } else if (target == clear_button_) {
+    logger_.info("Clear button pressed");
+    clear_circles();
+  }
+}
+
+void Gui::set_label_text(std::string_view text) {
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  lv_label_set_text(label_, std::string(text).c_str());
+}
+
+void Gui::set_clock_text(std::string_view text) {
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  lv_label_set_text(clock_label_, std::string(text).c_str());
+}
+
+void Gui::next_rotation() {
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  clear_circles_impl();
+  auto rotation = lv_display_get_rotation(lv_display_get_default());
+  rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
+  lv_display_set_rotation(lv_display_get_default(), rotation);
+  update_layout();
+}
+
+void Gui::update_layout() {
+  auto &bsp = Bsp::get();
+  int width = bsp.rotated_display_width();
+  int height = bsp.rotated_display_height();
+  // update the size of the screen-filling objects and re-align the rest
+  lv_obj_set_size(background_, width, height);
+  lv_obj_set_width(label_, width);
+  lv_obj_align(label_, LV_ALIGN_TOP_LEFT, 0, 0);
+  lv_obj_align(clock_label_, LV_ALIGN_TOP_MID, 0, 20);
+  lv_obj_align(rotate_button_, LV_ALIGN_TOP_LEFT, 0, 0);
+  lv_obj_align(clear_button_, LV_ALIGN_TOP_RIGHT, 0, 0);
+  lv_obj_set_size(circle_layer_, width, height);
+  lv_obj_align(circle_layer_, LV_ALIGN_CENTER, 0, 0);
+  lv_obj_move_foreground(circle_layer_);
+  lv_obj_invalidate(circle_layer_);
+}
+
+void Gui::set_kalman_down(float vx, float vy) {
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  set_down_line(kalman_line_, kalman_line_points_, vx, vy);
+}
+
+void Gui::set_madgwick_down(float vx, float vy) {
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  set_down_line(madgwick_line_, madgwick_line_points_, vx, vy);
+}
+
+void Gui::set_down_line(lv_obj_t *line, lv_point_precise_t *points, float vx, float vy) {
+  auto &bsp = Bsp::get();
+  // remap the vector according to the current display rotation so that the
+  // line always points toward physical "down"
+  auto rotation = lv_display_get_rotation(lv_display_get_default());
+  if (rotation == LV_DISPLAY_ROTATION_90) {
+    std::swap(vx, vy);
+    vx = -vx;
+  } else if (rotation == LV_DISPLAY_ROTATION_180) {
+    vx = -vx;
+    vy = -vy;
+  } else if (rotation == LV_DISPLAY_ROTATION_270) {
+    std::swap(vx, vy);
+    vy = -vy;
+  }
+  // draw the line from the center of the screen toward "down"
+  int x0 = bsp.rotated_display_width() / 2;
+  int y0 = bsp.rotated_display_height() / 2;
+  points[0] = {static_cast<lv_value_precise_t>(x0), static_cast<lv_value_precise_t>(y0)};
+  points[1] = {static_cast<lv_value_precise_t>(x0 + 50 * vx),
+               static_cast<lv_value_precise_t>(y0 + 50 * vy)};
+  lv_line_set_points(line, points, 2);
+}
+
+void Gui::draw_circle(int x, int y, int radius) {
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  lv_obj_move_foreground(circle_layer_);
+  Circle previous_circle = circles_[next_circle_index_];
+  circles_[next_circle_index_] = {.x = x, .y = y, .radius = radius, .visible = true};
+  next_circle_index_ = (next_circle_index_ + 1) % circles_.size();
+  if (visible_circle_count_ < circles_.size()) {
+    visible_circle_count_++;
+  }
+  if (previous_circle.visible) {
+    invalidate_circle_area(previous_circle);
+  }
+  invalidate_circle_area(circles_[(next_circle_index_ + circles_.size() - 1) % circles_.size()]);
+}
+
+void Gui::clear_circles() {
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  clear_circles_impl();
+}
+
+void Gui::clear_circles_impl() {
+  for (auto &circle : circles_) {
+    if (circle.visible) {
+      invalidate_circle_area(circle);
+    }
+    circle.visible = false;
+  }
+  next_circle_index_ = 0;
+  visible_circle_count_ = 0;
+}
+
+void Gui::invalidate_circle_area(const Circle &circle) {
+  if (!circle_layer_ || circle.radius <= 0) {
+    return;
+  }
+  lv_area_t obj_coords;
+  lv_obj_get_coords(circle_layer_, &obj_coords);
+  lv_area_t coords = {
+      .x1 = static_cast<lv_coord_t>(obj_coords.x1 + circle.x - circle.radius),
+      .y1 = static_cast<lv_coord_t>(obj_coords.y1 + circle.y - circle.radius),
+      .x2 = static_cast<lv_coord_t>(obj_coords.x1 + circle.x + circle.radius - 1),
+      .y2 = static_cast<lv_coord_t>(obj_coords.y1 + circle.y + circle.radius - 1),
+  };
+  lv_obj_invalidate_area(circle_layer_, &coords);
+}
+
+void Gui::draw_circle_layer(lv_event_t *e) {
+  const auto *gui = static_cast<const Gui *>(lv_event_get_user_data(e));
+  if (!gui) {
+    return;
+  }
+  gui->draw_circles(e);
+}
+
+void Gui::draw_circles(lv_event_t *e) const {
+  if (visible_circle_count_ == 0) {
+    return;
+  }
+
+  auto *obj = static_cast<lv_obj_t *>(lv_event_get_current_target(e));
+  auto *layer = lv_event_get_layer(e);
+  lv_area_t obj_coords;
+  lv_obj_get_coords(obj, &obj_coords);
+
+  lv_draw_rect_dsc_t rect_dsc;
+  lv_draw_rect_dsc_init(&rect_dsc);
+  rect_dsc.base.layer = layer;
+  rect_dsc.radius = LV_RADIUS_CIRCLE;
+  rect_dsc.bg_opa = LV_OPA_70;
+  rect_dsc.bg_color = lv_color_make(0, 255, 255);
+  rect_dsc.border_width = 0;
+  rect_dsc.outline_width = 0;
+  rect_dsc.shadow_width = 0;
+
+  for (const auto &circle : circles_) {
+    if (!circle.visible) {
+      continue;
+    }
+    lv_area_t coords = {
+        .x1 = static_cast<lv_coord_t>(obj_coords.x1 + circle.x - circle.radius),
+        .y1 = static_cast<lv_coord_t>(obj_coords.y1 + circle.y - circle.radius),
+        .x2 = static_cast<lv_coord_t>(obj_coords.x1 + circle.x + circle.radius - 1),
+        .y2 = static_cast<lv_coord_t>(obj_coords.y1 + circle.y + circle.radius - 1),
+    };
+    lv_draw_rect(layer, &rect_dsc, &coords);
+  }
+}

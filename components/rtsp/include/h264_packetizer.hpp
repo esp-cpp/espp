@@ -16,8 +16,8 @@ namespace espp {
 /// of RTP payload chunks suitable for transmission.
 ///
 /// Supports two NAL-unit packetization strategies:
-///   - **Single NAL unit mode** — NAL fits within max_payload_size.
-///   - **FU-A fragmentation** — NAL exceeds max_payload_size (packetization_mode >= 1).
+///   - **Single NAL unit mode** - NAL fits within max_payload_size.
+///   - **FU-A fragmentation** - NAL exceeds max_payload_size (packetization_mode >= 1).
 ///
 /// @note This class does not manage RTP headers (sequence numbers, timestamps,
 ///       SSRC). The caller wraps each returned chunk into an RtpPacket.
@@ -29,7 +29,7 @@ public:
   /// Configuration for the H264Packetizer.
   struct Config {
     size_t max_payload_size{1400}; ///< Maximum payload bytes per RTP packet
-    int payload_type{96};          ///< Dynamic RTP payload type (typically 96–127).
+    int payload_type{96};          ///< Dynamic RTP payload type (typically 96-127).
     std::string profile_level_id;  ///< H.264 profile-level-id hex string, e.g. "42C01E".
     int packetization_mode{1};     ///< 0 = single NAL only, 1 = non-interleaved (FU-A allowed).
     std::vector<uint8_t> sps;      ///< Sequence Parameter Set raw bytes (without start code).

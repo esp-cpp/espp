@@ -21,6 +21,8 @@
 #include <freertos/task.h>
 
 #include "base_component.hpp"
+#include "es7210.hpp"
+#include "gps.hpp"
 #include "gt911.hpp"
 #include "i2c.hpp"
 #include "interrupt.hpp"
@@ -28,6 +30,7 @@
 #include "pointer_input.hpp"
 #include "spi.hpp"
 #include "st7789.hpp"
+#include "sx126x.hpp"
 #include "t_keyboard.hpp"
 #include "touchpad_input.hpp"
 
@@ -43,6 +46,8 @@ namespace espp {
 /// - Interrupts
 /// - I2C
 /// - microSD (uSD) card
+/// - LoRa radio (SX1262)
+/// - GPS (T-Deck Plus only)
 ///
 /// For more information, see
 /// https://github.com/Xinyuan-LilyGO/T-Deck/tree/master and
@@ -146,6 +151,72 @@ public:
   sdmmc_card_t *sdcard() const { return sdcard_; }
 
   /////////////////////////////////////////////////////////////////////////////
+  // LoRa Radio (SX1262, HPD16A module)
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// Initialize the LoRa radio (SX1262)
+  /// \param radio_config The radio (modem) configuration to apply
+  /// \return True if the radio was initialized properly
+  /// \note The radio shares the SPI bus with the display and uSD card.
+  /// \note The radio's DIO1 interrupt is automatically serviced via the
+  ///       board's interrupt handler, so packets are delivered through the
+  ///       callbacks registered on the returned driver (see
+  ///       espp::Sx126x::set_receive_callback and friends).
+  /// \note The radio's reset line (GPIO 17) is also routed to the T-Deck's
+  ///       PDM digital-microphone clock / ES7210 interrupt line. The espp
+  ///       microphone path (the ES7210 array) uses a different set of pins, so
+  ///       the radio and microphone can be used together; only a PDM
+  ///       microphone (which would drive GPIO 17) would conflict.
+  bool initialize_lora(const Sx126x::RadioConfig &radio_config = {});
+
+  /// Get the LoRa radio
+  /// \return A shared pointer to the LoRa radio driver
+  /// \note The radio is only available if initialize_lora() succeeded
+  std::shared_ptr<Sx126x> lora() const { return lora_; }
+
+  /// Get the GPIO pin for the LoRa radio chip select
+  /// \return The GPIO pin for the LoRa radio chip select
+  static constexpr auto lora_cs_gpio() { return lora_cs_io; }
+
+  /// Get the GPIO pin for the LoRa radio DIO1 (interrupt) line
+  /// \return The GPIO pin for the LoRa radio DIO1 line
+  static constexpr auto lora_dio1_gpio() { return lora_dio1_io; }
+
+  /// Get the GPIO pin for the LoRa radio BUSY line
+  /// \return The GPIO pin for the LoRa radio BUSY line
+  static constexpr auto lora_busy_gpio() { return lora_busy_io; }
+
+  /// Get the GPIO pin for the LoRa radio reset line
+  /// \return The GPIO pin for the LoRa radio reset line
+  static constexpr auto lora_reset_gpio() { return lora_reset_io; }
+
+  /////////////////////////////////////////////////////////////////////////////
+  // GPS (T-Deck Plus only, u-blox MIA-M10Q)
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// Initialize the GPS (T-Deck Plus only)
+  /// \param fix_cb Optional callback invoked on each fix update
+  /// \param baud_rate The baud rate of the GPS UART (9600 by default)
+  /// \return True if the GPS was initialized properly
+  /// \note The GPS UART pins are routed to the Grove connector on the base
+  ///       T-Deck; on the T-Deck Plus they connect to the internal u-blox
+  ///       MIA-M10Q receiver.
+  bool initialize_gps(const Gps::fix_callback_fn &fix_cb = nullptr, uint32_t baud_rate = 9600);
+
+  /// Get the GPS
+  /// \return A shared pointer to the GPS driver
+  /// \note The GPS is only available if initialize_gps() succeeded
+  std::shared_ptr<Gps> gps() const { return gps_; }
+
+  /// Get the GPIO pin for the GPS UART TX (ESP32 -> GPS)
+  /// \return The GPIO pin for the GPS UART TX
+  static constexpr auto gps_tx_gpio() { return gps_tx_io; }
+
+  /// Get the GPIO pin for the GPS UART RX (GPS -> ESP32)
+  /// \return The GPIO pin for the GPS UART RX
+  static constexpr auto gps_rx_gpio() { return gps_rx_io; }
+
+  /////////////////////////////////////////////////////////////////////////////
   // Keyboard
   /////////////////////////////////////////////////////////////////////////////
 
@@ -194,8 +265,15 @@ public:
   /// \see trackball_data()
   /// \see trackball_read()
   /// \see set_trackball_sensitivity()
+  /// \param enable_center_button Whether to configure the trackball's center
+  ///        (click) button on GPIO0. Set this to false when the microphone is
+  ///        in use: per LilyGO's documentation GPIO0 is not available while the
+  ///        microphone is enabled, and leaving the button interrupt configured
+  ///        on GPIO0 while recording produces a burst of spurious interrupts
+  ///        that jitters the real-time audio capture. The four directional
+  ///        quadrature pins are unaffected and still work.
   bool initialize_trackball(const trackball_callback_t &trackball_cb = nullptr,
-                            int sensitivity = 10);
+                            int sensitivity = 10, bool enable_center_button = true);
 
   /// Get the trackball
   /// \return A shared pointer to the trackball
@@ -456,13 +534,67 @@ public:
   float volume() const;
 
   /// Play audio
-  /// \param data The audio data to play
-  void play_audio(const std::vector<uint8_t> &data);
+  /// \param data The audio data to play (16-bit signed interleaved stereo)
+  /// \return The number of bytes actually queued (may be less than the data
+  ///         size if the internal stream buffer is full)
+  /// \note This function is non-blocking and queues the data for the audio
+  ///       task to play; to stream data larger than the internal buffer,
+  ///       call it repeatedly, advancing by the returned number of bytes
+  /// \note Must be called from task context, not from an ISR.
+  size_t play_audio(const std::vector<uint8_t> &data);
 
   /// Play audio
-  /// \param data The audio data to play
+  /// \param data The audio data to play (16-bit signed interleaved stereo)
   /// \param num_bytes The number of bytes to play
-  void play_audio(const uint8_t *data, uint32_t num_bytes);
+  /// \return The number of bytes actually queued (may be less than \p
+  ///         num_bytes if the internal stream buffer is full)
+  /// \note This function is non-blocking and queues the data for the audio
+  ///       task to play; to stream data larger than the internal buffer,
+  ///       call it repeatedly, advancing by the returned number of bytes
+  /// \note Must be called from task context, not from an ISR.
+  size_t play_audio(const uint8_t *data, uint32_t num_bytes);
+
+  /////////////////////////////////////////////////////////////////////////////
+  // Microphone
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// Alias for the microphone callback, called with recorded audio data
+  using microphone_callback_t = std::function<void(const uint8_t *data, size_t num_bytes)>;
+
+  /// Initialize the microphones (the dual microphone array through the
+  /// ES7210 ADC, on its own I2S bus) and start delivering audio data to the
+  /// provided callback
+  /// \param callback The callback to call with recorded audio data: 16-bit
+  ///        signed interleaved stereo. The two populated ES7210 microphones are
+  ///        delivered as MIC1 (TDM slot 0) on the left channel and MIC3 (TDM
+  ///        slot 2) on the right, at \p sample_rate
+  /// \param sample_rate The sample rate for the microphones, in Hz. The
+  ///        ES7210 is on a separate I2S bus from the speaker amplifier, so
+  ///        this is independent of the speaker's sample rate.
+  /// \param task_config The configuration for the microphone task
+  /// \return true if the microphone was successfully initialized, false
+  ///         otherwise
+  /// \note The callback runs in the microphone task's context, so the task's
+  ///       stack must be large enough for whatever the callback does with
+  ///       the audio data
+  bool initialize_microphone(const microphone_callback_t &callback, uint32_t sample_rate = 16000,
+                             const espp::Task::BaseConfig &task_config = {.name = "microphone",
+                                                                          .stack_size_bytes = 4096,
+                                                                          .priority = 10,
+                                                                          .core_id = 1});
+
+  /// Get the microphone sample rate
+  /// \return The microphone sample rate, in Hz
+  uint32_t microphone_sample_rate() const;
+
+  /// Set the microphone volume
+  /// \param volume The volume as a percentage (0 - 100), mapped onto the
+  ///        ES7210 analog microphone gain range (0 dB - +37.5 dB)
+  void microphone_volume(float volume);
+
+  /// Get the microphone volume
+  /// \return The microphone volume as a percentage (0 - 100)
+  float microphone_volume() const;
 
 protected:
   TDeck();
@@ -472,6 +604,7 @@ protected:
   void on_trackball_interrupt(const espp::Interrupt::Event &event);
   bool initialize_i2s(uint32_t default_audio_rate);
   bool audio_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
+  bool microphone_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
 
   // common:
   // internal i2c (touchscreen, keyboard)
@@ -495,6 +628,7 @@ protected:
   //
   // static constexpr gpio_num_t es7210_int_io = GPIO_NUM_17;
   static constexpr gpio_num_t dmic_clk_io = GPIO_NUM_17;
+  static constexpr auto mic_i2s_port = I2S_NUM_1;
 
   // Audio Out (MAX98357A)
   static constexpr auto i2s_port = I2S_NUM_0;
@@ -555,10 +689,22 @@ protected:
   static constexpr gpio_num_t sdcard_cs = GPIO_NUM_39;
 
   // LoRa (HPD16A)
-  static constexpr gpio_num_t lora_enable_io = GPIO_NUM_17;
+  // NOTE: the reset line (GPIO 17) is shared with the PDM digital-microphone
+  //       clock / ES7210 interrupt line. The espp microphone path (the ES7210
+  //       array) uses a different set of pins, so the radio and microphone can
+  //       be used together; only a PDM microphone (which would drive GPIO 17)
+  //       would conflict.
+  static constexpr gpio_num_t lora_reset_io = GPIO_NUM_17;
   static constexpr gpio_num_t lora_cs_io = GPIO_NUM_9;
   static constexpr gpio_num_t lora_dio1_io = GPIO_NUM_45;
   static constexpr gpio_num_t lora_busy_io = GPIO_NUM_13;
+  static constexpr int lora_spi_clock_speed = 8 * 1000 * 1000;
+
+  // GPS (T-Deck Plus, u-blox MIA-M10Q); these pins go to the Grove
+  // connector on the base T-Deck
+  static constexpr gpio_num_t gps_tx_io = GPIO_NUM_43;
+  static constexpr gpio_num_t gps_rx_io = GPIO_NUM_44;
+  static constexpr auto gps_uart_port = UART_NUM_1;
 
   // TODO: allow core id configuration
   I2c internal_i2c_{{.port = internal_i2c_port,
@@ -670,5 +816,34 @@ protected:
   std::vector<uint8_t> audio_tx_buffer;
   StreamBufferHandle_t audio_tx_stream;
   i2s_std_config_t audio_std_cfg;
+
+  // LoRa radio
+  std::shared_ptr<Spi::Device> lora_spi_device_;
+  std::shared_ptr<Sx126x> lora_;
+  espp::Interrupt::PinConfig lora_dio1_interrupt_pin_{
+      .gpio_num = lora_dio1_io,
+      .callback =
+          [this](const auto &event) {
+            if (lora_) {
+              std::error_code ec;
+              lora_->handle_dio1_interrupt(ec);
+            }
+          },
+      .active_level = espp::Interrupt::ActiveLevel::HIGH,
+      .interrupt_type = espp::Interrupt::Type::RISING_EDGE};
+
+  // GPS
+  std::shared_ptr<Gps> gps_;
+
+  // microphone (ES7210 on its own I2S bus)
+  std::shared_ptr<I2c::Device<uint8_t>> es7210_i2c_device_;
+  std::atomic<bool> microphone_initialized_{false};
+  microphone_callback_t microphone_callback_{nullptr};
+  std::unique_ptr<espp::Task> microphone_task_{nullptr};
+  i2s_chan_handle_t audio_rx_handle{nullptr};
+  std::vector<uint8_t> audio_rx_buffer;
+  std::atomic<uint32_t> mic_sample_rate_{0};
+  // microphone volume (percent), mapped onto the ES7210 analog gain range
+  std::atomic<float> mic_volume_{70.0f};
 }; // class TDeck
 } // namespace espp

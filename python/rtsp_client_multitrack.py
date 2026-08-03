@@ -21,7 +21,7 @@ import cv2
 import numpy as np
 
 from zeroconf import ServiceBrowser, ServiceListener, Zeroconf
-from support_loader import espp
+import espp
 
 try:
     import sounddevice as sd

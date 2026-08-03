@@ -30,5 +30,9 @@ dependencies:
   espp/rx8130ce: ">=1.0"
   espp/st7123touch: ">=1.0"
   espp/task: ">=1.0"
+  # MIPI-CSI camera pipeline: esp_video provides the V4L2 capture framework
+  # (CSI + ISP) and esp_cam_sensor provides the SC202CS sensor driver.
+  espressif/esp_video: ">=2.0"
+  espressif/esp_cam_sensor: ">=2.0"
 targets:
   - esp32p4

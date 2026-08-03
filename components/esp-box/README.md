@@ -8,7 +8,11 @@ and expansion headers.
 
 The `espp::EspBox` component provides a singleton hardware abstraction for
 initializing the touch, display, and audio subsystems, as well as automatically
-determining which version of the Box it's running on.
+determining which version of the Box it's running on. The audio subsystem runs
+full duplex: `play_audio()` streams 16-bit stereo out through the ES8311 codec
+and speaker, while `initialize_microphone()` delivers 16-bit stereo recordings
+from the dual microphone array (through the ES7210 ADC, with adjustable gain
+via `microphone_volume()`) at the speaker's sample rate.
 
 ## Example
 

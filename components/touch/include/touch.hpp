@@ -110,9 +110,9 @@ public:
 ///        standard espp touch-driver interface.
 ///
 /// A type T satisfies TouchDriverConcept if it provides:
-/// - `bool T::update(std::error_code &)` — read new touch data from hardware
-/// - `void T::get_touch_point(uint8_t *, uint16_t *, uint16_t *) const` — retrieve coordinates
-/// - `bool T::get_home_button_state() const` — return home-button state
+/// - `bool T::update(std::error_code &)` - read new touch data from hardware
+/// - `void T::get_touch_point(uint8_t *, uint16_t *, uint16_t *) const` - retrieve coordinates
+/// - `bool T::get_home_button_state() const` - return home-button state
 ///
 /// Both `espp::Gt911` and `espp::St7123Touch` satisfy this concept.
 template <typename T>
@@ -174,7 +174,7 @@ template <TouchDriverConcept T> struct TouchDriverAdapter : ITouchDriver {
 
 /// @brief Convenience factory: wrap a shared_ptr to a concrete touch driver in
 ///        a `TouchDriverAdapter` and return it as `std::shared_ptr<ITouchDriver>`.
-/// @tparam T Concrete driver type — must satisfy `TouchDriverConcept`.
+/// @tparam T Concrete driver type - must satisfy `TouchDriverConcept`.
 template <TouchDriverConcept T>
 std::shared_ptr<ITouchDriver> make_touch_driver(std::shared_ptr<T> driver) {
   return std::make_shared<TouchDriverAdapter<T>>(std::move(driver));

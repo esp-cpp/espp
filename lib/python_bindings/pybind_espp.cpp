@@ -357,8 +357,10 @@ void py_init_module_espp(py::module &m) {
                "on.\n/ \\param root The root directory of the FTP server.")
           .def("start", &espp::FtpServer::start,
                "/ \\brief Start the FTP server.\n/ Bind to the port and start accepting "
-               "connections.\n/ \\return True if the server was started, False otherwise.")
-          .def("stop", &espp::FtpServer::stop, "/ \\brief Stop the FTP server.");
+               "connections.\n/ \\return True if the server was started, False otherwise.",
+               py::call_guard<py::gil_scoped_release>())
+          .def("stop", &espp::FtpServer::stop, "/ \\brief Stop the FTP server.",
+               py::call_guard<py::gil_scoped_release>());
   ////////////////////    </generated_from:ftp_server.hpp>    ////////////////////
 
   ////////////////////    <generated_from:logger.hpp>    ////////////////////
@@ -456,8 +458,8 @@ void py_init_module_espp(py::module &m) {
       "*\n * @brief Implements rational / weighted and unweighted cubic bezier curves\n *        "
       "between control points.\n * @note See https://pomax.github.io/bezierinfo/ for information "
       "on bezier\n *       curves.\n * @note Template class which can be used individually on "
-      "floating point\n *       values directly or on containers such as Vector2<float>.\n * "
-      "@tparam T The type of the control points, e.g. float or Vector2<float>.\n * @note The "
+      "floating point\n *       values directly or on containers such as Vector2d<float>.\n * "
+      "@tparam T The type of the control points, e.g. float or Vector2d<float>.\n * @note The "
       "bezier curve is defined by 4 control points, P0, P1, P2, P3.\n *      The curve is defined "
       "by the equation:\n *      \\f$B(t) = (1-t)^3 * P0 + 3 * (1-t)^2 * t * P1 + 3 * (1-t) * t^2 "
       "* P2 + t^3 * P3\\f$\n *      where t is the evaluation parameter, [0, 1].\n *\n * @note The "
@@ -561,7 +563,7 @@ void py_init_module_espp(py::module &m) {
 
   m.def("fast_ln", espp::fast_ln, py::arg("x"),
         "*\n * @brief fast natural log function, ln(x).\n * @note This speed hack comes from:\n *  "
-        " https://gist.github.com/LingDong-/7e4c4cae5cbbc44400a05ba650623\n * @param x Value to "
+        " https://gist.github.com/LingDong-/7e4c4cae5cbbc44400a05fba65f06f23\n * @param x Value to "
         "take the natural log of.\n * @return ln(x)\n");
 
   m.def("fast_sin", espp::fast_sin, py::arg("angle"),
@@ -893,7 +895,7 @@ void py_init_module_espp(py::module &m) {
           m, "Vector2d_int", py::dynamic_attr(),
           "*\n * @brief Container representing a 2 dimensional vector.\n *\n * Provides "
           "getters/setters, index operator, and vector / scalar math\n * utilities.\n *\n * "
-          "\\section vector_ex1 Example\n * \\snippet math_example.cpp vector2 example\n")
+          "\\section vector_ex1 Example\n * \\snippet math_example.cpp vector2d example\n")
           .def(py::init<int, int>(), py::arg("x") = 0, py::arg("y") = 0,
                "*\n   * @brief Constructor for the vector, defaults to 0,0.\n   * @param x The "
                "starting X value.\n   * @param y The starting Y value.\n")
@@ -1012,10 +1014,6 @@ void py_init_module_espp(py::module &m) {
                "*\n   * @brief Return a scaled version of the vector, divided by the provided\n   "
                "*        value.\n   * @param v Value the vector should be divided by.\n   * "
                "@return Resultant scaled vector.\n")
-          .def("__itruediv__", py::overload_cast<const int &>(&espp::Vector2d<int>::operator/=),
-               py::arg("v"),
-               "*\n   * @brief Return the vector divided by the provided value.\n   * @param v "
-               "Value the vector should be divided by.\n   * @return Resultant scaled vector.\n")
           .def("__truediv__",
                py::overload_cast<const espp::Vector2d<int> &>(&espp::Vector2d<int>::operator/,
                                                               py::const_),
@@ -1023,6 +1021,10 @@ void py_init_module_espp(py::module &m) {
                "*\n   * @brief Return a scaled version of the vector, divided by the provided\n   "
                "*        vector value. Scales x and y independently.\n   * @param v Vector values "
                "the vector should be divided by.\n   * @return Resultant scaled vector.\n")
+          .def("__itruediv__", py::overload_cast<const int &>(&espp::Vector2d<int>::operator/=),
+               py::arg("v"),
+               "*\n   * @brief Return the vector divided by the provided value.\n   * @param v "
+               "Value the vector should be divided by.\n   * @return Resultant scaled vector.\n")
           .def("__itruediv__",
                py::overload_cast<const espp::Vector2d<int> &>(&espp::Vector2d<int>::operator/=),
                py::arg("v"),
@@ -1040,7 +1042,7 @@ void py_init_module_espp(py::module &m) {
           m, "Vector2d_float", py::dynamic_attr(),
           "*\n * @brief Container representing a 2 dimensional vector.\n *\n * Provides "
           "getters/setters, index operator, and vector / scalar math\n * utilities.\n *\n * "
-          "\\section vector_ex1 Example\n * \\snippet math_example.cpp vector2 example\n")
+          "\\section vector_ex1 Example\n * \\snippet math_example.cpp vector2d example\n")
           .def(py::init<float, float>(), py::arg("x") = 0, py::arg("y") = 0,
                "*\n   * @brief Constructor for the vector, defaults to 0,0.\n   * @param x The "
                "starting X value.\n   * @param y The starting Y value.\n")
@@ -1159,10 +1161,6 @@ void py_init_module_espp(py::module &m) {
                "*\n   * @brief Return a scaled version of the vector, divided by the provided\n   "
                "*        value.\n   * @param v Value the vector should be divided by.\n   * "
                "@return Resultant scaled vector.\n")
-          .def("__itruediv__", py::overload_cast<const float &>(&espp::Vector2d<float>::operator/=),
-               py::arg("v"),
-               "*\n   * @brief Return the vector divided by the provided value.\n   * @param v "
-               "Value the vector should be divided by.\n   * @return Resultant scaled vector.\n")
           .def("__truediv__",
                py::overload_cast<const espp::Vector2d<float> &>(&espp::Vector2d<float>::operator/,
                                                                 py::const_),
@@ -1170,6 +1168,10 @@ void py_init_module_espp(py::module &m) {
                "*\n   * @brief Return a scaled version of the vector, divided by the provided\n   "
                "*        vector value. Scales x and y independently.\n   * @param v Vector values "
                "the vector should be divided by.\n   * @return Resultant scaled vector.\n")
+          .def("__itruediv__", py::overload_cast<const float &>(&espp::Vector2d<float>::operator/=),
+               py::arg("v"),
+               "*\n   * @brief Return the vector divided by the provided value.\n   * @param v "
+               "Value the vector should be divided by.\n   * @return Resultant scaled vector.\n")
           .def("__itruediv__",
                py::overload_cast<const espp::Vector2d<float> &>(&espp::Vector2d<float>::operator/=),
                py::arg("v"),
@@ -1489,11 +1491,11 @@ void py_init_module_espp(py::module &m) {
                   "*\n   * @brief Static function to make an NDEF record for BT classic OOB "
                   "Pairing (Android).\n   * @param mac_addr 48 bit MAC Address of the BT radio\n   "
                   "* @note If the address is e.g. f4:12:fa:42:fe:9e then the mac_addr should be\n  "
-                  " *       0xf412a42e9e.\n   * @param device_class The bluetooth device class for "
-                  "this radio.\n   * @param name Name of the BT device.\n   * @param random_value "
-                  "The Simple pairing randomizer R for the pairing.\n   * @param confirm_value The "
-                  "Simple pairing hash C (confirm value) for the\n   *                      "
-                  "pairing.\n   * @return NDEF record object.\n")
+                  " *       0xf412fa42fe9e.\n   * @param device_class The bluetooth device class "
+                  "for this radio.\n   * @param name Name of the BT device.\n   * @param "
+                  "random_value The Simple pairing randomizer R for the pairing.\n   * @param "
+                  "confirm_value The Simple pairing hash C (confirm value) for the\n   *           "
+                  "           pairing.\n   * @return NDEF record object.\n")
       .def_static(
           "make_le_oob_pairing", &espp::Ndef::make_le_oob_pairing, py::arg("mac_addr"),
           py::arg("role"), py::arg("name") = "",
@@ -1501,7 +1503,7 @@ void py_init_module_espp(py::module &m) {
           py::arg("confirm_value") = "", py::arg("tk") = "",
           "*\n   * @brief Static function to make an NDEF record for BLE OOB Pairing (Android).\n  "
           " * @param mac_addr 48 bit MAC Address of the BLE radio.\n   * @note If the address is "
-          "e.g. f4:12:fa:42:fe:9e then the mac_addr should be\n   *       0xf412a42e9e.\n   * "
+          "e.g. f4:12:fa:42:fe:9e then the mac_addr should be\n   *       0xf412fa42fe9e.\n   * "
           "@param role The BLE role of the device (central / peripheral / dual)\n   * @param name "
           "Name of the BLE device. Optional.\n   * @param appearance BtAppearance of the device. "
           "Optional.\n   * @param random_value The Simple pairing randomizer R for the pairing. "
@@ -1798,7 +1800,8 @@ void py_init_module_espp(py::module &m) {
       .def("connect", &espp::TcpSocket::connect, py::arg("connect_config"),
            "*\n   * @brief Open a connection to the remote TCP server.\n   * @param connect_config "
            "ConnectConfig struct describing the server endpoint.\n   * @return True if the client "
-           "successfully connected to the server.\n")
+           "successfully connected to the server.\n",
+           py::call_guard<py::gil_scoped_release>())
       .def("get_remote_info", &espp::TcpSocket::get_remote_info,
            "*\n   * @brief Get the remote endpoint info.\n   * @return The remote endpoint info.\n")
       .def("transmit",
@@ -1811,7 +1814,8 @@ void py_init_module_espp(py::module &m) {
            "send_config which will be provided the response data for\n   *        processing.\n   "
            "* @param data vector of bytes to send to the remote endpoint.\n   * @param "
            "transmit_config TransmitConfig struct indicating whether to wait for a\n   *        "
-           "response.\n   * @return True if the data was sent, False otherwise.\n")
+           "response.\n   * @return True if the data was sent, False otherwise.\n",
+           py::call_guard<py::gil_scoped_release>())
       .def("transmit",
            py::overload_cast<const std::vector<char> &, const espp::TcpSocket::TransmitConfig &>(
                &espp::TcpSocket::transmit),
@@ -1822,7 +1826,8 @@ void py_init_module_espp(py::module &m) {
            "send_config which will be provided the response data for\n   *        processing.\n   "
            "* @param data vector of bytes to send to the remote endpoint.\n   * @param "
            "transmit_config TransmitConfig struct indicating whether to wait for a\n   *        "
-           "response.\n   * @return True if the data was sent, False otherwise.\n")
+           "response.\n   * @return True if the data was sent, False otherwise.\n",
+           py::call_guard<py::gil_scoped_release>())
       .def("transmit",
            py::overload_cast<std::string_view, const espp::TcpSocket::TransmitConfig &>(
                &espp::TcpSocket::transmit),
@@ -1833,7 +1838,8 @@ void py_init_module_espp(py::module &m) {
            "send_config which will be provided the response data for\n   *        processing.\n   "
            "* @param data string view of bytes to send to the remote endpoint.\n   * @param "
            "transmit_config TransmitConfig struct indicating whether to wait for a\n   *        "
-           "response.\n   * @return True if the data was sent, False otherwise.\n")
+           "response.\n   * @return True if the data was sent, False otherwise.\n",
+           py::call_guard<py::gil_scoped_release>())
       .def("transmit",
            py::overload_cast<std::span<const uint8_t>, const espp::TcpSocket::TransmitConfig &>(
                &espp::TcpSocket::transmit),
@@ -1844,13 +1850,15 @@ void py_init_module_espp(py::module &m) {
            "send_config which will be provided the response data for\n   *        processing.\n   "
            "* @param data span of bytes to send to the remote endpoint.\n   * @param "
            "transmit_config TransmitConfig struct indicating whether to wait for a\n   *        "
-           "response.\n   * @return True if the data was sent, False otherwise.\n")
+           "response.\n   * @return True if the data was sent, False otherwise.\n",
+           py::call_guard<py::gil_scoped_release>())
       .def("receive", py::overload_cast<std::vector<uint8_t> &, size_t>(&espp::TcpSocket::receive),
            py::arg("data"), py::arg("max_num_bytes"),
            "*\n   * @brief Call read on the socket, assuming it has already been configured\n   *  "
            "      appropriately.\n   *\n   * @param data Vector of bytes of received data.\n   * "
            "@param max_num_bytes Maximum number of bytes to receive.\n   * @return True if "
-           "successfully received, False otherwise.\n")
+           "successfully received, False otherwise.\n",
+           py::call_guard<py::gil_scoped_release>())
       .def("receive", py::overload_cast<uint8_t *, size_t>(&espp::TcpSocket::receive),
            py::arg("data"), py::arg("max_num_bytes"),
            "*\n   * @brief Call read on the socket, assuming it has already been configured\n   *  "
@@ -1858,7 +1866,8 @@ void py_init_module_espp(py::module &m) {
            "received or the\n   *       receive timeout is reached.\n   * @note The data pointed "
            "to by data must be at least max_num_bytes in size.\n   * @param data Pointer to buffer "
            "to receive data.\n   * @param max_num_bytes Maximum number of bytes to receive.\n   * "
-           "@return Number of bytes received.\n")
+           "@return Number of bytes received.\n",
+           py::call_guard<py::gil_scoped_release>())
       .def("bind", &espp::TcpSocket::bind, py::arg("port"),
            "*\n   * @brief Bind the socket as a server on \\p port.\n   * @param port The port to "
            "which to bind the socket.\n   * @return True if the socket was bound.\n")
@@ -1871,7 +1880,8 @@ void py_init_module_espp(py::module &m) {
            "*\n   * @brief Accept an incoming connection.\n   * @note Blocks until a connection is "
            "accepted.\n   * @note Must be called after listen.\n   * @note This function will "
            "block until a connection is accepted.\n   * @return A unique pointer to a "
-           "TcpClientSession if a connection was\n   *         accepted, None otherwise.\n");
+           "TcpClientSession if a connection was\n   *         accepted, None otherwise.\n",
+           py::call_guard<py::gil_scoped_release>());
   ////////////////////    </generated_from:tcp_socket.hpp>    ////////////////////
 
   ////////////////////    <generated_from:udp_socket.hpp>    ////////////////////
@@ -1997,7 +2007,8 @@ void py_init_module_espp(py::module &m) {
 
   pyClassUdpSocket.def(py::init<const espp::UdpSocket::Config &>())
       .def("stop_receiving", &espp::UdpSocket::stop_receiving,
-           "/ Stop the receive task, if one is running, and close the socket.")
+           "/ Stop the receive task, if one is running, and close the socket.",
+           py::call_guard<py::gil_scoped_release>())
       .def("send",
            py::overload_cast<const std::vector<uint8_t> &, const espp::UdpSocket::SendConfig &>(
                &espp::UdpSocket::send),
@@ -2010,7 +2021,8 @@ void py_init_module_espp(py::module &m) {
            "send_config which will be provided the response data for\n   *        processing.\n   "
            "* @param data vector of bytes to send to the remote endpoint.\n   * @param send_config "
            "SendConfig struct indicating where to send and whether\n   *        to wait for a "
-           "response.\n   * @return True if the data was sent, False otherwise.\n")
+           "response.\n   * @return True if the data was sent, False otherwise.\n",
+           py::call_guard<py::gil_scoped_release>())
       .def("send",
            py::overload_cast<std::string_view, const espp::UdpSocket::SendConfig &>(
                &espp::UdpSocket::send),
@@ -2023,7 +2035,8 @@ void py_init_module_espp(py::module &m) {
            "send_config which will be provided the response data for\n   *        processing.\n   "
            "* @param data String view of bytes to send to the remote endpoint.\n   * @param "
            "send_config SendConfig struct indicating where to send and whether\n   *        to "
-           "wait for a response.\n   * @return True if the data was sent, False otherwise.\n")
+           "wait for a response.\n   * @return True if the data was sent, False otherwise.\n",
+           py::call_guard<py::gil_scoped_release>())
       .def("send",
            py::overload_cast<std::span<const uint8_t>, const espp::UdpSocket::SendConfig &>(
                &espp::UdpSocket::send),
@@ -2036,7 +2049,8 @@ void py_init_module_espp(py::module &m) {
            "send_config which will be provided the response data for\n   *        processing.\n   "
            "* @param data std::span of bytes to send to the remote endpoint.\n   * @param "
            "send_config SendConfig struct indicating where to send and whether\n   *        to "
-           "wait for a response.\n   * @return True if the data was sent, False otherwise.\n")
+           "wait for a response.\n   * @return True if the data was sent, False otherwise.\n",
+           py::call_guard<py::gil_scoped_release>())
       .def("receive", &espp::UdpSocket::receive, py::arg("max_num_bytes"), py::arg("data"),
            py::arg("remote_info"),
            "*\n   * @brief Call recvfrom on the socket, assuming it has already been\n   *        "
@@ -2044,14 +2058,16 @@ void py_init_module_espp(py::module &m) {
            "receive.\n   * @param data Vector of bytes of received data.\n   * @param remote_info "
            "Socket::Info containing the sender's information. This\n   *        will be populated "
            "with the information about the sender.\n   * @return True if successfully received, "
-           "False otherwise.\n")
+           "False otherwise.\n",
+           py::call_guard<py::gil_scoped_release>())
       .def("start_receiving", &espp::UdpSocket::start_receiving, py::arg("task_config"),
            py::arg("receive_config"),
            "*\n   * @brief Configure a server socket and start a thread to continuously\n   *      "
            "  receive and handle data coming in on that socket.\n   *\n   * @param task_config "
            "Task::BaseConfig struct for configuring the receive task.\n   * @param receive_config "
            "ReceiveConfig struct with socket and callback info.\n   * @return True if the socket "
-           "was created and task was started, False otherwise.\n");
+           "was created and task was started, False otherwise.\n",
+           py::call_guard<py::gil_scoped_release>());
   ////////////////////    </generated_from:udp_socket.hpp>    ////////////////////
 
   ////////////////////    <generated_from:task.hpp>    ////////////////////
@@ -2134,12 +2150,14 @@ void py_init_module_espp(py::module &m) {
                     espp::Logger::Verbosity>())
       .def("start", &espp::Task::start,
            "*\n   * @brief Start executing the task.\n   *\n   * @return True if the task started, "
-           "False if it was already started.\n")
+           "False if it was already started.\n",
+           py::call_guard<py::gil_scoped_release>())
       .def("stop", &espp::Task::stop,
            "*\n   * @brief Stop the task execution.\n   * @details This will request the task to "
            "stop, notify the condition variable,\n   *          and (if this calling context is "
            "not the task context) join the\n   *          thread.\n   * @return True if the task "
-           "stopped, False if it was not started / already\n   *         stopped.\n")
+           "stopped, False if it was not started / already\n   *         stopped.\n",
+           py::call_guard<py::gil_scoped_release>())
       .def("is_started", &espp::Task::is_started,
            "*\n   * @brief Has the task been started or not?\n   *\n   * @return True if the task "
            "is started / running, False otherwise.\n")
@@ -2308,7 +2326,8 @@ void py_init_module_espp(py::module &m) {
       .def(
           "start", [](espp::Timer &self) { return self.start(); },
           "/ @brief Start the timer.\n/ @details Starts the timer. Does nothing if the timer is "
-          "already running.")
+          "already running.",
+          py::call_guard<py::gil_scoped_release>())
       .def("start", py::overload_cast<const std::chrono::duration<float> &>(&espp::Timer::start),
            py::arg("delay"),
            "/ @brief Start the timer with a delay.\n/ @details Starts the timer with a delay. If "
@@ -2316,12 +2335,15 @@ void py_init_module_espp(py::module &m) {
            "again with the new\n/          delay. If the timer is not running, this will start the "
            "timer\n/          with the delay. Overwrites any previous delay that might have\n/     "
            "     been set.\n/ @param delay The delay before the first execution of the timer "
-           "callback.")
+           "callback.",
+           py::call_guard<py::gil_scoped_release>())
       .def("stop", &espp::Timer::stop,
            "/ @brief Stop the timer, same as cancel().\n/ @details Stops the timer, same as "
-           "cancel().")
+           "cancel().",
+           py::call_guard<py::gil_scoped_release>())
       .def("cancel", &espp::Timer::cancel,
-           "/ @brief Cancel the timer.\n/ @details Cancels the timer.")
+           "/ @brief Cancel the timer.\n/ @details Cancels the timer.",
+           py::call_guard<py::gil_scoped_release>())
       .def("set_period", &espp::Timer::set_period, py::arg("period"),
            "/ @brief Set the period of the timer.\n/ @details Sets the period of the timer.\n/ "
            "@param period The period of the timer.\n/ @note If the period is 0, the timer will run "
@@ -2332,6 +2354,131 @@ void py_init_module_espp(py::module &m) {
            "/ @brief Check if the timer is running.\n/ @details Checks if the timer is running.\n/ "
            "@return True if the timer is running, False otherwise.");
   ////////////////////    </generated_from:timer.hpp>    ////////////////////
+
+  ////////////////////    <generated_from:thread_pool.hpp>    ////////////////////
+  auto pyClassThreadPool = py::class_<espp::ThreadPool>(
+      m, "ThreadPool", py::dynamic_attr(),
+      "*\n * @brief A thread pool that dispatches submitted jobs to a fixed set of worker "
+      "threads.\n *\n * Workers are implemented as espp::Task instances. Jobs are queued and\n * "
+      "consumed in FIFO order. The queue can be optionally bounded; when full,\n * new submissions "
+      "are either rejected immediately or blocked until space\n * becomes available, depending on "
+      "the configuration.\n *\n * \\section thread_pool_ex1 Lifecycle: start / stop / is_running / "
+      "worker_count\n * \\snippet thread_pool_example.cpp lifecycle example\n * \\section "
+      "thread_pool_ex2 Submit Jobs\n * \\snippet thread_pool_example.cpp submit example\n * "
+      "\\section thread_pool_ex3 try_submit - Non-Blocking Rejection When Full\n * \\snippet "
+      "thread_pool_example.cpp try_submit example\n * \\section thread_pool_ex4 Blocking Submit "
+      "When Full\n * \\snippet thread_pool_example.cpp blocking submit example\n * \\section "
+      "thread_pool_ex5 Submit Rejected After stop()\n * \\snippet thread_pool_example.cpp submit "
+      "after stop example\n * \\section thread_pool_ex6 Concurrent start / stop\n * \\snippet "
+      "thread_pool_example.cpp concurrent lifecycle example\n * \\section thread_pool_ex7 "
+      "Concurrent submit and try_submit\n * \\snippet thread_pool_example.cpp concurrent submit "
+      "example\n * \\section thread_pool_ex8 Chained Pools\n * \\snippet thread_pool_example.cpp "
+      "chained pools example\n * \\section thread_pool_ex9 Self-Submit\n * \\snippet "
+      "thread_pool_example.cpp self-submit example\n");
+
+  { // inner classes & enums of ThreadPool
+    auto pyClassThreadPool_ClassStats =
+        py::class_<espp::ThreadPool::Stats>(pyClassThreadPool, "Stats", py::dynamic_attr(),
+                                            "/ @brief Snapshot of pool activity counters.")
+            .def(py::init<>([](std::uint64_t submitted = 0, std::uint64_t executed = 0,
+                               std::uint64_t rejected = 0) {
+                   auto r_ctor_ = std::make_unique<espp::ThreadPool::Stats>();
+                   r_ctor_->submitted = submitted;
+                   r_ctor_->executed = executed;
+                   r_ctor_->rejected = rejected;
+                   return r_ctor_;
+                 }),
+                 py::arg("submitted") = 0, py::arg("executed") = 0, py::arg("rejected") = 0)
+            .def_readwrite("submitted", &espp::ThreadPool::Stats::submitted,
+                           "/< Total jobs accepted into the queue.")
+            .def_readwrite("executed", &espp::ThreadPool::Stats::executed,
+                           "/< Total jobs successfully executed.")
+            .def_readwrite("rejected", &espp::ThreadPool::Stats::rejected,
+                           "/< Total jobs rejected (invalid job, stopped/stopping, or queue");
+    auto pyClassThreadPool_ClassConfig =
+        py::class_<espp::ThreadPool::Config>(
+            pyClassThreadPool, "Config", py::dynamic_attr(),
+            "/ @brief Configuration parameters for constructing a ThreadPool.")
+            .def(py::init<>([](std::size_t worker_count = 1, std::size_t max_queue_size = 0,
+                               bool auto_start = true, bool block_on_submit_when_full = false,
+                               espp::Task::BaseConfig worker_task_config =
+                                   {
+                                       ///< Base configuration applied to every worker task.
+                                       .name = "thread_pool_worker",
+                                       .stack_size_bytes = 4096,
+                                       .priority = 5,
+                                       .core_id = -1,
+                                   },
+                               espp::Logger::Verbosity log_level = espp::Logger::Verbosity::WARN) {
+                   auto r_ctor_ = std::make_unique<espp::ThreadPool::Config>();
+                   r_ctor_->worker_count = worker_count;
+                   r_ctor_->max_queue_size = max_queue_size;
+                   r_ctor_->auto_start = auto_start;
+                   r_ctor_->block_on_submit_when_full = block_on_submit_when_full;
+                   r_ctor_->worker_task_config = worker_task_config;
+                   r_ctor_->log_level = log_level;
+                   return r_ctor_;
+                 }),
+                 py::arg("worker_count") = 1, py::arg("max_queue_size") = 0,
+                 py::arg("auto_start") = true, py::arg("block_on_submit_when_full") = false,
+                 py::arg("worker_task_config") =
+                     espp::Task::BaseConfig{
+                         ///< Base configuration applied to every worker task.
+                         .name = "thread_pool_worker",
+                         .stack_size_bytes = 4096,
+                         .priority = 5,
+                         .core_id = -1,
+                     },
+                 py::arg("log_level") = espp::Logger::Verbosity::WARN)
+            .def_readwrite("worker_count", &espp::ThreadPool::Config::worker_count,
+                           "/< Number of worker threads to spawn.")
+            .def_readwrite("max_queue_size", &espp::ThreadPool::Config::max_queue_size,
+                           "/< Maximum pending jobs (0 = unbounded).")
+            .def_readwrite("auto_start", &espp::ThreadPool::Config::auto_start,
+                           "/< Start workers immediately on construction.")
+            .def_readwrite(
+                "block_on_submit_when_full", &espp::ThreadPool::Config::block_on_submit_when_full,
+                "/< If True, submit() blocks when the queue is full instead of rejecting.")
+            .def_readwrite("worker_task_config", &espp::ThreadPool::Config::worker_task_config, "")
+            .def_readwrite("log_level", &espp::ThreadPool::Config::log_level,
+                           "/< Logger verbosity level.");
+  } // end of inner classes & enums of ThreadPool
+
+  pyClassThreadPool.def(py::init<const espp::ThreadPool::Config &>())
+      .def("start", &espp::ThreadPool::start,
+           "/ @brief Start all worker threads.\n/ @return True if all workers were successfully "
+           "started, False otherwise.\n/ @note No-op if the pool is already running and return "
+           "True immediately.\n/ @note If any workers could not be started, the pool will roll "
+           "back to the stopped state.",
+           py::call_guard<py::gil_scoped_release>())
+      .def("stop", &espp::ThreadPool::stop,
+           "/ @brief Stop all worker threads and reject further submissions.\n/ @note Blocks until "
+           "every worker has exited; queued jobs may not be executed.",
+           py::call_guard<py::gil_scoped_release>())
+      .def("is_running", &espp::ThreadPool::is_running,
+           "/ @brief Query whether the pool is currently running.\n/ @return True if workers are "
+           "active, False otherwise.")
+      .def("submit", &espp::ThreadPool::submit, py::arg("job"),
+           "/ @brief Submit a job, optionally blocking when the queue is full.\n/\n/ Blocks if "
+           "Config::block_on_submit_when_full is True and the queue has\n/ reached its capacity "
+           "limit. Otherwise behaves identically to try_submit().\n/ @param job Callable to "
+           "enqueue; moved into the queue on acceptance.\n/ @return True if the job was accepted, "
+           "False if it was rejected.",
+           py::call_guard<py::gil_scoped_release>())
+      .def("try_submit", &espp::ThreadPool::try_submit, py::arg("job"),
+           "/ @brief Attempt to submit a job without blocking.\n/\n/ Returns immediately with "
+           "False when the queue is full.\n/ @param job Callable to enqueue; moved into the queue "
+           "on acceptance.\n/ @return True if the job was accepted, False if it was rejected.")
+      .def("queue_size", &espp::ThreadPool::queue_size,
+           "/ @brief Return the number of jobs currently waiting in the queue.\n/ @return Pending "
+           "job count.")
+      .def("worker_count", &espp::ThreadPool::worker_count,
+           "/ @brief Return the number of worker threads in the pool.\n/ @return Worker thread "
+           "count.")
+      .def("stats", &espp::ThreadPool::stats,
+           "/ @brief Return a snapshot of the pool's activity counters.\n/ @return Stats struct "
+           "with submitted, executed, and rejected counts.");
+  ////////////////////    </generated_from:thread_pool.hpp>    ////////////////////
 
   ////////////////////    <generated_from:joystick.hpp>    ////////////////////
   auto pyClassJoystick = py::class_<espp::Joystick>(
@@ -2724,7 +2871,7 @@ void py_init_module_espp(py::module &m) {
       m, "H264Depacketizer", py::dynamic_attr(),
       "/ @brief RTP depacketizer for H.264 video per RFC 6184.\n/\n/ Reassembles H.264 access "
       "units from incoming RTP packets. Supports:\n/   - **Single NAL unit** packets (NAL type "
-      "1–23)\n/   - **STAP-A** aggregation packets (NAL type 24)\n/   - **FU-A** fragmentation "
+      "1-23)\n/   - **STAP-A** aggregation packets (NAL type 24)\n/   - **FU-A** fragmentation "
       "packets (NAL type 28)\n/\n/ When the RTP marker bit is set, the accumulated NAL units are "
       "delivered\n/ as one Annex B byte-stream (each NAL prefixed with 0x00 0x00 0x00 0x01)\n/ via "
       "the frame callback set with set_frame_callback().\n/\n/ \\section h264_depacketizer_ex1 "
@@ -2762,7 +2909,7 @@ void py_init_module_espp(py::module &m) {
           "in Annex B byte-stream format (NAL units\n/ separated by 0x00000001 or 0x000001 start "
           "codes) and produces a sequence\n/ of RTP payload chunks suitable for "
           "transmission.\n/\n/ Supports two NAL-unit packetization strategies:\n/   - **Single NAL "
-          "unit mode** — NAL fits within max_payload_size.\n/   - **FU-A fragmentation** — NAL "
+          "unit mode** - NAL fits within max_payload_size.\n/   - **FU-A fragmentation** - NAL "
           "exceeds max_payload_size (packetization_mode >= 1).\n/\n/ @note This class does not "
           "manage RTP headers (sequence numbers, timestamps,\n/       SSRC). The caller wraps each "
           "returned chunk into an RtpPacket.\n/\n/ \\section h264_packetizer_ex1 Example\n/ "
@@ -2797,7 +2944,7 @@ void py_init_module_espp(py::module &m) {
             .def_readwrite("max_payload_size", &espp::H264Packetizer::Config::max_payload_size,
                            "/< Maximum payload bytes per RTP packet")
             .def_readwrite("payload_type", &espp::H264Packetizer::Config::payload_type,
-                           "/< Dynamic RTP payload type (typically 96–127).")
+                           "/< Dynamic RTP payload type (typically 96-127).")
             .def_readwrite("profile_level_id", &espp::H264Packetizer::Config::profile_level_id,
                            "/< H.264 profile-level-id hex string, e.g. \"42C01E\".")
             .def_readwrite("packetization_mode", &espp::H264Packetizer::Config::packetization_mode,
@@ -3251,21 +3398,26 @@ void py_init_module_espp(py::module &m) {
            "and \"Session\" headers will be added automatically.\n/      The \"Accept\" header "
            "will be added automatically. The \"Transport\"\n/      header will be added "
            "automatically for the \"SETUP\" method. Defaults to\n/      an empty map.\n/ \\param "
-           "ec The error code to set if an error occurs\n/ \\return The response from the server")
+           "ec The error code to set if an error occurs\n/ \\return The response from the server",
+           py::call_guard<py::gil_scoped_release>())
       .def("connect", &espp::RtspClient::connect, py::arg("ec"),
            "/ Connect to the RTSP server\n/ Connects to the RTSP server and sends the OPTIONS "
-           "request.\n/ \\param ec The error code to set if an error occurs")
+           "request.\n/ \\param ec The error code to set if an error occurs",
+           py::call_guard<py::gil_scoped_release>())
       .def("disconnect", &espp::RtspClient::disconnect, py::arg("ec"),
            "/ Disconnect from the RTSP server\n/ Disconnects from the RTSP server and sends the "
-           "TEARDOWN request.\n/ \\param ec The error code to set if an error occurs")
+           "TEARDOWN request.\n/ \\param ec The error code to set if an error occurs",
+           py::call_guard<py::gil_scoped_release>())
       .def("describe", &espp::RtspClient::describe, py::arg("ec"),
            "/ Describe the RTSP stream\n/ Sends the DESCRIBE request to the RTSP server and parses "
-           "the response.\n/ \\param ec The error code to set if an error occurs")
+           "the response.\n/ \\param ec The error code to set if an error occurs",
+           py::call_guard<py::gil_scoped_release>())
       .def("setup", py::overload_cast<std::error_code &>(&espp::RtspClient::setup), py::arg("ec"),
            "/ Setup the RTSP stream\n/ \note Starts the RTP and RTCP threads.\n/ Sends the SETUP "
            "request to the RTSP server and parses the response.\n/ \note The default ports are "
            "5000 and 5001 for RTP and RTCP respectively.\n/ \note The default receive timeout is 5 "
-           "seconds.\n/ \\param ec The error code to set if an error occurs")
+           "seconds.\n/ \\param ec The error code to set if an error occurs",
+           py::call_guard<py::gil_scoped_release>())
       .def("setup",
            py::overload_cast<size_t, size_t, const std::chrono::duration<float> &,
                              std::error_code &>(&espp::RtspClient::setup),
@@ -3274,7 +3426,8 @@ void py_init_module_espp(py::module &m) {
            "response.\n/ \note Starts the RTP and RTCP threads.\n/ \\param rtp_port The RTP client "
            "port\n/ \\param rtcp_port The RTCP client port\n/ \\param receive_timeout The timeout "
            "for receiving RTP and RTCP packets\n/ \\param ec The error code to set if an error "
-           "occurs")
+           "occurs",
+           py::call_guard<py::gil_scoped_release>())
       .def("add_depacketizer", &espp::RtspClient::add_depacketizer, py::arg("payload_type"),
            py::arg("depacketizer"),
            "/ Register a depacketizer for a specific RTP payload type.\n/ When RTP packets with "
@@ -3283,13 +3436,16 @@ void py_init_module_espp(py::module &m) {
            "H264)\n/ @param depacketizer The depacketizer to handle packets of this type")
       .def("play", &espp::RtspClient::play, py::arg("ec"),
            "/ Play the RTSP stream\n/ Sends the PLAY request to the RTSP server and parses the "
-           "response.\n/ \\param ec The error code to set if an error occurs")
+           "response.\n/ \\param ec The error code to set if an error occurs",
+           py::call_guard<py::gil_scoped_release>())
       .def("pause", &espp::RtspClient::pause, py::arg("ec"),
            "/ Pause the RTSP stream\n/ Sends the PAUSE request to the RTSP server and parses the "
-           "response.\n/ \\param ec The error code to set if an error occurs")
+           "response.\n/ \\param ec The error code to set if an error occurs",
+           py::call_guard<py::gil_scoped_release>())
       .def("teardown", &espp::RtspClient::teardown, py::arg("ec"),
            "/ Teardown the RTSP stream\n/ Sends the TEARDOWN request to the RTSP server and parses "
-           "the response.\n/ \\param ec The error code to set if an error occurs")
+           "the response.\n/ \\param ec The error code to set if an error occurs",
+           py::call_guard<py::gil_scoped_release>())
       .def("tracks", &espp::RtspClient::tracks,
            "/ Get the parsed SDP track descriptions from the most recent DESCRIBE call.\n/ "
            "\\return The ordered set of discovered media tracks.");
@@ -3385,10 +3541,12 @@ void py_init_module_espp(py::module &m) {
       .def("start", &espp::RtspServer::start, py::arg("accept_timeout") = std::chrono::seconds(5),
            "/ @brief Start the RTSP server\n/ Starts the accept task, session task, and binds the "
            "RTSP socket\n/ @param accept_timeout The timeout for accepting new connections\n/ "
-           "@return True if the server was started successfully, False otherwise")
+           "@return True if the server was started successfully, False otherwise",
+           py::call_guard<py::gil_scoped_release>())
       .def("stop", &espp::RtspServer::stop,
            "/ @brief Stop the FTP server\n/ Stops the accept task, session task, and closes the "
-           "RTSP socket")
+           "RTSP socket",
+           py::call_guard<py::gil_scoped_release>())
       .def("add_track", &espp::RtspServer::add_track, py::arg("config"),
            "/ @brief Register a media track with the server.\n/ Each track has its own packetizer, "
            "SSRC, and sequence number.\n/ @param config Track configuration including the "
@@ -3408,20 +3566,23 @@ void py_init_module_espp(py::module &m) {
            "/ @brief Send a frame on a specific track.\n/ The track's packetizer splits the frame "
            "into RTP payload chunks,\n/ which are then wrapped with RTP headers and queued for "
            "delivery.\n/ @note Overwrites any existing pending packets for this track.\n/ @param "
-           "track_id The track to send on.\n/ @param frame_data Raw encoded frame data.")
+           "track_id The track to send on.\n/ @param frame_data Raw encoded frame data.",
+           py::call_guard<py::gil_scoped_release>())
       .def("send_frame", py::overload_cast<const espp::JpegFrame &>(&espp::RtspServer::send_frame),
            py::arg("frame"),
            "/ @brief Send a JPEG frame over the RTSP connection (backward compatible).\n/ If no "
            "tracks have been added, lazily creates a default MJPEG track on\n/ track 0. Uses the "
            "legacy RtpJpegPacket packetization to preserve the\n/ exact wire format for existing "
            "MJPEG users.\n/ @note Overwrites any existing frame that has not been sent.\n/ @param "
-           "frame The frame to send.")
+           "frame The frame to send.",
+           py::call_guard<py::gil_scoped_release>())
       .def("send_frame", py::overload_cast<std::span<const uint8_t>>(&espp::RtspServer::send_frame),
            py::arg("frame_data"),
            "/ @brief Send raw JPEG bytes over the default MJPEG track.\n/ Uses the legacy MJPEG "
            "RTP packetization path without copying the frame\n/ into an intermediate JpegFrame "
            "object.\n/ @note Overwrites any existing frame that has not been sent.\n/ @param "
-           "frame_data Complete JPEG bytes, including header and EOI marker.");
+           "frame_data Complete JPEG bytes, including header and EOI marker.",
+           py::call_guard<py::gil_scoped_release>());
   ////////////////////    </generated_from:rtsp_server.hpp>    ////////////////////
 
   ////////////////////    <generated_from:rtsp_session.hpp>    ////////////////////
@@ -3514,37 +3675,43 @@ void py_init_module_espp(py::module &m) {
            py::arg("track_id"), py::arg("packet"),
            "/ Send an RTP packet on a specific track\n/ @param track_id The track to send on\n/ "
            "@param packet The RTP packet to send\n/ @return True if the packet was sent "
-           "successfully, False otherwise")
+           "successfully, False otherwise",
+           py::call_guard<py::gil_scoped_release>())
       .def("send_rtp_packet",
            py::overload_cast<int, std::span<const uint8_t>>(&espp::RtspSession::send_rtp_packet),
            py::arg("track_id"), py::arg("packet_data"),
            "/ Send a serialized RTP packet on a specific track.\n/ @param track_id The track to "
            "send on\n/ @param packet_data Serialized RTP packet bytes\n/ @return True if the "
-           "packet was sent successfully, False otherwise")
+           "packet was sent successfully, False otherwise",
+           py::call_guard<py::gil_scoped_release>())
       .def("send_rtp_packet",
            py::overload_cast<const espp::RtpPacket &>(&espp::RtspSession::send_rtp_packet),
            py::arg("packet"),
-           "/ Send an RTP packet to the client (backward compat — sends on default track 0)\n/ "
+           "/ Send an RTP packet to the client (backward compat - sends on default track 0)\n/ "
            "@param packet The RTP packet to send\n/ @return True if the packet was sent "
-           "successfully, False otherwise")
+           "successfully, False otherwise",
+           py::call_guard<py::gil_scoped_release>())
       .def("send_rtp_packet",
            py::overload_cast<std::span<const uint8_t>>(&espp::RtspSession::send_rtp_packet),
            py::arg("packet_data"),
            "/ Send a serialized RTP packet to the client (default track 0).\n/ @param packet_data "
            "Serialized RTP packet bytes\n/ @return True if the packet was sent successfully, False "
-           "otherwise")
+           "otherwise",
+           py::call_guard<py::gil_scoped_release>())
       .def("send_rtcp_packet",
            py::overload_cast<int, const espp::RtcpPacket &>(&espp::RtspSession::send_rtcp_packet),
            py::arg("track_id"), py::arg("packet"),
            "/ Send an RTCP packet on a specific track\n/ @param track_id The track to send on\n/ "
            "@param packet The RTCP packet to send\n/ @return True if the packet was sent "
-           "successfully, False otherwise")
+           "successfully, False otherwise",
+           py::call_guard<py::gil_scoped_release>())
       .def("send_rtcp_packet",
            py::overload_cast<const espp::RtcpPacket &>(&espp::RtspSession::send_rtcp_packet),
            py::arg("packet"),
-           "/ Send an RTCP packet to the client (backward compat — sends on default track 0)\n/ "
+           "/ Send an RTCP packet to the client (backward compat - sends on default track 0)\n/ "
            "@param packet The RTCP packet to send\n/ @return True if the packet was sent "
-           "successfully, False otherwise");
+           "successfully, False otherwise",
+           py::call_guard<py::gil_scoped_release>());
   ////////////////////    </generated_from:rtsp_session.hpp>    ////////////////////
 
   ////////////////////    <generated_from:lowpass_filter.hpp>    ////////////////////

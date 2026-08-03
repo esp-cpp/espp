@@ -52,6 +52,7 @@ extern "C" {
 #include "tabulate.hpp"
 #include "task.hpp"
 #include "tcp_socket.hpp"
+#include "thread_pool.hpp"
 #include "timer.hpp"
 #include "udp_socket.hpp"
 #include "vector2d.hpp"

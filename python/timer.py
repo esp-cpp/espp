@@ -1,7 +1,7 @@
 import sys
 import time
 
-from support_loader import espp
+import espp
 
 start = time.time()
 def timer_func():

@@ -5,8 +5,8 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <span>
 #include <utility>
-#include <vector>
 
 namespace espp {
 /**
@@ -100,23 +100,24 @@ template <typename T> int sgn(T x) { return (T(0) < x) - (x < T(0)); }
  *          last y value.
  * @return Interpolated value at x.
  */
-[[maybe_unused]] static float piecewise_linear(const std::vector<std::pair<float, float>> &points,
+[[maybe_unused]] static float piecewise_linear(std::span<const std::pair<float, float>> points,
                                                float x) {
-  if (points.size() == 0) {
+  if (points.empty()) {
     return 0.0f;
   }
-  if (x <= points[0].first) {
-    return points[0].second;
+  if (x <= points.front().first) {
+    return points.front().second;
   }
-  if (x >= points[points.size() - 1].first) {
-    return points[points.size() - 1].second;
+  if (x >= points.back().first) {
+    return points.back().second;
   }
   const auto it = std::find_if(points.begin() + 1, points.end(),
                                [x](const auto &point) { return x <= point.first; });
   if (it != points.end()) {
-    const auto prev = std::prev(it);
-    float t = inv_lerp(prev->first, it->first, x);
-    return lerp(prev->second, it->second, t);
+    const auto &[x0, y0] = *std::prev(it);
+    const auto &[x1, y1] = *it;
+    float t = inv_lerp(x0, x1, x);
+    return lerp(y0, y1, t);
   }
   return 0.0f;
 }

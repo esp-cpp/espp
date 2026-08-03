@@ -106,6 +106,20 @@ only need to do one of them; they are not steps to be run one after another.**
    update --init --recursive` to ensure that you have the latest versions of all
    the submodules which are required to build the components in this repository.
 
+- **Use the cross-platform components from Python or desktop C++ (no ESP
+  hardware needed).** The portable subset of espp (tasks, timers, sockets,
+  RTSP, RTPS, CDR, COBS, serialization, math, and more) is also packaged as the
+  [`espp` python package](https://pypi.org/project/espp/):
+
+    ```console
+    pip install espp
+    # or, straight from the repository:
+    pip install git+https://github.com/esp-cpp/espp.git
+    ```
+
+  See [lib/](./lib) for details, including how to build the same subset as a
+  C++ static library for PC, and [python/](./python) for example scripts.
+
 ## Additional Information and Links
 
  * [Documentation](https://esp-cpp.github.io/espp/) - github hosted version of

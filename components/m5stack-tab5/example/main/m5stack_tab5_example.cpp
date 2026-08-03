@@ -7,40 +7,45 @@
  * and communication interfaces.
  */
 
-#include <array>
+#include <algorithm>
+#include <atomic>
 #include <chrono>
+#include <cmath>
+#include <cstdlib>
+#include <cstring>
 #include <stdlib.h>
 #include <vector>
 
+#include <esp_heap_caps.h>
+#include <esp_timer.h>
+
 #include "m5stack-tab5.hpp"
 
+#include "gui.hpp"
 #include "kalman_filter.hpp"
 #include "madgwick_filter.hpp"
 
 using namespace std::chrono_literals;
 
-static constexpr size_t MAX_CIRCLES = 100;
-struct Circle {
-  int x{0};
-  int y{0};
-  int radius{0};
-  bool visible{false};
-};
-static std::array<Circle, MAX_CIRCLES> circles;
-static size_t next_circle_index = 0;
-static size_t visible_circle_count = 0;
 static std::vector<uint8_t> audio_bytes;
-static lv_obj_t *circle_layer = nullptr;
-
-static std::recursive_mutex lvgl_mutex;
-static bool initialize_circle_layer(int width, int height);
-static void draw_circle_layer(lv_event_t *event);
-static void invalidate_circle_area(const Circle &circle);
-static void draw_circle(int x0, int y0, int radius);
-static void clear_circles();
 
 static bool load_audio(size_t &out_size, size_t &out_sample_rate);
 static void play_click(espp::M5StackTab5 &tab5);
+
+// Audio recording state (written by the recording callback, read/controlled
+// from the GUI button callbacks and main loop). The recorded data is 16-bit
+// interleaved stereo at the current audio sample rate.
+static constexpr size_t MAX_RECORDING_SECONDS = 30;     // when PSRAM is available
+static constexpr size_t FALLBACK_RECORDING_SECONDS = 2; // internal RAM fallback
+static uint8_t *recording_buffer = nullptr;
+static size_t recording_capacity = 0;
+static std::atomic<bool> recording{false};
+static std::atomic<size_t> recording_len{0};
+static std::atomic<bool> playing{false};
+// wall-clock bounds of the capture, for reporting the measured effective
+// sample rate (ordering is provided by the `recording` atomic)
+static std::atomic<int64_t> recording_start_us{0};
+static std::atomic<int64_t> recording_last_us{0};
 
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = "M5Stack Tab5 Example", .level = espp::Logger::Verbosity::INFO});
@@ -76,37 +81,19 @@ extern "C" void app_main(void) {
     return;
   }
 
-  // initialize the display with a pixel buffer (Tab5 is 1280x720 with 2 bytes per pixel)
+  // initialize the display with a full-frame pixel buffer (Tab5 is 1280x720 with
+  // 2 bytes per pixel). A full-frame LVGL draw buffer (allocated in PSRAM, see
+  // initialize_display) lets a full-screen redraw - e.g. a rotation change -
+  // flush in a single pass instead of ~72 ten-line strips, so the screen
+  // repaints at once rather than wiping progressively. Partial updates still
+  // only render/flush their dirty area, so the larger buffer costs nothing
+  // there (just PSRAM).
   logger.info("Initializing display...");
-  auto pixel_buffer_size = tab5.display_width() * 10; // tab5.display_height();
+  auto pixel_buffer_size = tab5.display_width() * tab5.display_height();
   if (!tab5.initialize_display(pixel_buffer_size)) {
     logger.error("Failed to initialize display!");
     return;
   }
-
-  auto touch_callback = [&](const auto &touch) {
-    // NOTE: since we're directly using the touchpad data, and not using the
-    // TouchpadInput + LVGL, we'll need to ensure the touchpad data is
-    // converted into proper screen coordinates instead of simply using the
-    // raw values.
-    static auto previous_touchpad_data = tab5.touchpad_convert(touch);
-    auto touchpad_data = tab5.touchpad_convert(touch);
-    if (touchpad_data != previous_touchpad_data) {
-      logger.debug("Touch: {}", touchpad_data);
-      previous_touchpad_data = touchpad_data;
-      // if the button is pressed, clear the circles
-      if (touchpad_data.btn_state) {
-        std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
-        clear_circles();
-      }
-      // if there is a touch point, draw a circle and play a click sound
-      if (touchpad_data.num_touch_points > 0) {
-        play_click(tab5);
-        std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
-        draw_circle(touchpad_data.x, touchpad_data.y, 10);
-      }
-    }
-  };
 
   // make the filter we'll use for the IMU to compute the orientation
   static constexpr float angle_noise = 0.001f;
@@ -222,129 +209,70 @@ extern "C" void app_main(void) {
     return;
   }
 
-  // Brightness control with button
+  // unmute the audio and set the volume to 60% (do this before the GUI is
+  // created so its volume label shows the right value)
+  tab5.mute(false);
+  tab5.volume(60.0f);
+
+  // create the GUI: builds the UI (label, buttons, gravity lines, circle
+  // layer) and starts the task which updates LVGL. All of its public methods
+  // are thread-safe, so the touch callback, button callback, and data display
+  // task below can call them directly.
+  logger.info("Setting up LVGL UI...");
+  static Gui gui({.log_level = espp::Logger::Verbosity::INFO});
+  static const std::string instructions =
+      fmt::format("Touch the screen to draw!\nPress the {} button to clear circles.\nPress the "
+                  "{} button to rotate the display.\nPress the {} button to cycle the "
+                  "brightness.\nThe Status and Audio tabs show the other subsystems.",
+                  LV_SYMBOL_TRASH, LV_SYMBOL_REFRESH, LV_SYMBOL_EYE_OPEN);
+  gui.set_label_text(instructions);
+
+  // Brightness control with the hardware button: cycle through the same
+  // 25/50/75/100% levels as the on-screen brightness button
   logger.info("Initializing button...");
   auto button_callback = [&](const auto &state) {
     logger.info("Button state: {}", state.active);
     if (state.active) {
-      // Cycle through brightness levels: 25%, 50%, 75%, 100%
-      static int brightness_level = 0;
-      float brightness_values[] = {0.25f, 0.5f, 0.75f, 1.0f};
-      brightness_level = (brightness_level + 1) % 4;
-      float new_brightness = brightness_values[brightness_level];
-      tab5.brightness(new_brightness);
-      logger.info("Set brightness to {:.0f}%", new_brightness * 100);
+      gui.cycle_brightness();
     }
   };
   if (!tab5.initialize_button(button_callback)) {
     logger.warn("Failed to initialize button");
   }
 
-  logger.info("Setting up LVGL UI...");
-  // set the background color to black
-  lv_obj_t *bg = lv_obj_create(lv_screen_active());
-  lv_obj_set_size(bg, tab5.display_width(), tab5.display_height());
-  lv_obj_set_style_bg_color(bg, lv_color_make(0, 0, 0), 0);
-  if (!initialize_circle_layer(tab5.display_width(), tab5.display_height())) {
-    logger.error("Failed to initialize circle layer!");
-    return;
-  }
-
-  // add text in the center of the screen
-  lv_obj_t *label = lv_label_create(lv_screen_active());
-  static std::string label_text = "\n\n\n\nTouch the screen!";
-  lv_label_set_text(label, label_text.c_str());
-  lv_obj_align(label, LV_ALIGN_TOP_LEFT, 0, 0);
-  lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_LEFT, 0);
-
-  // Create style for line 0 (blue line, used for kalman filter)
-  static lv_style_t style_line0;
-  lv_style_init(&style_line0);
-  lv_style_set_line_width(&style_line0, 8);
-  lv_style_set_line_color(&style_line0, lv_palette_main(LV_PALETTE_BLUE));
-  lv_style_set_line_rounded(&style_line0, true);
-
-  // make a line for showing the direction of "down"
-  lv_obj_t *line0 = lv_line_create(lv_screen_active());
-  static lv_point_precise_t line_points0[] = {{0, 0},
-                                              {tab5.display_width(), tab5.display_height()}};
-  lv_line_set_points(line0, line_points0, 2);
-  lv_obj_add_style(line0, &style_line0, 0);
-
-  // Create style for line 1 (red line, used for madgwick filter)
-  static lv_style_t style_line1;
-  lv_style_init(&style_line1);
-  lv_style_set_line_width(&style_line1, 8);
-  lv_style_set_line_color(&style_line1, lv_palette_main(LV_PALETTE_RED));
-  lv_style_set_line_rounded(&style_line1, true);
-
-  // make a line for showing the direction of "down"
-  lv_obj_t *line1 = lv_line_create(lv_screen_active());
-  static lv_point_precise_t line_points1[] = {{0, 0},
-                                              {tab5.display_width(), tab5.display_height()}};
-  lv_line_set_points(line1, line_points1, 2);
-  lv_obj_add_style(line1, &style_line1, 0);
-
-  static auto rotate_display = [&]() {
-    std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
-    clear_circles();
-    static auto rotation = LV_DISPLAY_ROTATION_0;
-    rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
-    lv_display_t *disp = lv_display_get_default();
-    lv_disp_set_rotation(disp, rotation);
-    // update the size of the screen
-    lv_obj_set_size(bg, tab5.rotated_display_width(), tab5.rotated_display_height());
-    if (circle_layer) {
-      lv_obj_set_size(circle_layer, tab5.rotated_display_width(), tab5.rotated_display_height());
-      lv_obj_align(circle_layer, LV_ALIGN_CENTER, 0, 0);
-      lv_obj_move_foreground(circle_layer);
-      lv_obj_invalidate(circle_layer);
+  // initialize the touchpad; each touch draws a circle (and plays a click
+  // sound), while the touchscreen's button clears the circles
+  auto touch_callback = [&](const auto &touch) {
+    // NOTE: since we're directly using the touchpad data, and not using the
+    // TouchpadInput + LVGL, we'll need to ensure the touchpad data is
+    // converted into proper screen coordinates instead of simply using the
+    // raw values.
+    static auto previous_touchpad_data = tab5.touchpad_convert(touch);
+    auto touchpad_data = tab5.touchpad_convert(touch);
+    if (touchpad_data != previous_touchpad_data) {
+      logger.debug("Touch: {}", touchpad_data);
+      previous_touchpad_data = touchpad_data;
+      // if the button is pressed, clear the circles
+      if (touchpad_data.btn_state) {
+        gui.clear_circles();
+      }
+      // if there is a touch point on the Draw tab, draw a circle and play a
+      // click sound (touches on the other tabs go to their widgets)
+      if (touchpad_data.num_touch_points > 0 && gui.draw_page_active()) {
+        play_click(tab5);
+        gui.draw_circle(touchpad_data.x, touchpad_data.y, 10);
+      }
     }
   };
-
-  // add a button in the top left which (when pressed) will rotate the display
-  // through 0, 90, 180, 270 degrees
-  lv_obj_t *btn = lv_btn_create(lv_screen_active());
-  lv_obj_set_size(btn, 50, 50);
-  lv_obj_align(btn, LV_ALIGN_TOP_LEFT, 0, 0);
-  lv_obj_t *label_btn = lv_label_create(btn);
-  lv_label_set_text(label_btn, LV_SYMBOL_REFRESH);
-  // center the text in the button
-  lv_obj_align(label_btn, LV_ALIGN_CENTER, 0, 0);
-  lv_obj_add_event_cb(
-      btn, [](auto event) { rotate_display(); }, LV_EVENT_PRESSED, nullptr);
-
-  // disable scrolling on the screen (so that it doesn't behave weirdly when
-  // rotated and drawing with your finger)
-  lv_obj_set_scrollbar_mode(lv_screen_active(), LV_SCROLLBAR_MODE_OFF);
-  lv_obj_clear_flag(lv_screen_active(), LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_move_foreground(circle_layer);
-
   logger.info("Initializing touch...");
+  // NOTE: this example raises the BSP interrupt-task stack size via
+  // sdkconfig.defaults (CONFIG_M5STACK_TAB5_INTERRUPT_STACK_SIZE=8192); the
+  // touch controller is read from that task and its error-logging path
+  // needs more than the 4 KB BSP default. See the example README.
   if (!tab5.initialize_touch(touch_callback)) {
     logger.error("Failed to initialize touch!");
     return;
   }
-
-  // start a simple thread to do the lv_task_handler every 16ms
-  logger.info("Starting LVGL task...");
-  espp::Task lv_task({.callback = [](std::mutex &m, std::condition_variable &cv) -> bool {
-                        auto start_time = std::chrono::high_resolution_clock::now();
-                        {
-                          std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
-                          lv_task_handler();
-                        }
-                        std::unique_lock<std::mutex> lock(m);
-                        cv.wait_until(lock, start_time + 16ms, []() { return false; });
-                        return false;
-                      },
-                      .task_config = {
-                          .name = "lv_task",
-                          .stack_size_bytes = 10 * 1024,
-                          .priority = 20,
-                          .core_id = 1,
-                      }});
-  lv_task.start();
 
   // load the audio file (wav file bundled in memory)
   size_t wav_size = 0;
@@ -358,12 +286,93 @@ extern "C" void app_main(void) {
   logger.info("Setting audio sample rate to {} Hz", wav_sample_rate);
   tab5.audio_sample_rate(wav_sample_rate);
 
-  // unmute the audio and set the volume to 60%
-  tab5.mute(false);
-  tab5.volume(60.0f);
-
   // set the brightness to 75%
   tab5.brightness(75.0f);
+
+  // Keep the analog microphone gain modest: the ES7210 front-end develops a
+  // high-frequency whine as the analog gain is raised, so the loudness comes
+  // from the RMS software makeup gain applied to the recording on stop (see
+  // below) rather than from the analog stage. The mic +/- buttons still adjust
+  // the analog gain if desired.
+  tab5.microphone_volume(40.0f);
+
+  // Allocate the recording buffer (16-bit interleaved stereo at the current
+  // sample rate): prefer PSRAM, fall back to a couple of seconds in internal
+  // RAM
+  size_t bytes_per_second = tab5.audio_sample_rate() * 2 * sizeof(int16_t);
+  recording_capacity = MAX_RECORDING_SECONDS * bytes_per_second;
+  recording_buffer = static_cast<uint8_t *>(
+      heap_caps_malloc(recording_capacity, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+  if (recording_buffer == nullptr) {
+    recording_capacity = FALLBACK_RECORDING_SECONDS * bytes_per_second;
+    recording_buffer =
+        static_cast<uint8_t *>(heap_caps_malloc(recording_capacity, MALLOC_CAP_8BIT));
+  }
+  if (recording_buffer == nullptr) {
+    gui.set_audio_status("No recording buffer");
+    logger.warn("Could not allocate a recording buffer; recording disabled");
+    recording_capacity = 0;
+  } else {
+    logger.info("Recording buffer: {} KB ({} s at {} Hz stereo)", recording_capacity / 1024,
+                recording_capacity / bytes_per_second, tab5.audio_sample_rate());
+  }
+
+  // The recording callback appends the recorded stereo frames to the buffer
+  // and auto-stops when it is full (the main loop notices and updates the
+  // GUI)
+  auto record_data_callback = [](const uint8_t *data, size_t length) {
+    if (!recording) {
+      return;
+    }
+    size_t offset = recording_len;
+    size_t to_copy = std::min(length, recording_capacity - offset);
+    if (to_copy > 0) {
+      memcpy(recording_buffer + offset, data, to_copy);
+      recording_last_us = esp_timer_get_time();
+      recording_len = offset + to_copy;
+    }
+    if (recording_len >= recording_capacity) {
+      recording = false;
+    }
+  };
+
+  // The record button toggles recording; the play button toggles playback of
+  // the recording (streamed to the speaker by the main loop)
+  gui.set_record_callback([&]() {
+    if (recording_capacity == 0) {
+      logger.warn("Recording unavailable (no buffer)");
+      gui.set_audio_status("Recording unavailable (see log)");
+      return;
+    }
+    if (recording) {
+      recording = false; // the main loop stops the BSP recording and logs
+    } else {
+      playing = false;
+      gui.set_play_active(false);
+      recording_len = 0;
+      recording_start_us = esp_timer_get_time();
+      recording_last_us = recording_start_us.load();
+      recording = true;
+      tab5.start_audio_recording(record_data_callback);
+      gui.set_record_active(true);
+      gui.set_audio_status("Recording...");
+    }
+  });
+  gui.set_play_callback([&]() {
+    if (playing) {
+      playing = false;
+      gui.set_play_active(false);
+      gui.set_audio_status("Playback stopped");
+    } else if (recording_len > 0) {
+      recording = false;
+      playing = true;
+      gui.set_play_active(true);
+      gui.set_audio_status("Playing...");
+    } else {
+      logger.info("Nothing recorded yet; press the record button first");
+      gui.set_audio_status("Nothing recorded yet");
+    }
+  });
 
   // make a task to read out various data such as IMU, battery monitoring, etc.
   // and print it to screen
@@ -373,7 +382,7 @@ extern "C" void app_main(void) {
          // sleep first in case we don't get IMU data and need to exit early
          {
            std::unique_lock<std::mutex> lock(m);
-           cv.wait_for(lock, 20ms);
+           cv.wait_for(lock, 10ms);
          }
          static auto &tab5 = espp::M5StackTab5::get();
          static auto imu = tab5.imu();
@@ -416,23 +425,10 @@ extern "C" void app_main(void) {
          auto temp = imu->get_temperature();
          auto orientation = imu->get_orientation();
          auto gravity_vector = imu->get_gravity_vector();
-         // invert the axes
+         // invert the axes to convert from the sensor frame to the display's
+         // natural (unrotated) frame
          gravity_vector.y = -gravity_vector.y;
          gravity_vector.x = -gravity_vector.x;
-
-         // now update the gravity vector line to show the direction of "down"
-         // taking into account the configured rotation of the display
-         auto rotation = lv_display_get_rotation(lv_display_get_default());
-         if (rotation == LV_DISPLAY_ROTATION_90) {
-           std::swap(gravity_vector.x, gravity_vector.y);
-           gravity_vector.x = -gravity_vector.x;
-         } else if (rotation == LV_DISPLAY_ROTATION_180) {
-           gravity_vector.x = -gravity_vector.x;
-           gravity_vector.y = -gravity_vector.y;
-         } else if (rotation == LV_DISPLAY_ROTATION_270) {
-           std::swap(gravity_vector.x, gravity_vector.y);
-           gravity_vector.y = -gravity_vector.y;
-         }
 
          // separator for imu
          std::string imu_text = "\nIMU Data:\n";
@@ -443,64 +439,28 @@ extern "C" void app_main(void) {
                                  espp::rad_to_deg(orientation.pitch));
          imu_text += fmt::format("Temp: {:02.1f} C\n", temp);
 
-         // use the pitch to to draw a line on the screen indiating the
-         // direction from the center of the screen to "down"
-         int x0 = tab5.rotated_display_width() / 2;
-         int y0 = tab5.rotated_display_height() / 2;
-
-         int x1 = x0 + 50 * gravity_vector.x;
-         int y1 = y0 + 50 * gravity_vector.y;
-
-         static lv_point_precise_t line_points0[] = {{x0, y0}, {x1, y1}};
-         line_points0[0].x = x0;
-         line_points0[0].y = y0;
-         line_points0[1].x = x1;
-         line_points0[1].y = y1;
-
-         // Now show the madgwick filter
+         // Now show the madgwick filter's estimate of "down"
          auto madgwick_orientation = madgwick_filter_fn(dt, accel, gyro);
          float roll = madgwick_orientation.roll;
          float pitch = madgwick_orientation.pitch;
-         [[maybe_unused]] float yaw = madgwick_orientation.yaw;
          float vx = sin(pitch);
          float vy = -cos(pitch) * sin(roll);
-         [[maybe_unused]] float vz = -cos(pitch) * cos(roll);
 
-         // invert the axes
+         // invert the axes to convert from the sensor frame to the display's
+         // natural (unrotated) frame
          vx = -vx;
          vy = -vy;
 
-         // now update the line to show the direction of "down" based on the
-         // configured rotation of the display
-         if (rotation == LV_DISPLAY_ROTATION_90) {
-           std::swap(vx, vy);
-           vx = -vx;
-         } else if (rotation == LV_DISPLAY_ROTATION_180) {
-           vx = -vx;
-           vy = -vy;
-         } else if (rotation == LV_DISPLAY_ROTATION_270) {
-           std::swap(vx, vy);
-           vy = -vy;
-         }
-
-         x1 = x0 + 50 * vx;
-         y1 = y0 + 50 * vy;
-
-         static lv_point_precise_t line_points1[] = {{x0, y0}, {x1, y1}};
-         line_points1[0].x = x0;
-         line_points1[0].y = y0;
-         line_points1[1].x = x1;
-         line_points1[1].y = y1;
-
-         std::string text = fmt::format("{}\n\n\n\n\n", label_text);
+         std::string text;
          text += battery_text;
          text += rtc_text;
          text += imu_text;
 
-         std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
-         lv_label_set_text(label, text.c_str());
-         lv_line_set_points(line0, line_points0, 2);
-         lv_line_set_points(line1, line_points1, 2);
+         // update the GUI with the new data; the Gui handles remapping the
+         // vectors for the current display rotation
+         gui.set_status_text(text);
+         gui.set_kalman_down(gravity_vector.x, gravity_vector.y);
+         gui.set_madgwick_down(vx, vy);
 
          return false;
        },
@@ -512,109 +472,95 @@ extern "C" void app_main(void) {
        }});
   imu_task.start();
 
-  // loop forever
+  // Initialize the on-board MIPI-CSI camera and stream its frames to the Camera
+  // tab. The BSP runs a capture task that hands each RGB565 frame to this
+  // callback; forward it to the thread-safe GUI. Non-fatal: the rest of the
+  // example still runs if the camera is unavailable.
+  logger.info("Initializing camera...");
+  if (!tab5.initialize_camera(
+          [&](const uint8_t *data, int w, int h, size_t) { gui.set_camera_frame(data, w, h); })) {
+    logger.warn("Failed to initialize camera; the Camera tab will stay blank");
+  }
+
+  // Main loop: stream any active playback to the speaker and notice when a
+  // recording stops (either button press or the buffer filling up)
+  size_t play_offset = 0;
+  bool was_recording = false;
   while (true) {
-    std::this_thread::sleep_for(1s);
+    // feed the active playback in chunks, advancing by however much the
+    // speaker's stream buffer accepted
+    if (playing) {
+      size_t len = recording_len;
+      if (play_offset >= len) {
+        playing = false;
+        play_offset = 0;
+        gui.set_play_active(false);
+        gui.set_audio_status("Playback done");
+        logger.info("Playback done");
+      } else {
+        play_offset += tab5.play_audio(recording_buffer + play_offset,
+                                       std::min<size_t>(len - play_offset, 16384));
+      }
+    } else {
+      play_offset = 0;
+    }
+    // notice when the recording stopped (button press or buffer full)
+    bool now_recording = recording;
+    if (was_recording && !now_recording) {
+      tab5.stop_audio_recording();
+      gui.set_record_active(false);
+      gui.set_audio_status(fmt::format("Recorded {:.1f}s ({} plays)",
+                                       static_cast<float>(recording_len) /
+                                           (tab5.audio_sample_rate() * 2 * sizeof(int16_t)),
+                                       LV_SYMBOL_PLAY));
+      // report the measured capture rate: stereo frames recorded over the
+      // wall clock they took to arrive should match the nominal sample rate
+      size_t num_frames = recording_len / (2 * sizeof(int16_t));
+      float elapsed_s = static_cast<float>(recording_last_us - recording_start_us) / 1e6f;
+      float effective_hz = elapsed_s > 0.0f ? num_frames / elapsed_s : 0.0f;
+      // Post-process the recording for playback on the Tab5's MONO speaker.
+      // The ES7210 records 16-bit interleaved stereo (mic 1 -> left slot, mic 2
+      // -> right); downmix each frame to the average (the speaker plays one I2S
+      // slot, so the result is written to both). The captured level is low, so
+      // rather than driving the analog gain hot (which whines), remove the DC
+      // offset and apply an RMS-normalized software makeup gain: this makes the
+      // recording play back at a consistent, audible level comparable to the
+      // click WAV, without a high analog mic gain or a high speaker volume.
+      auto *samples = reinterpret_cast<int16_t *>(recording_buffer);
+      int16_t peak = 0;
+      int64_t sum = 0;
+      for (size_t i = 0; i < num_frames; i++) {
+        int32_t mono = (static_cast<int32_t>(samples[2 * i]) + samples[2 * i + 1]) / 2;
+        samples[2 * i] = static_cast<int16_t>(mono);
+        peak = std::max<int16_t>(peak, static_cast<int16_t>(std::abs(mono)));
+        sum += mono;
+      }
+      int32_t dc = num_frames ? static_cast<int32_t>(sum / static_cast<int64_t>(num_frames)) : 0;
+      int64_t sum_sq = 0;
+      for (size_t i = 0; i < num_frames; i++) {
+        int32_t v = samples[2 * i] - dc;
+        sum_sq += static_cast<int64_t>(v) * v;
+      }
+      double rms = num_frames ? std::sqrt(static_cast<double>(sum_sq) / num_frames) : 0.0;
+      // target ~-15 dBFS leaves headroom; cap the gain so a near-silent capture
+      // is not blown up into noise
+      static constexpr double target_rms = 5500.0;
+      double gain = rms > 1.0 ? std::clamp(target_rms / rms, 1.0, 64.0) : 1.0;
+      for (size_t i = 0; i < num_frames; i++) {
+        int32_t v = static_cast<int32_t>((samples[2 * i] - dc) * gain);
+        int16_t mono = static_cast<int16_t>(std::clamp<int32_t>(v, -32768, 32767));
+        samples[2 * i] = mono;
+        samples[2 * i + 1] = mono;
+      }
+      logger.info("Recorded {} frames in {:.2f} s (~{:.0f} Hz effective, {} Hz nominal); "
+                  "peak={} dc={} rms={:.0f}; applied makeup gain {:.1f}x",
+                  num_frames, elapsed_s, effective_hz, tab5.audio_sample_rate(), peak, dc, rms,
+                  gain);
+    }
+    was_recording = now_recording;
+    std::this_thread::sleep_for(50ms);
   }
   //! [m5stack tab5 example]
-}
-
-static bool initialize_circle_layer(int width, int height) {
-  if (circle_layer) {
-    return true;
-  }
-  circle_layer = lv_obj_create(lv_screen_active());
-  if (!circle_layer) {
-    return false;
-  }
-  lv_obj_remove_style_all(circle_layer);
-  lv_obj_set_size(circle_layer, width, height);
-  lv_obj_align(circle_layer, LV_ALIGN_CENTER, 0, 0);
-  lv_obj_clear_flag(circle_layer, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_clear_flag(circle_layer, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_set_style_bg_opa(circle_layer, LV_OPA_TRANSP, 0);
-  lv_obj_set_style_border_width(circle_layer, 0, 0);
-  lv_obj_set_style_outline_width(circle_layer, 0, 0);
-  lv_obj_set_style_shadow_width(circle_layer, 0, 0);
-  lv_obj_add_event_cb(circle_layer, draw_circle_layer, LV_EVENT_DRAW_MAIN, nullptr);
-  return true;
-}
-
-static void draw_circle_layer(lv_event_t *event) {
-  if (visible_circle_count == 0) {
-    return;
-  }
-  auto *obj = static_cast<lv_obj_t *>(lv_event_get_current_target(event));
-  auto *layer = lv_event_get_layer(event);
-  lv_area_t obj_coords;
-  lv_obj_get_coords(obj, &obj_coords);
-
-  lv_draw_rect_dsc_t rect_dsc;
-  lv_draw_rect_dsc_init(&rect_dsc);
-  rect_dsc.base.layer = layer;
-  rect_dsc.radius = LV_RADIUS_CIRCLE;
-  rect_dsc.bg_opa = LV_OPA_70;
-  rect_dsc.bg_color = lv_color_make(0, 255, 255);
-  rect_dsc.border_width = 0;
-  rect_dsc.outline_width = 0;
-  rect_dsc.shadow_width = 0;
-
-  for (const auto &circle : circles) {
-    if (!circle.visible) {
-      continue;
-    }
-    lv_area_t coords = {
-        .x1 = static_cast<lv_coord_t>(obj_coords.x1 + circle.x - circle.radius),
-        .y1 = static_cast<lv_coord_t>(obj_coords.y1 + circle.y - circle.radius),
-        .x2 = static_cast<lv_coord_t>(obj_coords.x1 + circle.x + circle.radius - 1),
-        .y2 = static_cast<lv_coord_t>(obj_coords.y1 + circle.y + circle.radius - 1),
-    };
-    lv_draw_rect(layer, &rect_dsc, &coords);
-  }
-}
-
-static void invalidate_circle_area(const Circle &circle) {
-  if (!circle_layer || circle.radius <= 0) {
-    return;
-  }
-
-  lv_area_t obj_coords;
-  lv_obj_get_coords(circle_layer, &obj_coords);
-  lv_area_t coords = {
-      .x1 = static_cast<lv_coord_t>(obj_coords.x1 + circle.x - circle.radius),
-      .y1 = static_cast<lv_coord_t>(obj_coords.y1 + circle.y - circle.radius),
-      .x2 = static_cast<lv_coord_t>(obj_coords.x1 + circle.x + circle.radius - 1),
-      .y2 = static_cast<lv_coord_t>(obj_coords.y1 + circle.y + circle.radius - 1),
-  };
-  lv_obj_invalidate_area(circle_layer, &coords);
-}
-
-static void draw_circle(int x0, int y0, int radius) {
-  if (!circle_layer) {
-    return;
-  }
-  lv_obj_move_foreground(circle_layer);
-  Circle previous_circle = circles[next_circle_index];
-  circles[next_circle_index] = {.x = x0, .y = y0, .radius = radius, .visible = true};
-  next_circle_index = (next_circle_index + 1) % circles.size();
-  if (visible_circle_count < circles.size()) {
-    visible_circle_count++;
-  }
-  if (previous_circle.visible) {
-    invalidate_circle_area(previous_circle);
-  }
-  invalidate_circle_area(circles[(next_circle_index + circles.size() - 1) % circles.size()]);
-}
-
-static void clear_circles() {
-  for (auto &circle : circles) {
-    if (circle.visible) {
-      invalidate_circle_area(circle);
-    }
-    circle.visible = false;
-  }
-  next_circle_index = 0;
-  visible_circle_count = 0;
 }
 
 static bool load_audio(size_t &out_size, size_t &out_sample_rate) {
@@ -646,7 +592,24 @@ static bool load_audio(size_t &out_size, size_t &out_sample_rate) {
 }
 
 static void play_click(espp::M5StackTab5 &tab5) {
-  if (audio_bytes.size() > 0) {
-    tab5.play_audio(audio_bytes);
+  // Enqueue the click without blocking the caller (this runs in the touch
+  // callback). play_audio() enqueues only whole frames and returns how many
+  // bytes it took, so advance by that count (advancing by the requested size
+  // would skip samples). Stop as soon as the stream buffer is full rather than
+  // waiting for it to drain - blocking here would freeze the touch task for the
+  // whole click. The click comfortably fits in the stream buffer, so it plays
+  // in full in practice.
+  if (audio_bytes.empty()) {
+    return;
+  }
+  auto audio_buffer_size = tab5.audio_buffer_size();
+  size_t offset = 0;
+  while (offset < audio_bytes.size()) {
+    size_t chunk = std::min(audio_buffer_size, audio_bytes.size() - offset);
+    size_t queued = tab5.play_audio(audio_bytes.data() + offset, chunk);
+    offset += queued;
+    if (queued < chunk) {
+      break; // stream buffer full for now; do not block the caller
+    }
   }
 }

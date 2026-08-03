@@ -1,2 +1,2 @@
-```{include} ../../components/motorgo-mini/example/README.md
+```{include} ../../../../components/motorgo-mini/example/README.md
 ```

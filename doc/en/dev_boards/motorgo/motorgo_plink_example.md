@@ -1,2 +1,2 @@
-```{include} ../../components/motorgo-plink/example/README.md
+```{include} ../../../../components/motorgo-plink/example/README.md
 ```

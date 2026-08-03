@@ -1,2 +1,2 @@
-```{include} ../../components/wrover-kit/example/README.md
+```{include} ../../../../components/wrover-kit/example/README.md
 ```

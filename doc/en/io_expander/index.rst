@@ -8,6 +8,7 @@ IO Expander APIs
     pi4ioe5v
     kts1622
     mcp23x17
+    pca9535
 
 There are several different types of I/O expanders provided which are standalone
 components for interacting with I/O expander chips over a serial interface such

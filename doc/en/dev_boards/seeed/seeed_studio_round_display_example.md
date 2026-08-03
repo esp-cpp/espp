@@ -1,2 +1,2 @@
-```{include} ../../components/seeed-studio-round-display/example/README.md
+```{include} ../../../../components/seeed-studio-round-display/example/README.md
 ```
