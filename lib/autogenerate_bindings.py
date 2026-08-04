@@ -462,6 +462,14 @@ def autogenerate() -> None:
                     # NOTE: this must come after task and base_component since it depends on them
                     include_dir + "thread_pool/include/thread_pool.hpp",
 
+                    # NOTE: socket/include/socket_reactor.hpp is intentionally NOT generated here.
+                    # srcmlcpp cannot parse SocketReactor (its Config/Entry brace-init defaults with
+                    # parenthesized/cast expressions trip srcmlcpp's brace-init fixer), and its TCP
+                    # callbacks take std::unique_ptr<TcpSocket> / TcpSocket& which litgen cannot bind
+                    # (the same reason ftp_client_session is excluded). It is instead bound by hand in
+                    # python_bindings/socket_reactor_bindings.cpp (registered via py_init_socket_reactor
+                    # in module.cpp), and is fully available in the C++ host library.
+
                     # NOTE: this must come after vector2d.hpp and range_mapper.hpp since it depends on them!
                     include_dir + "joystick/include/joystick.hpp",
 

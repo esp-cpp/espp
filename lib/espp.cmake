@@ -75,6 +75,7 @@ set(ESPP_SOURCES
   ${ESPP_COMPONENTS}/socket/src/socket.cpp
   ${ESPP_COMPONENTS}/socket/src/tcp_socket.cpp
   ${ESPP_COMPONENTS}/socket/src/udp_socket.cpp
+  ${ESPP_COMPONENTS}/socket/src/socket_reactor.cpp
   ${CMAKE_CURRENT_LIST_DIR}/espp.cpp
 )
 
@@ -103,6 +104,7 @@ set(ESPP_PYTHON_SOURCES
   ${ESPP_PYTHON_BINDINGS_DIR}/pybind_espp.cpp
   ${ESPP_PYTHON_BINDINGS_DIR}/cdr_bindings.cpp
   ${ESPP_PYTHON_BINDINGS_DIR}/rtps_bindings.cpp
+  ${ESPP_PYTHON_BINDINGS_DIR}/socket_reactor_bindings.cpp
   ${ESPP_SOURCES}
 )
 

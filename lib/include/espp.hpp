@@ -55,6 +55,9 @@ extern "C" {
 #include "thread_pool.hpp"
 #include "timer.hpp"
 #include "udp_socket.hpp"
+// NOTE: socket_reactor.hpp must come after tcp_socket/udp_socket/thread_pool/task,
+// which it depends on.
+#include "socket_reactor.hpp"
 #include "vector2d.hpp"
 
 // state machine includes

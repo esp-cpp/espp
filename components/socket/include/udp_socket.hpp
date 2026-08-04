@@ -159,6 +159,19 @@ public:
   bool receive(size_t max_num_bytes, std::vector<uint8_t> &data, Socket::Info &remote_info);
 
   /**
+   * @brief Bind the socket as a server according to \p receive_config (bind to
+   *        the port and, if requested, join the multicast group), without
+   *        starting any receive thread.
+   * @note This is called for you by start_receiving(). Use it directly when
+   *       driving the socket from an external event loop such as
+   *       espp::SocketReactor, which reads the socket itself.
+   * @param receive_config ReceiveConfig describing the port / multicast setup.
+   *        Its callback / buffer_size fields are not used by this method.
+   * @return true if the socket was bound (and joined the group, if multicast).
+   */
+  bool bind(const ReceiveConfig &receive_config);
+
+  /**
    * @brief Configure a server socket and start a thread to continuously
    *        receive and handle data coming in on that socket.
    *
