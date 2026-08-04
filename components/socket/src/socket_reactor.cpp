@@ -22,6 +22,16 @@ struct DispatchGuard {
   }
   ~DispatchGuard() { t_in_reactor_dispatch = prev; }
 };
+
+// Close a socket with the platform-correct call (Winsock sockets must use
+// closesocket(), not ::close()).
+void close_socket(sock_type_t fd) {
+#if defined(_MSC_VER)
+  closesocket(fd);
+#else
+  ::close(fd);
+#endif
+}
 } // namespace
 
 SocketReactor::SocketReactor(const SocketReactor::Config &config)
@@ -455,7 +465,7 @@ bool SocketReactor::create_wakeup_socket() {
   if (fd >= FD_SETSIZE) {
     logger_.error("wakeup socket fd {} is >= FD_SETSIZE ({})", static_cast<int>(fd),
                   static_cast<int>(FD_SETSIZE));
-    ::close(fd);
+    close_socket(fd);
     return false;
   }
 #endif
@@ -465,7 +475,7 @@ bool SocketReactor::create_wakeup_socket() {
   addr.sin_port = 0; // ask the OS for an ephemeral port
   if (::bind(fd, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr)) < 0) {
     logger_.error("Could not bind wakeup socket");
-    ::close(fd);
+    close_socket(fd);
     return false;
   }
   // Learn the assigned address/port so wake() can send to ourselves.
@@ -473,7 +483,7 @@ bool SocketReactor::create_wakeup_socket() {
   socklen_t len = sizeof(wakeup_addr_);
   if (::getsockname(fd, reinterpret_cast<struct sockaddr *>(&wakeup_addr_), &len) < 0) {
     logger_.error("Could not getsockname on wakeup socket");
-    ::close(fd);
+    close_socket(fd);
     return false;
   }
   set_nonblocking(fd); // so draining recvfrom() does not block
@@ -484,11 +494,7 @@ bool SocketReactor::create_wakeup_socket() {
 void SocketReactor::close_wakeup_socket() {
   const sock_type_t fd = wakeup_recv_.exchange(static_cast<sock_type_t>(-1));
   if (Socket::is_valid_fd(fd)) {
-#if defined(_MSC_VER)
-    closesocket(fd);
-#else
-    ::close(fd);
-#endif
+    close_socket(fd);
   }
 }
 
