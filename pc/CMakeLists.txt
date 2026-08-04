@@ -28,10 +28,11 @@ MACRO(GEN_TESTS curdir)
       PRIVATE espp_pc
       PRIVATE ${ESPP_EXTERNAL_LIBS}
     )
-    if(WIN32)
-      # need to ensure the whole archive is linked in for windows builds,
-      # otherwise the windows timer period adjustment code (from espp.hpp) will
-      # be stripped out and the timer will run at max of 64 hz.
+    # /WHOLEARCHIVE is an MSVC/link.exe flag (gate on MSVC, not WIN32, so
+    # MinGW/clang Windows builds don't receive it). It ensures the whole archive
+    # is linked in, otherwise the Windows timer-period adjustment code (from
+    # espp.hpp) is stripped and the timer runs at a max of ~64 Hz.
+    if(MSVC)
       target_link_options(${TEST_NAME} PRIVATE "/WHOLEARCHIVE:espp_pc.lib")
     endif()
   ENDFOREACH()

@@ -3,8 +3,10 @@
 #include "socket_msvc.hpp"
 
 #ifdef _MSC_VER
-extern "C" {
+// windows.h is a C++ header and must not be wrapped in extern "C"; only the C
+// header (wcswidth) needs it.
 #include <windows.h>
+extern "C" {
 // NOTE: needed for tabulate
 #include "wcswidth.h"
 }
@@ -66,7 +68,11 @@ extern "C" {
 
 #include <tabulate/markdown_exporter.hpp>
 
-#ifdef _MSC_VER
+// The timer-resolution helper uses the Windows multimedia timer API
+// (timeBeginPeriod), which is available on all Windows toolchains (MSVC, MinGW,
+// clang), so guard on _WIN32 rather than _MSC_VER. winmm is linked via CMake
+// (see lib/espp.cmake / pc/CMakeLists.txt).
+#ifdef _WIN32
 
 #include <mmsystem.h>
 #include <windows.h>
