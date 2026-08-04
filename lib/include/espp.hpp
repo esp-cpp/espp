@@ -81,21 +81,9 @@ extern "C" {
 // timer will not be accurate. To do this we need to call timeBeginPeriod(1) at
 // the start of the program and timeEndPeriod(1) at the end of the program.
 class TimerResolution {
-  espp::Logger logger{{.tag = "TimerResolution", .level = espp::Logger::Verbosity::INFO}};
-
 public:
-  TimerResolution() {
-    logger.info("Setting timeBeginPeriod(1)");
-    if (timeBeginPeriod(1) == TIMERR_NOERROR) {
-      logger.info("Success");
-    } else {
-      logger.error("failed to set timeBeginPeriod(1)");
-    }
-  }
-  ~TimerResolution() {
-    logger.info("Setting timeEndPeriod(1)");
-    timeEndPeriod(1);
-  }
+  TimerResolution() { timeBeginPeriod(1); }
+  ~TimerResolution() { timeEndPeriod(1); }
 };
 
 // we create a global instance of the TimerResolution class to ensure that the
