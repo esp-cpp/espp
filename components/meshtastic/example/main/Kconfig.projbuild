@@ -1,0 +1,60 @@
+menu "Example Configuration"
+
+choice EXAMPLE_HARDWARE
+  prompt "Hardware"
+  default EXAMPLE_HARDWARE_TDECK
+  help
+    Select the board to run this example on. Both use an SX1262 LoRa radio
+    exposed through the board's BSP component.
+
+config EXAMPLE_HARDWARE_TDECK
+  depends on IDF_TARGET_ESP32S3
+  bool "LilyGo T-Deck / T-Deck Plus"
+
+config EXAMPLE_HARDWARE_CARDPUTER_ADV
+  depends on IDF_TARGET_ESP32S3
+  bool "M5Stack Cardputer-Adv + LoRa+GPS Cap"
+endchoice
+
+choice EXAMPLE_REGION
+  prompt "LoRa region"
+  default EXAMPLE_REGION_US
+  help
+    The LoRa regulatory region. This MUST match the region of the Meshtastic
+    devices you want to talk to, and must be legal where you are.
+
+config EXAMPLE_REGION_US
+  bool "US (902-928 MHz)"
+
+config EXAMPLE_REGION_EU_868
+  bool "EU 868 (869 MHz)"
+
+config EXAMPLE_REGION_ANZ
+  bool "Australia / New Zealand (915-928 MHz)"
+endchoice
+
+config EXAMPLE_LONG_NAME
+  string "Node long name"
+  default "espp node"
+
+config EXAMPLE_SHORT_NAME
+  string "Node short name (<= 4 chars)"
+  default "espp"
+
+config EXAMPLE_REBROADCAST
+  bool "Rebroadcast (relay) other nodes' packets"
+  default n
+  help
+    Whether to act as a mesh router and rebroadcast packets from other nodes
+    (managed flood). Leave off for a simple receive/originate-only node,
+    which still fully interoperates.
+
+config EXAMPLE_TEXT_INTERVAL_S
+  int "Text ping interval (seconds, 0 to disable)"
+  default 30
+
+config EXAMPLE_NODEINFO_INTERVAL_S
+  int "Node info broadcast interval (seconds)"
+  default 300
+
+endmenu

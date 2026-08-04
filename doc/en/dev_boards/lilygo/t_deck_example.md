@@ -1,2 +1,2 @@
-```{include} ../../components/t-deck/example/README.md
+```{include} ../../../../components/t-deck/example/README.md
 ```

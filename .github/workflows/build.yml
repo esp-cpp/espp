@@ -57,6 +57,8 @@ jobs:
           target: esp32
         - path: 'components/bmi270/example'
           target: esp32p4
+        - path: 'components/bq27220/example'
+          target: esp32
         - path: 'components/button/example'
           target: esp32
         - path: 'components/byte90/example'
@@ -105,6 +107,8 @@ jobs:
           target: esp32s3
         - path: 'components/gfps_service/example'
           target: esp32s3
+        - path: 'components/gps/example'
+          target: esp32s3
         - path: 'components/gt911/example'
           target: esp32s3
         - path: 'components/hid-rp/example'
@@ -139,6 +143,8 @@ jobs:
           target: esp32
         - path: 'components/led_strip/example'
           target: esp32
+        - path: 'components/lilygo-t5-47/example'
+          target: esp32s3
         - path: 'components/logger/example'
           target: esp32
         - path: 'components/lp5817/example'
@@ -165,6 +171,8 @@ jobs:
           target: esp32s3
         - path: 'components/mcp23x17/example'
           target: esp32s3
+        - path: 'components/meshtastic/example'
+          target: esp32s3
         - path: 'components/mt6701/example'
           target: esp32s3
         - path: 'components/neopixel/example'
@@ -173,6 +181,8 @@ jobs:
           target: esp32s3
         - path: 'components/odrive_ascii/example'
           target: esp32
+        - path: 'components/pca9535/example'
+          target: esp32s3
         - path: 'components/pcf85063/example'
           target: esp32s3
         - path: 'components/pi4ioe5v/example'
@@ -219,6 +229,8 @@ jobs:
           target: esp32s3
         - path: 'components/state_machine/example'
           target: esp32
+        - path: 'components/sx126x/example'
+          target: esp32s3
         - path: 'components/t-deck/example'
           target: esp32s3
         - path: 'components/t-dongle-s3/example'

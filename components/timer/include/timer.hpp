@@ -35,6 +35,20 @@ namespace espp {
 ///       long time, then the timer will not be able to keep up with the
 ///       period.
 ///
+/// @note Timing resolution. On ESP / FreeRTOS the timer waits on the
+///       scheduler, which can only resolve time to a single tick
+///       (1 / CONFIG_FREERTOS_HZ seconds; e.g. 10 ms at the 100 Hz default,
+///       1 ms at 1000 Hz). A period or delay that is shorter than - or within
+///       a couple of ticks of - the tick period cannot be honored accurately:
+///       it will be rounded up to a whole number of ticks and can jitter by up
+///       to a full tick. The constructor, set_period() and start(delay) log a
+///       warning when the requested period/delay is at or near the tick
+///       period. For sub-tick or highly accurate periodic work, either raise
+///       CONFIG_FREERTOS_HZ or use the esp_timer-based HighResolutionTimer
+///       instead. The timer schedules against an absolute wake-up time (the
+///       k-th callback targets start + k*period), so it does not accumulate
+///       drift even when individual iterations jitter.
+///
 /// \section timer_ex1 Timer Example 1
 /// \snippet timer_example.cpp timer example
 /// \section timer_ex2 Timer Watchdog Example
@@ -99,7 +113,9 @@ public:
 
   /// @brief Start the timer.
   /// @details Starts the timer. Does nothing if the timer is already running.
-  void start();
+  /// @return true if the timer was started or is already running, false if the
+  ///         timer could not be started.
+  bool start();
 
   /// @brief Start the timer with a delay.
   /// @details Starts the timer with a delay. If the timer is already running,
@@ -108,7 +124,9 @@ public:
   ///          with the delay. Overwrites any previous delay that might have
   ///          been set.
   /// @param delay The delay before the first execution of the timer callback.
-  void start(const std::chrono::duration<float> &delay);
+  /// @return true if the timer was started or restarted, false if the timer
+  ///         could not be started.
+  bool start(const std::chrono::duration<float> &delay);
 
   /// @brief Stop the timer, same as cancel().
   /// @details Stops the timer, same as cancel().
@@ -157,9 +175,26 @@ public:
 protected:
   bool timer_callback_fn(std::mutex &m, std::condition_variable &cv, bool &task_notified);
 
+  /// @brief Warn if a period/delay is at or near the FreeRTOS tick period.
+  /// @details On ESP / FreeRTOS the scheduler can only resolve timing to a
+  ///          single tick (1 / CONFIG_FREERTOS_HZ), so a period or delay that
+  ///          is shorter than - or similar to - the tick period cannot be
+  ///          honored accurately. This logs a warning in that case.
+  /// @param duration The period or delay to check.
+  /// @param what A short label ("period" or "delay") used in the warning.
+  /// @note Does nothing off ESP_PLATFORM or when the duration is <= 0.
+  void warn_if_below_tick_period(const std::chrono::microseconds &duration, const char *what) const;
+
+  std::recursive_mutex mutex_;          ///< Mutex to protect the timer state.
   std::chrono::microseconds period_{0}; ///< The period of the timer. If 0, the timer will run once.
   std::chrono::microseconds delay_{0};  ///< The delay before the timer starts.
   std::atomic<bool> running_{false};    ///< True if the timer is running, false otherwise.
+  std::chrono::time_point<std::chrono::steady_clock>
+      start_time_; ///< The time point when the timer was started.
+  std::chrono::time_point<std::chrono::steady_clock>
+      delay_wakeup_time_; ///< The time point when the timer will wake up after the delay if any.
+  std::chrono::time_point<std::chrono::steady_clock>
+      wakeup_time_; ///< The time point when the timer will wake up.
   float period_float;
   float delay_float;
   callback_fn callback_;             ///< The callback function to call when the timer expires.

@@ -1,2 +1,2 @@
-```{include} ../../components/matouch-rotary-display/example/README.md
+```{include} ../../../../components/matouch-rotary-display/example/README.md
 ```

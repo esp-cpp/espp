@@ -1,0 +1,47 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "LilyGo T5 4.7 inch ESP32-S3 e-paper Board Support Package (BSP) component for ESPP"
+url: "https://github.com/esp-cpp/espp/tree/main/components/lilygo-t5-47"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - LilyGo
+  - T5-47
+  - e-paper
+  - epaper
+  - BSP
+dependencies:
+  idf:
+    version: ">=5.0"
+  espp/base_component: ">=1.0"
+  espp/task: ">=1.0"
+  espp/interrupt: ">=1.0"
+  espp/i2c: ">=1.0"
+  espp/spi: ">=1.0"
+  espp/gt911: ">=1.0"
+  espp/bm8563: ">=1.0"
+  # bq27220 and pca9535 are new espp components that are not published to the
+  # registry yet; point at the local sources until they are released.
+  espp/bq27220:
+    version: "*"
+    override_path: "../bq27220"
+  espp/pca9535:
+    version: "*"
+    override_path: "../pca9535"
+  espp/sx126x:
+    version: "*"
+    override_path: "../sx126x"
+  espp/input_drivers: ">=1.0"
+  lvgl/lvgl: ">=9.2.2"
+  # epdiy drives the ED047TC1 parallel e-paper panel (waveforms, grayscale,
+  # partial updates) for this exact board. Fetched from git (the IDF component
+  # is registered at the repo root).
+  epdiy:
+    git: https://github.com/vroland/epdiy.git
+targets:
+  - esp32s3

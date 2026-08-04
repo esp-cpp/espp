@@ -1,0 +1,29 @@
+CONFIG_IDF_TARGET="esp32s3"
+
+CONFIG_FREERTOS_HZ=1000
+
+# set compiler optimization level to -O2 (compile for performance)
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
+
+# 16MB on the T-Deck, 8MB on the Cardputer-Adv; 16MB is a safe upper bound
+# for building. Lower it to 8MB when flashing a Cardputer.
+CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="16MB"
+CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
+
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+
+# Common ESP-related
+#
+CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=4096
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=16384
+CONFIG_ESP_TIMER_TASK_STACK_SIZE=6144
+
+# set the functions into IRAM
+CONFIG_SPI_MASTER_IN_IRAM=y
+
+# Both target boards have PSRAM (T-Deck: octal; Cardputer-Adv: none/quad
+# depending on module). Enable it with ignore-not-found so the example boots
+# regardless; this example does not require it.
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_IGNORE_NOTFOUND=y

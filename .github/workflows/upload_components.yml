@@ -74,6 +74,7 @@ jobs:
             components/ft5x06
             components/ftp
             components/gfps_service
+            components/gps
             components/gt911
             components/hid_service
             components/hid-rp
@@ -97,6 +98,7 @@ jobs:
             components/matouch-rotary-display
             components/max1704x
             components/mcp23x17
+            components/meshtastic
             components/monitor
             components/motorgo-axis
             components/motorgo-mini
@@ -128,6 +130,7 @@ jobs:
             components/st25dv
             components/st7123touch
             components/state_machine
+            components/sx126x
             components/t_keyboard
             components/t-deck
             components/t-dongle-s3
