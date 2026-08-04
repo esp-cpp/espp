@@ -204,7 +204,7 @@ bool UdpSocket::bind(const UdpSocket::ReceiveConfig &receive_config) {
 bool UdpSocket::start_receiving(Task::BaseConfig &task_config,
                                 const UdpSocket::ReceiveConfig &receive_config) {
   if (task_ && task_->is_started()) {
-    logger_.error("Server is alrady receiving");
+    logger_.error("Server is already receiving");
     return false;
   }
   if (!is_valid()) {

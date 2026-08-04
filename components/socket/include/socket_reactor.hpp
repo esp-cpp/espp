@@ -53,7 +53,10 @@ namespace espp {
  *       that id (it unregisters, but a handler mid-recv() will still finish);
  *       do not free a socket immediately after remove() while its handler may
  *       be executing - unregister and then rely on reactor teardown, or ensure
- *       the socket outlives the reactor.
+ *       the socket outlives the reactor. @ref stop (and destroying the reactor)
+ *       must NOT be called from within a handler: it waits for the calling
+ *       handler to finish (and joins an owned pool), which would deadlock - stop
+ *       from another thread. A stop() invoked from a handler is refused + logged.
  *
  * @note The select() backend uses @c fd_set, which on POSIX/lwip can only hold
  *       file descriptors with value < @c FD_SETSIZE. Registration rejects an fd

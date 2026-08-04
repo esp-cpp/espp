@@ -34,7 +34,13 @@ espp::Socket::receive_callback_fn wrap_receive_callback(const py::function &fn) 
   if (!fn) {
     return {};
   }
-  auto cb = std::make_shared<py::function>(fn);
+  // Own the py::function via a shared_ptr with a GIL-acquiring deleter: the last
+  // reference may be released on a non-Python thread (a reactor pool worker
+  // erasing an entry after remove()), and ~py::function must run under the GIL.
+  auto cb = std::shared_ptr<py::function>(new py::function(fn), [](py::function *f) {
+    py::gil_scoped_acquire gil;
+    delete f;
+  });
   return [cb](std::vector<uint8_t> &data,
               const espp::Socket::Info &sender) -> std::optional<std::vector<uint8_t>> {
     py::gil_scoped_acquire gil;

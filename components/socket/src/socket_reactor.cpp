@@ -8,6 +8,21 @@
 
 using namespace espp;
 
+namespace {
+// True while the current thread is running a reactor dispatch handler. Used to
+// detect (and refuse) a stop() called from within a handler, which would
+// otherwise deadlock waiting for the calling handler to finish.
+thread_local bool t_in_reactor_dispatch = false;
+struct DispatchGuard {
+  bool prev;
+  DispatchGuard()
+      : prev(t_in_reactor_dispatch) {
+    t_in_reactor_dispatch = true;
+  }
+  ~DispatchGuard() { t_in_reactor_dispatch = prev; }
+};
+} // namespace
+
 SocketReactor::SocketReactor(const SocketReactor::Config &config)
     : BaseComponent(config.loop_task_config.name, config.log_level)
     , config_(config) {
@@ -62,6 +77,15 @@ bool SocketReactor::start() {
 }
 
 void SocketReactor::stop() {
+  // stop() waits for in-flight handlers to finish (and, for an owned pool, joins
+  // the pool workers). Calling it from within a handler would therefore wait for
+  // the calling handler - a deadlock (and, for an owned pool, a self-join).
+  // Refuse rather than hang; the caller must stop the reactor from another thread.
+  if (t_in_reactor_dispatch) {
+    logger_.error("stop() called from within a reactor handler; refusing (it would deadlock). "
+                  "Stop/destroy the reactor from another thread.");
+    return;
+  }
   if (!running_ && !loop_task_) {
     return;
   }
@@ -266,8 +290,10 @@ void SocketReactor::dispatch(SocketReactor::Id id) {
     handler = it->second.handler; // copy so we can run it unlocked
   }
   // Run the user handler without holding the lock (it may call back into the
-  // reactor, block on a mutex, etc.).
+  // reactor, block on a mutex, etc.). Mark the thread so a stop() invoked from
+  // within the handler is detected rather than deadlocking.
   if (handler) {
+    DispatchGuard guard;
     handler();
   }
   bool wake_needed = false;
