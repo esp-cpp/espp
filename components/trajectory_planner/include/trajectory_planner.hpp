@@ -17,7 +17,7 @@ namespace espp {
  *  @brief Converts normalized joystick velocity commands into smooth,
  *         dynamically feasible chassis motion commands (v, w).
  *
- *  The planner is drive-system independent — it does not know about wheel
+ *  The planner is drive-system independent -- it does not know about wheel
  *  geometry or kinematics. It only enforces velocity, acceleration, and
  *  jerk limits on chassis-level commands. The downstream kinematics layer
  *  converts (v_ref, w_ref) into individual motor commands.
@@ -27,13 +27,13 @@ namespace espp {
  *  step the planner computes the minimum velocity-change distance needed to
  *  decelerate the current acceleration to zero, then decides whether to
  *  accelerate, maintain, or decelerate to land exactly on the target without
- *  overshoot — equivalent to a time-optimal S-curve under jerk and
+ *  overshoot -- equivalent to a time-optimal S-curve under jerk and
  *  acceleration constraints.
  *
  *  ### Profiles
  *  Motion limits are grouped into two MotionProfile objects inside Config:
- *  - **driving_profile** — used whenever the target is non-zero.
- *  - **stopping_profile** — used when the target is (0, 0). Setting jerk to 0
+ *  - **driving_profile** -- used whenever the target is non-zero.
+ *  - **stopping_profile** -- used when the target is (0, 0). Setting jerk to 0
  *    gives a trapezoidal stop; higher acceleration gives faster, firmer braking.
  *
  *  A MotionProfile selects its mode automatically:
@@ -42,10 +42,10 @@ namespace espp {
  *
  *  ### Timing
  *  Two independent `espp::Timer` instances run internally:
- *  - **planning timer** — calls `update()` at `planning_period` (default 20 ms / 50 Hz).
- *    Recommended range: 5–200 ms on microcontrollers.
- *  - **callback timer** — fires `output_callback` at `callback_period` (default 40 ms).
- *    Should be >= 2× planning_period (Nyquist); faster rates repeat the same output.
+ *  - **planning timer** -- calls `update()` at `planning_period` (default 20 ms / 50 Hz).
+ *    Recommended range: 5-200 ms on microcontrollers.
+ *  - **callback timer** -- fires `output_callback` at `callback_period` (default 40 ms).
+ *    Should be >= 2x planning_period (Nyquist); faster rates repeat the same output.
  *
  *  This class is thread-safe: set_target(), get_target(), output(), stop(),
  *  and reset() may be called from different threads concurrently.
@@ -89,10 +89,10 @@ public:
    *       a jerk-limited driving phase.
    */
   struct MotionProfile {
-    float max_linear_acceleration = 0.0f;  /**< Linear acceleration limit (m/s²). */
-    float max_angular_acceleration = 0.0f; /**< Angular acceleration limit (rad/s²). */
-    float max_linear_jerk = 0.0f;          /**< Linear jerk limit (m/s³). 0 = trapezoidal. */
-    float max_angular_jerk = 0.0f;         /**< Angular jerk limit (rad/s³). 0 = trapezoidal. */
+    float max_linear_acceleration = 0.0f;  /**< Linear acceleration limit (m/s^2). */
+    float max_angular_acceleration = 0.0f; /**< Angular acceleration limit (rad/s^2). */
+    float max_linear_jerk = 0.0f;          /**< Linear jerk limit (m/s^3). 0 = trapezoidal. */
+    float max_angular_jerk = 0.0f;         /**< Angular jerk limit (rad/s^3). 0 = trapezoidal. */
   };
 
   /**
@@ -107,9 +107,9 @@ public:
                                          == (0, 0). Set jerk to 0 here for a clean trapezoidal stop
                                          with no overshoot. Higher acceleration than the
                                          driving profile gives faster, firmer braking. */
-    bool enforce_motion_envelope = false;      /**< When true, enforces (v/vmax)²+(w/wmax)²<=1 on
+    bool enforce_motion_envelope = false;      /**< When true, enforces (v/vmax)^2+(w/wmax)^2<=1 on
                                                    output to prevent infeasible combined commands. */
-    float max_centripetal_acceleration = 0.1f; /**< Maximum centripetal acceleration |v·w| (m/s²).
+    float max_centripetal_acceleration = 0.1f; /**< Maximum centripetal acceleration |v*w| (m/s^2).
                                                    0 disables the limit. Both v and w are scaled
                                                    proportionally when the limit is exceeded. */
     espp::TrajectoryPlanner::output_callback_t output_callback =
@@ -118,11 +118,11 @@ with the latest MotionCommand output.
 Leave as nullptr to disable. */
     // --- Periodic task configuration ---
     std::chrono::duration<float> planning_period = std::chrono::milliseconds(20); /**< Planner
-                                                     update rate (default 50 Hz). Recommended: 5–200
+                                                     update rate (default 50 Hz). Recommended: 5-200
                                                      ms on microcontrollers. */
     std::chrono::duration<float> callback_period = std::chrono::milliseconds(40); /**< Output
                                                      callback rate (default 50 Hz). Should be
-                                                     >= 2× planning_period (Nyquist); a faster
+                                                     >= 2x planning_period (Nyquist); a faster
                                                      rate will repeat the same output. */
     espp::Task::BaseConfig planning_task_config = {
         .name = "TP_planning",
@@ -220,8 +220,8 @@ protected:
   struct State {
     float v = 0.0f;   /**< Current linear velocity (m/s). */
     float w = 0.0f;   /**< Current angular velocity (rad/s). */
-    float a_v = 0.0f; /**< Current linear acceleration (m/s²) — jerk-limited mode only. */
-    float a_w = 0.0f; /**< Current angular acceleration (rad/s²) — jerk-limited mode only. */
+    float a_v = 0.0f; /**< Current linear acceleration (m/s^2) -- jerk-limited mode only. */
+    float a_w = 0.0f; /**< Current angular acceleration (rad/s^2) -- jerk-limited mode only. */
   };
 
   /**

@@ -2211,17 +2211,28 @@ void py_init_module_espp(py::module &m) {
       "the background, so the timer\n/       callback function will be called in the context of "
       "the task. The\n/       timer callback function should not block for a long time because "
       "it\n/       will block the task. If the timer callback function blocks for a\n/       long "
-      "time, then the timer will not be able to keep up with the\n/       period.\n/\n/ \\section "
-      "timer_ex1 Timer Example 1\n/ \\snippet timer_example.cpp timer example\n/ \\section "
-      "timer_ex2 Timer Watchdog Example\n/ \\snippet timer_example.cpp timer watchdog example\n/ "
-      "\\section timer_ex3 Timer Delay Example\n/ \\snippet timer_example.cpp timer delay "
-      "example\n/ \\section timer_ex4 Oneshot Timer Example\n/ \\snippet timer_example.cpp timer "
-      "oneshot example\n/ \\section timer_ex5 Timer Cancel Itself Example\n/ \\snippet "
-      "timer_example.cpp timer cancel itself example\n/ \\section timer_ex6 Oneshot Timer Cancel "
-      "Itself Then Start again with Delay Example\n/ \\snippet timer_example.cpp timer oneshot "
-      "restart example\n/ \\section timer_ex7 Timer Update Period Example\n/ \\snippet "
-      "timer_example.cpp timer update period example\n/ \\section timer_ex8 Timer AdvancedConfig "
-      "Example\n/ \\snippet timer_example.cpp timer advanced config example");
+      "time, then the timer will not be able to keep up with the\n/       period.\n/\n/ @note "
+      "Timing resolution. On ESP / FreeRTOS the timer waits on the\n/       scheduler, which can "
+      "only resolve time to a single tick\n/       (1 / CONFIG_FREERTOS_HZ seconds; e.g. 10 ms at "
+      "the 100 Hz default,\n/       1 ms at 1000 Hz). A period or delay that is shorter than - or "
+      "within\n/       a couple of ticks of - the tick period cannot be honored accurately:\n/     "
+      "  it will be rounded up to a whole number of ticks and can jitter by up\n/       to a full "
+      "tick. The constructor, set_period() and start(delay) log a\n/       warning when the "
+      "requested period/delay is at or near the tick\n/       period. For sub-tick or highly "
+      "accurate periodic work, either raise\n/       CONFIG_FREERTOS_HZ or use the esp_timer-based "
+      "HighResolutionTimer\n/       instead. The timer schedules against an absolute wake-up time "
+      "(the\n/       k-th callback targets start + k*period), so it does not accumulate\n/       "
+      "drift even when individual iterations jitter.\n/\n/ \\section timer_ex1 Timer Example 1\n/ "
+      "\\snippet timer_example.cpp timer example\n/ \\section timer_ex2 Timer Watchdog Example\n/ "
+      "\\snippet timer_example.cpp timer watchdog example\n/ \\section timer_ex3 Timer Delay "
+      "Example\n/ \\snippet timer_example.cpp timer delay example\n/ \\section timer_ex4 Oneshot "
+      "Timer Example\n/ \\snippet timer_example.cpp timer oneshot example\n/ \\section timer_ex5 "
+      "Timer Cancel Itself Example\n/ \\snippet timer_example.cpp timer cancel itself example\n/ "
+      "\\section timer_ex6 Oneshot Timer Cancel Itself Then Start again with Delay Example\n/ "
+      "\\snippet timer_example.cpp timer oneshot restart example\n/ \\section timer_ex7 Timer "
+      "Update Period Example\n/ \\snippet timer_example.cpp timer update period example\n/ "
+      "\\section timer_ex8 Timer AdvancedConfig Example\n/ \\snippet timer_example.cpp timer "
+      "advanced config example");
 
   { // inner classes & enums of Timer
     auto pyClassTimer_ClassConfig =
@@ -2317,7 +2328,8 @@ void py_init_module_espp(py::module &m) {
       .def(
           "start", [](espp::Timer &self) { return self.start(); },
           "/ @brief Start the timer.\n/ @details Starts the timer. Does nothing if the timer is "
-          "already running.",
+          "already running.\n/ @return True if the timer was started or is already running, False "
+          "if the\n/         timer could not be started.",
           py::call_guard<py::gil_scoped_release>())
       .def("start", py::overload_cast<const std::chrono::duration<float> &>(&espp::Timer::start),
            py::arg("delay"),
@@ -2326,7 +2338,8 @@ void py_init_module_espp(py::module &m) {
            "again with the new\n/          delay. If the timer is not running, this will start the "
            "timer\n/          with the delay. Overwrites any previous delay that might have\n/     "
            "     been set.\n/ @param delay The delay before the first execution of the timer "
-           "callback.",
+           "callback.\n/ @return True if the timer was started or restarted, False if the timer\n/ "
+           "        could not be started.",
            py::call_guard<py::gil_scoped_release>())
       .def("stop", &espp::Timer::stop,
            "/ @brief Stop the timer, same as cancel().\n/ @details Stops the timer, same as "
@@ -2351,24 +2364,24 @@ void py_init_module_espp(py::module &m) {
       m, "TrajectoryPlanner", py::dynamic_attr(),
       "*\n *  @brief Converts normalized joystick velocity commands into smooth,\n *         "
       "dynamically feasible chassis motion commands (v, w).\n *\n *  The planner is drive-system "
-      "independent — it does not know about wheel\n *  geometry or kinematics. It only enforces "
+      "independent -- it does not know about wheel\n *  geometry or kinematics. It only enforces "
       "velocity, acceleration, and\n *  jerk limits on chassis-level commands. The downstream "
       "kinematics layer\n *  converts (v_ref, w_ref) into individual motor commands.\n *\n *  ### "
       "Algorithm\n *  The jerk-limited mode uses a discrete optimal-control approach: at each\n *  "
       "step the planner computes the minimum velocity-change distance needed to\n *  decelerate "
       "the current acceleration to zero, then decides whether to\n *  accelerate, maintain, or "
-      "decelerate to land exactly on the target without\n *  overshoot — equivalent to a "
+      "decelerate to land exactly on the target without\n *  overshoot -- equivalent to a "
       "time-optimal S-curve under jerk and\n *  acceleration constraints.\n *\n *  ### Profiles\n "
       "*  Motion limits are grouped into two MotionProfile objects inside Config:\n *  - "
-      "**driving_profile** — used whenever the target is non-zero.\n *  - **stopping_profile** — "
+      "**driving_profile** -- used whenever the target is non-zero.\n *  - **stopping_profile** -- "
       "used when the target is (0, 0). Setting jerk to 0\n *    gives a trapezoidal stop; higher "
       "acceleration gives faster, firmer braking.\n *\n *  A MotionProfile selects its mode "
       "automatically:\n *  - **Trapezoidal**: `max_linear_jerk == 0 && max_angular_jerk == 0`\n *  "
       "- **S-curve**: either jerk field is non-zero\n *\n *  ### Timing\n *  Two independent "
-      "`espp::Timer` instances run internally:\n *  - **planning timer** — calls `update()` at "
-      "`planning_period` (default 20 ms / 50 Hz).\n *    Recommended range: 5–200 ms on "
-      "microcontrollers.\n *  - **callback timer** — fires `output_callback` at `callback_period` "
-      "(default 40 ms).\n *    Should be >= 2× planning_period (Nyquist); faster rates repeat the "
+      "`espp::Timer` instances run internally:\n *  - **planning timer** -- calls `update()` at "
+      "`planning_period` (default 20 ms / 50 Hz).\n *    Recommended range: 5-200 ms on "
+      "microcontrollers.\n *  - **callback timer** -- fires `output_callback` at `callback_period` "
+      "(default 40 ms).\n *    Should be >= 2x planning_period (Nyquist); faster rates repeat the "
       "same output.\n *\n *  This class is thread-safe: set_target(), get_target(), output(), "
       "stop(),\n *  and reset() may be called from different threads concurrently.\n *\n * "
       "\\section trajectory_planner_ex0 Quick-Start: Full Public API\n * \\snippet "
@@ -2422,16 +2435,16 @@ void py_init_module_espp(py::module &m) {
                  py::arg("max_angular_jerk") = 0.0f)
             .def_readwrite("max_linear_acceleration",
                            &espp::TrajectoryPlanner::MotionProfile::max_linear_acceleration,
-                           "*< Linear acceleration limit (m/s²).")
+                           "*< Linear acceleration limit (m/s^2).")
             .def_readwrite("max_angular_acceleration",
                            &espp::TrajectoryPlanner::MotionProfile::max_angular_acceleration,
-                           "*< Angular acceleration limit (rad/s²).")
+                           "*< Angular acceleration limit (rad/s^2).")
             .def_readwrite("max_linear_jerk",
                            &espp::TrajectoryPlanner::MotionProfile::max_linear_jerk,
-                           "*< Linear jerk limit (m/s³). 0 = trapezoidal.")
+                           "*< Linear jerk limit (m/s^3). 0 = trapezoidal.")
             .def_readwrite("max_angular_jerk",
                            &espp::TrajectoryPlanner::MotionProfile::max_angular_jerk,
-                           "*< Angular jerk limit (rad/s³). 0 = trapezoidal.");
+                           "*< Angular jerk limit (rad/s^3). 0 = trapezoidal.");
     auto pyClassTrajectoryPlanner_ClassConfig =
         py::class_<espp::TrajectoryPlanner::Config>(
             pyClassTrajectoryPlanner, "Config", py::dynamic_attr(),
@@ -2496,37 +2509,36 @@ void py_init_module_espp(py::module &m) {
                            "*< Maximum angular velocity magnitude (rad/s).")
             .def_readwrite("driving_profile", &espp::TrajectoryPlanner::Config::driving_profile,
                            "*< Accel/jerk limits used when target != (0, 0).")
-            .def_readwrite("stopping_profile", &espp::TrajectoryPlanner::Config::stopping_profile,
-                           "*< Accel/jerk limits used when target == (0, 0).\n                     "
-                           "                         Set jerk to 0 here for a clean trapezoidal "
-                           "stop\n                                              with no overshoot. "
-                           "Higher acceleration than the\n                                         "
-                           "     driving profile gives faster, firmer braking.")
+            .def_readwrite(
+                "stopping_profile", &espp::TrajectoryPlanner::Config::stopping_profile,
+                "*< Accel/jerk limits used when target\n                                         "
+                "== (0, 0). Set jerk to 0 here for a clean trapezoidal stop\n                      "
+                "                   with no overshoot. Higher acceleration than the\n              "
+                "                           driving profile gives faster, firmer braking.")
             .def_readwrite(
                 "enforce_motion_envelope",
                 &espp::TrajectoryPlanner::Config::enforce_motion_envelope,
-                "*< When True, enforces (v/vmax)²+(w/wmax)²<=1 on\n                                "
-                "              output to prevent infeasible combined commands.")
+                "*< When True, enforces (v/vmax)^2+(w/wmax)^2<=1 on\n                              "
+                "                     output to prevent infeasible combined commands.")
             .def_readwrite(
                 "max_centripetal_acceleration",
                 &espp::TrajectoryPlanner::Config::max_centripetal_acceleration,
-                "*< Maximum centripetal acceleration |v·w| (m/s²).\n                               "
-                "                    0 disables the limit. Both v and w are scaled\n               "
-                "                                    proportionally when the limit is exceeded.")
-            .def_readwrite("output_callback", &espp::TrajectoryPlanner::Config::output_callback,
-                           "/**< Optional callback invoked after each update()\n                   "
-                           "                                  with the latest MotionCommand "
-                           "output.\n                                                     Leave as "
-                           "None to disable. */\n --- Periodic task configuration ---")
+                "*< Maximum centripetal acceleration |v*w| (m/s^2).\n                              "
+                "                     0 disables the limit. Both v and w are scaled\n              "
+                "                                     proportionally when the limit is exceeded.")
+            .def_readwrite(
+                "output_callback", &espp::TrajectoryPlanner::Config::output_callback,
+                "/**< Optional callback invoked after each update()\nwith the latest MotionCommand "
+                "output.\nLeave as None to disable. */\n --- Periodic task configuration ---")
             .def_readwrite("planning_period", &espp::TrajectoryPlanner::Config::planning_period,
-                           "*< Planner update\n                                                    "
-                           " rate (default 50 Hz). Recommended: 5–200 ms\n                         "
-                           "                            on microcontrollers.")
+                           "*< Planner\n                                                     "
+                           "update rate (default 50 Hz). Recommended: 5-200\n                      "
+                           "                               ms on microcontrollers.")
             .def_readwrite(
                 "callback_period", &espp::TrajectoryPlanner::Config::callback_period,
                 "*< Output\n                                                     callback rate "
                 "(default 50 Hz). Should be\n                                                     "
-                ">= 2× planning_period (Nyquist); a faster\n                                       "
+                ">= 2x planning_period (Nyquist); a faster\n                                       "
                 "              rate will repeat the same output.")
             .def_readwrite("planning_task_config",
                            &espp::TrajectoryPlanner::Config::planning_task_config,

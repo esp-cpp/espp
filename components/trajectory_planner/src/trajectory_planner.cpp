@@ -26,7 +26,7 @@ void TrajectoryPlanner::set_config(const Config &config, bool reset_state) {
     logger_.error("callback_period must be > 0");
     return;
   } else if (callback_ms < 2.0f * planning_ms) {
-    logger_.warn("callback_period {:.1f} ms is less than 2× planning_period {:.1f} ms — repeated "
+    logger_.warn("callback_period {:.1f} ms is less than 2× planning_period {:.1f} ms - repeated "
                  "outputs likely",
                  callback_ms, planning_ms);
   }

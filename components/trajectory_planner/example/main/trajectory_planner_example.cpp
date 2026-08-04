@@ -17,7 +17,7 @@ extern "C" void app_main(void) {
     logger.info("=== Quick-start: public API overview ===");
     //! [trajectory_planner quickstart]
 
-    // 1. Construct with a Config — task starts automatically.
+    // 1. Construct with a Config - task starts automatically.
     espp::TrajectoryPlanner planner({
         .max_linear_velocity = 1.0f,      // m/s
         .max_angular_velocity = 3.14159f, // rad/s
@@ -25,7 +25,7 @@ extern "C" void app_main(void) {
                             .max_angular_acceleration = 6.28f,
                             .max_linear_jerk = 2.0f,
                             .max_angular_jerk = 20.0f},
-        // Trapezoidal stop (no jerk) — fast, clean, no overshoot
+        // Trapezoidal stop (no jerk) - fast, clean, no overshoot
         .stopping_profile = {.max_linear_acceleration = 5.0f, .max_angular_acceleration = 10.0f},
         .enforce_motion_envelope = true,      // keep (v/vmax)²+(ω/ωmax)²≤1
         .max_centripetal_acceleration = 0.4f, // m/s²
@@ -38,27 +38,27 @@ extern "C" void app_main(void) {
         .planning_task_config = {.name = "tp_qs", .stack_size_bytes = 10240},
     });
 
-    // 2. is_running() — confirm the task started.
+    // 2. is_running() - confirm the task started.
     logger.info("Task running: {}", planner.is_running());
 
-    // 3. get_config() — inspect active configuration.
+    // 3. get_config() - inspect active configuration.
     auto cfg = planner.get_config();
     logger.info("Config: {}", cfg);
 
-    // 4. set_target(linear, angular) — normalized [-1, +1] joystick inputs.
+    // 4. set_target(linear, angular) - normalized [-1, +1] joystick inputs.
     //    +1.0 linear = max_linear_velocity forward.
     planner.set_target(1.0f, 0.0f);
     std::this_thread::sleep_for(600ms);
 
-    // 5. output() — poll the latest smoothed command at any time.
+    // 5. output() - poll the latest smoothed command at any time.
     auto cmd = planner.output();
     logger.info("Polled output: {}", cmd);
 
-    // 6. set_target with combined motion — forward + right turn.
+    // 6. set_target with combined motion - forward + right turn.
     planner.set_target(0.6f, -0.5f);
     std::this_thread::sleep_for(600ms);
 
-    // 7. set_config() — change parameters at runtime; resets state by default.
+    // 7. set_config() - change parameters at runtime; resets state by default.
     espp::TrajectoryPlanner::Config new_cfg = planner.get_config();
     new_cfg.max_linear_velocity = 0.5f; // half speed cap
     planner.set_config(new_cfg, /*reset_state=*/false);
@@ -66,12 +66,12 @@ extern "C" void app_main(void) {
     planner.set_target(1.0f, 0.0f); // still clamped to new 0.5 m/s
     std::this_thread::sleep_for(600ms);
 
-    // 8. stop() — ramp down to zero respecting deceleration limits.
+    // 8. stop() - ramp down to zero respecting deceleration limits.
     logger.info("Commanding stop (ramp-down)");
     planner.stop();
     std::this_thread::sleep_for(400ms);
 
-    // 9. reset() — zero state immediately (e.g. after e-stop).
+    // 9. reset() - zero state immediately (e.g. after e-stop).
     logger.info("Emergency reset");
     planner.reset();
     logger.info("Output after reset: {}", planner.output());
@@ -117,7 +117,7 @@ extern "C" void app_main(void) {
     planner.set_target(0.5f, -0.4f);
     std::this_thread::sleep_for(3s);
 
-    // Controlled stop — uses braking deceleration limits
+    // Controlled stop - uses braking deceleration limits
     logger.info("Stopping");
     planner.stop();
     std::this_thread::sleep_for(500ms);
@@ -172,7 +172,7 @@ extern "C" void app_main(void) {
   }
 
   // ---------------------------------------------------------------------------
-  // Constraint validation — verifies that the planner always stays within its
+  // Constraint validation - verifies that the planner always stays within its
   // configured speed, acceleration, jerk, and centripetal limits.
   //
   // A Validator is attached as the output_callback.  On every tick it:
@@ -203,7 +203,7 @@ extern "C" void app_main(void) {
       std::chrono::steady_clock::time_point prev_time{};
       bool time_inited{false};
 
-      // Shared results — protected by mtx
+      // Shared results - protected by mtx
       mutable std::mutex mtx;
       espp::Logger *log{nullptr}; // set after construction
       bool stopping{false};
@@ -236,7 +236,7 @@ extern "C" void app_main(void) {
       }
 
       void reset() {
-        // Always called before a new planner starts — no concurrent access
+        // Always called before a new planner starts - no concurrent access
         std::lock_guard<std::mutex> lk(mtx);
         stopping = false;
         viol_drv = 0;
@@ -419,7 +419,7 @@ extern "C" void app_main(void) {
       val.report(logger, "B: Pure angular ramp");
     }
 
-    // ---- Test C: combined motion — tests envelope + centripetal ----------
+    // ---- Test C: combined motion - tests envelope + centripetal ----------
     {
       logger.info("[C] Combined  target=(0.9, 0.9)  envelope + centripetal");
       val.reset();
@@ -431,7 +431,7 @@ extern "C" void app_main(void) {
 
     // ---- Test D: drive → controlled stop (stopping profile) ---------------
     {
-      logger.info("[D] Drive then stop  — tests stopping profile switch");
+      logger.info("[D] Drive then stop  - tests stopping profile switch");
       val.reset();
       espp::TrajectoryPlanner planner(cfg);
       planner.set_target(1.0f, 0.0f);
@@ -454,9 +454,9 @@ extern "C" void app_main(void) {
       val.report(logger, "E: Direction reversal");
     }
 
-    // ---- Test F: multi-step sweep — various (linear, angular) pairs -------
+    // ---- Test F: multi-step sweep - various (linear, angular) pairs -------
     {
-      logger.info("[F] Multi-step sweep  — varied inputs");
+      logger.info("[F] Multi-step sweep  - varied inputs");
       val.reset();
       espp::TrajectoryPlanner planner(cfg);
       bool was_stopping = false;

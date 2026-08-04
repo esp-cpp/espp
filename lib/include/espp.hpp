@@ -54,6 +54,7 @@ extern "C" {
 #include "tcp_socket.hpp"
 #include "thread_pool.hpp"
 #include "timer.hpp"
+#include "trajectory_planner.hpp"
 #include "udp_socket.hpp"
 #include "vector2d.hpp"
 
