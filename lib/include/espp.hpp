@@ -4,6 +4,7 @@
 
 #ifdef _MSC_VER
 extern "C" {
+#include <windows.h>
 // NOTE: needed for tabulate
 #include "wcswidth.h"
 }
@@ -64,3 +65,35 @@ extern "C" {
 #include "state_base.hpp"
 
 #include <tabulate/markdown_exporter.hpp>
+
+#ifdef _MSC_VER
+
+#include <mmsystem.h>
+#include <windows.h>
+
+// we want to ensure that the timer resolution is set to 1ms, otherwise the
+// timer will not be accurate. To do this we need to call timeBeginPeriod(1) at
+// the start of the program and timeEndPeriod(1) at the end of the program.
+class TimerResolution {
+  espp::Logger logger{{.tag = "TimerResolution", .level = espp::Logger::Verbosity::INFO}};
+
+public:
+  TimerResolution() {
+    logger.info("Setting timeBeginPeriod(1)");
+    if (timeBeginPeriod(1) == TIMERR_NOERROR) {
+      logger.info("Success");
+    } else {
+      logger.error("failed to set timeBeginPeriod(1)");
+    }
+  }
+  ~TimerResolution() {
+    logger.info("Setting timeEndPeriod(1)");
+    timeEndPeriod(1);
+  }
+};
+
+// we create a global instance of the TimerResolution class to ensure that the
+// timer resolution is set to 1ms for the duration of the program.
+extern TimerResolution timer_resolution;
+
+#endif

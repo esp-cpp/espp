@@ -28,6 +28,12 @@ MACRO(GEN_TESTS curdir)
       PRIVATE espp_pc
       PRIVATE ${ESPP_EXTERNAL_LIBS}
     )
+    if(WIN32)
+      # need to ensure the whole archive is linked in for windows builds,
+      # otherwise the windows timer period adjustment code (from espp.hpp) will
+      # be stripped out and the timer will run at max of 64 hz.
+      target_link_options(${TEST_NAME} PRIVATE "/WHOLEARCHIVE:espp_pc.lib")
+    endif()
   ENDFOREACH()
 ENDMACRO()
 
