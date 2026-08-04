@@ -1,7 +1,6 @@
 
 #include <cstdio>
 #include <cstring>
-#include <string>
 #include <thread>
 
 #include "esp_log.h"
@@ -11,6 +10,7 @@
 #include "esp32-ethernet-kit.hpp"
 #include "logger.hpp"
 #include "rtps/entities/Domain.h"
+#include "ucdr/microcdr.h"
 
 using namespace std::chrono_literals;
 
@@ -28,69 +28,73 @@ bool send_text_message(const char *text) {
     return false;
   }
 
-  const size_t len = strnlen(text, 127);
-  const rtps::CacheChange *change =
-      s_writer->newChange(rtps::ChangeKind_t::ALIVE, reinterpret_cast<const uint8_t *>(text),
-                          static_cast<rtps::DataSize_t>(len + 1));
+  // CDR_LE encapsulation header (scheme 0x00 0x01 + 2 zero option bytes) followed by the string.
+  uint8_t cdr_buf[4 + 4 + 128]; // encap + CDR length prefix + max text (127 chars + null)
+  cdr_buf[0] = 0x00;
+  cdr_buf[1] = 0x01;
+  cdr_buf[2] = 0x00;
+  cdr_buf[3] = 0x00;
 
+  ucdrBuffer ub;
+  ucdr_init_buffer_origin_offset_endian(&ub, cdr_buf, sizeof(cdr_buf), 0, 4,
+                                        UCDR_LITTLE_ENDIANNESS);
+  if (!ucdr_serialize_string(&ub, text) || ucdr_buffer_has_error(&ub)) {
+    return false;
+  }
+
+  const auto total = static_cast<rtps::DataSize_t>(4 + ucdr_buffer_length(&ub));
+  const rtps::CacheChange *change = s_writer->newChange(rtps::ChangeKind_t::ALIVE, cdr_buf, total);
   return change != nullptr;
 }
 
 void reader_cb(void * /*callee*/, const rtps::ReaderCacheChange &change) {
-  char buffer[128] = {0};
-  const rtps::DataSize_t copy_len =
-      (change.getDataSize() < static_cast<rtps::DataSize_t>(sizeof(buffer) - 1))
-          ? change.getDataSize()
-          : static_cast<rtps::DataSize_t>(sizeof(buffer) - 1);
-
-  if (copy_len == 0 || !change.copyInto(reinterpret_cast<uint8_t *>(buffer), sizeof(buffer))) {
+  const rtps::DataSize_t size = change.getDataSize();
+  if (size < 5) { // need at least the 4-byte encapsulation header plus data
     return;
   }
 
-  ESP_LOGI(TAG, "rx (%u B): %s", static_cast<unsigned>(copy_len), buffer);
-
-#if CONFIG_RTPS_EXAMPLE_ROLE_RESPONDER
-  // Echo the message back on the publish topic.
-  if (!send_text_message(buffer)) {
-    ESP_LOGW(TAG, "tx echo dropped (history full or no matched reader)");
+  uint8_t raw[4 + 4 + 128]; // encap + CDR length prefix + max text (127 chars + null)
+  const auto copy_size = static_cast<rtps::DataSize_t>(size <= sizeof(raw) ? size : sizeof(raw));
+  if (!change.copyInto(raw, copy_size)) {
+    ESP_LOGI(TAG, "Failed to copy RTPS change data into buffer");
+    return;
   }
-#endif
+
+  // Decode the CDR string, skipping the 4-byte CDR encapsulation header.
+  ucdrBuffer ub;
+  ucdr_init_buffer_origin_offset_endian(&ub, raw, copy_size, 0, 4, UCDR_LITTLE_ENDIANNESS);
+  char text[128] = {0};
+  if (!ucdr_deserialize_string(&ub, text, sizeof(text)) || ucdr_buffer_has_error(&ub)) {
+    ESP_LOGI(TAG, "Failed to deserialize RTPS change data");
+    return;
+  }
+
+  ESP_LOGI(TAG, "rx: %s", text);
 }
 
-#if CONFIG_RTPS_EXAMPLE_ROLE_INITIATOR
 void publisher_task(void * /*arg*/) {
   uint32_t counter = 0;
   while (true) {
     char msg[32];
-    snprintf(msg, sizeof(msg), "request %u", static_cast<unsigned>(counter++));
+    snprintf(msg, sizeof(msg), "msg %u", static_cast<unsigned>(counter++));
     if (!send_text_message(msg)) {
       ESP_LOGW(TAG, "tx dropped (history full or no matched reader)");
     } else {
       ESP_LOGI(TAG, "tx: %s", msg);
     }
-    vTaskDelay(pdMS_TO_TICKS(CONFIG_RTPS_EXAMPLE_PUBLISH_PERIOD_MS));
+    vTaskDelay(pdMS_TO_TICKS(CONFIG_RTPS_EXAMPLE_ANNOUNCE_PERIOD_MS));
   }
 }
-#endif
 
 } // namespace
 
-// Start the RTPS stack. Topics are derived from the configured prefix:
-//   initiator publishes on <prefix>/request, subscribes to <prefix>/response
-//   responder  publishes on <prefix>/response, subscribes to <prefix>/request
 extern "C" void embedded_rtps_start(const rtps::Ip4AddressBytes &local_ip) {
   if (s_started) {
     return;
   }
 
-  const std::string prefix = CONFIG_RTPS_EXAMPLE_TOPIC_PREFIX;
-#if CONFIG_RTPS_EXAMPLE_ROLE_INITIATOR
-  const std::string pub_topic = prefix + "/request";
-  const std::string sub_topic = prefix + "/response";
-#else
-  const std::string pub_topic = prefix + "/response";
-  const std::string sub_topic = prefix + "/request";
-#endif
+  constexpr const char *pub_topic = "mcu_to_pc";
+  constexpr const char *sub_topic = "pc_to_mcu";
 
   static rtps::Domain domain(local_ip);
   s_domain = &domain;
@@ -108,15 +112,13 @@ extern "C" void embedded_rtps_start(const rtps::Ip4AddressBytes &local_ip) {
     return;
   }
 
-  s_writer =
-      s_domain->createWriter(*s_participant, pub_topic.c_str(), "std_msgs::msg::String", false);
+  s_writer = s_domain->createWriter(*s_participant, pub_topic, "std_msgs::msg::String", true);
   if (s_writer == nullptr) {
     ESP_LOGE(TAG, "Failed to create RTPS writer");
     return;
   }
 
-  s_reader =
-      s_domain->createReader(*s_participant, sub_topic.c_str(), "std_msgs::msg::String", false);
+  s_reader = s_domain->createReader(*s_participant, sub_topic, "std_msgs::msg::String", false);
   if (s_reader == nullptr) {
     ESP_LOGE(TAG, "Failed to create RTPS reader");
     return;
@@ -127,13 +129,10 @@ extern "C" void embedded_rtps_start(const rtps::Ip4AddressBytes &local_ip) {
     return;
   }
 
-#if CONFIG_RTPS_EXAMPLE_ROLE_INITIATOR
   xTaskCreate(publisher_task, "rtps_pub", 4096, nullptr, 5, nullptr);
-#endif
 
   s_started = true;
-  ESP_LOGI(TAG, "started as '%s': pub=%s sub=%s", CONFIG_RTPS_EXAMPLE_NODE_NAME, pub_topic.c_str(),
-           sub_topic.c_str());
+  ESP_LOGI(TAG, "started: pub=%s sub=%s", pub_topic, sub_topic);
 }
 
 extern "C" void app_main(void) {

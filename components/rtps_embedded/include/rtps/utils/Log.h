@@ -35,7 +35,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #define SPDP_VERBOSE 0
 #define PBUF_WRAP_VERBOSE 0
 #define SEDP_VERBOSE 1
-#define RECV_VERBOSE 0
+#define RECV_VERBOSE 1
 #define PARTICIPANT_VERBOSE 0
 #define DOMAIN_VERBOSE 1
 #define UDP_DRIVER_VERBOSE 1
