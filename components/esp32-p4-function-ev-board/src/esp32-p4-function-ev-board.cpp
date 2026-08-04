@@ -26,12 +26,14 @@ bool Esp32P4FunctionEvBoard::initialize_button(const button_callback_t &callback
   // it as a GPIO input would take down Ethernet TX, so refuse rather than break a
   // live network: Ethernet (system connectivity) outranks the UI button. Disable
   // Ethernet if you need the BOOT button.
-  if (ethernet_initialized_) {
+#if CONFIG_ESP_P4_EV_BOARD_ETHERNET
+  if (ethernet_ && ethernet_->is_initialized()) {
     logger_.error("BOOT button shares GPIO{} with Ethernet RMII TXD1; refusing to "
                   "initialize it while Ethernet is up (it would kill Ethernet TX).",
                   static_cast<int>(button_io));
     return false;
   }
+#endif
 
   logger_.info("Initializing BOOT button on GPIO{}", static_cast<int>(button_io));
   button_callback_ = callback;

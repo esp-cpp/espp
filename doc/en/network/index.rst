@@ -5,6 +5,8 @@ Network APIs
     :maxdepth: 1
 
     dns_server
+    ethernet
+    ethernet_example
     ping
     provisioning
     socket_example

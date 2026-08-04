@@ -18,6 +18,7 @@ tags:
 dependencies:
   idf: ">=5.3"
   espp/base_component: ">=1.0"
+  espp/ethernet: ">=1.0"
   espp/codec: ">=1.0"
   espp/display: ">=1.0"
   espp/display_drivers: ">=1.0"

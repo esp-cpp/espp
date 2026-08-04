@@ -1,15 +1,15 @@
 #pragma once
 
 #include <array>
-#include <atomic>
 #include <functional>
+#include <memory>
 
 #include <sdkconfig.h>
 
-#include <esp_eth.h>
 #include <esp_netif.h>
 
 #include "base_component.hpp"
+#include "ethernet.hpp"
 
 namespace espp {
 /// @brief Board Support Package (BSP) for the Espressif ESP32-Ethernet-Kit A V1.2.
@@ -127,11 +127,11 @@ public:
   /// Check whether the interface has a usable IP address
   /// (DHCP lease granted in CLIENT mode, or link is up in SERVER mode).
   /// \return True if the interface is connected with a valid IP.
-  bool is_ethernet_connected() const { return ethernet_connected_; }
+  bool is_ethernet_connected() const { return ethernet_ && ethernet_->is_connected(); }
 
   /// Get the most recently acquired IPv4 address (0 if none).
   /// \return The IPv4 address.
-  esp_ip4_addr_t ethernet_ip() const { return ethernet_ip_; }
+  esp_ip4_addr_t ethernet_ip() const { return ethernet_ ? ethernet_->ip() : esp_ip4_addr_t{}; }
 
 protected:
   Esp32EthernetKit();
@@ -159,28 +159,8 @@ protected:
   // Member variables
   /////////////////////////////////////////////////////////////////////////////
 
-  // Ethernet
-  DhcpMode dhcp_mode_{DhcpMode::CLIENT};
-  esp_netif_ip_info_t server_ip_info_{}; ///< Resolved static IP (server mode only)
-  client_ip_callback_t client_ip_callback_{nullptr};
-  EthernetLinkCallback on_link_up_{};
-  EthernetLinkCallback on_link_down_{};
-  EthernetIpCallback on_got_ip_{};
-  EthernetLinkCallback on_lost_ip_{};
-  std::atomic<bool> ethernet_initialized_{false};
-  std::atomic<bool> ethernet_connected_{false};
-  esp_ip4_addr_t ethernet_ip_{};
-  esp_eth_handle_t eth_handle_{nullptr};
-  esp_eth_netif_glue_handle_t eth_glue_{nullptr}; // esp_eth_netif_glue_handle_t
-  esp_netif_t *eth_netif_{nullptr};
-
-  static void ethernet_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id,
-                                     void *event_data);
-  static void ethernet_got_ip_handler(void *arg, esp_event_base_t event_base, int32_t event_id,
-                                      void *event_data);
-  static void ethernet_lost_ip_handler(void *arg, esp_event_base_t event_base, int32_t event_id,
-                                       void *event_data);
-  static void ethernet_client_ip_handler(void *arg, esp_event_base_t event_base, int32_t event_id,
-                                         void *event_data);
+  // The board's RMII Ethernet is driven by the reusable espp::Ethernet component
+  // (this BSP just supplies the board-specific pins / PHY).
+  std::unique_ptr<espp::Ethernet> ethernet_;
 }; // class Esp32EthernetKit
 } // namespace espp
