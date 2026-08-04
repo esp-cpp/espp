@@ -143,7 +143,7 @@ int main(int argc, char **argv) {
   std::signal(SIGINT, signal_handler);
   std::signal(SIGTERM, signal_handler);
 
-  std::string interface_ip;
+  std::string interface_ip = "192.168.4.2";
   int period_ms = 2000;
 
   for (int i = 1; i < argc; ++i) {
