@@ -68,7 +68,9 @@ jobs:
             # (esp32-p4-eth / esp32-p4-function-ev-board / esp32-p4-nano), which
             # depend on espp/ethernet, so it is uploaded to the registry first.
             components/ethernet
+            components/esp32-p4-eth
             components/esp32-p4-function-ev-board
+            components/esp32-p4-nano
             components/esp32-timer-cam
             components/event_manager
             components/expressive_eyes
