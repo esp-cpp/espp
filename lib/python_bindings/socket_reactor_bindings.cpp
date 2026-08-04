@@ -44,14 +44,26 @@ espp::Socket::receive_callback_fn wrap_receive_callback(const py::function &fn) 
   return [cb](std::vector<uint8_t> &data,
               const espp::Socket::Info &sender) -> std::optional<std::vector<uint8_t>> {
     py::gil_scoped_acquire gil;
-    py::object result =
-        (*cb)(py::bytes(reinterpret_cast<const char *>(data.data()), data.size()), sender);
-    if (result.is_none()) {
+    // The handler runs on a reactor pool worker; a Python exception (or a bad
+    // return type) must not propagate out - it would crash/stall the worker.
+    // Report it and degrade to "no response".
+    try {
+      py::object result =
+          (*cb)(py::bytes(reinterpret_cast<const char *>(data.data()), data.size()), sender);
+      if (result.is_none()) {
+        return std::nullopt;
+      }
+      // Accept either bytes or str as the response payload.
+      std::string s = py::cast<std::string>(result);
+      return std::vector<uint8_t>(s.begin(), s.end());
+    } catch (py::error_already_set &e) {
+      // Reports the traceback via sys.unraisablehook and clears the error.
+      e.discard_as_unraisable("espp.SocketReactor receive callback");
+      return std::nullopt;
+    } catch (const std::exception &e) {
+      py::print("espp.SocketReactor receive callback error:", e.what());
       return std::nullopt;
     }
-    // Accept either bytes or str as the response payload.
-    std::string s = py::cast<std::string>(result);
-    return std::vector<uint8_t>(s.begin(), s.end());
   };
 }
 

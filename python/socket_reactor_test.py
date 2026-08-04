@@ -118,7 +118,31 @@ check(name, reactor.remove(999999) is False, "remove() of an unknown id returns 
 check(name, udp_send_recv(5111, b"x", timeout=0.3) is None, "removed receiver no longer echoes")
 
 # ---------------------------------------------------------------------------
-# 5. Stop
+# 5. A raising callback must not crash the worker; the reactor keeps serving.
+# ---------------------------------------------------------------------------
+name = "callback exception"
+print(f"--- {name} ---")
+raiser = espp.UdpSocket(espp.UdpSocket.Config(VERB))
+
+
+def raising_cb(data, sender):
+    raise ValueError("boom")
+
+
+check(name, reactor.add_udp_receiver(raiser, 5113, 1500, raising_cb) != espp.SocketReactor.INVALID_ID,
+      "raising receiver registered")
+# The datagram triggers the exception (reported via sys.unraisablehook); no reply,
+# no crash.
+check(name, udp_send_recv(5113, b"boom", timeout=0.4) is None, "raising callback yields no reply")
+# The reactor is still alive: the earlier echo receiver on 5112's sibling keeps working.
+echo_srv = espp.UdpSocket(espp.UdpSocket.Config(VERB))
+reactor.add_udp_receiver(echo_srv, 5114, 1500, reverse_cb)
+payload2 = bytes(range(24))
+check(name, udp_send_recv(5114, payload2) == bytes(reversed(payload2)),
+      "reactor still serves other receivers after a callback exception")
+
+# ---------------------------------------------------------------------------
+# 6. Stop
 # ---------------------------------------------------------------------------
 name = "stop"
 print(f"--- {name} ---")

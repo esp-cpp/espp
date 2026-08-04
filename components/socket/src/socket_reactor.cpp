@@ -1,5 +1,6 @@
 #include "socket_reactor.hpp"
 
+#include <exception>
 #include <thread>
 
 #ifndef _MSC_VER
@@ -41,6 +42,15 @@ SocketReactor::SocketReactor(const SocketReactor::Config &config)
 }
 
 SocketReactor::~SocketReactor() {
+  // Destroying the reactor from within one of its own handlers is a fatal
+  // lifetime violation: the handler is executing inside the object being freed,
+  // so there is no safe teardown (stop() would refuse, and we would then clear
+  // live loop/pool state - a use-after-free). Fail loudly instead.
+  if (t_in_reactor_dispatch) {
+    logger_.error("SocketReactor destroyed from within a reactor handler; terminating "
+                  "(destroy/stop the reactor from another thread).");
+    std::terminate();
+  }
   stop();
   std::lock_guard<std::mutex> lock(mutex_);
   entries_.clear();
@@ -280,6 +290,14 @@ size_t SocketReactor::num_registered() const {
 }
 
 void SocketReactor::dispatch(SocketReactor::Id id) {
+  // Decrement the in-flight count when this dispatch finishes by ANY path (early
+  // return, or an exception thrown from the handler), so stop()'s wait on
+  // in_flight_count_ can never hang.
+  struct CountGuard {
+    std::atomic<int> &count;
+    ~CountGuard() { --count; }
+  } count_guard{in_flight_count_};
+
   ReadHandler handler;
   {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -291,10 +309,25 @@ void SocketReactor::dispatch(SocketReactor::Id id) {
   }
   // Run the user handler without holding the lock (it may call back into the
   // reactor, block on a mutex, etc.). Mark the thread so a stop() invoked from
-  // within the handler is detected rather than deadlocking.
+  // within the handler is detected rather than deadlocking, and never let a
+  // handler exception escape into the pool worker (it would kill the worker and
+  // leave the entry stuck in_flight).
   if (handler) {
     DispatchGuard guard;
+#if defined(__cpp_exceptions) && __cpp_exceptions
+    try {
+      handler();
+    } catch (const std::exception &e) {
+      logger_.error("Exception in reactor handler: {}", e.what());
+    } catch (...) {
+      logger_.error("Unknown exception in reactor handler");
+    }
+#else
+    // C++ exceptions are disabled (e.g. the ESP-IDF default), so a throwing
+    // handler would abort regardless; call it directly. The RAII CountGuard
+    // still keeps in_flight_count_ consistent for normal returns.
     handler();
+#endif
   }
   bool wake_needed = false;
   {
@@ -310,7 +343,6 @@ void SocketReactor::dispatch(SocketReactor::Id id) {
       }
     }
   }
-  --in_flight_count_;
   if (wake_needed) {
     wake();
   }
@@ -386,7 +418,13 @@ bool SocketReactor::loop_iteration(std::mutex &, std::condition_variable &, bool
       auto it = entries_.find(id);
       if (it != entries_.end()) {
         it->second.in_flight = false;
-        it->second.armed = true;
+        // Honor a remove() that arrived while this entry was marked in_flight,
+        // rather than blindly re-arming a logically-removed registration.
+        if (it->second.remove_requested) {
+          entries_.erase(it);
+        } else {
+          it->second.armed = true;
+        }
       }
     }
   }
