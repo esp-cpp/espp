@@ -20,17 +20,6 @@ void TrajectoryPlanner::set_config(const Config &config, bool reset_state) {
   } else if (planning_ms < 5.0f || planning_ms > 200.0f) {
     logger_.warn("planning_period {:.1f} ms is outside recommended 5–200 ms range", planning_ms);
   }
-  const float callback_ms =
-      std::chrono::duration<float, std::milli>(config.callback_period).count();
-  if (callback_ms <= 0.0f) {
-    logger_.error("callback_period must be > 0");
-    return;
-  } else if (callback_ms < 2.0f * planning_ms) {
-    logger_.warn("callback_period {:.1f} ms is less than 2× planning_period {:.1f} ms - repeated "
-                 "outputs likely",
-                 callback_ms, planning_ms);
-  }
-
   if (config.driving_profile.max_linear_jerk * config.planning_period.count() >
       config.driving_profile.max_linear_acceleration) {
     logger_.warn(
@@ -86,25 +75,29 @@ void TrajectoryPlanner::set_target(float linear, float angular) {
     }
   }
 
-  std::lock_guard<std::recursive_mutex> lk(mutex_);
-  target_v_ = linear * config_.max_linear_velocity;
-  target_w_ = angular * config_.max_angular_velocity;
+  auto target_v = linear * config_.max_linear_velocity;
+  auto target_w = angular * config_.max_angular_velocity;
 
   // Centripetal acceleration limit: |v · w| ≤ a_c_max
   // Scale both v and w proportionally to preserve the turning radius.
   if (config_.max_centripetal_acceleration > 0.0f) {
-    float a_c = std::abs(target_v_ * target_w_);
+    float a_c = std::abs(target_v * target_w);
     if (a_c > config_.max_centripetal_acceleration) {
       float scale = std::sqrt(config_.max_centripetal_acceleration / a_c);
-      target_v_ *= scale;
-      target_w_ *= scale;
+      target_v *= scale;
+      target_w *= scale;
       logger_.warn(
           "Centripetal acceleration limit enforced: target_v={}, target_w={}, scale={}, a_c={}",
-          target_v_, target_w_, scale, a_c);
+          target_v, target_w, scale, a_c);
     }
   }
 
-  logger_.debug("Target: v={:.3f} m/s, w={:.3f} rad/s", target_v_, target_w_);
+  logger_.debug("Target: v={:.3f} m/s, w={:.3f} rad/s", target_v, target_w);
+  {
+    std::lock_guard<std::recursive_mutex> lk(mutex_);
+    target_v_ = target_v;
+    target_w_ = target_w;
+  }
 }
 
 std::pair<float, float> TrajectoryPlanner::get_target() const {
@@ -218,7 +211,14 @@ void TrajectoryPlanner::update(float dt) {
     logger_.debug(
         "State: v={:.3f}, w={:.3f}, a_v={:.3f}, a_w={:.3f}, target_v={:.3f}, target_w={:.3f}",
         state_.v, state_.w, state_.a_v, state_.a_w, target_v_, target_w_);
-  } // mutex released here
+  } // mutex_ released here
+
+  {
+    std::lock_guard<std::mutex> lk(callback_wake_m_);
+    callback_wake_flag_ = true;
+  }
+  // if (callback_wake_flag_)
+  callback_wake_cv_.notify_one();
 }
 
 TrajectoryPlanner::MotionCommand TrajectoryPlanner::output() const {
@@ -245,9 +245,18 @@ bool TrajectoryPlanner::start_task() {
       .auto_start = true,
       .task_config = config_.planning_task_config,
   });
-  callback_timer_ = std::make_unique<espp::Timer>(espp::Timer::AdvancedConfig{
-      .period = config_.callback_period,
-      .callback = [this]() -> bool {
+  callback_wake_flag_ = false;
+  callback_stop_flag_ = false;
+  callback_task_ = espp::Task::make_unique({
+      .callback = [this](std::mutex &, std::condition_variable &, bool &) -> bool {
+        // Wait indefinitely for a notification from update() (no polling timeout needed).
+        {
+          std::unique_lock<std::mutex> lk(callback_wake_m_);
+          callback_wake_cv_.wait(lk, [this] { return callback_wake_flag_ || callback_stop_flag_; });
+          if (callback_stop_flag_)
+            return true; // stop the task
+          callback_wake_flag_ = false;
+        }
         output_callback_t cb;
         MotionCommand cmd;
         {
@@ -259,10 +268,10 @@ bool TrajectoryPlanner::start_task() {
           cb(cmd);
         return false;
       },
-      .auto_start = true,
       .task_config = config_.callback_task_config,
   });
-  return timer_->is_running() && callback_timer_->is_running();
+  callback_task_->start();
+  return timer_->is_running() && callback_task_->is_started();
 }
 
 bool TrajectoryPlanner::stop_task() {
@@ -270,13 +279,19 @@ bool TrajectoryPlanner::stop_task() {
     return false;
   }
   timer_->cancel();
-  if (callback_timer_)
-    callback_timer_->cancel();
+  // Wake the callback task so it exits promptly instead of waiting for the timeout.
+  {
+    std::lock_guard<std::mutex> lk(callback_wake_m_);
+    callback_stop_flag_ = true;
+  }
+  callback_wake_cv_.notify_one();
+  if (callback_task_)
+    callback_task_->stop();
   return true;
 }
 
 bool TrajectoryPlanner::is_running() const {
-  return timer_ && timer_->is_running() && callback_timer_ && callback_timer_->is_running();
+  return timer_ && timer_->is_running() && callback_task_ && callback_task_->is_started();
 }
 
 void TrajectoryPlanner::reset() {

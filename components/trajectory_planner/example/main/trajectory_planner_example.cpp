@@ -11,8 +11,7 @@ extern "C" void app_main(void) {
   // ---------------------------------------------------------------------------
   // Quick-start: all public API in one place
   // ---------------------------------------------------------------------------
-  auto planning_period = 50ms;  // 20hz
-  auto callback_period = 100ms; // 10hz
+  auto planning_period = 50ms; // 20hz
   {
     logger.info("=== Quick-start: public API overview ===");
     //! [trajectory_planner quickstart]
@@ -34,7 +33,6 @@ extern "C" void app_main(void) {
               logger.debug("callback: {}", cmd);
             },
         .planning_period = planning_period,
-        .callback_period = callback_period,
         .planning_task_config = {.name = "tp_qs", .stack_size_bytes = 10240},
     });
 
@@ -102,7 +100,6 @@ extern "C" void app_main(void) {
               tick++;
             },
         .planning_period = planning_period,
-        .callback_period = callback_period,
         .planning_task_config =
             {.name = "tp_ex1", .stack_size_bytes = 10240, .priority = 5, .core_id = -1},
     });
@@ -148,7 +145,6 @@ extern "C" void app_main(void) {
               tick++;
             },
         .planning_period = planning_period,
-        .callback_period = callback_period,
         .planning_task_config =
             {.name = "tp_ex2", .stack_size_bytes = 10240, .priority = 5, .core_id = -1},
     });
@@ -251,6 +247,7 @@ extern "C" void app_main(void) {
 
       void operator()(const Cmd &cmd) {
         std::lock_guard<std::mutex> lk(mtx);
+
         const float tol = 1.08f; // 8% margin for scheduler jitter
         const float ma_v = stopping ? a_stp_v : a_drv_v;
         const float ma_w = stopping ? a_stp_w : a_drv_w;
@@ -284,6 +281,7 @@ extern "C" void app_main(void) {
           auto now = std::chrono::steady_clock::now();
           float adt = time_inited ? std::chrono::duration<float>(now - prev_time).count()
                                   : dt; // nominal for first step
+
           prev_time = now;
           time_inited = true;
 
@@ -393,7 +391,6 @@ extern "C" void app_main(void) {
         .max_centripetal_acceleration = MAX_CP,
         .output_callback = [&val](const Cmd &cmd) { val(cmd); },
         .planning_period = std::chrono::milliseconds(50),
-        .callback_period = std::chrono::milliseconds(100),
         .planning_task_config = {.name = "tp_val", .stack_size_bytes = 1024 * 10, .priority = 5},
         .callback_task_config = {.name = "tp_val_cb", .stack_size_bytes = 8192, .priority = 5},
 
@@ -448,9 +445,9 @@ extern "C" void app_main(void) {
       val.reset();
       espp::TrajectoryPlanner planner(cfg);
       planner.set_target(1.0f, 0.0f);
-      std::this_thread::sleep_for(500ms);
-      planner.set_target(-1.0f, 0.0f);
       std::this_thread::sleep_for(1000ms);
+      planner.set_target(-1.0f, 0.0f);
+      std::this_thread::sleep_for(2000ms);
       val.report(logger, "E: Direction reversal");
     }
 

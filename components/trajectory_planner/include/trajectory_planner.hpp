@@ -9,6 +9,7 @@
 #include <utility>
 
 #include "base_component.hpp"
+#include "task.hpp"
 #include "timer.hpp"
 
 namespace espp {
@@ -41,11 +42,11 @@ namespace espp {
  *  - **S-curve**: either jerk field is non-zero
  *
  *  ### Timing
- *  Two independent `espp::Timer` instances run internally:
+ *  Two independent timers run internally:
  *  - **planning timer** -- calls `update()` at `planning_period` (default 20 ms / 50 Hz).
  *    Recommended range: 5-200 ms on microcontrollers.
- *  - **callback timer** -- fires `output_callback` at `callback_period` (default 40 ms).
- *    Should be >= 2x planning_period (Nyquist); faster rates repeat the same output.
+ *  - **callback task** -- fires `output_callback` on every `update()` that produces a
+ *    new output value (CV-notified by the planning timer); no separate period needed.
  *
  *  This class is thread-safe: set_target(), get_target(), output(), stop(),
  *  and reset() may be called from different threads concurrently.
@@ -120,10 +121,6 @@ Leave as nullptr to disable. */
     std::chrono::duration<float> planning_period = std::chrono::milliseconds(20); /**< Planner
                                                      update rate (default 50 Hz). Recommended: 5-200
                                                      ms on microcontrollers. */
-    std::chrono::duration<float> callback_period = std::chrono::milliseconds(40); /**< Output
-                                                     callback rate (default 50 Hz). Should be
-                                                     >= 2x planning_period (Nyquist); a faster
-                                                     rate will repeat the same output. */
     espp::Task::BaseConfig planning_task_config = {
         .name = "TP_planning",
         .stack_size_bytes = 4096,
@@ -227,8 +224,8 @@ protected:
   /**
    * @brief Start the periodic planning and callback timers.
    *
-   * The planning timer calls update() at Config::planning_period and the
-   * callback timer fires output_callback at Config::callback_period.
+   * The planning timer calls update() at Config::planning_period.
+   * The callback task fires output_callback whenever update() produces new output.
    * Has no effect if the timers are already running.
    *
    * @return true if both timers were started successfully.
@@ -258,7 +255,14 @@ protected:
   float target_w_ = 0.0f;
   espp::TrajectoryPlanner::output_callback_t output_callback_ = nullptr;
   std::unique_ptr<espp::Timer> timer_ = nullptr;
-  std::unique_ptr<espp::Timer> callback_timer_ = nullptr;
+  std::unique_ptr<espp::Task> callback_task_ =
+      nullptr; // woken by CV from update(), falls back to timeout
+  std::mutex callback_wake_m_;
+  std::condition_variable callback_wake_cv_;
+  bool callback_wake_flag_{false};
+  bool callback_stop_flag_{false};
+  float last_notified_v_{0.0f};
+  float last_notified_w_{0.0f};
   std::chrono::steady_clock::time_point last_update_time_ = std::chrono::steady_clock::now();
   mutable std::recursive_mutex mutex_;
 };
