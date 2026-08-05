@@ -170,25 +170,18 @@ bool UdpSocket::receive(size_t max_num_bytes, std::vector<uint8_t> &data,
   return true;
 }
 
-bool UdpSocket::start_receiving(Task::BaseConfig &task_config,
-                                const UdpSocket::ReceiveConfig &receive_config) {
-  if (task_ && task_->is_started()) {
-    logger_.error("Server is alrady receiving");
-    return false;
-  }
+bool UdpSocket::bind(const UdpSocket::ReceiveConfig &receive_config) {
   if (!is_valid()) {
-    logger_.error("Socket invalid, cannot start receiving.");
+    logger_.error("Socket invalid, cannot bind.");
     return false;
   }
-  server_receive_callback_ = receive_config.on_receive_callback;
-  // bind
-  struct sockaddr_in server_addr {};
   // configure the server socket accordingly - assume IPV4 and bind to the
   // any address "0.0.0.0"
+  struct sockaddr_in server_addr {};
   server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
   server_addr.sin_family = address_family_;
   server_addr.sin_port = htons(receive_config.port);
-  int err = bind(socket_, reinterpret_cast<struct sockaddr *>(&server_addr), sizeof(server_addr));
+  int err = ::bind(socket_, reinterpret_cast<struct sockaddr *>(&server_addr), sizeof(server_addr));
   if (err < 0) {
     logger_.error("Unable to bind: {}", error_string());
     return false;
@@ -204,6 +197,23 @@ bool UdpSocket::start_receiving(Task::BaseConfig &task_config,
       logger_.error("Unable to add multicast group to bound socket: {}", error_string());
       return false;
     }
+  }
+  return true;
+}
+
+bool UdpSocket::start_receiving(Task::BaseConfig &task_config,
+                                const UdpSocket::ReceiveConfig &receive_config) {
+  if (task_ && task_->is_started()) {
+    logger_.error("Server is already receiving");
+    return false;
+  }
+  if (!is_valid()) {
+    logger_.error("Socket invalid, cannot start receiving.");
+    return false;
+  }
+  server_receive_callback_ = receive_config.on_receive_callback;
+  if (!bind(receive_config)) {
+    return false;
   }
   // set the callback function
   using namespace std::placeholders;

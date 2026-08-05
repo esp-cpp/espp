@@ -24,7 +24,11 @@ struct sockaddr_in6 *Socket::Info::ipv6_ptr() {
 void Socket::Info::update() {
   if (raw.ss_family == PF_INET) {
     const auto *ipv4 = reinterpret_cast<const struct sockaddr_in *>(&raw);
-    address = inet_ntoa(ipv4->sin_addr);
+    // inet_ntop into a local buffer (inet_ntoa returns a shared static buffer,
+    // which races when multiple threads - e.g. reactor pool workers - build
+    // Socket::Info concurrently).
+    char buf[INET_ADDRSTRLEN];
+    address = inet_ntop(AF_INET, &ipv4->sin_addr, buf, sizeof(buf)) ? buf : "";
     port = ntohs(ipv4->sin_port);
 #if !defined(ESP_PLATFORM) || LWIP_IPV6
   } else if (raw.ss_family == PF_INET6) {
@@ -48,7 +52,10 @@ void Socket::Info::from_sockaddr(const struct sockaddr_storage &source_address) 
 
 void Socket::Info::from_sockaddr(const struct sockaddr_in &source_address) {
   memcpy(&raw, &source_address, sizeof(source_address));
-  address = inet_ntoa(source_address.sin_addr);
+  // inet_ntop into a local buffer (inet_ntoa's shared static buffer is not
+  // thread-safe - see Info::update()).
+  char buf[INET_ADDRSTRLEN];
+  address = inet_ntop(AF_INET, &source_address.sin_addr, buf, sizeof(buf)) ? buf : "";
   port = ntohs(source_address.sin_port);
 }
 

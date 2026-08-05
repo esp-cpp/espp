@@ -11,6 +11,7 @@ Network APIs
     socket
     tcp_socket
     udp_socket
+    socket_reactor
 
 The network APIs provide a useful abstraction over POSIX sockets enabling easily
 starting client/server sockets and allowing their use with std::function

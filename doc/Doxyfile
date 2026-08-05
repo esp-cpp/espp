@@ -389,6 +389,7 @@ INPUT = \
   $(PROJECT_PATH)/components/socket/include/socket.hpp \
   $(PROJECT_PATH)/components/socket/include/udp_socket.hpp \
   $(PROJECT_PATH)/components/socket/include/tcp_socket.hpp \
+  $(PROJECT_PATH)/components/socket/include/socket_reactor.hpp \
   $(PROJECT_PATH)/components/spi/include/spi.hpp \
   $(PROJECT_PATH)/components/st25dv/include/st25dv.hpp \
   $(PROJECT_PATH)/components/st7123touch/include/st7123touch.hpp \

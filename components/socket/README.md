@@ -6,7 +6,9 @@ The network APIs provide a useful abstraction over POSIX sockets enabling easily
 starting client/server sockets and allowing their use with std::function
 callbacks for servers.
 
-Currently, UDP and TCP sockets are supported.
+Currently, UDP and TCP sockets are supported. A `SocketReactor` is also provided
+for servicing many receiver sockets on a single `select()` loop plus a thread
+pool, instead of one thread per socket.
 
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
 **Table of Contents**
@@ -15,6 +17,7 @@ Currently, UDP and TCP sockets are supported.
   - [Base Socket](#base-socket)
   - [UDP Socket](#udp-socket)
   - [TCP Socket](#tcp-socket)
+  - [Socket Reactor](#socket-reactor)
   - [Example](#example)
 
 <!-- markdown-toc end -->
@@ -39,6 +42,8 @@ The `UdpSocket` API supports both one-shot sends and long-running receive tasks:
 * `start_receiving(...)` starts a task that continuously receives datagrams and
   can optionally send a callback-produced response
 * `stop_receiving()` cleanly stops a blocked receive task during teardown
+* `bind(...)` binds the socket for a server without starting a thread, so it can
+  be driven by a `SocketReactor` (see below) instead of its own receive task
 
 ## TCP Socket
 
@@ -55,6 +60,35 @@ The `TcpSocket` API covers both client and server patterns:
 * `bind(...)`, `listen(...)`, and `accept()` for server-side flows
 * `close()` / `reinit()` helpers for teardown and reconnect paths
 
+## Socket Reactor
+
+The `SocketReactor` multiplexes many receiver sockets on a single `select()`
+event-loop thread and dispatches each socket's read + user callback onto a shared
+`ThreadPool`, instead of dedicating one thread (one `espp::Task`) to every
+receiving socket. This turns "N receiver threads" into "1 loop thread + a small
+fixed pool" that can be shared across subsystems.
+
+To stay correct under level-triggered `select()`, the reactor is one-shot: a
+readable socket is disarmed, a job is submitted to the pool, and the socket is
+re-armed only after that job completes - so there is at most one in-flight
+handler per socket (per-socket ordering is preserved and there is no concurrent
+`recv` on one fd), while different sockets run concurrently. A loopback UDP
+"wakeup" socket keeps registration changes, re-arming, and stop responsive.
+
+The `SocketReactor` API drives:
+
+* `add_udp_receiver(...)` - binds a `UdpSocket` and receives on it, replacing a
+  per-socket `UdpSocket::start_receiving()` thread
+* `add_tcp_listener(...)` - accepts connections and hands each new client to a
+  callback (no accept thread)
+* `add_tcp_stream(...)` - reads a connected `TcpSocket`, invokes a data callback,
+  and auto-unregisters on disconnect (no thread-per-client)
+* low-level `add_fd(...)` / `remove(...)`
+
+The thread pool may be owned (built from `Config`) or an external shared pool.
+Note: registered sockets must outlive their registration - `stop()` / destroy the
+reactor before destroying the sockets (`stop()` waits for in-flight handlers).
+
 ## Example
 
 The [example](./example) shows the use of the classes provided by the `socket`
@@ -66,3 +100,5 @@ and reconnect behavior, including:
 * scope-based teardown while tasks are active or blocked
 * request/response callbacks and timeout handling
 * reconnect behavior after TCP session shutdown
+* `SocketReactor` multiplexing UDP receivers and TCP listeners/streams on one
+  select loop + thread pool (shared-pool, dynamic remove, and multi-client cases)
