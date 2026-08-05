@@ -49,6 +49,21 @@ public:
                                 limit. Will be clamped to power supply voltage. */
     uint64_t dead_zone_ns{
         100}; /**< Dead zone in nanoseconds. Will be applied to both sides of the waveform. */
+    /**
+     * @brief Interrupt priority for the MCPWM timer.
+     *
+     * 0 (the default) lets the driver allocate a low-priority interrupt and
+     * preserves the previous behavior. Set to 1, 2, or 3 to request a specific
+     * level. Only levels 1-3 may be used: levels 4-7 are high-priority interrupts
+     * whose handlers must be written in assembly and cannot call C/C++ code (and
+     * some are reserved by the system), so they cannot be used here. Values
+     * outside the range [0, 3] are clamped (with a warning). Requires
+     * ESP-IDF >= 5.1; ignored on older versions.
+     *
+     * @see
+     * https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-guides/hlinterrupts.html
+     */
+    int intr_priority{0};
     espp::Logger::Verbosity log_level{
         espp::Logger::Verbosity::WARN}; /**< Verbosity for the bldc driver. */
   };
@@ -340,7 +355,7 @@ protected:
     }
 #endif
     configure_enable_gpio();
-    configure_timer();
+    configure_timer(config.intr_priority);
     configure_operators();
     configure_fault();
     configure_comparators();
@@ -362,7 +377,7 @@ protected:
     gpio_set_level((gpio_num_t)gpio_en_, 0);
   }
 
-  void configure_timer() {
+  void configure_timer(int intr_priority) {
     logger_.info("Create MCPWM timer, group: {}", GROUP_ID);
     mcpwm_timer_config_t timer_config;
     memset(&timer_config, 0, sizeof(timer_config));
@@ -371,6 +386,21 @@ protected:
     timer_config.resolution_hz = TIMER_RESOLUTION_HZ;
     timer_config.count_mode = MCPWM_TIMER_COUNT_MODE_UP_DOWN;
     timer_config.period_ticks = TICKS_PER_PERIOD;
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 1, 0)
+    // mcpwm_timer_config_t::intr_priority was added in ESP-IDF v5.1. Leaving it at 0
+    // preserves the previous behavior (driver picks a low priority), so this remains
+    // backwards-compatible for callers that do not set Config::intr_priority. Only
+    // interrupt levels 1-3 are usable; 4-7 are high-priority (assembly-only, some
+    // reserved) interrupts, so clamp out-of-range values here instead of letting
+    // mcpwm_new_timer() fail and ESP_ERROR_CHECK abort.
+    if (intr_priority < 0 || intr_priority > 3) {
+      logger_.warn("intr_priority {} out of range [0, 3]; clamping", intr_priority);
+      intr_priority = std::clamp(intr_priority, 0, 3);
+    }
+    timer_config.intr_priority = intr_priority;
+#else
+    (void)intr_priority; // interrupt priority is not configurable before IDF v5.1
+#endif
     ESP_ERROR_CHECK(mcpwm_new_timer(&timer_config, &timer_));
   }
 
