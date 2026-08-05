@@ -113,7 +113,7 @@ public:
   /// Get one motor channel pin mapping.
   /// \param index Zero-based motor index in the range [0, num_motor_channels()).
   /// \return The motor pin mapping for the requested channel, or a default
-  ///         `MotorPins{}` with `GPIO_NUM_NC` entries if the index is invalid.
+  ///         <tt>MotorPins{}</tt> with <tt>GPIO_NUM_NC</tt> entries if the index is invalid.
   MotorPins motor_pins(size_t index) const;
 
   /// Get the shared encoder bus pin mapping.
@@ -127,7 +127,7 @@ public:
   /// Get one encoder chip-select pin.
   /// \param index Zero-based encoder index in the range [0,
   ///              num_motor_channels()).
-  /// \return The requested encoder chip-select pin, or `GPIO_NUM_NC` if the
+  /// \return The requested encoder chip-select pin, or <tt>GPIO_NUM_NC</tt> if the
   ///         index is invalid.
   gpio_num_t encoder_cs_pin(size_t index) const;
 
@@ -147,7 +147,7 @@ public:
   /// \param power_supply_voltage Maximum motor supply voltage in volts.
   /// \param limit_voltage Optional motor voltage limit in volts. Values less
   ///                      than zero mean "no extra limit" and will be clamped
-  ///                      to the supply voltage by `espp::BldcDriver`.
+  ///                      to the supply voltage by <tt>espp::BldcDriver</tt>.
   /// \param dead_zone_ns Dead-time to apply to both sides of each phase PWM.
   /// \return True if both motor driver helpers were initialized successfully;
   ///         false if the configuration is invalid or any channel could not be
@@ -158,7 +158,7 @@ public:
 
   /// Get one motor driver helper.
   /// \param index Zero-based motor index in the range [0, num_motor_channels()).
-  /// \return Shared pointer to the requested motor driver helper, or `nullptr`
+  /// \return Shared pointer to the requested motor driver helper, or <tt>nullptr</tt>
   ///         if the index is invalid or that motor has not been initialized yet.
   std::shared_ptr<MotorDriver> motor_driver(size_t index) const;
 
@@ -196,7 +196,7 @@ public:
   /// \param config The motor configuration. Its driver and sensor fields are
   ///        overridden with the board's per-channel driver and encoder.
   /// \return Shared pointer to the created (and initialized) BldcMotor, or
-  ///         `nullptr` if the index is invalid or the channel's driver/encoder
+  ///         <tt>nullptr</tt> if the index is invalid or the channel's driver/encoder
   ///         could not be initialized.
   /// \details If the encoders / motor drivers have not been initialized yet,
   ///          this initializes them first (with default settings), so a single
@@ -205,14 +205,14 @@ public:
 
   /// Get one FOC motor controller.
   /// \param index Zero-based motor index in the range [0, num_motor_channels()).
-  /// \return Shared pointer to the requested motor, or `nullptr` if the index is
+  /// \return Shared pointer to the requested motor, or <tt>nullptr</tt> if the index is
   ///         invalid or initialize_motor() has not been called for it.
   std::shared_ptr<BldcMotor> motor(size_t index);
 
   /// Initialize the shared encoder bus and create the two MT6701 SSI helpers.
   /// \param run_tasks If true, each encoder starts its own update task after
   ///                  initialization. If false, callers must invoke
-  ///                  `Encoder::update()` manually.
+  ///                  <tt>Encoder::update()</tt> manually.
   /// \return True if the shared bus and both encoder helpers were initialized
   ///         successfully; false otherwise.
   bool initialize_encoders(bool run_tasks = true);
@@ -220,7 +220,7 @@ public:
   /// Get one encoder helper.
   /// \param index Zero-based encoder index in the range [0,
   ///              num_motor_channels()).
-  /// \return Shared pointer to the requested encoder helper, or `nullptr` if the
+  /// \return Shared pointer to the requested encoder helper, or <tt>nullptr</tt> if the
   ///         index is invalid or that encoder has not been initialized yet.
   std::shared_ptr<Encoder> encoder(size_t index);
 
@@ -247,7 +247,7 @@ public:
                       });
 
   /// Get the onboard IMU helper.
-  /// \return Shared pointer to the initialized IMU helper, or `nullptr` if
+  /// \return Shared pointer to the initialized IMU helper, or <tt>nullptr</tt> if
   ///         initialize_imu() has not been called yet.
   std::shared_ptr<Imu> imu() const;
 
@@ -302,7 +302,7 @@ public:
   float get_led_breathing_period();
 
   /// Get the LED helper used for the indicator LEDs.
-  /// \return Shared pointer to the indicator LED helper, or `nullptr` if
+  /// \return Shared pointer to the indicator LED helper, or <tt>nullptr</tt> if
   ///         initialize_leds() has not been called yet.
   std::shared_ptr<espp::Led> leds();
 

@@ -111,7 +111,7 @@ public:
     static Locator udp_v4(std::string_view ipv4_address, uint16_t port);
 
     /// @brief Convert the locator address to a printable IPv4 string.
-    /// @return Dotted-decimal IPv4 address, or `0.0.0.0` if the locator is not UDPv4.
+    /// @return Dotted-decimal IPv4 address, or <tt>0.0.0.0</tt> if the locator is not UDPv4.
     std::string address_string() const;
   };
 
@@ -152,7 +152,7 @@ public:
 
     /// @brief Parse an RTPS message from bytes.
     /// @param data Serialized RTPS message bytes.
-    /// @return A parsed message on success, or `std::nullopt` if the input is invalid.
+    /// @return A parsed message on success, or <tt>std::nullopt</tt> if the input is invalid.
     static std::optional<Message> parse(std::span<const uint8_t> data);
   };
 
@@ -171,7 +171,7 @@ public:
     ReliabilityKind reliability{
         ReliabilityKind::BEST_EFFORT}; ///< Reliability QoS advertised for the writer.
     std::string multicast_group{}; ///< Optional multicast group advertised for this writer and used
-                                   ///< by `publish()` when set.
+                                   ///< by <tt>publish()</tt> when set.
     uint32_t entity_index{0};      ///< Local entity slot used to derive the RTPS entity ID.
     uint32_t history_depth{16};    ///< KEEP_LAST history depth advertised through SEDP and used to
                                    ///< bound the reliable-writer history cache (number of recent
@@ -477,7 +477,7 @@ private:
   /// @brief Owns the discovered-participant and discovered-endpoint records and
   ///        the lock that guards them.
   /// @details Identity is the GUID. Updates *merge* the incoming fields into the
-  ///          existing record (the caller's `apply` mutator sets only the fields
+  ///          existing record (the caller's <tt>apply</tt> mutator sets only the fields
   ///          actually present in the received message), so a later announcement
   ///          that omits a locator/QoS/name does not erase previously-learned
   ///          values. Centralizing storage + merge + locking here keeps the

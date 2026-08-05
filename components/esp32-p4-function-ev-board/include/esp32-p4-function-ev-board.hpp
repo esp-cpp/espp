@@ -20,8 +20,9 @@
 #include <esp_lcd_panel_ops.h>
 
 #if CONFIG_ESP_P4_EV_BOARD_ETHERNET
-#include <esp_eth.h>
 #include <esp_netif.h>
+
+#include "ethernet.hpp"
 #endif
 
 #include <freertos/FreeRTOS.h>
@@ -372,11 +373,11 @@ public:
 
   /// Check whether the Ethernet link is up (cable connected + negotiated)
   /// \return True if the link is up
-  bool is_ethernet_connected() const { return ethernet_connected_; }
+  bool is_ethernet_connected() const { return ethernet_ && ethernet_->is_connected(); }
 
   /// Get the most recently acquired IPv4 address (0 if none)
   /// \return The IPv4 address
-  esp_ip4_addr_t ethernet_ip() const { return ethernet_ip_; }
+  esp_ip4_addr_t ethernet_ip() const { return ethernet_ ? ethernet_->ip() : esp_ip4_addr_t{}; }
 #endif // CONFIG_ESP_P4_EV_BOARD_ETHERNET || defined(_DOXYGEN_)
 
   /////////////////////////////////////////////////////////////////////////////
@@ -603,18 +604,9 @@ protected:
   void *sd_pwr_ctrl_handle_{nullptr};
 
 #if CONFIG_ESP_P4_EV_BOARD_ETHERNET
-  // Ethernet
-  std::atomic<bool> ethernet_initialized_{false};
-  std::atomic<bool> ethernet_connected_{false};
-  esp_ip4_addr_t ethernet_ip_{};
-  ethernet_link_callback_t ethernet_link_callback_{nullptr};
-  esp_eth_handle_t eth_handle_{nullptr};
-  void *eth_glue_{nullptr}; // esp_eth_netif_glue_handle_t
-  esp_netif_t *eth_netif_{nullptr};
-  static void ethernet_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id,
-                                     void *event_data);
-  static void ethernet_got_ip_handler(void *arg, esp_event_base_t event_base, int32_t event_id,
-                                      void *event_data);
+  // The board's RMII Ethernet is driven by the reusable espp::Ethernet component
+  // (this BSP just supplies the board-specific pins / PHY).
+  std::unique_ptr<espp::Ethernet> ethernet_;
 #endif
 
   // Display state

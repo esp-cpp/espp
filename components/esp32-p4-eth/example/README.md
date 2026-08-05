@@ -1,0 +1,9 @@
+# ESP32-P4-ETH Example
+
+Brings up the board's Ethernet (EMAC + IP101GRI RMII PHY) as a DHCP client via
+the `espp::Esp32P4Eth` BSP and logs link / IP state.
+
+```
+idf.py set-target esp32p4
+idf.py build flash monitor
+```

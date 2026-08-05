@@ -1,0 +1,27 @@
+menu "ESPP Ethernet"
+
+    config ESPP_ETHERNET_W5500
+        bool "Enable WIZnet W5500 SPI Ethernet support"
+        default n
+        help
+            Enable the WIZnet W5500 SPI Ethernet chip in espp::Ethernet
+            (SpiConfig with SpiChip::W5500). Pulls in the espressif/w5500
+            managed component.
+
+    config ESPP_ETHERNET_DM9051
+        bool "Enable Davicom DM9051 SPI Ethernet support"
+        default n
+        help
+            Enable the Davicom DM9051 SPI Ethernet chip in espp::Ethernet.
+            Requires adding the corresponding managed component (see
+            idf_component.yml) to your project.
+
+    config ESPP_ETHERNET_ENC28J60
+        bool "Enable Microchip ENC28J60 SPI Ethernet support"
+        default n
+        help
+            Enable the Microchip ENC28J60 SPI Ethernet chip in espp::Ethernet.
+            Requires adding the corresponding managed component (see
+            idf_component.yml) to your project.
+
+endmenu

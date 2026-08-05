@@ -119,7 +119,7 @@ public:
   bool initialize_sdcard(const SdCardConfig &config);
 
   /// Get the mounted microSD card handle.
-  /// \return Pointer to the mounted card, or `nullptr` if the card has not been
+  /// \return Pointer to the mounted card, or <tt>nullptr</tt> if the card has not been
   ///         initialized successfully.
   sdmmc_card_t *sdcard() const { return sdcard_; }
 

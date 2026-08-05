@@ -153,6 +153,15 @@ public:
   static bool is_valid_fd(sock_type_t socket_fd);
 
   /**
+   * @brief Get the underlying native socket file descriptor / handle.
+   * @note Provided so an external event loop (e.g. SocketReactor) can add this
+   *       socket to a select()/poll() set. The Socket retains ownership of the
+   *       descriptor; do not close it directly.
+   * @return The socket file descriptor.
+   */
+  sock_type_t native_handle() const { return socket_; }
+
+  /**
    * @brief Get the Socket::Info for the socket.
    * @details This will call getsockname() on the socket to get the
    *          sockaddr_storage structure, and then fill out the Socket::Info

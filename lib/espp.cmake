@@ -77,6 +77,7 @@ set(ESPP_SOURCES
   ${ESPP_COMPONENTS}/socket/src/socket.cpp
   ${ESPP_COMPONENTS}/socket/src/tcp_socket.cpp
   ${ESPP_COMPONENTS}/socket/src/udp_socket.cpp
+  ${ESPP_COMPONENTS}/socket/src/socket_reactor.cpp
   ${CMAKE_CURRENT_LIST_DIR}/espp.cpp
 )
 
@@ -91,9 +92,13 @@ if(MSVC)
   list(APPEND ESPP_SOURCES ${CMAKE_CURRENT_LIST_DIR}/wcswidth.c)
 endif()
 
-# if we're on Windows, we need to link against ws2_32
+# On Windows link against ws2_32 (sockets) and winmm (timeBeginPeriod, used by
+# the TimerResolution helper in espp.hpp). Centralizing these here keeps linkage
+# consistent across the static library, tests, and the _espp module, and works
+# on all Windows toolchains (MSVC, MinGW, clang) rather than relying on
+# MSVC-only #pragma comment(lib, ...).
 if(WIN32)
-  set(ESPP_EXTERNAL_LIBS ws2_32)
+  set(ESPP_EXTERNAL_LIBS ws2_32 winmm)
 else()
   set(ESPP_EXTERNAL_LIBS pthread)
 endif()
@@ -105,6 +110,7 @@ set(ESPP_PYTHON_SOURCES
   ${ESPP_PYTHON_BINDINGS_DIR}/pybind_espp.cpp
   ${ESPP_PYTHON_BINDINGS_DIR}/cdr_bindings.cpp
   ${ESPP_PYTHON_BINDINGS_DIR}/rtps_bindings.cpp
+  ${ESPP_PYTHON_BINDINGS_DIR}/socket_reactor_bindings.cpp
   ${ESPP_SOURCES}
 )
 

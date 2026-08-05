@@ -3,8 +3,7 @@ idf_component_register(
   SRC_DIRS "src"
   REQUIRES
     "base_component"
-    "esp_eth"
+    "ethernet"
     "esp_netif"
-    "esp_event"
   REQUIRED_IDF_TARGETS "esp32"
   )

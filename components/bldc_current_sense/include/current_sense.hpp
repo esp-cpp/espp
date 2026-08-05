@@ -26,12 +26,12 @@ namespace espp {
 ///          detail::TorqueControlType::FOC_CURRENT control.
 ///
 ///          The class is intentionally decoupled from any specific ADC: you
-///          provide a `read_phase_currents` callback that returns the most
+///          provide a <tt>read_phase_currents</tt> callback that returns the most
 ///          recently sampled phase currents (already converted to amps). For
 ///          accurate low-side current sensing those samples must be taken while
 ///          the low-side FETs are conducting (the PWM center). Use
 ///          espp::BldcDriver::register_pwm_sample_callback() to trigger your ADC
-///          read at that instant and have the `read_phase_currents` callback
+///          read at that instant and have the <tt>read_phase_currents</tt> callback
 ///          return the latest result.
 ///
 ///          For boards that only measure two of the three phases, return NAN for
@@ -84,7 +84,7 @@ public:
   ///        discovery; currently unused beyond logging).
   /// \return True if calibration succeeded.
   /// \details Captures the zero-current ADC offset for each measured phase by
-  ///          averaging `calibration_samples` reads. The motor must be at rest
+  ///          averaging <tt>calibration_samples</tt> reads. The motor must be at rest
   ///          with no phase current while this runs (the BldcMotor calls this
   ///          after the phases have been driven to zero).
   /// \note Non-const because it mutates the captured calibration state, as

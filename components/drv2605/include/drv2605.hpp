@@ -267,7 +267,7 @@ public:
    * @details This method sets the data format for the RTP mode. The DRV2605
    *          supports both signed and unsigned data formats for the RTP mode.
    *          The default data format is signed, but you can change it to
-   *          unsigned by calling this method with `use_unsigned` set to true.
+   *          unsigned by calling this method with <tt>use_unsigned</tt> set to true.
    * @note This is only valid when the mode is set to Mode::REALTIME.
    * @param use_unsigned If true, the data format will be set to unsigned,
    *                     otherwise it will be set to signed.
@@ -374,7 +374,7 @@ public:
    * @details This method performs the auto-calibration routine for the DRV2605.
    *          It will put the DRV2605 into auto-calibration
    *          mode, and then start the calibration process. The calibration
-   *          data will be stored in the `cal_data_out` parameter.
+   *          data will be stored in the <tt>cal_data_out</tt> parameter.
    * @param cal_conf The calibration settings to use.
    * @param cal_data_out The structure to store the calibration data.
    * @param ec Error code to set if there is an error.
@@ -467,7 +467,7 @@ public:
    * @details This method performs the auto-calibration routine for the DRV2605.
    *          It will put the DRV2605 into auto-calibration
    *          mode, and then start the calibration process. The calibration
-   *          data will be stored in the `cal_data_out` parameter.
+   *          data will be stored in the <tt>cal_data_out</tt> parameter.
    * @param cal_conf The calibration settings to use.
    * @param cal_data_out The structure to store the calibration data.
    * @param ec Error code to set if there is an error.

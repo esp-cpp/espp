@@ -106,7 +106,7 @@ public:
   /// Get one motor channel pin mapping.
   /// \param index Zero-based motor index in the range [0, num_motor_channels()).
   /// \return The motor pin mapping for the requested channel, or a default
-  ///         `MotorPins{}` with `GPIO_NUM_NC` entries if the index is invalid.
+  ///         <tt>MotorPins{}</tt> with <tt>GPIO_NUM_NC</tt> entries if the index is invalid.
   MotorPins motor_pins(size_t index) const;
 
   /// Get the shared encoder bus pin mapping.
@@ -121,7 +121,7 @@ public:
   /// Get one encoder chip-select pin.
   /// \param index Zero-based encoder index in the range [0,
   ///              num_motor_channels()).
-  /// \return The requested encoder chip-select pin, or `GPIO_NUM_NC` if the
+  /// \return The requested encoder chip-select pin, or <tt>GPIO_NUM_NC</tt> if the
   ///         index is invalid.
   gpio_num_t encoder_cs_pin(size_t index) const;
 
@@ -131,7 +131,7 @@ public:
 
   /// Get one servo signal pin.
   /// \param index Zero-based servo index in the range [0, num_servo_channels()).
-  /// \return The requested servo signal pin, or `GPIO_NUM_NC` if the index is
+  /// \return The requested servo signal pin, or <tt>GPIO_NUM_NC</tt> if the index is
   ///         invalid.
   gpio_num_t servo_pin(size_t index) const;
 
@@ -156,8 +156,8 @@ public:
   /// Set a normalized motor speed in the range [-1, 1].
   /// \param index Zero-based motor index in the range [0, num_motor_channels()).
   /// \param speed Normalized motor command. Values are clamped to [-1.0, 1.0],
-  ///              with positive values driving `pwm_a`, negative values driving
-  ///              `pwm_b`, and zero disabling both PWM outputs for that motor.
+  ///              with positive values driving <tt>pwm_a</tt>, negative values driving
+  ///              <tt>pwm_b</tt>, and zero disabling both PWM outputs for that motor.
   /// \return True if the motor command was applied; false if the motor PWM
   ///         subsystem has not been initialized or the index is invalid.
   bool set_motor_speed(size_t index, float speed);
@@ -180,14 +180,14 @@ public:
 
   /// Get one motor driver helper.
   /// \param index Zero-based motor index in the range [0, num_motor_channels()).
-  /// \return Shared pointer to the requested motor driver helper, or `nullptr`
+  /// \return Shared pointer to the requested motor driver helper, or <tt>nullptr</tt>
   ///         if the index is invalid or that motor has not been initialized yet.
   std::shared_ptr<MotorDriver> motor_driver(size_t index) const;
 
   /// Initialize the shared encoder bus and create the four MT6701 SSI helpers.
   /// \param run_tasks If true, each encoder starts its own update task after
   ///                  initialization. If false, callers must invoke
-  ///                  `Encoder::update()` manually.
+  ///                  <tt>Encoder::update()</tt> manually.
   /// \return True if the shared bus and all four encoder helpers were
   ///         initialized successfully; false otherwise.
   bool initialize_encoders(bool run_tasks = true);
@@ -195,7 +195,7 @@ public:
   /// Get one encoder helper.
   /// \param index Zero-based encoder index in the range [0,
   ///              num_motor_channels()).
-  /// \return Shared pointer to the requested encoder helper, or `nullptr` if the
+  /// \return Shared pointer to the requested encoder helper, or <tt>nullptr</tt> if the
   ///         index is invalid or that encoder has not been initialized yet.
   std::shared_ptr<Encoder> encoder(size_t index);
 
@@ -222,7 +222,7 @@ public:
                       });
 
   /// Get the onboard IMU helper.
-  /// \return Shared pointer to the initialized IMU helper, or `nullptr` if
+  /// \return Shared pointer to the initialized IMU helper, or <tt>nullptr</tt> if
   ///         initialize_imu() has not been called yet.
   std::shared_ptr<Imu> imu() const;
 
@@ -277,7 +277,7 @@ public:
   float get_led_breathing_period();
 
   /// Get the LED helper used for the indicator LEDs.
-  /// \return Shared pointer to the indicator LED helper, or `nullptr` if
+  /// \return Shared pointer to the indicator LED helper, or <tt>nullptr</tt> if
   ///         initialize_leds() has not been called yet.
   std::shared_ptr<espp::Led> leds();
 
