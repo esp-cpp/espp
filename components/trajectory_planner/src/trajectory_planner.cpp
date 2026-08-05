@@ -20,6 +20,24 @@ void TrajectoryPlanner::set_config(const Config &config, bool reset_state) {
   } else if (planning_ms < 5.0f || planning_ms > 200.0f) {
     logger_.warn("planning_period {:.1f} ms is outside recommended 5–200 ms range", planning_ms);
   }
+  if (config.max_linear_velocity <= 0.0f) {
+    logger_.error("max_linear_velocity must be > 0");
+    return;
+  }
+  if (config.max_angular_velocity <= 0.0f) {
+    logger_.error("max_angular_velocity must be > 0");
+    return;
+  }
+
+  if (config.driving_profile.max_linear_acceleration <= 0.0f) {
+    logger_.error("driving_profile.max_linear_acceleration must be > 0");
+    return;
+  }
+  if (config.driving_profile.max_angular_acceleration <= 0.0f) {
+    logger_.error("driving_profile.max_angular_acceleration must be > 0");
+    return;
+  }
+
   if (config.driving_profile.max_linear_jerk * config.planning_period.count() >
       config.driving_profile.max_linear_acceleration) {
     logger_.warn(
@@ -65,13 +83,16 @@ void TrajectoryPlanner::set_target(float linear, float angular) {
   // Motion envelope enforcement: ensure that the combined normalized linear and angular velocities
   // do not exceed the unit circle. This prevents commanding a motion that exceeds the robot's
   // maximum capabilities.
-  if (config_.enforce_motion_envelope) {
-    float magnitude = std::sqrt(linear * linear + angular * angular);
-    if (magnitude > 1.0f) {
-      linear /= magnitude;
-      angular /= magnitude;
-      logger_.warn("Motion envelope enforced: linear={}, angular={}, magnitude={}", linear, angular,
-                   magnitude);
+  {
+    std::lock_guard<std::recursive_mutex> lk(mutex_);
+    if (config_.enforce_motion_envelope) {
+      float magnitude = std::sqrt(linear * linear + angular * angular);
+      if (magnitude > 1.0f) {
+        linear /= magnitude;
+        angular /= magnitude;
+        logger_.warn("Motion envelope enforced: linear={}, angular={}, magnitude={}", linear,
+                     angular, magnitude);
+      }
     }
   }
 
@@ -248,7 +269,7 @@ bool TrajectoryPlanner::start_task() {
   callback_wake_flag_ = false;
   callback_stop_flag_ = false;
   callback_task_ = espp::Task::make_unique({
-      .callback = [this](std::mutex &, std::condition_variable &, bool &) -> bool {
+      .callback = [this]() -> bool {
         // Wait indefinitely for a notification from update() (no polling timeout needed).
         {
           std::unique_lock<std::mutex> lk(callback_wake_m_);

@@ -1,6 +1,6 @@
 ## IDF Component Manager Manifest File
 license: "MIT"
-description: "Trajectory planner that converts joystick velocity commands into smooth, dynamically feasible chassis motion commands (v, ω) for ESP-IDF"
+description: "Trajectory planner that converts joystick velocity commands into smooth, dynamically feasible chassis motion commands (v, w) for ESP-IDF"
 url: "https://github.com/esp-cpp/espp/tree/main/components/trajectory_planner"
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
@@ -20,3 +20,4 @@ dependencies:
     version: '>=5.0'
   espp/base_component: '>=1.0'
   espp/timer: '>=1.0'
+  espp/task: '>=1.0'

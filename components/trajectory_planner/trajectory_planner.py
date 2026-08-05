@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
+### this code is used to test the algorithm used by the component.
 
 def _sd(a_abs, step, dt):
     """Minimum velocity-change distance when decelerating |a| → 0 at max jerk."""
@@ -61,7 +61,6 @@ def jerk_limited_velocity_profile(
 
     t = 0.0
     pre_t = t
-    settled_at = None  # time when tolerance was first reached
 
     while t < 20.0:
 

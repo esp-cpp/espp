@@ -9,7 +9,6 @@ import math
 import threading
 import espp
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 
 # ── data collection (thread-safe) ────────────────────────────────────────────
 _lock   = threading.Lock()
@@ -111,12 +110,6 @@ cfg.output_callback = None  # stop collecting data
 planner.set_config(cfg)  # apply new config without callback
 time.sleep(0.1)  # wait for planner to process config change
 
-# print out some data after reset
-pre_v= 0.0
-# for v, a_v, dt in zip(v_hist, a_v_hist, dt_hist):
-#     print(f"v={v:.3f}  a_v={a_v:.3f}  acc = {(v - pre_v) / dt if dt > 0 else 0.0:.3f}  dt={dt:.3f}")
-#     pre_v = v
-
 
 
 # ── plot ──────────────────────────────────────────────────────────────────────
@@ -163,10 +156,4 @@ axes[3].set_xlabel("Time (s)")
 plt.tight_layout()
 plt.show()
 sys.exit(0)
-print(f"After reset: v={cmd.linear_velocity:.3f}  w={cmd.angular_velocity:.3f}")
 
-target = planner.get_target()
-print(f"Target after reset: linear={target[0]:.3f}  angular={target[1]:.3f}")
-
-# planner destructor stops both timers automatically
-sys.exit(0)

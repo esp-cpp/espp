@@ -2829,6 +2829,17 @@ class Socket:
         """
         pass
 
+    def native_handle(self) -> sock_type_t:
+        """*
+           * @brief Get the underlying native socket file descriptor / handle.
+           * @note Provided so an external event loop (e.g. SocketReactor) can add this
+           *       socket to a select()/poll() set. The Socket retains ownership of the
+           *       descriptor; do not close it directly.
+           * @return The socket file descriptor.
+
+        """
+        pass
+
     def get_ipv4_info(self) -> Optional[Socket.Info]:
         """*
            * @brief Get the Socket::Info for the socket.
@@ -3371,6 +3382,21 @@ class UdpSocket:
         """
         pass
 
+    def bind(self, receive_config: UdpSocket.ReceiveConfig) -> bool:
+        """*
+           * @brief Bind the socket as a server according to \p receive_config (bind to
+           *        the port and, if requested, join the multicast group), without
+           *        starting any receive thread.
+           * @note This is called for you by start_receiving(). Use it directly when
+           *       driving the socket from an external event loop such as
+           *       espp::SocketReactor, which reads the socket itself.
+           * @param receive_config ReceiveConfig describing the port / multicast setup.
+           *        Its callback / buffer_size fields are not used by this method.
+           * @return True if the socket was bound (and joined the group, if multicast).
+
+        """
+        pass
+
     def start_receiving(
         self,
         task_config: Task.BaseConfig,
@@ -3881,8 +3907,8 @@ class TrajectoryPlanner:
            * @brief Configuration for the TrajectoryPlanner.
 
         """
-        max_linear_velocity: float                                                 #*< Maximum linear velocity magnitude (m/s).
-        max_angular_velocity: float                                                #*< Maximum angular velocity magnitude (rad/s).
+        max_linear_velocity: float = 1.0                                           #*< Maximum linear velocity magnitude (m/s).
+        max_angular_velocity: float = 3.14159                                      #*< Maximum angular velocity magnitude (rad/s).
         driving_profile: TrajectoryPlanner.MotionProfile                           #*< Accel/jerk limits used when target != (0, 0).
         stopping_profile: TrajectoryPlanner.MotionProfile                          #*< Accel/jerk limits used when target
                                                  == (0, 0). Set jerk to 0 here for a clean trapezoidal stop
@@ -3913,8 +3939,8 @@ class TrajectoryPlanner:
         log_level: Logger.Verbosity = Logger.Verbosity.WARN                        #*< Logger verbosity.
         def __init__(
             self,
-            max_linear_velocity: float = float(),
-            max_angular_velocity: float = float(),
+            max_linear_velocity: float = 1.0,
+            max_angular_velocity: float = 3.14159,
             driving_profile: TrajectoryPlanner.MotionProfile = TrajectoryPlanner.MotionProfile(),
             stopping_profile: TrajectoryPlanner.MotionProfile = TrajectoryPlanner.MotionProfile(),
             enforce_motion_envelope: bool = False,
@@ -4705,9 +4731,9 @@ class H264Depacketizer:
     """/ @brief RTP depacketizer for H.264 video per RFC 6184.
     /
     / Reassembles H.264 access units from incoming RTP packets. Supports:
-    /   - **Single NAL unit** packets (NAL type 1-23)
-    /   - **STAP-A** aggregation packets (NAL type 24)
-    /   - **FU-A** fragmentation packets (NAL type 28)
+    /   - <b>Single NAL unit</b> packets (NAL type 1-23)
+    /   - <b>STAP-A</b> aggregation packets (NAL type 24)
+    /   - <b>FU-A</b> fragmentation packets (NAL type 28)
     /
     / When the RTP marker bit is set, the accumulated NAL units are delivered
     / as one Annex B byte-stream (each NAL prefixed with 0x00 0x00 0x00 0x01)
@@ -4760,8 +4786,8 @@ class H264Packetizer:
     / of RTP payload chunks suitable for transmission.
     /
     / Supports two NAL-unit packetization strategies:
-    /   - **Single NAL unit mode** - NAL fits within max_payload_size.
-    /   - **FU-A fragmentation** - NAL exceeds max_payload_size (packetization_mode >= 1).
+    /   - <b>Single NAL unit mode</b> - NAL fits within max_payload_size.
+    /   - <b>FU-A fragmentation</b> - NAL exceeds max_payload_size (packetization_mode >= 1).
     /
     / @note This class does not manage RTP headers (sequence numbers, timestamps,
     /       SSRC). The caller wraps each returned chunk into an RtpPacket.

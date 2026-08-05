@@ -100,8 +100,8 @@ public:
    * @brief Configuration for the TrajectoryPlanner.
    */
   struct Config {
-    float max_linear_velocity;  /**< Maximum linear velocity magnitude (m/s). */
-    float max_angular_velocity; /**< Maximum angular velocity magnitude (rad/s). */
+    float max_linear_velocity = 1.0f;      /**< Maximum linear velocity magnitude (m/s). */
+    float max_angular_velocity = 3.14159f; /**< Maximum angular velocity magnitude (rad/s). */
     espp::TrajectoryPlanner::MotionProfile
         driving_profile; /**< Accel/jerk limits used when target != (0, 0). */
     espp::TrajectoryPlanner::MotionProfile stopping_profile; /**< Accel/jerk limits used when target
@@ -261,8 +261,6 @@ protected:
   std::condition_variable callback_wake_cv_;
   bool callback_wake_flag_{false};
   bool callback_stop_flag_{false};
-  float last_notified_v_{0.0f};
-  float last_notified_w_{0.0f};
   std::chrono::steady_clock::time_point last_update_time_ = std::chrono::steady_clock::now();
   mutable std::recursive_mutex mutex_;
 };

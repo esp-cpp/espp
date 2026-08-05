@@ -24,7 +24,7 @@ template <> struct fmt::formatter<espp::TrajectoryPlanner::MotionProfile> {
   template <typename FormatContext>
   auto format(espp::TrajectoryPlanner::MotionProfile const &p, FormatContext &ctx) const {
     return fmt::format_to(
-        ctx.out(), "a_v={:.3f} m/s**2, a_w={:.3f} rad/s**2, j_v={:.3f} m/s**3, j_w={:.3f} rad/s**3",
+        ctx.out(), "a_v={:.3f} m/s^2, a_w={:.3f} rad/s^2, j_v={:.3f} m/s^3, j_w={:.3f} rad/s^3",
         p.max_linear_acceleration, p.max_angular_acceleration, p.max_linear_jerk,
         p.max_angular_jerk);
   }

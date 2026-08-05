@@ -1664,6 +1664,11 @@ void py_init_module_espp(py::module &m) {
       .def_static("is_valid_fd", &espp::Socket::is_valid_fd, py::arg("socket_fd"),
                   "*\n   * @brief Is the socket valid.\n   * @param socket_fd Socket file "
                   "descriptor.\n   * @return True if the socket file descriptor is >= 0.\n")
+      .def("native_handle", &espp::Socket::native_handle,
+           "*\n   * @brief Get the underlying native socket file descriptor / handle.\n   * @note "
+           "Provided so an external event loop (e.g. SocketReactor) can add this\n   *       "
+           "socket to a select()/poll() set. The Socket retains ownership of the\n   *       "
+           "descriptor; do not close it directly.\n   * @return The socket file descriptor.\n")
       .def("get_ipv4_info", &espp::Socket::get_ipv4_info,
            "*\n   * @brief Get the Socket::Info for the socket.\n   * @details This will call "
            "getsockname() on the socket to get the\n   *          sockaddr_storage structure, and "
@@ -2051,6 +2056,15 @@ void py_init_module_espp(py::module &m) {
            "with the information about the sender.\n   * @return True if successfully received, "
            "False otherwise.\n",
            py::call_guard<py::gil_scoped_release>())
+      .def("bind", &espp::UdpSocket::bind, py::arg("receive_config"),
+           "*\n   * @brief Bind the socket as a server according to \\p receive_config (bind to\n  "
+           " *        the port and, if requested, join the multicast group), without\n   *        "
+           "starting any receive thread.\n   * @note This is called for you by start_receiving(). "
+           "Use it directly when\n   *       driving the socket from an external event loop such "
+           "as\n   *       espp::SocketReactor, which reads the socket itself.\n   * @param "
+           "receive_config ReceiveConfig describing the port / multicast setup.\n   *        Its "
+           "callback / buffer_size fields are not used by this method.\n   * @return True if the "
+           "socket was bound (and joined the group, if multicast).\n")
       .def("start_receiving", &espp::UdpSocket::start_receiving, py::arg("task_config"),
            py::arg("receive_config"),
            "*\n   * @brief Configure a server socket and start a thread to continuously\n   *      "
@@ -2450,7 +2464,7 @@ void py_init_module_espp(py::module &m) {
             "*\n   * @brief Configuration for the TrajectoryPlanner.\n")
             .def(
                 py::init<>(
-                    [](float max_linear_velocity = float(), float max_angular_velocity = float(),
+                    [](float max_linear_velocity = 1.0f, float max_angular_velocity = 3.14159f,
                        espp::TrajectoryPlanner::MotionProfile driving_profile =
                            espp::TrajectoryPlanner::MotionProfile(),
                        espp::TrajectoryPlanner::MotionProfile stopping_profile =
@@ -2482,7 +2496,7 @@ void py_init_module_espp(py::module &m) {
                       r_ctor_->log_level = log_level;
                       return r_ctor_;
                     }),
-                py::arg("max_linear_velocity") = float(), py::arg("max_angular_velocity") = float(),
+                py::arg("max_linear_velocity") = 1.0f, py::arg("max_angular_velocity") = 3.14159f,
                 py::arg("driving_profile") = espp::TrajectoryPlanner::MotionProfile(),
                 py::arg("stopping_profile") = espp::TrajectoryPlanner::MotionProfile(),
                 py::arg("enforce_motion_envelope") = false,
@@ -3095,12 +3109,12 @@ void py_init_module_espp(py::module &m) {
                                             std::shared_ptr<espp::H264Depacketizer>>(
       m, "H264Depacketizer", py::dynamic_attr(),
       "/ @brief RTP depacketizer for H.264 video per RFC 6184.\n/\n/ Reassembles H.264 access "
-      "units from incoming RTP packets. Supports:\n/   - **Single NAL unit** packets (NAL type "
-      "1-23)\n/   - **STAP-A** aggregation packets (NAL type 24)\n/   - **FU-A** fragmentation "
-      "packets (NAL type 28)\n/\n/ When the RTP marker bit is set, the accumulated NAL units are "
-      "delivered\n/ as one Annex B byte-stream (each NAL prefixed with 0x00 0x00 0x00 0x01)\n/ via "
-      "the frame callback set with set_frame_callback().\n/\n/ \\section h264_depacketizer_ex1 "
-      "Example\n/ \\snippet rtsp_example.cpp h264_depacketizer_test");
+      "units from incoming RTP packets. Supports:\n/   - <b>Single NAL unit</b> packets (NAL type "
+      "1-23)\n/   - <b>STAP-A</b> aggregation packets (NAL type 24)\n/   - <b>FU-A</b> "
+      "fragmentation packets (NAL type 28)\n/\n/ When the RTP marker bit is set, the accumulated "
+      "NAL units are delivered\n/ as one Annex B byte-stream (each NAL prefixed with 0x00 0x00 "
+      "0x00 0x01)\n/ via the frame callback set with set_frame_callback().\n/\n/ \\section "
+      "h264_depacketizer_ex1 Example\n/ \\snippet rtsp_example.cpp h264_depacketizer_test");
 
   { // inner classes & enums of H264Depacketizer
     auto pyClassH264Depacketizer_ClassConfig =
@@ -3133,11 +3147,11 @@ void py_init_module_espp(py::module &m) {
           "/ @brief RTP packetizer for H.264 video per RFC 6184.\n/\n/ Accepts H.264 access units "
           "in Annex B byte-stream format (NAL units\n/ separated by 0x00000001 or 0x000001 start "
           "codes) and produces a sequence\n/ of RTP payload chunks suitable for "
-          "transmission.\n/\n/ Supports two NAL-unit packetization strategies:\n/   - **Single NAL "
-          "unit mode** - NAL fits within max_payload_size.\n/   - **FU-A fragmentation** - NAL "
-          "exceeds max_payload_size (packetization_mode >= 1).\n/\n/ @note This class does not "
-          "manage RTP headers (sequence numbers, timestamps,\n/       SSRC). The caller wraps each "
-          "returned chunk into an RtpPacket.\n/\n/ \\section h264_packetizer_ex1 Example\n/ "
+          "transmission.\n/\n/ Supports two NAL-unit packetization strategies:\n/   - <b>Single "
+          "NAL unit mode</b> - NAL fits within max_payload_size.\n/   - <b>FU-A fragmentation</b> "
+          "- NAL exceeds max_payload_size (packetization_mode >= 1).\n/\n/ @note This class does "
+          "not manage RTP headers (sequence numbers, timestamps,\n/       SSRC). The caller wraps "
+          "each returned chunk into an RtpPacket.\n/\n/ \\section h264_packetizer_ex1 Example\n/ "
           "\\snippet rtsp_example.cpp h264_packetizer_test");
 
   { // inner classes & enums of H264Packetizer
