@@ -86,8 +86,13 @@ void py_init_socket_reactor(py::module &m) {
                }),
            py::arg("worker_count") = 2, py::arg("auto_start") = true,
            py::arg("log_level") = espp::Logger::Verbosity::WARN)
-      .def("start", &SocketReactor::start, "Start the select() loop (and owned pool).")
-      .def("stop", &SocketReactor::stop, "Stop the loop and wait for in-flight handlers to finish.")
+      // Release the GIL around start()/stop(): stop() blocks waiting for
+      // in-flight handlers, and a pool worker running a Python receive callback
+      // needs the GIL - holding it here would deadlock.
+      .def("start", &SocketReactor::start, py::call_guard<py::gil_scoped_release>(),
+           "Start the select() loop (and owned pool).")
+      .def("stop", &SocketReactor::stop, py::call_guard<py::gil_scoped_release>(),
+           "Stop the loop and wait for in-flight handlers to finish.")
       .def("is_running", &SocketReactor::is_running)
       .def("num_registered", &SocketReactor::num_registered)
       .def("remove", &SocketReactor::remove, py::arg("id"),

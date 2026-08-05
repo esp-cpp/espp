@@ -486,8 +486,14 @@ bool SocketReactor::create_wakeup_socket() {
     close_socket(fd);
     return false;
   }
-  set_nonblocking(fd); // so draining recvfrom() does not block
-  wakeup_recv_ = fd;   // publish only once fully set up
+  // Must be non-blocking, otherwise the loop thread's drain-recvfrom() loop can
+  // block forever and stall the reactor.
+  if (!set_nonblocking(fd)) {
+    logger_.error("Could not set wakeup socket non-blocking");
+    close_socket(fd);
+    return false;
+  }
+  wakeup_recv_ = fd; // publish only once fully set up
   return true;
 }
 
