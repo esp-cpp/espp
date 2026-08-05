@@ -1,0 +1,24 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "Waveshare ESP32-P4-NANO Board Support Package (BSP) component in C++ (Ethernet)"
+url: "https://github.com/esp-cpp/espp/tree/main/components/esp32-p4-nano"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/dev_boards/waveshare/esp32_p4_nano.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - BSP
+  - ESP32P4
+  - Ethernet
+  - Waveshare
+dependencies:
+  idf:
+    version: ">=5.3"
+  espp/base_component: ">=1.0"
+  espp/ethernet: ">=1.0"
+targets:
+  - esp32p4

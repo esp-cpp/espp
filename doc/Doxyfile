@@ -105,7 +105,9 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/drv2605/example/main/drv2605_example.cpp \
   $(PROJECT_PATH)/components/encoder/example/main/encoder_example.cpp \
   $(PROJECT_PATH)/components/esp32-ethernet-kit/example/main/esp32_ethernet_kit_example.cpp \
+  $(PROJECT_PATH)/components/esp32-p4-eth/example/main/esp32_p4_eth_example.cpp \
   $(PROJECT_PATH)/components/esp32-p4-function-ev-board/example/main/esp32_p4_function_ev_board_example.cpp \
+  $(PROJECT_PATH)/components/esp32-p4-nano/example/main/esp32_p4_nano_example.cpp \
   $(PROJECT_PATH)/components/esp32-timer-cam/example/main/esp_timer_cam_example.cpp \
   $(PROJECT_PATH)/components/esp-box/example/main/esp_box_example.cpp \
   $(PROJECT_PATH)/components/ethernet/example/main/ethernet_example.cpp \
@@ -264,7 +266,9 @@ INPUT = \
   $(PROJECT_PATH)/components/encoder/include/abi_encoder.hpp \
   $(PROJECT_PATH)/components/encoder/include/encoder_types.hpp \
   $(PROJECT_PATH)/components/esp32-ethernet-kit/include/esp32-ethernet-kit.hpp \
+  $(PROJECT_PATH)/components/esp32-p4-eth/include/esp32-p4-eth.hpp \
   $(PROJECT_PATH)/components/esp32-p4-function-ev-board/include/esp32-p4-function-ev-board.hpp \
+  $(PROJECT_PATH)/components/esp32-p4-nano/include/esp32-p4-nano.hpp \
   $(PROJECT_PATH)/components/esp32-timer-cam/include/esp32-timer-cam.hpp \
   $(PROJECT_PATH)/components/esp-box/include/esp-box.hpp \
   $(PROJECT_PATH)/components/ethernet/include/ethernet.hpp \
