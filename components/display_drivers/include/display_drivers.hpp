@@ -344,8 +344,8 @@ protected:
   /// @return Number of bytes per pixel.
   size_t bytes_per_pixel() const { return std::max<size_t>(1, config_.bits_per_pixel / 8); }
 
-  /// @brief Check whether this controller is using a `PanelIo` transport.
-  /// @return True if `panel_io` is configured and initialized.
+  /// @brief Check whether this controller is using a <tt>PanelIo</tt> transport.
+  /// @return True if <tt>panel_io</tt> is configured and initialized.
   bool uses_panel_io() const {
     return config_.panel_io != nullptr && config_.panel_io->initialized();
   }
@@ -355,7 +355,7 @@ protected:
   bool uses_async_flush() const { return uses_panel_io() || config_.lcd_send_lines != nullptr; }
 
   /// @brief Get the configured X/Y offset after applying the current rotation convention.
-  /// @return Rotated `(x, y)` offset pair.
+  /// @return Rotated <tt>(x, y)</tt> offset pair.
   std::pair<int, int> get_rotated_offset() const {
     switch (rotation_) {
     case DisplayRotation::PORTRAIT:
@@ -504,7 +504,7 @@ public:
   }
 
 protected:
-  /// @brief Write a pixel region using either `PanelIo`, legacy async callbacks, or blocking
+  /// @brief Write a pixel region using either <tt>PanelIo</tt>, legacy async callbacks, or blocking
   /// writes.
   /// @param region Region to update.
   /// @param data Pixel payload bytes.

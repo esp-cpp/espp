@@ -13,9 +13,9 @@ namespace espp {
 /// @brief RTP depacketizer for H.264 video per RFC 6184.
 ///
 /// Reassembles H.264 access units from incoming RTP packets. Supports:
-///   - **Single NAL unit** packets (NAL type 1-23)
-///   - **STAP-A** aggregation packets (NAL type 24)
-///   - **FU-A** fragmentation packets (NAL type 28)
+///   - <b>Single NAL unit</b> packets (NAL type 1-23)
+///   - <b>STAP-A</b> aggregation packets (NAL type 24)
+///   - <b>FU-A</b> fragmentation packets (NAL type 28)
 ///
 /// When the RTP marker bit is set, the accumulated NAL units are delivered
 /// as one Annex B byte-stream (each NAL prefixed with 0x00 0x00 0x00 0x01)

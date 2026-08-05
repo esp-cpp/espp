@@ -46,7 +46,7 @@ struct TouchState {
   bool operator==(const TouchState &rhs) const = default;
 
   /// @brief Get the primary touch point.
-  /// @return The first valid touch point, or `{0, 0}` if there is no touch.
+  /// @return The first valid touch point, or <tt>{0, 0}</tt> if there is no touch.
   TouchPoint primary_point() const {
     if (num_touch_points == 0) {
       return {};
@@ -110,11 +110,12 @@ public:
 ///        standard espp touch-driver interface.
 ///
 /// A type T satisfies TouchDriverConcept if it provides:
-/// - `bool T::update(std::error_code &)` - read new touch data from hardware
-/// - `void T::get_touch_point(uint8_t *, uint16_t *, uint16_t *) const` - retrieve coordinates
-/// - `bool T::get_home_button_state() const` - return home-button state
+/// - <tt>bool T::update(std::error_code &amp;)</tt> - read new touch data from hardware
+/// - <tt>void T::get_touch_point(uint8_t *, uint16_t *, uint16_t *) const</tt> - retrieve
+/// coordinates
+/// - <tt>bool T::get_home_button_state() const</tt> - return home-button state
 ///
-/// Both `espp::Gt911` and `espp::St7123Touch` satisfy this concept.
+/// Both <tt>espp::Gt911</tt> and <tt>espp::St7123Touch</tt> satisfy this concept.
 template <typename T>
 concept TouchDriverConcept = requires(T &t, std::error_code &ec, uint8_t *n, uint16_t *x,
                                       uint16_t *y) {
@@ -125,9 +126,9 @@ concept TouchDriverConcept = requires(T &t, std::error_code &ec, uint8_t *n, uin
 
 /// @brief Abstract type-erased interface for a touch driver.
 ///
-/// Used together with `TouchDriverAdapter<T>` to allow a BSP (such as the
+/// Used together with <tt>TouchDriverAdapter&lt;T&gt;</tt> to allow a BSP (such as the
 /// M5Stack Tab5) or any other consumer to store a single
-/// `std::shared_ptr<ITouchDriver>` regardless of which concrete driver
+/// <tt>std::shared_ptr&lt;ITouchDriver&gt;</tt> regardless of which concrete driver
 /// (Gt911, St7123Touch, …) is in use at runtime.
 struct ITouchDriver {
   virtual ~ITouchDriver() = default;
@@ -148,7 +149,7 @@ struct ITouchDriver {
 };
 
 /// @brief Concept-constrained adapter that wraps any concrete touch driver
-///        satisfying `TouchDriverConcept` behind the `ITouchDriver` interface.
+///        satisfying <tt>TouchDriverConcept</tt> behind the <tt>ITouchDriver</tt> interface.
 ///
 /// Usage:
 /// @code
@@ -173,8 +174,9 @@ template <TouchDriverConcept T> struct TouchDriverAdapter : ITouchDriver {
 };
 
 /// @brief Convenience factory: wrap a shared_ptr to a concrete touch driver in
-///        a `TouchDriverAdapter` and return it as `std::shared_ptr<ITouchDriver>`.
-/// @tparam T Concrete driver type - must satisfy `TouchDriverConcept`.
+///        a <tt>TouchDriverAdapter</tt> and return it as
+///        <tt>std::shared_ptr&lt;ITouchDriver&gt;</tt>.
+/// @tparam T Concrete driver type - must satisfy <tt>TouchDriverConcept</tt>.
 template <TouchDriverConcept T>
 std::shared_ptr<ITouchDriver> make_touch_driver(std::shared_ptr<T> driver) {
   return std::make_shared<TouchDriverAdapter<T>>(std::move(driver));

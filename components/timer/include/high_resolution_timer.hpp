@@ -22,7 +22,7 @@ namespace espp {
 /// @note Since this uses the esp-timer API, you cannot set different stack
 /// sizes for differnt timers like you can with espp::Timer and espp::Task.
 /// Instead, you may need to adjust the stack size via the menuconfig
-/// `CONFIG_ESP_TIMER_TASK_STACK_SIZE`.
+/// <tt>CONFIG_ESP_TIMER_TASK_STACK_SIZE</tt>.
 ///
 /// \section high_resolution_timer_ex1 High Resolution Timer Example
 /// \snippet timer_example.cpp high resolution timer example

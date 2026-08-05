@@ -17,7 +17,7 @@
 namespace espp {
 /// @brief SPI master wrapper and helpers.
 /// @details
-/// `Spi` owns an SPI bus and can create one or more attached `Device` instances.
+/// <tt>Spi</tt> owns an SPI bus and can create one or more attached <tt>Device</tt> instances.
 /// Those devices support blocking reads/writes, queued transactions, and bus
 /// acquisition.
 ///
@@ -121,7 +121,7 @@ public:
   Spi(Spi &&) = delete;
   Spi &operator=(Spi &&) = delete;
 
-  /// @brief Convert high-level SPI bus settings into an ESP-IDF `spi_bus_config_t`.
+  /// @brief Convert high-level SPI bus settings into an ESP-IDF <tt>spi_bus_config_t</tt>.
   /// @param config High-level SPI bus settings.
   /// @return Equivalent ESP-IDF bus configuration.
   static spi_bus_config_t make_bus_config(const Config &config);
