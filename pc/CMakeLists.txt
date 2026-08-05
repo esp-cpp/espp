@@ -28,6 +28,9 @@ MACRO(GEN_TESTS curdir)
       PRIVATE espp_pc
       PRIVATE ${ESPP_EXTERNAL_LIBS}
     )
+    if(MSVC)
+      target_link_libraries(${TEST_NAME} PRIVATE winmm)
+    endif()
   ENDFOREACH()
 ENDMACRO()
 
