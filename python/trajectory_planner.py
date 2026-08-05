@@ -72,7 +72,6 @@ cfg.enforce_motion_envelope       = True
 cfg.max_centripetal_acceleration  = 0.4
 cfg.output_callback               = on_output
 cfg.planning_period               = 0.02
-cfg.callback_period               = 0.05
 cfg.planning_task_config          = espp.Task.BaseConfig("tp_py_plan")
 cfg.callback_task_config          = espp.Task.BaseConfig("tp_py_cb")
 cfg.log_level                     = espp.Logger.Verbosity.debug
