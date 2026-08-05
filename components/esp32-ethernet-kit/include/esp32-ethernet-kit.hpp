@@ -17,19 +17,22 @@ namespace espp {
 /// This class provides a singleton interface to the board's Ethernet peripheral:
 /// - 10/100 Ethernet via the internal ESP32 EMAC and an IP101GRI RMII PHY
 ///
-/// RMII pin mapping (fixed in the ESP32 IO_MUX; cannot be changed):
-/// | Signal   | GPIO |
-/// |----------|------|
-/// | REF_CLK  |    0 | ← external 50 MHz oscillator (EMAC_CLK_EXT_IN)
-/// | TX_EN    |   21 |
-/// | TXD0     |   19 |
-/// | TXD1     |   22 |
-/// | CRS_DV   |   27 |
-/// | RXD0     |   25 |
-/// | RXD1     |   26 |
-/// | MDC      |   23 |
-/// | MDIO     |   18 |
-/// | PHY_RST  |    5 |
+/// RMII pin mapping (fixed in the ESP32 IO_MUX; cannot be changed). REF_CLK is
+/// driven by an external 50 MHz oscillator (EMAC_CLK_EXT_IN):
+///
+/// <table>
+/// <tr><th>Signal</th><th>GPIO</th></tr>
+/// <tr><td>REF_CLK</td><td>0</td></tr>
+/// <tr><td>TX_EN</td><td>21</td></tr>
+/// <tr><td>TXD0</td><td>19</td></tr>
+/// <tr><td>TXD1</td><td>22</td></tr>
+/// <tr><td>CRS_DV</td><td>27</td></tr>
+/// <tr><td>RXD0</td><td>25</td></tr>
+/// <tr><td>RXD1</td><td>26</td></tr>
+/// <tr><td>MDC</td><td>23</td></tr>
+/// <tr><td>MDIO</td><td>18</td></tr>
+/// <tr><td>PHY_RST</td><td>5</td></tr>
+/// </table>
 ///
 /// The class is a singleton and can be accessed via get().
 ///
