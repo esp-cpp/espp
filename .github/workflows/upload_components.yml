@@ -26,6 +26,13 @@ jobs:
           # This is only a problem if you are adding two components for the first time,
           # or if the 2nd component depends on the exact (new) version of the first one.
           #
+          # Note: ethernet is intentionally listed ahead of the esp32-p4-* board
+          #       BSPs (esp32-p4-eth / esp32-p4-function-ev-board /
+          #       esp32-p4-nano), which depend on espp/ethernet, so it is
+          #       uploaded to the registry first.
+          #
+          # Note: comments are not allowed in the "components" list, so please
+          #       do not add any comments here.
           components: |
             components/adc
             components/adrc
@@ -64,9 +71,6 @@ jobs:
             components/drv2605
             components/encoder
             components/esp-box
-            # ethernet is intentionally listed ahead of the esp32-p4-* board BSPs
-            # (esp32-p4-eth / esp32-p4-function-ev-board / esp32-p4-nano), which
-            # depend on espp/ethernet, so it is uploaded to the registry first.
             components/ethernet
             components/esp32-p4-eth
             components/esp32-p4-function-ev-board
