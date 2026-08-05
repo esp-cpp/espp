@@ -27,11 +27,11 @@ constraints.
   - Recommended: S-curve driving + trapezoidal stopping (jerk = 0) -> smooth starts, overshoot-free stops.
 - **Motion envelope enforcement** - optionally constrains `(v/v_max)^2 + (w/w_max)^2 <= 1`.
 - **Centripetal acceleration limiting** - constrains `|v * w| <= max_centripetal_acceleration`.
-- **Two independent timers** - `planning_period` drives `update()` (default 20 ms / 50 Hz);
-  `callback_period` fires `output_callback` (default 40 ms / 25 Hz).
-  Set `callback_period >= 2x planning_period` to avoid repeating the same output.
-- **Output callback** - fires on the callback timer thread; safe to call `set_target()`
-  and `output()` from within it.
+- **Planning timer** - `planning_period` drives `update()` (default 20 ms / 50 Hz);
+  recommended range 5-200 ms on microcontrollers.
+- **Output callback** - `output_callback` fires on a dedicated task each time `update()`
+  produces a new output value (CV-notified); no separate callback rate to configure.
+  Safe to call `set_target()` and `output()` from within it.
 - **Thread-safe** - `set_target()`, `get_target()`, `output()`, `stop()`, and
   `reset()` are safe to call from any thread concurrently.
 
@@ -61,7 +61,6 @@ espp::TrajectoryPlanner planner({
         kinematics.apply(cmd.linear_velocity, cmd.angular_velocity);
     },
     .planning_period      = std::chrono::milliseconds(20),  // 50 Hz
-    .callback_period      = std::chrono::milliseconds(40),  // 25 Hz
     .planning_task_config = {.name = "tp_plan", .priority = 5, .core_id = 1},
     .callback_task_config = {.name = "tp_cb",   .priority = 4, .core_id = 1},
 });
