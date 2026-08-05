@@ -62,6 +62,8 @@ driving.max_angular_jerk         = 25.0
 stopping = espp.TrajectoryPlanner.MotionProfile()
 stopping.max_linear_acceleration  = 5.0
 stopping.max_angular_acceleration = 10.0
+stopping.max_linear_jerk          = 20.0
+stopping.max_angular_jerk         = 35.0
 
 cfg = espp.TrajectoryPlanner.Config()
 cfg.max_linear_velocity           = 2.0
@@ -74,7 +76,7 @@ cfg.output_callback               = on_output
 cfg.planning_period               = 0.02
 cfg.planning_task_config          = espp.Task.BaseConfig("tp_py_plan")
 cfg.callback_task_config          = espp.Task.BaseConfig("tp_py_cb")
-cfg.log_level                     = espp.Logger.Verbosity.debug
+cfg.log_level                     = espp.Logger.Verbosity.warn
 
 # ── run scenarios ─────────────────────────────────────────────────────────────
 planner = espp.TrajectoryPlanner(cfg)
@@ -83,21 +85,21 @@ mark("Forward ramp (+1, 0)")
 planner.set_target(1.0, 0.0)
 time.sleep(1.5)
 
-# mark("Right curve (0.5, -0.4)")
-# planner.set_target(0.5, -0.4)
-# time.sleep(1.5)
+mark("Right curve (0.5, -0.4)")
+planner.set_target(0.5, -0.4)
+time.sleep(1.5)
 
-# mark("Combined (0.8, 0.6)")
-# planner.set_target(0.8, 0.6)
-# time.sleep(1.5)
+mark("Combined (0.8, 0.6)")
+planner.set_target(0.8, 0.6)
+time.sleep(1.5)
 
-# mark("Stop")
-# planner.stop()
-# time.sleep(0.8)
+mark("Stop")
+planner.stop()
+time.sleep(0.8)
 
-# mark("Reverse (-0.6, 0.0)")
-# planner.set_target(-0.6, 0.0)
-# time.sleep(1.5)
+mark("Reverse (-0.6, 0.0)")
+planner.set_target(-0.6, 0.0)
+time.sleep(1.5)
 
 mark("Stop")
 planner.stop()
@@ -111,9 +113,9 @@ time.sleep(0.1)  # wait for planner to process config change
 
 # print out some data after reset
 pre_v= 0.0
-for v, a_v, dt in zip(v_hist, a_v_hist, dt_hist):
-    print(f"v={v:.3f}  a_v={a_v:.3f}  acc = {(v - pre_v) / dt if dt > 0 else 0.0:.3f}  dt={dt:.3f}")
-    pre_v = v
+# for v, a_v, dt in zip(v_hist, a_v_hist, dt_hist):
+#     print(f"v={v:.3f}  a_v={a_v:.3f}  acc = {(v - pre_v) / dt if dt > 0 else 0.0:.3f}  dt={dt:.3f}")
+#     pre_v = v
 
 
 
@@ -126,11 +128,15 @@ datasets = [
      "Velocity",     [cfg.max_linear_velocity, -cfg.max_linear_velocity,
                       cfg.max_angular_velocity, -cfg.max_angular_velocity]),
     (axes[1], [(a_v_hist, "a_v (m/s^2)", "C2"), (a_w_hist, "a_w (rad/s^2)", "C3")],
-     "Acceleration",  [driving.max_linear_acceleration, -driving.max_linear_acceleration,
-                       driving.max_angular_acceleration, -driving.max_angular_acceleration]),
+     "Acceleration",  [driving.max_linear_acceleration,  -driving.max_linear_acceleration,
+                       driving.max_angular_acceleration, -driving.max_angular_acceleration,
+                       stopping.max_linear_acceleration, -stopping.max_linear_acceleration,
+                       stopping.max_angular_acceleration, -stopping.max_angular_acceleration]),
     (axes[2], [(j_v_hist, "j_v (m/s^3)", "C4"), (j_w_hist, "j_w (rad/s^3)", "C5")],
-     "Jerk",          [driving.max_linear_jerk, -driving.max_linear_jerk,
-                       driving.max_angular_jerk, -driving.max_angular_jerk]),
+     "Jerk",          [driving.max_linear_jerk,  -driving.max_linear_jerk,
+                       driving.max_angular_jerk, -driving.max_angular_jerk,
+                       stopping.max_linear_jerk, -stopping.max_linear_jerk,
+                       stopping.max_angular_jerk, -stopping.max_angular_jerk]),
     (axes[3], [([v * w for v, w in zip(v_hist, w_hist)], "|v*w| centripetal", "C6")],
      "Centripetal (m/s^2)", [cfg.max_centripetal_acceleration, -cfg.max_centripetal_acceleration]),
 ]
@@ -148,10 +154,10 @@ for ax, series, ylabel, limits in datasets:
     ax.legend(loc="upper right", fontsize=8)
     ax.grid(True, alpha=0.3)
 
-# shared event labels on bottom axis
+# shared event labels on top axis
 for t_ev, lbl in ev_hist:
-    axes[3].text(t_ev, axes[3].get_ylim()[0], lbl, rotation=45,
-                 fontsize=7, va="bottom", ha="right", alpha=0.7)
+    axes[0].text(t_ev, axes[0].get_ylim()[1], lbl, rotation=45,
+                 fontsize=7, va="top", ha="right", alpha=0.7)
 axes[3].set_xlabel("Time (s)")
 
 plt.tight_layout()

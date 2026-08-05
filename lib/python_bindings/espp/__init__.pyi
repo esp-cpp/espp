@@ -3815,11 +3815,11 @@ class TrajectoryPlanner:
      *  - **S-curve**: either jerk field is non-zero
      *
      *  ### Timing
-     *  Two independent `espp::Timer` instances run internally:
+     *  Two independent timers run internally:
      *  - **planning timer** -- calls `update()` at `planning_period` (default 20 ms / 50 Hz).
      *    Recommended range: 5-200 ms on microcontrollers.
-     *  - **callback timer** -- fires `output_callback` at `callback_period` (default 40 ms).
-     *    Should be >= 2x planning_period (Nyquist); faster rates repeat the same output.
+     *  - **callback task** -- fires `output_callback` on every `update()` that produces a
+     *    new output value (CV-notified by the planning timer); no separate period needed.
      *
      *  This class is thread-safe: set_target(), get_target(), output(), stop(),
      *  and reset() may be called from different threads concurrently.
@@ -3900,10 +3900,6 @@ class TrajectoryPlanner:
         planning_period: std.chrono.duration[float] = std.chrono.milliseconds(20)  #*< Planner
                                                              update rate (default 50 Hz). Recommended: 5-200
                                                              ms on microcontrollers.
-        callback_period: std.chrono.duration[float] = std.chrono.milliseconds(40)  #*< Output
-                                                             callback rate (default 50 Hz). Should be
-                                                             >= 2x planning_period (Nyquist); a faster
-                                                             rate will repeat the same output.
         planning_task_config: Task.BaseConfig = Task.BaseConfig(
                 .name = "TP_planning",
                 .stack_size_bytes = 4096,
@@ -3925,7 +3921,6 @@ class TrajectoryPlanner:
             max_centripetal_acceleration: float = 0.1,
             output_callback: TrajectoryPlanner.output_callback_t = None,
             planning_period: std.chrono.duration[float] = std.chrono.milliseconds(20),
-            callback_period: std.chrono.duration[float] = std.chrono.milliseconds(40),
             planning_task_config: Task.BaseConfig = Task.BaseConfig(.name = "TP_planning",
                     .stack_size_bytes = 4096,
                     .priority = 0,

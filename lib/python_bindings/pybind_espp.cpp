@@ -2378,18 +2378,17 @@ void py_init_module_espp(py::module &m) {
       "acceleration gives faster, firmer braking.\n *\n *  A MotionProfile selects its mode "
       "automatically:\n *  - **Trapezoidal**: `max_linear_jerk == 0 && max_angular_jerk == 0`\n *  "
       "- **S-curve**: either jerk field is non-zero\n *\n *  ### Timing\n *  Two independent "
-      "`espp::Timer` instances run internally:\n *  - **planning timer** -- calls `update()` at "
-      "`planning_period` (default 20 ms / 50 Hz).\n *    Recommended range: 5-200 ms on "
-      "microcontrollers.\n *  - **callback timer** -- fires `output_callback` at `callback_period` "
-      "(default 40 ms).\n *    Should be >= 2x planning_period (Nyquist); faster rates repeat the "
-      "same output.\n *\n *  This class is thread-safe: set_target(), get_target(), output(), "
-      "stop(),\n *  and reset() may be called from different threads concurrently.\n *\n * "
-      "\\section trajectory_planner_ex0 Quick-Start: Full Public API\n * \\snippet "
-      "trajectory_planner_example.cpp trajectory_planner quickstart\n * \\section "
-      "trajectory_planner_ex1 S-Curve Driving / Trapezoidal Stop\n * \\snippet "
-      "trajectory_planner_example.cpp trajectory_planner example\n * \\section "
-      "trajectory_planner_ex2 High-Speed S-Curve with Centripetal Limiting\n * \\snippet "
-      "trajectory_planner_example.cpp trajectory_planner jerk example\n * \\section "
+      "timers run internally:\n *  - **planning timer** -- calls `update()` at `planning_period` "
+      "(default 20 ms / 50 Hz).\n *    Recommended range: 5-200 ms on microcontrollers.\n *  - "
+      "**callback task** -- fires `output_callback` on every `update()` that produces a\n *    new "
+      "output value (CV-notified by the planning timer); no separate period needed.\n *\n *  This "
+      "class is thread-safe: set_target(), get_target(), output(), stop(),\n *  and reset() may be "
+      "called from different threads concurrently.\n *\n * \\section trajectory_planner_ex0 "
+      "Quick-Start: Full Public API\n * \\snippet trajectory_planner_example.cpp "
+      "trajectory_planner quickstart\n * \\section trajectory_planner_ex1 S-Curve Driving / "
+      "Trapezoidal Stop\n * \\snippet trajectory_planner_example.cpp trajectory_planner example\n "
+      "* \\section trajectory_planner_ex2 High-Speed S-Curve with Centripetal Limiting\n * "
+      "\\snippet trajectory_planner_example.cpp trajectory_planner jerk example\n * \\section "
       "trajectory_planner_ex3 Constraint Validation\n * \\snippet trajectory_planner_example.cpp "
       "trajectory_planner validation\n");
 
@@ -2460,7 +2459,6 @@ void py_init_module_espp(py::module &m) {
                        float max_centripetal_acceleration = 0.1f,
                        espp::TrajectoryPlanner::output_callback_t output_callback = nullptr,
                        std::chrono::duration<float> planning_period = std::chrono::milliseconds(20),
-                       std::chrono::duration<float> callback_period = std::chrono::milliseconds(40),
                        espp::Task::BaseConfig planning_task_config = {.name = "TP_planning",
                                                                       .stack_size_bytes = 4096,
                                                                       .priority = 0,
@@ -2479,7 +2477,6 @@ void py_init_module_espp(py::module &m) {
                       r_ctor_->max_centripetal_acceleration = max_centripetal_acceleration;
                       r_ctor_->output_callback = output_callback;
                       r_ctor_->planning_period = planning_period;
-                      r_ctor_->callback_period = callback_period;
                       r_ctor_->planning_task_config = planning_task_config;
                       r_ctor_->callback_task_config = callback_task_config;
                       r_ctor_->log_level = log_level;
@@ -2492,7 +2489,6 @@ void py_init_module_espp(py::module &m) {
                 py::arg("max_centripetal_acceleration") = 0.1f,
                 py::arg("output_callback") = py::none(),
                 py::arg("planning_period") = std::chrono::milliseconds(20),
-                py::arg("callback_period") = std::chrono::milliseconds(40),
                 py::arg("planning_task_config") = espp::Task::BaseConfig{.name = "TP_planning",
                                                                          .stack_size_bytes = 4096,
                                                                          .priority = 0,
@@ -2534,12 +2530,6 @@ void py_init_module_espp(py::module &m) {
                            "*< Planner\n                                                     "
                            "update rate (default 50 Hz). Recommended: 5-200\n                      "
                            "                               ms on microcontrollers.")
-            .def_readwrite(
-                "callback_period", &espp::TrajectoryPlanner::Config::callback_period,
-                "*< Output\n                                                     callback rate "
-                "(default 50 Hz). Should be\n                                                     "
-                ">= 2x planning_period (Nyquist); a faster\n                                       "
-                "              rate will repeat the same output.")
             .def_readwrite("planning_task_config",
                            &espp::TrajectoryPlanner::Config::planning_task_config,
                            "*< Underlying task config for the timer.")
