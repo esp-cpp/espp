@@ -47,22 +47,22 @@ namespace espp {
 /// receive callbacks, and master reads can trigger request callbacks when the
 /// slave transmit FIFO needs more data. This wrapper provides:
 ///
-/// - queued `read()` access to complete master-write transactions
-/// - blocking `write()` access for staging data back to the master
+/// - queued <tt>read()</tt> access to complete master-write transactions
+/// - blocking <tt>write()</tt> access for staging data back to the master
 /// - task-context request / receive callbacks so user code does not have to run
 ///   inside the ISR callback context
 ///
 /// When built against ESP-IDF v5.5's default slave driver, the receive callback
 /// API does not expose the actual transaction length. In that configuration this
 /// wrapper buffers the requested receive length and zero-fills any trailing bytes
-/// the master did not write so `read()` and `on_receive` still behave consistently.
+/// the master did not write so <tt>read()</tt> and <tt>on_receive</tt> still behave consistently.
 ///
 /// @note No dedicated example exists yet.
 ///
 /// Usage:
-///   - Construct with a config, then call `init()`
-///   - Call `read()` to receive the next complete master-write transaction
-///   - Call `write()` to stage response bytes for the next master read
+///   - Construct with a config, then call <tt>init()</tt>
+///   - Call <tt>read()</tt> to receive the next complete master-write transaction
+///   - Call <tt>write()</tt> to stage response bytes for the next master read
 ///   - Register callbacks if you want task-context notifications
 ///
 /// \note This class is intended for use with the new ESP-IDF I2C slave API (>=5.4.0)

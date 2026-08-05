@@ -20,19 +20,22 @@ namespace espp {
 /// The Ethernet bring-up is delegated to the reusable espp::Ethernet component;
 /// this BSP just supplies the board-specific RMII pin mapping.
 ///
-/// RMII pin mapping (ESP32-P4 routable EMAC pins):
-/// | Signal   | GPIO |
-/// |----------|------|
-/// | REF_CLK  |   50 | ← 50 MHz (25 MHz crystal x2)
-/// | TX_EN    |   49 |
-/// | TXD0     |   34 |
-/// | TXD1     |   35 |
-/// | CRS_DV   |   28 |
-/// | RXD0     |   29 |
-/// | RXD1     |   30 |
-/// | MDC      |   31 |
-/// | MDIO     |   52 |
-/// | PHY_RST  |   51 |
+/// RMII pin mapping (ESP32-P4 routable EMAC pins). REF_CLK carries a 50 MHz
+/// reference clock (25 MHz crystal &times;2):
+///
+/// <table>
+/// <tr><th>Signal</th><th>GPIO</th></tr>
+/// <tr><td>REF_CLK</td><td>50</td></tr>
+/// <tr><td>TX_EN</td><td>49</td></tr>
+/// <tr><td>TXD0</td><td>34</td></tr>
+/// <tr><td>TXD1</td><td>35</td></tr>
+/// <tr><td>CRS_DV</td><td>28</td></tr>
+/// <tr><td>RXD0</td><td>29</td></tr>
+/// <tr><td>RXD1</td><td>30</td></tr>
+/// <tr><td>MDC</td><td>31</td></tr>
+/// <tr><td>MDIO</td><td>52</td></tr>
+/// <tr><td>PHY_RST</td><td>51</td></tr>
+/// </table>
 ///
 /// The class is a singleton and can be accessed via get().
 ///

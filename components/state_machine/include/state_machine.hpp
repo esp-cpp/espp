@@ -10,7 +10,7 @@ namespace espp {
 
 /**
  * @brief State machine convenience wrapper for espp. Including
- *        `state_machine.hpp` provides access to all the base classes that the
+ *        <tt>state_machine.hpp</tt> provides access to all the base classes that the
  *        generated code relies on as well as what you would need to subclass
  *        yourself for a manually written hfsm. Please see
  *        https://github.com/finger563/webgme-hfsm for more information about

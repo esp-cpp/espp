@@ -16,14 +16,14 @@ namespace espp {
 /// The SX126x is a command-based SPI peripheral: each operation is an opcode
 /// followed by parameters, and read operations return data in the same SPI
 /// transaction (with the chip select held asserted for the entire command).
-/// Because of this, the driver requires the `write_then_read` function provided
+/// Because of this, the driver requires the <tt>write_then_read</tt> function provided
 /// in the configuration to perform the write phase and the read phase within a
 /// single chip-select assertion - e.g. by performing one full-duplex transfer
 /// of the concatenated write + read lengths. See the example for how to do
 /// this with the espp::Spi component.
 ///
 /// The chip signals command processing via its BUSY pin, which must be
-/// provided via the `is_busy` function in the configuration. The `reset`
+/// provided via the <tt>is_busy</tt> function in the configuration. The <tt>reset</tt>
 /// function (driving the active-low NRESET pin) is optional but recommended.
 ///
 /// Interrupt-driven operation is supported by connecting the radio's DIO1 pin

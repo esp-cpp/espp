@@ -266,7 +266,7 @@ public:
         : ping_(ping) {}
 
     /**
-     * @brief Create a CLI submenu with a `run \<host\>` command.
+     * @brief Create a CLI submenu with a <tt>run &lt;host&gt;</tt> command.
      * @param name Menu name (default: "ping")
      * @param description Menu description (default: "Ping menu")
      * @return Unique pointer to the menu instance.

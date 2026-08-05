@@ -335,8 +335,8 @@ public:
    *       enabled in the menuconfig. Default is y (enabled).
    * @note This function will not monitor the idle tasks.
    * @note If the watchdog has not been configured, then this function will call
-   *       `esp_task_wdt_init`, otherwise it will then call
-   *       `esp_task_wdt_reconfigure`.
+   *       <tt>esp_task_wdt_init</tt>, otherwise it will then call
+   *       <tt>esp_task_wdt_reconfigure</tt>.
    */
   static bool configure_task_watchdog(uint32_t timeout_ms, bool panic_on_timeout = true);
 
@@ -350,8 +350,8 @@ public:
    *       enabled in the menuconfig. Default is y (enabled).
    * @note This function will not monitor the idle tasks.
    * @note If the watchdog has not been configured, then this function will call
-   *       `esp_task_wdt_init`, otherwise it will then call
-   *       `esp_task_wdt_reconfigure`.
+   *       <tt>esp_task_wdt_init</tt>, otherwise it will then call
+   *       <tt>esp_task_wdt_reconfigure</tt>.
    */
   static bool configure_task_watchdog(const std::chrono::milliseconds &timeout,
                                       bool panic_on_timeout = true);

@@ -20,8 +20,8 @@
 namespace espp {
 /// @brief Cross-interface Ethernet wrapper around the ESP-IDF esp_eth APIs.
 ///
-/// @details One class drives both **RMII** (internal EMAC, on SoCs with
-///          `SOC_EMAC_SUPPORTED` - esp32 / esp32-p4) and **SPI** (external
+/// @details One class drives both <b>RMII</b> (internal EMAC, on SoCs with
+///          <tt>SOC_EMAC_SUPPORTED</tt> - esp32 / esp32-p4) and <b>SPI</b> (external
 ///          MAC+PHY chips such as the WIZnet W5500) interfaces, plus a
 ///          pre-built-driver escape hatch for any other chip. It owns all of
 ///          the common boilerplate - netif, event loop, glue, attach, DHCP
@@ -34,8 +34,8 @@ namespace espp {
 ///
 /// @note The concrete SPI chip drivers (W5500, DM9051, ENC28J60) are ESP-IDF
 ///       managed components pulled in only when the matching
-///       `CONFIG_ESPP_ETHERNET_*` option is enabled. The RMII path uses the
-///       generic 802.3 PHY driver in `esp_eth` core (no extra dependency),
+///       <tt>CONFIG_ESPP_ETHERNET_*</tt> option is enabled. The RMII path uses the
+///       generic 802.3 PHY driver in <tt>esp_eth</tt> core (no extra dependency),
 ///       which supports common PHYs (IP101, LAN87xx, DP83848, RTL8201, KSZ8041).
 ///
 /// \section ethernet_ex1 RMII Example
