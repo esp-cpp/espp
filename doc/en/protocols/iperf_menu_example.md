@@ -1,2 +1,2 @@
-```{include} ../../components/iperf_menu/example/README.md
+```{include} ../../../components/iperf_menu/example/README.md
 ```

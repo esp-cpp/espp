@@ -1,2 +1,2 @@
-```{include} ../../components/button/example/README.md
+```{include} ../../../components/button/example/README.md
 ```

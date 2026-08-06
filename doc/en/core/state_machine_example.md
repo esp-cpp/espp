@@ -1,2 +1,2 @@
-```{include} ../../components/state_machine/example/README.md
+```{include} ../../../components/state_machine/example/README.md
 ```
