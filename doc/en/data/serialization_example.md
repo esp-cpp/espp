@@ -1,2 +1,2 @@
-```{include} ../../components/serialization/example/README.md
+```{include} ../../../components/serialization/example/README.md
 ```

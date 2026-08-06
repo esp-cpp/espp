@@ -1,2 +1,2 @@
-```{include} ../../components/binary-log/example/README.md
+```{include} ../../../components/binary-log/example/README.md
 ```

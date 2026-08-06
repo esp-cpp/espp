@@ -1,2 +1,2 @@
-```{include} ../../components/remote_debug/example/README.md
+```{include} ../../../components/remote_debug/example/README.md
 ```

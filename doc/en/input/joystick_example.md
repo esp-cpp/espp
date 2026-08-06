@@ -1,2 +1,2 @@
-```{include} ../../components/joystick/example/README.md
+```{include} ../../../components/joystick/example/README.md
 ```

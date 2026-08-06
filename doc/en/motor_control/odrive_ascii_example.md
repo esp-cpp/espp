@@ -1,2 +1,2 @@
-```{include} ../../components/odrive_ascii/example/README.md
+```{include} ../../../components/odrive_ascii/example/README.md
 ```
