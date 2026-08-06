@@ -40,8 +40,8 @@ namespace espp {
 ///
 /// This class provides a singleton interface to the board's peripherals:
 /// - 10/100 Ethernet via the ESP32-P4 internal EMAC and an IP101GRI RMII PHY.
-/// - MIPI-DSI display (ILI9881C 10.1" or EK79007 7", selected via Kconfig) with
-///   a GT911 capacitive-touch controller.
+/// - MIPI-DSI display (JD9365 10.1" by default, or ILI9881C 10.1" / EK79007 7",
+///   selected via Kconfig) with a GT911 capacitive-touch controller.
 /// - MIPI-CSI camera (esp_video / V4L2 capture pipeline; OV5647 by default).
 /// - microSD / TF card over 4-bit SDMMC.
 /// - ES8311 audio codec (+ NS4150B amplifier) for speaker output and microphone
@@ -140,7 +140,7 @@ public:
   using touch_callback_t = std::function<void(const TouchpadData &)>;
 
   /// Enum for the display controller type (selected via Kconfig)
-  enum class DisplayController { UNKNOWN, EK79007, ILI9881C };
+  enum class DisplayController { UNKNOWN, EK79007, ILI9881C, JD9365 };
 
   /// Default touch INT GPIO used by initialize_touch(). GPIO_NUM_NC means the
   /// GT911 is polled; if interrupt-driven touch is enabled via Kconfig this is
@@ -174,6 +174,8 @@ public:
       return "EK79007";
     case DisplayController::ILI9881C:
       return "ILI9881C";
+    case DisplayController::JD9365:
+      return "JD9365";
     default:
       return "Unknown";
     }
@@ -233,8 +235,10 @@ public:
 
   /// Set the display brightness
   /// \param brightness The brightness as a percentage (0-100)
-  /// \note The ESP32-P4-ETH has no backlight GPIO; brightness is stored but not
-  ///       applied to hardware (see the source for details).
+  /// \note The ESP32-P4-ETH has no backlight GPIO. On the 10.1" JD9365 panel
+  ///       the backlight is driven by an on-board I2C controller (addr 0x45)
+  ///       and this call writes it; on other panels the value is stored but
+  ///       not applied to hardware (see the source for details).
   void brightness(float brightness);
 
   /// Get the display brightness
@@ -488,16 +492,26 @@ protected:
   // ILI9881C 10.1" 800x1280 (hsync: pulse=40, back=140, front=40; reset over DSI)
   static constexpr PanelParams ILI9881C_PARAMS{800, 1280, 80, 1500, GPIO_NUM_NC, GPIO_NUM_NC,
                                                40,  140,  40, 4,    16,          16};
+  // JD9365 10.1" 800x1280 (the panel Waveshare sells for this board; reset over
+  // DSI, no backlight GPIO). NOTE: on the JD9365 path the DPI timing actually
+  // used comes from the esp_lcd_jd9365 component's
+  // JD9365_800_1280_PANEL_60HZ_DPI_CONFIG macro; these timing fields are
+  // informational. The lane bit rate (1500 Mbps) IS used for the DSI bus.
+  static constexpr PanelParams JD9365_PARAMS{800, 1280, 80, 1500, GPIO_NUM_NC, GPIO_NUM_NC,
+                                             20,  20,   40, 4,    10,          30};
 
 #if CONFIG_ESP32_P4_ETH_DISPLAY_EK79007
   static constexpr DisplayController default_controller_ = DisplayController::EK79007;
-#else
+#elif CONFIG_ESP32_P4_ETH_DISPLAY_ILI9881C
   static constexpr DisplayController default_controller_ = DisplayController::ILI9881C;
+#else
+  static constexpr DisplayController default_controller_ = DisplayController::JD9365;
 #endif
 
   // Runtime display geometry, set from the configured panel.
-  PanelParams panel_params_{default_controller_ == DisplayController::ILI9881C ? ILI9881C_PARAMS
-                                                                               : EK79007_PARAMS};
+  PanelParams panel_params_{default_controller_ == DisplayController::ILI9881C  ? ILI9881C_PARAMS
+                            : default_controller_ == DisplayController::EK79007 ? EK79007_PARAMS
+                                                                                : JD9365_PARAMS};
   size_t display_width_{panel_params_.width};
   size_t display_height_{panel_params_.height};
 
@@ -638,9 +652,14 @@ protected:
 
   /////////////////////////////////////////////////////////////////////////////
   // Display state (MIPI-DSI). NOTE: there is no backlight GPIO / espp::Led on
-  // this board; the backlight is driven by an on-board I2C controller, so the
-  // stored brightness is best-effort only (see src/video.cpp).
+  // this board; the backlight is driven by an on-board I2C controller. On the
+  // 10.1" JD9365 panel brightness() writes that controller (addr 0x45, reg
+  // 0x86); on other panels the stored brightness is best-effort only (see
+  // src/video.cpp).
   /////////////////////////////////////////////////////////////////////////////
+  // On-board I2C backlight controller (10.1" JD9365 panel)
+  static constexpr uint8_t backlight_i2c_address = 0x45;
+  std::shared_ptr<I2c::Device<uint8_t>> backlight_i2c_device_;
   std::atomic<float> brightness_{100.0f};
   std::shared_ptr<Display<Pixel>> display_;
   std::shared_ptr<DisplayDriver> display_driver_{static_cast<DisplayDriver *>(nullptr)};

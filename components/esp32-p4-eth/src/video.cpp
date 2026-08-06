@@ -21,6 +21,10 @@
 #include <esp_lcd_panel_ops.h>
 #include <esp_ldo_regulator.h>
 
+// Waveshare's managed panel component for the JD9365 (the controller on the
+// 10.1" 800x1280 panel Waveshare sells for this board).
+#include "esp_lcd_jd9365.h"
+
 using namespace std::chrono_literals;
 
 namespace espp {
@@ -87,98 +91,166 @@ bool Esp32P4Eth::initialize_lcd() {
                display_height_);
 
   // NOTE: The ESP32-P4-ETH has no backlight GPIO. The backlight is driven by an
-  // on-board I2C controller (addr ~0x45/0x95, chip/protocol not yet identified);
-  // brightness control is a TODO pending hardware identification. The panel powers
-  // up with the backlight on, so no espp::Led / PWM backlight is instantiated here
-  // and the display fully initializes and shows pixels without any backlight code.
+  // on-board I2C controller (addr 0x45). On the 10.1" JD9365 panel brightness()
+  // writes that controller (reg 0x86); on the other panels the panel powers up
+  // with the backlight on and brightness() only stores the value. No espp::Led /
+  // PWM backlight is instantiated here.
   brightness(100.0f);
 
-  // Send the panel controller's vendor init sequence over DBI (command mode),
-  // before starting the DPI video stream.
-  espp::display_drivers::Config display_config{
-      .panel_io = nullptr,
-      .write_command = std::bind_front(&Esp32P4Eth::dsi_write_command, this),
-      // NOTE: the Waveshare ESP32-P4 panels do not reliably support MIPI-DSI DCS
-      // reads (bus turn-around); the ESP-IDF HAL busy-waits on the read, which
-      // hangs panel init and trips the task watchdog. Do not provide a
-      // read_command so the driver skips the optional panel-ID read.
-      .read_command = nullptr,
-      .lcd_send_lines = nullptr,
-      .reset_pin = GPIO_NUM_NC,
-      .data_command_pin = GPIO_NUM_NC,
-      .reset_value = false,
-      .invert_colors = invert_colors,
-      .swap_color_order = swap_color_order,
-      .offset_x = 0,
-      .offset_y = 0,
-      .swap_xy = swap_xy,
-      .mirror_x = mirror_x,
-      .mirror_y = mirror_y,
-      .mirror_portrait = false,
-  };
-
-  display_driver_.reset();
-  if (display_controller_ == DisplayController::ILI9881C) {
-    auto driver = std::make_shared<espp::Ili9881>(display_config);
-    if (driver->initialize()) {
-      display_driver_ = std::move(driver);
-    }
-  } else {
-    auto driver = std::make_shared<espp::Ek79007>(display_config);
-    if (driver->initialize()) {
-      display_driver_ = std::move(driver);
-    }
-  }
-  if (!display_driver_) {
-    logger_.error("Failed to initialize {} display controller", get_display_controller_name());
-    return false;
-  }
-
-  // Create the DPI (video) panel with the configured panel's timing. This must
-  // come AFTER the vendor init sequence above: esp_lcd_new_panel_dpi() starts the
-  // HS video stream, and once it is running the DSI cannot drain the low-power
-  // command FIFO, so a long init sequence (e.g. ILI9881C's 202 commands) would
-  // overflow it and hang.
-  if (lcd_handles_.panel == nullptr) {
-    esp_lcd_dpi_panel_config_t dpi_cfg{};
-    memset(&dpi_cfg, 0, sizeof(dpi_cfg));
-    dpi_cfg.virtual_channel = 0;
-    dpi_cfg.dpi_clk_src = MIPI_DSI_DPI_CLK_SRC_DEFAULT;
-    dpi_cfg.dpi_clock_freq_mhz = panel_params_.dpi_clock_freq_mhz;
+  if (display_controller_ == DisplayController::JD9365) {
+    // The Waveshare 10.1" 800x1280 panel is a JD9365, driven by Waveshare's
+    // esp_lcd_jd9365 managed component. The component sends the vendor init
+    // sequence over the DBI IO and creates/starts the DPI (video) panel
+    // internally: the handle it returns IS the real DPI panel handle (it
+    // patches the DPI panel's vtable and enables DMA2D itself), so
+    // esp_lcd_panel_draw_bitmap() and the DPI event callbacks below work on it
+    // directly. Do NOT create a DPI panel or run an espp display driver here.
+    if (lcd_handles_.panel == nullptr) {
+      // Values from the component's JD9365_800_1280_PANEL_60HZ_DPI_CONFIG macro;
+      // spelled out field-by-field because the macro's C designated-initializer
+      // ordering is not valid C++.
+      esp_lcd_dpi_panel_config_t dpi_config{};
+      dpi_config.dpi_clk_src = MIPI_DSI_DPI_CLK_SRC_DEFAULT;
+      dpi_config.dpi_clock_freq_mhz = 80;
+      dpi_config.virtual_channel = 0;
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
-    dpi_cfg.in_color_format = LCD_COLOR_FMT_RGB565;
-    dpi_cfg.out_color_format = LCD_COLOR_FMT_RGB565;
+      dpi_config.in_color_format = LCD_COLOR_FMT_RGB565;
+      dpi_config.out_color_format = LCD_COLOR_FMT_RGB565;
 #else
-    dpi_cfg.pixel_format = LCD_COLOR_PIXEL_FORMAT_RGB565;
-    dpi_cfg.flags.use_dma2d = true;
+      dpi_config.pixel_format = LCD_COLOR_PIXEL_FORMAT_RGB565;
+      dpi_config.flags.use_dma2d = true;
 #endif
-    dpi_cfg.num_fbs = 1;
-    dpi_cfg.video_timing.h_size = display_width_;
-    dpi_cfg.video_timing.v_size = display_height_;
-    dpi_cfg.video_timing.hsync_pulse_width = panel_params_.hsync_pulse_width;
-    dpi_cfg.video_timing.hsync_back_porch = panel_params_.hsync_back_porch;
-    dpi_cfg.video_timing.hsync_front_porch = panel_params_.hsync_front_porch;
-    dpi_cfg.video_timing.vsync_pulse_width = panel_params_.vsync_pulse_width;
-    dpi_cfg.video_timing.vsync_back_porch = panel_params_.vsync_back_porch;
-    dpi_cfg.video_timing.vsync_front_porch = panel_params_.vsync_front_porch;
-    logger_.info("Creating DPI panel ({}x{} @ {} MHz)", dpi_cfg.video_timing.h_size,
-                 dpi_cfg.video_timing.v_size, dpi_cfg.dpi_clock_freq_mhz);
-    ret = esp_lcd_new_panel_dpi(lcd_handles_.mipi_dsi_bus, &dpi_cfg, &lcd_handles_.panel);
-    if (ret != ESP_OK) {
-      logger_.error("Failed to create MIPI DSI DPI panel: {}", esp_err_to_name(ret));
+      dpi_config.num_fbs = 1;
+      dpi_config.video_timing.h_size = 800;
+      dpi_config.video_timing.v_size = 1280;
+      dpi_config.video_timing.hsync_back_porch = 20;
+      dpi_config.video_timing.hsync_pulse_width = 20;
+      dpi_config.video_timing.hsync_front_porch = 40;
+      dpi_config.video_timing.vsync_back_porch = 10;
+      dpi_config.video_timing.vsync_pulse_width = 4;
+      dpi_config.video_timing.vsync_front_porch = 30;
+      jd9365_vendor_config_t vendor_config{};
+      vendor_config.init_cmds = nullptr; // use the component's default init sequence
+      vendor_config.init_cmds_size = 0;
+      vendor_config.mipi_config.dsi_bus = lcd_handles_.mipi_dsi_bus;
+      vendor_config.mipi_config.dpi_config = &dpi_config;
+      vendor_config.mipi_config.lane_num = mipi_dsi_lanes;
+      esp_lcd_panel_dev_config_t lcd_dev_config{};
+      lcd_dev_config.reset_gpio_num = GPIO_NUM_NC; // reset over DSI, no reset GPIO
+      lcd_dev_config.rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB;
+      lcd_dev_config.bits_per_pixel = 16;
+      lcd_dev_config.vendor_config = &vendor_config;
+      logger_.info("Creating JD9365 panel ({}x{} @ {} MHz DPI)", display_width_, display_height_,
+                   dpi_config.dpi_clock_freq_mhz);
+      ret = esp_lcd_new_panel_jd9365(lcd_handles_.io, &lcd_dev_config, &lcd_handles_.panel);
+      if (ret != ESP_OK) {
+        logger_.error("Failed to create JD9365 panel: {}", esp_err_to_name(ret));
+        return false;
+      }
+      ret = esp_lcd_panel_reset(lcd_handles_.panel);
+      if (ret != ESP_OK) {
+        logger_.error("JD9365 panel reset failed: {}", esp_err_to_name(ret));
+        return false;
+      }
+      // Sends the vendor init over DBI, then starts the DPI video stream.
+      ret = esp_lcd_panel_init(lcd_handles_.panel);
+      if (ret != ESP_OK) {
+        logger_.error("JD9365 panel init failed: {}", esp_err_to_name(ret));
+        return false;
+      }
+    }
+    // The managed component owns the panel init on this path; there is no espp
+    // display driver.
+    display_driver_.reset();
+  } else {
+    // espp-driver path (ILI9881C / EK79007): send the panel controller's vendor
+    // init sequence over DBI (command mode), before starting the DPI video
+    // stream.
+    espp::display_drivers::Config display_config{
+        .panel_io = nullptr,
+        .write_command = std::bind_front(&Esp32P4Eth::dsi_write_command, this),
+        // NOTE: the Waveshare ESP32-P4 panels do not reliably support MIPI-DSI DCS
+        // reads (bus turn-around); the ESP-IDF HAL busy-waits on the read, which
+        // hangs panel init and trips the task watchdog. Do not provide a
+        // read_command so the driver skips the optional panel-ID read.
+        .read_command = nullptr,
+        .lcd_send_lines = nullptr,
+        .reset_pin = GPIO_NUM_NC,
+        .data_command_pin = GPIO_NUM_NC,
+        .reset_value = false,
+        .invert_colors = invert_colors,
+        .swap_color_order = swap_color_order,
+        .offset_x = 0,
+        .offset_y = 0,
+        .swap_xy = swap_xy,
+        .mirror_x = mirror_x,
+        .mirror_y = mirror_y,
+        .mirror_portrait = false,
+    };
+
+    display_driver_.reset();
+    if (display_controller_ == DisplayController::ILI9881C) {
+      auto driver = std::make_shared<espp::Ili9881>(display_config);
+      if (driver->initialize()) {
+        display_driver_ = std::move(driver);
+      }
+    } else {
+      auto driver = std::make_shared<espp::Ek79007>(display_config);
+      if (driver->initialize()) {
+        display_driver_ = std::move(driver);
+      }
+    }
+    if (!display_driver_) {
+      logger_.error("Failed to initialize {} display controller", get_display_controller_name());
       return false;
     }
-    // NOTE: deliberately do NOT enable DMA2D for the DPI panel. DMA2D is a
-    // color-processing engine, not a plain copy: routing the LVGL flush
-    // (esp_lcd_panel_draw_bitmap) through it corrupts the RGB565 channel order,
-    // while the plain CPU copy path renders correctly.
-  }
 
-  // Low-level panel init (starts the DPI video stream)
-  ret = lcd_handles_.panel->init(lcd_handles_.panel);
-  if (ret != ESP_OK) {
-    logger_.error("Low-level panel init failed: {}", esp_err_to_name(ret));
-    return false;
+    // Create the DPI (video) panel with the configured panel's timing. This must
+    // come AFTER the vendor init sequence above: esp_lcd_new_panel_dpi() starts the
+    // HS video stream, and once it is running the DSI cannot drain the low-power
+    // command FIFO, so a long init sequence (e.g. ILI9881C's 202 commands) would
+    // overflow it and hang.
+    if (lcd_handles_.panel == nullptr) {
+      esp_lcd_dpi_panel_config_t dpi_cfg{};
+      memset(&dpi_cfg, 0, sizeof(dpi_cfg));
+      dpi_cfg.virtual_channel = 0;
+      dpi_cfg.dpi_clk_src = MIPI_DSI_DPI_CLK_SRC_DEFAULT;
+      dpi_cfg.dpi_clock_freq_mhz = panel_params_.dpi_clock_freq_mhz;
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
+      dpi_cfg.in_color_format = LCD_COLOR_FMT_RGB565;
+      dpi_cfg.out_color_format = LCD_COLOR_FMT_RGB565;
+#else
+      dpi_cfg.pixel_format = LCD_COLOR_PIXEL_FORMAT_RGB565;
+      dpi_cfg.flags.use_dma2d = true;
+#endif
+      dpi_cfg.num_fbs = 1;
+      dpi_cfg.video_timing.h_size = display_width_;
+      dpi_cfg.video_timing.v_size = display_height_;
+      dpi_cfg.video_timing.hsync_pulse_width = panel_params_.hsync_pulse_width;
+      dpi_cfg.video_timing.hsync_back_porch = panel_params_.hsync_back_porch;
+      dpi_cfg.video_timing.hsync_front_porch = panel_params_.hsync_front_porch;
+      dpi_cfg.video_timing.vsync_pulse_width = panel_params_.vsync_pulse_width;
+      dpi_cfg.video_timing.vsync_back_porch = panel_params_.vsync_back_porch;
+      dpi_cfg.video_timing.vsync_front_porch = panel_params_.vsync_front_porch;
+      logger_.info("Creating DPI panel ({}x{} @ {} MHz)", dpi_cfg.video_timing.h_size,
+                   dpi_cfg.video_timing.v_size, dpi_cfg.dpi_clock_freq_mhz);
+      ret = esp_lcd_new_panel_dpi(lcd_handles_.mipi_dsi_bus, &dpi_cfg, &lcd_handles_.panel);
+      if (ret != ESP_OK) {
+        logger_.error("Failed to create MIPI DSI DPI panel: {}", esp_err_to_name(ret));
+        return false;
+      }
+      // NOTE: deliberately do NOT enable DMA2D for the DPI panel. DMA2D is a
+      // color-processing engine, not a plain copy: routing the LVGL flush
+      // (esp_lcd_panel_draw_bitmap) through it corrupts the RGB565 channel order,
+      // while the plain CPU copy path renders correctly.
+    }
+
+    // Low-level panel init (starts the DPI video stream)
+    ret = lcd_handles_.panel->init(lcd_handles_.panel);
+    if (ret != ESP_OK) {
+      logger_.error("Low-level panel init failed: {}", esp_err_to_name(ret));
+      return false;
+    }
   }
 
   // Note: the raw MIPI-DSI DPI panel does not implement disp_on_off (the panel
@@ -203,8 +275,17 @@ bool Esp32P4Eth::initialize_lcd() {
 void Esp32P4Eth::apply_panel_params(DisplayController controller) {
   display_controller_ =
       (controller == DisplayController::UNKNOWN) ? default_controller_ : controller;
-  panel_params_ =
-      (display_controller_ == DisplayController::ILI9881C) ? ILI9881C_PARAMS : EK79007_PARAMS;
+  switch (display_controller_) {
+  case DisplayController::JD9365:
+    panel_params_ = JD9365_PARAMS;
+    break;
+  case DisplayController::ILI9881C:
+    panel_params_ = ILI9881C_PARAMS;
+    break;
+  default:
+    panel_params_ = EK79007_PARAMS;
+    break;
+  }
   display_width_ = panel_params_.width;
   display_height_ = panel_params_.height;
 }
@@ -297,15 +378,43 @@ void Esp32P4Eth::write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *
 
 void Esp32P4Eth::brightness(float brightness) {
   // The ESP32-P4-ETH has NO backlight GPIO. The backlight is driven by an
-  // on-board I2C controller (addr ~0x45/0x95, chip/protocol not yet identified);
-  // brightness control is a TODO pending hardware identification. The panel powers
-  // up with the backlight on. For now this is best-effort: store the requested
-  // value so brightness() reads back what was set, and log it.
+  // on-board I2C controller at address 0x45. On the 10.1" JD9365 panel the
+  // brightness register is 0x86 (value 0-255); the "A"-series panels use 0x96
+  // instead. For panels other than the JD9365 the chip/protocol has not been
+  // verified, so this remains best-effort: store the requested value so
+  // brightness() reads back what was set, and log it.
   brightness = std::clamp(brightness, 0.0f, 100.0f);
   brightness_ = brightness;
-  logger_.debug("brightness({}) requested; no backlight GPIO on this board (on-board I2C "
-                "controller not yet identified), value stored only",
-                brightness);
+  if (display_controller_ != DisplayController::JD9365) {
+    logger_.debug("brightness({}) requested; no backlight GPIO on this board (on-board I2C "
+                  "backlight protocol not verified for this panel), value stored only",
+                  brightness);
+    return;
+  }
+  // Lazily create the backlight I2C device on the internal bus.
+  if (!backlight_i2c_device_) {
+    std::error_code ec;
+    backlight_i2c_device_ = internal_i2c_.add_device<uint8_t>(
+        {
+            .device_address = backlight_i2c_address,
+            .timeout_ms = static_cast<int>(internal_i2c_.config().timeout_ms),
+            .scl_speed_hz = internal_i2c_.config().clk_speed,
+            .log_level = espp::Logger::Verbosity::WARN,
+        },
+        ec);
+    if (!backlight_i2c_device_) {
+      logger_.error("Could not initialize backlight I2C device (0x{:02X}): {}",
+                    backlight_i2c_address, ec.message());
+      return;
+    }
+  }
+  // Register 0x86 is the brightness register for the 10.1" JD9365 panel (the
+  // "A"-series panels use 0x96), value 0-255.
+  const uint8_t data[2] = {0x86, static_cast<uint8_t>(255.0f * brightness / 100.0f)};
+  std::error_code ec;
+  if (!backlight_i2c_device_->write(data, sizeof(data), ec)) {
+    logger_.error("Failed to write backlight brightness: {}", ec.message());
+  }
 }
 
 float Esp32P4Eth::brightness() const { return brightness_.load(); }

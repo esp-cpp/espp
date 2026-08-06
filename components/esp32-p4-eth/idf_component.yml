@@ -31,6 +31,9 @@ dependencies:
   espp/gt911: ">=1.0"
   espp/input_drivers: ">=1.0"
   espp/interrupt: ">=1.0"
+  # The Waveshare 10.1" 800x1280 panel for this board is a JD9365, driven by
+  # Waveshare's managed panel component (vendor init + DPI panel creation).
+  waveshare/esp_lcd_jd9365: "^2.0.0"
   # MIPI-CSI camera pipeline: esp_video provides the V4L2 capture framework
   # (CSI + ISP) and esp_cam_sensor provides the OV5647 sensor driver.
   espressif/esp_video: ">=2.0"

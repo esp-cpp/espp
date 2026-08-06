@@ -2,18 +2,30 @@ menu "ESP32-P4-ETH Configuration"
 
   choice ESP32_P4_ETH_DISPLAY
     prompt "MIPI-DSI display panel"
-    default ESP32_P4_ETH_DISPLAY_ILI9881C
+    default ESP32_P4_ETH_DISPLAY_JD9365_10_1
     help
       Select the MIPI-DSI panel attached to the Waveshare ESP32-P4-ETH. The BSP
       does not auto-detect the panel (runtime DSI-ID probing hangs the boot
       watchdog on some panels), so set this to the panel you have.
 
+    config ESP32_P4_ETH_DISPLAY_JD9365_10_1
+      bool "10.1\" 800x1280 (JD9365) - the panel Waveshare sells for this board"
+      help
+        The Waveshare 10.1-inch 800x1280 DSI panel, which uses a JD9365
+        controller. Driven by Waveshare's esp_lcd_jd9365 managed component
+        (vendor init + DPI panel). Reset is handled over DSI (no reset GPIO).
+        The backlight is driven by an on-board I2C controller (addr 0x45), so
+        there is no backlight GPIO; brightness() writes the controller.
+
     config ESP32_P4_ETH_DISPLAY_ILI9881C
       bool "ILI9881C (10.1-inch, 800x1280)"
       help
-        The 10.1-inch 800x1280 ILI9881C panel. Reset is handled over DSI (no
-        reset GPIO). The backlight is driven by an on-board I2C controller, so
-        there is no backlight GPIO.
+        A 10.1-inch 800x1280 ILI9881C panel. EXPERIMENTAL on this board: the
+        panel Waveshare sells for this board is a JD9365, and the ILI9881C
+        init sequence wedges the DSI link on it (task-watchdog hang). Only
+        select this if you have actually attached an ILI9881C panel. Reset is
+        handled over DSI (no reset GPIO). The backlight is driven by an
+        on-board I2C controller, so there is no backlight GPIO.
 
     config ESP32_P4_ETH_DISPLAY_EK79007
       bool "EK79007 (7-inch, 1024x600)"
