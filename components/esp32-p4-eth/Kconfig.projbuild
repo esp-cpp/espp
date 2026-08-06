@@ -1,0 +1,72 @@
+menu "ESP32-P4-ETH Configuration"
+
+  choice ESP32_P4_ETH_DISPLAY
+    prompt "MIPI-DSI display panel"
+    default ESP32_P4_ETH_DISPLAY_ILI9881C
+    help
+      Select the MIPI-DSI panel attached to the Waveshare ESP32-P4-ETH. The BSP
+      does not auto-detect the panel (runtime DSI-ID probing hangs the boot
+      watchdog on some panels), so set this to the panel you have.
+
+    config ESP32_P4_ETH_DISPLAY_ILI9881C
+      bool "ILI9881C (10.1-inch, 800x1280)"
+      help
+        The 10.1-inch 800x1280 ILI9881C panel. Reset is handled over DSI (no
+        reset GPIO). The backlight is driven by an on-board I2C controller, so
+        there is no backlight GPIO.
+
+    config ESP32_P4_ETH_DISPLAY_EK79007
+      bool "EK79007 (7-inch, 1024x600)"
+      help
+        The 7-inch 1024x600 EK79007 panel. Reset is handled over DSI (no reset
+        GPIO). The backlight is driven by an on-board I2C controller, so there is
+        no backlight GPIO.
+  endchoice
+
+  config ESP32_P4_ETH_INTERRUPT_STACK_SIZE
+    int "Interrupt task stack size (bytes)"
+    default 8192
+    help
+      Size of the stack used for the GPIO interrupt handler task.
+
+  config ESP32_P4_ETH_INTERRUPT_PRIORITY
+    int "Interrupt task priority"
+    default 0
+    range 0 25
+    help
+      FreeRTOS priority of the GPIO interrupt handler task (0 = lowest). Raise it
+      if interrupt callbacks must run promptly relative to other tasks.
+
+  config ESP32_P4_ETH_INTERRUPT_CORE_ID
+    int "Interrupt task core ID"
+    default -1
+    range -1 1
+    help
+      Core to pin the GPIO interrupt handler task to (-1 = not pinned to any core).
+
+  config ESP32_P4_ETH_TOUCH_TASK_STACK_SIZE
+    int "Touch polling task stack size (bytes)"
+    default 8192
+    help
+      Size of the stack used for the GT911 touch polling task. Used only in
+      polling mode (see ESP32_P4_ETH_TOUCH_INTERRUPT).
+
+  config ESP32_P4_ETH_TOUCH_INTERRUPT
+    bool "Use interrupt-driven touch instead of polling"
+    default n
+    help
+      By default the ESP32-P4-ETH does not route the GT911 touch INT pin to the
+      ESP32-P4, so touch is polled in a task. If you wire the touch INT pin to a
+      free ESP32-P4 GPIO, enable this to read the GT911 from a GPIO interrupt
+      instead of polling (lower CPU usage and latency). The GPIO is set below and
+      can also be overridden at runtime via initialize_touch().
+
+  config ESP32_P4_ETH_TOUCH_INTERRUPT_GPIO
+    int "Touch interrupt GPIO"
+    depends on ESP32_P4_ETH_TOUCH_INTERRUPT
+    default 33
+    help
+      GPIO that the GT911 touch INT pin is wired to. Must be a free GPIO not used
+      by another on-board peripheral.
+
+endmenu
