@@ -23,27 +23,30 @@ This file is part of embeddedRTPS.
 Author: i11 - Embedded Software, RWTH Aachen University
 */
 
-#include "rtps/ThreadPool.h"
+#include "rtps/ThreadPool.hpp"
 
-#include "rtps/entities/Domain.h"
-#include "rtps/entities/Writer.h"
-#include "rtps/utils/Diagnostics.h"
-#include "rtps/utils/Log.h"
-#include "rtps/utils/udpUtils.h"
+#include "rtps/entities/Domain.hpp"
+#include "rtps/entities/Writer.hpp"
+#include "rtps/utils/Diagnostics.hpp"
+#include "rtps/utils/Log.hpp"
+#include "rtps/utils/udpUtils.hpp"
 #include "thread_pool.hpp"
 
 using rtps::ThreadPool;
 
 #if THREAD_POOL_VERBOSE && RTPS_GLOBAL_VERBOSE
-#include "rtps/utils/printutils.h"
+#include "rtps/utils/printutils.hpp"
 #define THREAD_POOL_LOG(...) logger_.warn(__VA_ARGS__)
 #else
-#define THREAD_POOL_LOG(...) do { } while (0)
+#define THREAD_POOL_LOG(...)                                                                       \
+  do {                                                                                             \
+  } while (0)
 #endif
 
 ThreadPool::ThreadPool(receiveJumppad_fp receiveCallback, void *callee)
-    : espp::BaseComponent("RtpsThreadPool", espp::Logger::Verbosity::WARN),
-      m_receiveJumppad(receiveCallback), m_callee(callee) {
+    : espp::BaseComponent("RtpsThreadPool", espp::Logger::Verbosity::WARN)
+    , m_receiveJumppad(receiveCallback)
+    , m_callee(callee) {
 
   if (!m_outgoingMetaTraffic.init() || !m_outgoingUserTraffic.init() ||
       !m_incomingMetaTraffic.init() || !m_incomingUserTraffic.init()) {
@@ -55,12 +58,13 @@ ThreadPool::ThreadPool(receiveJumppad_fp receiveCallback, void *callee)
       .max_queue_size = 0,
       .auto_start = false,
       .block_on_submit_when_full = false,
-      .worker_task_config = {
-          .name = "rtps_writer",
-          .stack_size_bytes = static_cast<size_t>(Config::THREAD_POOL_WRITER_STACKSIZE),
-          .priority = static_cast<size_t>(Config::THREAD_POOL_WRITER_PRIO),
-          .core_id = -1,
-      },
+      .worker_task_config =
+          {
+              .name = "rtps_writer",
+              .stack_size_bytes = static_cast<size_t>(Config::THREAD_POOL_WRITER_STACKSIZE),
+              .priority = static_cast<size_t>(Config::THREAD_POOL_WRITER_PRIO),
+              .core_id = -1,
+          },
       .log_level = espp::Logger::Verbosity::WARN,
   });
 
@@ -69,12 +73,13 @@ ThreadPool::ThreadPool(receiveJumppad_fp receiveCallback, void *callee)
       .max_queue_size = 0,
       .auto_start = false,
       .block_on_submit_when_full = false,
-      .worker_task_config = {
-          .name = "rtps_reader",
-          .stack_size_bytes = static_cast<size_t>(Config::THREAD_POOL_READER_STACKSIZE),
-          .priority = static_cast<size_t>(Config::THREAD_POOL_READER_PRIO),
-          .core_id = -1,
-      },
+      .worker_task_config =
+          {
+              .name = "rtps_reader",
+              .stack_size_bytes = static_cast<size_t>(Config::THREAD_POOL_READER_STACKSIZE),
+              .priority = static_cast<size_t>(Config::THREAD_POOL_READER_PRIO),
+              .core_id = -1,
+          },
       .log_level = espp::Logger::Verbosity::WARN,
   });
 }
@@ -88,23 +93,19 @@ ThreadPool::~ThreadPool() {
 void ThreadPool::updateDiagnostics() {
 
   rtps::Diagnostics::ThreadPool::max_ever_elements_incoming_usertraffic_queue =
-      std::max(rtps::Diagnostics::ThreadPool::
-                   max_ever_elements_incoming_usertraffic_queue,
+      std::max(rtps::Diagnostics::ThreadPool::max_ever_elements_incoming_usertraffic_queue,
                m_incomingUserTraffic.numElements());
 
   rtps::Diagnostics::ThreadPool::max_ever_elements_outgoing_usertraffic_queue =
-      std::max(rtps::Diagnostics::ThreadPool::
-                   max_ever_elements_outgoing_usertraffic_queue,
+      std::max(rtps::Diagnostics::ThreadPool::max_ever_elements_outgoing_usertraffic_queue,
                m_outgoingUserTraffic.numElements());
 
   rtps::Diagnostics::ThreadPool::max_ever_elements_incoming_metatraffic_queue =
-      std::max(rtps::Diagnostics::ThreadPool::
-                   max_ever_elements_incoming_metatraffic_queue,
+      std::max(rtps::Diagnostics::ThreadPool::max_ever_elements_incoming_metatraffic_queue,
                m_incomingMetaTraffic.numElements());
 
   rtps::Diagnostics::ThreadPool::max_ever_elements_outgoing_metatraffic_queue =
-      std::max(rtps::Diagnostics::ThreadPool::
-                   max_ever_elements_outgoing_metatraffic_queue,
+      std::max(rtps::Diagnostics::ThreadPool::max_ever_elements_outgoing_metatraffic_queue,
                m_outgoingMetaTraffic.numElements());
 }
 
@@ -150,11 +151,11 @@ bool ThreadPool::addWorkload(Writer *workload) {
     res = m_outgoingUserTraffic.moveElementIntoBuffer(std::move(workload));
   }
   if (!res) {
-	if(workload->isBuiltinEndpoint()){
-		rtps::Diagnostics::ThreadPool::dropped_outgoing_packets_metatraffic++;
-	}else{
-		rtps::Diagnostics::ThreadPool::dropped_outgoing_packets_usertraffic++;
-	}
+    if (workload->isBuiltinEndpoint()) {
+      rtps::Diagnostics::ThreadPool::dropped_outgoing_packets_metatraffic++;
+    } else {
+      rtps::Diagnostics::ThreadPool::dropped_outgoing_packets_usertraffic++;
+    }
     THREAD_POOL_LOG("Failed to enqueue outgoing packet.");
     return false;
   }
@@ -236,17 +237,17 @@ void ThreadPool::doWriterWork() {
     }
 
     // THREAD_POOL_LOG("WriterWorker | User = %u, Meta = %u\r\n",
-    //                 static_cast<unsigned int>(Diagnostics::ThreadPool::processed_outgoing_usertraffic),
-    //                 static_cast<unsigned int>(Diagnostics::ThreadPool::processed_outgoing_metatraffic));
+    //                 static_cast<unsigned
+    //                 int>(Diagnostics::ThreadPool::processed_outgoing_usertraffic),
+    //                 static_cast<unsigned
+    //                 int>(Diagnostics::ThreadPool::processed_outgoing_metatraffic));
     updateDiagnostics();
     return;
   }
 }
 
-void ThreadPool::onDatagram(
-    void *arg, const uint8_t *data, std::size_t size, Ip4Port_t localPort,
-    Ip4Port_t remotePort,
-    const Ip4AddressBytes &remoteAddress) {
+void ThreadPool::onDatagram(void *arg, const uint8_t *data, std::size_t size, Ip4Port_t localPort,
+                            Ip4Port_t remotePort, const Ip4AddressBytes &remoteAddress) {
   auto &pool = *static_cast<ThreadPool *>(arg);
 
   PacketInfo packet;
@@ -289,16 +290,18 @@ void ThreadPool::doReaderWork() {
     auto isMetaWorkToDo = m_incomingMetaTraffic.moveFirstInto(packet_meta);
     if (isMetaWorkToDo) {
       Diagnostics::ThreadPool::processed_incoming_metatraffic++;
-      THREAD_POOL_LOG("ReaderWorker | Processing meta traffic with size {}", static_cast<unsigned int>(packet_meta.payload.size()));
+      THREAD_POOL_LOG("ReaderWorker | Processing meta traffic with size {}",
+                      static_cast<unsigned int>(packet_meta.payload.size()));
       m_receiveJumppad(m_callee, const_cast<const PacketInfo &>(packet_meta));
     }
 
     if (isUserWorkToDo || isMetaWorkToDo) {
       continue;
     }
-    THREAD_POOL_LOG("ReaderWorker | User = {}, Meta = {}",
-                    static_cast<unsigned int>(Diagnostics::ThreadPool::processed_incoming_usertraffic),
-                    static_cast<unsigned int>(Diagnostics::ThreadPool::processed_incoming_metatraffic));
+    THREAD_POOL_LOG(
+        "ReaderWorker | User = {}, Meta = {}",
+        static_cast<unsigned int>(Diagnostics::ThreadPool::processed_incoming_usertraffic),
+        static_cast<unsigned int>(Diagnostics::ThreadPool::processed_incoming_metatraffic));
     updateDiagnostics();
     return;
   }

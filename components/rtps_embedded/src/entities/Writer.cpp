@@ -1,15 +1,15 @@
-#include "rtps/utils/Log.h"
-#include <rtps/config.h>
-#include <rtps/entities/ReaderProxy.h>
-#include <rtps/entities/StatefulWriter.h>
-#include <rtps/entities/Writer.h>
-#include <rtps/storages/MemoryPool.h>
+#include "rtps/utils/Log.hpp"
 #include <mutex>
+#include <rtps/config.hpp>
+#include <rtps/entities/ReaderProxy.hpp>
+#include <rtps/entities/StatefulWriter.hpp>
+#include <rtps/entities/Writer.hpp>
+#include <rtps/storages/MemoryPool.hpp>
 
 using namespace rtps;
 
 Writer::Writer()
-  : espp::BaseComponent("RtpsWriter", espp::Logger::Verbosity::WARN) {}
+    : espp::BaseComponent("RtpsWriter", espp::Logger::Verbosity::WARN) {}
 
 bool rtps::Writer::addNewMatchedReader(const ReaderProxy &newProxy) {
   INIT_GUARD();
@@ -28,9 +28,7 @@ bool rtps::Writer::addNewMatchedReader(const ReaderProxy &newProxy) {
 bool rtps::Writer::removeProxy(const Guid_t &guid) {
   INIT_GUARD()
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
-  auto isElementToRemove = [&](const ReaderProxy &proxy) {
-    return proxy.remoteReaderGuid == guid;
-  };
+  auto isElementToRemove = [&](const ReaderProxy &proxy) { return proxy.remoteReaderGuid == guid; };
   auto thunk = [](void *arg, const ReaderProxy &value) {
     return (*static_cast<decltype(isElementToRemove) *>(arg))(value);
   };
@@ -55,8 +53,7 @@ void rtps::Writer::resetSendOptions() {
   manageSendOptions();
 }
 
-const rtps::CacheChange *rtps::Writer::newChange(ChangeKind_t kind,
-                                                 const uint8_t *data,
+const rtps::CacheChange *rtps::Writer::newChange(ChangeKind_t kind, const uint8_t *data,
                                                  DataSize_t size) {
   return newChange(kind, data, size, false, false);
 }
@@ -65,26 +62,23 @@ void rtps::Writer::manageSendOptions() {
   INIT_GUARD();
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   for (auto &proxy : m_proxies) {
-    if (proxy.remoteMulticastLocator.kind ==
-        LocatorKind_t::LOCATOR_KIND_INVALID) {
+    if (proxy.remoteMulticastLocator.kind == LocatorKind_t::LOCATOR_KIND_INVALID) {
       proxy.suppressUnicast = false;
       proxy.useMulticast = false;
     } else {
       bool found = false;
       for (auto &avproxy : m_proxies) {
-        if (avproxy.remoteMulticastLocator.kind ==
-                LocatorKind_t::LOCATOR_KIND_UDPv4 &&
-          avproxy.remoteMulticastLocator.getIp4AddressBytes() ==
-            proxy.remoteMulticastLocator.getIp4AddressBytes() &&
-          avproxy.remoteLocator.getIp4AddressBytes() !=
-            proxy.remoteLocator.getIp4AddressBytes()) {
+        if (avproxy.remoteMulticastLocator.kind == LocatorKind_t::LOCATOR_KIND_UDPv4 &&
+            avproxy.remoteMulticastLocator.getIp4AddressBytes() ==
+                proxy.remoteMulticastLocator.getIp4AddressBytes() &&
+            avproxy.remoteLocator.getIp4AddressBytes() !=
+                proxy.remoteLocator.getIp4AddressBytes()) {
           if (avproxy.suppressUnicast == false) {
             avproxy.useMulticast = false;
             avproxy.suppressUnicast = true;
             proxy.useMulticast = true;
             proxy.suppressUnicast = true;
-            if (avproxy.remoteReaderGuid.entityId !=
-                proxy.remoteReaderGuid.entityId) {
+            if (avproxy.remoteReaderGuid.entityId != proxy.remoteReaderGuid.entityId) {
               proxy.unknown_eid = true;
             }
           }
@@ -99,8 +93,7 @@ void rtps::Writer::manageSendOptions() {
   }
 }
 
-void rtps::Writer::removeAllProxiesOfParticipant(
-    const GuidPrefix_t &guidPrefix) {
+void rtps::Writer::removeAllProxiesOfParticipant(const GuidPrefix_t &guidPrefix) {
   INIT_GUARD();
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   auto isElementToRemove = [&](const ReaderProxy &proxy) {

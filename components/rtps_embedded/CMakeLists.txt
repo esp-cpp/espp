@@ -23,8 +23,8 @@ idf_component_register(
     "include"
     "thirdparty/Micro-CDR/include"
   REQUIRES
-    base_component cdr task thread_pool socket
+    base_component task thread_pool socket
 )
 
 # target_compile_features(${COMPONENT_LIB} PUBLIC cxx_std_17)
-# target_compile_definitions(${COMPONENT_LIB} PUBLIC RTPS_CONFIG_HEADER=\"rtps/config_esp32.h\")
+# target_compile_definitions(${COMPONENT_LIB} PUBLIC RTPS_CONFIG_HEADER=\"rtps/config_esp32.hpp\")

@@ -1,4 +1,4 @@
-#include <rtps/utils/Diagnostics.h>
+#include <rtps/utils/Diagnostics.hpp>
 
 namespace rtps {
 namespace Diagnostics {

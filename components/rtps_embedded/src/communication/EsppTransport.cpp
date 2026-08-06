@@ -23,7 +23,7 @@ This file is part of embeddedRTPS.
 Author: i11 - Embedded Software, RWTH Aachen University
 */
 
-#include "rtps/communication/EsppTransport.h"
+#include "rtps/communication/EsppTransport.hpp"
 
 #include "task.hpp"
 
@@ -36,8 +36,7 @@ using rtps::EsppTransport;
 
 namespace {
 
-bool parseIp4Address(const std::string &address,
-                     rtps::Ip4AddressBytes &out) {
+bool parseIp4Address(const std::string &address, rtps::Ip4AddressBytes &out) {
   rtps::Ip4AddressBytes parsed{0, 0, 0, 0};
   const char *cursor = address.c_str();
 
@@ -70,8 +69,9 @@ bool isMulticastAddress(const rtps::Ip4AddressBytes &addr) {
 } // namespace
 
 EsppTransport::EsppTransport(RxCallback callback, void *args)
-    : espp::BaseComponent("RtpsTransport", espp::Logger::Verbosity::WARN),
-      m_rxCallback(callback), m_callbackArgs(args) {}
+    : espp::BaseComponent("RtpsTransport", espp::Logger::Verbosity::WARN)
+    , m_rxCallback(callback)
+    , m_callbackArgs(args) {}
 
 EsppTransport::Channel *EsppTransport::findChannel(Ip4Port_t port) {
   for (auto &channel : m_channels) {
@@ -91,10 +91,9 @@ const EsppTransport::Channel *EsppTransport::findChannel(Ip4Port_t port) const {
   return nullptr;
 }
 
-std::string EsppTransport::ip4ToString(
-  const Ip4AddressBytes &addr) {
-  return std::to_string(addr[0]) + "." + std::to_string(addr[1]) + "." +
-         std::to_string(addr[2]) + "." + std::to_string(addr[3]);
+std::string EsppTransport::ip4ToString(const Ip4AddressBytes &addr) {
+  return std::to_string(addr[0]) + "." + std::to_string(addr[1]) + "." + std::to_string(addr[2]) +
+         "." + std::to_string(addr[3]);
 }
 
 bool EsppTransport::startReceiver(Channel &channel, Ip4Port_t receivePort) {
@@ -112,11 +111,10 @@ bool EsppTransport::startReceiver(Channel &channel, Ip4Port_t receivePort) {
 
   espp::UdpSocket::ReceiveConfig receive_config;
   receive_config.port = receivePort;
-  receive_config.buffer_size = 1024*8;
+  receive_config.buffer_size = 1024 * 8;
   receive_config.on_receive_callback =
       [this, receivePort](std::vector<uint8_t> &data,
-                          const espp::Socket::Info &sender)
-      -> std::optional<std::vector<uint8_t>> {
+                          const espp::Socket::Info &sender) -> std::optional<std::vector<uint8_t>> {
     onReceive(receivePort, data, sender);
     return std::nullopt;
   };
@@ -135,7 +133,7 @@ EsppTransport::Channel *EsppTransport::createChannel(Ip4Port_t receivePort) {
     }
 
     espp::UdpSocket::Config socket_config;
-    socket_config.log_level = espp::Logger::Verbosity::DEBUG;
+    socket_config.log_level = espp::Logger::Verbosity::WARN;
     channel.socket = std::make_unique<espp::UdpSocket>(socket_config);
     if (!channel.socket || !channel.socket->is_valid()) {
       logger_.error("Failed to create valid UDP socket for port {}", receivePort);
@@ -169,10 +167,10 @@ void EsppTransport::onReceive(Ip4Port_t receivePort, std::vector<uint8_t> &data,
 
   Ip4AddressBytes remoteAddress{0, 0, 0, 0};
   if (!parseIp4Address(sender.address, remoteAddress)) {
-    logger_.warn("Could not parse sender IPv4 address '{}', using 0.0.0.0",
-                 sender.address);
+    logger_.warn("Could not parse sender IPv4 address '{}', using 0.0.0.0", sender.address);
   }
-  logger_.debug("received {} bytes on port {}", static_cast<unsigned int>(data.size()), receivePort);
+  logger_.debug("received {} bytes on port {}", static_cast<unsigned int>(data.size()),
+                receivePort);
   m_rxCallback(m_callbackArgs, data.data(), data.size(), receivePort,
                static_cast<Ip4Port_t>(sender.port), remoteAddress);
 }
@@ -189,8 +187,7 @@ bool EsppTransport::ensureReceivePort(Ip4Port_t receivePort) {
   return created != nullptr;
 }
 
-bool EsppTransport::joinMultiCastGroup(
-  const Ip4AddressBytes &addr) const {
+bool EsppTransport::joinMultiCastGroup(const Ip4AddressBytes &addr) const {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
   const std::string group = ip4ToString(addr);

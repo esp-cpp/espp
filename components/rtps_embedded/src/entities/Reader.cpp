@@ -1,9 +1,9 @@
-#include <rtps/entities/Reader.h>
-#include <rtps/entities/StatefulReader.h>
-#include <rtps/entities/StatelessReader.h>
-#include <rtps/utils/Log.h>
-#include <rtps/utils/printutils.h>
 #include <mutex>
+#include <rtps/entities/Reader.hpp>
+#include <rtps/entities/StatefulReader.hpp>
+#include <rtps/entities/StatelessReader.hpp>
+#include <rtps/utils/Log.hpp>
+#include <rtps/utils/printutils.hpp>
 
 using namespace rtps;
 
@@ -21,9 +21,7 @@ void Reader::executeCallbacks(const ReaderCacheChange &cacheChange) {
   }
 }
 
-bool Reader::initMutex() {
-  return true;
-}
+bool Reader::initMutex() { return true; }
 
 void Reader::reset() {
   std::lock_guard<std::recursive_mutex> lock1(m_proxies_mutex);
@@ -49,17 +47,14 @@ bool Reader::isProxy(const Guid_t &guid) {
 }
 
 WriterProxy *Reader::getProxy(Guid_t guid) {
-  auto isElementToFind = [&](const WriterProxy &proxy) {
-    return proxy.remoteWriterGuid == guid;
-  };
+  auto isElementToFind = [&](const WriterProxy &proxy) { return proxy.remoteWriterGuid == guid; };
   auto thunk = [](void *arg, const WriterProxy &value) {
     return (*static_cast<decltype(isElementToFind) *>(arg))(value);
   };
   return m_proxies.find(thunk, &isElementToFind);
 }
 
-Reader::callbackIdentifier_t
-Reader::registerCallback(Reader::callbackFunction_t cb, void *arg) {
+Reader::callbackIdentifier_t Reader::registerCallback(Reader::callbackFunction_t cb, void *arg) {
   std::lock_guard<std::recursive_mutex> lock(m_callback_mutex);
   if (m_callback_count == m_callbacks.size() || cb == nullptr) {
     return false;
@@ -110,9 +105,7 @@ void Reader::removeAllProxiesOfParticipant(const GuidPrefix_t &guidPrefix) {
 
 bool Reader::removeProxy(const Guid_t &guid) {
   std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
-  auto isElementToRemove = [&](const WriterProxy &proxy) {
-    return proxy.remoteWriterGuid == guid;
-  };
+  auto isElementToRemove = [&](const WriterProxy &proxy) { return proxy.remoteWriterGuid == guid; };
   auto thunk = [](void *arg, const WriterProxy &value) {
     return (*static_cast<decltype(isElementToRemove) *>(arg))(value);
   };
@@ -148,6 +141,4 @@ int rtps::Reader::dumpAllProxies(dumpProxyCallback target, void *arg) {
   return dump_count;
 }
 
-bool rtps::Reader::sendPreemptiveAckNack(const WriterProxy &writer) {
-  return true;
-}
+bool rtps::Reader::sendPreemptiveAckNack(const WriterProxy &writer) { return true; }

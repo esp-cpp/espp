@@ -11,7 +11,7 @@
 #include <thread>
 
 #include "espp.hpp"
-#include "rtps/entities/Domain.h"
+#include "rtps/entities/Domain.hpp"
 #include "rtps_common.hpp"
 
 namespace {
@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-    // Keep topic/type names short because embeddedRTPS desktop config caps lengths.
+  // Keep topic/type names short because embeddedRTPS desktop config caps lengths.
   rtps::Reader *reader =
       domain.createReader(*participant, topic.c_str(), "std_msgs::msg::String", false);
   if (reader == nullptr) {
@@ -103,8 +103,8 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  logger.info("subscribing on '{}' from {} (run_seconds={} / 0=forever)", topic,
-              local_ip_string, run_seconds);
+  logger.info("subscribing on '{}' from {} (run_seconds={} / 0=forever)", topic, local_ip_string,
+              run_seconds);
 
   const auto start_time = std::chrono::steady_clock::now();
   while (true) {
@@ -113,15 +113,13 @@ int main(int argc, char **argv) {
       std::lock_guard<std::mutex> lock(state.mutex);
       last_message = state.last_message;
     }
-    logger.info("received {} samples, last='{}'", state.received_count.load(),
-                last_message);
+    logger.info("received {} samples, last='{}'", state.received_count.load(), last_message);
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
     if (run_seconds > 0) {
-      const auto elapsed =
-          std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() -
-                                                           start_time)
-              .count();
+      const auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
+                               std::chrono::steady_clock::now() - start_time)
+                               .count();
       if (elapsed >= run_seconds) {
         break;
       }

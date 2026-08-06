@@ -23,14 +23,14 @@ This file is part of embeddedRTPS.
 Author: i11 - Embedded Software, RWTH Aachen University
 */
 
-#include <rtps/entities/ReaderProxy.h>
-#include <rtps/entities/Writer.h>
+#include <rtps/entities/ReaderProxy.hpp>
+#include <rtps/entities/Writer.hpp>
 
-#include "rtps/ThreadPool.h"
-#include "rtps/messages/MessageFactory.h"
-#include "rtps/storages/PayloadBuffer.h"
-#include "rtps/utils/Log.h"
-#include "rtps/utils/udpUtils.h"
+#include "rtps/ThreadPool.hpp"
+#include "rtps/messages/MessageFactory.hpp"
+#include "rtps/storages/PayloadBuffer.hpp"
+#include "rtps/utils/Log.hpp"
+#include "rtps/utils/udpUtils.hpp"
 #include <mutex>
 
 using rtps::CacheChange;
@@ -40,24 +40,23 @@ using rtps::StatelessWriterT;
 using rtps::SubmessageAckNack;
 
 #if SLW_VERBOSE && RTPS_GLOBAL_VERBOSE
-#include "rtps/utils/printutils.h"
+#include "rtps/utils/printutils.hpp"
 #define SLW_LOG(...) logger_.warn(__VA_ARGS__)
 #else
-#define SLW_LOG(...) do { } while (0)
+#define SLW_LOG(...)                                                                               \
+  do {                                                                                             \
+  } while (0)
 #endif
 
-template <class NetworkDriver>
-StatelessWriterT<NetworkDriver>::~StatelessWriterT() {
+template <class NetworkDriver> StatelessWriterT<NetworkDriver>::~StatelessWriterT() {
   //  if(sys_mutex_valid(&m_mutex)){
   //    sys_mutex_free(&m_mutex);
   //  }
 }
 
 template <typename NetworkDriver>
-bool StatelessWriterT<NetworkDriver>::init(TopicData attributes,
-                                           TopicKind_t topicKind,
-                                           ThreadPool *threadPool,
-                                           NetworkDriver &driver,
+bool StatelessWriterT<NetworkDriver>::init(TopicData attributes, TopicKind_t topicKind,
+                                           ThreadPool *threadPool, NetworkDriver &driver,
                                            bool enfUnicast) {
 
   m_attributes = attributes;
@@ -78,15 +77,15 @@ bool StatelessWriterT<NetworkDriver>::init(TopicData attributes,
   return true;
 }
 
-template <typename NetworkDriver>
-void StatelessWriterT<NetworkDriver>::reset() {
+template <typename NetworkDriver> void StatelessWriterT<NetworkDriver>::reset() {
   m_is_initialized_ = false;
 }
 
 template <typename NetworkDriver>
-const CacheChange *StatelessWriterT<NetworkDriver>::newChange(
-    rtps::ChangeKind_t kind, const uint8_t *data, DataSize_t size,
-    bool inLineQoS, bool markDisposedAfterWrite) {
+const CacheChange *StatelessWriterT<NetworkDriver>::newChange(rtps::ChangeKind_t kind,
+                                                              const uint8_t *data, DataSize_t size,
+                                                              bool inLineQoS,
+                                                              bool markDisposedAfterWrite) {
   INIT_GUARD();
   if (isIrrelevant(kind)) {
     return nullptr;
@@ -99,8 +98,7 @@ const CacheChange *StatelessWriterT<NetworkDriver>::newChange(
   if (m_history.isFull()) {
     SequenceNumber_t newMin = ++SequenceNumber_t(m_history.getSeqNumMin());
     if (m_nextSequenceNumberToSend < newMin) {
-      m_nextSequenceNumberToSend =
-          newMin; // Make sure we have the correct sn to send
+      m_nextSequenceNumberToSend = newMin; // Make sure we have the correct sn to send
     }
     SLW_LOG("History is full, dropping oldest {}", this->m_attributes.topicName);
   }
@@ -115,14 +113,12 @@ const CacheChange *StatelessWriterT<NetworkDriver>::newChange(
 }
 
 template <typename NetworkDriver>
-bool StatelessWriterT<NetworkDriver>::removeFromHistory(
-    const SequenceNumber_t &s) {
+bool StatelessWriterT<NetworkDriver>::removeFromHistory(const SequenceNumber_t &s) {
   return false; // Stateless Writers currently do not support deletion from
                 // history
 }
 
-template <typename NetworkDriver>
-void StatelessWriterT<NetworkDriver>::setAllChangesToUnsent() {
+template <typename NetworkDriver> void StatelessWriterT<NetworkDriver>::setAllChangesToUnsent() {
   INIT_GUARD();
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
@@ -134,14 +130,13 @@ void StatelessWriterT<NetworkDriver>::setAllChangesToUnsent() {
 }
 
 template <typename NetworkDriver>
-void StatelessWriterT<NetworkDriver>::onNewAckNack(
-    const SubmessageAckNack & /*msg*/, const GuidPrefix_t &sourceGuidPrefix) {
+void StatelessWriterT<NetworkDriver>::onNewAckNack(const SubmessageAckNack & /*msg*/,
+                                                   const GuidPrefix_t &sourceGuidPrefix) {
   INIT_GUARD();
   // Too lazy to respond
 }
 
-template <typename NetworkDriver>
-void StatelessWriterT<NetworkDriver>::progress() {
+template <typename NetworkDriver> void StatelessWriterT<NetworkDriver>::progress() {
   INIT_GUARD();
   // TODO smarter packaging e.g. by creating MessageStruct and serializing
   // after adjusting values.
@@ -164,17 +159,14 @@ void StatelessWriterT<NetworkDriver>::progress() {
 
       {
         std::lock_guard<std::recursive_mutex> lock(m_mutex);
-        const CacheChange *next =
-            m_history.getChangeBySN(m_nextSequenceNumberToSend);
+        const CacheChange *next = m_history.getChangeBySN(m_nextSequenceNumberToSend);
         if (next == nullptr) {
           SLW_LOG("Couldn't get a new CacheChange with SN "
                   "(%li,%li)\n",
-                  m_nextSequenceNumberToSend.high,
-                  m_nextSequenceNumberToSend.low);
+                  m_nextSequenceNumberToSend.high, m_nextSequenceNumberToSend.low);
           return;
         } else {
-            SLW_LOG("Sending change with SN ({},{})",
-                  m_nextSequenceNumberToSend.high,
+          SLW_LOG("Sending change with SN ({},{})", m_nextSequenceNumberToSend.high,
                   m_nextSequenceNumberToSend.low);
         }
 
@@ -187,8 +179,7 @@ void StatelessWriterT<NetworkDriver>::progress() {
         } else {
           reid = proxy.remoteReaderGuid.entityId;
         }
-        MessageFactory::addSubMessageData(payload, next->data, false,
-                                          next->sequenceNumber,
+        MessageFactory::addSubMessageData(payload, next->data, false, next->sequenceNumber,
                                           m_attributes.endpointGuid.entityId,
                                           reid); // TODO
       }
@@ -205,8 +196,8 @@ void StatelessWriterT<NetworkDriver>::progress() {
         info.destAddr = proxy.remoteLocator.getIp4AddressBytes();
         info.destPort = (Ip4Port_t)proxy.remoteLocator.port;
       }
-      SLW_LOG("Sending to {}.{}.{}.{}:{}", info.destAddr[0], info.destAddr[1],
-              info.destAddr[2], info.destAddr[3], info.destPort);
+      SLW_LOG("Sending to {}.{}.{}.{}:{}", info.destAddr[0], info.destAddr[1], info.destAddr[2],
+              info.destAddr[3], info.destPort);
       if (info.payload.empty()) {
         continue;
       }

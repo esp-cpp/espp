@@ -9,7 +9,7 @@
 
 #include "esp32-ethernet-kit.hpp"
 #include "logger.hpp"
-#include "rtps/entities/Domain.h"
+#include "rtps/entities/Domain.hpp"
 #include "ucdr/microcdr.h"
 
 using namespace std::chrono_literals;

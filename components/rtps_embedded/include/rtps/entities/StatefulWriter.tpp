@@ -23,33 +23,34 @@ This file is part of embeddedRTPS.
 Author: i11 - Embedded Software, RWTH Aachen University
 */
 
-#include "rtps/entities/StatefulWriter.h"
-#include "rtps/messages/MessageFactory.h"
-#include "rtps/messages/MessageTypes.h"
-#include "rtps/storages/PayloadBuffer.h"
-#include "rtps/utils/Log.h"
+#include "rtps/entities/StatefulWriter.hpp"
+#include "rtps/messages/MessageFactory.hpp"
+#include "rtps/messages/MessageTypes.hpp"
+#include "rtps/storages/PayloadBuffer.hpp"
+#include "rtps/utils/Log.hpp"
 #include <chrono>
+#include <cstdio>
 #include <cstring>
 #include <mutex>
-#include <stdio.h>
 #include <thread>
 
-using rtps::StatefulWriterT;
 using rtps::CacheChange;
 using rtps::GuidPrefix_t;
 using rtps::ReaderProxy;
 using rtps::SequenceNumber_t;
+using rtps::StatefulWriterT;
 using rtps::SubmessageAckNack;
 
 #if SFW_VERBOSE && RTPS_GLOBAL_VERBOSE
-#include "rtps/utils/printutils.h"
+#include "rtps/utils/printutils.hpp"
 #define SFW_LOG(...) logger_.warn(__VA_ARGS__)
 #else
-#define SFW_LOG(...) do { } while (0)
+#define SFW_LOG(...)                                                                               \
+  do {                                                                                             \
+  } while (0)
 #endif
 
-template <class NetworkDriver>
-StatefulWriterT<NetworkDriver>::~StatefulWriterT() {
+template <class NetworkDriver> StatefulWriterT<NetworkDriver>::~StatefulWriterT() {
   m_running = false;
   if (m_heartbeatTask) {
     m_heartbeatTask->stop();
@@ -61,10 +62,8 @@ StatefulWriterT<NetworkDriver>::~StatefulWriterT() {
 }
 
 template <class NetworkDriver>
-bool StatefulWriterT<NetworkDriver>::init(TopicData attributes,
-                                          TopicKind_t topicKind,
-                                          ThreadPool *threadPool,
-                                          NetworkDriver &driver,
+bool StatefulWriterT<NetworkDriver>::init(TopicData attributes, TopicKind_t topicKind,
+                                          ThreadPool *threadPool, NetworkDriver &driver,
                                           bool enfUnicast) {
 
   m_attributes = attributes;
@@ -95,11 +94,9 @@ bool StatefulWriterT<NetworkDriver>::init(TopicData attributes,
     m_thread_running = false;
 
     const char *task_name = "HBThread";
-    if (m_attributes.endpointGuid.entityId ==
-        ENTITYID_SEDP_BUILTIN_PUBLICATIONS_WRITER) {
+    if (m_attributes.endpointGuid.entityId == ENTITYID_SEDP_BUILTIN_PUBLICATIONS_WRITER) {
       task_name = "HBThreadPub";
-    } else if (m_attributes.endpointGuid.entityId ==
-               ENTITYID_SEDP_BUILTIN_SUBSCRIPTIONS_WRITER) {
+    } else if (m_attributes.endpointGuid.entityId == ENTITYID_SEDP_BUILTIN_SUBSCRIPTIONS_WRITER) {
       task_name = "HBThreadSub";
     }
 
@@ -128,9 +125,9 @@ template <class NetworkDriver> void StatefulWriterT<NetworkDriver>::reset() {
 }
 
 template <class NetworkDriver>
-const rtps::CacheChange *StatefulWriterT<NetworkDriver>::newChange(
-    ChangeKind_t kind, const uint8_t *data, DataSize_t size, bool inLineQoS,
-    bool markDisposedAfterWrite) {
+const rtps::CacheChange *
+StatefulWriterT<NetworkDriver>::newChange(ChangeKind_t kind, const uint8_t *data, DataSize_t size,
+                                          bool inLineQoS, bool markDisposedAfterWrite) {
   INIT_GUARD()
   if (isIrrelevant(kind)) {
     return nullptr;
@@ -144,17 +141,14 @@ const rtps::CacheChange *StatefulWriterT<NetworkDriver>::newChange(
   if (m_history.isFull()) {
     // Right now we drop elements anyway because we cannot detect non-responding
     // readers yet. return nullptr;
-    SequenceNumber_t newMin =
-        ++SequenceNumber_t(m_history.getCurrentSeqNumMin());
+    SequenceNumber_t newMin = ++SequenceNumber_t(m_history.getCurrentSeqNumMin());
     if (m_nextSequenceNumberToSend < newMin) {
-      m_nextSequenceNumberToSend =
-          newMin; // Make sure we have the correct sn to send
+      m_nextSequenceNumberToSend = newMin; // Make sure we have the correct sn to send
     }
     SFW_LOG("History full! Dropping changes {}.", this->m_attributes.topicName);
   }
 
-  auto *result =
-      m_history.addChange(data, size, inLineQoS, markDisposedAfterWrite);
+  auto *result = m_history.addChange(data, size, inLineQoS, markDisposedAfterWrite);
   if (mp_threadPool != nullptr) {
     mp_threadPool->addWorkload(this);
   }
@@ -200,8 +194,8 @@ template <class NetworkDriver> void StatefulWriterT<NetworkDriver>::progress() {
         SFW_LOG("Failed to enqueue dispose after write!");
         m_history.dropChange(next->sequenceNumber);
       } else {
-        SFW_LOG("Delayed dispose scheduled for sn {} {}",
-                (int)next->sequenceNumber.high, (int)next->sequenceNumber.low);
+        SFW_LOG("Delayed dispose scheduled for sn {} {}", (int)next->sequenceNumber.high,
+                (int)next->sequenceNumber.low);
       }
     }
 
@@ -210,13 +204,12 @@ template <class NetworkDriver> void StatefulWriterT<NetworkDriver>::progress() {
     sendHeartBeat();
 
   } else {
-    SFW_LOG("Couldn't get a CacheChange with SN ({},{})",
-            m_nextSequenceNumberToSend.high, m_nextSequenceNumberToSend.low);
+    SFW_LOG("Couldn't get a CacheChange with SN ({},{})", m_nextSequenceNumberToSend.high,
+            m_nextSequenceNumberToSend.low);
   }
 }
 
-template <class NetworkDriver>
-void StatefulWriterT<NetworkDriver>::setAllChangesToUnsent() {
+template <class NetworkDriver> void StatefulWriterT<NetworkDriver>::setAllChangesToUnsent() {
   INIT_GUARD()
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
@@ -228,8 +221,8 @@ void StatefulWriterT<NetworkDriver>::setAllChangesToUnsent() {
 }
 
 template <class NetworkDriver>
-void StatefulWriterT<NetworkDriver>::onNewAckNack(
-    const SubmessageAckNack &msg, const GuidPrefix_t &sourceGuidPrefix) {
+void StatefulWriterT<NetworkDriver>::onNewAckNack(const SubmessageAckNack &msg,
+                                                  const GuidPrefix_t &sourceGuidPrefix) {
   INIT_GUARD()
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   if (!m_is_initialized_) {
@@ -291,10 +284,9 @@ void StatefulWriterT<NetworkDriver>::onNewAckNack(
     return;
   }
 
-  SFW_LOG("Received non-preemptive acknack with {} bits set.",
-          msg.readerSNState.numBits);
-  for (uint32_t i = 0; i < msg.readerSNState.numBits &&
-                       nextSN <= m_history.getLastUsedSequenceNumber();
+  SFW_LOG("Received non-preemptive acknack with {} bits set.", msg.readerSNState.numBits);
+  for (uint32_t i = 0;
+       i < msg.readerSNState.numBits && nextSN <= m_history.getLastUsedSequenceNumber();
        ++i, ++nextSN) {
 
     if (msg.readerSNState.isSet(i)) {
@@ -309,14 +301,12 @@ void StatefulWriterT<NetworkDriver>::onNewAckNack(
         }
         sendData(*reader, cache);
       } else {
-        SFW_LOG("> Change not found, search for next valid SN {}",
-                nextSN.low);
+        SFW_LOG("> Change not found, search for next valid SN {}", nextSN.low);
         // Cache not found, look for next valid SN
         rtps::SequenceNumber_t gapBegin = nextSN;
         rtps::CacheChange *nextValidChange = nullptr;
         uint32_t j = i + 1;
-        for (++nextSN; nextSN <= m_history.getLastUsedSequenceNumber();
-             ++nextSN, ++j) {
+        for (++nextSN; nextSN <= m_history.getLastUsedSequenceNumber(); ++nextSN, ++j) {
           nextValidChange = m_history.getChangeBySN(nextSN);
           if (nextValidChange != nullptr) {
             break;
@@ -338,15 +328,13 @@ void StatefulWriterT<NetworkDriver>::onNewAckNack(
 }
 
 template <class NetworkDriver>
-bool rtps::StatefulWriterT<NetworkDriver>::removeFromHistory(
-    const SequenceNumber_t &s) {
+bool rtps::StatefulWriterT<NetworkDriver>::removeFromHistory(const SequenceNumber_t &s) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   return m_history.dropChange(s);
 }
 
 template <class NetworkDriver>
-bool StatefulWriterT<NetworkDriver>::sendData(const ReaderProxy &reader,
-                                              const CacheChange *next) {
+bool StatefulWriterT<NetworkDriver>::sendData(const ReaderProxy &reader, const CacheChange *next) {
   INIT_GUARD()
   // TODO smarter packaging, e.g. create a message struct and serialize once.
 
@@ -363,9 +351,9 @@ bool StatefulWriterT<NetworkDriver>::sendData(const ReaderProxy &reader,
   info.destAddr = locator.getIp4AddressBytes();
   info.destPort = (Ip4Port_t)locator.port;
 
-  MessageFactory::addSubMessageData(
-      payload, next->data, next->inLineQoS, next->sequenceNumber,
-      m_attributes.endpointGuid.entityId, reader.remoteReaderGuid.entityId);
+  MessageFactory::addSubMessageData(payload, next->data, next->inLineQoS, next->sequenceNumber,
+                                    m_attributes.endpointGuid.entityId,
+                                    reader.remoteReaderGuid.entityId);
   info.payload = std::move(payload.bytes);
   if (info.payload.empty()) {
     return false;
@@ -376,9 +364,9 @@ bool StatefulWriterT<NetworkDriver>::sendData(const ReaderProxy &reader,
 }
 
 template <class NetworkDriver>
-void StatefulWriterT<NetworkDriver>::sendGap(
-    const ReaderProxy &reader, const SequenceNumber_t &firstMissing,
-    const SequenceNumber_t &nextValid) {
+void StatefulWriterT<NetworkDriver>::sendGap(const ReaderProxy &reader,
+                                             const SequenceNumber_t &firstMissing,
+                                             const SequenceNumber_t &nextValid) {
   INIT_GUARD()
   // TODO smarter packaging, e.g. create a message struct and serialize once.
 
@@ -395,9 +383,8 @@ void StatefulWriterT<NetworkDriver>::sendGap(
   info.destAddr = locator.getIp4AddressBytes();
   info.destPort = (Ip4Port_t)locator.port;
 
-  MessageFactory::addSubmessageGap(
-      payload, m_attributes.endpointGuid.entityId,
-      reader.remoteReaderGuid.entityId, firstMissing, nextValid);
+  MessageFactory::addSubmessageGap(payload, m_attributes.endpointGuid.entityId,
+                                   reader.remoteReaderGuid.entityId, firstMissing, nextValid);
   info.payload = std::move(payload.bytes);
   if (info.payload.empty()) {
     return;
@@ -406,8 +393,8 @@ void StatefulWriterT<NetworkDriver>::sendGap(
 }
 
 template <class NetworkDriver>
-bool StatefulWriterT<NetworkDriver>::sendDataWRMulticast(
-    const ReaderProxy &reader, const CacheChange *next) {
+bool StatefulWriterT<NetworkDriver>::sendDataWRMulticast(const ReaderProxy &reader,
+                                                         const CacheChange *next) {
   INIT_GUARD()
 
   if (reader.useMulticast || reader.suppressUnicast == false) {
@@ -436,8 +423,7 @@ bool StatefulWriterT<NetworkDriver>::sendDataWRMulticast(
       reid = reader.remoteReaderGuid.entityId;
     }
 
-    MessageFactory::addSubMessageData(payload, next->data, next->inLineQoS,
-                                      next->sequenceNumber,
+    MessageFactory::addSubMessageData(payload, next->data, next->inLineQoS, next->sequenceNumber,
                                       m_attributes.endpointGuid.entityId, reid);
 
     info.payload = std::move(payload.bytes);
@@ -449,8 +435,7 @@ bool StatefulWriterT<NetworkDriver>::sendDataWRMulticast(
   return true;
 }
 
-template <class NetworkDriver>
-void StatefulWriterT<NetworkDriver>::sendHeartBeatLoop() {
+template <class NetworkDriver> void StatefulWriterT<NetworkDriver>::sendHeartBeatLoop() {
   m_thread_running = true;
   while (m_running) {
     SFW_LOG("HB from loop");
@@ -467,18 +452,15 @@ void StatefulWriterT<NetworkDriver>::sendHeartBeatLoop() {
     // Temporarily increase HB frequency if there are unconfirmed remote changes
     if (unconfirmed_changes) {
       SFW_LOG("HB speedup");
-      std::this_thread::sleep_for(
-          std::chrono::milliseconds(Config::SF_WRITER_HB_PERIOD_MS / 4));
+      std::this_thread::sleep_for(std::chrono::milliseconds(Config::SF_WRITER_HB_PERIOD_MS / 4));
     } else {
-      std::this_thread::sleep_for(
-          std::chrono::milliseconds(Config::SF_WRITER_HB_PERIOD_MS));
+      std::this_thread::sleep_for(std::chrono::milliseconds(Config::SF_WRITER_HB_PERIOD_MS));
     }
   }
   m_thread_running = false;
 }
 
-template <class NetworkDriver>
-void StatefulWriterT<NetworkDriver>::dropDisposeAfterWriteChanges() {
+template <class NetworkDriver> void StatefulWriterT<NetworkDriver>::dropDisposeAfterWriteChanges() {
   SequenceNumber_t oldest_retained;
   while (m_disposeWithDelay.peakFirst(oldest_retained)) {
 
@@ -499,8 +481,7 @@ void StatefulWriterT<NetworkDriver>::dropDisposeAfterWriteChanges() {
     auto age = std::chrono::steady_clock::now() - change->sentTime;
     if (age > std::chrono::milliseconds(4000)) {
       m_history.dropChange(change->sequenceNumber);
-      SFW_LOG("Removing SN {} {} for good",
-              static_cast<unsigned int>(oldest_retained.low),
+      SFW_LOG("Removing SN {} {} for good", static_cast<unsigned int>(oldest_retained.low),
               static_cast<unsigned int>(oldest_retained.high));
       SequenceNumber_t tmp;
       m_disposeWithDelay.moveFirstInto(tmp);
@@ -512,8 +493,7 @@ void StatefulWriterT<NetworkDriver>::dropDisposeAfterWriteChanges() {
   }
 }
 
-template <class NetworkDriver>
-void StatefulWriterT<NetworkDriver>::sendHeartBeat() {
+template <class NetworkDriver> void StatefulWriterT<NetworkDriver>::sendHeartBeat() {
   INIT_GUARD()
   if (m_proxies.isEmpty() || !m_is_initialized_) {
 
@@ -541,8 +521,7 @@ void StatefulWriterT<NetworkDriver>::sendHeartBeat() {
 
         // Otherwise we may announce changes that have not been sent at least
         // once!
-        if (lastSN > m_nextSequenceNumberToSend ||
-            lastSN == m_nextSequenceNumberToSend) {
+        if (lastSN > m_nextSequenceNumberToSend || lastSN == m_nextSequenceNumberToSend) {
           lastSN = m_nextSequenceNumberToSend;
           --lastSN;
         }
@@ -550,18 +529,17 @@ void StatefulWriterT<NetworkDriver>::sendHeartBeat() {
         // Proxy has confirmed all sequence numbers and set final flag
         if ((proxy.lastAckNackSequenceNumber > lastSN) && proxy.finalFlag &&
             proxy.ackNackCount.value > 0) {
-          SFW_LOG("Skipping heartbeat for proxy, all changes confirmed. lastSN {}.{}, lastAckNack {}.{}",
-                  (int)lastSN.low,
-                  (int)lastSN.high,
-                  (int)proxy.lastAckNackSequenceNumber.low,
+          SFW_LOG("Skipping heartbeat for proxy, all changes confirmed. lastSN {}.{}, lastAckNack "
+                  "{}.{}",
+                  (int)lastSN.low, (int)lastSN.high, (int)proxy.lastAckNackSequenceNumber.low,
                   (int)proxy.lastAckNackSequenceNumber.high);
           continue;
         }
-      } else if (m_history.getLastUsedSequenceNumber() ==
-                 SequenceNumber_t{0, 0}) {
-        if ((proxy.lastAckNackSequenceNumber > m_history.getLastUsedSequenceNumber()) && proxy.finalFlag &&
-            proxy.ackNackCount.value > 0) {
-          SFW_LOG("Skipping heartbeat for proxy, all changes confirmed. lastUsedSN {}.{}, lastAckNack {}.{}",
+      } else if (m_history.getLastUsedSequenceNumber() == SequenceNumber_t{0, 0}) {
+        if ((proxy.lastAckNackSequenceNumber > m_history.getLastUsedSequenceNumber()) &&
+            proxy.finalFlag && proxy.ackNackCount.value > 0) {
+          SFW_LOG("Skipping heartbeat for proxy, all changes confirmed. lastUsedSN {}.{}, "
+                  "lastAckNack {}.{}",
                   (int)m_history.getLastUsedSequenceNumber().low,
                   (int)m_history.getLastUsedSequenceNumber().high,
                   (int)proxy.lastAckNackSequenceNumber.low,
@@ -576,12 +554,11 @@ void StatefulWriterT<NetworkDriver>::sendHeartBeat() {
       }
     }
 
-    SFW_LOG("Sending HB with SN range [{}.{};{}.{}]", firstSN.low, firstSN.high,
-            lastSN.low, lastSN.high);
+    SFW_LOG("Sending HB with SN range [{}.{};{}.{}]", firstSN.low, firstSN.high, lastSN.low,
+            lastSN.high);
 
-    MessageFactory::addHeartbeat(
-        payload, m_attributes.endpointGuid.entityId,
-        proxy.remoteReaderGuid.entityId, firstSN, lastSN, m_hbCount);
+    MessageFactory::addHeartbeat(payload, m_attributes.endpointGuid.entityId,
+                                 proxy.remoteReaderGuid.entityId, firstSN, lastSN, m_hbCount);
 
     info.destAddr = proxy.remoteLocator.getIp4AddressBytes();
     info.destPort = proxy.remoteLocator.port;

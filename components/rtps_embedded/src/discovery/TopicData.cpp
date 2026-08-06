@@ -22,9 +22,9 @@ This file is part of embeddedRTPS.
 
 Author: i11 - Embedded Software, RWTH Aachen University
 */
-#include "rtps/discovery/TopicData.h"
-#include "rtps/messages/MessageTypes.h"
+#include "rtps/discovery/TopicData.hpp"
 #include "logger.hpp"
+#include "rtps/messages/MessageTypes.hpp"
 #include <cstdio>
 #include <cstring>
 
@@ -33,13 +33,10 @@ using rtps::TopicDataCompressed;
 using rtps::SMElement::ParameterId;
 
 namespace {
-espp::Logger s_topic_data_logger(
-  {.tag = "RtpsTopicData", .level = espp::Logger::Verbosity::WARN});
+espp::Logger s_topic_data_logger({.tag = "RtpsTopicData", .level = espp::Logger::Verbosity::WARN});
 }
 
-bool TopicData::isDisposedFlagSet() const {
-  return statusInfoValid && ((statusInfo & 0b1));
-}
+bool TopicData::isDisposedFlagSet() const { return statusInfoValid && ((statusInfo & 0b1)); }
 
 bool TopicData::isUnregisteredFlagSet() const {
   return statusInfoValid && ((statusInfo & (0b1 << 1)) != 0);
@@ -78,15 +75,13 @@ bool TopicData::readFromUcdrBuffer(ucdrBuffer &buffer) {
     case ParameterId::PID_ENDPOINT_GUID:
       ucdr_deserialize_array_uint8_t(&buffer, endpointGuid.prefix.id.data(),
                                      endpointGuid.prefix.id.size());
-      ucdr_deserialize_array_uint8_t(&buffer,
-                                     endpointGuid.entityId.entityKey.data(),
+      ucdr_deserialize_array_uint8_t(&buffer, endpointGuid.entityId.entityKey.data(),
                                      endpointGuid.entityId.entityKey.size());
-      ucdr_deserialize_uint8_t(&buffer, reinterpret_cast<uint8_t *>(
-                                            &endpointGuid.entityId.entityKind));
+      ucdr_deserialize_uint8_t(&buffer,
+                               reinterpret_cast<uint8_t *>(&endpointGuid.entityId.entityKind));
       break;
     case ParameterId::PID_RELIABILITY:
-      ucdr_deserialize_uint32_t(&buffer,
-                                reinterpret_cast<uint32_t *>(&reliabilityKind));
+      ucdr_deserialize_uint32_t(&buffer, reinterpret_cast<uint32_t *>(&reliabilityKind));
       buffer.iterator += 8;
       // TODO Skip 8 bytes. don't know what they are yet
       break;
@@ -113,15 +108,11 @@ bool TopicData::readFromUcdrBuffer(ucdrBuffer &buffer) {
         const auto a2 = static_cast<unsigned int>(uLoc.address[14]);
         const auto a3 = static_cast<unsigned int>(uLoc.address[15]);
         const auto port = static_cast<unsigned long>(uLoc.port);
-        s_topic_data_logger.warn(
-            "Received unicast locator: {}.{}.{}.{}:{}", a0, a1, a2, a3,
-            port);
-      }
-      else {
+        s_topic_data_logger.warn("Received unicast locator: {}.{}.{}.{}:{}", a0, a1, a2, a3, port);
+      } else {
         // print warning and the invalid locator for debugging
-        s_topic_data_logger.warn(
-            "Warning: Received invalid unicast locator with kind {}",
-            static_cast<int>(uLoc.kind));
+        s_topic_data_logger.warn("Warning: Received invalid unicast locator with kind {}",
+                                 static_cast<int>(uLoc.kind));
       }
       break;
     case ParameterId::PID_MULTICAST_LOCATOR:
@@ -143,12 +134,10 @@ bool TopicData::readFromUcdrBuffer(ucdrBuffer &buffer) {
       if (length == 16) {
         ucdr_deserialize_array_uint8_t(&buffer, endpointGuid.prefix.id.data(),
                                        endpointGuid.prefix.id.size());
-        ucdr_deserialize_array_uint8_t(
-            &buffer, this->entityIdFromKeyHash.entityKey.data(),
-            this->entityIdFromKeyHash.entityKey.size());
-        ucdr_deserialize_uint8_t(&buffer,
-                                 reinterpret_cast<uint8_t *>(
-                                     &(this->entityIdFromKeyHash.entityKind)));
+        ucdr_deserialize_array_uint8_t(&buffer, this->entityIdFromKeyHash.entityKey.data(),
+                                       this->entityIdFromKeyHash.entityKey.size());
+        ucdr_deserialize_uint8_t(
+            &buffer, reinterpret_cast<uint8_t *>(&(this->entityIdFromKeyHash.entityKind)));
         entityIdFromKeyHashValid = true;
       } else { // Ignore value
         buffer.iterator += length;
@@ -177,9 +166,8 @@ bool TopicData::serializeIntoUcdrBuffer(ucdrBuffer &buffer) const {
 #endif
     ucdr_serialize_uint16_t(&buffer, ParameterId::PID_UNICAST_LOCATOR);
     ucdr_serialize_uint16_t(&buffer, sizeof(FullLengthLocator));
-    ucdr_serialize_array_uint8_t(
-        &buffer, reinterpret_cast<const uint8_t *>(&unicastLocator),
-        sizeof(FullLengthLocator));
+    ucdr_serialize_array_uint8_t(&buffer, reinterpret_cast<const uint8_t *>(&unicastLocator),
+                                 sizeof(FullLengthLocator));
 #if SUPPRESS_UNICAST
   }
 #endif
@@ -187,20 +175,18 @@ bool TopicData::serializeIntoUcdrBuffer(ucdrBuffer &buffer) const {
   if (multicastLocator.kind == LocatorKind_t::LOCATOR_KIND_UDPv4) {
     ucdr_serialize_uint16_t(&buffer, ParameterId::PID_MULTICAST_LOCATOR);
     ucdr_serialize_uint16_t(&buffer, sizeof(FullLengthLocator));
-    ucdr_serialize_array_uint8_t(
-        &buffer, reinterpret_cast<const uint8_t *>(&multicastLocator),
-        sizeof(FullLengthLocator));
+    ucdr_serialize_array_uint8_t(&buffer, reinterpret_cast<const uint8_t *>(&multicastLocator),
+                                 sizeof(FullLengthLocator));
   }
 
   // It's a 32 bit instead of 16 because it seems like the field is padded.
-  const auto lenTopicName =
-      static_cast<uint32_t>(strlen(topicName) + 1); // + \0
+  const auto lenTopicName = static_cast<uint32_t>(strlen(topicName) + 1); // + \0
   uint16_t topicAlignment = 0;
   if (lenTopicName % 4 != 0) {
     topicAlignment = static_cast<uint8_t>(4 - (lenTopicName % 4));
   }
-  const auto totalLengthTopicNameField = static_cast<uint16_t>(
-      sizeof(lenTopicName) + lenTopicName + topicAlignment);
+  const auto totalLengthTopicNameField =
+      static_cast<uint16_t>(sizeof(lenTopicName) + lenTopicName + topicAlignment);
   ucdr_serialize_uint16_t(&buffer, ParameterId::PID_TOPIC_NAME);
   ucdr_serialize_uint16_t(&buffer, totalLengthTopicNameField);
   ucdr_serialize_uint32_t(&buffer, lenTopicName);
@@ -228,8 +214,7 @@ bool TopicData::serializeIntoUcdrBuffer(ucdrBuffer &buffer) const {
                                endpointGuid.prefix.id.size());
   ucdr_serialize_array_uint8_t(&buffer, endpointGuid.entityId.entityKey.data(),
                                endpointGuid.entityId.entityKey.size());
-  ucdr_serialize_uint8_t(
-      &buffer, static_cast<uint8_t>(endpointGuid.entityId.entityKind));
+  ucdr_serialize_uint8_t(&buffer, static_cast<uint8_t>(endpointGuid.entityId.entityKind));
 
   ucdr_serialize_uint16_t(&buffer, ParameterId::PID_ENDPOINT_GUID);
   ucdr_serialize_uint16_t(&buffer, guidSize);
@@ -237,13 +222,11 @@ bool TopicData::serializeIntoUcdrBuffer(ucdrBuffer &buffer) const {
                                endpointGuid.prefix.id.size());
   ucdr_serialize_array_uint8_t(&buffer, endpointGuid.entityId.entityKey.data(),
                                endpointGuid.entityId.entityKey.size());
-  ucdr_serialize_uint8_t(
-      &buffer, static_cast<uint8_t>(endpointGuid.entityId.entityKind));
+  ucdr_serialize_uint8_t(&buffer, static_cast<uint8_t>(endpointGuid.entityId.entityKind));
 
   const uint8_t unidentifiedOffset = 8;
   ucdr_serialize_uint16_t(&buffer, ParameterId::PID_RELIABILITY);
-  ucdr_serialize_uint16_t(&buffer,
-                          sizeof(ReliabilityKind_t) + unidentifiedOffset);
+  ucdr_serialize_uint16_t(&buffer, sizeof(ReliabilityKind_t) + unidentifiedOffset);
   ucdr_serialize_uint32_t(&buffer, static_cast<uint32_t>(reliabilityKind));
   ucdr_serialize_uint32_t(&buffer, 0); // unidentified additional value
   ucdr_serialize_uint32_t(&buffer, 0); // unidentified additional value
@@ -259,7 +242,6 @@ bool TopicData::serializeIntoUcdrBuffer(ucdrBuffer &buffer) const {
 }
 
 bool TopicDataCompressed::matchesTopicOf(const TopicData &other) const {
-  return (hashCharArray(other.topicName, sizeof(other.topicName)) ==
-              topicHash &&
+  return (hashCharArray(other.topicName, sizeof(other.topicName)) == topicHash &&
           hashCharArray(other.typeName, sizeof(other.typeName)) == typeHash);
 }

@@ -23,26 +23,28 @@ This file is part of embeddedRTPS.
 Author: i11 - Embedded Software, RWTH Aachen University
 */
 
-#include "rtps/messages/MessageReceiver.h"
-#include <rtps/entities/Participant.h>
+#include "rtps/messages/MessageReceiver.hpp"
+#include <rtps/entities/Participant.hpp>
 
-#include "rtps/entities/Reader.h"
-#include "rtps/entities/Writer.h"
-#include "rtps/messages/MessageTypes.h"
-#include "rtps/utils/Log.h"
+#include "rtps/entities/Reader.hpp"
+#include "rtps/entities/Writer.hpp"
+#include "rtps/messages/MessageTypes.hpp"
+#include "rtps/utils/Log.hpp"
 
 using rtps::MessageReceiver;
 
 #if RECV_VERBOSE && RTPS_GLOBAL_VERBOSE
-#include "rtps/utils/printutils.h"
+#include "rtps/utils/printutils.hpp"
 #define RECV_LOG(...) logger_.warn(__VA_ARGS__)
 #else
-#define RECV_LOG(...) do { } while (0)
+#define RECV_LOG(...)                                                                              \
+  do {                                                                                             \
+  } while (0)
 #endif
 
 MessageReceiver::MessageReceiver(Participant *part)
-    : espp::BaseComponent("RtpsMessageReceiver", espp::Logger::Verbosity::WARN),
-      mp_part(part) {}
+    : espp::BaseComponent("RtpsMessageReceiver", espp::Logger::Verbosity::WARN)
+    , mp_part(part) {}
 
 void MessageReceiver::resetState() {
   sourceGuidPrefix = GUIDPREFIX_UNKNOWN;
@@ -127,23 +129,20 @@ bool MessageReceiver::processSubmessage(MessageProcessingInfo &msgInfo,
              static_cast<uint8_t>(submsgHeader.submessageId));
     success = false;
   }
-  msgInfo.nextPos +=
-      submsgHeader.octetsToNextHeader + SubmessageHeader::getRawSize();
+  msgInfo.nextPos += submsgHeader.octetsToNextHeader + SubmessageHeader::getRawSize();
   return success;
 }
 
-bool MessageReceiver::processDataSubmessage(
-    MessageProcessingInfo &msgInfo, const SubmessageHeader &submsgHeader) {
+bool MessageReceiver::processDataSubmessage(MessageProcessingInfo &msgInfo,
+                                            const SubmessageHeader &submsgHeader) {
   SubmessageData dataSubmsg;
   if (!deserializeMessage(msgInfo, dataSubmsg)) {
     return false;
   }
 
-  const uint8_t *serializedData =
-      msgInfo.getPointerToCurrentPos() + SubmessageData::getRawSize();
+  const uint8_t *serializedData = msgInfo.getPointerToCurrentPos() + SubmessageData::getRawSize();
 
-  const DataSize_t size = submsgHeader.octetsToNextHeader -
-                          SubmessageData::getRawSize() +
+  const DataSize_t size = submsgHeader.octetsToNextHeader - SubmessageData::getRawSize() +
                           SubmessageHeader::getRawSize();
 
   RECV_LOG("Received data message size {}", static_cast<int>(size));
@@ -154,15 +153,14 @@ bool MessageReceiver::processDataSubmessage(
     RECV_LOG("Received ENTITYID_UNKNOWN readerID, searching for writer ID = ");
     printGuid(Guid_t{sourceGuidPrefix, dataSubmsg.writerId});
 #endif
-    reader = mp_part->getReaderByWriterId(
-        Guid_t{sourceGuidPrefix, dataSubmsg.writerId});
+    reader = mp_part->getReaderByWriterId(Guid_t{sourceGuidPrefix, dataSubmsg.writerId});
     if (reader != nullptr)
       RECV_LOG("Found reader!");
   } else {
     reader = mp_part->getReader(dataSubmsg.readerId);
 #if RECV_VERBOSE && RTPS_GLOBAL_VERBOSE
-    auto reader_by_writer = mp_part->getReaderByWriterId(
-        Guid_t{sourceGuidPrefix, dataSubmsg.writerId});
+    auto reader_by_writer =
+        mp_part->getReaderByWriterId(Guid_t{sourceGuidPrefix, dataSubmsg.writerId});
 
     if (reader_by_writer == nullptr && reader != nullptr) {
       RECV_LOG("FOUND By READER ID, NOT BY WRITER ID =");
@@ -172,8 +170,8 @@ bool MessageReceiver::processDataSubmessage(
   }
   if (reader != nullptr) {
     Guid_t writerGuid{sourceGuidPrefix, dataSubmsg.writerId};
-    ReaderCacheChange change{ChangeKind_t::ALIVE, writerGuid,
-                             dataSubmsg.writerSN, serializedData, size};
+    ReaderCacheChange change{ChangeKind_t::ALIVE, writerGuid, dataSubmsg.writerSN, serializedData,
+                             size};
     reader->newChange(change);
   } else {
 #if RECV_VERBOSE && RTPS_GLOBAL_VERBOSE
@@ -185,8 +183,7 @@ bool MessageReceiver::processDataSubmessage(
   return true;
 }
 
-bool MessageReceiver::processHeartbeatSubmessage(
-    MessageProcessingInfo &msgInfo) {
+bool MessageReceiver::processHeartbeatSubmessage(MessageProcessingInfo &msgInfo) {
   SubmessageHeartbeat submsgHB;
   if (!deserializeMessage(msgInfo, submsgHB)) {
     return false;

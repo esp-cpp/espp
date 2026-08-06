@@ -23,18 +23,18 @@ This file is part of embeddedRTPS.
 Author: i11 - Embedded Software, RWTH Aachen University
 */
 
-#include "rtps/entities/StatelessReader.h"
-#include "rtps/utils/Log.h"
+#include "rtps/entities/StatelessReader.hpp"
+#include "rtps/utils/Log.hpp"
 
 using rtps::StatelessReader;
 
 #if SLR_VERBOSE && RTPS_GLOBAL_VERBOSE
-#include "rtps/utils/printutils.h"
-#define SLR_LOG(...)                                                           \
-  if (true) {                                                                  \
-    printf("[StatelessReader %s] ", &m_attributes.topicName[0]);               \
-    printf(__VA_ARGS__);                                                       \
-    printf("\n");                                                              \
+#include "rtps/utils/printutils.hpp"
+#define SLR_LOG(...)                                                                               \
+  if (true) {                                                                                      \
+    printf("[StatelessReader %s] ", &m_attributes.topicName[0]);                                   \
+    printf(__VA_ARGS__);                                                                           \
+    printf("\n");                                                                                  \
   }
 #else
 #define SLR_LOG(...) //
@@ -66,14 +66,12 @@ bool StatelessReader::addNewMatchedWriter(const WriterProxy &newProxy) {
   return m_proxies.add(newProxy);
 }
 
-bool StatelessReader::onNewHeartbeat(const SubmessageHeartbeat &,
-                                     const GuidPrefix_t &) {
+bool StatelessReader::onNewHeartbeat(const SubmessageHeartbeat &, const GuidPrefix_t &) {
   // nothing to do
   return true;
 }
 
-bool StatelessReader::onNewGapMessage(const SubmessageGap &msg,
-                                      const GuidPrefix_t &remotePrefix) {
+bool StatelessReader::onNewGapMessage(const SubmessageGap &msg, const GuidPrefix_t &remotePrefix) {
   return true;
 }
 

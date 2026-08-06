@@ -23,52 +23,51 @@ This file is part of embeddedRTPS.
 Author: i11 - Embedded Software, RWTH Aachen University
 */
 
-#include "rtps/entities/Participant.h"
-#include "rtps/entities/Reader.h"
-#include "rtps/entities/Writer.h"
-#include "rtps/messages/MessageReceiver.h"
-#include "rtps/utils/Log.h"
+#include "rtps/entities/Participant.hpp"
+#include "rtps/entities/Reader.hpp"
+#include "rtps/entities/Writer.hpp"
+#include "rtps/messages/MessageReceiver.hpp"
+#include "rtps/utils/Log.hpp"
 #include <mutex>
 
 #if PARTICIPANT_VERBOSE && RTPS_GLOBAL_VERBOSE
 #define PARTICIPANT_LOG(...) logger_.warn(__VA_ARGS__)
 #else
-#define PARTICIPANT_LOG(...) do { } while (0)
+#define PARTICIPANT_LOG(...)                                                                       \
+  do {                                                                                             \
+  } while (0)
 #endif
 
 using rtps::Participant;
 
 Participant::Participant()
-    : espp::BaseComponent("RtpsParticipant", espp::Logger::Verbosity::WARN),
-      m_guidPrefix(GUIDPREFIX_UNKNOWN), m_participantId(PARTICIPANT_ID_INVALID),
-      m_receiver(this) {}
-Participant::Participant(const GuidPrefix_t &guidPrefix,
-                         ParticipantId_t participantId)
-    : espp::BaseComponent("RtpsParticipant", espp::Logger::Verbosity::WARN),
-      m_guidPrefix(guidPrefix), m_participantId(participantId),
-      m_receiver(this) {}
+    : espp::BaseComponent("RtpsParticipant", espp::Logger::Verbosity::WARN)
+    , m_guidPrefix(GUIDPREFIX_UNKNOWN)
+    , m_participantId(PARTICIPANT_ID_INVALID)
+    , m_receiver(this) {}
+Participant::Participant(const GuidPrefix_t &guidPrefix, ParticipantId_t participantId)
+    : espp::BaseComponent("RtpsParticipant", espp::Logger::Verbosity::WARN)
+    , m_guidPrefix(guidPrefix)
+    , m_participantId(participantId)
+    , m_receiver(this) {}
 
 Participant::~Participant() { m_spdpAgent.stop(); }
 
-void Participant::reuse(const GuidPrefix_t &guidPrefix,
-                        ParticipantId_t participantId) {
+void Participant::reuse(const GuidPrefix_t &guidPrefix, ParticipantId_t participantId) {
   m_guidPrefix = guidPrefix;
   m_participantId = participantId;
-  m_localIpAddress = {Config::IP_ADDRESS[0], Config::IP_ADDRESS[1],
-                      Config::IP_ADDRESS[2], Config::IP_ADDRESS[3]};
+  m_localIpAddress = {Config::IP_ADDRESS[0], Config::IP_ADDRESS[1], Config::IP_ADDRESS[2],
+                      Config::IP_ADDRESS[3]};
 }
 
-void Participant::reuse(
-    const GuidPrefix_t &guidPrefix, ParticipantId_t participantId,
-  const Ip4AddressBytes &localIpAddress) {
+void Participant::reuse(const GuidPrefix_t &guidPrefix, ParticipantId_t participantId,
+                        const Ip4AddressBytes &localIpAddress) {
   m_guidPrefix = guidPrefix;
   m_participantId = participantId;
   m_localIpAddress = localIpAddress;
 }
 
-bool Participant::isValid() {
-  return m_participantId != PARTICIPANT_ID_INVALID;
-}
+bool Participant::isValid() { return m_participantId != PARTICIPANT_ID_INVALID; }
 
 std::array<uint8_t, 3> Participant::getNextUserEntityKey() {
   const auto result = m_nextUserEntityId;
@@ -83,8 +82,7 @@ std::array<uint8_t, 3> Participant::getNextUserEntityKey() {
   return result;
 }
 
-bool Participant::registerOnNewPublisherMatchedCallback(
-    void (*callback)(void *arg), void *args) {
+bool Participant::registerOnNewPublisherMatchedCallback(void (*callback)(void *arg), void *args) {
   if (!m_hasBuilInEndpoints) {
     return false;
   }
@@ -93,8 +91,7 @@ bool Participant::registerOnNewPublisherMatchedCallback(
   return true;
 }
 
-bool Participant::registerOnNewSubscriberMatchedCallback(
-    void (*callback)(void *arg), void *args) {
+bool Participant::registerOnNewSubscriberMatchedCallback(void (*callback)(void *arg), void *args) {
   if (!m_hasBuilInEndpoints) {
     return false;
   }
@@ -146,8 +143,7 @@ rtps::Reader *Participant::addReader(Reader *pReader) {
 bool Participant::deleteReader(Reader *reader) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   for (unsigned int i = 0; i < m_readers.size(); i++) {
-    if (m_readers[i]->getSEDPSequenceNumber() ==
-        reader->getSEDPSequenceNumber()) {
+    if (m_readers[i]->getSEDPSequenceNumber() == reader->getSEDPSequenceNumber()) {
       if (m_sedpAgent.deleteReader(reader)) {
         m_readers[i] = nullptr;
         return true;
@@ -161,8 +157,7 @@ bool Participant::deleteReader(Reader *reader) {
 bool Participant::deleteWriter(Writer *writer) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   for (unsigned int i = 0; i < m_writers.size(); i++) {
-    if (m_writers[i]->getSEDPSequenceNumber() ==
-        writer->getSEDPSequenceNumber()) {
+    if (m_writers[i]->getSEDPSequenceNumber() == writer->getSEDPSequenceNumber()) {
       if (m_sedpAgent.deleteWriter(writer)) {
         m_writers[i] = nullptr;
         return true;
@@ -231,8 +226,7 @@ rtps::Writer *Participant::getMatchingWriter(const TopicData &readerTopicData) {
     }
     if (m_writers[i]->m_attributes.matchesTopicOf(readerTopicData) &&
         (readerTopicData.reliabilityKind == ReliabilityKind_t::BEST_EFFORT ||
-         m_writers[i]->m_attributes.reliabilityKind ==
-             ReliabilityKind_t::RELIABLE)) {
+         m_writers[i]->m_attributes.reliabilityKind == ReliabilityKind_t::RELIABLE)) {
       return m_writers[i];
     }
   }
@@ -247,16 +241,14 @@ rtps::Reader *Participant::getMatchingReader(const TopicData &writerTopicData) {
     }
     if (m_readers[i]->m_attributes.matchesTopicOf(writerTopicData) &&
         (writerTopicData.reliabilityKind == ReliabilityKind_t::RELIABLE ||
-         m_readers[i]->m_attributes.reliabilityKind ==
-             ReliabilityKind_t::BEST_EFFORT)) {
+         m_readers[i]->m_attributes.reliabilityKind == ReliabilityKind_t::BEST_EFFORT)) {
       return m_readers[i];
     }
   }
   return nullptr;
 }
 
-rtps::Writer *
-Participant::getMatchingWriter(const TopicDataCompressed &readerTopicData) {
+rtps::Writer *Participant::getMatchingWriter(const TopicDataCompressed &readerTopicData) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   for (uint8_t i = 0; i < m_writers.size(); ++i) {
     if (m_writers[i] == nullptr) {
@@ -264,16 +256,14 @@ Participant::getMatchingWriter(const TopicDataCompressed &readerTopicData) {
     }
     if (readerTopicData.matchesTopicOf(m_writers[i]->m_attributes) &&
         (readerTopicData.is_reliable == false ||
-         m_writers[i]->m_attributes.reliabilityKind ==
-             ReliabilityKind_t::RELIABLE)) {
+         m_writers[i]->m_attributes.reliabilityKind == ReliabilityKind_t::RELIABLE)) {
       return m_writers[i];
     }
   }
   return nullptr;
 }
 
-rtps::Reader *
-Participant::getMatchingReader(const TopicDataCompressed &writerTopicData) {
+rtps::Reader *Participant::getMatchingReader(const TopicDataCompressed &writerTopicData) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   for (uint8_t i = 0; i < m_readers.size(); ++i) {
     if (m_readers[i] == nullptr) {
@@ -281,16 +271,14 @@ Participant::getMatchingReader(const TopicDataCompressed &writerTopicData) {
     }
     if (writerTopicData.matchesTopicOf(m_readers[i]->m_attributes) &&
         (writerTopicData.is_reliable == true ||
-         m_readers[i]->m_attributes.reliabilityKind ==
-             ReliabilityKind_t::BEST_EFFORT)) {
+         m_readers[i]->m_attributes.reliabilityKind == ReliabilityKind_t::BEST_EFFORT)) {
       return m_readers[i];
     }
   }
   return nullptr;
 }
 
-bool Participant::addNewRemoteParticipant(
-    const ParticipantProxyData &remotePart) {
+bool Participant::addNewRemoteParticipant(const ParticipantProxyData &remotePart) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   return m_remoteParticipants.add(remotePart);
 }
@@ -333,8 +321,7 @@ void Participant::removeProxyFromAllEndpoints(const Guid_t &guid) {
     }
     if (m_writers[i]->removeProxy(guid)) {
       PARTICIPANT_LOG("Removing proxy for writer [{}, {}], proxies left = {}",
-                      m_writers[i]->m_attributes.topicName,
-                      m_writers[i]->m_attributes.typeName,
+                      m_writers[i]->m_attributes.topicName, m_writers[i]->m_attributes.typeName,
                       (int)m_writers[i]->getProxiesCount());
     }
   }
@@ -345,15 +332,13 @@ void Participant::removeProxyFromAllEndpoints(const Guid_t &guid) {
     }
     if (m_readers[i]->removeProxy(guid)) {
       PARTICIPANT_LOG("Removing proxy for reader [{}, {}], proxies left = {}",
-                      m_readers[i]->m_attributes.topicName,
-                      m_readers[i]->m_attributes.typeName,
+                      m_readers[i]->m_attributes.topicName, m_readers[i]->m_attributes.typeName,
                       (int)m_readers[i]->getProxiesCount());
     }
   }
 }
 
-const rtps::ParticipantProxyData *
-Participant::findRemoteParticipant(const GuidPrefix_t &prefix) {
+const rtps::ParticipantProxyData *Participant::findRemoteParticipant(const GuidPrefix_t &prefix) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   auto isElementToFind = [&](const ParticipantProxyData &proxy) {
     return proxy.m_guid.prefix == prefix;
@@ -364,8 +349,7 @@ Participant::findRemoteParticipant(const GuidPrefix_t &prefix) {
   return m_remoteParticipants.find(thunk, &isElementToFind);
 }
 
-void Participant::refreshRemoteParticipantLiveliness(
-    const GuidPrefix_t &prefix) {
+void Participant::refreshRemoteParticipantLiveliness(const GuidPrefix_t &prefix) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   auto isElementToFind = [&](const ParticipantProxyData &proxy) {
     return proxy.m_guid.prefix == prefix;
@@ -380,15 +364,13 @@ void Participant::refreshRemoteParticipantLiveliness(
   }
 }
 
-bool Participant::hasReaderWithMulticastLocator(
-    const std::array<uint8_t, 4> &address) {
+bool Participant::hasReaderWithMulticastLocator(const std::array<uint8_t, 4> &address) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   for (uint8_t i = 0; i < m_readers.size(); i++) {
     if (m_readers[i] == nullptr) {
       continue;
     }
-    if (m_readers[i]->m_attributes.multicastLocator.getIp4AddressBytes() ==
-        address) {
+    if (m_readers[i]->m_attributes.multicastLocator.getIp4AddressBytes() == address) {
       return true;
     }
   }
@@ -407,13 +389,14 @@ bool Participant::checkAndResetHeartbeats() {
   std::lock_guard<std::recursive_mutex> lock2(m_spdpAgent.m_mutex);
   PARTICIPANT_LOG("Have {} remote participants",
                   (unsigned int)m_remoteParticipants.getNumElements());
-  PARTICIPANT_LOG(
-      "Unmatched remote writers/readers, {} / {}",
-      static_cast<unsigned int>(m_sedpAgent.getNumRemoteUnmatchedWriters()),
-      static_cast<unsigned int>(m_sedpAgent.getNumRemoteUnmatchedReaders()));
+  PARTICIPANT_LOG("Unmatched remote writers/readers, {} / {}",
+                  static_cast<unsigned int>(m_sedpAgent.getNumRemoteUnmatchedWriters()),
+                  static_cast<unsigned int>(m_sedpAgent.getNumRemoteUnmatchedReaders()));
   for (auto &remote : m_remoteParticipants) {
-    PARTICIPANT_LOG("Remote GUID = {} {} {} {} | Age = {} [ms]",
-                    remote.m_guid.prefix.id[4], remote.m_guid.prefix.id[5], remote.m_guid.prefix.id[6], remote.m_guid.prefix.id[7], (unsigned int)remote.getAliveSignalAgeInMilliseconds() );
+    PARTICIPANT_LOG("Remote GUID = {} {} {} {} | Age = {} [ms]", remote.m_guid.prefix.id[4],
+                    remote.m_guid.prefix.id[5], remote.m_guid.prefix.id[6],
+                    remote.m_guid.prefix.id[7],
+                    (unsigned int)remote.getAliveSignalAgeInMilliseconds());
     if (remote.isAlive()) {
       continue;
     }
@@ -421,8 +404,8 @@ bool Participant::checkAndResetHeartbeats() {
     bool success = removeRemoteParticipant(remote.m_guid.prefix);
     if (!success) {
       return false;
-    }else{
-    	return true;
+    } else {
+      return true;
     }
   }
   return true;
@@ -437,36 +420,30 @@ void Participant::printInfo() {
 #ifdef PARTICIPANT_PRINTINFO_LONG
         if (m_readers[i]->m_attributes.endpointGuid.entityId ==
             ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER) {
-      PARTICIPANT_LOG("Reader {}: SPDP BUILTIN READER | Remote Proxies = {}",
-              i,
-              static_cast<int>(m_readers[i]->getProxiesCount()));
+          PARTICIPANT_LOG("Reader {}: SPDP BUILTIN READER | Remote Proxies = {}", i,
+                          static_cast<int>(m_readers[i]->getProxiesCount()));
         }
         if (m_readers[i]->m_attributes.endpointGuid.entityId ==
             ENTITYID_SEDP_BUILTIN_PUBLICATIONS_READER) {
-      PARTICIPANT_LOG(
-        "Reader {}: SEDP PUBLICATION READER | Remote Proxies = {}", i,
-        static_cast<int>(m_readers[i]->getProxiesCount()));
+          PARTICIPANT_LOG("Reader {}: SEDP PUBLICATION READER | Remote Proxies = {}", i,
+                          static_cast<int>(m_readers[i]->getProxiesCount()));
         }
         if (m_readers[i]->m_attributes.endpointGuid.entityId ==
             ENTITYID_SEDP_BUILTIN_SUBSCRIPTIONS_READER) {
-      PARTICIPANT_LOG(
-        "Reader {}: SEDP SUBSCRIPTION READER | Remote Proxies = {}", i,
-        static_cast<int>(m_readers[i]->getProxiesCount()));
+          PARTICIPANT_LOG("Reader {}: SEDP SUBSCRIPTION READER | Remote Proxies = {}", i,
+                          static_cast<int>(m_readers[i]->getProxiesCount()));
         }
 #endif
         continue;
       }
 
-      max_reader_proxies =
-          std::max(max_reader_proxies, m_readers[i]->getProxiesCount());
+      max_reader_proxies = std::max(max_reader_proxies, m_readers[i]->getProxiesCount());
 #ifdef PARTICIPANT_PRINTINFO_LONG
-  PARTICIPANT_LOG(
-      "Reader {}: Topic = {} | Type = {} | Remote Proxies = {} | SEDP "
-      "SN = {}",
-      i, m_readers[i]->m_attributes.topicName,
-      m_readers[i]->m_attributes.typeName,
-      static_cast<int>(m_readers[i]->getProxiesCount()),
-      static_cast<int>(m_readers[i]->getSEDPSequenceNumber().low));
+      PARTICIPANT_LOG("Reader {}: Topic = {} | Type = {} | Remote Proxies = {} | SEDP "
+                      "SN = {}",
+                      i, m_readers[i]->m_attributes.topicName, m_readers[i]->m_attributes.typeName,
+                      static_cast<int>(m_readers[i]->getProxiesCount()),
+                      static_cast<int>(m_readers[i]->getSEDPSequenceNumber().low));
 #endif
     }
   }
@@ -478,36 +455,31 @@ void Participant::printInfo() {
 #ifdef PARTICIPANT_PRINTINFO_LONG
       if (m_writers[i]->m_attributes.endpointGuid.entityId ==
           ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER) {
-    PARTICIPANT_LOG("Writer {}: SPDP WRITER | Remote Proxies = {}", i,
-            static_cast<int>(m_writers[i]->getProxiesCount()));
+        PARTICIPANT_LOG("Writer {}: SPDP WRITER | Remote Proxies = {}", i,
+                        static_cast<int>(m_writers[i]->getProxiesCount()));
       }
       if (m_writers[i]->m_attributes.endpointGuid.entityId ==
           ENTITYID_SEDP_BUILTIN_PUBLICATIONS_WRITER) {
-    PARTICIPANT_LOG(
-      "Writer {}: SEDP PUBLICATION WRITER | Remote Proxies = {}", i,
-      static_cast<int>(m_writers[i]->getProxiesCount()));
+        PARTICIPANT_LOG("Writer {}: SEDP PUBLICATION WRITER | Remote Proxies = {}", i,
+                        static_cast<int>(m_writers[i]->getProxiesCount()));
       }
       if (m_writers[i]->m_attributes.endpointGuid.entityId ==
           ENTITYID_SEDP_BUILTIN_SUBSCRIPTIONS_WRITER) {
-    PARTICIPANT_LOG(
-      "Writer {}: SEDP SUBSCRIPTION WRITER | Remote Proxies = {}", i,
-      static_cast<int>(m_writers[i]->getProxiesCount()));
+        PARTICIPANT_LOG("Writer {}: SEDP SUBSCRIPTION WRITER | Remote Proxies = {}", i,
+                        static_cast<int>(m_writers[i]->getProxiesCount()));
       }
 #endif
       continue;
     }
 
     if (m_writers[i] != nullptr && m_writers[i]->isInitialized()) {
-      max_writer_proxies =
-          std::max(max_writer_proxies, m_writers[i]->getProxiesCount());
+      max_writer_proxies = std::max(max_writer_proxies, m_writers[i]->getProxiesCount());
 #ifdef PARTICIPANT_PRINTINFO_LONG
-      PARTICIPANT_LOG(
-     "Writer {}: Topic = {} | Type = {} | Remote Proxies = {} | SEDP "
-     "SN = {}",
-     i, m_writers[i]->m_attributes.topicName,
-     m_writers[i]->m_attributes.typeName,
-     static_cast<int>(m_writers[i]->getProxiesCount()),
-     static_cast<int>(m_writers[i]->getSEDPSequenceNumber().low));
+      PARTICIPANT_LOG("Writer {}: Topic = {} | Type = {} | Remote Proxies = {} | SEDP "
+                      "SN = {}",
+                      i, m_writers[i]->m_attributes.topicName, m_writers[i]->m_attributes.typeName,
+                      static_cast<int>(m_writers[i]->getProxiesCount()),
+                      static_cast<int>(m_writers[i]->getSEDPSequenceNumber().low));
 #endif
     }
   }
@@ -515,11 +487,11 @@ void Participant::printInfo() {
   PARTICIPANT_LOG("Max Writer Proxies {}", max_writer_proxies);
   PARTICIPANT_LOG("Max Reader Proxies {}", max_reader_proxies);
   PARTICIPANT_LOG("Unmatched Remote Readers = {}",
-        static_cast<int>(m_sedpAgent.getNumRemoteUnmatchedReaders()));
+                  static_cast<int>(m_sedpAgent.getNumRemoteUnmatchedReaders()));
   PARTICIPANT_LOG("Unmatched Remote Writers = {}",
-        static_cast<int>(m_sedpAgent.getNumRemoteUnmatchedWriters()));
+                  static_cast<int>(m_sedpAgent.getNumRemoteUnmatchedWriters()));
   PARTICIPANT_LOG("Remote Participants = {}",
-        static_cast<int>(m_remoteParticipants.getNumElements()));
+                  static_cast<int>(m_remoteParticipants.getNumElements()));
 }
 
 rtps::SPDPAgent &Participant::getSPDPAgent() { return m_spdpAgent; }

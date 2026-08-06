@@ -23,9 +23,9 @@ This file is part of embeddedRTPS.
 Author: i11 - Embedded Software, RWTH Aachen University
 */
 
-#include "rtps/entities/Domain.h"
-#include "rtps/utils/Log.h"
-#include "rtps/utils/udpUtils.h"
+#include "rtps/entities/Domain.hpp"
+#include "rtps/utils/Log.hpp"
+#include "rtps/utils/udpUtils.hpp"
 #include <cassert>
 #include <mutex>
 
@@ -36,27 +36,28 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #if DOMAIN_VERBOSE && RTPS_GLOBAL_VERBOSE
 #define DOMAIN_LOG(...) logger_.warn(__VA_ARGS__)
 #else
-#define DOMAIN_LOG(...) do { } while (0)
+#define DOMAIN_LOG(...)                                                                            \
+  do {                                                                                             \
+  } while (0)
 #endif
 
 using rtps::Domain;
 
 Domain::Domain(const rtps::Ip4AddressBytes &localIpAddress)
-    : espp::BaseComponent("RtpsDomain", espp::Logger::Verbosity::WARN),
-      m_threadPool(receiveJumppad, this),
-      m_defaultTransport(ThreadPool::onDatagram, &m_threadPool),
-      m_transport(&m_defaultTransport),
-      m_localIpAddress(localIpAddress) {
+    : espp::BaseComponent("RtpsDomain", espp::Logger::Verbosity::WARN)
+    , m_threadPool(receiveJumppad, this)
+    , m_defaultTransport(ThreadPool::onDatagram, &m_threadPool)
+    , m_transport(&m_defaultTransport)
+    , m_localIpAddress(localIpAddress) {
   initializeTransport();
 }
 
-Domain::Domain(rtps::EsppTransport &transport,
-               const rtps::Ip4AddressBytes &localIpAddress)
-    : espp::BaseComponent("RtpsDomain", espp::Logger::Verbosity::WARN),
-      m_threadPool(receiveJumppad, this),
-      m_defaultTransport(ThreadPool::onDatagram, &m_threadPool),
-      m_transport(&transport),
-      m_localIpAddress(localIpAddress) {
+Domain::Domain(rtps::EsppTransport &transport, const rtps::Ip4AddressBytes &localIpAddress)
+    : espp::BaseComponent("RtpsDomain", espp::Logger::Verbosity::WARN)
+    , m_threadPool(receiveJumppad, this)
+    , m_defaultTransport(ThreadPool::onDatagram, &m_threadPool)
+    , m_transport(&transport)
+    , m_localIpAddress(localIpAddress) {
   initializeTransport();
 }
 
@@ -108,8 +109,7 @@ void Domain::receiveCallback(const PacketInfo &packet) {
   } else if (isUserMultiCastPort(packet.destPort)) {
     // Pass to Participant with assigned Multicast Adress (Port ist everytime
     // the same)
-    DOMAIN_LOG("Domain: Got user multicast message on port {}",
-               packet.destPort);
+    DOMAIN_LOG("Domain: Got user multicast message on port {}", packet.destPort);
     for (auto i = 0; i < m_nextParticipantId - PARTICIPANT_START_ID; ++i) {
       if (m_participants[i].hasReaderWithMulticastLocator(packet.destAddr)) {
         DOMAIN_LOG("Domain: Forward Multicast only to Participant: {}", i);
@@ -118,21 +118,18 @@ void Domain::receiveCallback(const PacketInfo &packet) {
     }
   } else {
     // Pass to addressed one only (Unicast, by Port)
-    ParticipantId_t id = getParticipantIdFromUnicastPort(
-        packet.destPort, isUserPort(packet.destPort));
+    ParticipantId_t id =
+        getParticipantIdFromUnicastPort(packet.destPort, isUserPort(packet.destPort));
     if (id != PARTICIPANT_ID_INVALID) {
       DOMAIN_LOG("Domain: Got unicast message on port {}", packet.destPort);
-      if (id < m_nextParticipantId &&
-          id >= PARTICIPANT_START_ID) { // added extra check to avoid segfault
-                                        // (id below START_ID)
-        m_participants[id - PARTICIPANT_START_ID].newMessage(
-          payload, payload_size);
+      if (id < m_nextParticipantId && id >= PARTICIPANT_START_ID) { // added extra check to avoid
+                                                                    // segfault (id below START_ID)
+        m_participants[id - PARTICIPANT_START_ID].newMessage(payload, payload_size);
       } else {
         DOMAIN_LOG("Domain: Participant id too high or unplausible.");
       }
     } else {
-      DOMAIN_LOG("Domain: Got message to port {}: no matching participant",
-                 packet.destPort);
+      DOMAIN_LOG("Domain: Got message to port {}: no matching participant", packet.destPort);
     }
   }
 }
@@ -141,15 +138,13 @@ rtps::Participant *Domain::createParticipant() {
 
   DOMAIN_LOG("Domain: Creating new participant.");
 
-  auto nextSlot =
-      static_cast<uint8_t>(m_nextParticipantId - PARTICIPANT_START_ID);
+  auto nextSlot = static_cast<uint8_t>(m_nextParticipantId - PARTICIPANT_START_ID);
   if (m_initComplete || m_participants.size() <= nextSlot) {
     return nullptr;
   }
 
   auto &entry = m_participants[nextSlot];
-  entry.reuse(generateGuidPrefix(m_nextParticipantId), m_nextParticipantId,
-             m_localIpAddress);
+  entry.reuse(generateGuidPrefix(m_nextParticipantId), m_nextParticipantId, m_localIpAddress);
   registerPort(entry);
   createBuiltinWritersAndReaders(entry);
   ++m_nextParticipantId;
@@ -159,11 +154,9 @@ rtps::Participant *Domain::createParticipant() {
 void Domain::createBuiltinWritersAndReaders(Participant &part) {
   // SPDP
   StatelessWriter *spdpWriter =
-      getNextUnusedEndpoint<decltype(m_statelessWriters), StatelessWriter>(
-          m_statelessWriters);
+      getNextUnusedEndpoint<decltype(m_statelessWriters), StatelessWriter>(m_statelessWriters);
   StatelessReader *spdpReader =
-      getNextUnusedEndpoint<decltype(m_statelessReaders), StatelessReader>(
-          m_statelessReaders);
+      getNextUnusedEndpoint<decltype(m_statelessReaders), StatelessReader>(m_statelessReaders);
 
   TopicData spdpWriterAttributes;
   spdpWriterAttributes.topicName[0] = '\0';
@@ -171,20 +164,17 @@ void Domain::createBuiltinWritersAndReaders(Participant &part) {
   spdpWriterAttributes.reliabilityKind = ReliabilityKind_t::BEST_EFFORT;
   spdpWriterAttributes.durabilityKind = DurabilityKind_t::TRANSIENT_LOCAL;
   spdpWriterAttributes.endpointGuid.prefix = part.m_guidPrefix;
-  spdpWriterAttributes.endpointGuid.entityId =
-      ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER;
+  spdpWriterAttributes.endpointGuid.entityId = ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER;
   spdpWriterAttributes.unicastLocator = getBuiltInMulticastLocator();
 
-  spdpWriter->init(spdpWriterAttributes, TopicKind_t::WITH_KEY, &m_threadPool,
-                   *m_transport);
+  spdpWriter->init(spdpWriterAttributes, TopicKind_t::WITH_KEY, &m_threadPool, *m_transport);
   spdpWriter->addNewMatchedReader(
       ReaderProxy{{part.m_guidPrefix, ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER},
                   getBuiltInMulticastLocator(),
                   false});
 
   TopicData spdpReaderAttributes;
-  spdpReaderAttributes.endpointGuid = {
-      part.m_guidPrefix, ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER};
+  spdpReaderAttributes.endpointGuid = {part.m_guidPrefix, ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER};
   spdpReader->init(spdpReaderAttributes);
 
   // SEDP
@@ -196,40 +186,29 @@ void Domain::createBuiltinWritersAndReaders(Participant &part) {
   sedpAttributes.reliabilityKind = ReliabilityKind_t::RELIABLE;
   sedpAttributes.durabilityKind = DurabilityKind_t::TRANSIENT_LOCAL;
   sedpAttributes.endpointGuid.prefix = part.m_guidPrefix;
-  sedpAttributes.unicastLocator =
-      getBuiltInUnicastLocator(part.m_participantId, m_localIpAddress);
+  sedpAttributes.unicastLocator = getBuiltInUnicastLocator(part.m_participantId, m_localIpAddress);
 
   // READER
   StatefulReader *sedpPubReader =
-      getNextUnusedEndpoint<decltype(m_statefulReaders), StatefulReader>(
-          m_statefulReaders);
-  sedpAttributes.endpointGuid.entityId =
-      ENTITYID_SEDP_BUILTIN_PUBLICATIONS_READER;
+      getNextUnusedEndpoint<decltype(m_statefulReaders), StatefulReader>(m_statefulReaders);
+  sedpAttributes.endpointGuid.entityId = ENTITYID_SEDP_BUILTIN_PUBLICATIONS_READER;
   sedpPubReader->init(sedpAttributes, *m_transport);
 
   StatefulReader *sedpSubReader =
-      getNextUnusedEndpoint<decltype(m_statefulReaders), StatefulReader>(
-          m_statefulReaders);
-  sedpAttributes.endpointGuid.entityId =
-      ENTITYID_SEDP_BUILTIN_SUBSCRIPTIONS_READER;
+      getNextUnusedEndpoint<decltype(m_statefulReaders), StatefulReader>(m_statefulReaders);
+  sedpAttributes.endpointGuid.entityId = ENTITYID_SEDP_BUILTIN_SUBSCRIPTIONS_READER;
   sedpSubReader->init(sedpAttributes, *m_transport);
 
   // WRITER
   StatefulWriter *sedpPubWriter =
-      getNextUnusedEndpoint<decltype(m_statefulWriters), StatefulWriter>(
-          m_statefulWriters);
-  sedpAttributes.endpointGuid.entityId =
-      ENTITYID_SEDP_BUILTIN_PUBLICATIONS_WRITER;
-  sedpPubWriter->init(sedpAttributes, TopicKind_t::NO_KEY, &m_threadPool,
-                      *m_transport);
+      getNextUnusedEndpoint<decltype(m_statefulWriters), StatefulWriter>(m_statefulWriters);
+  sedpAttributes.endpointGuid.entityId = ENTITYID_SEDP_BUILTIN_PUBLICATIONS_WRITER;
+  sedpPubWriter->init(sedpAttributes, TopicKind_t::NO_KEY, &m_threadPool, *m_transport);
 
   StatefulWriter *sedpSubWriter =
-      getNextUnusedEndpoint<decltype(m_statefulWriters), StatefulWriter>(
-          m_statefulWriters);
-  sedpAttributes.endpointGuid.entityId =
-      ENTITYID_SEDP_BUILTIN_SUBSCRIPTIONS_WRITER;
-  sedpSubWriter->init(sedpAttributes, TopicKind_t::NO_KEY, &m_threadPool,
-                      *m_transport);
+      getNextUnusedEndpoint<decltype(m_statefulWriters), StatefulWriter>(m_statefulWriters);
+  sedpAttributes.endpointGuid.entityId = ENTITYID_SEDP_BUILTIN_SUBSCRIPTIONS_WRITER;
+  sedpSubWriter->init(sedpAttributes, TopicKind_t::NO_KEY, &m_threadPool, *m_transport);
 
   // COLLECT
   BuiltInEndpoints endpoints{};
@@ -255,8 +234,8 @@ void Domain::registerMulticastPort(FullLengthLocator mcastLocator) {
   }
 }
 
-rtps::Reader *Domain::readerExists(Participant &part, const char *topicName,
-                                   const char *typeName, bool reliable) {
+rtps::Reader *Domain::readerExists(Participant &part, const char *topicName, const char *typeName,
+                                   bool reliable) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   if (reliable) {
     for (unsigned int i = 0; i < m_statefulReaders.size(); i++) {
@@ -271,8 +250,7 @@ rtps::Reader *Domain::readerExists(Participant &part, const char *topicName,
           continue;
         }
 
-        DOMAIN_LOG("StatefulReader exists already [{}, {}]", topicName,
-                   typeName);
+        DOMAIN_LOG("StatefulReader exists already [{}, {}]", topicName, typeName);
 
         return &m_statefulReaders[i];
       }
@@ -300,8 +278,8 @@ rtps::Reader *Domain::readerExists(Participant &part, const char *topicName,
   return nullptr;
 }
 
-rtps::Writer *Domain::writerExists(Participant &part, const char *topicName,
-                                   const char *typeName, bool reliable) {
+rtps::Writer *Domain::writerExists(Participant &part, const char *topicName, const char *typeName,
+                                   bool reliable) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   if (reliable) {
     for (unsigned int i = 0; i < m_statefulWriters.size(); i++) {
@@ -344,20 +322,17 @@ rtps::Writer *Domain::writerExists(Participant &part, const char *topicName,
   return nullptr;
 }
 
-rtps::Writer *Domain::createWriter(Participant &part, const char *topicName,
-                                   const char *typeName, bool reliable,
-                                   bool enforceUnicast) {
+rtps::Writer *Domain::createWriter(Participant &part, const char *topicName, const char *typeName,
+                                   bool reliable, bool enforceUnicast) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   StatelessWriter *statelessWriter =
-      getNextUnusedEndpoint<decltype(m_statelessWriters), StatelessWriter>(
-          m_statelessWriters);
+      getNextUnusedEndpoint<decltype(m_statelessWriters), StatelessWriter>(m_statelessWriters);
   StatefulWriter *statefulWriter =
-      getNextUnusedEndpoint<decltype(m_statefulWriters), StatefulWriter>(
-          m_statefulWriters);
+      getNextUnusedEndpoint<decltype(m_statefulWriters), StatefulWriter>(m_statefulWriters);
 
   // Check if there is enough capacity for more writers
-  if ((reliable && statefulWriter == nullptr) ||
-      (!reliable && statelessWriter == nullptr) || part.isWritersFull()) {
+  if ((reliable && statefulWriter == nullptr) || (!reliable && statelessWriter == nullptr) ||
+      part.isWritersFull()) {
 
     DOMAIN_LOG("No Writer created. Max Number of Writers reached.");
 
@@ -374,11 +349,9 @@ rtps::Writer *Domain::createWriter(Participant &part, const char *topicName,
   strcpy(attributes.topicName, topicName);
   strcpy(attributes.typeName, typeName);
   attributes.endpointGuid.prefix = part.m_guidPrefix;
-  attributes.endpointGuid.entityId = {
-      part.getNextUserEntityKey(),
-      EntityKind_t::USER_DEFINED_WRITER_WITHOUT_KEY};
-    attributes.unicastLocator =
-      getUserUnicastLocator(part.m_participantId, m_localIpAddress);
+  attributes.endpointGuid.entityId = {part.getNextUserEntityKey(),
+                                      EntityKind_t::USER_DEFINED_WRITER_WITHOUT_KEY};
+  attributes.unicastLocator = getUserUnicastLocator(part.m_participantId, m_localIpAddress);
   attributes.durabilityKind = DurabilityKind_t::TRANSIENT_LOCAL;
 
   DOMAIN_LOG("Creating writer[{}, {}]", topicName, typeName);
@@ -386,8 +359,8 @@ rtps::Writer *Domain::createWriter(Participant &part, const char *topicName,
   if (reliable) {
     attributes.reliabilityKind = ReliabilityKind_t::RELIABLE;
 
-    if (!statefulWriter->init(attributes, TopicKind_t::NO_KEY, &m_threadPool,
-                              *m_transport, enforceUnicast)) {
+    if (!statefulWriter->init(attributes, TopicKind_t::NO_KEY, &m_threadPool, *m_transport,
+                              enforceUnicast)) {
       DOMAIN_LOG("StatefulWriter init failed.");
       return nullptr;
     }
@@ -399,8 +372,8 @@ rtps::Writer *Domain::createWriter(Participant &part, const char *topicName,
   } else {
     attributes.reliabilityKind = ReliabilityKind_t::BEST_EFFORT;
 
-    if (!statelessWriter->init(attributes, TopicKind_t::NO_KEY, &m_threadPool,
-                               *m_transport, enforceUnicast)) {
+    if (!statelessWriter->init(attributes, TopicKind_t::NO_KEY, &m_threadPool, *m_transport,
+                               enforceUnicast)) {
       DOMAIN_LOG("StatelessWriter init failed.");
       return nullptr;
     }
@@ -412,19 +385,16 @@ rtps::Writer *Domain::createWriter(Participant &part, const char *topicName,
   }
 }
 
-rtps::Reader *Domain::createReader(Participant &part, const char *topicName,
-                                   const char *typeName, bool reliable,
-                                   rtps::Ip4AddressBytes mcastaddress) {
+rtps::Reader *Domain::createReader(Participant &part, const char *topicName, const char *typeName,
+                                   bool reliable, rtps::Ip4AddressBytes mcastaddress) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   StatelessReader *statelessReader =
-      getNextUnusedEndpoint<decltype(m_statelessReaders), StatelessReader>(
-          m_statelessReaders);
+      getNextUnusedEndpoint<decltype(m_statelessReaders), StatelessReader>(m_statelessReaders);
   StatefulReader *statefulReader =
-      getNextUnusedEndpoint<decltype(m_statefulReaders), StatefulReader>(
-          m_statefulReaders);
+      getNextUnusedEndpoint<decltype(m_statefulReaders), StatefulReader>(m_statefulReaders);
 
-  if ((reliable && statefulReader == nullptr) ||
-      (!reliable && statelessReader == nullptr) || part.isReadersFull()) {
+  if ((reliable && statefulReader == nullptr) || (!reliable && statelessReader == nullptr) ||
+      part.isReadersFull()) {
 
     DOMAIN_LOG("No Reader created. Max Number of Readers reached.");
 
@@ -441,21 +411,17 @@ rtps::Reader *Domain::createReader(Participant &part, const char *topicName,
   strcpy(attributes.topicName, topicName);
   strcpy(attributes.typeName, typeName);
   attributes.endpointGuid.prefix = part.m_guidPrefix;
-  attributes.endpointGuid.entityId = {
-      part.getNextUserEntityKey(),
-      EntityKind_t::USER_DEFINED_READER_WITHOUT_KEY};
-    attributes.unicastLocator =
-      getUserUnicastLocator(part.m_participantId, m_localIpAddress);
+  attributes.endpointGuid.entityId = {part.getNextUserEntityKey(),
+                                      EntityKind_t::USER_DEFINED_READER_WITHOUT_KEY};
+  attributes.unicastLocator = getUserUnicastLocator(part.m_participantId, m_localIpAddress);
   if (!isZeroAddress(mcastaddress)) {
     if (isMulticastAddress(mcastaddress)) {
       attributes.multicastLocator = rtps::FullLengthLocator::createUDPv4Locator(
           mcastaddress[0], mcastaddress[1], mcastaddress[2], mcastaddress[3],
           getUserMulticastPort());
       m_transport->joinMultiCastGroup(
-          {attributes.multicastLocator.address[12],
-           attributes.multicastLocator.address[13],
-           attributes.multicastLocator.address[14],
-           attributes.multicastLocator.address[15]});
+          {attributes.multicastLocator.address[12], attributes.multicastLocator.address[13],
+           attributes.multicastLocator.address[14], attributes.multicastLocator.address[15]});
       registerMulticastPort(attributes.multicastLocator);
 
       DOMAIN_LOG("Multicast enabled!");
@@ -496,8 +462,8 @@ rtps::Reader *Domain::createReader(Participant &part, const char *topicName,
 
 bool rtps::Domain::deleteReader(Participant &part, Reader *reader) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
-  if(reader == nullptr || !reader->isInitialized()){
-	  return false;
+  if (reader == nullptr || !reader->isInitialized()) {
+    return false;
   }
   if (!part.deleteReader(reader)) {
     return false;
@@ -509,8 +475,8 @@ bool rtps::Domain::deleteReader(Participant &part, Reader *reader) {
 
 bool rtps::Domain::deleteWriter(Participant &part, Writer *writer) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
-  if(writer == nullptr || !writer->isInitialized()){
-	  return false;
+  if (writer == nullptr || !writer->isInitialized()) {
+    return false;
   }
   if (!part.deleteWriter(writer)) {
     return false;
@@ -554,13 +520,11 @@ rtps::GuidPrefix_t Domain::generateGuidPrefix(ParticipantId_t id) const {
 #endif
 
   if (Config::BASE_GUID_PREFIX == GUID_RANDOM) {
-    for (unsigned int i = 0; i < rtps::Config::BASE_GUID_PREFIX.id.size();
-         i++) {
+    for (unsigned int i = 0; i < rtps::Config::BASE_GUID_PREFIX.id.size(); i++) {
       prefix.id[i] = rand();
     }
   } else {
-    for (unsigned int i = 0; i < rtps::Config::BASE_GUID_PREFIX.id.size();
-         i++) {
+    for (unsigned int i = 0; i < rtps::Config::BASE_GUID_PREFIX.id.size(); i++) {
       prefix.id[i] = Config::BASE_GUID_PREFIX.id[i];
     }
   }

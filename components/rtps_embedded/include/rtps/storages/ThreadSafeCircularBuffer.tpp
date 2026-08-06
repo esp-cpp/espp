@@ -2,14 +2,14 @@
 #ifndef RTPS_THREADSAFECIRCULARBUFFER_TPP
 #define RTPS_THREADSAFECIRCULARBUFFER_TPP
 
-#include "rtps/utils/Log.h"
+#include "rtps/utils/Log.hpp"
 
 #if TSCB_VERBOSE && RTPS_GLOBAL_VERBOSE
-#define TSCB_LOG(...)                                                          \
-  if (true) {                                                                  \
-    printf("[TSCircularBuffer] ");                                             \
-    printf(__VA_ARGS__);                                                       \
-    printf("\n");                                                              \
+#define TSCB_LOG(...)                                                                              \
+  if (true) {                                                                                      \
+    printf("[TSCircularBuffer] ");                                                                 \
+    printf(__VA_ARGS__);                                                                           \
+    printf("\n");                                                                                  \
   }
 #else
 #define TSCB_LOG(...) //
@@ -17,8 +17,7 @@
 
 namespace rtps {
 
-template <typename T, uint16_t SIZE>
-bool ThreadSafeCircularBuffer<T, SIZE>::init() {
+template <typename T, uint16_t SIZE> bool ThreadSafeCircularBuffer<T, SIZE>::init() {
   std::lock_guard<std::mutex> init_lock(m_init_mutex);
   if (m_initialized) {
     return true;
@@ -75,8 +74,7 @@ bool ThreadSafeCircularBuffer<T, SIZE>::moveFirstInto(T &hull) {
   }
 }
 
-template <typename T, uint16_t SIZE>
-bool ThreadSafeCircularBuffer<T, SIZE>::peakFirst(T &hull) {
+template <typename T, uint16_t SIZE> bool ThreadSafeCircularBuffer<T, SIZE>::peakFirst(T &hull) {
   if (!init()) {
     return false;
   }
@@ -89,8 +87,7 @@ bool ThreadSafeCircularBuffer<T, SIZE>::peakFirst(T &hull) {
   }
 }
 
-template <typename T, uint16_t SIZE>
-uint32_t ThreadSafeCircularBuffer<T, SIZE>::numElements() {
+template <typename T, uint16_t SIZE> uint32_t ThreadSafeCircularBuffer<T, SIZE>::numElements() {
   if (!init()) {
     return 0;
   }
@@ -107,8 +104,7 @@ uint32_t ThreadSafeCircularBuffer<T, SIZE>::insertionFailures() {
   return m_insertion_failures;
 }
 
-template <typename T, uint16_t SIZE>
-void ThreadSafeCircularBuffer<T, SIZE>::clear() {
+template <typename T, uint16_t SIZE> void ThreadSafeCircularBuffer<T, SIZE>::clear() {
   if (!init()) {
     return;
   }
@@ -117,16 +113,14 @@ void ThreadSafeCircularBuffer<T, SIZE>::clear() {
   m_num_elements = 0;
 }
 
-template <typename T, uint16_t SIZE>
-bool ThreadSafeCircularBuffer<T, SIZE>::isFull() {
+template <typename T, uint16_t SIZE> bool ThreadSafeCircularBuffer<T, SIZE>::isFull() {
   auto it = m_head;
   incrementIterator(it);
   return it == m_tail;
 }
 
 template <typename T, uint16_t SIZE>
-inline void
-ThreadSafeCircularBuffer<T, SIZE>::incrementIterator(uint16_t &iterator) {
+inline void ThreadSafeCircularBuffer<T, SIZE>::incrementIterator(uint16_t &iterator) {
   ++iterator;
   if (iterator >= m_buffer.size()) {
     iterator = 0;

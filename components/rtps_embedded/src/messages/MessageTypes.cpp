@@ -23,7 +23,7 @@ This file is part of embeddedRTPS.
 Author: i11 - Embedded Software, RWTH Aachen University
 */
 
-#include "rtps/messages/MessageTypes.h"
+#include "rtps/messages/MessageTypes.hpp"
 
 #include <cstddef>
 #include <cstring>
@@ -36,26 +36,21 @@ void doCopyAndMoveOn(uint8_t *dst, const uint8_t *&src, size_t size) {
   src += size;
 }
 
-bool rtps::deserializeMessage(const MessageProcessingInfo &info,
-                              Header &header) {
+bool rtps::deserializeMessage(const MessageProcessingInfo &info, Header &header) {
   if (info.getRemainingSize() < Header::getRawSize()) {
     return false;
   }
 
   const uint8_t *currentPos = info.getPointerToCurrentPos();
-  doCopyAndMoveOn(header.protocolName.data(), currentPos,
-                  sizeof(std::array<uint8_t, 4>));
-  doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&header.protocolVersion),
-                  currentPos, sizeof(ProtocolVersion_t));
-  doCopyAndMoveOn(header.vendorId.vendorId.data(), currentPos,
-                  header.vendorId.vendorId.size());
-  doCopyAndMoveOn(header.guidPrefix.id.data(), currentPos,
-                  header.guidPrefix.id.size());
+  doCopyAndMoveOn(header.protocolName.data(), currentPos, sizeof(std::array<uint8_t, 4>));
+  doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&header.protocolVersion), currentPos,
+                  sizeof(ProtocolVersion_t));
+  doCopyAndMoveOn(header.vendorId.vendorId.data(), currentPos, header.vendorId.vendorId.size());
+  doCopyAndMoveOn(header.guidPrefix.id.data(), currentPos, header.guidPrefix.id.size());
   return true;
 }
 
-bool rtps::deserializeMessage(const MessageProcessingInfo &info,
-                              SubmessageHeader &header) {
+bool rtps::deserializeMessage(const MessageProcessingInfo &info, SubmessageHeader &header) {
   if (info.getRemainingSize() < SubmessageHeader::getRawSize()) {
     return false;
   }
@@ -63,13 +58,12 @@ bool rtps::deserializeMessage(const MessageProcessingInfo &info,
   const uint8_t *currentPos = info.getPointerToCurrentPos();
   header.submessageId = static_cast<SubmessageKind>(*currentPos++);
   header.flags = *(currentPos++);
-  doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&header.octetsToNextHeader),
-                  currentPos, sizeof(uint16_t));
+  doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&header.octetsToNextHeader), currentPos,
+                  sizeof(uint16_t));
   return true;
 }
 
-bool rtps::deserializeMessage(const MessageProcessingInfo &info,
-                              SubmessageData &msg) {
+bool rtps::deserializeMessage(const MessageProcessingInfo &info, SubmessageData &msg) {
   if (info.getRemainingSize() < SubmessageHeader::getRawSize()) {
     return false;
   }
@@ -78,23 +72,18 @@ bool rtps::deserializeMessage(const MessageProcessingInfo &info,
   }
 
   // Check for length including data
-  if (info.getRemainingSize() <
-      SubmessageHeader::getRawSize() + msg.header.octetsToNextHeader) {
+  if (info.getRemainingSize() < SubmessageHeader::getRawSize() + msg.header.octetsToNextHeader) {
     return false;
   }
 
-  const uint8_t *currentPos =
-      info.getPointerToCurrentPos() + SubmessageHeader::getRawSize();
+  const uint8_t *currentPos = info.getPointerToCurrentPos() + SubmessageHeader::getRawSize();
 
-  doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&msg.extraFlags), currentPos,
+  doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&msg.extraFlags), currentPos, sizeof(uint16_t));
+  doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&msg.octetsToInlineQos), currentPos,
                   sizeof(uint16_t));
-  doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&msg.octetsToInlineQos),
-                  currentPos, sizeof(uint16_t));
-  doCopyAndMoveOn(msg.readerId.entityKey.data(), currentPos,
-                  msg.readerId.entityKey.size());
+  doCopyAndMoveOn(msg.readerId.entityKey.data(), currentPos, msg.readerId.entityKey.size());
   msg.readerId.entityKind = static_cast<EntityKind_t>(*currentPos++);
-  doCopyAndMoveOn(msg.writerId.entityKey.data(), currentPos,
-                  msg.writerId.entityKey.size());
+  doCopyAndMoveOn(msg.writerId.entityKey.data(), currentPos, msg.writerId.entityKey.size());
   msg.writerId.entityKind = static_cast<EntityKind_t>(*currentPos++);
   doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&msg.writerSN.high), currentPos,
                   sizeof(msg.writerSN.high));
@@ -103,8 +92,7 @@ bool rtps::deserializeMessage(const MessageProcessingInfo &info,
   return true;
 }
 
-bool rtps::deserializeMessage(const MessageProcessingInfo &info,
-                              SubmessageHeartbeat &msg) {
+bool rtps::deserializeMessage(const MessageProcessingInfo &info, SubmessageHeartbeat &msg) {
   if (info.getRemainingSize() < SubmessageHeartbeat::getRawSize()) {
     return false;
   }
@@ -112,14 +100,11 @@ bool rtps::deserializeMessage(const MessageProcessingInfo &info,
     return false;
   }
 
-  const uint8_t *currentPos =
-      info.getPointerToCurrentPos() + SubmessageHeader::getRawSize();
+  const uint8_t *currentPos = info.getPointerToCurrentPos() + SubmessageHeader::getRawSize();
 
-  doCopyAndMoveOn(msg.readerId.entityKey.data(), currentPos,
-                  msg.readerId.entityKey.size());
+  doCopyAndMoveOn(msg.readerId.entityKey.data(), currentPos, msg.readerId.entityKey.size());
   msg.readerId.entityKind = static_cast<EntityKind_t>(*currentPos++);
-  doCopyAndMoveOn(msg.writerId.entityKey.data(), currentPos,
-                  msg.writerId.entityKey.size());
+  doCopyAndMoveOn(msg.writerId.entityKey.data(), currentPos, msg.writerId.entityKey.size());
   msg.writerId.entityKind = static_cast<EntityKind_t>(*currentPos++);
   doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&msg.firstSN.high), currentPos,
                   sizeof(msg.firstSN.high));
@@ -127,8 +112,7 @@ bool rtps::deserializeMessage(const MessageProcessingInfo &info,
                   sizeof(msg.firstSN.low));
   doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&msg.lastSN.high), currentPos,
                   sizeof(msg.lastSN.high));
-  doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&msg.lastSN.low), currentPos,
-                  sizeof(msg.lastSN.low));
+  doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&msg.lastSN.low), currentPos, sizeof(msg.lastSN.low));
   doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&msg.count.value), currentPos,
                   sizeof(msg.count.value));
   return true;
@@ -141,44 +125,35 @@ void rtps::deserializeSNS(const uint8_t *&position, SequenceNumberSet &set,
                   sizeof(SequenceNumber_t::high));
   doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&set.base.low), position,
                   sizeof(SequenceNumber_t::low));
-  doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&set.numBits), position,
-                  sizeof(uint32_t));
+  doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&set.numBits), position, sizeof(uint32_t));
 
   // Ensure that we copy not more bits than our sequence number set can hold
   if (set.numBits != 0) {
     // equal to size = std::min(SNS_NUM_BYTES, num_bitfields)
-    std::size_t size =
-      num_bitfields > SNS_NUM_BYTES ? SNS_NUM_BYTES : num_bitfields;
-    doCopyAndMoveOn(reinterpret_cast<uint8_t *>(set.bitMap.data()), position,
-                    size);
+    std::size_t size = num_bitfields > SNS_NUM_BYTES ? SNS_NUM_BYTES : num_bitfields;
+    doCopyAndMoveOn(reinterpret_cast<uint8_t *>(set.bitMap.data()), position, size);
     position += (num_bitfields - size);
   }
 }
 
-bool rtps::deserializeMessage(const MessageProcessingInfo &info,
-                              SubmessageAckNack &msg) {
+bool rtps::deserializeMessage(const MessageProcessingInfo &info, SubmessageAckNack &msg) {
   const DataSize_t remainingSizeAtBeginning = info.getRemainingSize();
   if (remainingSizeAtBeginning <
-      SubmessageAckNack::
-          getRawSizeWithoutSNSet()) { // Size of SequenceNumberSet unknown
+      SubmessageAckNack::getRawSizeWithoutSNSet()) { // Size of SequenceNumberSet unknown
     return false;
   }
   if (!deserializeMessage(info, msg.header)) {
     return false;
   }
 
-  const uint8_t *currentPos =
-      info.getPointerToCurrentPos() + SubmessageHeader::getRawSize();
+  const uint8_t *currentPos = info.getPointerToCurrentPos() + SubmessageHeader::getRawSize();
 
-  doCopyAndMoveOn(msg.readerId.entityKey.data(), currentPos,
-                  msg.readerId.entityKey.size());
+  doCopyAndMoveOn(msg.readerId.entityKey.data(), currentPos, msg.readerId.entityKey.size());
   msg.readerId.entityKind = static_cast<EntityKind_t>(*currentPos++);
-  doCopyAndMoveOn(msg.writerId.entityKey.data(), currentPos,
-                  msg.writerId.entityKey.size());
+  doCopyAndMoveOn(msg.writerId.entityKey.data(), currentPos, msg.writerId.entityKey.size());
   msg.writerId.entityKind = static_cast<EntityKind_t>(*currentPos++);
 
-  std::size_t num_bitfields =
-      msg.header.octetsToNextHeader - 4 - 4 - 8 - 4 - 4;
+  std::size_t num_bitfields = msg.header.octetsToNextHeader - 4 - 4 - 8 - 4 - 4;
   deserializeSNS(currentPos, msg.readerSNState, num_bitfields);
 
   doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&msg.count.value), currentPos,
@@ -186,8 +161,7 @@ bool rtps::deserializeMessage(const MessageProcessingInfo &info,
   return true;
 }
 
-bool rtps::deserializeMessage(const MessageProcessingInfo &info,
-                              SubmessageGap &msg) {
+bool rtps::deserializeMessage(const MessageProcessingInfo &info, SubmessageGap &msg) {
 
   const DataSize_t remainingSizeAtBeginning = info.getRemainingSize();
   if (remainingSizeAtBeginning <
@@ -199,14 +173,11 @@ bool rtps::deserializeMessage(const MessageProcessingInfo &info,
     return false;
   }
 
-  const uint8_t *currentPos =
-      info.getPointerToCurrentPos() + SubmessageHeader::getRawSize();
+  const uint8_t *currentPos = info.getPointerToCurrentPos() + SubmessageHeader::getRawSize();
 
-  doCopyAndMoveOn(msg.readerId.entityKey.data(), currentPos,
-                  msg.readerId.entityKey.size());
+  doCopyAndMoveOn(msg.readerId.entityKey.data(), currentPos, msg.readerId.entityKey.size());
   msg.readerId.entityKind = static_cast<EntityKind_t>(*currentPos++);
-  doCopyAndMoveOn(msg.writerId.entityKey.data(), currentPos,
-                  msg.writerId.entityKey.size());
+  doCopyAndMoveOn(msg.writerId.entityKey.data(), currentPos, msg.writerId.entityKey.size());
   msg.writerId.entityKind = static_cast<EntityKind_t>(*currentPos++);
 
   doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&msg.gapStart.high), currentPos,
@@ -214,8 +185,7 @@ bool rtps::deserializeMessage(const MessageProcessingInfo &info,
   doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&msg.gapStart.low), currentPos,
                   sizeof(msg.gapStart.low));
 
-  std::size_t num_bitfields =
-      msg.header.octetsToNextHeader - 4 - 4 - 8 - 8 - 4;
+  std::size_t num_bitfields = msg.header.octetsToNextHeader - 4 - 4 - 8 - 8 - 4;
   deserializeSNS(currentPos, msg.gapList, num_bitfields);
 
   return true;
