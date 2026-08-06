@@ -139,13 +139,15 @@ extern "C" void app_main(void) {
     touch_y = td.y;
     if (td.num_touch_points > 0) {
       const bool new_touch = (prev_td != td);
-      if (new_touch && !audio_bytes.empty()) {
-        // restart the click on every new touch (drop any queued tail) so the
-        // sound tracks touches responsively instead of queueing up
-        board.clear_audio();
-        board.play_audio(audio_bytes); // non-blocking, touch-down edge only
-      }
+      // Touch feedback (click + circle) only applies on the draw/status page;
+      // touches on the other tabs (buttons, sliders) stay silent.
       if (new_touch && gui.draw_page_active()) {
+        if (!audio_bytes.empty()) {
+          // restart the click on every new touch (drop any queued tail) so the
+          // sound tracks touches responsively instead of queueing up
+          board.clear_audio();
+          board.play_audio(audio_bytes); // non-blocking, touch-down edge only
+        }
         gui.draw_circle(td.x, td.y, kCircleRadius);
       }
     }
@@ -333,7 +335,27 @@ static bool load_audio(size_t &out_size, size_t &out_sample_rate) {
   }
   uint32_t sample_rate = 0;
   std::memcpy(&sample_rate, &audio_bytes[24], sizeof(sample_rate));
-  audio_bytes.erase(audio_bytes.begin(), audio_bytes.begin() + 44);
+  // Walk the RIFF chunks to find the 'data' chunk and keep exactly its payload.
+  // A fixed 44-byte strip is wrong for files with trailing metadata chunks
+  // (cue/LIST/bext): those bytes would be played as audio, producing a pop at
+  // the end of playback.
+  size_t data_off = 0, data_len = 0;
+  for (size_t off = 12; off + 8 <= audio_bytes.size();) {
+    uint32_t chunk_size = 0;
+    std::memcpy(&chunk_size, &audio_bytes[off + 4], sizeof(chunk_size));
+    if (std::memcmp(&audio_bytes[off], "data", 4) == 0) {
+      data_off = off + 8;
+      data_len = std::min<size_t>(chunk_size, audio_bytes.size() - data_off);
+      break;
+    }
+    off += 8 + chunk_size + (chunk_size & 1); // chunks are word-aligned
+  }
+  if (data_len == 0) {
+    audio_bytes.clear();
+    return false;
+  }
+  audio_bytes.erase(audio_bytes.begin() + data_off + data_len, audio_bytes.end());
+  audio_bytes.erase(audio_bytes.begin(), audio_bytes.begin() + data_off);
   out_size = audio_bytes.size();
   out_sample_rate = sample_rate;
   return true;

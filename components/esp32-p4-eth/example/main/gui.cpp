@@ -30,6 +30,12 @@ void Gui::init_tabview() {
   status_tab_ = lv_tabview_add_tab(tabview_, "Status");
   audio_tab_ = lv_tabview_add_tab(tabview_, "Audio");
   camera_tab_ = lv_tabview_add_tab(tabview_, "Camera");
+  // The tab pages themselves are scrollable by default; disable that so drags
+  // inside a page don't rubber-band/scroll the content (matches the other BSP
+  // example GUIs).
+  lv_obj_clear_flag(status_tab_, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_clear_flag(audio_tab_, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_clear_flag(camera_tab_, LV_OBJ_FLAG_SCROLLABLE);
   // switching tabs is done with the tab buttons only: disable swipe
   // scrolling of the content so drawing on the Status tab cannot accidentally
   // change pages
