@@ -143,10 +143,17 @@ bool TrajectoryPlanner::set_config(const Config &config, bool reset_state) {
   return true;
 }
 
-const TrajectoryPlanner::Config &TrajectoryPlanner::get_config() const { return config_; }
+const TrajectoryPlanner::Config &TrajectoryPlanner::get_config() const {
+  std::lock_guard<std::recursive_mutex> lk(mutex_);
+  return config_;
+}
 
 void TrajectoryPlanner::set_target(float linear, float angular) {
 
+  if (std::isnan(linear) || std::isnan(angular)) {
+    logger_.error("set_target() called with NaN values: linear={}, angular={}", linear, angular);
+    return;
+  }
   // clamp the input to [-1, +1] first
   linear = std::clamp(linear, -1.0f, 1.0f);
   angular = std::clamp(angular, -1.0f, 1.0f);
@@ -154,28 +161,37 @@ void TrajectoryPlanner::set_target(float linear, float angular) {
   // Motion envelope enforcement: ensure that the combined normalized linear and angular velocities
   // do not exceed the unit circle. This prevents commanding a motion that exceeds the robot's
   // maximum capabilities.
+  bool enforce_motion_envelope = false;
+  float max_centripetal_acceleration = 0.0f;
+  float max_linear_velocity = 0.0f;
+  float max_angular_velocity = 0.0f;
   {
     std::lock_guard<std::recursive_mutex> lk(mutex_);
-    if (config_.enforce_motion_envelope) {
-      float magnitude = std::sqrt(linear * linear + angular * angular);
-      if (magnitude > 1.0f) {
-        linear /= magnitude;
-        angular /= magnitude;
-        logger_.warn("Motion envelope enforced: linear={}, angular={}, magnitude={}", linear,
-                     angular, magnitude);
-      }
+    enforce_motion_envelope = config_.enforce_motion_envelope;
+    max_centripetal_acceleration = config_.max_centripetal_acceleration;
+    max_linear_velocity = config_.max_linear_velocity;
+    max_angular_velocity = config_.max_angular_velocity;
+  }
+
+  if (enforce_motion_envelope) {
+    float magnitude = std::sqrt(linear * linear + angular * angular);
+    if (magnitude > 1.0f) {
+      linear /= magnitude;
+      angular /= magnitude;
+      logger_.warn("Motion envelope enforced: linear={}, angular={}, magnitude={}", linear, angular,
+                   magnitude);
     }
   }
 
-  auto target_v = linear * config_.max_linear_velocity;
-  auto target_w = angular * config_.max_angular_velocity;
+  auto target_v = linear * max_linear_velocity;
+  auto target_w = angular * max_angular_velocity;
 
   // Centripetal acceleration limit: |v · w| ≤ a_c_max
   // Scale both v and w proportionally to preserve the turning radius.
-  if (config_.max_centripetal_acceleration > 0.0f) {
+  if (max_centripetal_acceleration > 0.0f) {
     float a_c = std::abs(target_v * target_w);
-    if (a_c > config_.max_centripetal_acceleration) {
-      float scale = std::sqrt(config_.max_centripetal_acceleration / a_c);
+    if (a_c > max_centripetal_acceleration) {
+      float scale = std::sqrt(max_centripetal_acceleration / a_c);
       target_v *= scale;
       target_w *= scale;
       logger_.warn(

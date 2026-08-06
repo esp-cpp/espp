@@ -78,11 +78,24 @@ planner.stop();
 planner.reset();
 ```
 
-## Example
+## Examples
 
-The [example](./example) shows four scenarios:
-1. **Quick-start** - all public API in one place
-2. **S-curve driving / trapezoidal stop** - smooth acceleration, clean braking
-3. **High-speed S-curve** - combined jerk-limited motion with centripetal limiting
-4. **Constraint validation** - automated checks for speed, acceleration, jerk,
-   and centripetal limits across driving and stopping phases separately
+This component includes three examples:
+
+1. **MCU example (ESP-IDF)**
+  - [Example app](./example)
+  - [Example README](./example/README.md)
+  - [Main source](./example/main/trajectory_planner_example.cpp)
+  - Covers quick-start API usage, S-curve driving, trapezoidal stop, and runtime constraint checks.
+
+2. **Python example**
+  - [Plotting and callback demo](../../python/trajectory_planner.py)
+  - Visualizes target/output trajectories and derived acceleration/jerk behavior.
+  - Result:
+    <img width="943" height="485" alt="image" src="https://github.com/user-attachments/assets/f5973188-c9d7-497d-a0e5-2180b8b96070" />
+
+3. **PC example / test**
+  - [PC test](../../pc/tests/trajectory_planner.cpp)
+  - Runs deterministic host-side checks for planner constraints and behavior.
+  - Result:
+    <img width="1061" height="199" alt="image" src="https://github.com/user-attachments/assets/e7b3b090-4f98-4995-a8f6-81c830a7fe23" />

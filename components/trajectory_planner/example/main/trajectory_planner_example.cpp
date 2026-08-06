@@ -1,7 +1,7 @@
+#include "trajectory_planner.hpp"
 #include <atomic>
 #include <chrono>
-
-#include "trajectory_planner.hpp"
+#include <thread>
 
 using namespace std::chrono_literals;
 

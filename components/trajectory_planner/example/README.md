@@ -19,6 +19,10 @@ Four scenarios are covered:
    - Centripetal acceleration `|v * w|`
    - Results reported separately for driving and stopping phases.
 
+Result:
+     <img width="875" height="491" alt="image" src="https://github.com/user-attachments/assets/92ac9945-8464-4e2d-83fa-52e202fe0dc6" />
+     <img width="903" height="424" alt="image" src="https://github.com/user-attachments/assets/a58d3bbb-d8df-4aef-bb36-4e1daafb7065" />
+
 ## Building
 
 ```bash
