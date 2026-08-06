@@ -351,6 +351,12 @@ public:
   /// \note Must be called from task context, not from an ISR.
   size_t play_audio(std::span<const uint8_t> data);
 
+  /// Drop any queued (not yet played) audio so a subsequent play_audio() starts
+  /// immediately instead of waiting behind previously queued sound. Useful for
+  /// UI sounds where a new event should restart the sound for maximum
+  /// responsiveness.
+  void clear_audio();
+
   /////////////////////////////////////////////////////////////////////////////
   // Microphone
   /////////////////////////////////////////////////////////////////////////////

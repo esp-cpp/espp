@@ -172,6 +172,16 @@ size_t Esp32P4Nano::play_audio(const uint8_t *data, uint32_t num_bytes) {
   return xStreamBufferSend(audio_tx_stream, data, sendable, 0);
 }
 
+void Esp32P4Nano::clear_audio() {
+  if (!audio_initialized_ || audio_tx_stream == nullptr) {
+    return;
+  }
+  // Drop everything queued but not yet handed to the I2S DMA. The drain task's
+  // current (at most one) frame still finishes, so this cuts over on the next
+  // ~16 ms frame boundary.
+  xStreamBufferReset(audio_tx_stream);
+}
+
 size_t Esp32P4Nano::play_audio(std::span<const uint8_t> data) {
   return play_audio(data.data(), data.size());
 }

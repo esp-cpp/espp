@@ -140,6 +140,9 @@ extern "C" void app_main(void) {
     if (td.num_touch_points > 0) {
       const bool new_touch = (prev_td != td);
       if (new_touch && !audio_bytes.empty()) {
+        // restart the click on every new touch (drop any queued tail) so the
+        // sound tracks touches responsively instead of queueing up
+        board.clear_audio();
         board.play_audio(audio_bytes); // non-blocking, touch-down edge only
       }
       if (new_touch && gui.draw_page_active()) {
