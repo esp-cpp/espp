@@ -75,6 +75,10 @@ public:
   /// @param x The x coordinate (screen space)
   /// @param y The y coordinate (screen space)
   /// @param radius The radius of the circle
+  /// Queue a circle to draw at (x, y). Thread-safe and non-blocking: the point
+  /// is queued under a small lock and rendered by the GUI update task on its
+  /// next cycle, so callers (e.g. the touch poll task) never wait on LVGL
+  /// rendering.
   void draw_circle(int x, int y, int radius);
 
   /// Clear all circles from the screen. Thread-safe.
@@ -156,6 +160,7 @@ protected:
 
   // unlocked implementations, called with the mutex held
   void clear_circles_impl();
+  void draw_circle_pending(const Circle &c);
 
   // LVGL objects
   lv_obj_t *tabview_{nullptr};
@@ -203,6 +208,11 @@ protected:
                            .task_config = {.name = "gui", .stack_size_bytes = 12 * 1024}}};
   espp::Logger logger_;
   std::recursive_mutex mutex_;
+  // Pending draw_circle() points, queued by (fast) producers and drained under
+  // mutex_ by the GUI update task; keeps the touch poll task from blocking on
+  // LVGL rendering.
+  std::mutex pending_points_mutex_;
+  std::vector<Circle> pending_points_;
   // True between init_ui() and deinit_ui(). Guards set_camera_frame() (called
   // from the camera task) against touching the LVGL tree after teardown.
   bool ui_ready_{false};

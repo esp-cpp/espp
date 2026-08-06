@@ -139,16 +139,19 @@ extern "C" void app_main(void) {
     touch_y = td.y;
     if (td.num_touch_points > 0) {
       const bool new_touch = (prev_td != td);
+      const bool touch_down_edge = (prev_td.num_touch_points == 0);
       // Touch feedback (click + circle) only applies on the draw/status page;
       // touches on the other tabs (buttons, sliders) stay silent.
-      if (new_touch && gui.draw_page_active()) {
-        if (!audio_bytes.empty()) {
-          // restart the click on every new touch (drop any queued tail) so the
-          // sound tracks touches responsively instead of queueing up
+      if (gui.draw_page_active()) {
+        // Click only on the touch-DOWN edge (not on every drag movement), and
+        // restart it (drop any queued tail) so it tracks touches responsively.
+        if (touch_down_edge && !audio_bytes.empty()) {
           board.clear_audio();
-          board.play_audio(audio_bytes); // non-blocking, touch-down edge only
+          board.play_audio(audio_bytes); // non-blocking
         }
-        gui.draw_circle(td.x, td.y, kCircleRadius);
+        if (new_touch) {
+          gui.draw_circle(td.x, td.y, kCircleRadius);
+        }
       }
     }
     prev_td = td;
