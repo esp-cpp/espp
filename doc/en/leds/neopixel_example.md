@@ -1,2 +1,2 @@
-```{include} ../../components/neopixel/example/README.md
+```{include} ../../../components/neopixel/example/README.md
 ```

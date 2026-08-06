@@ -1,2 +1,2 @@
-```{include} ../../components/nvs/example/README.md
+```{include} ../../../components/nvs/example/README.md
 ```

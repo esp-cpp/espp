@@ -1,2 +1,2 @@
-```{include} ../../components/i2c/example/README.md
+```{include} ../../../components/i2c/example/README.md
 ```

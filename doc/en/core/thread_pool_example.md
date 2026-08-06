@@ -1,2 +1,2 @@
-```{include} ../../components/thread_pool/example/README.md
+```{include} ../../../components/thread_pool/example/README.md
 ```
