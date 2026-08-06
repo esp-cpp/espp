@@ -67,7 +67,7 @@ struct CacheChange {
     sentTime = TimePoint{};
   }
 
-  bool isInitialized() { return (kind != ChangeKind_t::INVALID); }
+  bool isInitialized() const { return (kind != ChangeKind_t::INVALID); }
 };
 } // namespace rtps
 

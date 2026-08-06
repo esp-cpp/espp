@@ -36,8 +36,6 @@ namespace rtps {
 template <typename T, uint16_t SIZE> class ThreadSafeCircularBuffer {
 
 public:
-  bool init();
-
   bool moveElementIntoBuffer(T &&elem);
   bool copyElementIntoBuffer(const T &elem);
 
@@ -64,11 +62,9 @@ private:
                 "Iterator is large enough for given size");
 
   std::mutex m_mutex;
-  std::mutex m_init_mutex;
-  bool m_initialized = false;
 
   inline bool isFull();
-  inline void incrementIterator(uint16_t &iterator);
+  inline void incrementIterator(uint16_t &iterator) const;
   inline void incrementTail();
   inline void incrementHead();
 };

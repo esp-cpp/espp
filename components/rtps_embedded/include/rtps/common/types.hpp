@@ -31,6 +31,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include <cstdint>
 #include <initializer_list>
 #include <limits>
+#include <numeric>
 
 // TODO subnamespaces
 namespace rtps {
@@ -106,13 +107,8 @@ struct Guid_t {
   }
 
   static uint32_t sum(const Guid_t &other) {
-    uint32_t ret = 0;
-    for (const auto &i : other.prefix.id) {
-      ret += i;
-    }
-    for (const auto &i : other.entityId.entityKey) {
-      ret += i;
-    }
+    uint32_t ret = std::accumulate(other.prefix.id.begin(), other.prefix.id.end(), uint32_t{0});
+    ret = std::accumulate(other.entityId.entityKey.begin(), other.entityId.entityKey.end(), ret);
     return ret;
   }
 };

@@ -49,7 +49,7 @@ public:
       : espp::BaseComponent("RtpsParticipantProxy", espp::Logger::Verbosity::WARN) {
     onAliveSignal();
   }
-  ParticipantProxyData(Guid_t guid);
+  explicit ParticipantProxyData(Guid_t guid);
 
   ProtocolVersion_t m_protocolVersion = PROTOCOLVERSION;
   Guid_t m_guid = Guid_t{GUIDPREFIX_UNKNOWN, ENTITYID_UNKNOWN};

@@ -146,12 +146,12 @@ enum class SubmessageKind : uint8_t {
 
 enum SubMessageFlag : uint8_t {
   FLAG_ENDIANESS = (1 << 0),
-  FLAG_BIG_ENDIAN = (0 << 0),
+  FLAG_BIG_ENDIAN = 0,
   FLAG_LITTLE_ENDIAN = (1 << 0),
   FLAG_INVALIDATE = (1 << 1),
   FLAG_INLINE_QOS = (1 << 1),
-  FLAG_NO_PAYLOAD = (0 << 3 | 0 << 2),
-  FLAG_DATA_PAYLOAD = (0 << 3 | 1 << 2),
+  FLAG_NO_PAYLOAD = 0,
+  FLAG_DATA_PAYLOAD = (1 << 2),
   FLAG_FINAL = (1 << 1),
   FLAG_HB_LIVELINESS = (1 << 2)
 };

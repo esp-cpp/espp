@@ -35,7 +35,7 @@ struct WriterProxy {
   SequenceNumber_t expectedSN;
   Count_t ackNackCount;
   Count_t hbCount;
-  bool is_reliable;
+  bool is_reliable = false;
   LocatorIPv4 remoteLocator;
 
   WriterProxy() = default;
@@ -51,7 +51,7 @@ struct WriterProxy {
   // For now, we don't store any packets, so we just request all starting from
   // the next expected
   SequenceNumberSet getMissing(const SequenceNumber_t &firstAvail,
-                               const SequenceNumber_t &lastAvail) {
+                               const SequenceNumber_t &lastAvail) const {
     SequenceNumberSet set;
     if (lastAvail < expectedSN) {
       set.base = expectedSN;

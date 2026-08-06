@@ -28,6 +28,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/messages/MessageTypes.hpp"
 #include "rtps/storages/PayloadBuffer.hpp"
 #include "rtps/utils/Log.hpp"
+#include <algorithm>
 #include <chrono>
 #include <cstdio>
 #include <cstring>
@@ -79,11 +80,6 @@ bool StatefulWriterT<NetworkDriver>::init(TopicData attributes, TopicKind_t topi
   m_transport = &driver;
   m_history.clear();
   m_hbCount = {1};
-
-  if (!m_disposeWithDelay.init()) {
-    SFW_LOG("Failed to initialize delayed dispose buffer mutex.");
-    return false;
-  }
 
   // Thread already exists, do not create new one (reusing slot case)
   m_is_initialized_ = true;
@@ -176,10 +172,6 @@ template <class NetworkDriver> void StatefulWriterT<NetworkDriver>::progress() {
     SFW_LOG("Sending data with SN {}.{}", (int)m_nextSequenceNumberToSend.low,
             (int)m_nextSequenceNumberToSend.high);
 
-    if (next->disposeAfterWrite) {
-      SFW_LOG("Dispose after write msg sent to {} proxies", (int)i);
-    }
-
     /*
      * Use case: deletion of local endpoints
      * -> send Data Message with Disposed Flag set
@@ -189,6 +181,7 @@ template <class NetworkDriver> void StatefulWriterT<NetworkDriver>::progress() {
      * during SEDP
      */
     if (next->disposeAfterWrite) {
+      SFW_LOG("Dispose after write msg sent to {} proxies", (int)i);
       next->sentTime = std::chrono::steady_clock::now();
       if (!m_disposeWithDelay.copyElementIntoBuffer(next->sequenceNumber)) {
         SFW_LOG("Failed to enqueue dispose after write!");
@@ -229,14 +222,11 @@ void StatefulWriterT<NetworkDriver>::onNewAckNack(const SubmessageAckNack &msg,
     return;
   }
 
-  ReaderProxy *reader = nullptr;
-  for (auto &proxy : m_proxies) {
-    if (proxy.remoteReaderGuid.prefix == sourceGuidPrefix &&
-        proxy.remoteReaderGuid.entityId == msg.readerId) {
-      reader = &proxy;
-      break;
-    }
-  }
+  auto proxy_it = std::find_if(m_proxies.begin(), m_proxies.end(), [&](const auto &proxy) {
+    return proxy.remoteReaderGuid.prefix == sourceGuidPrefix &&
+           proxy.remoteReaderGuid.entityId == msg.readerId;
+  });
+  ReaderProxy *reader = (proxy_it != m_proxies.end()) ? &(*proxy_it) : nullptr;
 
   if (reader == nullptr) {
 #if SFW_VERBOSE && RTPS_GLOBAL_VERBOSE
@@ -441,13 +431,11 @@ template <class NetworkDriver> void StatefulWriterT<NetworkDriver>::sendHeartBea
     SFW_LOG("HB from loop");
     sendHeartBeat();
     dropDisposeAfterWriteChanges();
-    bool unconfirmed_changes = false;
-    for (auto it : m_proxies) {
-      if (it.lastAckNackSequenceNumber < m_nextSequenceNumberToSend) {
-        unconfirmed_changes = true;
-        break;
-      }
-    }
+    const auto pending_ack_proxy =
+        std::find_if(m_proxies.begin(), m_proxies.end(), [&](const auto &proxy) {
+          return proxy.lastAckNackSequenceNumber < m_nextSequenceNumberToSend;
+        });
+    const bool unconfirmed_changes = pending_ack_proxy != m_proxies.end();
 
     // Temporarily increase HB frequency if there are unconfirmed remote changes
     if (unconfirmed_changes) {

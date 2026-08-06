@@ -98,7 +98,7 @@ public:
   virtual bool addNewMatchedWriter(const WriterProxy &newProxy) = 0;
   virtual bool removeProxy(const Guid_t &guid);
   virtual void removeAllProxiesOfParticipant(const GuidPrefix_t &guidPrefix);
-  bool isInitialized() { return m_is_initialized_; }
+  bool isInitialized() const { return m_is_initialized_; }
   virtual void reset();
   bool isProxy(const Guid_t &guid);
   WriterProxy *getProxy(Guid_t guid);

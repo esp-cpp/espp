@@ -27,6 +27,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 
 #include "task.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstdlib>
 #include <optional>
@@ -74,21 +75,17 @@ EsppTransport::EsppTransport(RxCallback callback, void *args)
     , m_callbackArgs(args) {}
 
 EsppTransport::Channel *EsppTransport::findChannel(Ip4Port_t port) {
-  for (auto &channel : m_channels) {
-    if (channel.in_use && channel.port == port) {
-      return &channel;
-    }
-  }
-  return nullptr;
+  auto it = std::find_if(m_channels.begin(), m_channels.end(), [port](const auto &channel) {
+    return channel.in_use && channel.port == port;
+  });
+  return (it != m_channels.end()) ? &(*it) : nullptr;
 }
 
 const EsppTransport::Channel *EsppTransport::findChannel(Ip4Port_t port) const {
-  for (const auto &channel : m_channels) {
-    if (channel.in_use && channel.port == port) {
-      return &channel;
-    }
-  }
-  return nullptr;
+  auto it = std::find_if(m_channels.begin(), m_channels.end(), [port](const auto &channel) {
+    return channel.in_use && channel.port == port;
+  });
+  return (it != m_channels.end()) ? &(*it) : nullptr;
 }
 
 std::string EsppTransport::ip4ToString(const Ip4AddressBytes &addr) {
@@ -135,7 +132,7 @@ EsppTransport::Channel *EsppTransport::createChannel(Ip4Port_t receivePort) {
     espp::UdpSocket::Config socket_config;
     socket_config.log_level = espp::Logger::Verbosity::WARN;
     channel.socket = std::make_unique<espp::UdpSocket>(socket_config);
-    if (!channel.socket || !channel.socket->is_valid()) {
+    if (!channel.socket->is_valid()) {
       logger_.error("Failed to create valid UDP socket for port {}", receivePort);
       channel.socket.reset();
       return nullptr;
@@ -191,10 +188,11 @@ bool EsppTransport::joinMultiCastGroup(const Ip4AddressBytes &addr) const {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
   const std::string group = ip4ToString(addr);
-  for (const auto &existing : m_multicastGroups) {
-    if (existing == group) {
-      return true;
-    }
+  const bool already_joined =
+      std::any_of(m_multicastGroups.begin(), m_multicastGroups.end(),
+                  [&](const auto &existing_group) { return existing_group == group; });
+  if (already_joined) {
+    return true;
   }
 
   bool any_joined = false;

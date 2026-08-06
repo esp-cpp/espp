@@ -49,12 +49,12 @@ struct TopicData {
   FullLengthLocator unicastLocator;
   FullLengthLocator multicastLocator;
 
-  uint8_t statusInfo;
-  bool statusInfoValid;
+  uint8_t statusInfo = 0;
+  bool statusInfoValid = false;
   // Use Case: Remotes communicates id of deleted endpoint through key_hash
   // parameter
-  EntityId_t entityIdFromKeyHash;
-  bool entityIdFromKeyHashValid;
+  EntityId_t entityIdFromKeyHash = ENTITYID_UNKNOWN;
+  bool entityIdFromKeyHashValid = false;
 
   TopicData()
       : endpointGuid(GUID_UNKNOWN)
@@ -86,22 +86,21 @@ struct TopicData {
 };
 
 struct TopicDataCompressed {
-  Guid_t endpointGuid;
-  std::size_t topicHash;
-  std::size_t typeHash;
-  bool is_reliable;
+  Guid_t endpointGuid = GUID_UNKNOWN;
+  std::size_t topicHash = 0;
+  std::size_t typeHash = 0;
+  bool is_reliable = false;
   LocatorIPv4 unicastLocator;
   LocatorIPv4 multicastLocator;
 
   TopicDataCompressed() = default;
-  TopicDataCompressed(const TopicData &topic_data) {
-    endpointGuid = topic_data.endpointGuid;
-    topicHash = hashCharArray(topic_data.topicName, Config::MAX_TOPICNAME_LENGTH);
-    typeHash = hashCharArray(topic_data.typeName, Config::MAX_TYPENAME_LENGTH);
-    is_reliable = (topic_data.reliabilityKind == ReliabilityKind_t::RELIABLE) ? true : false;
-    unicastLocator = topic_data.unicastLocator;
-    multicastLocator = topic_data.multicastLocator;
-  }
+  explicit TopicDataCompressed(const TopicData &topic_data)
+      : endpointGuid(topic_data.endpointGuid)
+      , topicHash(hashCharArray(topic_data.topicName, Config::MAX_TOPICNAME_LENGTH))
+      , typeHash(hashCharArray(topic_data.typeName, Config::MAX_TYPENAME_LENGTH))
+      , is_reliable(topic_data.reliabilityKind == ReliabilityKind_t::RELIABLE)
+      , unicastLocator(topic_data.unicastLocator)
+      , multicastLocator(topic_data.multicastLocator) {}
 
   bool matchesTopicOf(const TopicData &topic_data) const;
 };

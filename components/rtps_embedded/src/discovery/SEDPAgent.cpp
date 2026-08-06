@@ -197,7 +197,7 @@ void SEDPAgent::handlePublisherReaderMessage(const TopicData &writerData,
   }
 #endif
   reader->addNewMatchedWriter(
-      WriterProxy{writerData.endpointGuid, writerData.unicastLocator,
+      WriterProxy{writerData.endpointGuid, LocatorIPv4(writerData.unicastLocator),
                   (writerData.reliabilityKind == ReliabilityKind_t::RELIABLE)});
   if (mfp_onNewPublisherCallback != nullptr) {
     mfp_onNewPublisherCallback(m_onNewPublisherArgs);
@@ -279,11 +279,12 @@ void SEDPAgent::handleSubscriptionReaderMessage(const TopicData &readerData,
 #endif
   if (readerData.multicastLocator.kind == rtps::LocatorKind_t::LOCATOR_KIND_UDPv4) {
     writer->addNewMatchedReader(
-        ReaderProxy{readerData.endpointGuid, readerData.unicastLocator, readerData.multicastLocator,
+        ReaderProxy{readerData.endpointGuid, LocatorIPv4(readerData.unicastLocator),
+                    LocatorIPv4(readerData.multicastLocator),
                     (readerData.reliabilityKind == ReliabilityKind_t::RELIABLE)});
   } else {
     writer->addNewMatchedReader(
-        ReaderProxy{readerData.endpointGuid, readerData.unicastLocator,
+        ReaderProxy{readerData.endpointGuid, LocatorIPv4(readerData.unicastLocator),
                     (readerData.reliabilityKind == ReliabilityKind_t::RELIABLE)});
   }
 
@@ -340,10 +341,10 @@ bool SEDPAgent::addWriter(Writer &writer) {
   auto change = m_endpoints.sedpPubWriter->newChange(ChangeKind_t::ALIVE, m_buffer,
                                                      ucdr_buffer_length(&microbuffer));
   writer.setSEDPSequenceNumber(change->sequenceNumber);
-  return (change != nullptr);
 #if SEDP_VERBOSE
   SEDP_LOG("Added new change to sedpPubWriter.\n");
 #endif
+  return (change != nullptr);
 }
 
 template <typename A>

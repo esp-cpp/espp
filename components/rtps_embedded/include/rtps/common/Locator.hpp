@@ -104,7 +104,7 @@ struct FullLengthLocator {
     return {address[12], address[13], address[14], address[15]};
   }
 
-  bool isSameAddress(const std::array<uint8_t, 4> &ipAddress) {
+  bool isSameAddress(const std::array<uint8_t, 4> &ipAddress) const {
     return getIp4AddressBytes() == ipAddress;
   }
 
@@ -117,7 +117,7 @@ struct FullLengthLocator {
     return ip[0] >= 224 && ip[0] <= 239;
   }
 
-  inline uint32_t getLocatorPort() { return static_cast<Ip4Port_t>(port); }
+  inline uint32_t getLocatorPort() const { return static_cast<Ip4Port_t>(port); }
 
 } RTPS_EMBEDDED_PACKED;
 
@@ -157,7 +157,7 @@ struct LocatorIPv4 {
   uint32_t port = LOCATOR_PORT_INVALID;
 
   LocatorIPv4() = default;
-  LocatorIPv4(const FullLengthLocator &locator) {
+  explicit LocatorIPv4(const FullLengthLocator &locator) {
     address[0] = locator.address[12];
     address[1] = locator.address[13];
     address[2] = locator.address[14];
@@ -168,7 +168,7 @@ struct LocatorIPv4 {
 
   std::array<uint8_t, 4> getIp4Address() const { return getIp4AddressBytes(); }
 
-  std::array<uint8_t, 4> getIp4AddressBytes() const { return address; }
+  const std::array<uint8_t, 4> &getIp4AddressBytes() const { return address; }
 
   void setInvalid() { kind = LocatorKind_t::LOCATOR_KIND_INVALID; }
 

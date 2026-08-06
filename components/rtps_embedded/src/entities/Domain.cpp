@@ -170,7 +170,7 @@ void Domain::createBuiltinWritersAndReaders(Participant &part) {
   spdpWriter->init(spdpWriterAttributes, TopicKind_t::WITH_KEY, &m_threadPool, *m_transport);
   spdpWriter->addNewMatchedReader(
       ReaderProxy{{part.m_guidPrefix, ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER},
-                  getBuiltInMulticastLocator(),
+                  LocatorIPv4(getBuiltInMulticastLocator()),
                   false});
 
   TopicData spdpReaderAttributes;

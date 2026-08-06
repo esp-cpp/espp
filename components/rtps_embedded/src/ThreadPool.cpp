@@ -48,11 +48,6 @@ ThreadPool::ThreadPool(receiveJumppad_fp receiveCallback, void *callee)
     , m_receiveJumppad(receiveCallback)
     , m_callee(callee) {
 
-  if (!m_outgoingMetaTraffic.init() || !m_outgoingUserTraffic.init() ||
-      !m_incomingMetaTraffic.init() || !m_incomingUserTraffic.init()) {
-    return;
-  }
-
   m_writerWorkers = std::make_unique<espp::ThreadPool>(espp::ThreadPool::Config{
       .worker_count = Config::THREAD_POOL_NUM_WRITERS,
       .max_queue_size = 0,

@@ -41,6 +41,8 @@ class EsppTransport;
 
 template <class NetworkDriver> class StatefulWriterT final : public Writer {
 public:
+  StatefulWriterT()
+      : m_transport(nullptr) {}
   ~StatefulWriterT() override;
   bool init(TopicData attributes, TopicKind_t topicKind, ThreadPool *threadPool,
             NetworkDriver &driver, bool enfUnicast = false);
@@ -59,7 +61,7 @@ public:
   void updateChangeKind(SequenceNumber_t &sequence_number);
 
 private:
-  NetworkDriver *m_transport;
+  NetworkDriver *m_transport = nullptr;
 
   HistoryCacheWithDeletion<Config::HISTORY_SIZE_STATEFUL> m_history;
 

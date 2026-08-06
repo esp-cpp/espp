@@ -39,6 +39,9 @@ struct SubmessageHeartbeat;
 
 template <class NetworkDriver> class StatefulReaderT final : public Reader {
 public:
+  StatefulReaderT()
+      : m_srcPort(0)
+      , m_transport(nullptr) {}
   ~StatefulReaderT() override;
   bool init(const TopicData &attributes, NetworkDriver &driver);
   void newChange(const ReaderCacheChange &cacheChange) override;

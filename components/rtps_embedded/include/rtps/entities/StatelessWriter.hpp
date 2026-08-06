@@ -38,6 +38,8 @@ class EsppTransport;
 
 template <typename NetworkDriver> class StatelessWriterT : public Writer {
 public:
+  StatelessWriterT()
+      : m_transport(nullptr) {}
   ~StatelessWriterT() override;
   bool init(TopicData attributes, TopicKind_t topicKind, ThreadPool *threadPool,
             NetworkDriver &driver, bool enfUnicast = false);

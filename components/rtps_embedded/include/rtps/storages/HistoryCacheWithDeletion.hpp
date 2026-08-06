@@ -141,7 +141,7 @@ public:
     }
   }
 
-  bool isEmpty() { return (m_head == m_tail); }
+  bool isEmpty() const { return (m_head == m_tail); }
 
   const SequenceNumber_t &getCurrentSeqNumMin() const {
     if (m_head == m_tail) {
@@ -159,7 +159,7 @@ public:
     }
   }
 
-  const SequenceNumber_t &getLastUsedSequenceNumber() { return m_lastUsedSequenceNumber; }
+  const SequenceNumber_t &getLastUsedSequenceNumber() const { return m_lastUsedSequenceNumber; }
 
   void clear() {
     m_head = 0;
@@ -167,7 +167,7 @@ public:
     m_lastUsedSequenceNumber = {0, 0};
   }
 #ifdef DEBUG_HISTORY_CACHE_WITH_DELETION
-  void print() {
+  void print() const {
     for (unsigned int i = 0; i < m_buffer.size(); i++) {
       std::cout << "[" << i << "] "
                 << " SN = " << m_buffer[i].sequenceNumber.low;
@@ -219,7 +219,7 @@ private:
     static_assert(std::is_unsigned<decltype(sn.low)>::value, "Underflow well defined");
     static_assert(sizeof(m_tail) <= sizeof(uint16_t), "Cast ist well defined");
 
-    unsigned int cur_idx = m_tail;
+    uint16_t cur_idx = m_tail;
     while (cur_idx != m_head) {
       if (m_buffer[cur_idx].sequenceNumber == sn) {
         *out_change = &m_buffer[cur_idx];
@@ -232,10 +232,7 @@ private:
         return false;
       }
 
-      cur_idx++;
-      if (cur_idx >= m_buffer.size()) {
-        cur_idx -= m_buffer.size();
-      }
+      incrementIterator(cur_idx);
     }
 
     *out_change = nullptr;
