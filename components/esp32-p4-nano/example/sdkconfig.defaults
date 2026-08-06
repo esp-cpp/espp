@@ -11,6 +11,19 @@ CONFIG_ETH_USE_ESP32_EMAC=y
 
 CONFIG_FREERTOS_HZ=1000
 
+# Flash / partition table. The example now brings up the display + LVGL GUI, the
+# camera pipeline and audio, so the app no longer fits the default 1 MB factory
+# partition; use a 16 MB flash and a custom table with a 4 MB app partition.
+CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="16MB"
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_OFFSET=0x9000
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+
+# Give app_main a larger stack: it drives the full bring-up (display, touch,
+# audio, camera, Ethernet) plus the playback loop.
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=16384
+
 # espp I2C: use the new ESP-IDF master/slave bus API. Required for
 # internal_i2c_.native_bus_handle(), which the camera SCCB shares (this is the
 # Kconfig default, but set explicitly so the camera bring-up always compiles).

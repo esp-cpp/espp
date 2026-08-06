@@ -37,7 +37,7 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py esp32-p4-nano"
+  "main esptool_py esp32-p4-nano display lvgl"
   CACHE STRING
   "List of components to include"
   )
