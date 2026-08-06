@@ -12,8 +12,8 @@ menu "ESP32-P4-ETH Configuration"
       bool "10.1\" 800x1280 (JD9365) - the panel Waveshare sells for this board"
       help
         The Waveshare 10.1-inch 800x1280 DSI panel, which uses a JD9365
-        controller. Driven by Waveshare's esp_lcd_jd9365 managed component
-        (vendor init + DPI panel). Reset is handled over DSI (no reset GPIO).
+        controller, driven by the espp::Jd9365 display driver (vendor init
+        over DSI/DBI + DPI panel). Reset is handled over DSI (no reset GPIO).
         The backlight is driven by an on-board I2C controller (addr 0x45), so
         there is no backlight GPIO; brightness() writes the controller.
 

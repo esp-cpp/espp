@@ -32,6 +32,7 @@
 #include "i2c.hpp"
 #include "ili9881.hpp"
 #include "interrupt.hpp"
+#include "jd9365.hpp"
 #include "task.hpp"
 #include "touchpad_input.hpp"
 
@@ -493,10 +494,8 @@ protected:
   static constexpr PanelParams ILI9881C_PARAMS{800, 1280, 80, 1500, GPIO_NUM_NC, GPIO_NUM_NC,
                                                40,  140,  40, 4,    16,          16};
   // JD9365 10.1" 800x1280 (the panel Waveshare sells for this board; reset over
-  // DSI, no backlight GPIO). NOTE: on the JD9365 path the DPI timing actually
-  // used comes from the esp_lcd_jd9365 component's
-  // JD9365_800_1280_PANEL_60HZ_DPI_CONFIG macro; these timing fields are
-  // informational. The lane bit rate (1500 Mbps) IS used for the DSI bus.
+  // DSI, no backlight GPIO). Timing matches Waveshare's
+  // JD9365_800_1280_PANEL_60HZ_DPI_CONFIG vendor timing.
   static constexpr PanelParams JD9365_PARAMS{800, 1280, 80, 1500, GPIO_NUM_NC, GPIO_NUM_NC,
                                              20,  20,   40, 4,    10,          30};
 
@@ -654,7 +653,7 @@ protected:
   // Display state (MIPI-DSI). NOTE: there is no backlight GPIO / espp::Led on
   // this board; the backlight is driven by an on-board I2C controller. On the
   // 10.1" JD9365 panel brightness() writes that controller (addr 0x45, reg
-  // 0x86); on other panels the stored brightness is best-effort only (see
+  // 0x96); on other panels the stored brightness is best-effort only (see
   // src/video.cpp).
   /////////////////////////////////////////////////////////////////////////////
   // On-board I2C backlight controller (10.1" JD9365 panel)
