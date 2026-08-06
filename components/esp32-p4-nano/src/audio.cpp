@@ -96,6 +96,13 @@ bool Esp32P4Nano::initialize_audio(uint32_t sample_rate,
   auto tx_buf_size = calc_audio_buffer_size(sample_rate);
   audio_tx_buffer.resize(tx_buf_size);
   audio_tx_stream = xStreamBufferCreate(std::max<size_t>(tx_buf_size * 4, 64 * 1024), 0);
+  if (audio_tx_stream == nullptr) {
+    logger_.error("Failed to allocate the audio TX stream buffer");
+    i2s_channel_disable(audio_tx_handle);
+    i2s_del_channel(audio_tx_handle);
+    audio_tx_handle = nullptr;
+    return false;
+  }
   xStreamBufferReset(audio_tx_stream);
 
   using namespace std::placeholders;
@@ -269,13 +276,22 @@ bool Esp32P4Nano::audio_task_callback(std::mutex &m, std::condition_variable &cv
   available &= ~static_cast<size_t>(1);
   uint8_t *tx_buf = audio_tx_buffer.data();
   memset(tx_buf, 0, buffer_size);
+  // Use a finite write timeout (not portMAX_DELAY) so this task returns
+  // periodically and can observe a stop request; an infinite write would block
+  // Task::stop() from joining during teardown if the I2S sink ever stalls.
   if (available == 0) {
-    i2s_channel_write(audio_tx_handle, tx_buf, buffer_size, NULL, portMAX_DELAY);
+    i2s_channel_write(audio_tx_handle, tx_buf, buffer_size, NULL, pdMS_TO_TICKS(100));
   } else {
     xStreamBufferReceive(audio_tx_stream, tx_buf, available, 0);
-    i2s_channel_write(audio_tx_handle, tx_buf, available, NULL, portMAX_DELAY);
+    i2s_channel_write(audio_tx_handle, tx_buf, available, NULL, pdMS_TO_TICKS(100));
   }
-  return false;
+  // honor a stop request per the Task contract: check/clear notified under m
+  std::unique_lock<std::mutex> lock(m);
+  if (task_notified) {
+    task_notified = false;
+    return true; // stop the task
+  }
+  return false; // keep running
 }
 
 uint32_t Esp32P4Nano::audio_sample_rate() const { return audio_std_cfg.clk_cfg.sample_rate_hz; }

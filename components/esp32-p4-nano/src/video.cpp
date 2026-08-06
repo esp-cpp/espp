@@ -227,8 +227,17 @@ bool Esp32P4Nano::initialize_display(size_t pixel_buffer_size) {
         Logger::Verbosity::WARN);
   }
 
-  third_buffer = (uint16_t *)heap_caps_malloc(pixel_buffer_size * sizeof(uint16_t),
-                                              MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+  // Rotation scratch buffer (only used when the display is rotated). Allocate it
+  // once and reuse it across re-inits so re-initialization does not leak PSRAM;
+  // if it fails, flush() detects the null pointer and simply skips rotation.
+  if (third_buffer == nullptr) {
+    third_buffer = (uint16_t *)heap_caps_malloc(pixel_buffer_size * sizeof(uint16_t),
+                                                MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    if (third_buffer == nullptr) {
+      logger_.warn("Could not allocate the {}-byte display rotation buffer; rotation disabled",
+                   pixel_buffer_size * sizeof(uint16_t));
+    }
+  }
 
   logger_.info("LVGL display initialized");
   return true;
@@ -303,7 +312,9 @@ void IRAM_ATTR Esp32P4Nano::flush(lv_display_t *disp, const lv_area_t *area, uin
     uint32_t w_stride = lv_draw_buf_width_to_stride(ww, cf);
     uint32_t h_stride = lv_draw_buf_width_to_stride(hh, cf);
     if (rot == LV_DISPLAY_ROTATION_180) {
-      lv_draw_sw_rotate(px_map, third_buffer, hh, ww, h_stride, h_stride, LV_DISPLAY_ROTATION_180,
+      // 180° keeps the source dimensions (unlike 90/270), so pass ww/hh and the
+      // width-based stride for both source and destination.
+      lv_draw_sw_rotate(px_map, third_buffer, ww, hh, w_stride, w_stride, LV_DISPLAY_ROTATION_180,
                         cf);
     } else if (rot == LV_DISPLAY_ROTATION_90) {
       lv_draw_sw_rotate(px_map, third_buffer, ww, hh, w_stride, h_stride, LV_DISPLAY_ROTATION_90,

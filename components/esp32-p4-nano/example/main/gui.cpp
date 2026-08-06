@@ -273,8 +273,9 @@ bool Gui::update(std::mutex &m, std::condition_variable &cv) {
     update_audio_label();
   }
   std::unique_lock<std::mutex> lock(m);
-  cv.wait_for(lock, std::chrono::milliseconds(16));
-  return false; // don't stop the task
+  // stop promptly if Task::stop() notified us (otherwise ~Gui can hang joining
+  // the update thread); a plain timeout means keep running
+  return cv.wait_for(lock, std::chrono::milliseconds(16)) == std::cv_status::no_timeout;
 }
 
 void Gui::event_callback(lv_event_t *e) {

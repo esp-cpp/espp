@@ -17,6 +17,8 @@
 #include <thread>
 #include <vector>
 
+#include "format.hpp"
+
 #include <esp_heap_caps.h>
 #include <esp_netif.h>
 #include <esp_timer.h>
@@ -326,7 +328,8 @@ static bool load_audio(size_t &out_size, size_t &out_sample_rate) {
     audio_bytes.clear();
     return false;
   }
-  uint32_t sample_rate = *(reinterpret_cast<const uint32_t *>(&audio_bytes[24]));
+  uint32_t sample_rate = 0;
+  std::memcpy(&sample_rate, &audio_bytes[24], sizeof(sample_rate));
   audio_bytes.erase(audio_bytes.begin(), audio_bytes.begin() + 44);
   out_size = audio_bytes.size();
   out_sample_rate = sample_rate;

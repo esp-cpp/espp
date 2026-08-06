@@ -81,8 +81,9 @@ bool Esp32P4Nano::initialize_touch(const touch_callback_t &callback, gpio_num_t 
             }
           }
           std::unique_lock<std::mutex> lock(m);
-          cv.wait_for(lock, 16ms);
-          return false; // don't stop
+          // return true if notified (Task::stop() requested) so stop() joins
+          // promptly instead of waiting out the full poll interval
+          return cv.wait_for(lock, 16ms) == std::cv_status::no_timeout;
         },
         .task_config = {.name = "p4-nano touch",
                         .stack_size_bytes = CONFIG_ESP32_P4_NANO_TOUCH_TASK_STACK_SIZE}});

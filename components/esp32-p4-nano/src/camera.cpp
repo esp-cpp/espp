@@ -210,7 +210,10 @@ bool Esp32P4Nano::camera_task_callback(std::mutex &m, std::condition_variable &c
   buf.memory = V4L2_MEMORY_MMAP;
   if (ioctl(camera_fd_, VIDIOC_DQBUF, &buf) == 0) {
     if (camera_callback_ && buf.index < CAMERA_BUFFER_COUNT && camera_buffers_[buf.index]) {
-      const size_t len = static_cast<size_t>(camera_width_) * camera_height_ * 2;
+      // Prefer the driver-reported payload size; fall back to the computed
+      // RGB565 size only if the driver does not report bytesused.
+      const size_t len = buf.bytesused ? static_cast<size_t>(buf.bytesused)
+                                       : static_cast<size_t>(camera_width_) * camera_height_ * 2;
       camera_callback_(static_cast<const uint8_t *>(camera_buffers_[buf.index]), camera_width_,
                        camera_height_, len);
     }
