@@ -22,6 +22,7 @@ namespace espp {
 ///       may knock the touch I2C endpoint offline.
 ///
 /// Touch data reading sequence (based on ST7123 TDDI Interface Protocol):
+/// \verbatim
 ///  1. Read 1 byte from register 0x0010 (advanced info). Bit 3 = with_coord.
 ///  2. If with_coord is set:
 ///     a. Read 1 byte from register 0x0009 (max touch count).
@@ -29,6 +30,7 @@ namespace espp {
 ///     c. For each 7-byte report: bit 7 of byte[0] = valid flag,
 ///        x = ((byte[0] & 0x3F) << 8) | byte[1],
 ///        y = (byte[2] << 8) | byte[3].
+/// \endverbatim
 ///
 /// \section st7123touch_ex1 Example
 /// \snippet st7123touch_example.cpp st7123touch example
@@ -38,17 +40,17 @@ public:
   static constexpr uint8_t DEFAULT_ADDRESS = 0x55;
 
   /// @brief Configuration for the St7123Touch driver
-  /// @note Provide EITHER a combined `write_then_read` (a repeated-START
+  /// @note Provide EITHER a combined <tt>write_then_read</tt> (a repeated-START
   ///       write-then-read, no STOP between the register-pointer write and the
-  ///       data read) OR a separate `write` + `read` pair. If `write_then_read`
-  ///       is set it takes precedence; otherwise the driver writes the register
-  ///       pointer and reads the data as two separate transactions. Some boards
-  ///       are happier with the separate form (e.g. when reads run from an
-  ///       interrupt handler and the longer combined transaction is more prone
-  ///       to I/O errors).
+  ///       data read) OR a separate <tt>write</tt> + <tt>read</tt> pair. If
+  ///       <tt>write_then_read</tt> is set it takes precedence; otherwise the driver writes the
+  ///       register pointer and reads the data as two separate transactions. Some boards are
+  ///       happier with the separate form (e.g. when reads run from an interrupt handler and the
+  ///       longer combined transaction is more prone to I/O errors).
   struct Config {
-    BasePeripheral::write_fn write; ///< Write function (paired with `read` for separate reads)
-    BasePeripheral::read_fn read;   ///< Read function (paired with `write` for separate reads)
+    BasePeripheral::write_fn
+        write;                    ///< Write function (paired with <tt>read</tt> for separate reads)
+    BasePeripheral::read_fn read; ///< Read function (paired with <tt>write</tt> for separate reads)
     BasePeripheral::write_then_read_fn
         write_then_read; ///< Combined (repeated-START) write-then-read; takes precedence if set
     uint8_t address = DEFAULT_ADDRESS; ///< I2C address of the chip

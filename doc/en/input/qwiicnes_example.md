@@ -1,2 +1,2 @@
-```{include} ../../components/qwiicnes/example/README.md
+```{include} ../../../components/qwiicnes/example/README.md
 ```

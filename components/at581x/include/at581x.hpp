@@ -18,10 +18,10 @@ namespace espp {
 /// "trigger keep" time after the last detection). This driver handles the I2C
 /// configuration of the chip (detection distance/sensitivity, RF frequency,
 /// gain, power, and timing); to react to presence, attach an interrupt (e.g.
-/// `espp::Interrupt`) to the radar's output GPIO. See the example.
+/// <tt>espp::Interrupt</tt>) to the radar's output GPIO. See the example.
 ///
 /// The AT581X is the radar found on modules such as the MoreSense
-/// `MS58-3909S68U4` used on the ESP32-S3-BOX-3 sensor / dock board (I2C on
+/// <tt>MS58-3909S68U4</tt> used on the ESP32-S3-BOX-3 sensor / dock board (I2C on
 /// SDA=GPIO41, SCL=GPIO40 there).
 ///
 /// The register protocol implemented here follows the AT581X datasheet and the

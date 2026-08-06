@@ -31,19 +31,20 @@ namespace espp {
 /// For more information, see
 /// https://github.com/alxv2016/Byte90-alxvlabs
 ///
-/// **Pin Reference Table:**
+/// <b>Pin Reference Table:</b>
 ///
-/// | XIAO Pin | GPIO | Function | Component |
-/// |----------|------|----------|-----------|
-/// | D0 | GPIO1 | RST | Display Reset |
-/// | D1 | GPIO2 | INT | ADXL345 Interrupt |
-/// | A3 | GPIO4 | INPUT | Button (with pull-up) |
-/// | D4 | GPIO5 | SDA | ADXL345 I2C Data |
-/// | D5 | GPIO6 | SCL | ADXL345 I2C Clock |
-/// | D8 | GPIO7 | SCK | Display SPI Clock |
-/// | D10 | GPIO9 | MOSI | Display SPI Data |
-/// | D6 | GPIO43 | DC | Display Data/Command |
-/// | D7 | GPIO44 | CS | Display Chip Select |
+/// <table>
+/// <tr><th>XIAO Pin</th><th>GPIO</th><th>Function</th><th>Component</th></tr>
+/// <tr><td>D0</td><td>GPIO1</td><td>RST</td><td>Display Reset</td></tr>
+/// <tr><td>D1</td><td>GPIO2</td><td>INT</td><td>ADXL345 Interrupt</td></tr>
+/// <tr><td>A3</td><td>GPIO4</td><td>INPUT</td><td>Button (with pull-up)</td></tr>
+/// <tr><td>D4</td><td>GPIO5</td><td>SDA</td><td>ADXL345 I2C Data</td></tr>
+/// <tr><td>D5</td><td>GPIO6</td><td>SCL</td><td>ADXL345 I2C Clock</td></tr>
+/// <tr><td>D8</td><td>GPIO7</td><td>SCK</td><td>Display SPI Clock</td></tr>
+/// <tr><td>D10</td><td>GPIO9</td><td>MOSI</td><td>Display SPI Data</td></tr>
+/// <tr><td>D6</td><td>GPIO43</td><td>DC</td><td>Display Data/Command</td></tr>
+/// <tr><td>D7</td><td>GPIO44</td><td>CS</td><td>Display Chip Select</td></tr>
+/// </table>
 ///
 /// \section byte90_example Example
 /// \snippet byte90_example.cpp byte90 example

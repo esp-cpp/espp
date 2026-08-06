@@ -105,9 +105,12 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/drv2605/example/main/drv2605_example.cpp \
   $(PROJECT_PATH)/components/encoder/example/main/encoder_example.cpp \
   $(PROJECT_PATH)/components/esp32-ethernet-kit/example/main/esp32_ethernet_kit_example.cpp \
+  $(PROJECT_PATH)/components/esp32-p4-eth/example/main/esp32_p4_eth_example.cpp \
   $(PROJECT_PATH)/components/esp32-p4-function-ev-board/example/main/esp32_p4_function_ev_board_example.cpp \
+  $(PROJECT_PATH)/components/esp32-p4-nano/example/main/esp32_p4_nano_example.cpp \
   $(PROJECT_PATH)/components/esp32-timer-cam/example/main/esp_timer_cam_example.cpp \
   $(PROJECT_PATH)/components/esp-box/example/main/esp_box_example.cpp \
+  $(PROJECT_PATH)/components/ethernet/example/main/ethernet_example.cpp \
   $(PROJECT_PATH)/components/event_manager/example/main/event_manager_example.cpp \
   $(PROJECT_PATH)/components/expressive_eyes/example/main/expressive_eyes_example.cpp \
   $(PROJECT_PATH)/components/file_system/example/main/file_system_example.cpp \
@@ -181,6 +184,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/timer/example/main/timer_example.cpp \
   $(PROJECT_PATH)/components/touch/example/main/touch_example.cpp \
   $(PROJECT_PATH)/components/tla2528/example/main/tla2528_example.cpp \
+  $(PROJECT_PATH)/components/trajectory_planner/example/main/trajectory_planner_example.cpp \
   $(PROJECT_PATH)/components/tt21100/example/main/tt21100_example.cpp \
   $(PROJECT_PATH)/components/vl53l/example/main/vl53l_example.cpp \
   $(PROJECT_PATH)/components/wifi/example/main/wifi_example.cpp \
@@ -263,9 +267,12 @@ INPUT = \
   $(PROJECT_PATH)/components/encoder/include/abi_encoder.hpp \
   $(PROJECT_PATH)/components/encoder/include/encoder_types.hpp \
   $(PROJECT_PATH)/components/esp32-ethernet-kit/include/esp32-ethernet-kit.hpp \
+  $(PROJECT_PATH)/components/esp32-p4-eth/include/esp32-p4-eth.hpp \
   $(PROJECT_PATH)/components/esp32-p4-function-ev-board/include/esp32-p4-function-ev-board.hpp \
+  $(PROJECT_PATH)/components/esp32-p4-nano/include/esp32-p4-nano.hpp \
   $(PROJECT_PATH)/components/esp32-timer-cam/include/esp32-timer-cam.hpp \
   $(PROJECT_PATH)/components/esp-box/include/esp-box.hpp \
+  $(PROJECT_PATH)/components/ethernet/include/ethernet.hpp \
   $(PROJECT_PATH)/components/event_manager/include/event_manager.hpp \
   $(PROJECT_PATH)/components/expressive_eyes/include/expressive_eyes.hpp \
   $(PROJECT_PATH)/components/file_system/include/file_system.hpp \
@@ -389,6 +396,7 @@ INPUT = \
   $(PROJECT_PATH)/components/socket/include/socket.hpp \
   $(PROJECT_PATH)/components/socket/include/udp_socket.hpp \
   $(PROJECT_PATH)/components/socket/include/tcp_socket.hpp \
+  $(PROJECT_PATH)/components/socket/include/socket_reactor.hpp \
   $(PROJECT_PATH)/components/spi/include/spi.hpp \
   $(PROJECT_PATH)/components/st25dv/include/st25dv.hpp \
   $(PROJECT_PATH)/components/st7123touch/include/st7123touch.hpp \
@@ -409,6 +417,7 @@ INPUT = \
   $(PROJECT_PATH)/components/timer/include/timer.hpp \
   $(PROJECT_PATH)/components/touch/include/touch.hpp \
   $(PROJECT_PATH)/components/tla2528/include/tla2528.hpp \
+  $(PROJECT_PATH)/components/trajectory_planner/include/trajectory_planner.hpp \
   $(PROJECT_PATH)/components/tt21100/include/tt21100.hpp \
   $(PROJECT_PATH)/components/vl53l/include/vl53l.hpp \
   $(PROJECT_PATH)/components/utils/include/bitmask_operators.hpp \

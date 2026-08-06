@@ -64,6 +64,9 @@ else()
   set_property(TARGET ${TARGET_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
   target_link_options(${TARGET_NAME} PRIVATE "${LINK_ARG}")
   target_link_libraries(${TARGET_NAME} ${ESPP_EXTERNAL_LIBS})
+  if(WIN32)
+    target_link_libraries(${TARGET_NAME} winmm)
+  endif()
   target_compile_features(${TARGET_NAME} PRIVATE cxx_std_20)
 
   # install build output and headers

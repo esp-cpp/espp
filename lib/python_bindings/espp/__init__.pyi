@@ -734,6 +734,7 @@ class Logger:
         error = enum.auto()                                                     # (= 3)  #*< Error level verbosity.
         none = enum.auto()                                                      # (= 4)  #*< No verbosity - logger will not print anything.
 
+
     class Config:
         """*
            * @brief Configuration struct for the logger.
@@ -2775,14 +2776,6 @@ class Socket:
             """
             pass
 
-        def ipv6_ptr(self) -> struct sockaddr_in6:
-            """*
-                 * @brief Gives access to IPv6 sockaddr structure (sockaddr_in6) for use
-                 *        with low level socket calls like sendto / recvfrom.
-                 * @return *sockaddr_in6 pointer to ipv6 data structure
-
-            """
-            pass
 
         def update(self) -> None:
             """*
@@ -2801,14 +2794,6 @@ class Socket:
             pass
         @overload
         def from_sockaddr(self, source_address: struct sockaddr_in) -> None:
-            """*
-                 * @brief Fill this Info from the provided sockaddr struct.
-                 * @param &source_address sockaddr info filled out by recvfrom.
-
-            """
-            pass
-        @overload
-        def from_sockaddr(self, source_address: struct sockaddr_in6) -> None:
             """*
                  * @brief Fill this Info from the provided sockaddr struct.
                  * @param &source_address sockaddr info filled out by recvfrom.
@@ -2840,6 +2825,17 @@ class Socket:
            * @brief Is the socket valid.
            * @param socket_fd Socket file descriptor.
            * @return True if the socket file descriptor is >= 0.
+
+        """
+        pass
+
+    def native_handle(self) -> sock_type_t:
+        """*
+           * @brief Get the underlying native socket file descriptor / handle.
+           * @note Provided so an external event loop (e.g. SocketReactor) can add this
+           *       socket to a select()/poll() set. The Socket retains ownership of the
+           *       descriptor; do not close it directly.
+           * @return The socket file descriptor.
 
         """
         pass
@@ -3386,6 +3382,21 @@ class UdpSocket:
         """
         pass
 
+    def bind(self, receive_config: UdpSocket.ReceiveConfig) -> bool:
+        """*
+           * @brief Bind the socket as a server according to \p receive_config (bind to
+           *        the port and, if requested, join the multicast group), without
+           *        starting any receive thread.
+           * @note This is called for you by start_receiving(). Use it directly when
+           *       driving the socket from an external event loop such as
+           *       espp::SocketReactor, which reads the socket itself.
+           * @param receive_config ReceiveConfig describing the port / multicast setup.
+           *        Its callback / buffer_size fields are not used by this method.
+           * @return True if the socket was bound (and joined the group, if multicast).
+
+        """
+        pass
+
     def start_receiving(
         self,
         task_config: Task.BaseConfig,
@@ -3650,6 +3661,20 @@ class Timer:
     /       long time, then the timer will not be able to keep up with the
     /       period.
     /
+    / @note Timing resolution. On ESP / FreeRTOS the timer waits on the
+    /       scheduler, which can only resolve time to a single tick
+    /       (1 / CONFIG_FREERTOS_HZ seconds; e.g. 10 ms at the 100 Hz default,
+    /       1 ms at 1000 Hz). A period or delay that is shorter than - or within
+    /       a couple of ticks of - the tick period cannot be honored accurately:
+    /       it will be rounded up to a whole number of ticks and can jitter by up
+    /       to a full tick. The constructor, set_period() and start(delay) log a
+    /       warning when the requested period/delay is at or near the tick
+    /       period. For sub-tick or highly accurate periodic work, either raise
+    /       CONFIG_FREERTOS_HZ or use the esp_timer-based HighResolutionTimer
+    /       instead. The timer schedules against an absolute wake-up time (the
+    /       k-th callback targets start + k*period), so it does not accumulate
+    /       drift even when individual iterations jitter.
+    /
     / \section timer_ex1 Timer Example 1
     / \snippet timer_example.cpp timer example
     / \section timer_ex2 Timer Watchdog Example
@@ -3722,13 +3747,15 @@ class Timer:
 
 
     @overload
-    def start(self) -> None:
+    def start(self) -> bool:
         """/ @brief Start the timer.
         / @details Starts the timer. Does nothing if the timer is already running.
+        / @return True if the timer was started or is already running, False if the
+        /         timer could not be started.
         """
         pass
     @overload
-    def start(self, delay: std.chrono.duration[float]) -> None:
+    def start(self, delay: std.chrono.duration[float]) -> bool:
         """/ @brief Start the timer with a delay.
         / @details Starts the timer with a delay. If the timer is already running,
         /          this will cancel the timer and start it again with the new
@@ -3736,6 +3763,8 @@ class Timer:
         /          with the delay. Overwrites any previous delay that might have
         /          been set.
         / @param delay The delay before the first execution of the timer callback.
+        / @return True if the timer was started or restarted, False if the timer
+        /         could not be started.
         """
         pass
 
@@ -3776,6 +3805,257 @@ class Timer:
         pass
 
 ####################    </generated_from:timer.hpp>    ####################
+
+
+####################    <generated_from:trajectory_planner.hpp>    ####################
+
+
+
+
+class TrajectoryPlanner:
+    """*
+     *  @brief Converts normalized joystick velocity commands into smooth,
+     *         dynamically feasible chassis motion commands (v, w).
+     *
+     *  The planner is drive-system independent -- it does not know about wheel
+     *  geometry or kinematics. It only enforces velocity, acceleration, and
+     *  jerk limits on chassis-level commands. The downstream kinematics layer
+     *  converts (v_ref, w_ref) into individual motor commands.
+     *
+     *  ### Algorithm
+     *  The jerk-limited mode uses a discrete optimal-control approach: at each
+     *  step the planner computes the minimum velocity-change distance needed to
+     *  decelerate the current acceleration to zero, then decides whether to
+     *  accelerate, maintain, or decelerate to land exactly on the target without
+     *  overshoot -- equivalent to a time-optimal S-curve under jerk and
+     *  acceleration constraints.
+     *
+     *  ### Profiles
+     *  Motion limits are grouped into two MotionProfile objects inside Config:
+     *  - **driving_profile** -- used whenever the target is non-zero.
+     *  - **stopping_profile** -- used when the target is (0, 0). Setting jerk to 0
+     *    gives a trapezoidal stop; higher acceleration gives faster, firmer braking.
+     *
+     *  A MotionProfile selects its mode automatically:
+     *  - **Trapezoidal**: `max_linear_jerk == 0 && max_angular_jerk == 0`
+     *  - **S-curve**: either jerk field is non-zero
+     *
+     *  ### Timing
+     *  Two independent timers run internally:
+     *  - **planning timer** -- calls `update()` at `planning_period` (default 20 ms / 50 Hz).
+     *    Recommended range: 5-200 ms on microcontrollers.
+     *  - **callback task** -- fires `output_callback` on every `update()` that produces a
+     *    new output value (CV-notified by the planning timer); no separate period needed.
+     *
+     *  This class is thread-safe: set_target(), get_target(), output(), stop(),
+     *  and reset() may be called from different threads concurrently.
+     *
+     * \section trajectory_planner_ex0 Quick-Start: Full Public API
+     * \snippet trajectory_planner_example.cpp trajectory_planner quickstart
+     * \section trajectory_planner_ex1 S-Curve Driving / Trapezoidal Stop
+     * \snippet trajectory_planner_example.cpp trajectory_planner example
+     * \section trajectory_planner_ex2 High-Speed S-Curve with Centripetal Limiting
+     * \snippet trajectory_planner_example.cpp trajectory_planner jerk example
+     * \section trajectory_planner_ex3 Constraint Validation
+     * \snippet trajectory_planner_example.cpp trajectory_planner validation
+
+    """
+    class MotionCommand:
+        """*
+           * @brief Chassis motion command produced by the planner.
+
+        """
+        linear_velocity: float = 0.0                                               #*< Linear velocity reference (m/s).
+        angular_velocity: float = 0.0                                              #*< Angular velocity reference (rad/s).
+        def __init__(
+            self,
+            linear_velocity: float = 0.0,
+            angular_velocity: float = 0.0
+            ) -> None:
+            """Auto-generated default constructor with named params"""
+            pass
+
+
+    class MotionProfile:
+        """*
+           * @brief Acceleration and jerk limits for one phase of motion.
+           *
+           * Set max_linear_jerk / max_angular_jerk to 0 for a trapezoidal (ramp)
+           * profile, or to a positive value for an S-curve profile.
+           *
+           * @note Using a trapezoidal stopping profile (jerk = 0) is recommended to
+           *       avoid S-curve overshoot past zero when the planner decelerates from
+           *       a jerk-limited driving phase.
+
+        """
+        max_linear_acceleration: float = 0.0                                       #*< Linear acceleration limit (m/s^2).
+        max_angular_acceleration: float = 0.0                                      #*< Angular acceleration limit (rad/s^2).
+        max_linear_jerk: float = 0.0                                               #*< Linear jerk limit (m/s^3). 0 = trapezoidal.
+        max_angular_jerk: float = 0.0                                              #*< Angular jerk limit (rad/s^3). 0 = trapezoidal.
+        def __init__(
+            self,
+            max_linear_acceleration: float = 0.0,
+            max_angular_acceleration: float = 0.0,
+            max_linear_jerk: float = 0.0,
+            max_angular_jerk: float = 0.0
+            ) -> None:
+            """Auto-generated default constructor with named params"""
+            pass
+
+    class Config:
+        """*
+           * @brief Configuration for the TrajectoryPlanner.
+
+        """
+        max_linear_velocity: float = 1.0                                           #*< Maximum linear velocity magnitude (m/s).
+        max_angular_velocity: float = 3.14159                                      #*< Maximum angular velocity magnitude (rad/s).
+        driving_profile: TrajectoryPlanner.MotionProfile                           #*< Accel/jerk limits used when target != (0, 0).
+        stopping_profile: TrajectoryPlanner.MotionProfile                          #*< Accel/jerk limits used when target
+                                                 == (0, 0). Set jerk to 0 here for a clean trapezoidal stop
+                                                 with no overshoot. Higher acceleration than the
+                                                 driving profile gives faster, firmer braking.
+        enforce_motion_envelope: bool = False                                      #*< When True, enforces (v/vmax)^2+(w/wmax)^2<=1 on
+                                                           output to prevent infeasible combined commands.
+        max_centripetal_acceleration: float = 0.1                                  #*< Maximum centripetal acceleration |v*w| (m/s^2).
+                                                           0 disables the limit. Both v and w are scaled
+                                                           proportionally when the limit is exceeded.
+        output_callback: TrajectoryPlanner.output_callback_t = None                #/**< Optional callback invoked after each update()
+        with the latest MotionCommand output.
+        Leave as None to disable. */
+         --- Periodic task configuration ---
+        planning_period: std.chrono.duration[float] = std.chrono.milliseconds(20)  #*< Planner
+                                                             update rate (default 50 Hz). Recommended: 5-200
+                                                             ms on microcontrollers.
+        planning_task_config: Task.BaseConfig = Task.BaseConfig(
+                .name = "TP_planning",
+                .stack_size_bytes = 4096,
+                .priority = 0,
+                .core_id = -1)                                                     #*< Underlying task config for the timer.
+        callback_task_config: Task.BaseConfig = Task.BaseConfig(
+                .name = "TP_cb",
+                .stack_size_bytes = 8192,
+                .priority = 0,
+                .core_id = -1)                                                     #*< Underlying task config for the callback timer.
+        log_level: Logger.Verbosity = Logger.Verbosity.WARN                        #*< Logger verbosity.
+        def __init__(
+            self,
+            max_linear_velocity: float = 1.0,
+            max_angular_velocity: float = 3.14159,
+            driving_profile: TrajectoryPlanner.MotionProfile = TrajectoryPlanner.MotionProfile(),
+            stopping_profile: TrajectoryPlanner.MotionProfile = TrajectoryPlanner.MotionProfile(),
+            enforce_motion_envelope: bool = False,
+            max_centripetal_acceleration: float = 0.1,
+            output_callback: TrajectoryPlanner.output_callback_t = None,
+            planning_period: std.chrono.duration[float] = std.chrono.milliseconds(20),
+            planning_task_config: Task.BaseConfig = Task.BaseConfig(.name = "TP_planning",
+                    .stack_size_bytes = 4096,
+                    .priority = 0,
+                    .core_id = -1),
+            callback_task_config: Task.BaseConfig = Task.BaseConfig(.name = "TP_cb",
+                    .stack_size_bytes = 8192,
+                    .priority = 0,
+                    .core_id = -1),
+            log_level: Logger.Verbosity = Logger.Verbosity.WARN
+            ) -> None:
+            """Auto-generated default constructor with named params"""
+            pass
+
+
+
+    def set_config(
+        self,
+        config: TrajectoryPlanner.Config,
+        reset_state: bool = True
+        ) -> bool:
+        """*
+           * @brief Update the planner configuration.
+           * @param config New configuration parameters.
+           * @param reset_state If True (default), resets velocity/acceleration state to zero.
+           * @return True if the configuration was successfully applied.
+
+        """
+        pass
+
+    def get_config(self) -> TrajectoryPlanner.Config:
+        """*
+           * @brief Get the current configuration.
+           * @return Const reference to the active Config.
+
+        """
+        pass
+
+    def set_target(self, linear: float, angular: float) -> None:
+        """*
+           * @brief Set the desired chassis velocity target using normalized joystick inputs.
+           *
+           * Both inputs are in the range [-1, +1] and are scaled internally:
+           * @code
+           *   v_target  = linear  * max_linear_velocity
+           *   w_target  = angular * max_angular_velocity
+           * @endcode
+           * Values outside [-1, +1] are clamped before scaling.
+           *
+           * @param linear  Normalized linear velocity command  [-1, +1].
+           *                +1 = full forward, -1 = full reverse.
+           * @param angular Normalized angular velocity command [-1, +1].
+           *                +1 = full left turn, -1 = full right turn.
+
+        """
+        pass
+
+    def get_target(self) -> Tuple[float, float]:
+        """*
+           * @brief Get the current normalized velocity target.
+           * @note  If enforce_motion_envelope is enabled the stored target may differ
+           *        from the value passed to set_target() (it is projected onto the unit circle).
+           * @return Pair of {linear, angular} in [-1, +1].
+
+        """
+        pass
+
+    def output(self) -> TrajectoryPlanner.MotionCommand:
+        """*
+           * @brief Get the current smoothed motion command.
+           * @return MotionCommand containing the trajectory-limited (v_ref, w_ref).
+
+        """
+        pass
+
+    def stop(self) -> None:
+        """*
+           * @brief Command the planner to decelerate to a full stop.
+           *
+           * Equivalent to set_target(0, 0). The planner ramps down respecting all
+           * configured limits rather than cutting output immediately.
+
+        """
+        pass
+
+    def reset(self) -> None:
+        """*
+           * @brief Reset velocity, acceleration state, and target to zero immediately.
+           *
+           * The next call to output() will return (0, 0). Use after an emergency stop
+           * or before re-initialising with a new configuration.
+
+        """
+        pass
+
+    def is_running(self) -> bool:
+        """*
+           * @brief Check whether the periodic update task is currently running.
+           * @return True if the task is running.
+
+        """
+        pass
+
+    def __init__(self) -> None:
+        """Auto-generated default constructor"""
+        pass
+
+
+
+####################    </generated_from:trajectory_planner.hpp>    ####################
 
 
 ####################    <generated_from:thread_pool.hpp>    ####################
@@ -4452,9 +4732,9 @@ class H264Depacketizer:
     """/ @brief RTP depacketizer for H.264 video per RFC 6184.
     /
     / Reassembles H.264 access units from incoming RTP packets. Supports:
-    /   - **Single NAL unit** packets (NAL type 1-23)
-    /   - **STAP-A** aggregation packets (NAL type 24)
-    /   - **FU-A** fragmentation packets (NAL type 28)
+    /   - <b>Single NAL unit</b> packets (NAL type 1-23)
+    /   - <b>STAP-A</b> aggregation packets (NAL type 24)
+    /   - <b>FU-A</b> fragmentation packets (NAL type 28)
     /
     / When the RTP marker bit is set, the accumulated NAL units are delivered
     / as one Annex B byte-stream (each NAL prefixed with 0x00 0x00 0x00 0x01)
@@ -4507,8 +4787,8 @@ class H264Packetizer:
     / of RTP payload chunks suitable for transmission.
     /
     / Supports two NAL-unit packetization strategies:
-    /   - **Single NAL unit mode** - NAL fits within max_payload_size.
-    /   - **FU-A fragmentation** - NAL exceeds max_payload_size (packetization_mode >= 1).
+    /   - <b>Single NAL unit mode</b> - NAL fits within max_payload_size.
+    /   - <b>FU-A fragmentation</b> - NAL exceeds max_payload_size (packetization_mode >= 1).
     /
     / @note This class does not manage RTP headers (sequence numbers, timestamps,
     /       SSRC). The caller wraps each returned chunk into an RtpPacket.

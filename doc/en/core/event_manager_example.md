@@ -1,2 +1,2 @@
-```{include} ../../components/event_manager/example/README.md
+```{include} ../../../components/event_manager/example/README.md
 ```

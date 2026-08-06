@@ -1,2 +1,2 @@
-```{include} ../../components/pid/example/README.md
+```{include} ../../../components/pid/example/README.md
 ```

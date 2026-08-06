@@ -16,8 +16,8 @@ namespace espp {
 /// of RTP payload chunks suitable for transmission.
 ///
 /// Supports two NAL-unit packetization strategies:
-///   - **Single NAL unit mode** - NAL fits within max_payload_size.
-///   - **FU-A fragmentation** - NAL exceeds max_payload_size (packetization_mode >= 1).
+///   - <b>Single NAL unit mode</b> - NAL fits within max_payload_size.
+///   - <b>FU-A fragmentation</b> - NAL exceeds max_payload_size (packetization_mode >= 1).
 ///
 /// @note This class does not manage RTP headers (sequence numbers, timestamps,
 ///       SSRC). The caller wraps each returned chunk into an RtpPacket.
