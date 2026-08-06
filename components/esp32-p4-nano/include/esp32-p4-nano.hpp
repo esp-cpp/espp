@@ -535,8 +535,8 @@ protected:
   static constexpr bool swap_xy = false;
   // touch -> display coordinate conversion. May need tuning per panel.
   static constexpr bool touch_swap_xy = false;
-  static constexpr bool touch_invert_x = true;
-  static constexpr bool touch_invert_y = true;
+  static constexpr bool touch_invert_x = false;
+  static constexpr bool touch_invert_y = false;
 
   // Touch (GT911) - interrupt/reset are NOT connected on this board
   static constexpr uint8_t gt911_default_address = 0x5D;
