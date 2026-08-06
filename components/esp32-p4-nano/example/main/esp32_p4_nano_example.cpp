@@ -143,11 +143,20 @@ extern "C" void app_main(void) {
       // Touch feedback (click + circle) only applies on the draw/status page;
       // touches on the other tabs (buttons, sliders) stay silent.
       if (gui.draw_page_active()) {
-        // Click only on the touch-DOWN edge (not on every drag movement), and
-        // restart it (drop any queued tail) so it tracks touches responsively.
-        if (touch_down_edge && !audio_bytes.empty()) {
-          board.clear_audio();
+        // Click feedback: instant on the touch-DOWN edge, and retriggered while
+        // dragging - each retrigger restarts (clips) the click so drawing gives
+        // a stream of overlapping-feel clicks. The retrigger interval keeps a
+        // fast drag from restarting the click every poll (16 ms), which would
+        // reduce it to a buzz of its first few milliseconds.
+        static constexpr auto kClickRetriggerInterval = std::chrono::milliseconds(100);
+        static auto last_click_time = std::chrono::steady_clock::time_point{};
+        const auto now = std::chrono::steady_clock::now();
+        const bool click_due =
+            touch_down_edge || (now - last_click_time >= kClickRetriggerInterval);
+        if (new_touch && click_due && !audio_bytes.empty()) {
+          board.clear_audio();           // drop any queued tail (restart)
           board.play_audio(audio_bytes); // non-blocking
+          last_click_time = now;
         }
         if (new_touch) {
           gui.draw_circle(td.x, td.y, kCircleRadius);
