@@ -132,7 +132,11 @@ bool Esp32P4Eth::initialize_lcd() {
   espp::display_drivers::Config display_config{
       .panel_io = nullptr,
       .write_command = std::bind_front(&Esp32P4Eth::dsi_write_command, this),
-      .read_command = std::bind_front(&Esp32P4Eth::dsi_read_command, this),
+      // NOTE: the Waveshare ESP32-P4 panels do not reliably support MIPI-DSI DCS
+      // reads (bus turn-around); the ESP-IDF HAL busy-waits on the read, which
+      // hangs panel init and trips the task watchdog. Do not provide a
+      // read_command so the driver skips the optional panel-ID read.
+      .read_command = nullptr,
       .lcd_send_lines = nullptr,
       .reset_pin = GPIO_NUM_NC,
       .data_command_pin = GPIO_NUM_NC,
