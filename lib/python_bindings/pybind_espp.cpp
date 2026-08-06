@@ -2559,7 +2559,7 @@ void py_init_module_espp(py::module &m) {
            py::arg("reset_state") = true,
            "*\n   * @brief Update the planner configuration.\n   * @param config New configuration "
            "parameters.\n   * @param reset_state If True (default), resets velocity/acceleration "
-           "state to zero.\n")
+           "state to zero.\n   * @return True if the configuration was successfully applied.\n")
       .def("get_config", &espp::TrajectoryPlanner::get_config,
            "*\n   * @brief Get the current configuration.\n   * @return Const reference to the "
            "active Config.\n")

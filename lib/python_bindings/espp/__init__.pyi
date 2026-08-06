@@ -3966,11 +3966,12 @@ class TrajectoryPlanner:
         self,
         config: TrajectoryPlanner.Config,
         reset_state: bool = True
-        ) -> None:
+        ) -> bool:
         """*
            * @brief Update the planner configuration.
            * @param config New configuration parameters.
            * @param reset_state If True (default), resets velocity/acceleration state to zero.
+           * @return True if the configuration was successfully applied.
 
         """
         pass
