@@ -93,42 +93,6 @@ bool Esp32P4Eth::initialize_lcd() {
   // and the display fully initializes and shows pixels without any backlight code.
   brightness(100.0f);
 
-  // Create the DPI (video) panel with the configured panel's timing.
-  if (lcd_handles_.panel == nullptr) {
-    esp_lcd_dpi_panel_config_t dpi_cfg{};
-    memset(&dpi_cfg, 0, sizeof(dpi_cfg));
-    dpi_cfg.virtual_channel = 0;
-    dpi_cfg.dpi_clk_src = MIPI_DSI_DPI_CLK_SRC_DEFAULT;
-    dpi_cfg.dpi_clock_freq_mhz = panel_params_.dpi_clock_freq_mhz;
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
-    dpi_cfg.in_color_format = LCD_COLOR_FMT_RGB565;
-    dpi_cfg.out_color_format = LCD_COLOR_FMT_RGB565;
-#else
-    dpi_cfg.pixel_format = LCD_COLOR_PIXEL_FORMAT_RGB565;
-    dpi_cfg.flags.use_dma2d = true;
-#endif
-    dpi_cfg.num_fbs = 1;
-    dpi_cfg.video_timing.h_size = display_width_;
-    dpi_cfg.video_timing.v_size = display_height_;
-    dpi_cfg.video_timing.hsync_pulse_width = panel_params_.hsync_pulse_width;
-    dpi_cfg.video_timing.hsync_back_porch = panel_params_.hsync_back_porch;
-    dpi_cfg.video_timing.hsync_front_porch = panel_params_.hsync_front_porch;
-    dpi_cfg.video_timing.vsync_pulse_width = panel_params_.vsync_pulse_width;
-    dpi_cfg.video_timing.vsync_back_porch = panel_params_.vsync_back_porch;
-    dpi_cfg.video_timing.vsync_front_porch = panel_params_.vsync_front_porch;
-    logger_.info("Creating DPI panel ({}x{} @ {} MHz)", dpi_cfg.video_timing.h_size,
-                 dpi_cfg.video_timing.v_size, dpi_cfg.dpi_clock_freq_mhz);
-    ret = esp_lcd_new_panel_dpi(lcd_handles_.mipi_dsi_bus, &dpi_cfg, &lcd_handles_.panel);
-    if (ret != ESP_OK) {
-      logger_.error("Failed to create MIPI DSI DPI panel: {}", esp_err_to_name(ret));
-      return false;
-    }
-    // NOTE: deliberately do NOT enable DMA2D for the DPI panel. DMA2D is a
-    // color-processing engine, not a plain copy: routing the LVGL flush
-    // (esp_lcd_panel_draw_bitmap) through it corrupts the RGB565 channel order,
-    // while the plain CPU copy path renders correctly.
-  }
-
   // Send the panel controller's vendor init sequence over DBI (command mode),
   // before starting the DPI video stream.
   espp::display_drivers::Config display_config{
@@ -168,6 +132,46 @@ bool Esp32P4Eth::initialize_lcd() {
   if (!display_driver_) {
     logger_.error("Failed to initialize {} display controller", get_display_controller_name());
     return false;
+  }
+
+  // Create the DPI (video) panel with the configured panel's timing. This must
+  // come AFTER the vendor init sequence above: esp_lcd_new_panel_dpi() starts the
+  // HS video stream, and once it is running the DSI cannot drain the low-power
+  // command FIFO, so a long init sequence (e.g. ILI9881C's 202 commands) would
+  // overflow it and hang.
+  if (lcd_handles_.panel == nullptr) {
+    esp_lcd_dpi_panel_config_t dpi_cfg{};
+    memset(&dpi_cfg, 0, sizeof(dpi_cfg));
+    dpi_cfg.virtual_channel = 0;
+    dpi_cfg.dpi_clk_src = MIPI_DSI_DPI_CLK_SRC_DEFAULT;
+    dpi_cfg.dpi_clock_freq_mhz = panel_params_.dpi_clock_freq_mhz;
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
+    dpi_cfg.in_color_format = LCD_COLOR_FMT_RGB565;
+    dpi_cfg.out_color_format = LCD_COLOR_FMT_RGB565;
+#else
+    dpi_cfg.pixel_format = LCD_COLOR_PIXEL_FORMAT_RGB565;
+    dpi_cfg.flags.use_dma2d = true;
+#endif
+    dpi_cfg.num_fbs = 1;
+    dpi_cfg.video_timing.h_size = display_width_;
+    dpi_cfg.video_timing.v_size = display_height_;
+    dpi_cfg.video_timing.hsync_pulse_width = panel_params_.hsync_pulse_width;
+    dpi_cfg.video_timing.hsync_back_porch = panel_params_.hsync_back_porch;
+    dpi_cfg.video_timing.hsync_front_porch = panel_params_.hsync_front_porch;
+    dpi_cfg.video_timing.vsync_pulse_width = panel_params_.vsync_pulse_width;
+    dpi_cfg.video_timing.vsync_back_porch = panel_params_.vsync_back_porch;
+    dpi_cfg.video_timing.vsync_front_porch = panel_params_.vsync_front_porch;
+    logger_.info("Creating DPI panel ({}x{} @ {} MHz)", dpi_cfg.video_timing.h_size,
+                 dpi_cfg.video_timing.v_size, dpi_cfg.dpi_clock_freq_mhz);
+    ret = esp_lcd_new_panel_dpi(lcd_handles_.mipi_dsi_bus, &dpi_cfg, &lcd_handles_.panel);
+    if (ret != ESP_OK) {
+      logger_.error("Failed to create MIPI DSI DPI panel: {}", esp_err_to_name(ret));
+      return false;
+    }
+    // NOTE: deliberately do NOT enable DMA2D for the DPI panel. DMA2D is a
+    // color-processing engine, not a plain copy: routing the LVGL flush
+    // (esp_lcd_panel_draw_bitmap) through it corrupts the RGB565 channel order,
+    // while the plain CPU copy path renders correctly.
   }
 
   // Low-level panel init (starts the DPI video stream)
