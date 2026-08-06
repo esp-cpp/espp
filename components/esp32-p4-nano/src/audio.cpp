@@ -302,7 +302,12 @@ bool Esp32P4Nano::audio_task_callback(std::mutex &m, std::condition_variable &cv
     i2s_channel_write(audio_tx_handle, tx_buf, buffer_size, NULL, pdMS_TO_TICKS(100));
   } else {
     xStreamBufferReceive(audio_tx_stream, tx_buf, available, 0);
-    i2s_channel_write(audio_tx_handle, tx_buf, available, NULL, pdMS_TO_TICKS(100));
+    // Always write a full, frame-aligned buffer (queued samples zero-padded to
+    // buffer_size) so the I2S DMA is fed at a constant cadence - matching the
+    // esp-box / t-deck / m5stack-tab5 playback path. Writing only `available`
+    // bytes makes the drain cadence variable and interleaves whole frames of
+    // silence into bursty streams, which sounds choppy/glitchy.
+    i2s_channel_write(audio_tx_handle, tx_buf, buffer_size, NULL, pdMS_TO_TICKS(100));
   }
   // honor a stop request per the Task contract: check/clear notified under m
   std::unique_lock<std::mutex> lock(m);
