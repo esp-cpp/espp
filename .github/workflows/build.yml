@@ -253,6 +253,8 @@ jobs:
           target: esp32
         - path: 'components/timer/example'
           target: esp32
+        - path: 'components/trajectory_planner/example'
+          target: esp32
         - path: 'components/touch/example'
           target: esp32
         - path: 'components/tla2528/example'

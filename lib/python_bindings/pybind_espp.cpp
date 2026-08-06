@@ -1642,10 +1642,6 @@ void py_init_module_espp(py::module &m) {
                  "*\n     * @brief Gives access to IPv4 sockaddr structure (sockaddr_in) for use\n "
                  "    *        with low level socket calls like sendto / recvfrom.\n     * @return "
                  "*sockaddr_in pointer to ipv4 data structure\n")
-            .def("ipv6_ptr", &espp::Socket::Info::ipv6_ptr,
-                 "*\n     * @brief Gives access to IPv6 sockaddr structure (sockaddr_in6) for "
-                 "use\n     *        with low level socket calls like sendto / recvfrom.\n     * "
-                 "@return *sockaddr_in6 pointer to ipv6 data structure\n")
             .def("update", &espp::Socket::Info::update,
                  "*\n     * @brief Will update address and port based on the curent data in raw.\n")
             .def("from_sockaddr",
@@ -1658,11 +1654,6 @@ void py_init_module_espp(py::module &m) {
                  py::overload_cast<const struct sockaddr_in &>(&espp::Socket::Info::from_sockaddr),
                  py::arg("source_address"),
                  "*\n     * @brief Fill this Info from the provided sockaddr struct.\n     * "
-                 "@param &source_address sockaddr info filled out by recvfrom.\n")
-            .def("from_sockaddr",
-                 py::overload_cast<const struct sockaddr_in6 &>(&espp::Socket::Info::from_sockaddr),
-                 py::arg("source_address"),
-                 "*\n     * @brief Fill this Info from the provided sockaddr struct.\n     * "
                  "@param &source_address sockaddr info filled out by recvfrom.\n");
   } // end of inner classes & enums of Socket
 
@@ -1673,6 +1664,11 @@ void py_init_module_espp(py::module &m) {
       .def_static("is_valid_fd", &espp::Socket::is_valid_fd, py::arg("socket_fd"),
                   "*\n   * @brief Is the socket valid.\n   * @param socket_fd Socket file "
                   "descriptor.\n   * @return True if the socket file descriptor is >= 0.\n")
+      .def("native_handle", &espp::Socket::native_handle,
+           "*\n   * @brief Get the underlying native socket file descriptor / handle.\n   * @note "
+           "Provided so an external event loop (e.g. SocketReactor) can add this\n   *       "
+           "socket to a select()/poll() set. The Socket retains ownership of the\n   *       "
+           "descriptor; do not close it directly.\n   * @return The socket file descriptor.\n")
       .def("get_ipv4_info", &espp::Socket::get_ipv4_info,
            "*\n   * @brief Get the Socket::Info for the socket.\n   * @details This will call "
            "getsockname() on the socket to get the\n   *          sockaddr_storage structure, and "
@@ -2060,6 +2056,15 @@ void py_init_module_espp(py::module &m) {
            "with the information about the sender.\n   * @return True if successfully received, "
            "False otherwise.\n",
            py::call_guard<py::gil_scoped_release>())
+      .def("bind", &espp::UdpSocket::bind, py::arg("receive_config"),
+           "*\n   * @brief Bind the socket as a server according to \\p receive_config (bind to\n  "
+           " *        the port and, if requested, join the multicast group), without\n   *        "
+           "starting any receive thread.\n   * @note This is called for you by start_receiving(). "
+           "Use it directly when\n   *       driving the socket from an external event loop such "
+           "as\n   *       espp::SocketReactor, which reads the socket itself.\n   * @param "
+           "receive_config ReceiveConfig describing the port / multicast setup.\n   *        Its "
+           "callback / buffer_size fields are not used by this method.\n   * @return True if the "
+           "socket was bound (and joined the group, if multicast).\n")
       .def("start_receiving", &espp::UdpSocket::start_receiving, py::arg("task_config"),
            py::arg("receive_config"),
            "*\n   * @brief Configure a server socket and start a thread to continuously\n   *      "
@@ -2220,17 +2225,28 @@ void py_init_module_espp(py::module &m) {
       "the background, so the timer\n/       callback function will be called in the context of "
       "the task. The\n/       timer callback function should not block for a long time because "
       "it\n/       will block the task. If the timer callback function blocks for a\n/       long "
-      "time, then the timer will not be able to keep up with the\n/       period.\n/\n/ \\section "
-      "timer_ex1 Timer Example 1\n/ \\snippet timer_example.cpp timer example\n/ \\section "
-      "timer_ex2 Timer Watchdog Example\n/ \\snippet timer_example.cpp timer watchdog example\n/ "
-      "\\section timer_ex3 Timer Delay Example\n/ \\snippet timer_example.cpp timer delay "
-      "example\n/ \\section timer_ex4 Oneshot Timer Example\n/ \\snippet timer_example.cpp timer "
-      "oneshot example\n/ \\section timer_ex5 Timer Cancel Itself Example\n/ \\snippet "
-      "timer_example.cpp timer cancel itself example\n/ \\section timer_ex6 Oneshot Timer Cancel "
-      "Itself Then Start again with Delay Example\n/ \\snippet timer_example.cpp timer oneshot "
-      "restart example\n/ \\section timer_ex7 Timer Update Period Example\n/ \\snippet "
-      "timer_example.cpp timer update period example\n/ \\section timer_ex8 Timer AdvancedConfig "
-      "Example\n/ \\snippet timer_example.cpp timer advanced config example");
+      "time, then the timer will not be able to keep up with the\n/       period.\n/\n/ @note "
+      "Timing resolution. On ESP / FreeRTOS the timer waits on the\n/       scheduler, which can "
+      "only resolve time to a single tick\n/       (1 / CONFIG_FREERTOS_HZ seconds; e.g. 10 ms at "
+      "the 100 Hz default,\n/       1 ms at 1000 Hz). A period or delay that is shorter than - or "
+      "within\n/       a couple of ticks of - the tick period cannot be honored accurately:\n/     "
+      "  it will be rounded up to a whole number of ticks and can jitter by up\n/       to a full "
+      "tick. The constructor, set_period() and start(delay) log a\n/       warning when the "
+      "requested period/delay is at or near the tick\n/       period. For sub-tick or highly "
+      "accurate periodic work, either raise\n/       CONFIG_FREERTOS_HZ or use the esp_timer-based "
+      "HighResolutionTimer\n/       instead. The timer schedules against an absolute wake-up time "
+      "(the\n/       k-th callback targets start + k*period), so it does not accumulate\n/       "
+      "drift even when individual iterations jitter.\n/\n/ \\section timer_ex1 Timer Example 1\n/ "
+      "\\snippet timer_example.cpp timer example\n/ \\section timer_ex2 Timer Watchdog Example\n/ "
+      "\\snippet timer_example.cpp timer watchdog example\n/ \\section timer_ex3 Timer Delay "
+      "Example\n/ \\snippet timer_example.cpp timer delay example\n/ \\section timer_ex4 Oneshot "
+      "Timer Example\n/ \\snippet timer_example.cpp timer oneshot example\n/ \\section timer_ex5 "
+      "Timer Cancel Itself Example\n/ \\snippet timer_example.cpp timer cancel itself example\n/ "
+      "\\section timer_ex6 Oneshot Timer Cancel Itself Then Start again with Delay Example\n/ "
+      "\\snippet timer_example.cpp timer oneshot restart example\n/ \\section timer_ex7 Timer "
+      "Update Period Example\n/ \\snippet timer_example.cpp timer update period example\n/ "
+      "\\section timer_ex8 Timer AdvancedConfig Example\n/ \\snippet timer_example.cpp timer "
+      "advanced config example");
 
   { // inner classes & enums of Timer
     auto pyClassTimer_ClassConfig =
@@ -2326,7 +2342,8 @@ void py_init_module_espp(py::module &m) {
       .def(
           "start", [](espp::Timer &self) { return self.start(); },
           "/ @brief Start the timer.\n/ @details Starts the timer. Does nothing if the timer is "
-          "already running.",
+          "already running.\n/ @return True if the timer was started or is already running, False "
+          "if the\n/         timer could not be started.",
           py::call_guard<py::gil_scoped_release>())
       .def("start", py::overload_cast<const std::chrono::duration<float> &>(&espp::Timer::start),
            py::arg("delay"),
@@ -2335,7 +2352,8 @@ void py_init_module_espp(py::module &m) {
            "again with the new\n/          delay. If the timer is not running, this will start the "
            "timer\n/          with the delay. Overwrites any previous delay that might have\n/     "
            "     been set.\n/ @param delay The delay before the first execution of the timer "
-           "callback.",
+           "callback.\n/ @return True if the timer was started or restarted, False if the timer\n/ "
+           "        could not be started.",
            py::call_guard<py::gil_scoped_release>())
       .def("stop", &espp::Timer::stop,
            "/ @brief Stop the timer, same as cancel().\n/ @details Stops the timer, same as "
@@ -2354,6 +2372,227 @@ void py_init_module_espp(py::module &m) {
            "/ @brief Check if the timer is running.\n/ @details Checks if the timer is running.\n/ "
            "@return True if the timer is running, False otherwise.");
   ////////////////////    </generated_from:timer.hpp>    ////////////////////
+
+  ////////////////////    <generated_from:trajectory_planner.hpp>    ////////////////////
+  auto pyClassTrajectoryPlanner = py::class_<espp::TrajectoryPlanner>(
+      m, "TrajectoryPlanner", py::dynamic_attr(),
+      "*\n *  @brief Converts normalized joystick velocity commands into smooth,\n *         "
+      "dynamically feasible chassis motion commands (v, w).\n *\n *  The planner is drive-system "
+      "independent -- it does not know about wheel\n *  geometry or kinematics. It only enforces "
+      "velocity, acceleration, and\n *  jerk limits on chassis-level commands. The downstream "
+      "kinematics layer\n *  converts (v_ref, w_ref) into individual motor commands.\n *\n *  ### "
+      "Algorithm\n *  The jerk-limited mode uses a discrete optimal-control approach: at each\n *  "
+      "step the planner computes the minimum velocity-change distance needed to\n *  decelerate "
+      "the current acceleration to zero, then decides whether to\n *  accelerate, maintain, or "
+      "decelerate to land exactly on the target without\n *  overshoot -- equivalent to a "
+      "time-optimal S-curve under jerk and\n *  acceleration constraints.\n *\n *  ### Profiles\n "
+      "*  Motion limits are grouped into two MotionProfile objects inside Config:\n *  - "
+      "**driving_profile** -- used whenever the target is non-zero.\n *  - **stopping_profile** -- "
+      "used when the target is (0, 0). Setting jerk to 0\n *    gives a trapezoidal stop; higher "
+      "acceleration gives faster, firmer braking.\n *\n *  A MotionProfile selects its mode "
+      "automatically:\n *  - **Trapezoidal**: `max_linear_jerk == 0 && max_angular_jerk == 0`\n *  "
+      "- **S-curve**: either jerk field is non-zero\n *\n *  ### Timing\n *  Two independent "
+      "timers run internally:\n *  - **planning timer** -- calls `update()` at `planning_period` "
+      "(default 20 ms / 50 Hz).\n *    Recommended range: 5-200 ms on microcontrollers.\n *  - "
+      "**callback task** -- fires `output_callback` on every `update()` that produces a\n *    new "
+      "output value (CV-notified by the planning timer); no separate period needed.\n *\n *  This "
+      "class is thread-safe: set_target(), get_target(), output(), stop(),\n *  and reset() may be "
+      "called from different threads concurrently.\n *\n * \\section trajectory_planner_ex0 "
+      "Quick-Start: Full Public API\n * \\snippet trajectory_planner_example.cpp "
+      "trajectory_planner quickstart\n * \\section trajectory_planner_ex1 S-Curve Driving / "
+      "Trapezoidal Stop\n * \\snippet trajectory_planner_example.cpp trajectory_planner example\n "
+      "* \\section trajectory_planner_ex2 High-Speed S-Curve with Centripetal Limiting\n * "
+      "\\snippet trajectory_planner_example.cpp trajectory_planner jerk example\n * \\section "
+      "trajectory_planner_ex3 Constraint Validation\n * \\snippet trajectory_planner_example.cpp "
+      "trajectory_planner validation\n");
+
+  { // inner classes & enums of TrajectoryPlanner
+    auto pyClassTrajectoryPlanner_ClassMotionCommand =
+        py::class_<espp::TrajectoryPlanner::MotionCommand>(
+            pyClassTrajectoryPlanner, "MotionCommand", py::dynamic_attr(),
+            "*\n   * @brief Chassis motion command produced by the planner.\n")
+            .def(py::init<>([](float linear_velocity = 0.0f, float angular_velocity = 0.0f) {
+                   auto r_ctor_ = std::make_unique<espp::TrajectoryPlanner::MotionCommand>();
+                   r_ctor_->linear_velocity = linear_velocity;
+                   r_ctor_->angular_velocity = angular_velocity;
+                   return r_ctor_;
+                 }),
+                 py::arg("linear_velocity") = 0.0f, py::arg("angular_velocity") = 0.0f)
+            .def_readwrite("linear_velocity",
+                           &espp::TrajectoryPlanner::MotionCommand::linear_velocity,
+                           "*< Linear velocity reference (m/s).")
+            .def_readwrite("angular_velocity",
+                           &espp::TrajectoryPlanner::MotionCommand::angular_velocity,
+                           "*< Angular velocity reference (rad/s).");
+    auto pyClassTrajectoryPlanner_ClassMotionProfile =
+        py::class_<espp::TrajectoryPlanner::MotionProfile>(
+            pyClassTrajectoryPlanner, "MotionProfile", py::dynamic_attr(),
+            "*\n   * @brief Acceleration and jerk limits for one phase of motion.\n   *\n   * Set "
+            "max_linear_jerk / max_angular_jerk to 0 for a trapezoidal (ramp)\n   * profile, or to "
+            "a positive value for an S-curve profile.\n   *\n   * @note Using a trapezoidal "
+            "stopping profile (jerk = 0) is recommended to\n   *       avoid S-curve overshoot "
+            "past zero when the planner decelerates from\n   *       a jerk-limited driving "
+            "phase.\n")
+            .def(py::init<>([](float max_linear_acceleration = 0.0f,
+                               float max_angular_acceleration = 0.0f, float max_linear_jerk = 0.0f,
+                               float max_angular_jerk = 0.0f) {
+                   auto r_ctor_ = std::make_unique<espp::TrajectoryPlanner::MotionProfile>();
+                   r_ctor_->max_linear_acceleration = max_linear_acceleration;
+                   r_ctor_->max_angular_acceleration = max_angular_acceleration;
+                   r_ctor_->max_linear_jerk = max_linear_jerk;
+                   r_ctor_->max_angular_jerk = max_angular_jerk;
+                   return r_ctor_;
+                 }),
+                 py::arg("max_linear_acceleration") = 0.0f,
+                 py::arg("max_angular_acceleration") = 0.0f, py::arg("max_linear_jerk") = 0.0f,
+                 py::arg("max_angular_jerk") = 0.0f)
+            .def_readwrite("max_linear_acceleration",
+                           &espp::TrajectoryPlanner::MotionProfile::max_linear_acceleration,
+                           "*< Linear acceleration limit (m/s^2).")
+            .def_readwrite("max_angular_acceleration",
+                           &espp::TrajectoryPlanner::MotionProfile::max_angular_acceleration,
+                           "*< Angular acceleration limit (rad/s^2).")
+            .def_readwrite("max_linear_jerk",
+                           &espp::TrajectoryPlanner::MotionProfile::max_linear_jerk,
+                           "*< Linear jerk limit (m/s^3). 0 = trapezoidal.")
+            .def_readwrite("max_angular_jerk",
+                           &espp::TrajectoryPlanner::MotionProfile::max_angular_jerk,
+                           "*< Angular jerk limit (rad/s^3). 0 = trapezoidal.");
+    auto pyClassTrajectoryPlanner_ClassConfig =
+        py::class_<espp::TrajectoryPlanner::Config>(
+            pyClassTrajectoryPlanner, "Config", py::dynamic_attr(),
+            "*\n   * @brief Configuration for the TrajectoryPlanner.\n")
+            .def(
+                py::init<>(
+                    [](float max_linear_velocity = 1.0f, float max_angular_velocity = 3.14159f,
+                       espp::TrajectoryPlanner::MotionProfile driving_profile =
+                           espp::TrajectoryPlanner::MotionProfile(),
+                       espp::TrajectoryPlanner::MotionProfile stopping_profile =
+                           espp::TrajectoryPlanner::MotionProfile(),
+                       bool enforce_motion_envelope = false,
+                       float max_centripetal_acceleration = 0.1f,
+                       espp::TrajectoryPlanner::output_callback_t output_callback = nullptr,
+                       std::chrono::duration<float> planning_period = std::chrono::milliseconds(20),
+                       espp::Task::BaseConfig planning_task_config = {.name = "TP_planning",
+                                                                      .stack_size_bytes = 4096,
+                                                                      .priority = 0,
+                                                                      .core_id = -1},
+                       espp::Task::BaseConfig callback_task_config = {.name = "TP_cb",
+                                                                      .stack_size_bytes = 8192,
+                                                                      .priority = 0,
+                                                                      .core_id = -1},
+                       espp::Logger::Verbosity log_level = espp::Logger::Verbosity::WARN) {
+                      auto r_ctor_ = std::make_unique<espp::TrajectoryPlanner::Config>();
+                      r_ctor_->max_linear_velocity = max_linear_velocity;
+                      r_ctor_->max_angular_velocity = max_angular_velocity;
+                      r_ctor_->driving_profile = driving_profile;
+                      r_ctor_->stopping_profile = stopping_profile;
+                      r_ctor_->enforce_motion_envelope = enforce_motion_envelope;
+                      r_ctor_->max_centripetal_acceleration = max_centripetal_acceleration;
+                      r_ctor_->output_callback = output_callback;
+                      r_ctor_->planning_period = planning_period;
+                      r_ctor_->planning_task_config = planning_task_config;
+                      r_ctor_->callback_task_config = callback_task_config;
+                      r_ctor_->log_level = log_level;
+                      return r_ctor_;
+                    }),
+                py::arg("max_linear_velocity") = 1.0f, py::arg("max_angular_velocity") = 3.14159f,
+                py::arg("driving_profile") = espp::TrajectoryPlanner::MotionProfile(),
+                py::arg("stopping_profile") = espp::TrajectoryPlanner::MotionProfile(),
+                py::arg("enforce_motion_envelope") = false,
+                py::arg("max_centripetal_acceleration") = 0.1f,
+                py::arg("output_callback") = py::none(),
+                py::arg("planning_period") = std::chrono::milliseconds(20),
+                py::arg("planning_task_config") = espp::Task::BaseConfig{.name = "TP_planning",
+                                                                         .stack_size_bytes = 4096,
+                                                                         .priority = 0,
+                                                                         .core_id = -1},
+                py::arg("callback_task_config") =
+                    espp::Task::BaseConfig{
+                        .name = "TP_cb", .stack_size_bytes = 8192, .priority = 0, .core_id = -1},
+                py::arg("log_level") = espp::Logger::Verbosity::WARN)
+            .def_readwrite("max_linear_velocity",
+                           &espp::TrajectoryPlanner::Config::max_linear_velocity,
+                           "*< Maximum linear velocity magnitude (m/s).")
+            .def_readwrite("max_angular_velocity",
+                           &espp::TrajectoryPlanner::Config::max_angular_velocity,
+                           "*< Maximum angular velocity magnitude (rad/s).")
+            .def_readwrite("driving_profile", &espp::TrajectoryPlanner::Config::driving_profile,
+                           "*< Accel/jerk limits used when target != (0, 0).")
+            .def_readwrite(
+                "stopping_profile", &espp::TrajectoryPlanner::Config::stopping_profile,
+                "*< Accel/jerk limits used when target\n                                         "
+                "== (0, 0). Set jerk to 0 here for a clean trapezoidal stop\n                      "
+                "                   with no overshoot. Higher acceleration than the\n              "
+                "                           driving profile gives faster, firmer braking.")
+            .def_readwrite(
+                "enforce_motion_envelope",
+                &espp::TrajectoryPlanner::Config::enforce_motion_envelope,
+                "*< When True, enforces (v/vmax)^2+(w/wmax)^2<=1 on\n                              "
+                "                     output to prevent infeasible combined commands.")
+            .def_readwrite(
+                "max_centripetal_acceleration",
+                &espp::TrajectoryPlanner::Config::max_centripetal_acceleration,
+                "*< Maximum centripetal acceleration |v*w| (m/s^2).\n                              "
+                "                     0 disables the limit. Both v and w are scaled\n              "
+                "                                     proportionally when the limit is exceeded.")
+            .def_readwrite(
+                "output_callback", &espp::TrajectoryPlanner::Config::output_callback,
+                "/**< Optional callback invoked after each update()\nwith the latest MotionCommand "
+                "output.\nLeave as None to disable. */\n --- Periodic task configuration ---")
+            .def_readwrite("planning_period", &espp::TrajectoryPlanner::Config::planning_period,
+                           "*< Planner\n                                                     "
+                           "update rate (default 50 Hz). Recommended: 5-200\n                      "
+                           "                               ms on microcontrollers.")
+            .def_readwrite("planning_task_config",
+                           &espp::TrajectoryPlanner::Config::planning_task_config,
+                           "*< Underlying task config for the timer.")
+            .def_readwrite("callback_task_config",
+                           &espp::TrajectoryPlanner::Config::callback_task_config,
+                           "*< Underlying task config for the callback timer.")
+            .def_readwrite("log_level", &espp::TrajectoryPlanner::Config::log_level,
+                           "*< Logger verbosity.");
+  } // end of inner classes & enums of TrajectoryPlanner
+
+  pyClassTrajectoryPlanner.def(py::init<const espp::TrajectoryPlanner::Config &>())
+      .def("set_config", &espp::TrajectoryPlanner::set_config, py::arg("config"),
+           py::arg("reset_state") = true,
+           "*\n   * @brief Update the planner configuration.\n   * @param config New configuration "
+           "parameters.\n   * @param reset_state If True (default), resets velocity/acceleration "
+           "state to zero.\n   * @return True if the configuration was successfully applied.\n")
+      .def("get_config", &espp::TrajectoryPlanner::get_config,
+           "*\n   * @brief Get the current configuration.\n   * @return Const reference to the "
+           "active Config.\n")
+      .def("set_target", &espp::TrajectoryPlanner::set_target, py::arg("linear"),
+           py::arg("angular"),
+           "*\n   * @brief Set the desired chassis velocity target using normalized joystick "
+           "inputs.\n   *\n   * Both inputs are in the range [-1, +1] and are scaled internally:\n "
+           "  * @code\n   *   v_target  = linear  * max_linear_velocity\n   *   w_target  = "
+           "angular * max_angular_velocity\n   * @endcode\n   * Values outside [-1, +1] are "
+           "clamped before scaling.\n   *\n   * @param linear  Normalized linear velocity command  "
+           "[-1, +1].\n   *                +1 = full forward, -1 = full reverse.\n   * @param "
+           "angular Normalized angular velocity command [-1, +1].\n   *                +1 = full "
+           "left turn, -1 = full right turn.\n")
+      .def("get_target", &espp::TrajectoryPlanner::get_target,
+           "*\n   * @brief Get the current normalized velocity target.\n   * @note  If "
+           "enforce_motion_envelope is enabled the stored target may differ\n   *        from the "
+           "value passed to set_target() (it is projected onto the unit circle).\n   * @return "
+           "Pair of {linear, angular} in [-1, +1].\n")
+      .def("output", &espp::TrajectoryPlanner::output,
+           "*\n   * @brief Get the current smoothed motion command.\n   * @return MotionCommand "
+           "containing the trajectory-limited (v_ref, w_ref).\n")
+      .def("stop", &espp::TrajectoryPlanner::stop,
+           "*\n   * @brief Command the planner to decelerate to a full stop.\n   *\n   * "
+           "Equivalent to set_target(0, 0). The planner ramps down respecting all\n   * configured "
+           "limits rather than cutting output immediately.\n")
+      .def("reset", &espp::TrajectoryPlanner::reset,
+           "*\n   * @brief Reset velocity, acceleration state, and target to zero immediately.\n   "
+           "*\n   * The next call to output() will return (0, 0). Use after an emergency stop\n   "
+           "* or before re-initialising with a new configuration.\n")
+      .def("is_running", &espp::TrajectoryPlanner::is_running,
+           "*\n   * @brief Check whether the periodic update task is currently running.\n   * "
+           "@return True if the task is running.\n");
+  ////////////////////    </generated_from:trajectory_planner.hpp>    ////////////////////
 
   ////////////////////    <generated_from:thread_pool.hpp>    ////////////////////
   auto pyClassThreadPool = py::class_<espp::ThreadPool>(
@@ -2870,12 +3109,12 @@ void py_init_module_espp(py::module &m) {
                                             std::shared_ptr<espp::H264Depacketizer>>(
       m, "H264Depacketizer", py::dynamic_attr(),
       "/ @brief RTP depacketizer for H.264 video per RFC 6184.\n/\n/ Reassembles H.264 access "
-      "units from incoming RTP packets. Supports:\n/   - **Single NAL unit** packets (NAL type "
-      "1-23)\n/   - **STAP-A** aggregation packets (NAL type 24)\n/   - **FU-A** fragmentation "
-      "packets (NAL type 28)\n/\n/ When the RTP marker bit is set, the accumulated NAL units are "
-      "delivered\n/ as one Annex B byte-stream (each NAL prefixed with 0x00 0x00 0x00 0x01)\n/ via "
-      "the frame callback set with set_frame_callback().\n/\n/ \\section h264_depacketizer_ex1 "
-      "Example\n/ \\snippet rtsp_example.cpp h264_depacketizer_test");
+      "units from incoming RTP packets. Supports:\n/   - <b>Single NAL unit</b> packets (NAL type "
+      "1-23)\n/   - <b>STAP-A</b> aggregation packets (NAL type 24)\n/   - <b>FU-A</b> "
+      "fragmentation packets (NAL type 28)\n/\n/ When the RTP marker bit is set, the accumulated "
+      "NAL units are delivered\n/ as one Annex B byte-stream (each NAL prefixed with 0x00 0x00 "
+      "0x00 0x01)\n/ via the frame callback set with set_frame_callback().\n/\n/ \\section "
+      "h264_depacketizer_ex1 Example\n/ \\snippet rtsp_example.cpp h264_depacketizer_test");
 
   { // inner classes & enums of H264Depacketizer
     auto pyClassH264Depacketizer_ClassConfig =
@@ -2908,11 +3147,11 @@ void py_init_module_espp(py::module &m) {
           "/ @brief RTP packetizer for H.264 video per RFC 6184.\n/\n/ Accepts H.264 access units "
           "in Annex B byte-stream format (NAL units\n/ separated by 0x00000001 or 0x000001 start "
           "codes) and produces a sequence\n/ of RTP payload chunks suitable for "
-          "transmission.\n/\n/ Supports two NAL-unit packetization strategies:\n/   - **Single NAL "
-          "unit mode** - NAL fits within max_payload_size.\n/   - **FU-A fragmentation** - NAL "
-          "exceeds max_payload_size (packetization_mode >= 1).\n/\n/ @note This class does not "
-          "manage RTP headers (sequence numbers, timestamps,\n/       SSRC). The caller wraps each "
-          "returned chunk into an RtpPacket.\n/\n/ \\section h264_packetizer_ex1 Example\n/ "
+          "transmission.\n/\n/ Supports two NAL-unit packetization strategies:\n/   - <b>Single "
+          "NAL unit mode</b> - NAL fits within max_payload_size.\n/   - <b>FU-A fragmentation</b> "
+          "- NAL exceeds max_payload_size (packetization_mode >= 1).\n/\n/ @note This class does "
+          "not manage RTP headers (sequence numbers, timestamps,\n/       SSRC). The caller wraps "
+          "each returned chunk into an RtpPacket.\n/\n/ \\section h264_packetizer_ex1 Example\n/ "
           "\\snippet rtsp_example.cpp h264_packetizer_test");
 
   { // inner classes & enums of H264Packetizer
