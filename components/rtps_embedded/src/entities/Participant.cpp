@@ -181,7 +181,7 @@ bool Participant::isReadersFull() {
 
 rtps::Writer *Participant::getWriter(EntityId_t id) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
-  for (uint8_t i = 0; i < m_writers.size(); ++i) {
+  for (size_t i = 0; i < m_writers.size(); ++i) {
     if (m_writers[i] == nullptr) {
       continue;
     }
@@ -194,7 +194,7 @@ rtps::Writer *Participant::getWriter(EntityId_t id) {
 
 rtps::Reader *Participant::getReader(EntityId_t id) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
-  for (uint8_t i = 0; i < m_readers.size(); ++i) {
+  for (size_t i = 0; i < m_readers.size(); ++i) {
     if (m_readers[i] == nullptr) {
       continue;
     }
@@ -207,7 +207,7 @@ rtps::Reader *Participant::getReader(EntityId_t id) {
 
 rtps::Reader *Participant::getReaderByWriterId(const Guid_t &guid) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
-  for (uint8_t i = 0; i < m_readers.size(); ++i) {
+  for (size_t i = 0; i < m_readers.size(); ++i) {
     if (m_readers[i] == nullptr) {
       continue;
     }
@@ -220,7 +220,7 @@ rtps::Reader *Participant::getReaderByWriterId(const Guid_t &guid) {
 
 rtps::Writer *Participant::getMatchingWriter(const TopicData &readerTopicData) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
-  for (uint8_t i = 0; i < m_writers.size(); ++i) {
+  for (size_t i = 0; i < m_writers.size(); ++i) {
     if (m_writers[i] == nullptr) {
       continue;
     }
@@ -235,7 +235,7 @@ rtps::Writer *Participant::getMatchingWriter(const TopicData &readerTopicData) {
 
 rtps::Reader *Participant::getMatchingReader(const TopicData &writerTopicData) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
-  for (uint8_t i = 0; i < m_readers.size(); ++i) {
+  for (size_t i = 0; i < m_readers.size(); ++i) {
     if (m_readers[i] == nullptr) {
       continue;
     }
@@ -250,7 +250,7 @@ rtps::Reader *Participant::getMatchingReader(const TopicData &writerTopicData) {
 
 rtps::Writer *Participant::getMatchingWriter(const TopicDataCompressed &readerTopicData) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
-  for (uint8_t i = 0; i < m_writers.size(); ++i) {
+  for (size_t i = 0; i < m_writers.size(); ++i) {
     if (m_writers[i] == nullptr) {
       continue;
     }
@@ -265,7 +265,7 @@ rtps::Writer *Participant::getMatchingWriter(const TopicDataCompressed &readerTo
 
 rtps::Reader *Participant::getMatchingReader(const TopicDataCompressed &writerTopicData) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
-  for (uint8_t i = 0; i < m_readers.size(); ++i) {
+  for (size_t i = 0; i < m_readers.size(); ++i) {
     if (m_readers[i] == nullptr) {
       continue;
     }
@@ -366,7 +366,7 @@ void Participant::refreshRemoteParticipantLiveliness(const GuidPrefix_t &prefix)
 
 bool Participant::hasReaderWithMulticastLocator(const std::array<uint8_t, 4> &address) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
-  for (uint8_t i = 0; i < m_readers.size(); i++) {
+  for (size_t i = 0; i < m_readers.size(); i++) {
     if (m_readers[i] == nullptr) {
       continue;
     }
