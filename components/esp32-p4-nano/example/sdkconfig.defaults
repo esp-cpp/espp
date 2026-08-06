@@ -10,3 +10,27 @@ CONFIG_ETH_ENABLED=y
 CONFIG_ETH_USE_ESP32_EMAC=y
 
 CONFIG_FREERTOS_HZ=1000
+
+# espp I2C: use the new ESP-IDF master/slave bus API. Required for
+# internal_i2c_.native_bus_handle(), which the camera SCCB shares (this is the
+# Kconfig default, but set explicitly so the camera bring-up always compiles).
+CONFIG_ESPP_I2C_USE_NEW_API=y
+
+# PSRAM: the camera capture buffers and the display framebuffers live in PSRAM.
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_SPEED_200M=y
+CONFIG_SPIRAM_XIP_FROM_PSRAM=y
+CONFIG_CACHE_L2_CACHE_256KB=y
+CONFIG_CACHE_L2_CACHE_LINE_128B=y
+
+# On-board MIPI-CSI camera: esp_video (V4L2) capture pipeline + OV5647 sensor
+# (Raspberry Pi Camera v1.3). Enabling the MIPI-CSI video device auto-selects
+# the ISP (RAW8 -> RGB565). The sensor is Kconfig-selectable: if a different
+# sensor is fitted to the CSI connector, disable OV5647 below and enable that
+# sensor (e.g. CONFIG_CAMERA_SC202CS) instead.
+CONFIG_ESP_VIDEO_ENABLE_MIPI_CSI_VIDEO_DEVICE=y
+CONFIG_CAMERA_OV5647=y
+CONFIG_CAMERA_OV5647_AUTO_DETECT_MIPI_INTERFACE_SENSOR=y
+# Enable the ISP pipeline controller (isp_task): auto exposure / white balance.
+# Without it the ISP runs with static gains and the feed has a heavy color cast.
+CONFIG_ESP_VIDEO_ENABLE_ISP_PIPELINE_CONTROLLER=y
