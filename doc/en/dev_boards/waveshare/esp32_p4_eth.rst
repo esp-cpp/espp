@@ -1,8 +1,8 @@
 Waveshare ESP32-P4-ETH
-***********************
+**********************
 
 ESP32-P4-ETH
--------------
+------------
 
 The Waveshare ESP32-P4-ETH is an ESP32-P4 development board with a MIPI-DSI
 display, capacitive touch, a MIPI-CSI camera, audio in/out, a microSD slot, and

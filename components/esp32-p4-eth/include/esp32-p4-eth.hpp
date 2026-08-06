@@ -214,7 +214,10 @@ public:
 
   /// Get the most recent touchpad data
   /// \return The touchpad data
-  TouchpadData touchpad_data() const { return touchpad_data_; }
+  TouchpadData touchpad_data() const {
+    std::lock_guard<std::recursive_mutex> lock(touchpad_data_mutex_);
+    return touchpad_data_;
+  }
 
   /// Get the touchpad data for LVGL integration
   /// \param num_touch_points The number of touch points
@@ -628,7 +631,7 @@ protected:
   std::shared_ptr<I2c::Device<uint8_t>> touch_i2c_device_;
   std::shared_ptr<TouchDriver> touch_driver_;
   std::shared_ptr<TouchpadInput> touchpad_input_;
-  std::recursive_mutex touchpad_data_mutex_;
+  mutable std::recursive_mutex touchpad_data_mutex_;
   TouchpadData touchpad_data_;
   touch_callback_t touch_callback_{nullptr};
   std::unique_ptr<espp::Task> touch_task_{nullptr};
