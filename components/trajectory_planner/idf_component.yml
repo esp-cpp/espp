@@ -5,6 +5,7 @@ url: "https://github.com/esp-cpp/espp/tree/main/components/trajectory_planner"
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
   - William Emfinger <waemfinger@gmail.com>
+  - Liyun Guo <gliyun@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/motor_control/trajectory_planner.html"
 examples:
   - path: example

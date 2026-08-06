@@ -150,8 +150,9 @@ Leave as nullptr to disable. */
    * @brief Update the planner configuration.
    * @param config New configuration parameters.
    * @param reset_state If true (default), resets velocity/acceleration state to zero.
+   * @return true if the configuration was successfully applied.
    */
-  void set_config(const Config &config, bool reset_state = true);
+  bool set_config(const Config &config, bool reset_state = true);
 
   /**
    * @brief Get the current configuration.
@@ -220,6 +221,7 @@ protected:
     float a_v = 0.0f; /**< Current linear acceleration (m/s^2) -- jerk-limited mode only. */
     float a_w = 0.0f; /**< Current angular acceleration (rad/s^2) -- jerk-limited mode only. */
   };
+  friend struct fmt::formatter<State>;
 
   /**
    * @brief Start the periodic planning and callback timers.
@@ -249,7 +251,7 @@ protected:
    */
   void update(float dt);
 
-  Config config_;
+  Config config_ = {}; /**< Active configuration. */
   State state_ = {};
   float target_v_ = 0.0f;
   float target_w_ = 0.0f;

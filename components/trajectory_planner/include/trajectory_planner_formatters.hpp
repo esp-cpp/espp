@@ -2,6 +2,19 @@
 
 #include "format.hpp"
 
+// fmt::formatter for espp::TrajectoryPlanner::State (protected; formatter is a friend)
+template <> struct fmt::formatter<espp::TrajectoryPlanner::State> {
+  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
+    return ctx.begin();
+  }
+
+  template <typename FormatContext>
+  auto format(espp::TrajectoryPlanner::State const &s, FormatContext &ctx) const {
+    return fmt::format_to(ctx.out(), "v={:.3f} w={:.3f} a_v={:.3f} a_w={:.3f}", s.v, s.w, s.a_v,
+                          s.a_w);
+  }
+};
+
 // fmt::formatter for espp::TrajectoryPlanner::MotionCommand
 template <> struct fmt::formatter<espp::TrajectoryPlanner::MotionCommand> {
   template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
@@ -45,7 +58,7 @@ template <> struct fmt::formatter<espp::TrajectoryPlanner::Config> {
                           "  driving_profile:       {}\n"
                           "  stopping_profile:      {}\n"
                           "  enforce_envelope:      {}\n"
-                          "  max_centripetal_accel: {:.3f} m/s**2\n"
+                          "  max_centripetal_accel: {:.3f} m/s^2\n"
                           "}}",
                           cfg.max_linear_velocity, cfg.max_angular_velocity, cfg.driving_profile,
                           cfg.stopping_profile, cfg.enforce_motion_envelope,

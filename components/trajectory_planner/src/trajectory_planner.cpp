@@ -1,41 +1,110 @@
 #include "trajectory_planner.hpp"
 
+#include <tuple>
+
+namespace {
+
+// Minimum velocity-change distance when decelerating |a| to 0 at max jerk.
+static float sd(float a_abs, float step, float dt_) {
+  int n = static_cast<int>(a_abs / step);
+  return n * a_abs * dt_ - n * (n + 1) * 0.5f * step * dt_;
+}
+
+// Returns {d_now, d_maintain, d_increase} signed by sign(a). Matches Python stopping_thresholds().
+static std::tuple<float, float, float> stopping_thresh(float a, float step, float dt_) {
+  if (a == 0.0f)
+    return {0.0f, 0.0f, step * dt_};
+  float sign = a > 0.0f ? 1.0f : -1.0f;
+  float a_abs = std::abs(a);
+  float d_now = sd(a_abs, step, dt_);
+  float d_maintain = a_abs * dt_ + d_now;
+  float d_increase = (a_abs + step) * dt_ + sd(a_abs + step, step, dt_);
+  return {sign * d_now, sign * d_maintain, sign * d_increase};
+}
+
+// Per-axis discrete optimal-control acceleration update. Matches the Python decision block.
+static void update_accel(float &a, float dist, float step, float a_max, float dt_) {
+  auto [d_now, d_maintain, d_increase] = stopping_thresh(a, step, dt_);
+  float a_prev = a;
+
+  if (dist > 0.0f) {
+    if (dist > d_increase)
+      a += step;
+    else if (dist <= d_maintain) {
+      auto ideal_a = dist / dt_; // positive
+      if (ideal_a <= a && ideal_a >= a - step && ideal_a < step)
+        a = ideal_a;
+      else
+        a -= step;
+    }
+    // else: maintain current a
+  } else if (dist < 0.0f) {
+    if (dist < d_increase)
+      a -= step;
+    else if (dist >= d_maintain) {
+      auto ideal_a = dist / dt_; // negative
+      if (ideal_a >= a && ideal_a <= a + step && ideal_a > -step)
+        a = ideal_a;
+      else
+        a += step;
+    }
+    // else: maintain current a
+  } else {
+    a = 0.0f;
+  }
+
+  // Safety: clamp delta_a to the jerk limit in case the decision block over-stepped.
+  float delta_a = a - a_prev;
+  if (std::abs(delta_a) > step)
+    a = a_prev + std::copysign(step, delta_a);
+
+  a = std::clamp(a, -a_max, a_max);
+}
+
+// Trapezoidal rate-limiter: advance current toward target by at most max_accel*dt.
+static float rate_limit(float current, float target, float max_accel, float dt_) {
+  float max_delta = max_accel * dt_;
+  return current + std::clamp(target - current, -max_delta, max_delta);
+}
+
+} // namespace
+
 namespace espp {
 
 TrajectoryPlanner::TrajectoryPlanner(const Config &config)
     : BaseComponent("TrajectoryPlanner", config.log_level) {
-  set_config(config, /*reset_state=*/true);
-  start_task();
+  if (set_config(config, /*reset_state=*/true)) {
+    start_task();
+  }
 }
 
 TrajectoryPlanner::~TrajectoryPlanner() { stop_task(); }
 
-void TrajectoryPlanner::set_config(const Config &config, bool reset_state) {
-  std::lock_guard<std::recursive_mutex> lk(mutex_);
+bool TrajectoryPlanner::set_config(const Config &config, bool reset_state) {
   const float planning_ms =
       std::chrono::duration<float, std::milli>(config.planning_period).count();
   if (planning_ms <= 0.0f) {
     logger_.error("planning_period must be > 0");
-    return;
+    return false;
   } else if (planning_ms < 5.0f || planning_ms > 200.0f) {
     logger_.warn("planning_period {:.1f} ms is outside recommended 5–200 ms range", planning_ms);
   }
   if (config.max_linear_velocity <= 0.0f) {
     logger_.error("max_linear_velocity must be > 0");
-    return;
+    return false;
   }
   if (config.max_angular_velocity <= 0.0f) {
     logger_.error("max_angular_velocity must be > 0");
-    return;
+    return false;
   }
 
   if (config.driving_profile.max_linear_acceleration <= 0.0f) {
     logger_.error("driving_profile.max_linear_acceleration must be > 0");
-    return;
+    return false;
   }
   if (config.driving_profile.max_angular_acceleration <= 0.0f) {
     logger_.error("driving_profile.max_angular_acceleration must be > 0");
-    return;
+    return false;
   }
 
   if (config.driving_profile.max_linear_jerk * config.planning_period.count() >
@@ -65,11 +134,13 @@ void TrajectoryPlanner::set_config(const Config &config, bool reset_state) {
   }
 
   logger_.info("Updated config: {}", config);
+  std::lock_guard<std::recursive_mutex> lk(mutex_);
   config_ = config;
   output_callback_ = config.output_callback;
   if (reset_state) {
     reset();
   }
+  return true;
 }
 
 const TrajectoryPlanner::Config &TrajectoryPlanner::get_config() const { return config_; }
@@ -128,9 +199,10 @@ std::pair<float, float> TrajectoryPlanner::get_target() const {
 
 void TrajectoryPlanner::update(float dt) {
   if (dt <= 0.0f) {
+    logger_.warn("update() called with non-positive dt={:.3f}, skipping update", dt);
     return;
   }
-  // logger_.info("Updating TP with dt={:.3f}", dt);
+  logger_.debug("Updating TP with dt={:.3f}", dt);
   {
     std::lock_guard<std::recursive_mutex> lk(mutex_);
 
@@ -140,69 +212,6 @@ void TrajectoryPlanner::update(float dt) {
     const bool jerk_limited = (profile.max_linear_jerk > 0.0f) || (profile.max_angular_jerk > 0.0f);
 
     if (jerk_limited) {
-      // Minimum velocity-change distance when decelerating |a| to 0 at max jerk.
-      auto sd = [](float a_abs, float step, float dt_) -> float {
-        int n = static_cast<int>(a_abs / step);
-        return n * a_abs * dt_ - n * (n + 1) * 0.5f * step * dt_;
-      };
-
-      // Returns {d_now, d_maintain, d_increase} signed by sign(a). Matches Python
-      // stopping_thresholds().
-      auto stopping_thresh = [&sd](float a, float step,
-                                   float dt_) -> std::tuple<float, float, float> {
-        if (a == 0.0f)
-          return {0.0f, 0.0f, step * dt_};
-        float sign = a > 0.0f ? 1.0f : -1.0f;
-        float a_abs = std::abs(a);
-        float d_now = sd(a_abs, step, dt_);
-        float d_maintain = a_abs * dt_ + d_now;
-        float d_increase = (a_abs + step) * dt_ + sd(a_abs + step, step, dt_);
-        return {sign * d_now, sign * d_maintain, sign * d_increase};
-      };
-
-      // Per-axis discrete optimal-control update. Matches the Python decision block.
-      auto update_accel = [&stopping_thresh, &logger_ = logger_](float &a, float dist, float step,
-                                                                 float a_max, float dt_) {
-        auto [d_now, d_maintain, d_increase] = stopping_thresh(a, step, dt_);
-        float a_prev = a;
-
-        if (dist > 0.0f) {
-          if (dist > d_increase)
-            a += step;
-          else if (dist <= d_maintain) {
-            logger_.debug("Dist <= d_maintain: a={}, dist={}, step={}, dt_={}", a, dist, step, dt_);
-            auto ideal_a = dist / dt_; // postive
-            if (ideal_a <= a && ideal_a >= a - step && ideal_a < step) {
-              a = ideal_a;
-            } else {
-              a -= step;
-            }
-          }
-          // else: maintain current a
-        } else if (dist < 0.0f) {
-          if (dist < d_increase)
-            a -= step;
-          else if (dist >= d_maintain) {
-            auto ideal_a = dist / dt_; // negative
-            if (ideal_a >= a && ideal_a <= a + step && ideal_a > -step) {
-              a = ideal_a;
-            } else {
-              a += step;
-            }
-          }
-          // else: maintain current a
-        } else {
-          a = 0.0f;
-        }
-
-        // Safety: clamp Δa to the jerk limit even if the decision block over-stepped.
-        float delta_a = a - a_prev;
-        if (std::abs(delta_a) > step)
-          a = a_prev + std::copysign(step, delta_a);
-
-        a = std::clamp(a, -a_max, a_max);
-      };
-
       const float step_lj =
           profile.max_linear_jerk > 0.0f ? profile.max_linear_jerk * dt : 1e9f * dt;
       const float step_aj =
@@ -218,27 +227,19 @@ void TrajectoryPlanner::update(float dt) {
 
     } else {
       // Trapezoidal mode: rate-limit velocity directly by acceleration limit.
-      auto rate_limit = [](float current, float target, float max_accel, float dt_) -> float {
-        float max_delta = max_accel * dt_;
-        return current + std::clamp(target - current, -max_delta, max_delta);
-      };
-
       state_.v = std::clamp(rate_limit(state_.v, target_v_, profile.max_linear_acceleration, dt),
                             -config_.max_linear_velocity, config_.max_linear_velocity);
       state_.w = std::clamp(rate_limit(state_.w, target_w_, profile.max_angular_acceleration, dt),
                             -config_.max_angular_velocity, config_.max_angular_velocity);
     }
 
-    logger_.debug(
-        "State: v={:.3f}, w={:.3f}, a_v={:.3f}, a_w={:.3f}, target_v={:.3f}, target_w={:.3f}",
-        state_.v, state_.w, state_.a_v, state_.a_w, target_v_, target_w_);
+    logger_.debug("State: {}, target_v={:.3f}, target_w={:.3f}", state_, target_v_, target_w_);
   } // mutex_ released here
 
   {
     std::lock_guard<std::mutex> lk(callback_wake_m_);
     callback_wake_flag_ = true;
   }
-  // if (callback_wake_flag_)
   callback_wake_cv_.notify_one();
 }
 

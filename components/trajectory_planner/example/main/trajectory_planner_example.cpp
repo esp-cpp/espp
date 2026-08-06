@@ -33,7 +33,7 @@ extern "C" void app_main(void) {
               logger.debug("callback: {}", cmd);
             },
         .planning_period = planning_period,
-        .planning_task_config = {.name = "tp_qs", .stack_size_bytes = 10240},
+        .planning_task_config = {.name = "tp_qs", .stack_size_bytes = 4096},
     });
 
     // 2. is_running() - confirm the task started.
