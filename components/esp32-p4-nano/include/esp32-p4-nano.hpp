@@ -477,17 +477,18 @@ protected:
     size_t width;
     size_t height;
     int dpi_clock_freq_mhz;
+    int lane_bitrate_mbps;
     gpio_num_t backlight_io;
     gpio_num_t reset_io;
     int hsync_pulse_width, hsync_back_porch, hsync_front_porch;
     int vsync_pulse_width, vsync_back_porch, vsync_front_porch;
   };
   // EK79007 7" 1024x600 (reset over DSI, no backlight GPIO)
-  static constexpr PanelParams EK79007_PARAMS{1024, 600, 52, GPIO_NUM_NC, GPIO_NUM_NC, 10,
-                                              160,  160, 1,  23,          12};
+  static constexpr PanelParams EK79007_PARAMS{1024, 600, 52,  900, GPIO_NUM_NC, GPIO_NUM_NC,
+                                              10,   160, 160, 1,   23,          12};
   // ILI9881C 10.1" 800x1280 (hsync: pulse=40, back=140, front=40; reset over DSI)
-  static constexpr PanelParams ILI9881C_PARAMS{800, 1280, 80, GPIO_NUM_NC, GPIO_NUM_NC, 40,
-                                               140, 40,   4,  16,          16};
+  static constexpr PanelParams ILI9881C_PARAMS{800, 1280, 80, 1500, GPIO_NUM_NC, GPIO_NUM_NC,
+                                               40,  140,  40, 4,    16,          16};
 
 #if CONFIG_ESP32_P4_NANO_DISPLAY_EK79007
   static constexpr DisplayController default_controller_ = DisplayController::EK79007;
@@ -509,7 +510,6 @@ protected:
   static constexpr int mipi_dsi_lanes = 2;
   // DSI HS lane bit rate (Mbps/lane). 900 Mbps matches Espressif's official
   // panel bus configs; using the wrong rate mis-packs the pixel bits on the link.
-  static constexpr int mipi_dsi_lane_bitrate_mbps = 900;
   static constexpr int mipi_dsi_phy_ldo_channel = 3; // on-chip LDO_VO3 -> VDD_MIPI_DPHY
   static constexpr int mipi_dsi_phy_ldo_voltage_mv = 2500;
 

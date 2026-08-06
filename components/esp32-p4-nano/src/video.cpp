@@ -28,6 +28,9 @@ namespace espp {
 bool Esp32P4Nano::initialize_lcd() {
   logger_.info("Initializing LCD (MIPI-DSI)");
 
+  // Select the panel params first: the DSI lane bit rate is per-panel.
+  apply_panel_params(default_controller_);
+
   esp_err_t ret = ESP_OK;
 
   // Enable the MIPI DSI PHY power LDO (on-chip LDO_VO3 -> VDD_MIPI_DPHY,
@@ -51,12 +54,12 @@ bool Esp32P4Nano::initialize_lcd() {
   // Create the MIPI DSI bus (also initializes the DSI PHY)
   if (lcd_handles_.mipi_dsi_bus == nullptr) {
     logger_.info("Creating MIPI DSI bus ({} lanes, {} Mbps/lane)", mipi_dsi_lanes,
-                 mipi_dsi_lane_bitrate_mbps);
+                 panel_params_.lane_bitrate_mbps);
     esp_lcd_dsi_bus_config_t bus_config = {};
     bus_config.bus_id = 0;
     bus_config.num_data_lanes = mipi_dsi_lanes;
     bus_config.phy_clk_src = MIPI_DSI_PHY_CLK_SRC_DEFAULT;
-    bus_config.lane_bit_rate_mbps = mipi_dsi_lane_bitrate_mbps;
+    bus_config.lane_bit_rate_mbps = panel_params_.lane_bitrate_mbps;
     ret = esp_lcd_new_dsi_bus(&bus_config, &lcd_handles_.mipi_dsi_bus);
     if (ret != ESP_OK) {
       logger_.error("New DSI bus init failed: {}", esp_err_to_name(ret));
@@ -80,7 +83,6 @@ bool Esp32P4Nano::initialize_lcd() {
 
   // Select the panel (Kconfig-driven) and apply its parameters (geometry, DPI
   // timing).
-  apply_panel_params(default_controller_);
   logger_.info("Using display panel: {} ({}x{})", get_display_controller_name(), display_width_,
                display_height_);
 
