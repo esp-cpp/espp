@@ -124,9 +124,13 @@ bool Esp32P4Eth::initialize_audio(uint32_t sample_rate, const espp::Task::BaseCo
       {.callback = std::bind(&Esp32P4Eth::audio_task_callback, this, _1, _2, _3),
        .task_config = task_config});
 
+  if (!audio_task_->start()) {
+    audio_task_.reset();
+    return fail_audio_init("Failed to start the audio task");
+  }
   set_speaker_enabled(true);
   audio_initialized_ = true;
-  return audio_task_->start();
+  return true;
 }
 
 void Esp32P4Eth::set_speaker_enabled(bool enable) {
@@ -313,6 +317,10 @@ uint32_t Esp32P4Eth::audio_sample_rate() const { return audio_std_cfg.clk_cfg.sa
 size_t Esp32P4Eth::audio_buffer_size() const { return audio_tx_buffer.size(); }
 
 void Esp32P4Eth::audio_sample_rate(uint32_t sample_rate) {
+  if (!audio_initialized_) {
+    logger_.warn("audio_sample_rate() called before initialize_audio(); ignoring");
+    return;
+  }
   if (microphone_initialized_) {
     logger_.warn("Refusing to change the sample rate while the microphone is running: TX and RX "
                  "share the full-duplex I2S clock. Stop the microphone first, or pass the desired "
@@ -325,11 +333,21 @@ void Esp32P4Eth::audio_sample_rate(uint32_t sample_rate) {
   // desired sample rate to initialize_audio(). The ES8311 is an I2S slave and
   // follows the I2S clock, so it does not need a separate codec reconfigure.
   logger_.info("Setting audio sample rate to {} Hz", sample_rate);
-  i2s_channel_disable(audio_tx_handle);
+  esp_err_t err = i2s_channel_disable(audio_tx_handle);
+  if (err != ESP_OK) {
+    logger_.error("Failed to disable I2S channel for reconfig: {}", esp_err_to_name(err));
+    return;
+  }
   audio_std_cfg.clk_cfg.sample_rate_hz = sample_rate;
-  i2s_channel_reconfig_std_clock(audio_tx_handle, &audio_std_cfg.clk_cfg);
+  err = i2s_channel_reconfig_std_clock(audio_tx_handle, &audio_std_cfg.clk_cfg);
+  if (err != ESP_OK) {
+    logger_.error("Failed to reconfigure I2S clock: {}", esp_err_to_name(err));
+  }
   xStreamBufferReset(audio_tx_stream);
-  i2s_channel_enable(audio_tx_handle);
+  err = i2s_channel_enable(audio_tx_handle);
+  if (err != ESP_OK) {
+    logger_.error("Failed to re-enable I2S channel after reconfig: {}", esp_err_to_name(err));
+  }
 }
 
 } // namespace espp
