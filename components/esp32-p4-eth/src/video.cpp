@@ -200,6 +200,7 @@ void Esp32P4Eth::apply_panel_params(DisplayController controller) {
 }
 
 static uint16_t *third_buffer = nullptr;
+static size_t third_buffer_px = 0; // allocated capacity of third_buffer, in pixels
 
 bool Esp32P4Eth::initialize_display(size_t pixel_buffer_size) {
   if (pixel_buffer_size == 0) {
@@ -230,9 +231,15 @@ bool Esp32P4Eth::initialize_display(size_t pixel_buffer_size) {
   // Rotation scratch buffer (only used when the display is rotated). Allocate it
   // once and reuse it across re-inits so re-initialization does not leak PSRAM;
   // if it fails, flush() detects the null pointer and simply skips rotation.
-  if (third_buffer == nullptr) {
+  if (third_buffer == nullptr || pixel_buffer_size > third_buffer_px) {
+    if (third_buffer != nullptr) {
+      heap_caps_free(third_buffer);
+      third_buffer = nullptr;
+      third_buffer_px = 0;
+    }
     third_buffer = (uint16_t *)heap_caps_malloc(pixel_buffer_size * sizeof(uint16_t),
                                                 MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    third_buffer_px = (third_buffer != nullptr) ? pixel_buffer_size : 0;
     if (third_buffer == nullptr) {
       logger_.warn("Could not allocate the {}-byte display rotation buffer; rotation disabled",
                    pixel_buffer_size * sizeof(uint16_t));
@@ -305,9 +312,12 @@ void IRAM_ATTR Esp32P4Eth::flush(lv_display_t *disp, const lv_area_t *area, uint
   int offsety2 = area->y2;
 
   auto rot = lv_display_get_rotation(lv_display_get_default());
-  if (rot > LV_DISPLAY_ROTATION_0 && third_buffer != nullptr) {
-    int32_t ww = lv_area_get_width(area);
-    int32_t hh = lv_area_get_height(area);
+  int32_t ww = lv_area_get_width(area);
+  int32_t hh = lv_area_get_height(area);
+  // Only rotate when the rotated area fits the scratch buffer; otherwise skip
+  // rotation for this flush (fall back to unrotated) to avoid overflowing it.
+  if (rot > LV_DISPLAY_ROTATION_0 && third_buffer != nullptr &&
+      static_cast<size_t>(ww) * static_cast<size_t>(hh) <= third_buffer_px) {
     lv_color_format_t cf = lv_display_get_color_format(disp);
     uint32_t w_stride = lv_draw_buf_width_to_stride(ww, cf);
     uint32_t h_stride = lv_draw_buf_width_to_stride(hh, cf);
@@ -324,11 +334,14 @@ void IRAM_ATTR Esp32P4Eth::flush(lv_display_t *disp, const lv_area_t *area, uint
                         cf);
     }
     px_map = reinterpret_cast<uint8_t *>(third_buffer);
-    lv_display_rotate_area(disp, const_cast<lv_area_t *>(area));
-    offsetx1 = area->x1;
-    offsetx2 = area->x2;
-    offsety1 = area->y1;
-    offsety2 = area->y2;
+    // Rotate a local copy of the area; LVGL provides a const area* and mutating
+    // it via const_cast would be undefined behavior.
+    lv_area_t rotated = *area;
+    lv_display_rotate_area(disp, &rotated);
+    offsetx1 = rotated.x1;
+    offsetx2 = rotated.x2;
+    offsety1 = rotated.y1;
+    offsety2 = rotated.y2;
   }
 
   esp_lcd_panel_draw_bitmap(lcd_handles_.panel, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1,

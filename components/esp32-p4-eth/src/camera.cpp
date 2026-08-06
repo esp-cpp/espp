@@ -10,6 +10,9 @@
 #include <driver/gpio.h>
 #include <esp_log.h>
 
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+
 #include "linux/videodev2.h"
 
 #include "esp_video_device.h"
