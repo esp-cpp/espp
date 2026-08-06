@@ -54,6 +54,28 @@ bool Esp32P4Nano::initialize_audio(uint32_t sample_rate,
     return false;
   }
 
+  // Consolidated teardown for the failure paths below: i2s_new_channel() creates
+  // both channels together, so on any later failure delete both (and the stream
+  // buffer if created) and reset state rather than leaking channels/clocks.
+  auto fail_audio_init = [&](const char *msg) -> bool {
+    logger_.error("{}", msg);
+    if (audio_tx_handle) {
+      i2s_channel_disable(audio_tx_handle);
+      i2s_del_channel(audio_tx_handle);
+      audio_tx_handle = nullptr;
+    }
+    if (audio_rx_handle) {
+      i2s_channel_disable(audio_rx_handle);
+      i2s_del_channel(audio_rx_handle);
+      audio_rx_handle = nullptr;
+    }
+    if (audio_tx_stream) {
+      vStreamBufferDelete(audio_tx_stream);
+      audio_tx_stream = nullptr;
+    }
+    return false;
+  };
+
   audio_std_cfg = {
       .clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(sample_rate),
       .slot_cfg = I2S_STD_PHILIP_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_MONO),
@@ -65,8 +87,7 @@ bool Esp32P4Nano::initialize_audio(uint32_t sample_rate,
                    .invert_flags = {.mclk_inv = false, .bclk_inv = false, .ws_inv = false}},
   };
   if (i2s_channel_init_std_mode(audio_tx_handle, &audio_std_cfg) != ESP_OK) {
-    logger_.error("Failed to init I2S std mode");
-    return false;
+    return fail_audio_init("Failed to init I2S std mode");
   }
 
   // Initialize the ES8311 codec for playback (codec is an I2S slave)
@@ -78,8 +99,7 @@ bool Esp32P4Nano::initialize_audio(uint32_t sample_rate,
   es8311_cfg.i2s_iface.mode = AUDIO_HAL_MODE_SLAVE;
   es8311_cfg.i2s_iface.samples = AUDIO_HAL_48K_SAMPLES;
   if (es8311_codec_init(&es8311_cfg) != ESP_OK) {
-    logger_.error("ES8311 init failed");
-    return false;
+    return fail_audio_init("ES8311 init failed");
   }
   es8311_codec_set_sample_rate(sample_rate);
   es8311_codec_set_voice_volume(static_cast<int>(volume_));
@@ -87,8 +107,7 @@ bool Esp32P4Nano::initialize_audio(uint32_t sample_rate,
   es8311_codec_ctrl_state(AUDIO_HAL_CODEC_MODE_DECODE, AUDIO_HAL_CTRL_START);
 
   if (i2s_channel_enable(audio_tx_handle) != ESP_OK) {
-    logger_.error("Failed to enable I2S channel");
-    return false;
+    return fail_audio_init("Failed to enable I2S channel");
   }
 
   // The audio task drains this stream buffer to I2S. Size it generously so a
@@ -97,11 +116,7 @@ bool Esp32P4Nano::initialize_audio(uint32_t sample_rate,
   audio_tx_buffer.resize(tx_buf_size);
   audio_tx_stream = xStreamBufferCreate(std::max<size_t>(tx_buf_size * 4, 64 * 1024), 0);
   if (audio_tx_stream == nullptr) {
-    logger_.error("Failed to allocate the audio TX stream buffer");
-    i2s_channel_disable(audio_tx_handle);
-    i2s_del_channel(audio_tx_handle);
-    audio_tx_handle = nullptr;
-    return false;
+    return fail_audio_init("Failed to allocate the audio TX stream buffer");
   }
   xStreamBufferReset(audio_tx_stream);
 
@@ -299,6 +314,12 @@ uint32_t Esp32P4Nano::audio_sample_rate() const { return audio_std_cfg.clk_cfg.s
 size_t Esp32P4Nano::audio_buffer_size() const { return audio_tx_buffer.size(); }
 
 void Esp32P4Nano::audio_sample_rate(uint32_t sample_rate) {
+  if (microphone_initialized_) {
+    logger_.warn("Refusing to change the sample rate while the microphone is running: TX and RX "
+                 "share the full-duplex I2S clock. Stop the microphone first, or pass the desired "
+                 "rate to initialize_audio().");
+    return;
+  }
   // NOTE: this reconfigures the running I2S channel. It is best called when the
   // audio task is not actively streaming (e.g. right after initialize_audio, or
   // while no audio is playing). To avoid a runtime change entirely, pass the
