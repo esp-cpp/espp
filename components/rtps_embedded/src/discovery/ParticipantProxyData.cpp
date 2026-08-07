@@ -242,7 +242,11 @@ bool ParticipantProxyData::readLocatorIntoList(
     } else {
       valid_locators++;
       if (valid_locators == Config::SPDP_MAX_NUM_LOCATORS) {
-        buffer.iterator += sizeof(FullLengthLocator);
+        if (ucdr_buffer_remaining(&buffer) < sizeof(FullLengthLocator)) {
+          PPD_LOG("Not enough data left in buffer to read locator");
+          return false;
+        }
+        ucdr_advance_buffer(&buffer, sizeof(FullLengthLocator));
         PPD_LOG("Max number of valid locators exceeded, ignoring this locator as we have at least "
                 "one valid locator");
         return true;

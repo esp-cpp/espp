@@ -136,10 +136,14 @@ uint32_t ParticipantProxyData::getAliveSignalAgeInMilliseconds() const {
  *  Returns true if last heartbeat within lease duration, else false
  */
 bool ParticipantProxyData::isAlive() const {
-  uint32_t lease_in_ms = m_leaseDuration.seconds * 1000 + m_leaseDuration.fraction * 1e-6;
+  const double factor = static_cast<double>(1000) /
+                        static_cast<double>(1ULL << 32); // Convert fraction to milliseconds
+  uint32_t lease_in_ms =
+      m_leaseDuration.seconds * 1000 + static_cast<uint32_t>(m_leaseDuration.fraction * factor);
 
-  uint32_t max_lease_in_ms = Config::SPDP_MAX_REMOTE_LEASE_DURATION.seconds * 1000 +
-                             Config::SPDP_MAX_REMOTE_LEASE_DURATION.fraction * 1e-6;
+  uint32_t max_lease_in_ms =
+      Config::SPDP_MAX_REMOTE_LEASE_DURATION.seconds * 1000 +
+      static_cast<uint32_t>(Config::SPDP_MAX_REMOTE_LEASE_DURATION.fraction * factor);
 
   auto heatbeat_age_in_ms = getAliveSignalAgeInMilliseconds();
 

@@ -55,7 +55,7 @@ public:
 
     reference operator*() const { return m_pool.m_data[m_bit]; }
 
-    reference operator->() const { return m_pool.m_data[m_bit]; }
+    pointer operator->() const { return &m_pool.m_data[m_bit]; }
 
     // Pre-increment
     MemoryPoolIterator &operator++() {

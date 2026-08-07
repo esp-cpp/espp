@@ -5,7 +5,9 @@
 
 #include <chrono>
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
+#include <string>
 #include <thread>
 
 #include "espp.hpp"
@@ -50,7 +52,8 @@ int main(int argc, char **argv) {
   }
 
   // Keep topic/type names short because embeddedRTPS desktop config caps lengths.
-  rtps::Writer *writer = domain.createWriter(*participant, topic.c_str(), "UInt32", false);
+  rtps::Writer *writer =
+      domain.createWriter(*participant, topic.c_str(), "std_msgs::msg::String", false);
   if (writer == nullptr) {
     logger.error("Failed to create embeddedRTPS writer for topic '{}'", topic);
     return 1;
@@ -67,9 +70,10 @@ int main(int argc, char **argv) {
   uint32_t value = 0;
   while (true) {
     ++value;
-    const rtps::CacheChange *change =
-        writer->newChange(rtps::ChangeKind_t::ALIVE, reinterpret_cast<const uint8_t *>(&value),
-                          static_cast<rtps::DataSize_t>(sizeof(value)));
+    const std::string message = std::to_string(value);
+    const rtps::CacheChange *change = writer->newChange(
+        rtps::ChangeKind_t::ALIVE, reinterpret_cast<const uint8_t *>(message.c_str()),
+        static_cast<rtps::DataSize_t>(message.size() + 1));
     logger.info("publish {} -> {}", value, change != nullptr ? "queued" : "dropped");
     std::this_thread::sleep_for(std::chrono::milliseconds(period_ms));
   }

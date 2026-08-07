@@ -83,9 +83,8 @@ struct FullLengthLocator {
     if (ucdr_buffer_remaining(&buffer) < sizeof(FullLengthLocator)) {
       return false;
     } else {
-      ucdr_deserialize_array_uint8_t(&buffer, reinterpret_cast<uint8_t *>(this),
-                                     sizeof(FullLengthLocator));
-      return true;
+      return ucdr_deserialize_array_uint8_t(&buffer, reinterpret_cast<uint8_t *>(this),
+                                            sizeof(FullLengthLocator));
     }
   }
 
@@ -93,8 +92,8 @@ struct FullLengthLocator {
     if (ucdr_buffer_remaining(&buffer) < sizeof(FullLengthLocator)) {
       return false;
     } else {
-      ucdr_serialize_array_uint8_t(&buffer, reinterpret_cast<uint8_t *>(this),
-                                   sizeof(FullLengthLocator));
+      return ucdr_serialize_array_uint8_t(&buffer, reinterpret_cast<uint8_t *>(this),
+                                          sizeof(FullLengthLocator));
     }
   }
 

@@ -342,12 +342,14 @@ rtps::Writer *Domain::createWriter(Participant &part, const char *topicName, con
   // TODO Distinguish WithKey and NoKey (Also changes EntityKind)
   TopicData attributes;
 
-  if (strlen(topicName) > Config::MAX_TOPICNAME_LENGTH ||
-      strlen(typeName) > Config::MAX_TYPENAME_LENGTH) {
+  if (strlen(topicName) >= Config::MAX_TOPICNAME_LENGTH ||
+      strlen(typeName) >= Config::MAX_TYPENAME_LENGTH) {
     return nullptr;
   }
-  strcpy(attributes.topicName, topicName);
-  strcpy(attributes.typeName, typeName);
+  strncpy(attributes.topicName, topicName, Config::MAX_TOPICNAME_LENGTH);
+  strncpy(attributes.typeName, typeName, Config::MAX_TYPENAME_LENGTH);
+  attributes.topicName[Config::MAX_TOPICNAME_LENGTH - 1] = '\0';
+  attributes.typeName[Config::MAX_TYPENAME_LENGTH - 1] = '\0';
   attributes.endpointGuid.prefix = part.m_guidPrefix;
   attributes.endpointGuid.entityId = {part.getNextUserEntityKey(),
                                       EntityKind_t::USER_DEFINED_WRITER_WITHOUT_KEY};
@@ -404,12 +406,14 @@ rtps::Reader *Domain::createReader(Participant &part, const char *topicName, con
   // TODO Distinguish WithKey and NoKey (Also changes EntityKind)
   TopicData attributes;
 
-  if (strlen(topicName) > Config::MAX_TOPICNAME_LENGTH ||
-      strlen(typeName) > Config::MAX_TYPENAME_LENGTH) {
+  if (strlen(topicName) >= Config::MAX_TOPICNAME_LENGTH ||
+      strlen(typeName) >= Config::MAX_TYPENAME_LENGTH) {
     return nullptr;
   }
-  strcpy(attributes.topicName, topicName);
-  strcpy(attributes.typeName, typeName);
+  strncpy(attributes.topicName, topicName, Config::MAX_TOPICNAME_LENGTH);
+  strncpy(attributes.typeName, typeName, Config::MAX_TYPENAME_LENGTH);
+  attributes.topicName[Config::MAX_TOPICNAME_LENGTH - 1] = '\0';
+  attributes.typeName[Config::MAX_TYPENAME_LENGTH - 1] = '\0';
   attributes.endpointGuid.prefix = part.m_guidPrefix;
   attributes.endpointGuid.entityId = {part.getNextUserEntityKey(),
                                       EntityKind_t::USER_DEFINED_READER_WITHOUT_KEY};
