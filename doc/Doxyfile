@@ -184,6 +184,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/timer/example/main/timer_example.cpp \
   $(PROJECT_PATH)/components/touch/example/main/touch_example.cpp \
   $(PROJECT_PATH)/components/tla2528/example/main/tla2528_example.cpp \
+  $(PROJECT_PATH)/components/trajectory_planner/example/main/trajectory_planner_example.cpp \
   $(PROJECT_PATH)/components/tt21100/example/main/tt21100_example.cpp \
   $(PROJECT_PATH)/components/vl53l/example/main/vl53l_example.cpp \
   $(PROJECT_PATH)/components/wifi/example/main/wifi_example.cpp \
@@ -417,6 +418,7 @@ INPUT = \
   $(PROJECT_PATH)/components/timer/include/timer.hpp \
   $(PROJECT_PATH)/components/touch/include/touch.hpp \
   $(PROJECT_PATH)/components/tla2528/include/tla2528.hpp \
+  $(PROJECT_PATH)/components/trajectory_planner/include/trajectory_planner.hpp \
   $(PROJECT_PATH)/components/tt21100/include/tt21100.hpp \
   $(PROJECT_PATH)/components/vl53l/include/vl53l.hpp \
   $(PROJECT_PATH)/components/utils/include/bitmask_operators.hpp \
