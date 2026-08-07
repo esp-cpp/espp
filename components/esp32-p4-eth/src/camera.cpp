@@ -51,12 +51,11 @@ bool Esp32P4Eth::initialize_camera(const camera_frame_callback_t &callback,
   esp_video_init_csi_config_t csi_config = {};
   csi_config.sccb_config.init_sccb = false;
   csi_config.sccb_config.i2c_handle = internal_i2c_.native_bus_handle();
-  // Run the sensor SCCB at 400 kHz rather than 100 kHz. The SCCB shares the
-  // internal I2C bus with the touch controller and audio codec, and the ISP's
-  // auto-exposure writes the sensor over SCCB every frame; at 100 kHz each of
-  // those writes holds the shared bus ~4x longer than needed. 400 kHz is a safe
-  // SCCB speed for this sensor and matches the bus's configured clock.
-  csi_config.sccb_config.freq = 400000;
+  // Run the sensor SCCB at 100 kHz, matching Waveshare's own camera demos for
+  // these boards (their Kconfig floor is 100 kHz). Some OV sensors are
+  // unreliable at higher SCCB rates during probe, and esp_video applies this
+  // freq to the SCCB device even when reusing an external I2C bus handle.
+  csi_config.sccb_config.freq = 100000;
   csi_config.reset_pin = GPIO_NUM_NC;
   csi_config.pwdn_pin = GPIO_NUM_NC;
   csi_config.dont_init_ldo = false;

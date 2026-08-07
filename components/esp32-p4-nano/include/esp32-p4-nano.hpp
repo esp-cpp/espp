@@ -32,6 +32,7 @@
 #include "i2c.hpp"
 #include "ili9881.hpp"
 #include "interrupt.hpp"
+#include "jd9365.hpp"
 #include "task.hpp"
 #include "touchpad_input.hpp"
 
@@ -40,8 +41,8 @@ namespace espp {
 ///
 /// This class provides a singleton interface to the board's peripherals:
 /// - 10/100 Ethernet via the ESP32-P4 internal EMAC and an IP101GRI RMII PHY.
-/// - MIPI-DSI display (ILI9881C 10.1" or EK79007 7", selected via Kconfig) with
-///   a GT911 capacitive-touch controller.
+/// - MIPI-DSI display (JD9365 10.1" by default, or ILI9881C 10.1" / EK79007 7",
+///   selected via Kconfig) with a GT911 capacitive-touch controller.
 /// - MIPI-CSI camera (esp_video / V4L2 capture pipeline; OV5647 by default).
 /// - microSD / TF card over 4-bit SDMMC.
 /// - ES8311 audio codec (+ NS4150B amplifier) for speaker output and microphone
@@ -141,7 +142,7 @@ public:
   using touch_callback_t = std::function<void(const TouchpadData &)>;
 
   /// Enum for the display controller type (selected via Kconfig)
-  enum class DisplayController { UNKNOWN, EK79007, ILI9881C };
+  enum class DisplayController { UNKNOWN, EK79007, ILI9881C, JD9365 };
 
   /// Default touch INT GPIO used by initialize_touch(). GPIO_NUM_NC means the
   /// GT911 is polled; if interrupt-driven touch is enabled via Kconfig this is
@@ -175,6 +176,8 @@ public:
       return "EK79007";
     case DisplayController::ILI9881C:
       return "ILI9881C";
+    case DisplayController::JD9365:
+      return "JD9365";
     default:
       return "Unknown";
     }
@@ -234,8 +237,10 @@ public:
 
   /// Set the display brightness
   /// \param brightness The brightness as a percentage (0-100)
-  /// \note The ESP32-P4-NANO has no backlight GPIO; brightness is stored but not
-  ///       applied to hardware (see the source for details).
+  /// \note The ESP32-P4-NANO has no backlight GPIO. On the 10.1" JD9365 panel
+  ///       the backlight is driven by an on-board I2C controller (addr 0x45)
+  ///       and this call writes it; on other panels the value is stored but
+  ///       not applied to hardware (see the source for details).
   void brightness(float brightness);
 
   /// Get the display brightness
@@ -346,6 +351,12 @@ public:
   ///       call it repeatedly, advancing by the returned number of bytes
   /// \note Must be called from task context, not from an ISR.
   size_t play_audio(std::span<const uint8_t> data);
+
+  /// Drop any queued (not yet played) audio so a subsequent play_audio() starts
+  /// immediately instead of waiting behind previously queued sound. Useful for
+  /// UI sounds where a new event should restart the sound for maximum
+  /// responsiveness.
+  void clear_audio();
 
   /////////////////////////////////////////////////////////////////////////////
   // Microphone
@@ -477,27 +488,36 @@ protected:
     size_t width;
     size_t height;
     int dpi_clock_freq_mhz;
+    int lane_bitrate_mbps;
     gpio_num_t backlight_io;
     gpio_num_t reset_io;
     int hsync_pulse_width, hsync_back_porch, hsync_front_porch;
     int vsync_pulse_width, vsync_back_porch, vsync_front_porch;
   };
   // EK79007 7" 1024x600 (reset over DSI, no backlight GPIO)
-  static constexpr PanelParams EK79007_PARAMS{1024, 600, 52, GPIO_NUM_NC, GPIO_NUM_NC, 10,
-                                              160,  160, 1,  23,          12};
+  static constexpr PanelParams EK79007_PARAMS{1024, 600, 52,  900, GPIO_NUM_NC, GPIO_NUM_NC,
+                                              10,   160, 160, 1,   23,          12};
   // ILI9881C 10.1" 800x1280 (hsync: pulse=40, back=140, front=40; reset over DSI)
-  static constexpr PanelParams ILI9881C_PARAMS{800, 1280, 80, GPIO_NUM_NC, GPIO_NUM_NC, 40,
-                                               140, 40,   4,  16,          16};
+  static constexpr PanelParams ILI9881C_PARAMS{800, 1280, 80, 1500, GPIO_NUM_NC, GPIO_NUM_NC,
+                                               40,  140,  40, 4,    16,          16};
+  // JD9365 10.1" 800x1280 (the panel Waveshare sells for this board; reset over
+  // DSI, no backlight GPIO). Timing matches Waveshare's
+  // JD9365_800_1280_PANEL_60HZ_DPI_CONFIG vendor timing.
+  static constexpr PanelParams JD9365_PARAMS{800, 1280, 80, 1500, GPIO_NUM_NC, GPIO_NUM_NC,
+                                             20,  20,   40, 4,    10,          30};
 
 #if CONFIG_ESP32_P4_NANO_DISPLAY_EK79007
   static constexpr DisplayController default_controller_ = DisplayController::EK79007;
-#else
+#elif CONFIG_ESP32_P4_NANO_DISPLAY_ILI9881C
   static constexpr DisplayController default_controller_ = DisplayController::ILI9881C;
+#else
+  static constexpr DisplayController default_controller_ = DisplayController::JD9365;
 #endif
 
   // Runtime display geometry, set from the configured panel.
-  PanelParams panel_params_{default_controller_ == DisplayController::ILI9881C ? ILI9881C_PARAMS
-                                                                               : EK79007_PARAMS};
+  PanelParams panel_params_{default_controller_ == DisplayController::ILI9881C  ? ILI9881C_PARAMS
+                            : default_controller_ == DisplayController::EK79007 ? EK79007_PARAMS
+                                                                                : JD9365_PARAMS};
   size_t display_width_{panel_params_.width};
   size_t display_height_{panel_params_.height};
 
@@ -509,7 +529,6 @@ protected:
   static constexpr int mipi_dsi_lanes = 2;
   // DSI HS lane bit rate (Mbps/lane). 900 Mbps matches Espressif's official
   // panel bus configs; using the wrong rate mis-packs the pixel bits on the link.
-  static constexpr int mipi_dsi_lane_bitrate_mbps = 900;
   static constexpr int mipi_dsi_phy_ldo_channel = 3; // on-chip LDO_VO3 -> VDD_MIPI_DPHY
   static constexpr int mipi_dsi_phy_ldo_voltage_mv = 2500;
 
@@ -522,8 +541,8 @@ protected:
   static constexpr bool swap_xy = false;
   // touch -> display coordinate conversion. May need tuning per panel.
   static constexpr bool touch_swap_xy = false;
-  static constexpr bool touch_invert_x = true;
-  static constexpr bool touch_invert_y = true;
+  static constexpr bool touch_invert_x = false;
+  static constexpr bool touch_invert_y = false;
 
   // Touch (GT911) - interrupt/reset are NOT connected on this board
   static constexpr uint8_t gt911_default_address = 0x5D;
@@ -639,9 +658,14 @@ protected:
 
   /////////////////////////////////////////////////////////////////////////////
   // Display state (MIPI-DSI). NOTE: there is no backlight GPIO / espp::Led on
-  // this board; the backlight is driven by an on-board I2C controller, so the
-  // stored brightness is best-effort only (see src/video.cpp).
+  // this board; the backlight is driven by an on-board I2C controller. On the
+  // 10.1" JD9365 panel brightness() writes that controller (addr 0x45, reg
+  // 0x96); on other panels the stored brightness is best-effort only (see
+  // src/video.cpp).
   /////////////////////////////////////////////////////////////////////////////
+  // On-board I2C backlight controller (10.1" JD9365 panel)
+  static constexpr uint8_t backlight_i2c_address = 0x45;
+  std::shared_ptr<I2c::Device<uint8_t>> backlight_i2c_device_;
   std::atomic<float> brightness_{100.0f};
   std::shared_ptr<Display<Pixel>> display_;
   std::shared_ptr<DisplayDriver> display_driver_{static_cast<DisplayDriver *>(nullptr)};
