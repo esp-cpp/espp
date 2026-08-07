@@ -49,7 +49,7 @@ Domain::Domain(const rtps::Ip4AddressBytes &localIpAddress)
     , m_defaultTransport(ThreadPool::onDatagram, &m_threadPool)
     , m_transport(&m_defaultTransport)
     , m_localIpAddress(localIpAddress) {
-  initializeTransport();
+  m_transportSetupOk = initializeTransport();
 }
 
 Domain::Domain(rtps::EsppTransport &transport, const rtps::Ip4AddressBytes &localIpAddress)
@@ -58,23 +58,32 @@ Domain::Domain(rtps::EsppTransport &transport, const rtps::Ip4AddressBytes &loca
     , m_defaultTransport(ThreadPool::onDatagram, &m_threadPool)
     , m_transport(&transport)
     , m_localIpAddress(localIpAddress) {
-  initializeTransport();
+  m_transportSetupOk = initializeTransport();
 }
 
-void Domain::initializeTransport() {
+bool Domain::initializeTransport() {
   assert(m_transport != nullptr);
-  m_transport->ensureReceivePort(getUserMulticastPort());
-  m_transport->ensureReceivePort(getBuiltInMulticastPort());
-  m_transport->joinMultiCastGroup({239, 255, 0, 1});
+  bool success = true;
+  success = m_transport->ensureReceivePort(getUserMulticastPort()) && success;
+  success = m_transport->ensureReceivePort(getBuiltInMulticastPort()) && success;
+  success = m_transport->joinMultiCastGroup({239, 255, 0, 1}) && success;
+  return success;
 }
 
 Domain::~Domain() { stop(); }
 
 bool Domain::completeInit() {
+  if (!m_transportSetupOk) {
+    DOMAIN_LOG("Failed transport setup. Domain initialization aborted.");
+    m_initComplete = false;
+    return false;
+  }
+
   m_initComplete = m_threadPool.startThreads();
 
   if (!m_initComplete) {
     DOMAIN_LOG("Failed starting threads");
+    return false;
   }
 
   for (auto i = 0; i < m_nextParticipantId; i++) {
@@ -83,7 +92,12 @@ bool Domain::completeInit() {
   return m_initComplete;
 }
 
-void Domain::stop() { m_threadPool.stopThreads(); }
+void Domain::stop() {
+  for (auto i = PARTICIPANT_START_ID; i < m_nextParticipantId; ++i) {
+    m_participants[i - PARTICIPANT_START_ID].getSPDPAgent().stop();
+  }
+  m_threadPool.stopThreads();
+}
 
 void Domain::receiveJumppad(void *callee, const PacketInfo &packet) {
   auto domain = static_cast<Domain *>(callee);
@@ -223,14 +237,18 @@ void Domain::createBuiltinWritersAndReaders(Participant &part) {
 }
 
 void Domain::registerPort(const Participant &part) {
-  m_transport->ensureReceivePort(getUserUnicastPort(part.m_participantId));
-  m_transport->ensureReceivePort(getBuiltInUnicastPort(part.m_participantId));
+  m_transportSetupOk = m_transport->ensureReceivePort(getUserUnicastPort(part.m_participantId)) &&
+                       m_transportSetupOk;
+  m_transportSetupOk =
+      m_transport->ensureReceivePort(getBuiltInUnicastPort(part.m_participantId)) &&
+      m_transportSetupOk;
   m_threadPool.addBuiltinPort(getBuiltInUnicastPort(part.m_participantId));
 }
 
 void Domain::registerMulticastPort(FullLengthLocator mcastLocator) {
   if (mcastLocator.kind == LocatorKind_t::LOCATOR_KIND_UDPv4) {
-    m_transport->ensureReceivePort(mcastLocator.getLocatorPort());
+    m_transportSetupOk =
+        m_transport->ensureReceivePort(mcastLocator.getLocatorPort()) && m_transportSetupOk;
   }
 }
 
@@ -423,9 +441,11 @@ rtps::Reader *Domain::createReader(Participant &part, const char *topicName, con
       attributes.multicastLocator = rtps::FullLengthLocator::createUDPv4Locator(
           mcastaddress[0], mcastaddress[1], mcastaddress[2], mcastaddress[3],
           getUserMulticastPort());
-      m_transport->joinMultiCastGroup(
-          {attributes.multicastLocator.address[12], attributes.multicastLocator.address[13],
-           attributes.multicastLocator.address[14], attributes.multicastLocator.address[15]});
+      m_transportSetupOk =
+          m_transport->joinMultiCastGroup(
+              {attributes.multicastLocator.address[12], attributes.multicastLocator.address[13],
+               attributes.multicastLocator.address[14], attributes.multicastLocator.address[15]}) &&
+          m_transportSetupOk;
       registerMulticastPort(attributes.multicastLocator);
 
       DOMAIN_LOG("Multicast enabled!");

@@ -38,21 +38,21 @@ class Writer;
 class Participant;
 class MessageProcessingInfo;
 
-class MessageReceiver : public espp::BaseComponent {
-public:
+struct MessageSourceState {
   GuidPrefix_t sourceGuidPrefix = GUIDPREFIX_UNKNOWN;
   ProtocolVersion_t sourceVersion = PROTOCOLVERSION;
   VendorId_t sourceVendor = VENDOR_UNKNOWN;
   bool haveTimeStamp = false;
+};
 
+class MessageReceiver : public espp::BaseComponent {
+public:
   explicit MessageReceiver(Participant *part);
 
   bool processMessage(const uint8_t *data, DataSize_t size);
 
 private:
   Participant *mp_part;
-
-  void resetState();
 
   // TODO make msgInfo a member
   // This probably make processing faster, as no parameter needs to be passed
@@ -62,12 +62,16 @@ private:
    * Check header for validity, modifies the state of the receiver and
    * adjusts the position of msgInfo accordingly
    */
-  bool processGapSubmessage(MessageProcessingInfo &msgInfo);
-  bool processHeader(MessageProcessingInfo &msgInfo);
-  bool processSubmessage(MessageProcessingInfo &msgInfo, const SubmessageHeader &submsgHeader);
-  bool processDataSubmessage(MessageProcessingInfo &msgInfo, const SubmessageHeader &submsgHeader);
-  bool processHeartbeatSubmessage(MessageProcessingInfo &msgInfo);
-  bool processAckNackSubmessage(MessageProcessingInfo &msgInfo);
+  bool processGapSubmessage(MessageProcessingInfo &msgInfo, const MessageSourceState &sourceState);
+  bool processHeader(MessageProcessingInfo &msgInfo, MessageSourceState &sourceState);
+  bool processSubmessage(MessageProcessingInfo &msgInfo, const SubmessageHeader &submsgHeader,
+                         const MessageSourceState &sourceState);
+  bool processDataSubmessage(MessageProcessingInfo &msgInfo, const SubmessageHeader &submsgHeader,
+                             const MessageSourceState &sourceState);
+  bool processHeartbeatSubmessage(MessageProcessingInfo &msgInfo,
+                                  const MessageSourceState &sourceState);
+  bool processAckNackSubmessage(MessageProcessingInfo &msgInfo,
+                                const MessageSourceState &sourceState);
 };
 } // namespace rtps
 

@@ -90,11 +90,21 @@ bool TopicData::readFromUcdrBuffer(ucdrBuffer &buffer) {
     case ParameterId::PID_TOPIC_NAME:
       uint32_t topicNameLength;
       ucdr_deserialize_uint32_t(&buffer, &topicNameLength);
+      if (topicNameLength > Config::MAX_TOPICNAME_LENGTH) {
+        s_topic_data_logger.warn("Topic name length {} exceeds maximum allowed length {}",
+                                 topicNameLength, Config::MAX_TOPICNAME_LENGTH);
+        return false;
+      }
       ucdr_deserialize_array_char(&buffer, topicName, topicNameLength);
       break;
     case ParameterId::PID_TYPE_NAME:
       uint32_t typeNameLength;
       ucdr_deserialize_uint32_t(&buffer, &typeNameLength);
+      if (typeNameLength > Config::MAX_TYPENAME_LENGTH) {
+        s_topic_data_logger.warn("Type name length {} exceeds maximum allowed length {}",
+                                 typeNameLength, Config::MAX_TYPENAME_LENGTH);
+        return false;
+      }
       ucdr_deserialize_array_char(&buffer, typeName, typeNameLength);
       break;
     case ParameterId::PID_UNICAST_LOCATOR:

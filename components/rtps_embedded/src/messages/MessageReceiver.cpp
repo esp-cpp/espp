@@ -31,6 +31,8 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/messages/MessageTypes.hpp"
 #include "rtps/utils/Log.hpp"
 
+#include <cstring>
+
 using rtps::MessageReceiver;
 
 #if RECV_VERBOSE && RTPS_GLOBAL_VERBOSE
@@ -46,18 +48,11 @@ MessageReceiver::MessageReceiver(Participant *part)
     : espp::BaseComponent("RtpsMessageReceiver", espp::Logger::Verbosity::WARN)
     , mp_part(part) {}
 
-void MessageReceiver::resetState() {
-  sourceGuidPrefix = GUIDPREFIX_UNKNOWN;
-  sourceVersion = PROTOCOLVERSION;
-  sourceVendor = VENDOR_UNKNOWN;
-  haveTimeStamp = false;
-}
-
 bool MessageReceiver::processMessage(const uint8_t *data, DataSize_t size) {
-  resetState();
+  rtps::MessageSourceState sourceState;
   MessageProcessingInfo msgInfo(data, size);
 
-  if (!processHeader(msgInfo)) {
+  if (!processHeader(msgInfo, sourceState)) {
     return false;
   }
   SubmessageHeader submsgHeader;
@@ -65,13 +60,14 @@ bool MessageReceiver::processMessage(const uint8_t *data, DataSize_t size) {
     if (!deserializeMessage(msgInfo, submsgHeader)) {
       return false;
     }
-    processSubmessage(msgInfo, submsgHeader);
+    processSubmessage(msgInfo, submsgHeader, sourceState);
   }
 
   return true;
 }
 
-bool MessageReceiver::processHeader(MessageProcessingInfo &msgInfo) {
+bool MessageReceiver::processHeader(MessageProcessingInfo &msgInfo,
+                                    rtps::MessageSourceState &sourceState) {
   Header header;
   if (!deserializeMessage(msgInfo, header)) {
     return false;
@@ -87,30 +83,31 @@ bool MessageReceiver::processHeader(MessageProcessingInfo &msgInfo) {
     return false;
   }
 
-  sourceGuidPrefix = header.guidPrefix;
-  sourceVendor = header.vendorId;
-  sourceVersion = header.protocolVersion;
+  sourceState.sourceGuidPrefix = header.guidPrefix;
+  sourceState.sourceVendor = header.vendorId;
+  sourceState.sourceVersion = header.protocolVersion;
 
   msgInfo.nextPos += Header::getRawSize();
   return true;
 }
 
 bool MessageReceiver::processSubmessage(MessageProcessingInfo &msgInfo,
-                                        const SubmessageHeader &submsgHeader) {
+                                        const SubmessageHeader &submsgHeader,
+                                        const rtps::MessageSourceState &sourceState) {
   bool success = false;
 
   switch (submsgHeader.submessageId) {
   case SubmessageKind::ACKNACK:
     RECV_LOG("Processing AckNack submessage");
-    success = processAckNackSubmessage(msgInfo);
+    success = processAckNackSubmessage(msgInfo, sourceState);
     break;
   case SubmessageKind::DATA:
     RECV_LOG("Processing Data submessage");
-    success = processDataSubmessage(msgInfo, submsgHeader);
+    success = processDataSubmessage(msgInfo, submsgHeader, sourceState);
     break;
   case SubmessageKind::HEARTBEAT:
     RECV_LOG("Processing Heartbeat submessage");
-    success = processHeartbeatSubmessage(msgInfo);
+    success = processHeartbeatSubmessage(msgInfo, sourceState);
     break;
   case SubmessageKind::INFO_DST:
     RECV_LOG("Info_DST submessage not relevant.");
@@ -118,7 +115,7 @@ bool MessageReceiver::processSubmessage(MessageProcessingInfo &msgInfo,
     break;
   case SubmessageKind::GAP:
     RECV_LOG("Processing GAP submessage");
-    success = processGapSubmessage(msgInfo);
+    success = processGapSubmessage(msgInfo, sourceState);
     break;
   case SubmessageKind::INFO_TS:
     RECV_LOG("Info_TS submessage not relevant.");
@@ -134,16 +131,63 @@ bool MessageReceiver::processSubmessage(MessageProcessingInfo &msgInfo,
 }
 
 bool MessageReceiver::processDataSubmessage(MessageProcessingInfo &msgInfo,
-                                            const SubmessageHeader &submsgHeader) {
+                                            const SubmessageHeader &submsgHeader,
+                                            const rtps::MessageSourceState &sourceState) {
   SubmessageData dataSubmsg;
   if (!deserializeMessage(msgInfo, dataSubmsg)) {
     return false;
   }
 
-  const uint8_t *serializedData = msgInfo.getPointerToCurrentPos() + SubmessageData::getRawSize();
+  const uint8_t *submessageStart = msgInfo.getPointerToCurrentPos();
+  const uint8_t *submessageEnd =
+      submessageStart + SubmessageHeader::getRawSize() + submsgHeader.octetsToNextHeader;
+  const uint16_t submessageBodyOffset =
+      static_cast<uint16_t>(sizeof(dataSubmsg.extraFlags) + sizeof(dataSubmsg.octetsToInlineQos) +
+                            dataSubmsg.octetsToInlineQos);
+  const uint8_t *serializedData =
+      submessageStart + SubmessageHeader::getRawSize() + submessageBodyOffset;
 
-  const DataSize_t size = submsgHeader.octetsToNextHeader - SubmessageData::getRawSize() +
-                          SubmessageHeader::getRawSize();
+  if (serializedData > submessageEnd) {
+    return false;
+  }
+
+  if ((submsgHeader.flags & FLAG_INLINE_QOS) != 0) {
+    const uint8_t *cursor = serializedData;
+    bool foundSentinel = false;
+
+    while ((cursor + sizeof(uint16_t) + sizeof(uint16_t)) <= submessageEnd) {
+      uint16_t pid = 0;
+      uint16_t length = 0;
+      memcpy(&pid, cursor, sizeof(pid));
+      cursor += sizeof(pid);
+      memcpy(&length, cursor, sizeof(length));
+      cursor += sizeof(length);
+
+      if (pid == SMElement::PID_SENTINEL) {
+        foundSentinel = true;
+        serializedData = cursor;
+        break;
+      }
+
+      if (cursor + length > submessageEnd) {
+        return false;
+      }
+      cursor += length;
+
+      const std::size_t consumed = static_cast<std::size_t>(cursor - serializedData);
+      const std::size_t alignment = (4 - (consumed % 4)) % 4;
+      if (cursor + alignment > submessageEnd) {
+        return false;
+      }
+      cursor += alignment;
+    }
+
+    if (!foundSentinel) {
+      return false;
+    }
+  }
+
+  const DataSize_t size = static_cast<DataSize_t>(submessageEnd - serializedData);
 
   RECV_LOG("Received data message size {}", static_cast<int>(size));
 
@@ -151,25 +195,26 @@ bool MessageReceiver::processDataSubmessage(MessageProcessingInfo &msgInfo,
   if (dataSubmsg.readerId == ENTITYID_UNKNOWN) {
 #if RECV_VERBOSE && RTPS_GLOBAL_VERBOSE
     RECV_LOG("Received ENTITYID_UNKNOWN readerID, searching for writer ID = ");
-    printGuid(Guid_t{sourceGuidPrefix, dataSubmsg.writerId});
+    printGuid(Guid_t{sourceState.sourceGuidPrefix, dataSubmsg.writerId});
 #endif
-    reader = mp_part->getReaderByWriterId(Guid_t{sourceGuidPrefix, dataSubmsg.writerId});
+    reader =
+        mp_part->getReaderByWriterId(Guid_t{sourceState.sourceGuidPrefix, dataSubmsg.writerId});
     if (reader != nullptr)
       RECV_LOG("Found reader!");
   } else {
     reader = mp_part->getReader(dataSubmsg.readerId);
 #if RECV_VERBOSE && RTPS_GLOBAL_VERBOSE
     auto reader_by_writer =
-        mp_part->getReaderByWriterId(Guid_t{sourceGuidPrefix, dataSubmsg.writerId});
+        mp_part->getReaderByWriterId(Guid_t{sourceState.sourceGuidPrefix, dataSubmsg.writerId});
 
     if (reader_by_writer == nullptr && reader != nullptr) {
       RECV_LOG("FOUND By READER ID, NOT BY WRITER ID =");
-      printGuid(Guid_t{sourceGuidPrefix, dataSubmsg.writerId});
+      printGuid(Guid_t{sourceState.sourceGuidPrefix, dataSubmsg.writerId});
     }
 #endif
   }
   if (reader != nullptr) {
-    Guid_t writerGuid{sourceGuidPrefix, dataSubmsg.writerId};
+    Guid_t writerGuid{sourceState.sourceGuidPrefix, dataSubmsg.writerId};
     ReaderCacheChange change{ChangeKind_t::ALIVE, writerGuid, dataSubmsg.writerSN, serializedData,
                              size};
     reader->newChange(change);
@@ -183,7 +228,8 @@ bool MessageReceiver::processDataSubmessage(MessageProcessingInfo &msgInfo,
   return true;
 }
 
-bool MessageReceiver::processHeartbeatSubmessage(MessageProcessingInfo &msgInfo) {
+bool MessageReceiver::processHeartbeatSubmessage(MessageProcessingInfo &msgInfo,
+                                                 const rtps::MessageSourceState &sourceState) {
   SubmessageHeartbeat submsgHB;
   if (!deserializeMessage(msgInfo, submsgHB)) {
     return false;
@@ -191,15 +237,16 @@ bool MessageReceiver::processHeartbeatSubmessage(MessageProcessingInfo &msgInfo)
 
   Reader *reader = mp_part->getReader(submsgHB.readerId);
   if (reader != nullptr) {
-    reader->onNewHeartbeat(submsgHB, sourceGuidPrefix);
-    mp_part->refreshRemoteParticipantLiveliness(sourceGuidPrefix);
+    reader->onNewHeartbeat(submsgHB, sourceState.sourceGuidPrefix);
+    mp_part->refreshRemoteParticipantLiveliness(sourceState.sourceGuidPrefix);
     return true;
   } else {
     return false;
   }
 }
 
-bool MessageReceiver::processAckNackSubmessage(MessageProcessingInfo &msgInfo) {
+bool MessageReceiver::processAckNackSubmessage(MessageProcessingInfo &msgInfo,
+                                               const rtps::MessageSourceState &sourceState) {
   SubmessageAckNack submsgAckNack;
   if (!deserializeMessage(msgInfo, submsgAckNack)) {
     return false;
@@ -207,14 +254,15 @@ bool MessageReceiver::processAckNackSubmessage(MessageProcessingInfo &msgInfo) {
 
   Writer *writer = mp_part->getWriter(submsgAckNack.writerId);
   if (writer != nullptr) {
-    writer->onNewAckNack(submsgAckNack, sourceGuidPrefix);
+    writer->onNewAckNack(submsgAckNack, sourceState.sourceGuidPrefix);
     return true;
   } else {
     return false;
   }
 }
 
-bool MessageReceiver::processGapSubmessage(MessageProcessingInfo &msgInfo) {
+bool MessageReceiver::processGapSubmessage(MessageProcessingInfo &msgInfo,
+                                           const rtps::MessageSourceState &sourceState) {
   SubmessageGap submsgGap;
   if (!deserializeMessage(msgInfo, submsgGap)) {
     return false;
@@ -222,7 +270,7 @@ bool MessageReceiver::processGapSubmessage(MessageProcessingInfo &msgInfo) {
 
   Reader *reader = mp_part->getReader(submsgGap.readerId);
   if (reader != nullptr) {
-    reader->onNewGapMessage(submsgGap, sourceGuidPrefix);
+    reader->onNewGapMessage(submsgGap, sourceState.sourceGuidPrefix);
     return true;
   } else {
     return false;

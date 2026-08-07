@@ -90,12 +90,13 @@ private:
   }
 
   bool m_initComplete = false;
+  bool m_transportSetupOk = true;
   std::recursive_mutex m_mutex;
 
   void receiveCallback(const PacketInfo &packet);
   GuidPrefix_t generateGuidPrefix(ParticipantId_t id) const;
   void createBuiltinWritersAndReaders(Participant &part);
-  void initializeTransport();
+  bool initializeTransport();
   void registerPort(const Participant &part);
   void registerMulticastPort(FullLengthLocator mcastLocator);
   static void receiveJumppad(void *callee, const PacketInfo &packet);

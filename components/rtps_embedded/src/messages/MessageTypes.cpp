@@ -72,6 +72,10 @@ bool rtps::deserializeMessage(const MessageProcessingInfo &info, SubmessageData 
   }
 
   // Check for length including data
+  constexpr auto min_body_size = SubmessageData::getRawSize() - SubmessageHeader::getRawSize();
+  if (msg.header.octetsToNextHeader < min_body_size) {
+    return false;
+  }
   if (info.getRemainingSize() < SubmessageHeader::getRawSize() + msg.header.octetsToNextHeader) {
     return false;
   }
@@ -172,7 +176,10 @@ bool rtps::deserializeMessage(const MessageProcessingInfo &info, SubmessageGap &
   if (!deserializeMessage(info, msg.header)) {
     return false;
   }
-
+  if (msg.header.octetsToNextHeader <
+      (SubmessageGap::getRawSizeWithSingleElementSNSet() - SubmessageHeader::getRawSize())) {
+    return false;
+  }
   const uint8_t *currentPos = info.getPointerToCurrentPos() + SubmessageHeader::getRawSize();
 
   doCopyAndMoveOn(msg.readerId.entityKey.data(), currentPos, msg.readerId.entityKey.size());

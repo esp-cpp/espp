@@ -90,7 +90,7 @@ void SEDPAgent::handlePublisherReaderMessage(const ReaderCacheChange &change) {
     return;
   }
   ucdrBuffer cdrBuffer;
-  ucdr_init_buffer(&cdrBuffer, m_buffer, sizeof(m_buffer));
+  ucdr_init_buffer(&cdrBuffer, m_buffer, change.getDataSize());
 
   TopicData topicData;
   if (topicData.readFromUcdrBuffer(cdrBuffer)) {
@@ -217,7 +217,7 @@ void SEDPAgent::handleSubscriptionReaderMessage(const ReaderCacheChange &change)
     return;
   }
   ucdrBuffer cdrBuffer;
-  ucdr_init_buffer(&cdrBuffer, m_buffer, sizeof(m_buffer));
+  ucdr_init_buffer(&cdrBuffer, m_buffer, change.getDataSize());
 
   TopicData topicData;
   if (topicData.readFromUcdrBuffer(cdrBuffer)) {

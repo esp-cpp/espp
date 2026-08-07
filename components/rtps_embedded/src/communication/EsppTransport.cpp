@@ -196,15 +196,28 @@ bool EsppTransport::joinMultiCastGroup(const Ip4AddressBytes &addr) const {
   }
 
   bool any_joined = false;
+  bool has_active_channels = false;
   for (auto &channel : m_channels) {
     if (!channel.in_use || !channel.socket) {
       continue;
     }
+    has_active_channels = true;
     any_joined = channel.socket->add_multicast_group(group) || any_joined;
   }
 
-  m_multicastGroups.push_back(group);
-  return any_joined || m_multicastGroups.size() == 1;
+  if (!has_active_channels) {
+    // No active sockets yet: defer join until channels are created.
+    m_multicastGroups.push_back(group);
+    return true;
+  }
+
+  if (any_joined) {
+    m_multicastGroups.push_back(group);
+    return true;
+  }
+
+  logger_.warn("Failed to join multicast group {} on all active channels", group);
+  return false;
 }
 
 void EsppTransport::sendPacket(PacketInfo &info) {

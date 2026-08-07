@@ -343,7 +343,7 @@ template <typename Buffer> bool serializeMessage(Buffer &buffer, SubmessageAckNa
   buffer.append(reinterpret_cast<uint8_t *>(&msg.readerSNState.numBits), sizeof(uint32_t));
   if (msg.readerSNState.numBits != 0) {
     buffer.append(reinterpret_cast<uint8_t *>(msg.readerSNState.bitMap.data()),
-                  4 * ((msg.readerSNState.numBits / 32) + 1));
+                  4 * (((msg.readerSNState.numBits - 1) / 32) + 1));
   }
   buffer.append(reinterpret_cast<uint8_t *>(&msg.count.value), sizeof(msg.count.value));
   return true;
