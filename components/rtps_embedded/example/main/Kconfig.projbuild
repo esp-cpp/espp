@@ -1,0 +1,10 @@
+menu "RTPS Example Configuration"
+
+    config RTPS_EXAMPLE_ANNOUNCE_PERIOD_MS
+        int "Publish period (ms)"
+        range 200 60000
+        default 1500
+        help
+            Period between outgoing messages published by the MCU.
+
+endmenu
