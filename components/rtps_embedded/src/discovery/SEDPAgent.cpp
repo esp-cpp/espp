@@ -477,8 +477,8 @@ bool SEDPAgent::addReader(Reader &reader) {
   auto change = m_endpoints.sedpSubWriter->newChange(ChangeKind_t::ALIVE, m_buffer,
                                                      ucdr_buffer_length(&microbuffer));
   reader.setSEDPSequenceNumber(change->sequenceNumber);
-  return (change != nullptr);
 #if SEDP_VERBOSE
   SEDP_LOG("Added new change to sedpSubWriter.\n");
 #endif
+  return (change != nullptr);
 }

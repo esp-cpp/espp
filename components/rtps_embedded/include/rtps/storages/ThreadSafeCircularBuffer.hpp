@@ -63,7 +63,7 @@ private:
 
   std::mutex m_mutex;
 
-  inline bool isFull();
+  inline bool isFull() const;
   inline void incrementIterator(uint16_t &iterator) const;
   inline void incrementTail();
   inline void incrementHead();

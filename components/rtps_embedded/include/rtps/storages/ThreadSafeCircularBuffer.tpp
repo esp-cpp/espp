@@ -69,7 +69,7 @@ template <typename T, uint16_t SIZE> void ThreadSafeCircularBuffer<T, SIZE>::cle
   m_num_elements = 0;
 }
 
-template <typename T, uint16_t SIZE> bool ThreadSafeCircularBuffer<T, SIZE>::isFull() {
+template <typename T, uint16_t SIZE> bool ThreadSafeCircularBuffer<T, SIZE>::isFull() const {
   auto it = m_head;
   incrementIterator(it);
   return it == m_tail;

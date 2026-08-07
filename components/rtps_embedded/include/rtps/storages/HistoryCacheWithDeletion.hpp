@@ -192,7 +192,7 @@ public:
     }
   }
 #endif
-  bool isSNInRange(const SequenceNumber_t &sn) {
+  bool isSNInRange(const SequenceNumber_t &sn) const {
     if (isEmpty()) {
       return false;
     }

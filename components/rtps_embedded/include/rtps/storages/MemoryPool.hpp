@@ -93,11 +93,11 @@ public:
 
   uint32_t getSize() { return SIZE; }
 
-  bool isFull() { return m_numElements == SIZE; }
+  bool isFull() const { return m_numElements == SIZE; }
 
-  bool isEmpty() { return m_numElements == 0; }
+  bool isEmpty() const { return m_numElements == 0; }
 
-  uint32_t getNumElements() { return m_numElements; }
+  uint32_t getNumElements() const { return m_numElements; }
 
   bool add(const TYPE &data) {
     if (isFull()) {
