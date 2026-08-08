@@ -1,0 +1,22 @@
+INA226 I2C Current/Power Monitor
+********************************
+
+The `Ina226` class implements support for the Texas Instruments INA226 current
+and power monitor. It exposes helpers to configure averaging and conversion
+times, program calibration based on shunt resistance and desired current LSB,
+and read shunt voltage, bus voltage, current, and power.
+
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   ina226_example
+
+.. ---------------------------- API Reference ----------------------------------
+
+API Reference
+-------------
+
+.. include-build-file:: inc/ina226.inc
+
+

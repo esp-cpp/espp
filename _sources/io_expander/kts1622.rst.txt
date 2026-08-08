@@ -1,0 +1,18 @@
+KTS1622 I/O Expander
+*********************
+
+The `KTS1622` I/O expander component allows the user to configure inputs,
+outputs, interrupts, etc. via a serial interface such as I2C.
+
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   kts1622_example
+
+.. ---------------------------- API Reference ----------------------------------
+
+API Reference
+-------------
+
+.. include-build-file:: inc/kts1622.inc

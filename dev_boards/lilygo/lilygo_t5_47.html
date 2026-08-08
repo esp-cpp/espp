@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LilyGo T5 4.7” e-paper - ESP32 -  &mdash; ESPP v1.1.8 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js?v=5c811235"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'dev_boards/lilygo/lilygo_t5_47';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'v1.1.8';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="LilyGo T5 4.7” e-paper Example" href="lilygo_t5_47_example.html" />
+    <link rel="prev" title="LilyGo Boards" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            ESPP
+              <img src="../../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started.html">Getting Started</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../core/index.html">Core &amp; RTOS APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../buses/index.html">Buses &amp; Low-Level I/O APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../motor_control/index.html">Motor Control APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../wireless/index.html">Wireless &amp; Radio APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Dev Boards (BSPs)</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../espressif/index.html">Espressif Boards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../adafruit/index.html">Adafruit Boards</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">LilyGo Boards</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">LilyGo T5 4.7” e-paper</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#t5-4-7">T5 4.7”</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="t_deck.html">LilyGo T-Deck</a></li>
+<li class="toctree-l3"><a class="reference internal" href="t_dongle_s3.html">LilyGo T-Dongle S3</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../m5stack/index.html">M5Stack Boards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../motorgo/index.html">MotorGo Boards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../seeed/index.html">Seeed Studio Boards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../waveshare/index.html">Waveshare Boards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../other/index.html">Other Boards</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Dev Boards (BSPs)</a></li>
+          <li class="breadcrumb-item"><a href="index.html">LilyGo Boards</a></li>
+      <li class="breadcrumb-item active">LilyGo T5 4.7” e-paper</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/4b508970/docs/en/dev_boards/lilygo/lilygo_t5_47.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="lilygo-t5-4-7-e-paper">
+<h1>LilyGo T5 4.7” e-paper<a class="headerlink" href="#lilygo-t5-4-7-e-paper" title="Permalink to this heading"></a></h1>
+<section id="t5-4-7">
+<h2>T5 4.7”<a class="headerlink" href="#t5-4-7" title="Permalink to this heading"></a></h2>
+<p>The LilyGo T5 4.7” (ESP32-S3) is an e-paper development board built around a
+4.7” 960x540, 16-level-grayscale ED047TC1 panel driven over a parallel bus (the
+ESP32-S3 <code class="docutils literal notranslate"><span class="pre">LCD_CAM</span></code> peripheral). This BSP wraps the
+<a class="reference external" href="https://github.com/vroland/epdiy">epdiy</a> library, which owns the panel
+timing, waveforms, grayscale rendering, and partial-update handling.</p>
+<p>The <cite>espp::LilyGoT547</cite> component provides a singleton hardware abstraction that
+brings up the e-paper display, an LVGL grayscale (<code class="docutils literal notranslate"><span class="pre">L8</span></code>) display, the GT911
+capacitive touch (as an LVGL input device), the PCF8563 RTC, the BQ27220 battery
+fuel gauge, the PCA9535 I/O expander (including the IO48 button), the BOOT
+button, the SX1262 LoRa radio, the frontlight, the qwiic connector, and the
+microSD card.</p>
+<p>epdiy’s e-paper power ICs and the board’s other I2C peripherals share a single
+internal I2C bus (SDA=39 / SCL=40) that this BSP creates and hands to epdiy, so
+touch, RTC, battery gauge, I/O expander, and qwiic all live on the same bus.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="lilygo_t5_47_example.html">LilyGo T5 4.7” e-paper Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="lilygo_t5_47_example.html#how-to-use-example">How to use example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lilygo_t5_47_example.html#hardware-required">Hardware Required</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lilygo_t5_47_example.html#build-and-flash">Build and Flash</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lilygo_t5_47_example.html#notes">Notes</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/4b508970/components/lilygo-t5-47/include/lilygo-t5-47.hpp">components/lilygo-t5-47/include/lilygo-t5-47.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT547E">
+<span id="_CPPv3N4espp10LilyGoT547E"></span><span id="_CPPv2N4espp10LilyGoT547E"></span><span id="espp::LilyGoT547"></span><span class="target" id="classespp_1_1LilyGoT547"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LilyGoT547</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp10LilyGoT547E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The <a class="reference internal" href="#classespp_1_1LilyGoT547"><span class="std std-ref">LilyGoT547</span></a><p>class provides an interface to the LilyGo T5 4.7” ESP32-S3</p>
+<p>e-paper development board.</p>
+<p>The board drives an ED047TC1 960x540 16-level-grayscale e-paper panel over a</p>
+<p>parallel bus (the ESP32-S3 LCD_CAM peripheral). This BSP wraps Espressif’s</p>
+<p>esp-idf-friendly build of the epdiy library, which owns the parallel timing,</p>
+<p>waveforms, grayscale rendering and partial-update handling for this exact</p>
+<p>board.</p>
+<p>The class provides access to the following features:</p>
+<p>- 4.7” 960x540 e-paper display (ED047TC1) via epdiy</p>
+</p>
+<p>The class is a singleton and can be accessed using the <a class="reference internal" href="#classespp_1_1LilyGoT547_1ace17ee0e59cc293a31ead5a39d1bba59"><span class="std std-ref">get()</span></a> method.</p>
+<section id="classespp_1_1LilyGoT547_1lilygo_t5_47_example">
+<h4>Example<a class="headerlink" href="#classespp_1_1LilyGoT547_1lilygo_t5_47_example" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1LilyGoT547_1lilygo_t5_47_example"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54717button_callback_tE">
+<span id="_CPPv3N4espp10LilyGoT54717button_callback_tE"></span><span id="_CPPv2N4espp10LilyGoT54717button_callback_tE"></span><span class="target" id="classespp_1_1LilyGoT547_1a67db721c9beff24151e921427fc75170"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">button_callback_t</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/interrupt.html#_CPPv4N4espp9InterruptE" title="espp::Interrupt"><span class="n"><span class="pre">Interrupt</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/interrupt.html#_CPPv4N4espp9Interrupt17event_callback_fnE" title="espp::Interrupt::event_callback_fn"><span class="n"><span class="pre">event_callback_fn</span></span></a><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54717button_callback_tE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Alias for the button callback (an interrupt event handler) </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54716touch_callback_tE">
+<span id="_CPPv3N4espp10LilyGoT54716touch_callback_tE"></span><span id="_CPPv2N4espp10LilyGoT54716touch_callback_tE"></span><span class="target" id="classespp_1_1LilyGoT547_1a6bb118b43fcaab9cf046b3bbd8046470"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">touch_callback_t</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">TouchpadData</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54716touch_callback_tE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Alias for the touch callback. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54718initialize_displayEv">
+<span id="_CPPv3N4espp10LilyGoT54718initialize_displayEv"></span><span id="_CPPv2N4espp10LilyGoT54718initialize_displayEv"></span><span id="espp::LilyGoT547::initialize_display"></span><span class="target" id="classespp_1_1LilyGoT547_1a3d9cbd0e4f0a9fff9a668bf38253cb2c"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize_display</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54718initialize_displayEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the e-paper display: bring up epdiy for this board (parallel bus + waveforms) and allocate the high-level grayscale framebuffer. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true if the display was successfully initialized </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT5478power_onEv">
+<span id="_CPPv3N4espp10LilyGoT5478power_onEv"></span><span id="_CPPv2N4espp10LilyGoT5478power_onEv"></span><span id="espp::LilyGoT547::power_on"></span><span class="target" id="classespp_1_1LilyGoT547_1ae9ca50d82f2e249b4260a1c152af89f9"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">power_on</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT5478power_onEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Power the display’s high-voltage rails on. Required before an update; the panel draws significant current, so keep it off when idle. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT5479power_offEv">
+<span id="_CPPv3N4espp10LilyGoT5479power_offEv"></span><span id="_CPPv2N4espp10LilyGoT5479power_offEv"></span><span id="espp::LilyGoT547::power_off"></span><span class="target" id="classespp_1_1LilyGoT547_1ae49de68e042d7bc994985e0a93ad838a"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">power_off</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT5479power_offEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Power the display’s high-voltage rails off. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT5475clearEv">
+<span id="_CPPv3N4espp10LilyGoT5475clearEv"></span><span id="_CPPv2N4espp10LilyGoT5475clearEv"></span><span id="espp::LilyGoT547::clear"></span><span class="target" id="classespp_1_1LilyGoT547_1a6af82140dbb79c2950861adb48d16734"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT5475clearEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear the whole panel to white (a full refresh; removes ghosting). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54711framebufferEv">
+<span id="_CPPv3N4espp10LilyGoT54711framebufferEv"></span><span id="_CPPv2N4espp10LilyGoT54711framebufferEv"></span><span id="espp::LilyGoT547::framebuffer"></span><span class="target" id="classespp_1_1LilyGoT547_1aba32a92b874f1f1b86b1dfe2a115ce1f"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">framebuffer</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54711framebufferEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the epdiy high-level framebuffer (4 bits per pixel, 2 pixels per byte, panel_width x panel_height). Draw into it with epdiy’s drawing functions, then call <a class="reference internal" href="#classespp_1_1LilyGoT547_1a1169188de54eaf041e3f8bf208d20ec1"><span class="std std-ref">update()</span></a>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Pointer to the framebuffer, or nullptr if not initialized </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT5476updateE11EpdDrawMode">
+<span id="_CPPv3N4espp10LilyGoT5476updateE11EpdDrawMode"></span><span id="_CPPv2N4espp10LilyGoT5476updateE11EpdDrawMode"></span><span id="espp::LilyGoT547::update__EpdDrawMode"></span><span class="target" id="classespp_1_1LilyGoT547_1a1169188de54eaf041e3f8bf208d20ec1"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">update</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">EpdDrawMode</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mode</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">MODE_GC16</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT5476updateE11EpdDrawMode" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Push the current framebuffer contents to the panel. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The high-voltage rails must be powered (<a class="reference internal" href="#classespp_1_1LilyGoT547_1ae9ca50d82f2e249b4260a1c152af89f9"><span class="std std-ref">power_on()</span></a>) for the update to take effect. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>mode</strong> – The epdiy draw mode (default MODE_GC16 for full 16-gray) </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10LilyGoT5475widthEv">
+<span id="_CPPv3NK4espp10LilyGoT5475widthEv"></span><span id="_CPPv2NK4espp10LilyGoT5475widthEv"></span><span id="espp::LilyGoT547::widthC"></span><span class="target" id="classespp_1_1LilyGoT547_1a067126e76f9554e9b06d9e1c40e686d2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">width</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10LilyGoT5475widthEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the current display width (respecting the configured rotation) </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Width in pixels </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10LilyGoT5476heightEv">
+<span id="_CPPv3NK4espp10LilyGoT5476heightEv"></span><span id="_CPPv2NK4espp10LilyGoT5476heightEv"></span><span id="espp::LilyGoT547::heightC"></span><span class="target" id="classespp_1_1LilyGoT547_1a39819dc7e3896e752597e350232ecdd9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">height</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10LilyGoT5476heightEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the current display height (respecting the configured rotation) </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Height in pixels </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54711temperatureEv">
+<span id="_CPPv3N4espp10LilyGoT54711temperatureEv"></span><span id="_CPPv2N4espp10LilyGoT54711temperatureEv"></span><span id="espp::LilyGoT547::temperature"></span><span class="target" id="classespp_1_1LilyGoT547_1a919e6f6ee511760e3a53725b033abc12"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">temperature</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54711temperatureEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the ambient temperature (degrees C) used for the e-paper waveform. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Temperature in degrees Celsius </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54712internal_i2cEv">
+<span id="_CPPv3N4espp10LilyGoT54712internal_i2cEv"></span><span id="_CPPv2N4espp10LilyGoT54712internal_i2cEv"></span><span id="espp::LilyGoT547::internal_i2c"></span><span class="target" id="classespp_1_1LilyGoT547_1a59496430338831509594e8a6fbbef4f0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../buses/i2c.html#_CPPv4N4espp3I2cE" title="espp::I2c"><span class="n"><span class="pre">I2c</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">internal_i2c</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54712internal_i2cEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the internal I2C bus. This is the bus epdiy uses to drive the e-paper power ICs (PCA9555 + TPS65185); this BSP creates it and hands the handle to epdiy so the same bus is shared with the board’s other I2C peripherals (touch, RTC, battery gauge, the qwiic connector). It is created by <a class="reference internal" href="#classespp_1_1LilyGoT547_1a3d9cbd0e4f0a9fff9a668bf38253cb2c"><span class="std std-ref">initialize_display()</span></a>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Pointer to the <a class="reference internal" href="../../buses/i2c.html#classespp_1_1I2c"><span class="std std-ref">espp::I2c</span></a>, or nullptr if <a class="reference internal" href="#classespp_1_1LilyGoT547_1a3d9cbd0e4f0a9fff9a668bf38253cb2c"><span class="std std-ref">initialize_display()</span></a> has not been called </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT5479qwiic_i2cEv">
+<span id="_CPPv3N4espp10LilyGoT5479qwiic_i2cEv"></span><span id="_CPPv2N4espp10LilyGoT5479qwiic_i2cEv"></span><span id="espp::LilyGoT547::qwiic_i2c"></span><span class="target" id="classespp_1_1LilyGoT547_1a4bb9b1a3affeca67b2d5d73ef7a3249a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../buses/i2c.html#_CPPv4N4espp3I2cE" title="espp::I2c"><span class="n"><span class="pre">I2c</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">qwiic_i2c</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT5479qwiic_i2cEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the I2C bus exposed on the qwiic / STEMMA-QT connector. On this board the qwiic connector is wired to the internal I2C bus (SDA=39/SCL=40), so this returns the same bus as <a class="reference internal" href="#classespp_1_1LilyGoT547_1a59496430338831509594e8a6fbbef4f0"><span class="std std-ref">internal_i2c()</span></a>. Add external devices to it with <a class="reference internal" href="#classespp_1_1LilyGoT547_1a59496430338831509594e8a6fbbef4f0"><span class="std std-ref">internal_i2c()</span></a>-&gt;add_device&lt;…&gt;(…). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Pointer to the <a class="reference internal" href="../../buses/i2c.html#classespp_1_1I2c"><span class="std std-ref">espp::I2c</span></a>, or nullptr if <a class="reference internal" href="#classespp_1_1LilyGoT547_1a3d9cbd0e4f0a9fff9a668bf38253cb2c"><span class="std std-ref">initialize_display()</span></a> has not been called </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54715initialize_lvglEi">
+<span id="_CPPv3N4espp10LilyGoT54715initialize_lvglEi"></span><span id="_CPPv2N4espp10LilyGoT54715initialize_lvglEi"></span><span id="espp::LilyGoT547::initialize_lvgl__i"></span><span class="target" id="classespp_1_1LilyGoT547_1a2d507d25f09635699cabeb157a172b78"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize_lvgl</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">buffer_lines</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">60</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54715initialize_lvglEi" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set up LVGL with an 8-bit grayscale (L8) display whose flush writes into the epdiy framebuffer. Each LVGL refresh cycle’s dirty areas are batched into a single panel update (see <a class="reference internal" href="#classespp_1_1LilyGoT547_1a8d6c09dceb542b2e8b6318034b2cb943"><span class="std std-ref">set_lvgl_update_mode()</span></a> / <a class="reference internal" href="#classespp_1_1LilyGoT547_1a215503432a3fd7fe7eb3990df627c9e8"><span class="std std-ref">full_refresh()</span></a>), so many small UI changes become one e-paper refresh instead of one per change. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>buffer_lines</strong> – Height, in lines, of the LVGL partial draw buffer (double-buffered, allocated in PSRAM). Larger means fewer flushes per refresh at the cost of more memory. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success. <a class="reference internal" href="#classespp_1_1LilyGoT547_1a3d9cbd0e4f0a9fff9a668bf38253cb2c"><span class="std std-ref">initialize_display()</span></a> must have been called first. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10LilyGoT54712lvgl_displayEv">
+<span id="_CPPv3NK4espp10LilyGoT54712lvgl_displayEv"></span><span id="_CPPv2NK4espp10LilyGoT54712lvgl_displayEv"></span><span id="espp::LilyGoT547::lvgl_displayC"></span><span class="target" id="classespp_1_1LilyGoT547_1a578eb680fb1a86b2c6f2c6f30598151d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">lv_display_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">lvgl_display</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10LilyGoT54712lvgl_displayEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the LVGL display created by <a class="reference internal" href="#classespp_1_1LilyGoT547_1a2d507d25f09635699cabeb157a172b78"><span class="std std-ref">initialize_lvgl()</span></a>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The LVGL display, or nullptr if LVGL has not been initialized </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54720set_lvgl_update_modeE11EpdDrawMode">
+<span id="_CPPv3N4espp10LilyGoT54720set_lvgl_update_modeE11EpdDrawMode"></span><span id="_CPPv2N4espp10LilyGoT54720set_lvgl_update_modeE11EpdDrawMode"></span><span id="espp::LilyGoT547::set_lvgl_update_mode__EpdDrawMode"></span><span class="target" id="classespp_1_1LilyGoT547_1a8d6c09dceb542b2e8b6318034b2cb943"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_lvgl_update_mode</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">EpdDrawMode</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mode</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54720set_lvgl_update_modeE11EpdDrawMode" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the epdiy draw mode used for LVGL-driven panel updates. Default is MODE_GC16 (full 16-level grayscale, highest quality but slowest). Use a faster mono mode (e.g. MODE_DU) for snappier black-and-white updates. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>mode</strong> – The epdiy draw mode </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54712full_refreshEv">
+<span id="_CPPv3N4espp10LilyGoT54712full_refreshEv"></span><span id="_CPPv2N4espp10LilyGoT54712full_refreshEv"></span><span id="espp::LilyGoT547::full_refresh"></span><span class="target" id="classespp_1_1LilyGoT547_1a215503432a3fd7fe7eb3990df627c9e8"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">full_refresh</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54712full_refreshEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Force a full grayscale (MODE_GC16) refresh of the whole panel. Use this to clear ghosting that builds up after repeated partial updates. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54712set_rotationE11EpdRotation">
+<span id="_CPPv3N4espp10LilyGoT54712set_rotationE11EpdRotation"></span><span id="_CPPv2N4espp10LilyGoT54712set_rotationE11EpdRotation"></span><span id="espp::LilyGoT547::set_rotation__EpdRotation"></span><span class="target" id="classespp_1_1LilyGoT547_1aba2bc779c2f75f3da88505337cf24e40"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_rotation</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">EpdRotation</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rotation</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54712set_rotationE11EpdRotation" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the display rotation. Rotates the e-paper (via epdiy) and resizes the LVGL display to match, so an LVGL UI re-lays-out for the new dimensions. Touch coordinates are transformed to match the rotation automatically. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rotation</strong> – The epdiy rotation (EPD_ROT_LANDSCAPE / EPD_ROT_PORTRAIT / EPD_ROT_INVERTED_LANDSCAPE / EPD_ROT_INVERTED_PORTRAIT) </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT5476rotateEv">
+<span id="_CPPv3N4espp10LilyGoT5476rotateEv"></span><span id="_CPPv2N4espp10LilyGoT5476rotateEv"></span><span id="espp::LilyGoT547::rotate"></span><span class="target" id="classespp_1_1LilyGoT547_1af2f82bf799f3a8cce23ef39a2fe737e8"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">rotate</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT5476rotateEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Cycle to the next display rotation. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10LilyGoT5478rotationEv">
+<span id="_CPPv3NK4espp10LilyGoT5478rotationEv"></span><span id="_CPPv2NK4espp10LilyGoT5478rotationEv"></span><span id="espp::LilyGoT547::rotationC"></span><span class="target" id="classespp_1_1LilyGoT547_1a9387bb98fbe4890215a066ff7a888b73"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">EpdRotation</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">rotation</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10LilyGoT5478rotationEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the current display rotation. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The current EpdRotation </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54717initialize_buttonERK17button_callback_t">
+<span id="_CPPv3N4espp10LilyGoT54717initialize_buttonERK17button_callback_t"></span><span id="_CPPv2N4espp10LilyGoT54717initialize_buttonERK17button_callback_t"></span><span id="espp::LilyGoT547::initialize_button__button_callback_tCR"></span><span class="target" id="classespp_1_1LilyGoT547_1aeb47609404c26b80f0277a527ab9fa06"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize_button</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp10LilyGoT54717button_callback_tE" title="espp::LilyGoT547::button_callback_t"><span class="n"><span class="pre">button_callback_t</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">callback</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54717initialize_buttonERK17button_callback_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the BOOT button (GPIO0). The callback fires on press and release. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This wires only the BOOT button (GPIO0). The board’s other buttons are elsewhere: the “IO48”-labelled button is on the PCA9535 expander (see <a class="reference internal" href="#classespp_1_1LilyGoT547_1a3aa9c2890247d4c93a0ed20d5d787162"><span class="std std-ref">io48_button_pressed()</span></a>), and the PWR button is handled by the board’s power-management IC (not exposed here). </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>callback</strong> – Called with each button interrupt event </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10LilyGoT54712button_stateEv">
+<span id="_CPPv3NK4espp10LilyGoT54712button_stateEv"></span><span id="_CPPv2NK4espp10LilyGoT54712button_stateEv"></span><span id="espp::LilyGoT547::button_stateC"></span><span class="target" id="classespp_1_1LilyGoT547_1af6c7c9115688724f2a64dc0de40b463f"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">button_state</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10LilyGoT54712button_stateEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the BOOT button state </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true if pressed, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54710interruptsEv">
+<span id="_CPPv3N4espp10LilyGoT54710interruptsEv"></span><span id="_CPPv2N4espp10LilyGoT54710interruptsEv"></span><span id="espp::LilyGoT547::interrupts"></span><span class="target" id="classespp_1_1LilyGoT547_1a883e99e4ecf14eba829d70076b6521fd"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/interrupt.html#_CPPv4N4espp9InterruptE" title="espp::Interrupt"><span class="n"><span class="pre">Interrupt</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">interrupts</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54710interruptsEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the interrupts manager (created by <a class="reference internal" href="#classespp_1_1LilyGoT547_1aeb47609404c26b80f0277a527ab9fa06"><span class="std std-ref">initialize_button()</span></a>). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Pointer to the <a class="reference internal" href="../../core/interrupt.html#classespp_1_1Interrupt"><span class="std std-ref">espp::Interrupt</span></a>, or nullptr if no button was initialized </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54716initialize_touchERK16touch_callback_t">
+<span id="_CPPv3N4espp10LilyGoT54716initialize_touchERK16touch_callback_t"></span><span id="_CPPv2N4espp10LilyGoT54716initialize_touchERK16touch_callback_t"></span><span id="espp::LilyGoT547::initialize_touch__touch_callback_tCR"></span><span class="target" id="classespp_1_1LilyGoT547_1a107ba03637687172eb124abc9b6c4c86"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize_touch</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp10LilyGoT54716touch_callback_tE" title="espp::LilyGoT547::touch_callback_t"><span class="n"><span class="pre">touch_callback_t</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">callback</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54716initialize_touchERK16touch_callback_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the GT911 capacitive touch controller on the internal I2C bus, and register an LVGL input device for it. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The GT911’s reported orientation may not match the panel’s; if touch is mirrored/rotated on hardware, adjust touch_swap_xy / touch_invert_x / touch_invert_y. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>callback</strong> – Called (from the touch interrupt) with each new touch state </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success. <a class="reference internal" href="#classespp_1_1LilyGoT547_1a3d9cbd0e4f0a9fff9a668bf38253cb2c"><span class="std std-ref">initialize_display()</span></a> must have been called first (it creates the shared I2C bus). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10LilyGoT54714touchpad_inputEv">
+<span id="_CPPv3NK4espp10LilyGoT54714touchpad_inputEv"></span><span id="_CPPv2NK4espp10LilyGoT54714touchpad_inputEv"></span><span id="espp::LilyGoT547::touchpad_inputC"></span><span class="target" id="classespp_1_1LilyGoT547_1a0d8b3eae4803c9f67718d398b39b20cd"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../input/touchpad_input.html#_CPPv4N4espp13TouchpadInputE" title="espp::TouchpadInput"><span class="n"><span class="pre">TouchpadInput</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">touchpad_input</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10LilyGoT54714touchpad_inputEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the LVGL touchpad input device created by <a class="reference internal" href="#classespp_1_1LilyGoT547_1a107ba03637687172eb124abc9b6c4c86"><span class="std std-ref">initialize_touch()</span></a>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The touchpad input, or nullptr if touch was not initialized </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10LilyGoT54713touchpad_dataEv">
+<span id="_CPPv3NK4espp10LilyGoT54713touchpad_dataEv"></span><span id="_CPPv2NK4espp10LilyGoT54713touchpad_dataEv"></span><span id="espp::LilyGoT547::touchpad_dataC"></span><span class="target" id="classespp_1_1LilyGoT547_1a43efe63c144e4958cd68b8e80ae6ab95"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">TouchpadData</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">touchpad_data</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10LilyGoT54713touchpad_dataEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the latest touchpad data (thread-safe copy). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The most recent espp::TouchpadData</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54713touchpad_readEP7uint8_tP8uint16_tP8uint16_tP7uint8_t">
+<span id="_CPPv3N4espp10LilyGoT54713touchpad_readEP7uint8_tP8uint16_tP8uint16_tP7uint8_t"></span><span id="_CPPv2N4espp10LilyGoT54713touchpad_readEP7uint8_tP8uint16_tP8uint16_tP7uint8_t"></span><span id="espp::LilyGoT547::touchpad_read__uint8_tP.uint16_tP.uint16_tP.uint8_tP"></span><span class="target" id="classespp_1_1LilyGoT547_1ae2f0eeb51da45b751106abfc98b26310"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">touchpad_read</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">num_touch_points</span></span>, <span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">y</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">btn_state</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54713touchpad_readEP7uint8_tP8uint16_tP8uint16_tP7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read the latest touchpad data (signature used by <a class="reference internal" href="../../input/touchpad_input.html#classespp_1_1TouchpadInput"><span class="std std-ref">espp::TouchpadInput</span></a>). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10LilyGoT54719home_button_pressedEv">
+<span id="_CPPv3NK4espp10LilyGoT54719home_button_pressedEv"></span><span id="_CPPv2NK4espp10LilyGoT54719home_button_pressedEv"></span><span id="espp::LilyGoT547::home_button_pressedC"></span><span class="target" id="classespp_1_1LilyGoT547_1a8b5d94ff88f04deaf4383f081a6ced9d"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">home_button_pressed</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10LilyGoT54719home_button_pressedEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the state of the capacitive home button (the touch key below the display). The GT911 reports it as a key press, separate from finger touch points, so it is available even when num_touch_points is 0. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Requires <a class="reference internal" href="#classespp_1_1LilyGoT547_1a107ba03637687172eb124abc9b6c4c86"><span class="std std-ref">initialize_touch()</span></a>. Whether the key is active depends on the GT911 configuration flashed on the board; flagged for hardware verification. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true if the home button is currently pressed </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54714initialize_rtcEv">
+<span id="_CPPv3N4espp10LilyGoT54714initialize_rtcEv"></span><span id="_CPPv2N4espp10LilyGoT54714initialize_rtcEv"></span><span id="espp::LilyGoT547::initialize_rtc"></span><span class="target" id="classespp_1_1LilyGoT547_1a589d58532eb1f39f6f7afef89b9a5403"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize_rtc</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54714initialize_rtcEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the PCF8563 real-time clock on the internal I2C bus. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The PCF8563 is register-compatible with the BM8563, so this uses the <a class="reference internal" href="../../rtc/bm8563.html#classespp_1_1Bm8563"><span class="std std-ref">espp::Bm8563</span></a> driver. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true on success. <a class="reference internal" href="#classespp_1_1LilyGoT547_1a3d9cbd0e4f0a9fff9a668bf38253cb2c"><span class="std std-ref">initialize_display()</span></a> must have been called first (it creates the shared I2C bus). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT5473rtcEv">
+<span id="_CPPv3N4espp10LilyGoT5473rtcEv"></span><span id="_CPPv2N4espp10LilyGoT5473rtcEv"></span><span id="espp::LilyGoT547::rtc"></span><span class="target" id="classespp_1_1LilyGoT547_1aab2e54300365c39e79df4ed9af86fafe"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../rtc/bm8563.html#_CPPv4N4espp6Bm8563E" title="espp::Bm8563"><span class="n"><span class="pre">Bm8563</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">rtc</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT5473rtcEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the RTC driver (created by <a class="reference internal" href="#classespp_1_1LilyGoT547_1a589d58532eb1f39f6f7afef89b9a5403"><span class="std std-ref">initialize_rtc()</span></a>). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Pointer to the <a class="reference internal" href="../../rtc/bm8563.html#classespp_1_1Bm8563"><span class="std std-ref">espp::Bm8563</span></a>, or nullptr if the RTC was not initialized </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54718initialize_batteryEv">
+<span id="_CPPv3N4espp10LilyGoT54718initialize_batteryEv"></span><span id="_CPPv2N4espp10LilyGoT54718initialize_batteryEv"></span><span id="espp::LilyGoT547::initialize_battery"></span><span class="target" id="classespp_1_1LilyGoT547_1ad794bb83c727f053a59ccd1d59244041"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize_battery</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54718initialize_batteryEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the BQ27220 battery fuel gauge on the internal I2C bus. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true on success. <a class="reference internal" href="#classespp_1_1LilyGoT547_1a3d9cbd0e4f0a9fff9a668bf38253cb2c"><span class="std std-ref">initialize_display()</span></a> must have been called first (it creates the shared I2C bus). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT5477batteryEv">
+<span id="_CPPv3N4espp10LilyGoT5477batteryEv"></span><span id="_CPPv2N4espp10LilyGoT5477batteryEv"></span><span id="espp::LilyGoT547::battery"></span><span class="target" id="classespp_1_1LilyGoT547_1a77039af29a9e78dc545b5262a67d1b3a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../battery/bq27220.html#_CPPv4N4espp7Bq27220E" title="espp::Bq27220"><span class="n"><span class="pre">Bq27220</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">battery</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT5477batteryEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the battery fuel gauge (created by <a class="reference internal" href="#classespp_1_1LilyGoT547_1ad794bb83c727f053a59ccd1d59244041"><span class="std std-ref">initialize_battery()</span></a>). Query it for voltage, current, state-of-charge, temperature, etc. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Pointer to the <a class="reference internal" href="../../battery/bq27220.html#classespp_1_1Bq27220"><span class="std std-ref">espp::Bq27220</span></a>, or nullptr if not initialized </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54722initialize_io_expanderEv">
+<span id="_CPPv3N4espp10LilyGoT54722initialize_io_expanderEv"></span><span id="_CPPv2N4espp10LilyGoT54722initialize_io_expanderEv"></span><span id="espp::LilyGoT547::initialize_io_expander"></span><span class="target" id="classespp_1_1LilyGoT547_1a18fba673576de4ae5d30cba6ac680098"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize_io_expander</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54722initialize_io_expanderEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize a driver for the on-board PCA9535 I/O expander on the internal I2C bus. </p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This is the SAME physical expander (address 0x20) that epdiy drives for the e-paper power ICs. epdiy owns port 1’s high bits (output enable, mode, power-up, VCOM, wakeup, power-good, INT). The driver is created with auto_init=false so it does not reconfigure the chip; only read inputs / drive port-0 pins epdiy does not use, and always read-modify-write. Reconfiguring epdiy’s bits will break the display’s power sequencing. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true on success. <a class="reference internal" href="#classespp_1_1LilyGoT547_1a3d9cbd0e4f0a9fff9a668bf38253cb2c"><span class="std std-ref">initialize_display()</span></a> must have been called first. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54711io_expanderEv">
+<span id="_CPPv3N4espp10LilyGoT54711io_expanderEv"></span><span id="_CPPv2N4espp10LilyGoT54711io_expanderEv"></span><span id="espp::LilyGoT547::io_expander"></span><span class="target" id="classespp_1_1LilyGoT547_1a4fb1884386012dcdd46771d51dea9f26"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../io_expander/pca9535.html#_CPPv4N4espp7Pca9535E" title="espp::Pca9535"><span class="n"><span class="pre">Pca9535</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">io_expander</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54711io_expanderEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the PCA9535 I/O expander driver (created by <a class="reference internal" href="#classespp_1_1LilyGoT547_1a18fba673576de4ae5d30cba6ac680098"><span class="std std-ref">initialize_io_expander()</span></a>). </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>See <a class="reference internal" href="#classespp_1_1LilyGoT547_1a18fba673576de4ae5d30cba6ac680098"><span class="std std-ref">initialize_io_expander()</span></a>’s warning about epdiy co-ownership. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Pointer to the <a class="reference internal" href="../../io_expander/pca9535.html#classespp_1_1Pca9535"><span class="std std-ref">espp::Pca9535</span></a>, or nullptr if not initialized </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54719io48_button_pressedEv">
+<span id="_CPPv3N4espp10LilyGoT54719io48_button_pressedEv"></span><span id="_CPPv2N4espp10LilyGoT54719io48_button_pressedEv"></span><span id="espp::LilyGoT547::io48_button_pressed"></span><span class="target" id="classespp_1_1LilyGoT547_1a3aa9c2890247d4c93a0ed20d5d787162"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">io48_button_pressed</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54719io48_button_pressedEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read the “IO48”-labelled button, which is wired to the PCA9535 expander (pin PC12 = port 1, bit 2 - a pin epdiy does not use). This is not the PWR button (that is handled by the board’s power-management IC). </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Requires <a class="reference internal" href="#classespp_1_1LilyGoT547_1a18fba673576de4ae5d30cba6ac680098"><span class="std std-ref">initialize_io_expander()</span></a>. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true if the button is currently pressed </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54714set_frontlightEb">
+<span id="_CPPv3N4espp10LilyGoT54714set_frontlightEb"></span><span id="_CPPv2N4espp10LilyGoT54714set_frontlightEb"></span><span id="espp::LilyGoT547::set_frontlight__b"></span><span class="target" id="classespp_1_1LilyGoT547_1a7daa0fedc2526d979bd099e9aed8c9a4"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_frontlight</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">on</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54714set_frontlightEb" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Turn the e-paper frontlight on or off (BL_EN / GPIO11). The pin is configured as an output on first use. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a simple on/off enable (active-high, flagged for hardware verification). For dimming, drive GPIO11 with LEDC PWM instead. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>on</strong> – true to enable the frontlight </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10LilyGoT54713frontlight_onEv">
+<span id="_CPPv3NK4espp10LilyGoT54713frontlight_onEv"></span><span id="_CPPv2NK4espp10LilyGoT54713frontlight_onEv"></span><span id="espp::LilyGoT547::frontlight_onC"></span><span class="target" id="classespp_1_1LilyGoT547_1a50389136b36651b5d728b53d44019aaa"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">frontlight_on</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10LilyGoT54713frontlight_onEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the current frontlight state. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true if the frontlight is on </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT5478shutdownEv">
+<span id="_CPPv3N4espp10LilyGoT5478shutdownEv"></span><span id="_CPPv2N4espp10LilyGoT5478shutdownEv"></span><span id="espp::LilyGoT547::shutdown"></span><span class="target" id="classespp_1_1LilyGoT547_1a483aca46839ee1d80450d69ffc5d0e3f"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">shutdown</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT5478shutdownEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Power the board off by putting the BQ25896 PMIC into ship mode (disconnect the battery / BATFET_DIS). The board then draws negligible current and is turned back on by pressing the PWR button. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This only powers the board off when running on battery - if USB power is connected the board stays powered. <a class="reference internal" href="#classespp_1_1LilyGoT547_1a3d9cbd0e4f0a9fff9a668bf38253cb2c"><span class="std std-ref">initialize_display()</span></a> must have been called first (it creates the shared I2C bus the PMIC is on). </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true if the ship-mode command was written successfully </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54717initialize_sdcardERK12SdCardConfig">
+<span id="_CPPv3N4espp10LilyGoT54717initialize_sdcardERK12SdCardConfig"></span><span id="_CPPv2N4espp10LilyGoT54717initialize_sdcardERK12SdCardConfig"></span><span id="espp::LilyGoT547::initialize_sdcard__SdCardConfigCR"></span><span class="target" id="classespp_1_1LilyGoT547_1a7eabc5b91d6aed8cbb5a7f4557f20aa0"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize_sdcard</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp10LilyGoT54712SdCardConfigE" title="espp::LilyGoT547::SdCardConfig"><span class="n"><span class="pre">SdCardConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54717initialize_sdcardERK12SdCardConfig" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the microSD card (SPI). Mounts a FAT filesystem at mount_point (“/sdcard”). </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The card is on a dedicated SPI bus (it does not conflict with the e-paper’s parallel bus), so this can be called independently of <a class="reference internal" href="#classespp_1_1LilyGoT547_1a3d9cbd0e4f0a9fff9a668bf38253cb2c"><span class="std std-ref">initialize_display()</span></a>. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – The microSD card configuration </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the card was mounted successfully </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10LilyGoT5476sdcardEv">
+<span id="_CPPv3NK4espp10LilyGoT5476sdcardEv"></span><span id="_CPPv2NK4espp10LilyGoT5476sdcardEv"></span><span id="espp::LilyGoT547::sdcardC"></span><span class="target" id="classespp_1_1LilyGoT547_1a834b9118690e5b1d464a7f058baa08bf"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">sdmmc_card_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">sdcard</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10LilyGoT5476sdcardEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the mounted microSD card. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Pointer to the sdmmc_card_t, or nullptr if not initialized </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54715initialize_loraERKN4espp6Sx126x11RadioConfigE">
+<span id="_CPPv3N4espp10LilyGoT54715initialize_loraERKN4espp6Sx126x11RadioConfigE"></span><span id="_CPPv2N4espp10LilyGoT54715initialize_loraERKN4espp6Sx126x11RadioConfigE"></span><span id="espp::LilyGoT547::initialize_lora__espp::Sx126x::RadioConfigCR"></span><span class="target" id="classespp_1_1LilyGoT547_1a1385c2f6b7078651e25be41a2cccc40c"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize_lora</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../wireless/sx126x.html#_CPPv4N4espp6Sx126xE" title="espp::Sx126x"><span class="n"><span class="pre">Sx126x</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../wireless/sx126x.html#_CPPv4N4espp6Sx126x11RadioConfigE" title="espp::Sx126x::RadioConfig"><span class="n"><span class="pre">RadioConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">radio_config</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54715initialize_loraERKN4espp6Sx126x11RadioConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the LoRa radio (SX1262). </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The radio shares the SPI bus with the microSD card. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The radio’s DIO1 interrupt is automatically serviced via the shared interrupt manager, so received packets / transmit completion trigger the driver’s callbacks (see <a class="reference internal" href="../../wireless/sx126x.html#classespp_1_1Sx126x_1afa36a58298683a71b952fe6ba6247d6e"><span class="std std-ref">espp::Sx126x::set_receive_callback</span></a> etc.). </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>radio_config</strong> – The radio (modem) configuration to apply </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the radio was initialized properly </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10LilyGoT5474loraEv">
+<span id="_CPPv3NK4espp10LilyGoT5474loraEv"></span><span id="_CPPv2NK4espp10LilyGoT5474loraEv"></span><span id="espp::LilyGoT547::loraC"></span><span class="target" id="classespp_1_1LilyGoT547_1a1c8131588b1a811b4cf73b827bb063ee"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../wireless/sx126x.html#_CPPv4N4espp6Sx126xE" title="espp::Sx126x"><span class="n"><span class="pre">Sx126x</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lora</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10LilyGoT5474loraEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the LoRa radio. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A shared pointer to the LoRa radio driver, or nullptr if <a class="reference internal" href="#classespp_1_1LilyGoT547_1a1385c2f6b7078651e25be41a2cccc40c"><span class="std std-ref">initialize_lora()</span></a> has not succeeded </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10LilyGoT5478get_nameEv">
+<span id="_CPPv3NK4espp10LilyGoT5478get_nameEv"></span><span id="_CPPv2NK4espp10LilyGoT5478get_nameEv"></span><span id="espp::LilyGoT547::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10LilyGoT5478get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54711set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp10LilyGoT54711set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp10LilyGoT54711set_log_tagERKNSt11string_viewE"></span><span id="espp::LilyGoT547::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54711set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10LilyGoT54713get_log_levelEv">
+<span id="_CPPv3NK4espp10LilyGoT54713get_log_levelEv"></span><span id="_CPPv2NK4espp10LilyGoT54713get_log_levelEv"></span><span id="espp::LilyGoT547::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10LilyGoT54713get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54713set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp10LilyGoT54713set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp10LilyGoT54713set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::LilyGoT547::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54713set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54717set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp10LilyGoT54717set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp10LilyGoT54717set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::LilyGoT547::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54717set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../wireless/sx126x.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10LilyGoT54717get_log_verbosityEv">
+<span id="_CPPv3NK4espp10LilyGoT54717get_log_verbosityEv"></span><span id="_CPPv2NK4espp10LilyGoT54717get_log_verbosityEv"></span><span id="espp::LilyGoT547::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10LilyGoT54717get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../wireless/sx126x.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54718set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp10LilyGoT54718set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp10LilyGoT54718set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::LilyGoT547::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54718set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../../core/logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT5473getEv">
+<span id="_CPPv3N4espp10LilyGoT5473getEv"></span><span id="_CPPv2N4espp10LilyGoT5473getEv"></span><span id="espp::LilyGoT547::get"></span><span class="target" id="classespp_1_1LilyGoT547_1ace17ee0e59cc293a31ead5a39d1bba59"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp10LilyGoT547E" title="espp::LilyGoT547"><span class="n"><span class="pre">LilyGoT547</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT5473getEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Access the singleton instance of the <a class="reference internal" href="#classespp_1_1LilyGoT547"><span class="std std-ref">LilyGoT547</span></a> class. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Reference to the singleton instance </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54712lora_cs_gpioEv">
+<span id="_CPPv3N4espp10LilyGoT54712lora_cs_gpioEv"></span><span id="_CPPv2N4espp10LilyGoT54712lora_cs_gpioEv"></span><span id="espp::LilyGoT547::lora_cs_gpioCE"></span><span class="target" id="classespp_1_1LilyGoT547_1af5d2168419564cce80ff1b40e0098574"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lora_cs_gpio</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54712lora_cs_gpioEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the GPIO pin for the LoRa radio chip select. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54714lora_dio1_gpioEv">
+<span id="_CPPv3N4espp10LilyGoT54714lora_dio1_gpioEv"></span><span id="_CPPv2N4espp10LilyGoT54714lora_dio1_gpioEv"></span><span id="espp::LilyGoT547::lora_dio1_gpioCE"></span><span class="target" id="classespp_1_1LilyGoT547_1ade51eb4f4299649babdaf9d0b4e95e64"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lora_dio1_gpio</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54714lora_dio1_gpioEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the GPIO pin for the LoRa radio DIO1 (interrupt) line. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54714lora_busy_gpioEv">
+<span id="_CPPv3N4espp10LilyGoT54714lora_busy_gpioEv"></span><span id="_CPPv2N4espp10LilyGoT54714lora_busy_gpioEv"></span><span id="espp::LilyGoT547::lora_busy_gpioCE"></span><span class="target" id="classespp_1_1LilyGoT547_1aea29b86d4061ac0b74050f6251adb07f"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lora_busy_gpio</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54714lora_busy_gpioEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the GPIO pin for the LoRa radio BUSY line. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54715lora_reset_gpioEv">
+<span id="_CPPv3N4espp10LilyGoT54715lora_reset_gpioEv"></span><span id="_CPPv2N4espp10LilyGoT54715lora_reset_gpioEv"></span><span id="espp::LilyGoT547::lora_reset_gpioCE"></span><span class="target" id="classespp_1_1LilyGoT547_1a591e7a08c036d6a15863ec7ba422d449"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lora_reset_gpio</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54715lora_reset_gpioEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the GPIO pin for the LoRa radio reset line. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54711panel_widthE">
+<span id="_CPPv3N4espp10LilyGoT54711panel_widthE"></span><span id="_CPPv2N4espp10LilyGoT54711panel_widthE"></span><span id="espp::LilyGoT547::panel_width__i"></span><span class="target" id="classespp_1_1LilyGoT547_1a08858486e91f6d94f6a7cf779cfe3e54"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">panel_width</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">960</span></span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54711panel_widthE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Native panel width in pixels. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54712panel_heightE">
+<span id="_CPPv3N4espp10LilyGoT54712panel_heightE"></span><span id="_CPPv2N4espp10LilyGoT54712panel_heightE"></span><span id="espp::LilyGoT547::panel_height__i"></span><span class="target" id="classespp_1_1LilyGoT547_1a0a07b964537b41b89dcb58f9eba31fcc"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">panel_height</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">540</span></span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54712panel_heightE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Native panel height in pixels. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54711mount_pointE">
+<span id="_CPPv3N4espp10LilyGoT54711mount_pointE"></span><span id="_CPPv2N4espp10LilyGoT54711mount_pointE"></span><span id="espp::LilyGoT547::mount_point__cA"></span><span class="target" id="classespp_1_1LilyGoT547_1a7ea98f7a79c6fae69509c66b6e294867"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mount_point</span></span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;/sdcard&quot;</span></span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54711mount_pointE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The filesystem mount point for the microSD card. </p>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54712SdCardConfigE">
+<span id="_CPPv3N4espp10LilyGoT54712SdCardConfigE"></span><span id="_CPPv2N4espp10LilyGoT54712SdCardConfigE"></span><span id="espp::LilyGoT547::SdCardConfig"></span><span class="target" id="structespp_1_1LilyGoT547_1_1SdCardConfig"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SdCardConfig</span></span></span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54712SdCardConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration for the microSD card. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54712SdCardConfig22format_if_mount_failedE">
+<span id="_CPPv3N4espp10LilyGoT54712SdCardConfig22format_if_mount_failedE"></span><span id="_CPPv2N4espp10LilyGoT54712SdCardConfig22format_if_mount_failedE"></span><span id="espp::LilyGoT547::SdCardConfig::format_if_mount_failed__b"></span><span class="target" id="structespp_1_1LilyGoT547_1_1SdCardConfig_1a78a996e1097dbdfaea2602cedb84ed69"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">format_if_mount_failed</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54712SdCardConfig22format_if_mount_failedE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Format the card if mounting fails. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54712SdCardConfig9max_filesE">
+<span id="_CPPv3N4espp10LilyGoT54712SdCardConfig9max_filesE"></span><span id="_CPPv2N4espp10LilyGoT54712SdCardConfig9max_filesE"></span><span id="espp::LilyGoT547::SdCardConfig::max_files__i"></span><span class="target" id="structespp_1_1LilyGoT547_1_1SdCardConfig_1af31742be085fafc6724d9187d6790b50"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">max_files</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">5</span></span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54712SdCardConfig9max_filesE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Maximum number of open files at once. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10LilyGoT54712SdCardConfig20allocation_unit_sizeE">
+<span id="_CPPv3N4espp10LilyGoT54712SdCardConfig20allocation_unit_sizeE"></span><span id="_CPPv2N4espp10LilyGoT54712SdCardConfig20allocation_unit_sizeE"></span><span id="espp::LilyGoT547::SdCardConfig::allocation_unit_size__s"></span><span class="target" id="structespp_1_1LilyGoT547_1_1SdCardConfig_1a4fbd16e6e20bb27757d44e240687d821"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">allocation_unit_size</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">2</span></span><span class="w"> </span><span class="o"><span class="pre">*</span></span><span class="w"> </span><span class="m"><span class="pre">1024</span></span><a class="headerlink" href="#_CPPv4N4espp10LilyGoT54712SdCardConfig20allocation_unit_sizeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Allocation unit size in bytes. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="LilyGo Boards" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="lilygo_t5_47_example.html" class="btn btn-neutral float-right" title="LilyGo T5 4.7” e-paper Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

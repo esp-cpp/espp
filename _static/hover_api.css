@@ -1,0 +1,39 @@
+.esp-hover-tooltip {
+    display: none;
+    position: fixed;
+    z-index: calc(9999 + var(--hover-level, 0));
+    max-width: 600px;
+    max-height: min(420px, 60vh);
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #d6d6d6;
+    border-top: 3px solid var(--hover-api-accent, #6ab0de);
+    border-radius: 0 0 4px 4px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    padding: 12px 16px;
+    font-size: 0.85em;
+    line-height: 1.5;
+}
+
+.esp-hover-tooltip.visible {
+    display: block;
+}
+
+/* Let dt/dd inherit the theme's own API-reference styling */
+.esp-hover-tooltip dl {
+    margin: 0;
+}
+
+/* Mirror the exact computed styles read from a live dt on this page */
+.esp-hover-tooltip dt {
+    display:    var(--hover-dt-display, table);
+    background: var(--hover-dt-bg,      #e7f2fa);
+    color:      var(--hover-dt-color,   #2980b9);
+    border-top: var(--hover-dt-border-top, 3px solid #6ab0de);
+    padding:    var(--hover-dt-padding, 6px);
+}
+
+.esp-hover-tooltip dd {
+    margin: 6px 0 0 0;
+    padding: 0;
+}
