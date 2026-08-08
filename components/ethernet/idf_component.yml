@@ -29,11 +29,11 @@ dependencies:
     version: "^2.0.0"
     rules:
       - if: "$CONFIG{ESPP_ETHERNET_W5500} == True"
-  espressif/eth_dm9051:
+  espressif/dm9051:
     version: "*"
     rules:
       - if: "$CONFIG{ESPP_ETHERNET_DM9051} == True"
-  espressif/eth_enc28j60:
+  espressif/enc28j60:
     version: "*"
     rules:
       - if: "$CONFIG{ESPP_ETHERNET_ENC28J60} == True"
