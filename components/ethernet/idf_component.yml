@@ -27,13 +27,13 @@ dependencies:
   # when the matching CONFIG_ESPP_ETHERNET_* Kconfig option is enabled.
   espressif/w5500:
     version: "^2.0.0"
-    rules:
+    matches:
       - if: "$CONFIG{ESPP_ETHERNET_W5500} == True"
   espressif/eth_dm9051:
     version: "*"
-    rules:
+    matches:
       - if: "$CONFIG{ESPP_ETHERNET_DM9051} == True"
   espressif/eth_enc28j60:
     version: "*"
-    rules:
+    matches:
       - if: "$CONFIG{ESPP_ETHERNET_ENC28J60} == True"
