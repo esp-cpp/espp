@@ -12,6 +12,8 @@
 #include <vector>
 
 #include "esp_err.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "esp_netif_ip_addr.h"
 #include "esp_tls.h"
 #include "lwip/inet.h"
@@ -1059,14 +1061,22 @@ struct AndroidTvRemote::Impl {
       return false;
     }
 
+    owner.logger_.info("pairing: TLS connected to {}:{}, sending PairingRequest", std::string(host),
+                       config.pairing.port);
     if (!pairing.write_frame(make_pairing_request(config.pairing.client_name), ec))
       return false;
 
     auto start = std::chrono::steady_clock::now();
     bool pairing_ready = false;
     while (!pairing_ready) {
+      // steady_clock::duration is finer than milliseconds (nanoseconds on
+      // ESP), so subtracting it from a milliseconds value yields a nanosecond
+      // duration; cast back to milliseconds before calling .count(), otherwise
+      // the nanosecond count overflows the int timeout_ms and read_frame times
+      // out immediately.
       auto elapsed = std::chrono::steady_clock::now() - start;
-      auto remaining = config.pairing.timeout - elapsed;
+      auto remaining =
+          std::chrono::duration_cast<std::chrono::milliseconds>(config.pairing.timeout - elapsed);
       if (remaining <= std::chrono::milliseconds::zero()) {
         ec = AndroidTvRemoteErrc::timeout;
         return false;
@@ -1088,13 +1098,19 @@ struct AndroidTvRemote::Impl {
       }
 
       if (message.has_pairing_request_ack) {
+        owner.logger_.info("pairing: <- PairingRequestAck, sending PairingOption");
         if (!pairing.write_frame(make_pairing_options(), ec))
           return false;
       } else if (message.has_options) {
+        owner.logger_.info("pairing: <- PairingOption, sending PairingConfiguration");
         if (!pairing.write_frame(make_pairing_configuration(), ec))
           return false;
       } else if (message.has_configuration_ack) {
+        owner.logger_.info("pairing: <- PairingConfigurationAck; the TV should now show a code");
         pairing_ready = true;
+      } else {
+        owner.logger_.debug("pairing: <- unrecognized message ({} bytes), waiting for more",
+                            frame.size());
       }
     }
 
@@ -1155,12 +1171,24 @@ struct AndroidTvRemote::Impl {
       return false;
     }
 
+    owner.logger_.info("pairing: code accepted locally, sending PairingSecret");
     if (!pairing.write_frame(make_pairing_secret(secret), ec))
       return false;
 
+    // Restart the timeout budget: the first loop's `start` was captured before
+    // code_provider(), which blocks on interactive input and can easily exceed
+    // config.pairing.timeout, which would otherwise make this wait for the
+    // SecretAck expire immediately.
+    start = std::chrono::steady_clock::now();
     while (true) {
+      // steady_clock::duration is finer than milliseconds (nanoseconds on
+      // ESP), so subtracting it from a milliseconds value yields a nanosecond
+      // duration; cast back to milliseconds before calling .count(), otherwise
+      // the nanosecond count overflows the int timeout_ms and read_frame times
+      // out immediately.
       auto elapsed = std::chrono::steady_clock::now() - start;
-      auto remaining = config.pairing.timeout - elapsed;
+      auto remaining =
+          std::chrono::duration_cast<std::chrono::milliseconds>(config.pairing.timeout - elapsed);
       if (remaining <= std::chrono::milliseconds::zero()) {
         ec = AndroidTvRemoteErrc::timeout;
         return false;
@@ -1213,7 +1241,10 @@ struct AndroidTvRemote::Impl {
       return false;
     }
 
-    reader_thread = std::thread([this] { reader_loop(); });
+    reader_thread = std::thread([this] {
+      reader_task_handle = xTaskGetCurrentTaskHandle();
+      reader_loop();
+    });
 
     std::unique_lock lock(state_mutex);
     bool ready = state_cv.wait_for(lock, config.transport.handshake_timeout,
@@ -1242,8 +1273,13 @@ struct AndroidTvRemote::Impl {
     // destroy the TLS context. Destroying it before the join would free memory
     // the reader may still be reading from inside esp_tls_conn_read().
     control.shutdown();
-    if (reader_thread.joinable() && reader_thread.get_id() != std::this_thread::get_id()) {
+    // Compare FreeRTOS task handles instead of std::thread ids here:
+    // std::this_thread::get_id() calls pthread_self(), which asserts on ESP-IDF
+    // when invoked from a task that was not created through the pthread layer
+    // (e.g. app_main's main_task).
+    if (reader_thread.joinable() && xTaskGetCurrentTaskHandle() != reader_task_handle) {
       reader_thread.join();
+      reader_task_handle = nullptr;
     }
     control.close();
     {
@@ -1386,6 +1422,7 @@ struct AndroidTvRemote::Impl {
   std::string connected_host;
   std::string current_app;
   std::thread reader_thread;
+  std::atomic<TaskHandle_t> reader_task_handle{nullptr};
   std::atomic<bool> connected{false};
   std::atomic<bool> stop_requested{false};
   std::mutex io_mutex;

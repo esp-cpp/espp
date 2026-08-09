@@ -1,5 +1,13 @@
+CONFIG_IDF_TARGET="esp32s3"
+
 CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
 CONFIG_ESPTOOLPY_FLASHSIZE="4MB"
+
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
+# CONFIG_COMPILER_OPTIMIZATION_SIZE=y
+CONFIG_FREERTOS_HZ=1000
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ=240
 
 CONFIG_PARTITION_TABLE_CUSTOM=y
 CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
@@ -9,3 +17,18 @@ CONFIG_PARTITION_TABLE_MD5=y
 
 CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=4096
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=12288
+
+# The Android TV Remote server presents a self-signed certificate; the
+# protocol authenticates at the application layer via the pairing-secret hash
+# (which incorporates the server's public modulus/exponent), not the TLS
+# chain. esp-tls refuses to set up a client with no CA/bundle unless the
+# insecure "skip server cert verify" option is compiled in, so enable it here.
+CONFIG_ESP_TLS_INSECURE=y
+CONFIG_ESP_TLS_SKIP_SERVER_CERT_VERIFY=y
+
+# Route the console over the ESP32-S3 native USB-Serial-JTAG so interactive
+# stdin (the pairing-code prompt read by the example) works over the same USB
+# port used by `idf.py monitor`. The example installs the matching USB-JTAG VFS
+# driver at startup. If your board instead exposes the console on a UART bridge,
+# switch this back to CONFIG_ESP_CONSOLE_UART_DEFAULT=y.
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
