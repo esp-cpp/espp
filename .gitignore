@@ -34,8 +34,6 @@
 # build folder for ESP-IDF
 build/
 
-# submodule configuration
-components/rtps_embedded/thirdparty/Micro-CDR/include/ucdr/config.h
 
 # we only version sdkconfig.defaults
 sdkconfig
