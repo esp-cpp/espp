@@ -6,7 +6,7 @@
 // conventions for std_msgs/String on /chatter.
 //
 // Usage: rtps_embedded_interop_sub [topic] [type] [reliable(0|1)] [required] [timeout_s]
-// Exits 0 once `required` samples arrive within `timeout_s`.
+// [interface_ip] Exits 0 once `required` samples arrive within `timeout_s`.
 
 #include <atomic>
 #include <chrono>
@@ -26,10 +26,12 @@ int main(int argc, char **argv) {
   const bool reliable = (argc > 3) ? (std::atoi(argv[3]) != 0) : true;
   const int required = (argc > 4) ? std::atoi(argv[4]) : 5;
   const int timeout_s = (argc > 5) ? std::atoi(argv[5]) : 30;
+  const char *interface_ip = (argc > 6) ? argv[6] : ""; // "" -> auto-detect
 
   std::atomic<int> received{0};
 
   espp::RtpsParticipant participant({
+      .interface_address = interface_ip,
       .log_level = espp::Logger::Verbosity::INFO,
   });
   if (!participant.start()) {

@@ -6,7 +6,7 @@
 // conventions for std_msgs/String on /chatter.
 //
 // Usage: rtps_embedded_interop_pub [topic] [type] [reliable(0|1)] [count] [period_ms]
-// Exits 0 after publishing `count` samples.
+// [interface_ip] Exits 0 after publishing `count` samples.
 
 #include <chrono>
 #include <cstdio>
@@ -25,8 +25,10 @@ int main(int argc, char **argv) {
   const bool reliable = (argc > 3) ? (std::atoi(argv[3]) != 0) : true;
   const int count = (argc > 4) ? std::atoi(argv[4]) : 30;
   const int period_ms = (argc > 5) ? std::atoi(argv[5]) : 200;
+  const char *interface_ip = (argc > 6) ? argv[6] : ""; // "" -> auto-detect
 
   espp::RtpsParticipant participant({
+      .interface_address = interface_ip,
       .log_level = espp::Logger::Verbosity::INFO,
   });
   if (!participant.start()) {
