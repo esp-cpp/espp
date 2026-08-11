@@ -1,34 +1,51 @@
-# CDR (Common Data Representation) Component
+# CDR (Common Data Representation)
 
-[![Badge](https://components.espressif.com/components/espp/cdr/badge.svg)](https://components.espressif.com/components/espp/cdr)
+Reflection-driven CDR/XCDR serialization for plain C++ structs — no IDL
+compiler, no hand-written read/write call sequences. The compiler generates
+the serialization code from the struct definition itself (the same usability
+pattern as the `serialization` component's alpaca, with a DDS/RTPS-compatible
+wire format instead).
 
-The `cdr` component provides a small, standalone Common Data Representation
-(CDR) reader/writer utility aimed at standards-oriented protocols such as
-DDS/RTPS.
+The library is [finger563/cdr](https://github.com/finger563/cdr), vendored as
+a git submodule under `detail/`; this component wires it into ESP-IDF and
+depends on the `reflect_cpp` component for its reflection backend. See the
+library's `README.md` for the supported type mapping and
+`docs/DESIGN.md` for the architecture and wire-format rules.
 
-This initial slice is intentionally focused on the most immediately useful
-pieces for building interoperable payloads:
+```cpp
+struct ImuSample {
+  uint64_t stamp_us;
+  std::array<float, 3> accel;
+  std::array<float, 3> gyro;
+  float temperature;
+};
 
-- encapsulation identifiers for `CDR_BE`, `CDR_LE`, `PL_CDR_BE`, and `PL_CDR_LE`
-- endian-aware primitive read/write helpers
-- CDR alignment and padding handling
-- string serialization helpers using the standard CDR length-prefix + null terminator format
-- headerless/body helpers for CDR fields embedded inside larger protocol elements
-- fixed-array helpers and zero-copy payload/span views
-- sequence helpers for homogeneous primitive collections
-- standalone usage without depending on RTPS or DDS layers
+auto bytes = cdr::serialize(sample);              // XCDR2, appendable (default)
+auto ros2  = cdr::serialize<cdr::xcdr1>(sample);  // ROS 2 / classic-CDR peers
+auto back  = cdr::deserialize<ImuSample>(*bytes); // std::expected<ImuSample, cdr::error>
+```
 
-Current scope:
+Highlights:
 
-- good fit for building RTPS payloads and parameter lists incrementally
-- designed to stay reusable outside DDS/RTPS
-- **not** yet a full DDS XTypes / XCDR2 implementation
+- XCDR1 (plain CDR — ROS 2, CycloneDDS defaults) and XCDR2 (plain +
+  delimited/appendable with DHEADER — FastDDS, OpenDDS defaults), both
+  endiannesses, with appendable schema evolution in both directions.
+- Wire format byte-verified against pycdr2 (CycloneDDS's codec); the Python
+  side of a message is a plain `pycdr2` dataclass.
+- `std::expected` error handling with error code, payload offset, and field
+  name; bounds-checked, fuzz-tested deserializers.
+- `cdr::param_list_writer` / `param_list_reader` for the PL_CDR parameter
+  lists RTPS discovery (SPDP/SEDP) uses.
+- Zero-allocation `cdr::serialize_into` and body-only variants for RTPS
+  submessage composition.
+
+Requires C++23 (`std::expected`), the default on ESP-IDF 5.2+ toolchains.
+
+This component replaces the previous manual `espp::CdrWriter`/`espp::CdrReader`
+API (an imperative XCDR1-only reader/writer); the RTPS component and examples
+have been migrated to the reflection-driven API.
 
 ## Example
 
-The [example](./example) demonstrates a small round-trip using:
-
-- a little-endian CDR encapsulation header
-- primitive values
-- a CDR string
-- a `uint16_t` sequence
+The [example](./example) shows struct round-trips in both XCDR versions, the
+zero-allocation path, error handling, and PL_CDR parameter lists.
