@@ -431,28 +431,33 @@ void append_parameter_locator(ByteWriter &writer, ParameterId id,
   writer.append_bytes(locator.address);
 }
 
+// Append a CDR-encoded parameter value, padding it to the 4-byte multiple the RTPS PL_CDR
+// encoding requires (parameterLength declares the padded length so the next parameter starts
+// 4-byte aligned).
+void append_cdr_parameter(ByteWriter &writer, ParameterId id, std::span<const std::byte> body) {
+  const size_t padded = (body.size() + 3) & ~size_t{3};
+  if (padded > 0xffff) {
+    // parameterLength is a 16-bit field; dropping an oversized parameter keeps the list
+    // well-formed on the wire (discovery parameters are tiny in practice).
+    return;
+  }
+  append_parameter_header(writer, id, static_cast<uint16_t>(padded));
+  writer.append_bytes(
+      std::span<const uint8_t>(reinterpret_cast<const uint8_t *>(body.data()), body.size()));
+  for (size_t i = body.size(); i < padded; ++i) {
+    writer.append_u8(0);
+  }
+}
+
 void append_parameter_string_cdr(ByteWriter &writer, ParameterId id, std::string_view text) {
-  auto cdr_writer = espp::CdrWriter::make_body_writer(espp::CdrEncapsulation::CDR_LE);
-  cdr_writer.write_string(text);
-  auto cdr_payload = cdr_writer.payload();
-  // The RTPS PL_CDR encoding requires parameterLength to be a multiple of 4 so the next
-  // parameter starts 4-byte aligned. write_string() already trailing-aligns the body to 4, so the
-  // payload length is the padded length we must declare.
-  append_parameter_header(writer, id, static_cast<uint16_t>(cdr_payload.size()));
-  writer.append_bytes(cdr_payload);
+  auto body = cdr::serialize_body<cdr::xcdr1>(std::string(text));
+  append_cdr_parameter(writer, id, *body);
 }
 
 void append_parameter_octet_sequence(ByteWriter &writer, ParameterId id,
                                      std::span<const uint8_t> bytes) {
-  auto cdr_writer = espp::CdrWriter::make_body_writer(espp::CdrEncapsulation::CDR_LE);
-  cdr_writer.write<uint32_t>(static_cast<uint32_t>(bytes.size()));
-  cdr_writer.write_bytes(bytes);
-  cdr_writer.align(4);
-  auto cdr_payload = cdr_writer.payload();
-  // parameterLength must be a multiple of 4 (see append_parameter_string_cdr); the align(4) above
-  // padded the payload to that length, so declare the padded length.
-  append_parameter_header(writer, id, static_cast<uint16_t>(cdr_payload.size()));
-  writer.append_bytes(cdr_payload);
+  auto body = cdr::serialize_body<cdr::xcdr1>(std::vector<uint8_t>(bytes.begin(), bytes.end()));
+  append_cdr_parameter(writer, id, *body);
 }
 
 void append_parameter_reliability(ByteWriter &writer,
@@ -495,17 +500,16 @@ void append_parameter_sentinel(ByteWriter &writer) {
 
 std::vector<ParameterView> parse_parameter_list(std::span<const uint8_t> payload) {
   std::vector<ParameterView> parameters;
-  espp::CdrReader cdr_reader(payload);
-  // Limitation: only little-endian parameter lists (PL_CDR_LE) are decoded. The parameter value
-  // parsers below (parse_u32_le, parse_locator, parse_guid, ...) assume little-endian contents, so
-  // a big-endian (PL_CDR_BE) list is intentionally rejected rather than misparsed. In practice DDS
-  // and ROS 2 implementations emit PL_CDR_LE for SPDP/SEDP discovery, so this is a discovery-only
-  // gap.
-  if (!cdr_reader.valid() || cdr_reader.encapsulation() != espp::CdrEncapsulation::PL_CDR_LE) {
+  // Limitation: only little-endian parameter lists (PL_CDR_LE, encapsulation id 0x0003) are
+  // decoded. The parameter value parsers below (parse_u32_le, parse_locator, parse_guid, ...)
+  // assume little-endian contents, so a big-endian (PL_CDR_BE) list is intentionally rejected
+  // rather than misparsed. In practice DDS and ROS 2 implementations emit PL_CDR_LE for SPDP/SEDP
+  // discovery, so this is a discovery-only gap.
+  if (payload.size() < 4 || payload[0] != 0x00 || payload[1] != 0x03) {
     return parameters;
   }
 
-  ByteReader reader(cdr_reader.payload());
+  ByteReader reader(payload.subspan(4));
   while (reader.remaining() >= 4) {
     uint16_t pid = 0;
     uint16_t length = 0;
@@ -574,35 +578,19 @@ std::optional<bool> parse_bool(std::span<const uint8_t> value) {
 }
 
 std::optional<std::string> parse_cdr_string(std::span<const uint8_t> value) {
-  auto reader = espp::CdrReader::make_body_reader(value, espp::CdrEncapsulation::CDR_LE);
-  if (!reader.valid()) {
+  auto result = cdr::deserialize_body<cdr::xcdr1, std::string>(std::as_bytes(value));
+  if (!result) {
     return std::nullopt;
   }
-  uint32_t length = 0;
-  if (!reader.read<uint32_t>(length) || length == 0) {
-    return std::nullopt;
-  }
-  auto text_bytes = reader.read_span(length);
-  if (text_bytes.size() != length || text_bytes.back() != 0) {
-    return std::nullopt;
-  }
-  return std::string(reinterpret_cast<const char *>(text_bytes.data()), text_bytes.size() - 1);
+  return *std::move(result);
 }
 
 std::optional<std::vector<uint8_t>> parse_octet_sequence(std::span<const uint8_t> value) {
-  auto reader = espp::CdrReader::make_body_reader(value, espp::CdrEncapsulation::CDR_LE);
-  if (!reader.valid()) {
+  auto result = cdr::deserialize_body<cdr::xcdr1, std::vector<uint8_t>>(std::as_bytes(value));
+  if (!result) {
     return std::nullopt;
   }
-  uint32_t length = 0;
-  if (!reader.read<uint32_t>(length)) {
-    return std::nullopt;
-  }
-  std::vector<uint8_t> bytes;
-  if (!reader.read_bytes(bytes, length)) {
-    return std::nullopt;
-  }
-  return bytes;
+  return *std::move(result);
 }
 
 std::optional<espp::RtpsParticipant::Locator> parse_locator(std::span<const uint8_t> value) {
@@ -750,7 +738,13 @@ DataSubmessageView parse_data_submessage(const espp::RtpsParticipant::Submessage
 
 std::vector<uint8_t> build_parameter_list_payload(ByteWriter &parameter_writer) {
   auto parameter_bytes = parameter_writer.take();
-  return espp::CdrWriter::encapsulate(parameter_bytes, espp::CdrEncapsulation::PL_CDR_LE);
+  // PL_CDR_LE encapsulation header (representation id 0x0003, big-endian on the wire) followed by
+  // the parameter list.
+  std::vector<uint8_t> payload;
+  payload.reserve(4 + parameter_bytes.size());
+  payload.insert(payload.end(), {0x00, 0x03, 0x00, 0x00});
+  payload.insert(payload.end(), parameter_bytes.begin(), parameter_bytes.end());
+  return payload;
 }
 
 std::vector<uint8_t> build_data_submessage_payload(const espp::RtpsParticipant::EntityId &reader_id,

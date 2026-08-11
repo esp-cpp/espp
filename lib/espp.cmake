@@ -20,6 +20,8 @@ set(ESPP_INCLUDES
   ${ESPP_COMPONENTS}/base_component/include
   ${ESPP_COMPONENTS}/base_peripheral/include
   ${ESPP_COMPONENTS}/cdr/include
+  ${ESPP_COMPONENTS}/cdr/detail/cdr/include
+  ${ESPP_COMPONENTS}/reflect_cpp/detail/reflect-cpp/include
   ${ESPP_COMPONENTS}/cobs/include
   ${ESPP_COMPONENTS}/color/include
   ${ESPP_COMPONENTS}/csv/include
@@ -48,7 +50,6 @@ set(ESPP_INCLUDES
 )
 
 set(ESPP_SOURCES
-  ${ESPP_COMPONENTS}/cdr/src/cdr.cpp
   ${ESPP_COMPONENTS}/cobs/src/cobs.cpp
   ${ESPP_COMPONENTS}/cobs/src/cobs_stream.cpp
   ${ESPP_COMPONENTS}/color/src/color.cpp
@@ -108,7 +109,6 @@ set(ESPP_PYTHON_BINDINGS_DIR ${CMAKE_CURRENT_LIST_DIR}/python_bindings)
 set(ESPP_PYTHON_SOURCES
   ${ESPP_PYTHON_BINDINGS_DIR}/module.cpp
   ${ESPP_PYTHON_BINDINGS_DIR}/pybind_espp.cpp
-  ${ESPP_PYTHON_BINDINGS_DIR}/cdr_bindings.cpp
   ${ESPP_PYTHON_BINDINGS_DIR}/rtps_bindings.cpp
   ${ESPP_PYTHON_BINDINGS_DIR}/socket_reactor_bindings.cpp
   ${ESPP_SOURCES}
@@ -126,7 +126,7 @@ endfunction()
 # extension module target (the native part of the `espp` python package)
 function(espp_add_python_module)
   pybind11_add_module(_espp ${ESPP_PYTHON_SOURCES})
-  target_compile_features(_espp PRIVATE cxx_std_20)
+  target_compile_features(_espp PRIVATE cxx_std_23)
   # disable certain compiler warnings for this module, but only if we're not on
   # Windows
   if(NOT MSVC)
