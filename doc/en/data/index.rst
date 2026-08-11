@@ -11,4 +11,5 @@ byte-stuffing, CSV, and table formatting.
    cdr
    cobs
    csv
+   reflect_cpp
    tabulate
