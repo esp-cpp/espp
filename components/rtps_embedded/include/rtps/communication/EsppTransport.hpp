@@ -30,6 +30,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/common/types.hpp"
 #include "rtps/communication/PacketInfo.hpp"
 #include "rtps/config.hpp"
+#include "socket_reactor.hpp"
 #include "udp_socket.hpp"
 
 #include <array>
@@ -62,6 +63,7 @@ private:
   struct Channel {
     Ip4Port_t port{0};
     std::unique_ptr<espp::UdpSocket> socket{};
+    espp::SocketReactor::Id reactor_id{espp::SocketReactor::INVALID_ID};
     bool in_use{false};
   };
 
@@ -78,6 +80,12 @@ private:
   void *m_callbackArgs{nullptr};
   mutable std::recursive_mutex m_mutex;
   std::array<Channel, Config::MAX_NUM_UDP_CONNECTIONS> m_channels{};
+  /// One select() loop + a small shared worker pool multiplexes every receive
+  /// socket (SocketReactor's one-shot arming preserves per-socket ordering,
+  /// which RTPS requires per locator), replacing a dedicated blocking-recv
+  /// task per channel. Declared after m_channels so it is destroyed FIRST
+  /// (reverse member order): the reactor must stop before its sockets die.
+  std::shared_ptr<espp::SocketReactor> m_reactor{};
   mutable std::vector<std::string> m_multicastGroups;
 };
 

@@ -72,7 +72,22 @@ bool isMulticastAddress(const rtps::Ip4AddressBytes &addr) {
 EsppTransport::EsppTransport(RxCallback callback, void *args)
     : espp::BaseComponent("RtpsTransport", espp::Logger::Verbosity::WARN)
     , m_rxCallback(callback)
-    , m_callbackArgs(args) {}
+    , m_callbackArgs(args) {
+  espp::SocketReactor::Config reactor_config;
+  reactor_config.pool_config.worker_count = 2;
+  reactor_config.pool_config.worker_task_config = {
+      .name = "rtps_rx_worker",
+      .stack_size_bytes = Config::THREAD_POOL_READER_STACKSIZE,
+      .priority = Config::THREAD_POOL_READER_PRIO,
+  };
+  reactor_config.loop_task_config = {
+      .name = "rtps_reactor",
+      .stack_size_bytes = Config::THREAD_POOL_READER_STACKSIZE,
+      .priority = Config::THREAD_POOL_READER_PRIO,
+  };
+  reactor_config.log_level = espp::Logger::Verbosity::WARN;
+  m_reactor = std::make_shared<espp::SocketReactor>(reactor_config);
+}
 
 EsppTransport::Channel *EsppTransport::findChannel(Ip4Port_t port) {
   auto it = std::find_if(m_channels.begin(), m_channels.end(), [port](const auto &channel) {
@@ -99,13 +114,11 @@ bool EsppTransport::startReceiver(Channel &channel, Ip4Port_t receivePort) {
     return false;
   }
 
-  espp::Task::BaseConfig task_config;
-  task_config.name = "rtps_rx_" + std::to_string(receivePort);
-  // Reuse the reader-worker stack size for the UDP receive task. Both tasks
-  // perform similar deserialization work, so the value is a reasonable bound.
-  task_config.stack_size_bytes = Config::THREAD_POOL_READER_STACKSIZE;
-  task_config.priority = Config::THREAD_POOL_READER_PRIO;
-
+  // Register the socket with the shared reactor instead of spawning a
+  // dedicated blocking-recv task per port: add_udp_receiver() binds the socket
+  // per the config and dispatches each datagram onto the reactor's worker
+  // pool. One-shot arming guarantees at most one in-flight handler per socket,
+  // preserving RTPS's per-locator ordering.
   espp::UdpSocket::ReceiveConfig receive_config;
   receive_config.port = receivePort;
   receive_config.buffer_size = 1024 * 8;
@@ -116,11 +129,12 @@ bool EsppTransport::startReceiver(Channel &channel, Ip4Port_t receivePort) {
     return std::nullopt;
   };
 
-  const bool started = channel.socket->start_receiving(task_config, receive_config);
-  if (!started) {
-    logger_.error("Failed to start UDP receiver on port {}", receivePort);
+  channel.reactor_id = m_reactor->add_udp_receiver(*channel.socket, receive_config);
+  if (channel.reactor_id == espp::SocketReactor::INVALID_ID) {
+    logger_.error("Failed to register UDP receiver on port {} with the reactor", receivePort);
+    return false;
   }
-  return started;
+  return true;
 }
 
 EsppTransport::Channel *EsppTransport::createChannel(Ip4Port_t receivePort, bool allow_reuse) {
@@ -196,10 +210,11 @@ bool EsppTransport::releaseReceivePort(Ip4Port_t receivePort) {
   if (channel == nullptr) {
     return false;
   }
-  if (channel->socket) {
-    channel->socket->stop_receiving();
-    channel->socket.reset();
+  if (channel->reactor_id != espp::SocketReactor::INVALID_ID) {
+    m_reactor->remove(channel->reactor_id);
+    channel->reactor_id = espp::SocketReactor::INVALID_ID;
   }
+  channel->socket.reset();
   channel->port = 0;
   channel->in_use = false;
   return true;
