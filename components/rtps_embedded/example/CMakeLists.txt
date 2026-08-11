@@ -11,7 +11,7 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py logger rtps_embedded esp32-ethernet-kit"
+  "main esptool_py logger cdr timer rtps_embedded esp32-ethernet-kit"
   CACHE STRING
   "List of components to include"
   )
