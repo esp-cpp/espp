@@ -35,6 +35,8 @@ set(ESPP_INCLUDES
   ${ESPP_COMPONENTS}/ndef/include
   ${ESPP_COMPONENTS}/pid/include
   ${ESPP_COMPONENTS}/rtps/include
+  ${ESPP_COMPONENTS}/rtps_embedded/include
+  ${ESPP_COMPONENTS}/rtps_embedded/thirdparty/Micro-CDR/include
   ${ESPP_COMPONENTS}/rtsp/include
   ${ESPP_COMPONENTS}/serialization/include
   ${ESPP_COMPONENTS}/tabulate/include
@@ -59,6 +61,25 @@ set(ESPP_SOURCES
   ${ESPP_COMPONENTS}/filters/src/simple_lowpass_filter.cpp
   ${ESPP_COMPONENTS}/joystick/src/joystick.cpp
   ${ESPP_COMPONENTS}/rtps/src/rtps.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/src/ThreadPool.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/src/communication/EsppTransport.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/src/discovery/ParticipantProxyData.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/src/discovery/SEDPAgent.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/src/discovery/SPDPAgent.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/src/discovery/TopicData.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/src/entities/Domain.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/src/entities/Participant.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/src/entities/Reader.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/src/entities/StatelessReader.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/src/entities/Writer.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/src/messages/MessageReceiver.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/src/messages/MessageTypes.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/src/utils/Diagnostics.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/thirdparty/Micro-CDR/src/c/common.c
+  ${ESPP_COMPONENTS}/rtps_embedded/thirdparty/Micro-CDR/src/c/types/array.c
+  ${ESPP_COMPONENTS}/rtps_embedded/thirdparty/Micro-CDR/src/c/types/basic.c
+  ${ESPP_COMPONENTS}/rtps_embedded/thirdparty/Micro-CDR/src/c/types/sequence.c
+  ${ESPP_COMPONENTS}/rtps_embedded/thirdparty/Micro-CDR/src/c/types/string.c
   ${ESPP_COMPONENTS}/rtsp/src/rtcp_packet.cpp
   ${ESPP_COMPONENTS}/rtsp/src/rtp_packet.cpp
   ${ESPP_COMPONENTS}/rtsp/src/rtsp_client.cpp

@@ -28,6 +28,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/utils/udpUtils.hpp"
 #include <cassert>
 #include <mutex>
+#include <random>
 
 #if defined(ESP_PLATFORM)
 #include "esp_mac.h"
@@ -544,13 +545,24 @@ rtps::GuidPrefix_t Domain::generateGuidPrefix(ParticipantId_t id) const {
 #endif
 
   if (Config::BASE_GUID_PREFIX == GUID_RANDOM) {
-    for (unsigned int i = 0; i < rtps::Config::BASE_GUID_PREFIX.id.size(); i++) {
-      prefix.id[i] = rand();
+    // Use OS entropy, not rand(): unseeded rand() yields the identical sequence
+    // in every process, so two host processes would share a GUID prefix and drop
+    // each other's packets as their own.
+    std::random_device rd;
+    for (unsigned int i = 0; i < prefix.id.size(); i++) {
+      prefix.id[i] = static_cast<uint8_t>(rd());
     }
   } else {
     for (unsigned int i = 0; i < rtps::Config::BASE_GUID_PREFIX.id.size(); i++) {
       prefix.id[i] = Config::BASE_GUID_PREFIX.id[i];
     }
   }
+  // Stamp the participant id (and vendor/domain, mirroring the ESP path) so
+  // multiple participants in one process always get distinct GUID prefixes -
+  // identical prefixes make peers discard each other's SPDP as "own message".
+  prefix.id[6] = static_cast<uint8_t>(id);
+  prefix.id[7] = Config::VENDOR_ID.vendorId[0];
+  prefix.id[8] = Config::VENDOR_ID.vendorId[1];
+  prefix.id[9] = Config::DOMAIN_ID;
   return prefix;
 }
