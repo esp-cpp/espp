@@ -126,6 +126,7 @@ jobs:
             components/qmi8658
             components/qtpy
             components/qwiicnes
+            components/reflect_cpp
             components/remote_debug
             components/rmt
             components/rtps
