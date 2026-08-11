@@ -35,6 +35,8 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/entities/StatefulWriter.hpp"
 #include "rtps/entities/StatelessReader.hpp"
 #include "rtps/entities/StatelessWriter.hpp"
+#include "task.hpp"
+#include <atomic>
 #include <mutex>
 #include <rtps/common/Locator.hpp>
 
@@ -86,6 +88,22 @@ private:
   /// How many participant ids to probe for free unicast ports before giving up.
   static constexpr uint8_t PARTICIPANT_PORT_PROBE_LIMIT = 16;
   Participant *findParticipantById(ParticipantId_t id);
+
+  /// Single deadline-scheduled protocol task: drives SPDP announcements for
+  /// every participant and heartbeat ticks for every stateful writer,
+  /// replacing one SPDP thread per participant plus one heartbeat thread per
+  /// stateful writer. Sleeps until the earliest deadline; publishes on
+  /// reliable writers nudge it awake (heartbeat piggyback).
+  bool protocolLoop(std::mutex &m, std::condition_variable &cv, bool &notified);
+  void nudgeProtocol();
+  std::unique_ptr<espp::Task> m_protocolTask;
+  std::mutex *m_protocolMutex = nullptr;
+  std::condition_variable *m_protocolCv = nullptr;
+  bool *m_protocolNotified = nullptr;
+  std::chrono::steady_clock::time_point m_nextSpdpAnnounce{};
+  /// Set by stop() BEFORE the task is notified, so protocolLoop can tell a
+  /// stop apart from a heartbeat nudge (both arrive via the task cv).
+  std::atomic<bool> m_protocolStopRequested{false};
 
   std::array<StatelessWriter, Config::NUM_STATELESS_WRITERS> m_statelessWriters;
   std::array<StatelessReader, Config::NUM_STATELESS_READERS> m_statelessReaders;

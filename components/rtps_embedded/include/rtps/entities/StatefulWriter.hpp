@@ -57,6 +57,19 @@ public:
                                bool markDisposedAfterWrite = false) override;
 
   bool removeFromHistory(const SequenceNumber_t &s);
+
+  /// Run one heartbeat evaluation, preserving the historical cadence: sends a
+  /// HEARTBEAT when due (period/4 while any proxy has unacknowledged changes,
+  /// full period otherwise), drops delayed dispose-after-write changes, and
+  /// returns the next time this writer wants to be ticked. Called by the
+  /// Domain's protocol scheduler task instead of a dedicated per-writer
+  /// heartbeat thread.
+  std::chrono::steady_clock::time_point heartbeatTick(std::chrono::steady_clock::time_point now);
+
+  /// Install the scheduler nudge: invoked on newChange() so a publish
+  /// piggybacks an immediate heartbeat evaluation instead of waiting out the
+  /// current period.
+  void setProtocolNudge(std::function<void()> nudge) { m_protocolNudge = std::move(nudge); }
   void setAllChangesToUnsent() override;
   void onNewAckNack(const SubmessageAckNack &msg, const GuidPrefix_t &sourceGuidPrefix) override;
   void reset() override;
@@ -77,16 +90,14 @@ private:
   ThreadSafeCircularBuffer<SequenceNumber_t, 10> m_disposeWithDelay;
   void dropDisposeAfterWriteChanges();
 
-  std::unique_ptr<espp::Task> m_heartbeatTask;
-
   Count_t m_hbCount{1};
 
-  bool m_running = true;
-  bool m_thread_running = false;
+  /// Next heartbeat deadline (managed by heartbeatTick / newChange).
+  std::chrono::steady_clock::time_point m_nextHeartbeat{};
+  std::function<void()> m_protocolNudge{};
 
   bool sendData(const ReaderProxy &reader, const CacheChange *next);
   bool sendDataWRMulticast(const ReaderProxy &reader, const CacheChange *next);
-  void sendHeartBeatLoop();
   void sendHeartBeat();
   void sendGap(const ReaderProxy &reader, const SequenceNumber_t &firstMissing,
                const SequenceNumber_t &nextValid);

@@ -82,6 +82,24 @@ bool Domain::completeInit() {
 
   m_initComplete = true;
 
+  // Start the protocol scheduler: one task drives every participant's SPDP
+  // announcements and every stateful writer's heartbeat cadence.
+  m_nextSpdpAnnounce = std::chrono::steady_clock::now();
+  for (auto &writer : m_statefulWriters) {
+    writer.setProtocolNudge([this]() { nudgeProtocol(); });
+  }
+  espp::Task::Config task_config;
+  task_config.callback = [this](std::mutex &m, std::condition_variable &cv, bool &notified) {
+    return protocolLoop(m, cv, notified);
+  };
+  task_config.task_config.name = "rtps_protocol";
+  task_config.task_config.stack_size_bytes =
+      Config::SPDP_WRITER_STACKSIZE > 4096 ? Config::SPDP_WRITER_STACKSIZE : 4096;
+  task_config.task_config.priority = Config::SPDP_WRITER_PRIO;
+  task_config.log_level = espp::Logger::Verbosity::WARN;
+  m_protocolTask = espp::Task::make_unique(task_config);
+  (void)m_protocolTask->start();
+
   for (uint8_t slot = 0; slot < m_numParticipants; ++slot) {
     m_participants[slot].getSPDPAgent().start();
   }
@@ -89,6 +107,13 @@ bool Domain::completeInit() {
 }
 
 void Domain::stop() {
+  if (m_protocolTask) {
+    m_protocolStopRequested = true;
+    nudgeProtocol();        // wake the loop so it observes the stop flag
+    m_protocolTask->stop(); // returns promptly
+    m_protocolTask.reset();
+    m_protocolStopRequested = false;
+  }
   for (uint8_t slot = 0; slot < m_numParticipants; ++slot) {
     m_participants[slot].getSPDPAgent().stop();
   }
@@ -100,6 +125,56 @@ void Domain::stop() {
 void Domain::receiveJumppad(void *callee, const PacketInfo &packet) {
   auto domain = static_cast<Domain *>(callee);
   domain->receiveCallback(packet);
+}
+
+bool Domain::protocolLoop(std::mutex &m, std::condition_variable &cv, bool &notified) {
+  using clock = std::chrono::steady_clock;
+  const auto now = clock::now();
+
+  // SPDP announcements for every running participant, at the configured cadence.
+  if (now >= m_nextSpdpAnnounce) {
+    for (uint8_t slot = 0; slot < m_numParticipants; ++slot) {
+      auto &agent = m_participants[slot].getSPDPAgent();
+      if (agent.isRunning()) {
+        agent.announce();
+      }
+    }
+    m_nextSpdpAnnounce = now + std::chrono::milliseconds(Config::SPDP_RESEND_PERIOD_MS);
+  }
+
+  // Heartbeat ticks for every (initialized) stateful writer; each returns its
+  // next deadline. Uninitialized writers report a far-future deadline.
+  auto next_deadline = m_nextSpdpAnnounce;
+  for (auto &writer : m_statefulWriters) {
+    const auto writer_deadline = writer.heartbeatTick(now);
+    next_deadline = std::min(next_deadline, writer_deadline);
+  }
+
+  // Sleep until the earliest deadline; a publish on a reliable writer (or
+  // stop()) notifies the cv to re-evaluate immediately.
+  std::unique_lock<std::mutex> lock(m);
+  m_protocolMutex = &m;
+  m_protocolCv = &cv;
+  m_protocolNotified = &notified;
+  cv.wait_until(lock, next_deadline, [&notified] { return notified; });
+  if (notified) {
+    notified = false;
+    // Both Domain::stop() and a heartbeat nudge arrive via this cv; the
+    // explicit flag (set before the stop notification) disambiguates. A nudge
+    // simply re-evaluates deadlines on the next iteration.
+    if (m_protocolStopRequested.load()) {
+      return true; // stop requested
+    }
+  }
+  return m_protocolStopRequested.load(); // keep running unless stopping
+}
+
+void Domain::nudgeProtocol() {
+  if (m_protocolMutex != nullptr && m_protocolCv != nullptr && m_protocolNotified != nullptr) {
+    std::lock_guard<std::mutex> lock(*m_protocolMutex);
+    *m_protocolNotified = true;
+    m_protocolCv->notify_all();
+  }
 }
 
 void Domain::datagramJumppad(void *arg, const uint8_t *data, std::size_t size, Ip4Port_t localPort,

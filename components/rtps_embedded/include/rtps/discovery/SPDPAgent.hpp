@@ -59,12 +59,19 @@ public:
   void init(Participant &participant, BuiltInEndpoints &endpoints);
   void start();
   void stop();
+  /// True between start() and stop(); the Domain's protocol scheduler only
+  /// announces for running agents.
+  bool isRunning() const { return m_running; }
+  /// Send one SPDP announcement (+ periodic remote-liveliness check every
+  /// SPDP_CYCLECOUNT_HEARTBEAT rounds). Called by the Domain's protocol
+  /// scheduler at SPDP_RESEND_PERIOD_MS cadence instead of a dedicated
+  /// broadcast thread.
+  void announce();
   std::recursive_mutex m_mutex;
 
 private:
   Participant *mp_participant = nullptr;
   BuiltInEndpoints m_buildInEndpoints;
-  std::unique_ptr<espp::Task> m_broadcastTask;
   bool m_running = false;
   std::array<uint8_t, 1000> m_outputBuffer{}; // TODO check required size
   std::array<uint8_t, 1000> m_inputBuffer{};
@@ -82,8 +89,6 @@ private:
   void addInlineQos();
   void addParticipantParameters();
   void endCurrentList();
-
-  void runBroadcast();
 };
 } // namespace rtps
 

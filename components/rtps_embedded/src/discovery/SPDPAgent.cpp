@@ -54,48 +54,24 @@ void SPDPAgent::init(Participant &participant, BuiltInEndpoints &endpoints) {
   initialized = true;
 }
 
-void SPDPAgent::start() {
-  if (m_running) {
-    return;
-  }
-  m_running = true;
-  if (!m_broadcastTask) {
-    espp::Task::Config config;
-    config.callback = [this]() {
-      runBroadcast();
-      return true;
-    };
-    config.task_config.name = "SPDPThread";
-    config.task_config.stack_size_bytes = Config::SPDP_WRITER_STACKSIZE;
-    config.task_config.priority = Config::SPDP_WRITER_PRIO;
-    config.log_level = espp::Logger::Verbosity::WARN;
-    m_broadcastTask = espp::Task::make_unique(config);
-  }
-  (void)m_broadcastTask->start();
-}
+void SPDPAgent::start() { m_running = true; }
 
-void SPDPAgent::stop() {
-  m_running = false;
-  if (m_broadcastTask) {
-    m_broadcastTask->stop();
-  }
-}
+void SPDPAgent::stop() { m_running = false; }
 
-void SPDPAgent::runBroadcast() {
+void SPDPAgent::announce() {
+  // Exactly one announcement cycle; the Domain's protocol scheduler provides
+  // the SPDP_RESEND_PERIOD_MS cadence (the pacing loop + sleep used to live
+  // here when this was a dedicated thread body).
   const DataSize_t size = ucdr_buffer_length(&m_microbuffer);
   const uint8_t *payload = m_microbuffer.init;
+  // StatelessWriter drops already-sent history; enqueue a fresh SPDP sample
+  // for each announce cycle.
   m_buildInEndpoints.spdpWriter->newChange(ChangeKind_t::ALIVE, payload, size);
-  while (m_running) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(Config::SPDP_RESEND_PERIOD_MS));
-    // StatelessWriter drops already-sent history; enqueue a fresh SPDP sample
-    // for each announce cycle.
-    m_buildInEndpoints.spdpWriter->newChange(ChangeKind_t::ALIVE, payload, size);
-    if (m_cycleHB == Config::SPDP_CYCLECOUNT_HEARTBEAT) {
-      m_cycleHB = 0;
-      mp_participant->checkAndResetHeartbeats();
-    } else {
-      m_cycleHB++;
-    }
+  if (m_cycleHB == Config::SPDP_CYCLECOUNT_HEARTBEAT) {
+    m_cycleHB = 0;
+    mp_participant->checkAndResetHeartbeats();
+  } else {
+    m_cycleHB++;
   }
 }
 

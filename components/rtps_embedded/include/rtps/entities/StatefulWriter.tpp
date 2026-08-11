@@ -51,16 +51,7 @@ using rtps::SubmessageAckNack;
   } while (0)
 #endif
 
-template <class NetworkDriver> StatefulWriterT<NetworkDriver>::~StatefulWriterT() {
-  m_running = false;
-  if (m_heartbeatTask) {
-    m_heartbeatTask->stop();
-  }
-  while (m_thread_running) {
-    // Wait for the heartbeat loop to observe m_running and exit.
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-  }
-}
+template <class NetworkDriver> StatefulWriterT<NetworkDriver>::~StatefulWriterT() = default;
 
 template <class NetworkDriver>
 bool StatefulWriterT<NetworkDriver>::init(TopicData attributes, TopicKind_t topicKind,
@@ -83,33 +74,9 @@ bool StatefulWriterT<NetworkDriver>::init(TopicData attributes, TopicKind_t topi
   // Thread already exists, do not create new one (reusing slot case)
   m_is_initialized_ = true;
 
-  if (!m_thread_running) {
-
-    m_running = true;
-    m_thread_running = false;
-
-    const char *task_name = "HBThread";
-    if (m_attributes.endpointGuid.entityId == ENTITYID_SEDP_BUILTIN_PUBLICATIONS_WRITER) {
-      task_name = "HBThreadPub";
-    } else if (m_attributes.endpointGuid.entityId == ENTITYID_SEDP_BUILTIN_SUBSCRIPTIONS_WRITER) {
-      task_name = "HBThreadSub";
-    }
-
-    if (!m_heartbeatTask) {
-      espp::Task::Config config;
-      config.callback = [this]() {
-        sendHeartBeatLoop();
-        return true;
-      };
-      config.task_config.name = task_name;
-      config.task_config.stack_size_bytes = Config::HEARTBEAT_STACKSIZE;
-      config.task_config.priority = Config::THREAD_POOL_WRITER_PRIO;
-      config.log_level = espp::Logger::Verbosity::WARN;
-      m_heartbeatTask = espp::Task::make_unique(config);
-    }
-
-    (void)m_heartbeatTask->start();
-  }
+  // Heartbeats are driven by the Domain's protocol scheduler via
+  // heartbeatTick(); no per-writer heartbeat thread. Arm the first evaluation.
+  m_nextHeartbeat = std::chrono::steady_clock::now();
 
   return true;
 }
@@ -148,6 +115,13 @@ StatefulWriterT<NetworkDriver>::newChange(ChangeKind_t kind, const uint8_t *data
     // Run the send asynchronously on the transport's worker pool (never inline
     // under the caller's locks), matching the previous ThreadPool semantics.
     m_transport->submit([this]() { progress(); });
+  }
+  // Piggyback: pull the next heartbeat evaluation forward so a reliable
+  // publish is followed promptly by a HEARTBEAT instead of waiting out the
+  // period, and nudge the protocol scheduler.
+  m_nextHeartbeat = std::chrono::steady_clock::now();
+  if (m_protocolNudge) {
+    m_protocolNudge();
   }
 
   SFW_LOG("Adding new data.");
@@ -213,6 +187,13 @@ template <class NetworkDriver> void StatefulWriterT<NetworkDriver>::setAllChange
     // Run the send asynchronously on the transport's worker pool (never inline
     // under the caller's locks), matching the previous ThreadPool semantics.
     m_transport->submit([this]() { progress(); });
+  }
+  // Piggyback: pull the next heartbeat evaluation forward so a reliable
+  // publish is followed promptly by a HEARTBEAT instead of waiting out the
+  // period, and nudge the protocol scheduler.
+  m_nextHeartbeat = std::chrono::steady_clock::now();
+  if (m_protocolNudge) {
+    m_protocolNudge();
   }
 }
 
@@ -428,27 +409,34 @@ bool StatefulWriterT<NetworkDriver>::sendDataWRMulticast(const ReaderProxy &read
   return true;
 }
 
-template <class NetworkDriver> void StatefulWriterT<NetworkDriver>::sendHeartBeatLoop() {
-  m_thread_running = true;
-  while (m_running) {
-    SFW_LOG("HB from loop");
-    sendHeartBeat();
-    dropDisposeAfterWriteChanges();
-    const auto pending_ack_proxy =
-        std::find_if(m_proxies.begin(), m_proxies.end(), [&](const auto &proxy) {
-          return proxy.lastAckNackSequenceNumber < m_nextSequenceNumberToSend;
-        });
-    const bool unconfirmed_changes = pending_ack_proxy != m_proxies.end();
-
-    // Temporarily increase HB frequency if there are unconfirmed remote changes
-    if (unconfirmed_changes) {
-      SFW_LOG("HB speedup");
-      std::this_thread::sleep_for(std::chrono::milliseconds(Config::SF_WRITER_HB_PERIOD_MS / 4));
-    } else {
-      std::this_thread::sleep_for(std::chrono::milliseconds(Config::SF_WRITER_HB_PERIOD_MS));
-    }
+template <class NetworkDriver>
+std::chrono::steady_clock::time_point
+StatefulWriterT<NetworkDriver>::heartbeatTick(std::chrono::steady_clock::time_point now) {
+  if (!m_is_initialized_) {
+    // Not ticking: report a far-future deadline so the scheduler ignores us.
+    return now + std::chrono::hours(24);
   }
-  m_thread_running = false;
+  if (now < m_nextHeartbeat) {
+    return m_nextHeartbeat;
+  }
+  SFW_LOG("HB from tick");
+  sendHeartBeat();
+  dropDisposeAfterWriteChanges();
+  const auto pending_ack_proxy =
+      std::find_if(m_proxies.begin(), m_proxies.end(), [&](const auto &proxy) {
+        return proxy.lastAckNackSequenceNumber < m_nextSequenceNumberToSend;
+      });
+  const bool unconfirmed_changes = pending_ack_proxy != m_proxies.end();
+
+  // Same cadence as the historical per-writer loop: temporarily increase the
+  // HB frequency while there are unconfirmed remote changes.
+  if (unconfirmed_changes) {
+    SFW_LOG("HB speedup");
+    m_nextHeartbeat = now + std::chrono::milliseconds(Config::SF_WRITER_HB_PERIOD_MS / 4);
+  } else {
+    m_nextHeartbeat = now + std::chrono::milliseconds(Config::SF_WRITER_HB_PERIOD_MS);
+  }
+  return m_nextHeartbeat;
 }
 
 template <class NetworkDriver> void StatefulWriterT<NetworkDriver>::dropDisposeAfterWriteChanges() {

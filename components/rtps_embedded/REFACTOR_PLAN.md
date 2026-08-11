@@ -1,6 +1,8 @@
 # RTPS Refactor: embeddedRTPS → an idiomatic espp component
 
-Status: PROPOSAL (design doc for review — no code changes yet)
+Status: IN PROGRESS — Phases 0, 1, and 2 complete (see the git log on
+feat/refactor-embedded-rtps for per-phase commits and their verification gates);
+Phase 2b (Micro-CDR removal) running as a parallel exploration; next: Phase 3.
 
 ## 1. Context
 
