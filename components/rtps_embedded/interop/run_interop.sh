@@ -30,7 +30,7 @@ cmake -S lib -B lib/build -DCMAKE_BUILD_TYPE=Release > /tmp/cmake_lib.log 2>&1 \
   && cmake --build lib/build -j"$(nproc)" --target install > /tmp/build_lib.log 2>&1 \
   && cmake -S pc -B pc/build -DCMAKE_BUILD_TYPE=Release > /tmp/cmake.log 2>&1 \
   && cmake --build pc/build -j"$(nproc)" --target \
-       rtps_embedded_pubsub rtps_embedded_golden \
+       rtps_embedded_pubsub rtps_embedded_golden rtps_facade_pubsub \
        rtps_embedded_interop_pub rtps_embedded_interop_sub > /tmp/build.log 2>&1
 build_rc=$?
 result "build" $build_rc
@@ -46,6 +46,21 @@ note "Golden wire-format tests"
 
 note "espp <-> espp in-process loopback"
 "$BIN"/rtps_embedded_pubsub; result "loopback" $?
+
+note "facade <-> facade in-process (two participants, port probing)"
+"$BIN"/rtps_facade_pubsub; result "facade_loopback" $?
+
+note "espp <-> espp cross-process on one host (port probing)"
+"$BIN"/rtps_embedded_interop_sub xproc std_msgs::msg::dds_::String_ 0 3 20 > /tmp/xsub.log 2>&1 &
+XSUB=$!
+sleep 2
+"$BIN"/rtps_embedded_interop_pub xproc std_msgs::msg::dds_::String_ 0 30 200 > /tmp/xpub.log 2>&1 &
+XPUB=$!
+wait $XSUB
+xsub_rc=$?
+kill $XPUB 2>/dev/null; wait $XPUB 2>/dev/null
+tail -2 /tmp/xsub.log
+result "cross_process" $xsub_rc
 
 note "espp publisher -> ROS 2 subscriber (reliable, rt/chatter)"
 "$BIN"/rtps_embedded_interop_pub rt/chatter std_msgs::msg::dds_::String_ 1 60 200 > /tmp/pub1.log 2>&1 &

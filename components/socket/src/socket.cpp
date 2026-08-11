@@ -162,6 +162,31 @@ bool Socket::set_receive_timeout(const std::chrono::duration<float> &timeout) {
   return true;
 }
 
+bool Socket::disable_reuse() {
+#if !CONFIG_LWIP_SO_REUSE && defined(ESP_PLATFORM)
+  // reuse is not compiled into lwip, so it is already effectively disabled
+  return true;
+#else // CONFIG_LWIP_SO_REUSE || !defined(ESP_PLATFORM)
+  int err = 0;
+  int disabled = 0;
+  err = setsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char *>(&disabled),
+                   sizeof(disabled));
+  if (err < 0) {
+    fmt::print(fg(fmt::color::red), "Couldn't clear SO_REUSEADDR: {}\n", error_string());
+    return false;
+  }
+#if !defined(ESP_PLATFORM) && !defined(_MSC_VER)
+  err = setsockopt(socket_, SOL_SOCKET, SO_REUSEPORT, reinterpret_cast<const char *>(&disabled),
+                   sizeof(disabled));
+  if (err < 0) {
+    fmt::print(fg(fmt::color::red), "Couldn't clear SO_REUSEPORT: {}\n", error_string());
+    return false;
+  }
+#endif // !defined(ESP_PLATFORM) && !defined(_MSC_VER)
+  return true;
+#endif // !CONFIG_LWIP_SO_REUSE && defined(ESP_PLATFORM)
+}
+
 bool Socket::enable_reuse() {
 #if !CONFIG_LWIP_SO_REUSE && defined(ESP_PLATFORM)
   fmt::print(fg(fmt::color::red), "CONFIG_LWIP_SO_REUSE not defined!\n");

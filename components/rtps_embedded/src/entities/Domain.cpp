@@ -65,8 +65,10 @@ Domain::Domain(rtps::EsppTransport &transport, const rtps::Ip4AddressBytes &loca
 bool Domain::initializeTransport() {
   assert(m_transport != nullptr);
   bool success = true;
-  success = m_transport->ensureReceivePort(getUserMulticastPort()) && success;
-  success = m_transport->ensureReceivePort(getBuiltInMulticastPort()) && success;
+  success =
+      m_transport->ensureReceivePort(getUserMulticastPort(), /*is_multicast=*/true) && success;
+  success =
+      m_transport->ensureReceivePort(getBuiltInMulticastPort(), /*is_multicast=*/true) && success;
   success = m_transport->joinMultiCastGroup({239, 255, 0, 1}) && success;
   return success;
 }
@@ -87,15 +89,15 @@ bool Domain::completeInit() {
     return false;
   }
 
-  for (auto i = 0; i < m_nextParticipantId; i++) {
-    m_participants[i].getSPDPAgent().start();
+  for (uint8_t slot = 0; slot < m_numParticipants; ++slot) {
+    m_participants[slot].getSPDPAgent().start();
   }
   return m_initComplete;
 }
 
 void Domain::stop() {
-  for (auto i = PARTICIPANT_START_ID; i < m_nextParticipantId; ++i) {
-    m_participants[i - PARTICIPANT_START_ID].getSPDPAgent().stop();
+  for (uint8_t slot = 0; slot < m_numParticipants; ++slot) {
+    m_participants[slot].getSPDPAgent().stop();
   }
   m_threadPool.stopThreads();
 }
@@ -117,18 +119,18 @@ void Domain::receiveCallback(const PacketInfo &packet) {
   if (isMetaMultiCastPort(packet.destPort)) {
     // Pass to all
     DOMAIN_LOG("Domain: Multicast to port {}", packet.destPort);
-    for (auto i = 0; i < m_nextParticipantId - PARTICIPANT_START_ID; ++i) {
-      m_participants[i].newMessage(payload, payload_size);
+    for (uint8_t slot = 0; slot < m_numParticipants; ++slot) {
+      m_participants[slot].newMessage(payload, payload_size);
     }
     // First Check if UserTraffic Multicast
   } else if (isUserMultiCastPort(packet.destPort)) {
     // Pass to Participant with assigned Multicast Adress (Port ist everytime
     // the same)
     DOMAIN_LOG("Domain: Got user multicast message on port {}", packet.destPort);
-    for (auto i = 0; i < m_nextParticipantId - PARTICIPANT_START_ID; ++i) {
-      if (m_participants[i].hasReaderWithMulticastLocator(packet.destAddr)) {
-        DOMAIN_LOG("Domain: Forward Multicast only to Participant: {}", i);
-        m_participants[i].newMessage(payload, payload_size);
+    for (uint8_t slot = 0; slot < m_numParticipants; ++slot) {
+      if (m_participants[slot].hasReaderWithMulticastLocator(packet.destAddr)) {
+        DOMAIN_LOG("Domain: Forward Multicast only to Participant: {}", slot);
+        m_participants[slot].newMessage(payload, payload_size);
       }
     }
   } else {
@@ -137,11 +139,13 @@ void Domain::receiveCallback(const PacketInfo &packet) {
         getParticipantIdFromUnicastPort(packet.destPort, isUserPort(packet.destPort));
     if (id != PARTICIPANT_ID_INVALID) {
       DOMAIN_LOG("Domain: Got unicast message on port {}", packet.destPort);
-      if (id < m_nextParticipantId && id >= PARTICIPANT_START_ID) { // added extra check to avoid
-                                                                    // segfault (id below START_ID)
-        m_participants[id - PARTICIPANT_START_ID].newMessage(payload, payload_size);
+      // Ids may be non-contiguous after port probing, so look the participant
+      // up by id rather than indexing slots arithmetically.
+      Participant *target = findParticipantById(id);
+      if (target != nullptr) {
+        target->newMessage(payload, payload_size);
       } else {
-        DOMAIN_LOG("Domain: Participant id too high or unplausible.");
+        DOMAIN_LOG("Domain: No local participant with id {}.", id);
       }
     } else {
       DOMAIN_LOG("Domain: Got message to port {}: no matching participant", packet.destPort);
@@ -153,16 +157,42 @@ rtps::Participant *Domain::createParticipant() {
 
   DOMAIN_LOG("Domain: Creating new participant.");
 
-  auto nextSlot = static_cast<uint8_t>(m_nextParticipantId - PARTICIPANT_START_ID);
-  if (m_initComplete || m_participants.size() <= nextSlot) {
+  if (m_initComplete || m_participants.size() <= m_numParticipants) {
     return nullptr;
   }
 
-  auto &entry = m_participants[nextSlot];
-  entry.reuse(generateGuidPrefix(m_nextParticipantId), m_nextParticipantId, m_localIpAddress);
-  registerPort(entry);
+  // Probe for a participant id whose unicast ports are free on this host.
+  // Unicast channels bind with reuse disabled, so an id already used by
+  // another process fails loudly here and we advance to the next id - the
+  // same strategy FastDDS uses. Ids may therefore skip values; slots are
+  // tracked separately (m_numParticipants).
+  ParticipantId_t candidate = m_nextParticipantId;
+  const ParticipantId_t last_candidate = m_nextParticipantId + PARTICIPANT_PORT_PROBE_LIMIT;
+  bool ports_ok = false;
+  for (; candidate < last_candidate; ++candidate) {
+    if (!m_transport->ensureReceivePort(getUserUnicastPort(candidate), /*is_multicast=*/false)) {
+      continue;
+    }
+    if (m_transport->ensureReceivePort(getBuiltInUnicastPort(candidate), /*is_multicast=*/false)) {
+      ports_ok = true;
+      break;
+    }
+    // unwind the half-registered probe before trying the next id
+    m_transport->releaseReceivePort(getUserUnicastPort(candidate));
+  }
+  if (!ports_ok) {
+    DOMAIN_LOG("No free unicast ports for a new participant (probed {} ids from {})",
+               PARTICIPANT_PORT_PROBE_LIMIT, m_nextParticipantId);
+    m_transportSetupOk = false;
+    return nullptr;
+  }
+
+  auto &entry = m_participants[m_numParticipants];
+  ++m_numParticipants;
+  entry.reuse(generateGuidPrefix(candidate), candidate, m_localIpAddress);
+  m_threadPool.addBuiltinPort(getBuiltInUnicastPort(candidate));
   createBuiltinWritersAndReaders(entry);
-  ++m_nextParticipantId;
+  m_nextParticipantId = static_cast<ParticipantId_t>(candidate + 1);
   return &entry;
 }
 
@@ -237,19 +267,20 @@ void Domain::createBuiltinWritersAndReaders(Participant &part) {
   part.addBuiltInEndpoints(endpoints);
 }
 
-void Domain::registerPort(const Participant &part) {
-  m_transportSetupOk = m_transport->ensureReceivePort(getUserUnicastPort(part.m_participantId)) &&
-                       m_transportSetupOk;
-  m_transportSetupOk =
-      m_transport->ensureReceivePort(getBuiltInUnicastPort(part.m_participantId)) &&
-      m_transportSetupOk;
-  m_threadPool.addBuiltinPort(getBuiltInUnicastPort(part.m_participantId));
+rtps::Participant *Domain::findParticipantById(ParticipantId_t id) {
+  for (uint8_t slot = 0; slot < m_numParticipants; ++slot) {
+    if (m_participants[slot].m_participantId == id) {
+      return &m_participants[slot];
+    }
+  }
+  return nullptr;
 }
 
 void Domain::registerMulticastPort(FullLengthLocator mcastLocator) {
   if (mcastLocator.kind == LocatorKind_t::LOCATOR_KIND_UDPv4) {
     m_transportSetupOk =
-        m_transport->ensureReceivePort(mcastLocator.getLocatorPort()) && m_transportSetupOk;
+        m_transport->ensureReceivePort(mcastLocator.getLocatorPort(), /*is_multicast=*/true) &&
+        m_transportSetupOk;
   }
 }
 

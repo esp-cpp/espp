@@ -123,7 +123,7 @@ bool EsppTransport::startReceiver(Channel &channel, Ip4Port_t receivePort) {
   return started;
 }
 
-EsppTransport::Channel *EsppTransport::createChannel(Ip4Port_t receivePort) {
+EsppTransport::Channel *EsppTransport::createChannel(Ip4Port_t receivePort, bool allow_reuse) {
   for (auto &channel : m_channels) {
     if (channel.in_use) {
       continue;
@@ -134,6 +134,12 @@ EsppTransport::Channel *EsppTransport::createChannel(Ip4Port_t receivePort) {
     channel.socket = std::make_unique<espp::UdpSocket>(socket_config);
     if (!channel.socket->is_valid()) {
       logger_.error("Failed to create valid UDP socket for port {}", receivePort);
+      channel.socket.reset();
+      return nullptr;
+    }
+
+    if (!allow_reuse && !channel.socket->disable_reuse()) {
+      logger_.error("Failed to disable port reuse for unicast port {}", receivePort);
       channel.socket.reset();
       return nullptr;
     }
@@ -172,7 +178,7 @@ void EsppTransport::onReceive(Ip4Port_t receivePort, std::vector<uint8_t> &data,
                static_cast<Ip4Port_t>(sender.port), remoteAddress);
 }
 
-bool EsppTransport::ensureReceivePort(Ip4Port_t receivePort) {
+bool EsppTransport::ensureReceivePort(Ip4Port_t receivePort, bool is_multicast) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
   Channel *existing = findChannel(receivePort);
@@ -180,8 +186,23 @@ bool EsppTransport::ensureReceivePort(Ip4Port_t receivePort) {
     return true;
   }
 
-  Channel *created = createChannel(receivePort);
+  Channel *created = createChannel(receivePort, /*allow_reuse=*/is_multicast);
   return created != nullptr;
+}
+
+bool EsppTransport::releaseReceivePort(Ip4Port_t receivePort) {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  Channel *channel = findChannel(receivePort);
+  if (channel == nullptr) {
+    return false;
+  }
+  if (channel->socket) {
+    channel->socket->stop_receiving();
+    channel->socket.reset();
+  }
+  channel->port = 0;
+  channel->in_use = false;
+  return true;
 }
 
 bool EsppTransport::joinMultiCastGroup(const Ip4AddressBytes &addr) const {
@@ -225,7 +246,9 @@ void EsppTransport::sendPacket(PacketInfo &info) {
 
   Channel *channel = findChannel(info.srcPort);
   if (channel == nullptr) {
-    channel = createChannel(info.srcPort);
+    // Sending from one of our own unicast ports: apply unicast semantics
+    // (no port sharing) if the channel was not already registered.
+    channel = createChannel(info.srcPort, /*allow_reuse=*/false);
   }
 
   if (channel == nullptr || !channel->socket) {

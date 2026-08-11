@@ -47,7 +47,14 @@ public:
   EsppTransport(RxCallback callback, void *args);
   ~EsppTransport() = default;
 
-  bool ensureReceivePort(Ip4Port_t receivePort);
+  /// Ensure a receive channel exists for the port. Unicast ports are bound
+  /// with address/port reuse DISABLED so an in-use port fails loudly (the
+  /// Domain then probes the next participant id); multicast ports keep reuse
+  /// enabled so multiple processes on one host can share them.
+  bool ensureReceivePort(Ip4Port_t receivePort, bool is_multicast);
+  /// Tear down the receive channel for a port (used to unwind a partially
+  /// successful unicast port probe).
+  bool releaseReceivePort(Ip4Port_t receivePort);
   bool joinMultiCastGroup(const Ip4AddressBytes &addr) const;
   void sendPacket(PacketInfo &info);
 
@@ -60,7 +67,7 @@ private:
 
   Channel *findChannel(Ip4Port_t port);
   const Channel *findChannel(Ip4Port_t port) const;
-  Channel *createChannel(Ip4Port_t receivePort);
+  Channel *createChannel(Ip4Port_t receivePort, bool allow_reuse);
   bool startReceiver(Channel &channel, Ip4Port_t receivePort);
   void onReceive(Ip4Port_t receivePort, std::vector<uint8_t> &data,
                  const espp::Socket::Info &sender) const;

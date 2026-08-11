@@ -74,7 +74,15 @@ private:
   std::array<Participant, Config::MAX_NUM_PARTICIPANTS> m_participants;
   Ip4AddressBytes m_localIpAddress{{0, 0, 0, 0}};
   const uint8_t PARTICIPANT_START_ID = 0;
+  /// Next participant id to try; ids may skip values when a unicast port is
+  /// already taken on this host (another process) and the id is probed forward.
   ParticipantId_t m_nextParticipantId = PARTICIPANT_START_ID;
+  /// Number of participants created in this domain (slot count into
+  /// m_participants; independent of the probed participant ids).
+  uint8_t m_numParticipants = 0;
+  /// How many participant ids to probe for free unicast ports before giving up.
+  static constexpr uint8_t PARTICIPANT_PORT_PROBE_LIMIT = 16;
+  Participant *findParticipantById(ParticipantId_t id);
 
   std::array<StatelessWriter, Config::NUM_STATELESS_WRITERS> m_statelessWriters;
   std::array<StatelessReader, Config::NUM_STATELESS_READERS> m_statelessReaders;
@@ -97,7 +105,6 @@ private:
   GuidPrefix_t generateGuidPrefix(ParticipantId_t id) const;
   void createBuiltinWritersAndReaders(Participant &part);
   bool initializeTransport();
-  void registerPort(const Participant &part);
   void registerMulticastPort(FullLengthLocator mcastLocator);
   static void receiveJumppad(void *callee, const PacketInfo &packet);
 };

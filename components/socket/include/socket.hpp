@@ -185,6 +185,17 @@ public:
   bool enable_reuse();
 
   /**
+   * @brief Disallow sharing this address/port combination.
+   * espp sockets enable address/port reuse at creation (see Socket::init), so a
+   * second bind of an in-use port silently succeeds. Call this before bind()
+   * when a conflict must fail loudly instead - e.g. RTPS unicast ports, where
+   * each participant needs a unique port and probes the next candidate on bind
+   * failure.
+   * @return true if SO_REUSEADDR and SO_REUSEPORT were successfully cleared.
+   */
+  bool disable_reuse();
+
+  /**
    * @brief Configure the socket to be multicast (if time_to_live > 0).
    *        Sets the IP_MULTICAST_TTL (number of multicast hops allowed) and
    *        optionally configures whether this node should receive its own
