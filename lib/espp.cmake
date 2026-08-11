@@ -34,7 +34,6 @@ set(ESPP_INCLUDES
   ${ESPP_COMPONENTS}/math/include
   ${ESPP_COMPONENTS}/ndef/include
   ${ESPP_COMPONENTS}/pid/include
-  ${ESPP_COMPONENTS}/rtps/include
   ${ESPP_COMPONENTS}/rtps_embedded/include
   ${ESPP_COMPONENTS}/rtps_embedded/thirdparty/Micro-CDR/include
   ${ESPP_COMPONENTS}/rtsp/include
@@ -60,8 +59,8 @@ set(ESPP_SOURCES
   ${ESPP_COMPONENTS}/filters/src/lowpass_filter.cpp
   ${ESPP_COMPONENTS}/filters/src/simple_lowpass_filter.cpp
   ${ESPP_COMPONENTS}/joystick/src/joystick.cpp
-  ${ESPP_COMPONENTS}/rtps/src/rtps.cpp
   ${ESPP_COMPONENTS}/rtps_embedded/src/ThreadPool.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/src/rtps_participant.cpp
   ${ESPP_COMPONENTS}/rtps_embedded/src/communication/EsppTransport.cpp
   ${ESPP_COMPONENTS}/rtps_embedded/src/discovery/ParticipantProxyData.cpp
   ${ESPP_COMPONENTS}/rtps_embedded/src/discovery/SEDPAgent.cpp
