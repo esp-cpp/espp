@@ -41,8 +41,8 @@ public:
   StatelessWriterT()
       : m_transport(nullptr) {}
   ~StatelessWriterT() override;
-  bool init(TopicData attributes, TopicKind_t topicKind, ThreadPool *threadPool,
-            NetworkDriver &driver, bool enfUnicast = false);
+  bool init(TopicData attributes, TopicKind_t topicKind, NetworkDriver &driver,
+            bool enfUnicast = false);
 
   void progress() override;
   const CacheChange *newChange(ChangeKind_t kind, const uint8_t *data, DataSize_t size,

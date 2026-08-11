@@ -64,12 +64,11 @@ template <class NetworkDriver> StatefulWriterT<NetworkDriver>::~StatefulWriterT(
 
 template <class NetworkDriver>
 bool StatefulWriterT<NetworkDriver>::init(TopicData attributes, TopicKind_t topicKind,
-                                          ThreadPool *threadPool, NetworkDriver &driver,
+                                          NetworkDriver &driver,
                                           bool enfUnicast) {
 
   m_attributes = attributes;
 
-  mp_threadPool = threadPool;
   m_srcPort = attributes.unicastLocator.port;
   m_enforceUnicast = enfUnicast;
   m_topicKind = topicKind;
@@ -145,8 +144,10 @@ StatefulWriterT<NetworkDriver>::newChange(ChangeKind_t kind, const uint8_t *data
   }
 
   auto *result = m_history.addChange(data, size, inLineQoS, markDisposedAfterWrite);
-  if (mp_threadPool != nullptr) {
-    mp_threadPool->addWorkload(this);
+  if (m_transport != nullptr) {
+    // Run the send asynchronously on the transport's worker pool (never inline
+    // under the caller's locks), matching the previous ThreadPool semantics.
+    m_transport->submit([this]() { progress(); });
   }
 
   SFW_LOG("Adding new data.");
@@ -208,8 +209,10 @@ template <class NetworkDriver> void StatefulWriterT<NetworkDriver>::setAllChange
 
   m_nextSequenceNumberToSend = m_history.getCurrentSeqNumMin();
 
-  if (mp_threadPool != nullptr) {
-    mp_threadPool->addWorkload(this);
+  if (m_transport != nullptr) {
+    // Run the send asynchronously on the transport's worker pool (never inline
+    // under the caller's locks), matching the previous ThreadPool semantics.
+    m_transport->submit([this]() { progress(); });
   }
 }
 

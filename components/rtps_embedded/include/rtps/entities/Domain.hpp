@@ -27,7 +27,6 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #define RTPS_DOMAIN_H
 
 #include "base_component.hpp"
-#include "rtps/ThreadPool.hpp"
 #include "rtps/common/types.hpp"
 #include "rtps/communication/EsppTransport.hpp"
 #include "rtps/config.hpp"
@@ -67,7 +66,11 @@ public:
 
 private:
   friend class SizeInspector;
-  ThreadPool m_threadPool;
+  /// ReceiveCallback adapter: builds a PacketInfo from a raw datagram and
+  /// processes it inline on the transport worker that delivered it (the
+  /// reactor guarantees per-socket ordering).
+  static void datagramJumppad(void *arg, const uint8_t *data, std::size_t size, Ip4Port_t localPort,
+                              Ip4Port_t remotePort, const Ip4AddressBytes &remoteAddress);
   using DefaultTransport = EsppTransport;
   DefaultTransport m_defaultTransport;
   EsppTransport *m_transport = nullptr;

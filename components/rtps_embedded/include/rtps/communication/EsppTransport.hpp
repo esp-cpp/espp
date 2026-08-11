@@ -31,6 +31,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/communication/PacketInfo.hpp"
 #include "rtps/config.hpp"
 #include "socket_reactor.hpp"
+#include "thread_pool.hpp"
 #include "udp_socket.hpp"
 
 #include <array>
@@ -59,6 +60,17 @@ public:
   bool joinMultiCastGroup(const Ip4AddressBytes &addr) const;
   void sendPacket(PacketInfo &info);
 
+  /// Submit asynchronous protocol work (e.g. a writer's progress()) onto the
+  /// transport's shared worker pool - the same pool the reactor dispatches
+  /// received datagrams on. Non-blocking; returns false (and logs) when the
+  /// pool queue is full or stopped.
+  bool submit(std::function<void()> job);
+
+  /// Stop receive dispatch and the worker pool. Must be called before the
+  /// objects referenced by in-flight/queued jobs (writers, participants) are
+  /// destroyed; safe to call more than once.
+  void stop();
+
 private:
   struct Channel {
     Ip4Port_t port{0};
@@ -80,6 +92,10 @@ private:
   void *m_callbackArgs{nullptr};
   mutable std::recursive_mutex m_mutex;
   std::array<Channel, Config::MAX_NUM_UDP_CONNECTIONS> m_channels{};
+  /// Shared worker pool for received-datagram dispatch (via the reactor) and
+  /// asynchronous writer work (submit()). Declared after m_channels and before
+  /// m_reactor: destruction runs reactor -> pool -> channels.
+  std::shared_ptr<espp::ThreadPool> m_pool{};
   /// One select() loop + a small shared worker pool multiplexes every receive
   /// socket (SocketReactor's one-shot arming preserves per-socket ordering,
   /// which RTPS requires per locator), replacing a dedicated blocking-recv

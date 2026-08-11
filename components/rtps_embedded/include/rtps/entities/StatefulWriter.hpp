@@ -27,10 +27,12 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #define RTPS_STATEFULWRITER_H
 
 #include "rtps/common/types.hpp"
+#include "rtps/communication/PacketInfo.hpp"
 #include "rtps/entities/ReaderProxy.hpp"
 #include "rtps/entities/Writer.hpp"
 #include "rtps/storages/HistoryCacheWithDeletion.hpp"
 #include "rtps/storages/MemoryPool.hpp"
+#include "rtps/storages/ThreadSafeCircularBuffer.hpp"
 #include "task.hpp"
 
 #include <memory>
@@ -44,8 +46,8 @@ public:
   StatefulWriterT()
       : m_transport(nullptr) {}
   ~StatefulWriterT() override;
-  bool init(TopicData attributes, TopicKind_t topicKind, ThreadPool *threadPool,
-            NetworkDriver &driver, bool enfUnicast = false);
+  bool init(TopicData attributes, TopicKind_t topicKind, NetworkDriver &driver,
+            bool enfUnicast = false);
 
   //! Executes required steps like sending packets. Intended to be called by
   //! worker threads

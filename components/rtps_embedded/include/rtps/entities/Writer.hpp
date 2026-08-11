@@ -27,7 +27,6 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #define RTPS_WRITER_H
 
 #include "base_component.hpp"
-#include "rtps/ThreadPool.hpp"
 #include "rtps/discovery/TopicData.hpp"
 #include "rtps/entities/ReaderProxy.hpp"
 #include "rtps/storages/CacheChange.hpp"
@@ -88,7 +87,6 @@ protected:
   SequenceNumber_t m_sedp_sequence_number;
 
   std::recursive_mutex m_mutex;
-  ThreadPool *mp_threadPool = nullptr;
 
   Ip4Port_t m_srcPort;
 

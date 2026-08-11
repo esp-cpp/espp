@@ -26,7 +26,6 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include <rtps/entities/ReaderProxy.hpp>
 #include <rtps/entities/Writer.hpp>
 
-#include "rtps/ThreadPool.hpp"
 #include "rtps/messages/MessageFactory.hpp"
 #include "rtps/storages/PayloadBuffer.hpp"
 #include "rtps/utils/Log.hpp"
@@ -56,12 +55,11 @@ template <class NetworkDriver> StatelessWriterT<NetworkDriver>::~StatelessWriter
 
 template <typename NetworkDriver>
 bool StatelessWriterT<NetworkDriver>::init(TopicData attributes, TopicKind_t topicKind,
-                                           ThreadPool *threadPool, NetworkDriver &driver,
+                                           NetworkDriver &driver,
                                            bool enfUnicast) {
 
   m_attributes = attributes;
 
-  mp_threadPool = threadPool;
   m_srcPort = attributes.unicastLocator.port;
   m_enforceUnicast = enfUnicast;
 
@@ -104,8 +102,10 @@ const CacheChange *StatelessWriterT<NetworkDriver>::newChange(rtps::ChangeKind_t
   }
 
   auto *result = m_history.addChange(data, size);
-  if (mp_threadPool != nullptr) {
-    mp_threadPool->addWorkload(this);
+  if (m_transport != nullptr) {
+    // Run the send asynchronously on the transport's worker pool (never inline
+    // under the caller's locks), matching the previous ThreadPool semantics.
+    m_transport->submit([this]() { progress(); });
   }
 
   SLW_LOG("Adding new data.");
@@ -124,8 +124,10 @@ template <typename NetworkDriver> void StatelessWriterT<NetworkDriver>::setAllCh
 
   m_nextSequenceNumberToSend = m_history.getSeqNumMin();
 
-  if (mp_threadPool != nullptr) {
-    mp_threadPool->addWorkload(this);
+  if (m_transport != nullptr) {
+    // Run the send asynchronously on the transport's worker pool (never inline
+    // under the caller's locks), matching the previous ThreadPool semantics.
+    m_transport->submit([this]() { progress(); });
   }
 }
 

@@ -59,7 +59,6 @@ set(ESPP_SOURCES
   ${ESPP_COMPONENTS}/filters/src/lowpass_filter.cpp
   ${ESPP_COMPONENTS}/filters/src/simple_lowpass_filter.cpp
   ${ESPP_COMPONENTS}/joystick/src/joystick.cpp
-  ${ESPP_COMPONENTS}/rtps_embedded/src/ThreadPool.cpp
   ${ESPP_COMPONENTS}/rtps_embedded/src/rtps_participant.cpp
   ${ESPP_COMPONENTS}/rtps_embedded/src/communication/EsppTransport.cpp
   ${ESPP_COMPONENTS}/rtps_embedded/src/discovery/ParticipantProxyData.cpp

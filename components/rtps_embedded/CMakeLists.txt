@@ -1,6 +1,5 @@
 idf_component_register(
   SRCS
-    "src/ThreadPool.cpp"
     "src/rtps_participant.cpp"
     "src/communication/EsppTransport.cpp"
     "src/discovery/ParticipantProxyData.cpp"

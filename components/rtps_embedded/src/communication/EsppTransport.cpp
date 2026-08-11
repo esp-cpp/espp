@@ -73,13 +73,17 @@ EsppTransport::EsppTransport(RxCallback callback, void *args)
     : espp::BaseComponent("RtpsTransport", espp::Logger::Verbosity::WARN)
     , m_rxCallback(callback)
     , m_callbackArgs(args) {
-  espp::SocketReactor::Config reactor_config;
-  reactor_config.pool_config.worker_count = 2;
-  reactor_config.pool_config.worker_task_config = {
-      .name = "rtps_rx_worker",
+  espp::ThreadPool::Config pool_config;
+  pool_config.worker_count = 2;
+  pool_config.worker_task_config = {
+      .name = "rtps_worker",
       .stack_size_bytes = Config::THREAD_POOL_READER_STACKSIZE,
       .priority = Config::THREAD_POOL_READER_PRIO,
   };
+  m_pool = std::make_shared<espp::ThreadPool>(pool_config);
+
+  espp::SocketReactor::Config reactor_config;
+  reactor_config.thread_pool = m_pool;
   reactor_config.loop_task_config = {
       .name = "rtps_reactor",
       .stack_size_bytes = Config::THREAD_POOL_READER_STACKSIZE,
@@ -190,6 +194,23 @@ void EsppTransport::onReceive(Ip4Port_t receivePort, std::vector<uint8_t> &data,
                 receivePort);
   m_rxCallback(m_callbackArgs, data.data(), data.size(), receivePort,
                static_cast<Ip4Port_t>(sender.port), remoteAddress);
+}
+
+bool EsppTransport::submit(std::function<void()> job) {
+  if (!m_pool || !m_pool->try_submit(std::move(job))) {
+    logger_.warn("Transport worker pool rejected a job (stopped or queue full)");
+    return false;
+  }
+  return true;
+}
+
+void EsppTransport::stop() {
+  if (m_reactor) {
+    m_reactor->stop();
+  }
+  if (m_pool) {
+    m_pool->stop();
+  }
 }
 
 bool EsppTransport::ensureReceivePort(Ip4Port_t receivePort, bool is_multicast) {

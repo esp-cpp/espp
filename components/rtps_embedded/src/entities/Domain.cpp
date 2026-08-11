@@ -46,8 +46,7 @@ using rtps::Domain;
 
 Domain::Domain(const rtps::Ip4AddressBytes &localIpAddress)
     : espp::BaseComponent("RtpsDomain", espp::Logger::Verbosity::WARN)
-    , m_threadPool(receiveJumppad, this)
-    , m_defaultTransport(ThreadPool::onDatagram, &m_threadPool)
+    , m_defaultTransport(&Domain::datagramJumppad, this)
     , m_transport(&m_defaultTransport)
     , m_localIpAddress(localIpAddress) {
   m_transportSetupOk = initializeTransport();
@@ -55,8 +54,7 @@ Domain::Domain(const rtps::Ip4AddressBytes &localIpAddress)
 
 Domain::Domain(rtps::EsppTransport &transport, const rtps::Ip4AddressBytes &localIpAddress)
     : espp::BaseComponent("RtpsDomain", espp::Logger::Verbosity::WARN)
-    , m_threadPool(receiveJumppad, this)
-    , m_defaultTransport(ThreadPool::onDatagram, &m_threadPool)
+    , m_defaultTransport(&Domain::datagramJumppad, this)
     , m_transport(&transport)
     , m_localIpAddress(localIpAddress) {
   m_transportSetupOk = initializeTransport();
@@ -82,12 +80,7 @@ bool Domain::completeInit() {
     return false;
   }
 
-  m_initComplete = m_threadPool.startThreads();
-
-  if (!m_initComplete) {
-    DOMAIN_LOG("Failed starting threads");
-    return false;
-  }
+  m_initComplete = true;
 
   for (uint8_t slot = 0; slot < m_numParticipants; ++slot) {
     m_participants[slot].getSPDPAgent().start();
@@ -99,11 +92,30 @@ void Domain::stop() {
   for (uint8_t slot = 0; slot < m_numParticipants; ++slot) {
     m_participants[slot].getSPDPAgent().stop();
   }
-  m_threadPool.stopThreads();
+  // Stop receive dispatch + the worker pool BEFORE participants/writers are
+  // torn down: queued jobs and in-flight datagram handlers reference them.
+  m_transport->stop();
 }
 
 void Domain::receiveJumppad(void *callee, const PacketInfo &packet) {
   auto domain = static_cast<Domain *>(callee);
+  domain->receiveCallback(packet);
+}
+
+void Domain::datagramJumppad(void *arg, const uint8_t *data, std::size_t size, Ip4Port_t localPort,
+                             Ip4Port_t remotePort, const Ip4AddressBytes &remoteAddress) {
+  auto *domain = static_cast<Domain *>(arg);
+
+  PacketInfo packet;
+  packet.destAddr = remoteAddress;
+  packet.destPort = localPort;
+  packet.srcPort = remotePort;
+  if (size > 0 && data != nullptr) {
+    packet.payload.assign(data, data + size);
+  }
+  // Process inline on the transport worker that delivered the datagram: the
+  // reactor's one-shot arming already serializes per socket, replacing the
+  // former queue + reader-worker indirection.
   domain->receiveCallback(packet);
 }
 
@@ -190,7 +202,6 @@ rtps::Participant *Domain::createParticipant() {
   auto &entry = m_participants[m_numParticipants];
   ++m_numParticipants;
   entry.reuse(generateGuidPrefix(candidate), candidate, m_localIpAddress);
-  m_threadPool.addBuiltinPort(getBuiltInUnicastPort(candidate));
   createBuiltinWritersAndReaders(entry);
   m_nextParticipantId = static_cast<ParticipantId_t>(candidate + 1);
   return &entry;
@@ -212,7 +223,7 @@ void Domain::createBuiltinWritersAndReaders(Participant &part) {
   spdpWriterAttributes.endpointGuid.entityId = ENTITYID_SPDP_BUILTIN_PARTICIPANT_WRITER;
   spdpWriterAttributes.unicastLocator = getBuiltInMulticastLocator();
 
-  spdpWriter->init(spdpWriterAttributes, TopicKind_t::WITH_KEY, &m_threadPool, *m_transport);
+  spdpWriter->init(spdpWriterAttributes, TopicKind_t::WITH_KEY, *m_transport);
   spdpWriter->addNewMatchedReader(
       ReaderProxy{{part.m_guidPrefix, ENTITYID_SPDP_BUILTIN_PARTICIPANT_READER},
                   LocatorIPv4(getBuiltInMulticastLocator()),
@@ -248,12 +259,12 @@ void Domain::createBuiltinWritersAndReaders(Participant &part) {
   StatefulWriter *sedpPubWriter =
       getNextUnusedEndpoint<decltype(m_statefulWriters), StatefulWriter>(m_statefulWriters);
   sedpAttributes.endpointGuid.entityId = ENTITYID_SEDP_BUILTIN_PUBLICATIONS_WRITER;
-  sedpPubWriter->init(sedpAttributes, TopicKind_t::NO_KEY, &m_threadPool, *m_transport);
+  sedpPubWriter->init(sedpAttributes, TopicKind_t::NO_KEY, *m_transport);
 
   StatefulWriter *sedpSubWriter =
       getNextUnusedEndpoint<decltype(m_statefulWriters), StatefulWriter>(m_statefulWriters);
   sedpAttributes.endpointGuid.entityId = ENTITYID_SEDP_BUILTIN_SUBSCRIPTIONS_WRITER;
-  sedpSubWriter->init(sedpAttributes, TopicKind_t::NO_KEY, &m_threadPool, *m_transport);
+  sedpSubWriter->init(sedpAttributes, TopicKind_t::NO_KEY, *m_transport);
 
   // COLLECT
   BuiltInEndpoints endpoints{};
@@ -411,8 +422,7 @@ rtps::Writer *Domain::createWriter(Participant &part, const char *topicName, con
   if (reliable) {
     attributes.reliabilityKind = ReliabilityKind_t::RELIABLE;
 
-    if (!statefulWriter->init(attributes, TopicKind_t::NO_KEY, &m_threadPool, *m_transport,
-                              enforceUnicast)) {
+    if (!statefulWriter->init(attributes, TopicKind_t::NO_KEY, *m_transport, enforceUnicast)) {
       DOMAIN_LOG("StatefulWriter init failed.");
       return nullptr;
     }
@@ -424,8 +434,7 @@ rtps::Writer *Domain::createWriter(Participant &part, const char *topicName, con
   } else {
     attributes.reliabilityKind = ReliabilityKind_t::BEST_EFFORT;
 
-    if (!statelessWriter->init(attributes, TopicKind_t::NO_KEY, &m_threadPool, *m_transport,
-                               enforceUnicast)) {
+    if (!statelessWriter->init(attributes, TopicKind_t::NO_KEY, *m_transport, enforceUnicast)) {
       DOMAIN_LOG("StatelessWriter init failed.");
       return nullptr;
     }
