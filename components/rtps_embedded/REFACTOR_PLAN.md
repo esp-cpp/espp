@@ -369,7 +369,11 @@ Each phase is a separate PR, and **must pass the Phase 0 interop gate before mer
 - **Phase 2 — Infrastructure swap.** Receive path → `SocketReactor`; embeddedRTPS
   ThreadPool deleted; heartbeat/SPDP threads → single deadline-scheduled protocol task;
   heartbeat suppression + publish piggyback. (Biggest efficiency win; engine state
-  machines untouched.)
+  machines untouched.) Also fix unicast port allocation: today every process starts at
+  participantId 0 and SO_REUSE lets a second process silently share the same unicast
+  ports instead of bind-failing and probing to the next participantId (found in
+  Phase 0c: two espp processes on one host cannot discover each other; the harness
+  works around it by starting the espp side first — FastDDS probes past taken ports).
 - **Phase 3 — De-templating & hierarchy collapse.** Remove `NetworkDriver` template,
   fold `.tpp`, concrete transport, `BaseComponent` only at the facade, per-subobject
   locks. Pure mechanical/behavior-preserving; golden tests + interop gate confirm.

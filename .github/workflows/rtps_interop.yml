@@ -1,0 +1,26 @@
+name: RTPS interop (FastDDS / ROS 2)
+
+on:
+  pull_request:
+    paths:
+      - "components/rtps_embedded/**"
+      - "components/rtps/**"
+      - "components/socket/**"
+      - "components/cdr/**"
+      - "lib/espp.cmake"
+      - "pc/tests/rtps_embedded_*"
+      - ".github/workflows/rtps_interop.yml"
+  workflow_dispatch:
+
+jobs:
+  interop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: "recursive"
+      - name: Run interop matrix
+        run: |
+          cd components/rtps_embedded/interop
+          ./run.sh
