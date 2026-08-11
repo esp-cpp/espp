@@ -9,6 +9,7 @@ Usage: python rtps_publisher.py [topic] [advertised_ipv4] [period_seconds]
 
 import datetime
 import socket
+import struct
 import sys
 import time
 
@@ -27,9 +28,9 @@ def guess_local_ipv4() -> str:
 
 
 def serialize_uint32(value: int) -> bytes:
-    writer = espp.CdrWriter()
-    writer.write_uint32(value)
-    return bytes(writer.take_buffer())
+    # Little-endian CDR (XCDR1) with a 4-byte encapsulation header — the wire format of
+    # std_msgs/msg/UInt32. Plain struct.pack; no native bindings needed for CDR payloads.
+    return b"\x00\x01\x00\x00" + struct.pack("<I", value)
 
 
 def main() -> int:

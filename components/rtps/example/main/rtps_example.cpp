@@ -21,28 +21,23 @@ constexpr std::string_view kTypeName = "std_msgs/msg/UInt32";
 // The rtps `publish()` / `on_sample` API works with any CDR-encoded type, so serialization lives in
 // the application rather than the participant.
 std::vector<uint8_t> serialize_uint32(uint32_t value) {
-  // The encapsulation options below are the CdrWriter defaults (little-endian CDR with a 4-byte
-  // encapsulation header); shown explicitly for clarity about the on-the-wire format.
-  espp::CdrWriter writer({
-      .encapsulation = espp::CdrEncapsulation::CDR_LE,
-      .include_encapsulation = true,
-  });
-  writer.write<uint32_t>(value);
-  return writer.take_buffer();
+  // XCDR1 = classic little-endian CDR with a 4-byte encapsulation header — the on-the-wire
+  // format ROS 2 uses for std_msgs/msg/UInt32.
+  auto bytes = cdr::serialize<cdr::xcdr1>(value);
+  if (!bytes) {
+    return {};
+  }
+  const auto *data = reinterpret_cast<const uint8_t *>(bytes->data());
+  return std::vector<uint8_t>(data, data + bytes->size());
 }
 
-std::optional<uint32_t> deserialize_uint32(std::span<const uint8_t> cdr) {
-  // The config below matches the CdrReader defaults (expects a little-endian CDR encapsulation
-  // header); shown explicitly to mirror serialize_uint32() above.
-  espp::CdrReader reader(cdr, {
-                                  .expect_encapsulation = true,
-                                  .default_encapsulation = espp::CdrEncapsulation::CDR_LE,
-                              });
-  uint32_t value = 0;
-  if (!reader.valid() || !reader.read<uint32_t>(value)) {
+std::optional<uint32_t> deserialize_uint32(std::span<const uint8_t> cdr_payload) {
+  // deserialize() reads the encapsulation header itself (version + endianness).
+  auto value = cdr::deserialize<uint32_t>(std::as_bytes(cdr_payload));
+  if (!value) {
     return std::nullopt;
   }
-  return value;
+  return *value;
 }
 
 bool run_local_protocol_checks(espp::Logger &logger, const espp::RtpsParticipant &participant) {

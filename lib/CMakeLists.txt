@@ -67,7 +67,7 @@ else()
   if(WIN32)
     target_link_libraries(${TARGET_NAME} winmm)
   endif()
-  target_compile_features(${TARGET_NAME} PRIVATE cxx_std_20)
+  target_compile_features(${TARGET_NAME} PRIVATE cxx_std_23)
 
   # install build output and headers
   install(TARGETS ${TARGET_NAME}

@@ -9,6 +9,7 @@ Usage: python rtps_subscriber.py [topic] [advertised_ipv4]
 
 import datetime
 import socket
+import struct
 import sys
 import time
 
@@ -27,7 +28,11 @@ def guess_local_ipv4() -> str:
 
 
 def deserialize_uint32(data: bytes):
-    return espp.CdrReader(data).read_uint32()
+    # Accepts either endianness; the encapsulation identifier's low bit selects little-endian.
+    if len(data) < 8 or data[0] != 0x00 or data[1] not in (0x00, 0x01):
+        return None  # int, or None on failure
+    endian = "<" if data[1] & 1 else ">"
+    return struct.unpack_from(endian + "I", data, 4)[0]
 
 
 def main() -> int:
