@@ -64,11 +64,24 @@ protected:
   void start_advertising(bool wake, const std::array<uint8_t, 6> &host_addr = {});
 
   // --- command channel ---
-  /// Handle a write on a command characteristic (0x0014 / 0x0016). Parses the
-  /// 8-byte header and dispatches; may notify a response on 0x001a / 0x001e.
-  void on_command_write(const uint8_t *data, size_t len);
-  void handle_pairing(switch2::PairingSub sub, const uint8_t *payload, size_t len);
-  void notify_response(const std::vector<uint8_t> &response);
+  /// Handle a write on a command characteristic. `via_vibration_command` is
+  /// true for writes on 0x0016 (pairing/init) which reply on 0x001e, false for
+  /// writes on 0x0014 which reply on 0x001a. Parses the 8-byte header and
+  /// dispatches, notifying a response.
+  void on_command_write(bool via_vibration_command, const uint8_t *data, size_t len);
+  void handle_pairing(bool via_vibration_command, uint8_t transport, switch2::PairingSub sub,
+                      const uint8_t *payload, size_t len);
+  void handle_command(bool via_vibration_command, switch2::Command cmd, uint8_t transport,
+                      uint8_t sub, const uint8_t *payload, size_t len);
+
+  /// Build an 8-byte device->host response header + payload and notify it on
+  /// the response characteristic matching the request source.
+  void send_response(bool via_vibration_command, uint8_t cmd, uint8_t transport, uint8_t sub,
+                     uint8_t byte4, uint8_t byte5, const uint8_t *payload, size_t payload_len);
+  /// Header-only ACK (byte4=0x00, byte5=0xf8, payload = {0x01,0,0,0}).
+  void send_ack(bool via_vibration_command, uint8_t cmd, uint8_t transport, uint8_t sub);
+  /// Our own BT address (6 bytes) for the exchange-addresses reply.
+  std::array<uint8_t, 6> local_bt_address() const;
 
   friend class CommandCallbacks;
 
@@ -87,6 +100,7 @@ protected:
   bool paired_{false};
   std::array<uint8_t, 16> ltk_{};      ///< derived during key exchange
   std::array<uint8_t, 6> host_addr_{}; ///< console BD_ADDR (from exchange-addresses)
+  uint8_t feature_mask_{switch2::PRO2_FEATURE_MASK};
 
   switch2::Pro2InputReport input_report_{};
 };

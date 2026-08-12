@@ -1,27 +1,36 @@
 #include "switch2_pro.hpp"
 
+#include "esp_mac.h"
+
+#include "switch2_pro_flash.hpp"
+
 namespace espp {
 
 using namespace switch2;
 
-/// Forwards NimBLE characteristic writes on the command channels into the owner.
+/// Forwards NimBLE characteristic writes on a command channel into the owner,
+/// tagged with which channel (0x0014 vs the vibration+command 0x0016) so the
+/// response goes out on the matching notify characteristic.
 class CommandCallbacks : public NimBLECharacteristicCallbacks {
 public:
-  explicit CommandCallbacks(Switch2Pro *owner)
-      : owner_(owner) {}
+  CommandCallbacks(Switch2Pro *owner, bool via_vibration_command)
+      : owner_(owner)
+      , via_vibration_command_(via_vibration_command) {}
   void onWrite(NimBLECharacteristic *characteristic, NimBLEConnInfo & /*conn*/) override {
     auto value = characteristic->getValue();
-    owner_->on_command_write(value.data(), value.size());
+    owner_->on_command_write(via_vibration_command_, value.data(), value.size());
   }
 
 private:
   Switch2Pro *owner_;
+  bool via_vibration_command_;
 };
 
 namespace {
-// One shared callbacks instance for the command characteristics. Lives for the
-// life of the process (NimBLE keeps a raw pointer to it).
-CommandCallbacks *g_command_callbacks = nullptr;
+// Per-channel callbacks instances. Live for the process (NimBLE keeps raw
+// pointers to them).
+CommandCallbacks *g_command_cb = nullptr;           // 0x0014 -> response 0x001a
+CommandCallbacks *g_vibration_command_cb = nullptr; // 0x0016 -> response 0x001e
 } // namespace
 
 bool Switch2Pro::init() {
@@ -86,10 +95,12 @@ bool Switch2Pro::build_gatt() {
   command_response2_ =
       svc2->createCharacteristic(NimBLEUUID(COMMAND_RESPONSE2_UUID), NIMBLE_PROPERTY::NOTIFY);
 
-  if (g_command_callbacks == nullptr)
-    g_command_callbacks = new CommandCallbacks(this);
-  command_->setCallbacks(g_command_callbacks);
-  vibration_command_->setCallbacks(g_command_callbacks);
+  if (g_command_cb == nullptr)
+    g_command_cb = new CommandCallbacks(this, /*via_vibration_command=*/false);
+  if (g_vibration_command_cb == nullptr)
+    g_vibration_command_cb = new CommandCallbacks(this, /*via_vibration_command=*/true);
+  command_->setCallbacks(g_command_cb);
+  vibration_command_->setCallbacks(g_vibration_command_cb);
 
   svc1->start();
   svc2->start();
@@ -115,79 +126,182 @@ void Switch2Pro::start_advertising(bool wake, const std::array<uint8_t, 6> &host
   ble_gatt_server_.start_advertising(params);
 }
 
-void Switch2Pro::on_command_write(const uint8_t *data, size_t len) {
+std::array<uint8_t, 6> Switch2Pro::local_bt_address() const {
+  std::array<uint8_t, 6> addr{};
+  esp_read_mac(addr.data(), ESP_MAC_BT);
+  return addr;
+}
+
+// ---------------------------------------------------------------------------
+// Response framing
+// ---------------------------------------------------------------------------
+
+void Switch2Pro::send_response(bool via_vibration_command, uint8_t cmd, uint8_t transport,
+                               uint8_t sub, uint8_t byte4, uint8_t byte5, const uint8_t *payload,
+                               size_t payload_len) {
+  auto *response_char = via_vibration_command ? command_response2_ : command_response1_;
+  if (response_char == nullptr)
+    return;
+  std::vector<uint8_t> out;
+  out.reserve(COMMAND_HEADER_SIZE + payload_len);
+  // Device->host header: [cmd, 0x01, transport, sub, byte4, byte5, 0x00, 0x00].
+  out.insert(out.end(), {cmd, DIR_DEVICE_TO_HOST, transport, sub, byte4, byte5, 0x00, 0x00});
+  if (payload != nullptr && payload_len > 0)
+    out.insert(out.end(), payload, payload + payload_len);
+  response_char->setValue(out.data(), out.size());
+  response_char->notify();
+}
+
+void Switch2Pro::send_ack(bool via_vibration_command, uint8_t cmd, uint8_t transport, uint8_t sub) {
+  // Header-only ACK: byte4=0x00, byte5=0xf8, payload {0x01,0,0,0} (matches the
+  // captured 0x03/0x0d init ACK).
+  static constexpr std::array<uint8_t, 4> kAckPayload = {0x01, 0x00, 0x00, 0x00};
+  send_response(via_vibration_command, cmd, transport, sub, 0x00, 0xf8, kAckPayload.data(),
+                kAckPayload.size());
+}
+
+// ---------------------------------------------------------------------------
+// Command dispatch
+// ---------------------------------------------------------------------------
+
+void Switch2Pro::on_command_write(bool via_vibration_command, const uint8_t *data, size_t len) {
   if (len < COMMAND_HEADER_SIZE) {
     logger_.warn("short command write ({} bytes)", len);
     return;
   }
-  const auto command = static_cast<Command>(data[0]);
-  const uint8_t subcommand = data[3];
+  const auto cmd = static_cast<Command>(data[0]);
+  const uint8_t transport = data[2];
+  const uint8_t sub = data[3];
   const uint8_t *payload = data + COMMAND_HEADER_SIZE;
   const size_t payload_len = len - COMMAND_HEADER_SIZE;
 
-  switch (command) {
-  case Command::PAIRING:
-    handle_pairing(static_cast<PairingSub>(subcommand), payload, payload_len);
-    break;
-  default:
-    // Init / flash-read / feature-select / LEDs / firmware-update are staged in
-    // the next milestone; log so captures against a real console are legible.
-    logger_.debug("unhandled command 0x{:02x} sub 0x{:02x} ({} payload bytes)",
-                  static_cast<uint8_t>(command), subcommand, payload_len);
-    break;
+  if (cmd == Command::PAIRING) {
+    handle_pairing(via_vibration_command, transport, static_cast<PairingSub>(sub), payload,
+                   payload_len);
+  } else {
+    handle_command(via_vibration_command, cmd, transport, sub, payload, payload_len);
   }
 }
 
-void Switch2Pro::handle_pairing(PairingSub sub, const uint8_t *payload, size_t len) {
+void Switch2Pro::handle_pairing(bool via_vibration_command, uint8_t transport, PairingSub sub,
+                                const uint8_t *payload, size_t len) {
+  // Pairing responses use byte4=0x10, byte5=0x78, and a payload that begins
+  // with a 0x01 status byte (exact framing from ndeadly's captures).
   switch (sub) {
   case PairingSub::EXCHANGE_ADDRESSES: {
-    // Console sends its host BD_ADDR(es); remember the first (byte-reversed).
     if (len >= 6) {
-      for (size_t i = 0; i < 6; ++i)
+      for (size_t i = 0; i < 6; ++i) // console host address, byte-reversed
         host_addr_[i] = payload[5 - i];
     }
-    logger_.info("pairing: exchange addresses");
-    // TODO(milestone-2): reply with our own address in a 0x15/0x01 response.
+    // Reply: {0x01, 0x04, 0x01} + our BT address. The 0x04/0x01 prefix bytes
+    // are as observed in captures; address byte order to be confirmed on HW.
+    const auto addr = local_bt_address();
+    std::array<uint8_t, 9> reply{0x01,    0x04,    0x01,    addr[0], addr[1],
+                                 addr[2], addr[3], addr[4], addr[5]};
+    send_response(via_vibration_command, 0x15, transport, 0x01, 0x10, 0x78, reply.data(),
+                  reply.size());
+    logger_.info("pairing: exchange addresses -> replied with our address");
     break;
   }
   case PairingSub::EXCHANGE_KEYS: {
-    // Console sends A1; LTK = A1 ⊕ B1. We reply with the fixed B1.
     if (len >= 16) {
       std::array<uint8_t, 16> a1{};
       std::copy(payload, payload + 16, a1.begin());
       ltk_ = PairingCrypto::derive_ltk(a1);
-      logger_.info("pairing: exchange keys, LTK derived");
     }
-    // TODO(milestone-2): reply with CONTROLLER_KEY_B1 in a 0x15/0x04 response.
+    // Reply: {0x01} + fixed controller key B1.
+    std::array<uint8_t, 17> reply{0x01};
+    std::copy(CONTROLLER_KEY_B1.begin(), CONTROLLER_KEY_B1.end(), reply.begin() + 1);
+    send_response(via_vibration_command, 0x15, transport, 0x04, 0x10, 0x78, reply.data(),
+                  reply.size());
+    logger_.info("pairing: exchange keys -> LTK derived, replied B1");
     break;
   }
   case PairingSub::CONFIRM_LTK: {
-    // Console sends challenge A2; reply B2 = AES-ECB(rev(LTK), rev(A2)).
+    std::array<uint8_t, 16> b2{};
     if (len >= 16) {
       std::array<uint8_t, 16> a2{};
       std::copy(payload, payload + 16, a2.begin());
-      const auto b2 = PairingCrypto::confirm(ltk_, a2);
-      (void)b2; // TODO(milestone-2): send b2 back in a 0x15/0x02 response.
-      logger_.info("pairing: confirm challenge");
+      b2 = PairingCrypto::confirm(ltk_, a2);
     }
+    // Reply: {0x01} + B2 = AES-128-ECB(rev(LTK), rev(A2)).
+    std::array<uint8_t, 17> reply{0x01};
+    std::copy(b2.begin(), b2.end(), reply.begin() + 1);
+    send_response(via_vibration_command, 0x15, transport, 0x02, 0x10, 0x78, reply.data(),
+                  reply.size());
+    logger_.info("pairing: confirm -> replied B2");
     break;
   }
-  case PairingSub::FINALISE:
+  case PairingSub::FINALISE: {
+    static constexpr std::array<uint8_t, 1> reply{0x01};
+    send_response(via_vibration_command, 0x15, transport, 0x03, 0x10, 0x78, reply.data(),
+                  reply.size());
     paired_ = true;
     logger_.info("pairing: finalised — bonded");
-    // TODO(milestone-2): persist {host_addr_, ltk_} to NVS for reconnect/wake.
+    // TODO(milestone-4): persist {host_addr_, ltk_} to NVS for reconnect/wake.
     break;
+  }
   default:
     logger_.debug("pairing: unhandled subcommand 0x{:02x}", static_cast<uint8_t>(sub));
     break;
   }
 }
 
-void Switch2Pro::notify_response(const std::vector<uint8_t> &response) {
-  if (command_response2_ == nullptr)
-    return;
-  command_response2_->setValue(response.data(), response.size());
-  command_response2_->notify();
+void Switch2Pro::handle_command(bool via_vibration_command, Command cmd, uint8_t transport,
+                                uint8_t sub, const uint8_t *payload, size_t len) {
+  switch (cmd) {
+  case Command::FLASH_READ: {
+    // Request payload: [len, 0x7e, 0x00, 0x00, addr(4 LE)]. Reply echoes
+    // len+addr then the data from the simulated flash.
+    if (len < 8) {
+      send_ack(via_vibration_command, static_cast<uint8_t>(cmd), transport, sub);
+      break;
+    }
+    const uint8_t read_len = payload[0];
+    const uint32_t addr =
+        static_cast<uint32_t>(payload[4]) | (static_cast<uint32_t>(payload[5]) << 8) |
+        (static_cast<uint32_t>(payload[6]) << 16) | (static_cast<uint32_t>(payload[7]) << 24);
+    std::vector<uint8_t> reply(8u + read_len, 0);
+    reply[0] = read_len;
+    reply[4] = payload[4];
+    reply[5] = payload[5];
+    reply[6] = payload[6];
+    reply[7] = payload[7];
+    simulated_flash_read(addr, read_len, reply.data() + 8);
+    send_response(via_vibration_command, static_cast<uint8_t>(cmd), transport, sub, 0x10, 0x78,
+                  reply.data(), reply.size());
+    logger_.debug("flash read {} bytes @ 0x{:06x}", read_len, addr);
+    break;
+  }
+  case Command::FEATURE_SELECT:
+    if (sub == 0x02 && len >= 1)
+      feature_mask_ = payload[0]; // set feature mask
+    send_ack(via_vibration_command, static_cast<uint8_t>(cmd), transport, sub);
+    break;
+  case Command::FIRMWARE_INFO: {
+    // Captured reply for 0x10/0x01.
+    static constexpr std::array<uint8_t, 12> fw = {0x01, 0x00, 0x0e, 0x01, 0x0c, 0x00,
+                                                   0x00, 0x00, 0xff, 0xff, 0xff, 0xff};
+    send_response(via_vibration_command, static_cast<uint8_t>(cmd), transport, sub, 0x10, 0x78,
+                  fw.data(), fw.size());
+    break;
+  }
+  case Command::FIRMWARE_UPDATE:
+    // ACK without offering an update, to suppress the console's update prompt.
+    // TODO(hw): confirm the exact bytes the console needs to skip the prompt.
+    send_ack(via_vibration_command, static_cast<uint8_t>(cmd), transport, sub);
+    break;
+  case Command::INIT:
+  case Command::PLAYER_LEDS:
+  case Command::VIBRATION:
+  case Command::BATTERY:
+  case Command::NFC:
+  default:
+    // Acknowledge so the console's init state machine advances. Command-specific
+    // payloads (battery level, etc.) are refined in later work.
+    send_ack(via_vibration_command, static_cast<uint8_t>(cmd), transport, sub);
+    break;
+  }
 }
 
 } // namespace espp
