@@ -1,9 +1,9 @@
 // RTPS interop publisher (Phase 1 of components/rtps_embedded/REFACTOR_PLAN.md).
 //
 // Exercises the espp::RtpsParticipant facade end-to-end: publishes CDR string
-// samples (serialized with espp::CdrWriter) so an external DDS peer (FastDDS or
-// a ROS 2 node via rmw_fastrtps) can subscribe. Defaults follow the ROS 2
-// conventions for std_msgs/String on /chatter.
+// samples (serialized with the reflection-driven cdr::serialize) so an external DDS peer (FastDDS
+// or a ROS 2 node via rmw_fastrtps) can subscribe. Defaults follow the ROS 2 conventions for
+// std_msgs/String on /chatter.
 //
 // Usage: rtps_embedded_interop_pub [topic] [type] [reliable(0|1)] [count] [period_ms]
 // [interface_ip] Exits 0 after publishing `count` samples.

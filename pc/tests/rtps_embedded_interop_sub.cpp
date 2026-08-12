@@ -1,9 +1,9 @@
 // RTPS interop subscriber (Phase 1 of components/rtps_embedded/REFACTOR_PLAN.md).
 //
 // Exercises the espp::RtpsParticipant facade end-to-end: subscribes to CDR string
-// samples (deserialized with espp::CdrReader) published by an external DDS peer
-// (FastDDS or a ROS 2 node via rmw_fastrtps). Defaults follow the ROS 2
-// conventions for std_msgs/String on /chatter.
+// samples (deserialized with the reflection-driven cdr::deserialize) published by an external DDS
+// peer (FastDDS or a ROS 2 node via rmw_fastrtps). Defaults follow the ROS 2 conventions for
+// std_msgs/String on /chatter.
 //
 // Usage: rtps_embedded_interop_sub [topic] [type] [reliable(0|1)] [required] [timeout_s]
 // [interface_ip] Exits 0 once `required` samples arrive within `timeout_s`.

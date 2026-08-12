@@ -26,10 +26,11 @@ before building, so your host `lib/pc` artifacts are never touched.
 | ros2_pub->espp_sub | ROS 2 publisher -> espp reliable reader |
 | espp_be_pub->ros2_be_echo | best-effort pairing |
 
-## Known constraints
+## Notes
 
-- The espp side always starts first: the engine binds its unicast ports with
-  SO_REUSE at participantId 0 without probing (fix scheduled with Phase 2), while
-  FastDDS probes past occupied ports.
-- Observed (non-fatal) engine warnings under load/teardown, tracked for Phase 2:
-  `ThreadPool: dropped packet`, `Could not parse sender IPv4 address ''`.
+- The engine probes participant ids for free unicast ports (binding with reuse
+  disabled), so multiple espp participants can run on one host and the start
+  order does not matter.
+- Received datagrams are dispatched via `espp::SocketReactor` onto a shared
+  worker pool; there is no dedicated per-socket receive task and no engine-owned
+  packet queue.

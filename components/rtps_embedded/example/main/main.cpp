@@ -81,7 +81,7 @@ extern "C" void app_main(void) {
   }
 
   // Best-effort reader: samples arrive as CDR-encapsulated bytes; decode with
-  // espp::CdrReader.
+  // the reflection-driven cdr::deserialize.
   if (!participant.add_reader({
           .topic = sub_topic,
           .type_name = type_name,

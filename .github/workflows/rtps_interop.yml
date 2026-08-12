@@ -1,5 +1,9 @@
 name: RTPS interop (FastDDS / ROS 2)
 
+# Minimal token scope: the harness only checks out and builds, never writes.
+permissions:
+  contents: read
+
 on:
   pull_request:
     paths:

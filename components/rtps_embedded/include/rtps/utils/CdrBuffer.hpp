@@ -32,6 +32,7 @@ This file is part of embeddedRTPS.
 // Used for the SPDP/SEDP PL_CDR discovery parameter lists; the byte-identity
 // of the output is frozen by pc/tests/rtps_embedded_golden.cpp.
 
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <span>

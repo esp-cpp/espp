@@ -3,9 +3,6 @@
 # harness container; use ./run.sh from the host).
 #
 # All peers share one network namespace so RTPS multicast works unconditionally.
-# NOTE: the espp side is always started FIRST: the engine currently binds its
-# unicast ports with SO_REUSE at participantId 0 without probing (see
-# REFACTOR_PLAN.md Phase 2), while FastDDS probes past occupied ports.
 #
 # NOTE: no `set -u` - ROS 2's setup.bash references unset variables.
 
