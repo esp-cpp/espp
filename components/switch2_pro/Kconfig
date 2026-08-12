@@ -1,0 +1,22 @@
+menu "Switch 2 Pro Controller"
+
+    config SWITCH2_PRO_PATCH_NIMBLE_5MS
+        bool "Patch NimBLE to allow the console's 5 ms connection interval"
+        default n
+        help
+            The Switch 2 console drives the BLE link at a 5 ms connection
+            interval, below the 7.5 ms Bluetooth spec minimum. To stream input
+            reports stably the controller stack must accept it.
+
+            When enabled on a RISC-V target with the open NimBLE controller
+            (ESP32-C6/C61/C2/H2), the component build patches the prebuilt
+            libble_app.a in your global $IDF_PATH install to lower the
+            minimum-interval floor. THIS MODIFIES YOUR ESP-IDF INSTALLATION.
+            Undo with tools/patch_nimble_5ms.py --restore.
+
+            Has no effect on ESP32-S3/C3 (different closed controller; see
+            DESIGN.md for the Kconfig/Espressif path). Not required for pairing
+            or the GATT skeleton — only for stable input streaming. Leave this
+            OFF unless you understand the consequences.
+
+endmenu
