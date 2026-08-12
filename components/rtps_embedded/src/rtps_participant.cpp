@@ -4,7 +4,17 @@
 
 #include "rtps/entities/Domain.hpp"
 
-#if !defined(ESP_PLATFORM)
+// Host-side interface auto-detection uses platform-specific enumeration APIs.
+#if defined(ESP_PLATFORM)
+// No enumeration: ESP targets must pass interface_address explicitly.
+#elif defined(_WIN32)
+#include <winsock2.h>
+#include <ws2tcpip.h>
+
+// iphlpapi.h (GetAdaptersAddresses) must follow winsock2.h; the blank line keeps
+// clang-format's alphabetical include sort from reordering it ahead of winsock2.
+#include <iphlpapi.h>
+#else
 #include <arpa/inet.h>
 #include <ifaddrs.h>
 #include <netinet/in.h>
@@ -20,10 +30,55 @@ RtpsParticipant::~RtpsParticipant() { stop(); }
 
 bool RtpsParticipant::resolve_interface_address(std::array<uint8_t, 4> &ip_bytes) const {
   std::string addr = config_.interface_address;
+  // Skip loopback / link-local candidates during auto-detection. Unused on ESP
+  // targets, which require an explicit interface_address.
+  [[maybe_unused]] const auto usable = [](const std::string &ip) {
+    return !ip.empty() && ip.rfind("127.", 0) != 0 && ip.rfind("169.254.", 0) != 0;
+  };
 #if defined(ESP_PLATFORM)
   if (addr.empty()) {
     logger_.error("interface_address must be set on ESP targets (e.g. from the netif IP)");
     return false;
+  }
+#elif defined(_WIN32)
+  if (addr.empty()) {
+    // Auto-detect: first up, non-loopback IPv4 adapter (GetAdaptersAddresses).
+    ULONG size = 15000;
+    std::vector<uint8_t> buffer(size);
+    auto *adapters = reinterpret_cast<IP_ADAPTER_ADDRESSES *>(buffer.data());
+    const ULONG flags = GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER;
+    ULONG ret = GetAdaptersAddresses(AF_INET, flags, nullptr, adapters, &size);
+    if (ret == ERROR_BUFFER_OVERFLOW) {
+      buffer.resize(size);
+      adapters = reinterpret_cast<IP_ADAPTER_ADDRESSES *>(buffer.data());
+      ret = GetAdaptersAddresses(AF_INET, flags, nullptr, adapters, &size);
+    }
+    if (ret == NO_ERROR) {
+      for (auto *a = adapters; a != nullptr && addr.empty(); a = a->Next) {
+        if (a->OperStatus != IfOperStatusUp || a->IfType == IF_TYPE_SOFTWARE_LOOPBACK) {
+          continue;
+        }
+        for (auto *ua = a->FirstUnicastAddress; ua != nullptr; ua = ua->Next) {
+          const auto *sin = reinterpret_cast<const sockaddr_in *>(ua->Address.lpSockaddr);
+          if (sin == nullptr || sin->sin_family != AF_INET) {
+            continue;
+          }
+          char buf[INET_ADDRSTRLEN] = {0};
+          if (inet_ntop(AF_INET, &sin->sin_addr, buf, sizeof(buf)) == nullptr) {
+            continue;
+          }
+          if (usable(buf)) {
+            addr = buf;
+            break;
+          }
+        }
+      }
+    }
+    if (addr.empty()) {
+      logger_.error("Could not auto-detect a usable IPv4 interface; set interface_address");
+      return false;
+    }
+    logger_.info("Auto-detected interface address {}", addr);
   }
 #else
   if (addr.empty()) {
@@ -39,12 +94,10 @@ bool RtpsParticipant::resolve_interface_address(std::array<uint8_t, 4> &ip_bytes
         if (inet_ntop(AF_INET, &sin->sin_addr, buf, sizeof(buf)) == nullptr) {
           continue;
         }
-        const std::string candidate{buf};
-        if (candidate.rfind("127.", 0) == 0 || candidate.rfind("169.254.", 0) == 0) {
-          continue;
+        if (usable(buf)) {
+          addr = buf;
+          break;
         }
-        addr = candidate;
-        break;
       }
       freeifaddrs(ifaddr);
     }
