@@ -29,10 +29,11 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #define SUPPRESS_UNICAST 0
 
 #include "rtps/config.hpp"
+#include "rtps/utils/CdrBuffer.hpp"
 #include "rtps/utils/hash.hpp"
-#include "ucdr/microcdr.h"
 #include <array>
 #include <rtps/common/Locator.hpp>
+#include <span>
 
 namespace rtps {
 
@@ -78,8 +79,13 @@ struct TopicData {
 
   bool matchesTopicOf(const TopicData &other);
 
-  bool readFromUcdrBuffer(ucdrBuffer &buffer);
-  bool serializeIntoUcdrBuffer(ucdrBuffer &buffer) const;
+  /// Parses the SEDP PL_CDR parameter list in `data` (little-endian; a
+  /// leading PL_CDR_LE encapsulation header, if present, is skipped as an
+  /// unknown zero-length parameter, matching the historical behavior).
+  bool readFromBuffer(std::span<const uint8_t> data);
+  /// Appends this endpoint's SEDP PL_CDR parameter list (including the
+  /// terminating PID_SENTINEL) to `writer`.
+  bool serializeInto(CdrWriter &writer) const;
 
   bool isDisposedFlagSet() const;
   bool isUnregisteredFlagSet() const;

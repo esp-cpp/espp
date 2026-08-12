@@ -1,8 +1,10 @@
 # RTPS Refactor: embeddedRTPS → an idiomatic espp component
 
-Status: IN PROGRESS — Phases 0, 1, and 2 complete (see the git log on
-feat/refactor-embedded-rtps for per-phase commits and their verification gates);
-Phase 2b (Micro-CDR removal) running as a parallel exploration; next: Phase 3.
+Status: IN PROGRESS — Phases 0, 1, 2, and 2b (Micro-CDR removal) complete; the
+engine's entire serialization stack (user payloads and protocol parameter lists)
+now runs on the reflection-driven `cdr` component and the Micro-CDR submodule is
+gone. The repo moved to C++23. See the git log on feat/refactor-embedded-rtps
+for per-phase commits and their verification gates. Next: Phase 3.
 
 ## 1. Context
 

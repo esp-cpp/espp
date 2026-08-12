@@ -27,10 +27,11 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #define RTPS_LOCATOR_T_H
 
 #include "rtps/common/types.hpp"
+#include "rtps/utils/CdrBuffer.hpp"
 #include "rtps/utils/udpUtils.hpp"
-#include "ucdr/microcdr.h"
 
 #include <array>
+#include <cstring>
 
 namespace rtps {
 
@@ -79,22 +80,14 @@ struct FullLengthLocator {
 
   bool isValid() const { return kind != LocatorKind_t::LOCATOR_KIND_INVALID; }
 
-  bool readFromUcdrBuffer(ucdrBuffer &buffer) {
-    if (ucdr_buffer_remaining(&buffer) < sizeof(FullLengthLocator)) {
+  /// Reads the locator as the raw 24-byte RTPS wire representation
+  /// (kind int32 LE + port uint32 LE + 16 address bytes), matching this
+  /// struct's packed layout.
+  bool readFromBuffer(CdrReader &reader) {
+    if (reader.remaining() < sizeof(FullLengthLocator)) {
       return false;
-    } else {
-      return ucdr_deserialize_array_uint8_t(&buffer, reinterpret_cast<uint8_t *>(this),
-                                            sizeof(FullLengthLocator));
     }
-  }
-
-  bool serializeIntoUdcrBuffer(ucdrBuffer &buffer) {
-    if (ucdr_buffer_remaining(&buffer) < sizeof(FullLengthLocator)) {
-      return false;
-    } else {
-      return ucdr_serialize_array_uint8_t(&buffer, reinterpret_cast<uint8_t *>(this),
-                                          sizeof(FullLengthLocator));
-    }
+    return readBytes(reader, reinterpret_cast<uint8_t *>(this), sizeof(FullLengthLocator));
   }
 
   std::array<uint8_t, 4> getIp4Address() const { return getIp4AddressBytes(); }

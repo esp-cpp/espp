@@ -47,68 +47,93 @@ bool TopicData::matchesTopicOf(const TopicData &other) {
          strcmp(this->typeName, other.typeName) == 0;
 }
 
-bool TopicData::readFromUcdrBuffer(ucdrBuffer &buffer) {
+bool TopicData::readFromBuffer(std::span<const uint8_t> data) {
+  CdrReader buffer(asBytes(data.data(), data.size()));
 
   // Reset valid flags, as the respective parameters are optional
   statusInfoValid = false;
   entityIdFromKeyHashValid = false;
 
-  while (ucdr_buffer_remaining(&buffer) >= 4) {
-    if (ucdr_buffer_has_error(&buffer)) {
+  while (buffer.remaining() >= 4) {
+    const auto pidRaw = buffer.read<uint16_t>();
+    const auto lengthRaw = buffer.read<uint16_t>();
+    if (!pidRaw || !lengthRaw) {
       s_topic_data_logger.error("FAILED TO DESERIALIZE TOPIC DATA");
       return false;
-      // while (1) {
-      //   printf("FAILED TO DESERIALIZE TOPIC DATA\n");
-      // }
     }
-    ParameterId pid;
-    uint16_t length;
+    const auto pid = static_cast<ParameterId>(*pidRaw);
+    const uint16_t length = *lengthRaw;
     FullLengthLocator uLoc;
-    ucdr_deserialize_uint16_t(&buffer, reinterpret_cast<uint16_t *>(&pid));
-    ucdr_deserialize_uint16_t(&buffer, &length);
 
-    if (ucdr_buffer_remaining(&buffer) < length) {
+    if (buffer.remaining() < length) {
       return false;
     }
 
     switch (pid) {
-    case ParameterId::PID_ENDPOINT_GUID:
-      ucdr_deserialize_array_uint8_t(&buffer, endpointGuid.prefix.id.data(),
-                                     endpointGuid.prefix.id.size());
-      ucdr_deserialize_array_uint8_t(&buffer, endpointGuid.entityId.entityKey.data(),
-                                     endpointGuid.entityId.entityKey.size());
-      ucdr_deserialize_uint8_t(&buffer,
-                               reinterpret_cast<uint8_t *>(&endpointGuid.entityId.entityKind));
+    case ParameterId::PID_ENDPOINT_GUID: {
+      if (!readBytes(buffer, endpointGuid.prefix.id.data(), endpointGuid.prefix.id.size()) ||
+          !readBytes(buffer, endpointGuid.entityId.entityKey.data(),
+                     endpointGuid.entityId.entityKey.size())) {
+        s_topic_data_logger.error("FAILED TO DESERIALIZE TOPIC DATA");
+        return false;
+      }
+      const auto kind = buffer.read<uint8_t>();
+      if (!kind) {
+        s_topic_data_logger.error("FAILED TO DESERIALIZE TOPIC DATA");
+        return false;
+      }
+      endpointGuid.entityId.entityKind = static_cast<EntityKind_t>(*kind);
       break;
-    case ParameterId::PID_RELIABILITY:
-      ucdr_deserialize_uint32_t(&buffer, reinterpret_cast<uint32_t *>(&reliabilityKind));
-      buffer.iterator += 8;
+    }
+    case ParameterId::PID_RELIABILITY: {
+      const auto kind = buffer.read<uint32_t>();
+      if (!kind) {
+        s_topic_data_logger.error("FAILED TO DESERIALIZE TOPIC DATA");
+        return false;
+      }
+      reliabilityKind = static_cast<ReliabilityKind_t>(*kind);
+      skipBytes(buffer, 8);
       // TODO Skip 8 bytes. don't know what they are yet
       break;
+    }
     case ParameterId::PID_SENTINEL:
       return true;
-    case ParameterId::PID_TOPIC_NAME:
-      uint32_t topicNameLength;
-      ucdr_deserialize_uint32_t(&buffer, &topicNameLength);
-      if (topicNameLength > Config::MAX_TOPICNAME_LENGTH) {
+    case ParameterId::PID_TOPIC_NAME: {
+      const auto topicNameLength = buffer.read<uint32_t>();
+      if (!topicNameLength) {
+        s_topic_data_logger.error("FAILED TO DESERIALIZE TOPIC DATA");
+        return false;
+      }
+      if (*topicNameLength > Config::MAX_TOPICNAME_LENGTH) {
         s_topic_data_logger.warn("Topic name length {} exceeds maximum allowed length {}",
-                                 topicNameLength, Config::MAX_TOPICNAME_LENGTH);
+                                 *topicNameLength, Config::MAX_TOPICNAME_LENGTH);
         return false;
       }
-      ucdr_deserialize_array_char(&buffer, topicName, topicNameLength);
+      if (!readBytes(buffer, reinterpret_cast<uint8_t *>(topicName), *topicNameLength)) {
+        s_topic_data_logger.error("FAILED TO DESERIALIZE TOPIC DATA");
+        return false;
+      }
       break;
-    case ParameterId::PID_TYPE_NAME:
-      uint32_t typeNameLength;
-      ucdr_deserialize_uint32_t(&buffer, &typeNameLength);
-      if (typeNameLength > Config::MAX_TYPENAME_LENGTH) {
+    }
+    case ParameterId::PID_TYPE_NAME: {
+      const auto typeNameLength = buffer.read<uint32_t>();
+      if (!typeNameLength) {
+        s_topic_data_logger.error("FAILED TO DESERIALIZE TOPIC DATA");
+        return false;
+      }
+      if (*typeNameLength > Config::MAX_TYPENAME_LENGTH) {
         s_topic_data_logger.warn("Type name length {} exceeds maximum allowed length {}",
-                                 typeNameLength, Config::MAX_TYPENAME_LENGTH);
+                                 *typeNameLength, Config::MAX_TYPENAME_LENGTH);
         return false;
       }
-      ucdr_deserialize_array_char(&buffer, typeName, typeNameLength);
+      if (!readBytes(buffer, reinterpret_cast<uint8_t *>(typeName), *typeNameLength)) {
+        s_topic_data_logger.error("FAILED TO DESERIALIZE TOPIC DATA");
+        return false;
+      }
       break;
+    }
     case ParameterId::PID_UNICAST_LOCATOR:
-      uLoc.readFromUcdrBuffer(buffer);
+      uLoc.readFromBuffer(buffer);
       // Accept valid UDPv4 locators even if subnet detection is temporarily
       // unavailable (e.g. early startup) to avoid keeping placeholder defaults.
       if (uLoc.kind == LocatorKind_t::LOCATOR_KIND_UDPv4) {
@@ -126,67 +151,73 @@ bool TopicData::readFromUcdrBuffer(ucdrBuffer &buffer) {
       }
       break;
     case ParameterId::PID_MULTICAST_LOCATOR:
-      multicastLocator.readFromUcdrBuffer(buffer);
+      multicastLocator.readFromBuffer(buffer);
       break;
     case ParameterId::PID_STATUS_INFO: {
       if (length == 4) {
-        buffer.iterator += 3; // skip first 3 bytes of status info as they are
+        skipBytes(buffer, 3); // skip first 3 bytes of status info as they are
                               // reserved parameters
-        ucdr_deserialize_uint8_t(&buffer, &statusInfo);
+        const auto status = buffer.read<uint8_t>();
+        if (!status) {
+          s_topic_data_logger.error("FAILED TO DESERIALIZE TOPIC DATA");
+          return false;
+        }
+        statusInfo = *status;
         statusInfoValid = true;
       } else { // Ignore Status Info
-        buffer.iterator += length;
+        skipBytes(buffer, length);
       }
     } break;
     case ParameterId::PID_KEY_HASH: // only use case so far is deleting remote
                                     // endpoints
     {
       if (length == 16) {
-        ucdr_deserialize_array_uint8_t(&buffer, endpointGuid.prefix.id.data(),
-                                       endpointGuid.prefix.id.size());
-        ucdr_deserialize_array_uint8_t(&buffer, this->entityIdFromKeyHash.entityKey.data(),
-                                       this->entityIdFromKeyHash.entityKey.size());
-        ucdr_deserialize_uint8_t(
-            &buffer, reinterpret_cast<uint8_t *>(&(this->entityIdFromKeyHash.entityKind)));
+        if (!readBytes(buffer, endpointGuid.prefix.id.data(), endpointGuid.prefix.id.size()) ||
+            !readBytes(buffer, this->entityIdFromKeyHash.entityKey.data(),
+                       this->entityIdFromKeyHash.entityKey.size())) {
+          s_topic_data_logger.error("FAILED TO DESERIALIZE TOPIC DATA");
+          return false;
+        }
+        const auto kind = buffer.read<uint8_t>();
+        if (!kind) {
+          s_topic_data_logger.error("FAILED TO DESERIALIZE TOPIC DATA");
+          return false;
+        }
+        this->entityIdFromKeyHash.entityKind = static_cast<EntityKind_t>(*kind);
         entityIdFromKeyHashValid = true;
       } else { // Ignore value
-        buffer.iterator += length;
+        skipBytes(buffer, length);
       }
     } break;
     default:
-      ucdr_advance_buffer(&buffer, length);
-      // buffer.iterator += length;
-      // buffer.last_data_size = 1;
+      skipBytes(buffer, length);
     }
 
-    uint32_t alignment = ucdr_buffer_alignment(&buffer, 4);
-    ucdr_advance_buffer(&buffer, alignment);
-    // buffer.iterator += alignment;
-    // buffer.last_data_size = 4; // 4 Byte alignment per element
+    // Parameter-list elements are 4-byte aligned
+    alignTo4(buffer);
   }
-  return ucdr_buffer_remaining(&buffer) == 0;
+  return buffer.remaining() == 0;
 }
 
-bool TopicData::serializeIntoUcdrBuffer(ucdrBuffer &buffer) const {
-  // TODO Check if buffer length is sufficient
+bool TopicData::serializeInto(CdrWriter &writer) const {
   const uint16_t guidSize = sizeof(GuidPrefix_t::id) + 4;
 
 #if SUPPRESS_UNICAST
   if (multicastLocator.kind != LocatorKind_t::LOCATOR_KIND_UDPv4) {
 #endif
-    ucdr_serialize_uint16_t(&buffer, ParameterId::PID_UNICAST_LOCATOR);
-    ucdr_serialize_uint16_t(&buffer, sizeof(FullLengthLocator));
-    ucdr_serialize_array_uint8_t(&buffer, reinterpret_cast<const uint8_t *>(&unicastLocator),
-                                 sizeof(FullLengthLocator));
+    writer.write<uint16_t>(ParameterId::PID_UNICAST_LOCATOR);
+    writer.write<uint16_t>(sizeof(FullLengthLocator));
+    writeBytes(writer, reinterpret_cast<const uint8_t *>(&unicastLocator),
+               sizeof(FullLengthLocator));
 #if SUPPRESS_UNICAST
   }
 #endif
 
   if (multicastLocator.kind == LocatorKind_t::LOCATOR_KIND_UDPv4) {
-    ucdr_serialize_uint16_t(&buffer, ParameterId::PID_MULTICAST_LOCATOR);
-    ucdr_serialize_uint16_t(&buffer, sizeof(FullLengthLocator));
-    ucdr_serialize_array_uint8_t(&buffer, reinterpret_cast<const uint8_t *>(&multicastLocator),
-                                 sizeof(FullLengthLocator));
+    writer.write<uint16_t>(ParameterId::PID_MULTICAST_LOCATOR);
+    writer.write<uint16_t>(sizeof(FullLengthLocator));
+    writeBytes(writer, reinterpret_cast<const uint8_t *>(&multicastLocator),
+               sizeof(FullLengthLocator));
   }
 
   // It's a 32 bit instead of 16 because it seems like the field is padded.
@@ -197,11 +228,11 @@ bool TopicData::serializeIntoUcdrBuffer(ucdrBuffer &buffer) const {
   }
   const auto totalLengthTopicNameField =
       static_cast<uint16_t>(sizeof(lenTopicName) + lenTopicName + topicAlignment);
-  ucdr_serialize_uint16_t(&buffer, ParameterId::PID_TOPIC_NAME);
-  ucdr_serialize_uint16_t(&buffer, totalLengthTopicNameField);
-  ucdr_serialize_uint32_t(&buffer, lenTopicName);
-  ucdr_serialize_array_char(&buffer, topicName, lenTopicName);
-  ucdr_align_to(&buffer, 4);
+  writer.write<uint16_t>(ParameterId::PID_TOPIC_NAME);
+  writer.write<uint16_t>(totalLengthTopicNameField);
+  writer.write<uint32_t>(lenTopicName);
+  writeBytes(writer, reinterpret_cast<const uint8_t *>(topicName), lenTopicName);
+  writer.align(4);
 
   // It's a 32 bit instead of 16 because it seems like the field is padded.
   const auto lenTypeName = static_cast<uint32_t>(strlen(typeName) + 1); // + \0
@@ -212,43 +243,41 @@ bool TopicData::serializeIntoUcdrBuffer(ucdrBuffer &buffer) const {
   const auto totalLengthTypeNameField =
       static_cast<uint16_t>(sizeof(lenTypeName) + lenTypeName + typeAlignment);
 
-  ucdr_serialize_uint16_t(&buffer, ParameterId::PID_TYPE_NAME);
-  ucdr_serialize_uint16_t(&buffer, totalLengthTypeNameField);
-  ucdr_serialize_uint32_t(&buffer, lenTypeName);
-  ucdr_serialize_array_char(&buffer, typeName, lenTypeName);
-  ucdr_align_to(&buffer, 4);
+  writer.write<uint16_t>(ParameterId::PID_TYPE_NAME);
+  writer.write<uint16_t>(totalLengthTypeNameField);
+  writer.write<uint32_t>(lenTypeName);
+  writeBytes(writer, reinterpret_cast<const uint8_t *>(typeName), lenTypeName);
+  writer.align(4);
 
-  ucdr_serialize_uint16_t(&buffer, ParameterId::PID_KEY_HASH);
-  ucdr_serialize_uint16_t(&buffer, guidSize);
-  ucdr_serialize_array_uint8_t(&buffer, endpointGuid.prefix.id.data(),
-                               endpointGuid.prefix.id.size());
-  ucdr_serialize_array_uint8_t(&buffer, endpointGuid.entityId.entityKey.data(),
-                               endpointGuid.entityId.entityKey.size());
-  ucdr_serialize_uint8_t(&buffer, static_cast<uint8_t>(endpointGuid.entityId.entityKind));
+  writer.write<uint16_t>(ParameterId::PID_KEY_HASH);
+  writer.write<uint16_t>(guidSize);
+  writeBytes(writer, endpointGuid.prefix.id.data(), endpointGuid.prefix.id.size());
+  writeBytes(writer, endpointGuid.entityId.entityKey.data(),
+             endpointGuid.entityId.entityKey.size());
+  writer.write<uint8_t>(static_cast<uint8_t>(endpointGuid.entityId.entityKind));
 
-  ucdr_serialize_uint16_t(&buffer, ParameterId::PID_ENDPOINT_GUID);
-  ucdr_serialize_uint16_t(&buffer, guidSize);
-  ucdr_serialize_array_uint8_t(&buffer, endpointGuid.prefix.id.data(),
-                               endpointGuid.prefix.id.size());
-  ucdr_serialize_array_uint8_t(&buffer, endpointGuid.entityId.entityKey.data(),
-                               endpointGuid.entityId.entityKey.size());
-  ucdr_serialize_uint8_t(&buffer, static_cast<uint8_t>(endpointGuid.entityId.entityKind));
+  writer.write<uint16_t>(ParameterId::PID_ENDPOINT_GUID);
+  writer.write<uint16_t>(guidSize);
+  writeBytes(writer, endpointGuid.prefix.id.data(), endpointGuid.prefix.id.size());
+  writeBytes(writer, endpointGuid.entityId.entityKey.data(),
+             endpointGuid.entityId.entityKey.size());
+  writer.write<uint8_t>(static_cast<uint8_t>(endpointGuid.entityId.entityKind));
 
   const uint8_t unidentifiedOffset = 8;
-  ucdr_serialize_uint16_t(&buffer, ParameterId::PID_RELIABILITY);
-  ucdr_serialize_uint16_t(&buffer, sizeof(ReliabilityKind_t) + unidentifiedOffset);
-  ucdr_serialize_uint32_t(&buffer, static_cast<uint32_t>(reliabilityKind));
-  ucdr_serialize_uint32_t(&buffer, 0); // unidentified additional value
-  ucdr_serialize_uint32_t(&buffer, 0); // unidentified additional value
+  writer.write<uint16_t>(ParameterId::PID_RELIABILITY);
+  writer.write<uint16_t>(sizeof(ReliabilityKind_t) + unidentifiedOffset);
+  writer.write<uint32_t>(static_cast<uint32_t>(reliabilityKind));
+  writer.write<uint32_t>(0); // unidentified additional value
+  writer.write<uint32_t>(0); // unidentified additional value
 
-  ucdr_serialize_uint16_t(&buffer, ParameterId::PID_DURABILITY);
-  ucdr_serialize_uint16_t(&buffer, sizeof(DurabilityKind_t));
-  ucdr_serialize_uint32_t(&buffer, static_cast<uint32_t>(durabilityKind));
+  writer.write<uint16_t>(ParameterId::PID_DURABILITY);
+  writer.write<uint16_t>(sizeof(DurabilityKind_t));
+  writer.write<uint32_t>(static_cast<uint32_t>(durabilityKind));
 
-  ucdr_serialize_uint16_t(&buffer, ParameterId::PID_SENTINEL);
-  ucdr_serialize_uint16_t(&buffer, 0);
+  writer.write<uint16_t>(ParameterId::PID_SENTINEL);
+  writer.write<uint16_t>(0);
 
-  return true;
+  return writer.ok();
 }
 
 bool TopicDataCompressed::matchesTopicOf(const TopicData &other) const {

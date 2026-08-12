@@ -29,9 +29,10 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/entities/Reader.hpp"
 #include "rtps/entities/Writer.hpp"
 #include "rtps/messages/MessageTypes.hpp"
+#include "rtps/utils/CdrBuffer.hpp"
 #include "rtps/utils/Log.hpp"
-#include "ucdr/microcdr.h"
 #include <mutex>
+#include <span>
 
 using rtps::SEDPAgent;
 
@@ -89,11 +90,9 @@ void SEDPAgent::handlePublisherReaderMessage(const ReaderCacheChange &change) {
 #endif
     return;
   }
-  ucdrBuffer cdrBuffer;
-  ucdr_init_buffer(&cdrBuffer, m_buffer, change.getDataSize());
 
   TopicData topicData;
-  if (topicData.readFromUcdrBuffer(cdrBuffer)) {
+  if (topicData.readFromBuffer(std::span<const uint8_t>(m_buffer, change.getDataSize()))) {
     handlePublisherReaderMessage(topicData, change);
   }
 }
@@ -216,11 +215,9 @@ void SEDPAgent::handleSubscriptionReaderMessage(const ReaderCacheChange &change)
 #endif
     return;
   }
-  ucdrBuffer cdrBuffer;
-  ucdr_init_buffer(&cdrBuffer, m_buffer, change.getDataSize());
 
   TopicData topicData;
-  if (topicData.readFromUcdrBuffer(cdrBuffer)) {
+  if (topicData.readFromBuffer(std::span<const uint8_t>(m_buffer, change.getDataSize()))) {
     handleSubscriptionReaderMessage(topicData, change);
   }
 }
@@ -330,16 +327,15 @@ bool SEDPAgent::addWriter(Writer &writer) {
   // Check unmatched writers for this new reader
   tryMatchUnmatchedEndpoints();
 
-  ucdrBuffer microbuffer;
-  ucdr_init_buffer(&microbuffer, m_buffer, sizeof(m_buffer) / sizeof(m_buffer[0]));
+  CdrSink sink{asWritableBytes(m_buffer, sizeof(m_buffer) / sizeof(m_buffer[0]))};
+  CdrWriter microbuffer(sink);
   const uint16_t zero_options = 0;
 
-  ucdr_serialize_array_uint8_t(&microbuffer, rtps::SMElement::SCHEME_PL_CDR_LE.data(),
-                               rtps::SMElement::SCHEME_PL_CDR_LE.size());
-  ucdr_serialize_uint16_t(&microbuffer, zero_options);
-  writer.m_attributes.serializeIntoUcdrBuffer(microbuffer);
-  auto change = m_endpoints.sedpPubWriter->newChange(ChangeKind_t::ALIVE, m_buffer,
-                                                     ucdr_buffer_length(&microbuffer));
+  writeBytes(microbuffer, rtps::SMElement::SCHEME_PL_CDR_LE.data(),
+             rtps::SMElement::SCHEME_PL_CDR_LE.size());
+  microbuffer.write<uint16_t>(zero_options);
+  writer.m_attributes.serializeInto(microbuffer);
+  auto change = m_endpoints.sedpPubWriter->newChange(ChangeKind_t::ALIVE, m_buffer, sink.size());
   writer.setSEDPSequenceNumber(change->sequenceNumber);
 #if SEDP_VERBOSE
   SEDP_LOG("Added new change to sedpPubWriter.\n");
@@ -354,37 +350,33 @@ bool SEDPAgent::disposeEndpointInSEDPHistory(A *local_endpoint, Writer *sedp_wri
 
 template <typename A>
 bool SEDPAgent::announceEndpointDeletion(A *local_endpoint, Writer *sedp_endpoint) {
-  ucdrBuffer microbuffer;
-  ucdr_init_buffer(&microbuffer, m_buffer, sizeof(m_buffer) / sizeof(m_buffer[0]));
+  CdrSink sink{asWritableBytes(m_buffer, sizeof(m_buffer) / sizeof(m_buffer[0]))};
+  CdrWriter microbuffer(sink);
 
-  ucdr_serialize_uint16_t(&microbuffer, ParameterId::PID_KEY_HASH);
-  ucdr_serialize_uint16_t(&microbuffer, 16);
-  ucdr_serialize_array_uint8_t(&microbuffer,
-                               local_endpoint->m_attributes.endpointGuid.prefix.id.data(),
-                               sizeof(GuidPrefix_t::id));
-  ucdr_serialize_array_uint8_t(
-      &microbuffer, local_endpoint->m_attributes.endpointGuid.entityId.entityKey.data(), 3);
-  ucdr_serialize_uint8_t(
-      &microbuffer,
+  microbuffer.write<uint16_t>(ParameterId::PID_KEY_HASH);
+  microbuffer.write<uint16_t>(16);
+  writeBytes(microbuffer, local_endpoint->m_attributes.endpointGuid.prefix.id.data(),
+             sizeof(GuidPrefix_t::id));
+  writeBytes(microbuffer, local_endpoint->m_attributes.endpointGuid.entityId.entityKey.data(), 3);
+  microbuffer.write<uint8_t>(
       static_cast<uint8_t>(local_endpoint->m_attributes.endpointGuid.entityId.entityKind));
 
-  ucdr_serialize_uint16_t(&microbuffer, ParameterId::PID_STATUS_INFO);
-  ucdr_serialize_uint16_t(&microbuffer, static_cast<uint16_t>(4));
-  ucdr_serialize_uint8_t(&microbuffer, 0);
-  ucdr_serialize_uint8_t(&microbuffer, 0);
-  ucdr_serialize_uint8_t(&microbuffer, 0);
-  ucdr_serialize_uint8_t(&microbuffer, 3);
+  microbuffer.write<uint16_t>(ParameterId::PID_STATUS_INFO);
+  microbuffer.write<uint16_t>(static_cast<uint16_t>(4));
+  microbuffer.write<uint8_t>(0);
+  microbuffer.write<uint8_t>(0);
+  microbuffer.write<uint8_t>(0);
+  microbuffer.write<uint8_t>(3);
 
   // Sentinel to terminate inline qos
-  ucdr_serialize_uint16_t(&microbuffer, ParameterId::PID_SENTINEL);
-  ucdr_serialize_uint16_t(&microbuffer, 0);
+  microbuffer.write<uint16_t>(ParameterId::PID_SENTINEL);
+  microbuffer.write<uint16_t>(0);
 
   // Sentinel to terminate serialized data
-  ucdr_serialize_uint16_t(&microbuffer, ParameterId::PID_SENTINEL);
-  ucdr_serialize_uint16_t(&microbuffer, 0);
+  microbuffer.write<uint16_t>(ParameterId::PID_SENTINEL);
+  microbuffer.write<uint16_t>(0);
 
-  auto ret = sedp_endpoint->newChange(ChangeKind_t::ALIVE, m_buffer,
-                                      ucdr_buffer_length(&microbuffer), true, true);
+  auto ret = sedp_endpoint->newChange(ChangeKind_t::ALIVE, m_buffer, sink.size(), true, true);
   SEDP_LOG("Announcing endpoint delete, SN = {}.{}", (int)ret->sequenceNumber.low,
            (int)ret->sequenceNumber.high);
   return (ret != nullptr);
@@ -466,16 +458,15 @@ bool SEDPAgent::addReader(Reader &reader) {
   // Check unmatched writers for this new reader
   tryMatchUnmatchedEndpoints();
 
-  ucdrBuffer microbuffer;
-  ucdr_init_buffer(&microbuffer, m_buffer, sizeof(m_buffer) / sizeof(m_buffer[0]));
+  CdrSink sink{asWritableBytes(m_buffer, sizeof(m_buffer) / sizeof(m_buffer[0]))};
+  CdrWriter microbuffer(sink);
   const uint16_t zero_options = 0;
 
-  ucdr_serialize_array_uint8_t(&microbuffer, rtps::SMElement::SCHEME_PL_CDR_LE.data(),
-                               rtps::SMElement::SCHEME_PL_CDR_LE.size());
-  ucdr_serialize_uint16_t(&microbuffer, zero_options);
-  reader.m_attributes.serializeIntoUcdrBuffer(microbuffer);
-  auto change = m_endpoints.sedpSubWriter->newChange(ChangeKind_t::ALIVE, m_buffer,
-                                                     ucdr_buffer_length(&microbuffer));
+  writeBytes(microbuffer, rtps::SMElement::SCHEME_PL_CDR_LE.data(),
+             rtps::SMElement::SCHEME_PL_CDR_LE.size());
+  microbuffer.write<uint16_t>(zero_options);
+  reader.m_attributes.serializeInto(microbuffer);
+  auto change = m_endpoints.sedpSubWriter->newChange(ChangeKind_t::ALIVE, m_buffer, sink.size());
   reader.setSEDPSequenceNumber(change->sequenceNumber);
 #if SEDP_VERBOSE
   SEDP_LOG("Added new change to sedpSubWriter.\n");

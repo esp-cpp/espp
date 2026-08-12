@@ -21,7 +21,7 @@
 #include "rtps/discovery/TopicData.hpp"
 #include "rtps/messages/MessageFactory.hpp"
 #include "rtps/storages/PayloadBuffer.hpp"
-#include "ucdr/microcdr.h"
+#include "rtps/utils/CdrBuffer.hpp"
 
 namespace {
 
@@ -115,12 +115,12 @@ rtps::TopicData make_topic_data() {
 std::vector<uint8_t> build_sedp_topic_data() {
   const rtps::TopicData td = make_topic_data();
   std::vector<uint8_t> buf(1024, 0);
-  ucdrBuffer ub;
-  ucdr_init_buffer(&ub, buf.data(), static_cast<uint32_t>(buf.size()));
-  if (!td.serializeIntoUcdrBuffer(ub)) {
+  rtps::CdrSink sink{rtps::asWritableBytes(buf.data(), buf.size())};
+  rtps::CdrWriter writer(sink);
+  if (!td.serializeInto(writer)) {
     return {};
   }
-  buf.resize(ucdr_buffer_length(&ub));
+  buf.resize(sink.size());
   return buf;
 }
 
@@ -132,9 +132,7 @@ bool roundtrip_sedp_topic_data() {
     return false;
   }
   rtps::TopicData parsed;
-  ucdrBuffer ub;
-  ucdr_init_buffer(&ub, bytes.data(), static_cast<uint32_t>(bytes.size()));
-  if (!parsed.readFromUcdrBuffer(ub)) {
+  if (!parsed.readFromBuffer(std::span<const uint8_t>(bytes.data(), bytes.size()))) {
     std::printf("FAIL: sedp round-trip parse failed\n");
     return false;
   }

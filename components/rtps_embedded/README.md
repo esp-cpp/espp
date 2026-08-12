@@ -132,13 +132,10 @@ total stack RAM consumed by all internal tasks.
 
 These components abstract away all OS and network-stack details, so
 `rtps_embedded` itself has no direct dependency on FreeRTOS, lwIP, or any
-other platform library.
-
-Third-party (vendored in `thirdparty/`):
-
-| Library | Purpose |
-|---|---|
-| `Micro-CDR` | eProsima CDR (de)serialization for discovery messages |
+other platform library. Discovery (SPDP/SEDP) parameter-list serialization is
+built on the espp `cdr` component's stream primitives (see
+`include/rtps/utils/CdrBuffer.hpp`); the engine carries no vendored
+third-party code.
 
 ---
 

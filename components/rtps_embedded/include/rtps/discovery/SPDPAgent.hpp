@@ -31,9 +31,9 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/config.hpp"
 #include "rtps/discovery/BuiltInEndpoints.hpp"
 #include "rtps/discovery/ParticipantProxyData.hpp"
+#include "rtps/utils/CdrBuffer.hpp"
 #include "rtps/utils/Log.hpp"
 #include "task.hpp"
-#include "ucdr/microcdr.h"
 
 #include <memory>
 #include <mutex>
@@ -76,19 +76,20 @@ private:
   std::array<uint8_t, 1000> m_outputBuffer{}; // TODO check required size
   std::array<uint8_t, 1000> m_inputBuffer{};
   ParticipantProxyData m_proxyDataBuffer{};
-  ucdrBuffer m_microbuffer{};
+  /// Number of valid bytes of the pre-built SPDP announcement in
+  /// m_outputBuffer (built once by addParticipantParameters()).
+  size_t m_outputSize = 0;
   uint8_t m_cycleHB = 0;
 
   bool initialized = false;
   static void receiveCallback(void *callee, const ReaderCacheChange &cacheChange);
   void handleSPDPPackage(const ReaderCacheChange &cacheChange);
-  void configureEndianessAndOptions(ucdrBuffer &buffer);
   void processProxyData();
   bool addProxiesForBuiltInEndpoints();
 
-  void addInlineQos();
+  void addInlineQos(CdrWriter &writer);
   void addParticipantParameters();
-  void endCurrentList();
+  void endCurrentList(CdrWriter &writer);
 };
 } // namespace rtps
 

@@ -29,7 +29,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "base_component.hpp"
 #include "rtps/config.hpp"
 #include "rtps/messages/MessageTypes.hpp"
-#include "ucdr/microcdr.h"
+#include "rtps/utils/CdrBuffer.hpp"
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -65,7 +65,10 @@ public:
   std::chrono::time_point<std::chrono::steady_clock> m_lastLivelinessReceivedTimestamp;
   void reset();
 
-  bool readFromUcdrBuffer(ucdrBuffer &buffer, Participant *participant);
+  /// Parses the SPDP PL_CDR parameter list starting at `buffer`'s current
+  /// position (the caller has already consumed the 4-byte encapsulation
+  /// header and configured the reader's endianness accordingly).
+  bool readFromBuffer(CdrReader &buffer, Participant *participant);
 
   inline bool hasParticipantWriter() const;
   inline bool hasParticipantReader() const;
@@ -79,7 +82,7 @@ public:
   inline uint32_t getAliveSignalAgeInMilliseconds() const;
 
 private:
-  bool readLocatorIntoList(ucdrBuffer &buffer,
+  bool readLocatorIntoList(CdrReader &buffer,
                            std::array<LocatorIPv4, Config::SPDP_MAX_NUM_LOCATORS> &list);
 
   static const BuiltinEndpointSet_t DISC_BUILTIN_ENDPOINT_PARTICIPANT_ANNOUNCER = 1 << 0;

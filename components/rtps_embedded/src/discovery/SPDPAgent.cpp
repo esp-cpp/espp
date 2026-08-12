@@ -48,8 +48,6 @@ void SPDPAgent::init(Participant &participant, BuiltInEndpoints &endpoints) {
   m_buildInEndpoints = endpoints;
   m_buildInEndpoints.spdpReader->registerCallback(receiveCallback, this);
 
-  ucdr_init_buffer(&m_microbuffer, m_outputBuffer.data(), m_outputBuffer.size());
-  // addInlineQos();
   addParticipantParameters();
   initialized = true;
 }
@@ -62,8 +60,8 @@ void SPDPAgent::announce() {
   // Exactly one announcement cycle; the Domain's protocol scheduler provides
   // the SPDP_RESEND_PERIOD_MS cadence (the pacing loop + sleep used to live
   // here when this was a dedicated thread body).
-  const DataSize_t size = ucdr_buffer_length(&m_microbuffer);
-  const uint8_t *payload = m_microbuffer.init;
+  const DataSize_t size = static_cast<DataSize_t>(m_outputSize);
+  const uint8_t *payload = m_outputBuffer.data();
   // StatelessWriter drops already-sent history; enqueue a fresh SPDP sample
   // for each announce cycle.
   m_buildInEndpoints.spdpWriter->newChange(ChangeKind_t::ALIVE, payload, size);
@@ -98,12 +96,18 @@ void SPDPAgent::handleSPDPPackage(const ReaderCacheChange &cacheChange) {
   }
   SPDP_LOG("SPDPPackage size: {}", cacheChange.size);
 
-  ucdrBuffer buffer;
-  ucdr_init_buffer(&buffer, m_inputBuffer.data(), m_inputBuffer.size());
-
   if (cacheChange.kind == ChangeKind_t::ALIVE) {
-    configureEndianessAndOptions(buffer);
-    volatile bool success = m_proxyDataBuffer.readFromUcdrBuffer(buffer, mp_participant);
+    // The payload's endianness is selected by the encapsulation identifier
+    // (first two bytes); endianness doesn't matter for reading those since
+    // they are single bytes.
+    const std::endian endianness = (m_inputBuffer[0] == SMElement::SCHEME_PL_CDR_LE[0] &&
+                                    m_inputBuffer[1] == SMElement::SCHEME_PL_CDR_LE[1])
+                                       ? std::endian::little
+                                       : std::endian::big;
+    CdrReader buffer(asBytes(m_inputBuffer.data(), m_inputBuffer.size()), endianness);
+    // Skip the encapsulation identifier and options (2 + 2 bytes)
+    skipBytes(buffer, 4);
+    volatile bool success = m_proxyDataBuffer.readFromBuffer(buffer, mp_participant);
     if (success) {
       // TODO In case we store the history we can free the history mutex here
       processProxyData();
@@ -113,19 +117,6 @@ void SPDPAgent::handleSPDPPackage(const ReaderCacheChange &cacheChange) {
   } else {
     // TODO RemoveParticipant
   }
-}
-
-void SPDPAgent::configureEndianessAndOptions(ucdrBuffer &buffer) {
-  std::array<uint8_t, 2> encapsulation{};
-  // Endianess doesn't matter for this since those are single bytes
-  ucdr_deserialize_array_uint8_t(&buffer, encapsulation.data(), encapsulation.size());
-  if (encapsulation == SMElement::SCHEME_PL_CDR_LE) {
-    buffer.endianness = UCDR_LITTLE_ENDIANNESS;
-  } else {
-    buffer.endianness = UCDR_BIG_ENDIANNESS;
-  }
-  // Reuse encapsulation buffer to skip options
-  ucdr_deserialize_array_uint8_t(&buffer, encapsulation.data(), encapsulation.size());
 }
 
 void SPDPAgent::processProxyData() {
@@ -146,8 +137,8 @@ void SPDPAgent::processProxyData() {
 
   if (mp_participant->addNewRemoteParticipant(m_proxyDataBuffer)) {
     addProxiesForBuiltInEndpoints();
-    const DataSize_t size = ucdr_buffer_length(&m_microbuffer);
-    m_buildInEndpoints.spdpWriter->newChange(ChangeKind_t::ALIVE, m_microbuffer.init, size);
+    const DataSize_t size = static_cast<DataSize_t>(m_outputSize);
+    m_buildInEndpoints.spdpWriter->newChange(ChangeKind_t::ALIVE, m_outputBuffer.data(), size);
 #if SPDP_VERBOSE && RTPS_GLOBAL_VERBOSE
     SPDP_LOG("Added new participant with guid: ");
     printGuidPrefix(m_proxyDataBuffer.m_guid.prefix);
@@ -229,22 +220,19 @@ bool SPDPAgent::addProxiesForBuiltInEndpoints() {
   return true;
 }
 
-void SPDPAgent::addInlineQos() {
-  ucdr_serialize_uint16_t(&m_microbuffer, ParameterId::PID_KEY_HASH);
-  ucdr_serialize_uint16_t(&m_microbuffer, 16);
-  ucdr_serialize_array_uint8_t(&m_microbuffer, mp_participant->m_guidPrefix.id.data(),
-                               sizeof(GuidPrefix_t::id));
-  ucdr_serialize_array_uint8_t(&m_microbuffer, ENTITYID_BUILD_IN_PARTICIPANT.entityKey.data(),
-                               sizeof(EntityId_t::entityKey));
-  ucdr_serialize_uint8_t(&m_microbuffer,
-                         static_cast<uint8_t>(ENTITYID_BUILD_IN_PARTICIPANT.entityKind));
+void SPDPAgent::addInlineQos(CdrWriter &writer) {
+  writer.write<uint16_t>(ParameterId::PID_KEY_HASH);
+  writer.write<uint16_t>(16);
+  writeBytes(writer, mp_participant->m_guidPrefix.id.data(), sizeof(GuidPrefix_t::id));
+  writeBytes(writer, ENTITYID_BUILD_IN_PARTICIPANT.entityKey.data(), sizeof(EntityId_t::entityKey));
+  writer.write<uint8_t>(static_cast<uint8_t>(ENTITYID_BUILD_IN_PARTICIPANT.entityKind));
 
-  endCurrentList();
+  endCurrentList(writer);
 }
 
-void SPDPAgent::endCurrentList() {
-  ucdr_serialize_uint16_t(&m_microbuffer, ParameterId::PID_SENTINEL);
-  ucdr_serialize_uint16_t(&m_microbuffer, 0);
+void SPDPAgent::endCurrentList(CdrWriter &writer) {
+  writer.write<uint16_t>(ParameterId::PID_SENTINEL);
+  writer.write<uint16_t>(0);
 }
 
 void SPDPAgent::addParticipantParameters() {
@@ -265,62 +253,59 @@ void SPDPAgent::addParticipantParameters() {
       getBuiltInUnicastLocator(mp_participant->m_participantId, mp_participant->m_localIpAddress);
   const FullLengthLocator builtInMultiCastLocator = getBuiltInMulticastLocator();
 
-  ucdr_serialize_array_uint8_t(&m_microbuffer, rtps::SMElement::SCHEME_PL_CDR_LE.data(),
-                               rtps::SMElement::SCHEME_PL_CDR_LE.size());
-  ucdr_serialize_uint16_t(&m_microbuffer, zero_options);
+  CdrSink sink{asWritableBytes(m_outputBuffer.data(), m_outputBuffer.size())};
+  CdrWriter writer(sink);
 
-  ucdr_serialize_uint16_t(&m_microbuffer, ParameterId::PID_PROTOCOL_VERSION);
-  ucdr_serialize_uint16_t(&m_microbuffer, protocolVersionSize + 2);
-  ucdr_serialize_uint8_t(&m_microbuffer, PROTOCOLVERSION.major);
-  ucdr_serialize_uint8_t(&m_microbuffer, PROTOCOLVERSION.minor);
-  m_microbuffer.iterator += 2;      // padding
-  m_microbuffer.last_data_size = 4; // to 4 byte
+  writeBytes(writer, rtps::SMElement::SCHEME_PL_CDR_LE.data(),
+             rtps::SMElement::SCHEME_PL_CDR_LE.size());
+  writer.write<uint16_t>(zero_options);
 
-  ucdr_serialize_uint16_t(&m_microbuffer, ParameterId::PID_VENDORID);
-  ucdr_serialize_uint16_t(&m_microbuffer, vendorIdSize + 2);
-  ucdr_serialize_array_uint8_t(&m_microbuffer, Config::VENDOR_ID.vendorId.data(), vendorIdSize);
-  m_microbuffer.iterator += 2;      // padding
-  m_microbuffer.last_data_size = 4; // to 4 byte
+  writer.write<uint16_t>(ParameterId::PID_PROTOCOL_VERSION);
+  writer.write<uint16_t>(protocolVersionSize + 2);
+  writer.write<uint8_t>(PROTOCOLVERSION.major);
+  writer.write<uint8_t>(PROTOCOLVERSION.minor);
+  writer.align(4); // 2 bytes of padding to 4 byte boundary
 
-  ucdr_serialize_uint16_t(&m_microbuffer, ParameterId::PID_DEFAULT_UNICAST_LOCATOR);
-  ucdr_serialize_uint16_t(&m_microbuffer, locatorSize);
-  ucdr_serialize_array_uint8_t(&m_microbuffer,
-                               reinterpret_cast<const uint8_t *>(&userUniCastLocator), locatorSize);
+  writer.write<uint16_t>(ParameterId::PID_VENDORID);
+  writer.write<uint16_t>(vendorIdSize + 2);
+  writeBytes(writer, Config::VENDOR_ID.vendorId.data(), vendorIdSize);
+  writer.align(4); // 2 bytes of padding to 4 byte boundary
 
-  ucdr_serialize_uint16_t(&m_microbuffer, ParameterId::PID_METATRAFFIC_UNICAST_LOCATOR);
-  ucdr_serialize_uint16_t(&m_microbuffer, locatorSize);
-  ucdr_serialize_array_uint8_t(
-      &m_microbuffer, reinterpret_cast<const uint8_t *>(&builtInUniCastLocator), locatorSize);
+  writer.write<uint16_t>(ParameterId::PID_DEFAULT_UNICAST_LOCATOR);
+  writer.write<uint16_t>(locatorSize);
+  writeBytes(writer, reinterpret_cast<const uint8_t *>(&userUniCastLocator), locatorSize);
 
-  ucdr_serialize_uint16_t(&m_microbuffer, ParameterId::PID_METATRAFFIC_MULTICAST_LOCATOR);
-  ucdr_serialize_uint16_t(&m_microbuffer, locatorSize);
-  ucdr_serialize_array_uint8_t(
-      &m_microbuffer, reinterpret_cast<const uint8_t *>(&builtInMultiCastLocator), locatorSize);
+  writer.write<uint16_t>(ParameterId::PID_METATRAFFIC_UNICAST_LOCATOR);
+  writer.write<uint16_t>(locatorSize);
+  writeBytes(writer, reinterpret_cast<const uint8_t *>(&builtInUniCastLocator), locatorSize);
 
-  ucdr_serialize_uint16_t(&m_microbuffer, ParameterId::PID_PARTICIPANT_LEASE_DURATION);
-  ucdr_serialize_uint16_t(&m_microbuffer, durationSize);
-  ucdr_serialize_int32_t(&m_microbuffer, Config::SPDP_DEFAULT_REMOTE_LEASE_DURATION.seconds);
-  ucdr_serialize_uint32_t(&m_microbuffer, Config::SPDP_DEFAULT_REMOTE_LEASE_DURATION.fraction);
+  writer.write<uint16_t>(ParameterId::PID_METATRAFFIC_MULTICAST_LOCATOR);
+  writer.write<uint16_t>(locatorSize);
+  writeBytes(writer, reinterpret_cast<const uint8_t *>(&builtInMultiCastLocator), locatorSize);
 
-  ucdr_serialize_uint16_t(&m_microbuffer, ParameterId::PID_PARTICIPANT_GUID);
-  ucdr_serialize_uint16_t(&m_microbuffer, guidSize);
-  ucdr_serialize_array_uint8_t(&m_microbuffer, mp_participant->m_guidPrefix.id.data(),
-                               sizeof(GuidPrefix_t::id));
-  ucdr_serialize_array_uint8_t(&m_microbuffer, ENTITYID_BUILD_IN_PARTICIPANT.entityKey.data(),
-                               entityKeySize);
-  ucdr_serialize_uint8_t(&m_microbuffer,
-                         static_cast<uint8_t>(ENTITYID_BUILD_IN_PARTICIPANT.entityKind));
+  writer.write<uint16_t>(ParameterId::PID_PARTICIPANT_LEASE_DURATION);
+  writer.write<uint16_t>(durationSize);
+  writer.write<int32_t>(Config::SPDP_DEFAULT_REMOTE_LEASE_DURATION.seconds);
+  writer.write<uint32_t>(Config::SPDP_DEFAULT_REMOTE_LEASE_DURATION.fraction);
 
-  ucdr_serialize_uint16_t(&m_microbuffer, ParameterId::PID_BUILTIN_ENDPOINT_SET);
-  ucdr_serialize_uint16_t(&m_microbuffer, sizeof(BuildInEndpointSet));
-  ucdr_serialize_uint32_t(&m_microbuffer, BuildInEndpointSet::DISC_BIE_PARTICIPANT_ANNOUNCER |
-                                              BuildInEndpointSet::DISC_BIE_PARTICIPANT_DETECTOR |
-                                              BuildInEndpointSet::DISC_BIE_PUBLICATION_ANNOUNCER |
-                                              BuildInEndpointSet::DISC_BIE_PUBLICATION_DETECTOR |
-                                              BuildInEndpointSet::DISC_BIE_SUBSCRIPTION_ANNOUNCER |
-                                              BuildInEndpointSet::DISC_BIE_SUBSCRIPTION_DETECTOR);
+  writer.write<uint16_t>(ParameterId::PID_PARTICIPANT_GUID);
+  writer.write<uint16_t>(guidSize);
+  writeBytes(writer, mp_participant->m_guidPrefix.id.data(), sizeof(GuidPrefix_t::id));
+  writeBytes(writer, ENTITYID_BUILD_IN_PARTICIPANT.entityKey.data(), entityKeySize);
+  writer.write<uint8_t>(static_cast<uint8_t>(ENTITYID_BUILD_IN_PARTICIPANT.entityKind));
 
-  endCurrentList();
+  writer.write<uint16_t>(ParameterId::PID_BUILTIN_ENDPOINT_SET);
+  writer.write<uint16_t>(sizeof(BuildInEndpointSet));
+  writer.write<uint32_t>(BuildInEndpointSet::DISC_BIE_PARTICIPANT_ANNOUNCER |
+                         BuildInEndpointSet::DISC_BIE_PARTICIPANT_DETECTOR |
+                         BuildInEndpointSet::DISC_BIE_PUBLICATION_ANNOUNCER |
+                         BuildInEndpointSet::DISC_BIE_PUBLICATION_DETECTOR |
+                         BuildInEndpointSet::DISC_BIE_SUBSCRIPTION_ANNOUNCER |
+                         BuildInEndpointSet::DISC_BIE_SUBSCRIPTION_DETECTOR);
+
+  endCurrentList(writer);
+
+  m_outputSize = sink.size();
 }
 
 #undef SPDP_VERBOSE

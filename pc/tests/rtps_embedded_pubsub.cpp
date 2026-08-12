@@ -17,7 +17,7 @@
 #include <thread>
 
 #include "rtps/entities/Domain.hpp"
-#include "ucdr/microcdr.h"
+#include "rtps/utils/CdrBuffer.hpp"
 
 #include "rtps_common.hpp"
 
@@ -45,13 +45,16 @@ bool publish_string(rtps::Writer *writer, const char *text) {
   cdr_buf[1] = 0x01;
   cdr_buf[2] = 0x00;
   cdr_buf[3] = 0x00;
-  ucdrBuffer ub;
-  ucdr_init_buffer_origin_offset_endian(&ub, cdr_buf, sizeof(cdr_buf), 0, 4,
-                                        UCDR_LITTLE_ENDIANNESS);
-  if (!ucdr_serialize_string(&ub, text) || ucdr_buffer_has_error(&ub)) {
+  // CDR string body: uint32 length (incl. null terminator) + chars + null.
+  rtps::CdrSink sink{rtps::asWritableBytes(cdr_buf + 4, sizeof(cdr_buf) - 4)};
+  rtps::CdrWriter writer_cdr(sink);
+  const auto len = static_cast<uint32_t>(std::strlen(text) + 1);
+  writer_cdr.write<uint32_t>(len);
+  rtps::writeBytes(writer_cdr, reinterpret_cast<const uint8_t *>(text), len);
+  if (!writer_cdr.ok()) {
     return false;
   }
-  const auto total = static_cast<rtps::DataSize_t>(4 + ucdr_buffer_length(&ub));
+  const auto total = static_cast<rtps::DataSize_t>(4 + sink.size());
   return writer->newChange(rtps::ChangeKind_t::ALIVE, cdr_buf, total) != nullptr;
 }
 } // namespace
