@@ -24,6 +24,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 */
 
 #include "rtps/entities/StatefulReader.hpp"
+#include "rtps/communication/EsppTransport.hpp"
 #include "rtps/messages/MessageFactory.hpp"
 #include "rtps/storages/PayloadBuffer.hpp"
 #include "rtps/utils/Diagnostics.hpp"
@@ -45,16 +46,15 @@ using rtps::PacketInfo;
 using rtps::ReaderCacheChange;
 using rtps::SequenceNumber_t;
 using rtps::SequenceNumberSet;
-using rtps::StatefulReaderT;
+using rtps::StatefulReader;
 using rtps::SubmessageGap;
 using rtps::SubmessageHeartbeat;
 using rtps::TopicData;
 using rtps::WriterProxy;
 
-template <class NetworkDriver> StatefulReaderT<NetworkDriver>::~StatefulReaderT() {}
+StatefulReader::~StatefulReader() {}
 
-template <class NetworkDriver>
-bool StatefulReaderT<NetworkDriver>::init(const TopicData &attributes, NetworkDriver &driver) {
+bool StatefulReader::init(const TopicData &attributes, EsppTransport &driver) {
   if (!initMutex()) {
     return false;
   }
@@ -67,8 +67,7 @@ bool StatefulReaderT<NetworkDriver>::init(const TopicData &attributes, NetworkDr
   return true;
 }
 
-template <class NetworkDriver>
-void StatefulReaderT<NetworkDriver>::newChange(const ReaderCacheChange &cacheChange) {
+void StatefulReader::newChange(const ReaderCacheChange &cacheChange) {
   if (m_callback_count == 0 || !m_is_initialized_) {
     return;
   }
@@ -96,17 +95,14 @@ void StatefulReaderT<NetworkDriver>::newChange(const ReaderCacheChange &cacheCha
   }
 }
 
-template <class NetworkDriver>
-bool StatefulReaderT<NetworkDriver>::addNewMatchedWriter(const WriterProxy &newProxy) {
+bool StatefulReader::addNewMatchedWriter(const WriterProxy &newProxy) {
 #if SFR_VERBOSE && RTPS_GLOBAL_VERBOSE
   SFR_LOG("New writer added");
 #endif
   return m_proxies.add(newProxy);
 }
 
-template <class NetworkDriver>
-bool StatefulReaderT<NetworkDriver>::onNewGapMessage(const SubmessageGap &msg,
-                                                     const GuidPrefix_t &remotePrefix) {
+bool StatefulReader::onNewGapMessage(const SubmessageGap &msg, const GuidPrefix_t &remotePrefix) {
   std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
   if (!m_is_initialized_) {
     return false;
@@ -204,9 +200,8 @@ bool StatefulReaderT<NetworkDriver>::onNewGapMessage(const SubmessageGap &msg,
   }
 }
 
-template <class NetworkDriver>
-bool StatefulReaderT<NetworkDriver>::onNewHeartbeat(const SubmessageHeartbeat &msg,
-                                                    const GuidPrefix_t &sourceGuidPrefix) {
+bool StatefulReader::onNewHeartbeat(const SubmessageHeartbeat &msg,
+                                    const GuidPrefix_t &sourceGuidPrefix) {
   std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
   if (!m_is_initialized_) {
     return false;
@@ -251,8 +246,7 @@ bool StatefulReaderT<NetworkDriver>::onNewHeartbeat(const SubmessageHeartbeat &m
   return true;
 }
 
-template <class NetworkDriver>
-bool StatefulReaderT<NetworkDriver>::sendPreemptiveAckNack(const WriterProxy &writer) {
+bool StatefulReader::sendPreemptiveAckNack(const WriterProxy &writer) {
   std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
   if (!m_is_initialized_) {
     return false;

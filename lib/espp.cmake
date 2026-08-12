@@ -68,7 +68,10 @@ set(ESPP_SOURCES
   ${ESPP_COMPONENTS}/rtps_embedded/src/entities/Domain.cpp
   ${ESPP_COMPONENTS}/rtps_embedded/src/entities/Participant.cpp
   ${ESPP_COMPONENTS}/rtps_embedded/src/entities/Reader.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/src/entities/StatefulReader.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/src/entities/StatefulWriter.cpp
   ${ESPP_COMPONENTS}/rtps_embedded/src/entities/StatelessReader.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/src/entities/StatelessWriter.cpp
   ${ESPP_COMPONENTS}/rtps_embedded/src/entities/Writer.cpp
   ${ESPP_COMPONENTS}/rtps_embedded/src/messages/MessageReceiver.cpp
   ${ESPP_COMPONENTS}/rtps_embedded/src/messages/MessageTypes.cpp

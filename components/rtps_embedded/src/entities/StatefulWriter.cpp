@@ -24,6 +24,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 */
 
 #include "rtps/entities/StatefulWriter.hpp"
+#include "rtps/communication/EsppTransport.hpp"
 #include "rtps/messages/MessageFactory.hpp"
 #include "rtps/messages/MessageTypes.hpp"
 #include "rtps/storages/PayloadBuffer.hpp"
@@ -39,7 +40,7 @@ using rtps::CacheChange;
 using rtps::GuidPrefix_t;
 using rtps::ReaderProxy;
 using rtps::SequenceNumber_t;
-using rtps::StatefulWriterT;
+using rtps::StatefulWriter;
 using rtps::SubmessageAckNack;
 
 #if SFW_VERBOSE && RTPS_GLOBAL_VERBOSE
@@ -51,12 +52,10 @@ using rtps::SubmessageAckNack;
   } while (0)
 #endif
 
-template <class NetworkDriver> StatefulWriterT<NetworkDriver>::~StatefulWriterT() = default;
+StatefulWriter::~StatefulWriter() = default;
 
-template <class NetworkDriver>
-bool StatefulWriterT<NetworkDriver>::init(TopicData attributes, TopicKind_t topicKind,
-                                          NetworkDriver &driver,
-                                          bool enfUnicast) {
+bool StatefulWriter::init(TopicData attributes, TopicKind_t topicKind, EsppTransport &driver,
+                          bool enfUnicast) {
 
   m_attributes = attributes;
 
@@ -81,15 +80,14 @@ bool StatefulWriterT<NetworkDriver>::init(TopicData attributes, TopicKind_t topi
   return true;
 }
 
-template <class NetworkDriver> void StatefulWriterT<NetworkDriver>::reset() {
+void StatefulWriter::reset() {
   m_is_initialized_ = false;
   // TODO
 }
 
-template <class NetworkDriver>
-const rtps::CacheChange *
-StatefulWriterT<NetworkDriver>::newChange(ChangeKind_t kind, const uint8_t *data, DataSize_t size,
-                                          bool inLineQoS, bool markDisposedAfterWrite) {
+const rtps::CacheChange *StatefulWriter::newChange(ChangeKind_t kind, const uint8_t *data,
+                                                   DataSize_t size, bool inLineQoS,
+                                                   bool markDisposedAfterWrite) {
   INIT_GUARD()
   if (isIrrelevant(kind)) {
     return nullptr;
@@ -129,7 +127,7 @@ StatefulWriterT<NetworkDriver>::newChange(ChangeKind_t kind, const uint8_t *data
   return result;
 }
 
-template <class NetworkDriver> void StatefulWriterT<NetworkDriver>::progress() {
+void StatefulWriter::progress() {
   INIT_GUARD()
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   CacheChange *next = m_history.getChangeBySN(m_nextSequenceNumberToSend);
@@ -177,7 +175,7 @@ template <class NetworkDriver> void StatefulWriterT<NetworkDriver>::progress() {
   }
 }
 
-template <class NetworkDriver> void StatefulWriterT<NetworkDriver>::setAllChangesToUnsent() {
+void StatefulWriter::setAllChangesToUnsent() {
   INIT_GUARD()
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
@@ -197,9 +195,8 @@ template <class NetworkDriver> void StatefulWriterT<NetworkDriver>::setAllChange
   }
 }
 
-template <class NetworkDriver>
-void StatefulWriterT<NetworkDriver>::onNewAckNack(const SubmessageAckNack &msg,
-                                                  const GuidPrefix_t &sourceGuidPrefix) {
+void StatefulWriter::onNewAckNack(const SubmessageAckNack &msg,
+                                  const GuidPrefix_t &sourceGuidPrefix) {
   INIT_GUARD()
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   if (!m_is_initialized_) {
@@ -301,14 +298,12 @@ void StatefulWriterT<NetworkDriver>::onNewAckNack(const SubmessageAckNack &msg,
   }
 }
 
-template <class NetworkDriver>
-bool rtps::StatefulWriterT<NetworkDriver>::removeFromHistory(const SequenceNumber_t &s) {
+bool rtps::StatefulWriter::removeFromHistory(const SequenceNumber_t &s) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   return m_history.dropChange(s);
 }
 
-template <class NetworkDriver>
-bool StatefulWriterT<NetworkDriver>::sendData(const ReaderProxy &reader, const CacheChange *next) {
+bool StatefulWriter::sendData(const ReaderProxy &reader, const CacheChange *next) {
   INIT_GUARD()
   // TODO smarter packaging, e.g. create a message struct and serialize once.
 
@@ -337,10 +332,8 @@ bool StatefulWriterT<NetworkDriver>::sendData(const ReaderProxy &reader, const C
   return true;
 }
 
-template <class NetworkDriver>
-void StatefulWriterT<NetworkDriver>::sendGap(const ReaderProxy &reader,
-                                             const SequenceNumber_t &firstMissing,
-                                             const SequenceNumber_t &nextValid) {
+void StatefulWriter::sendGap(const ReaderProxy &reader, const SequenceNumber_t &firstMissing,
+                             const SequenceNumber_t &nextValid) {
   INIT_GUARD()
   // TODO smarter packaging, e.g. create a message struct and serialize once.
 
@@ -366,9 +359,7 @@ void StatefulWriterT<NetworkDriver>::sendGap(const ReaderProxy &reader,
   m_transport->sendPacket(info);
 }
 
-template <class NetworkDriver>
-bool StatefulWriterT<NetworkDriver>::sendDataWRMulticast(const ReaderProxy &reader,
-                                                         const CacheChange *next) {
+bool StatefulWriter::sendDataWRMulticast(const ReaderProxy &reader, const CacheChange *next) {
   INIT_GUARD()
 
   if (reader.useMulticast || reader.suppressUnicast == false) {
@@ -409,9 +400,8 @@ bool StatefulWriterT<NetworkDriver>::sendDataWRMulticast(const ReaderProxy &read
   return true;
 }
 
-template <class NetworkDriver>
 std::chrono::steady_clock::time_point
-StatefulWriterT<NetworkDriver>::heartbeatTick(std::chrono::steady_clock::time_point now) {
+StatefulWriter::heartbeatTick(std::chrono::steady_clock::time_point now) {
   if (!m_is_initialized_) {
     // Not ticking: report a far-future deadline so the scheduler ignores us.
     return now + std::chrono::hours(24);
@@ -439,7 +429,7 @@ StatefulWriterT<NetworkDriver>::heartbeatTick(std::chrono::steady_clock::time_po
   return m_nextHeartbeat;
 }
 
-template <class NetworkDriver> void StatefulWriterT<NetworkDriver>::dropDisposeAfterWriteChanges() {
+void StatefulWriter::dropDisposeAfterWriteChanges() {
   SequenceNumber_t oldest_retained;
   while (m_disposeWithDelay.peakFirst(oldest_retained)) {
 
@@ -472,7 +462,7 @@ template <class NetworkDriver> void StatefulWriterT<NetworkDriver>::dropDisposeA
   }
 }
 
-template <class NetworkDriver> void StatefulWriterT<NetworkDriver>::sendHeartBeat() {
+void StatefulWriter::sendHeartBeat() {
   INIT_GUARD()
   if (m_proxies.isEmpty() || !m_is_initialized_) {
 

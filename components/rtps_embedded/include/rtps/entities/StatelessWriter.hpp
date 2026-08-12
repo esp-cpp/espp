@@ -36,12 +36,12 @@ namespace rtps {
 
 class EsppTransport;
 
-template <typename NetworkDriver> class StatelessWriterT : public Writer {
+class StatelessWriter : public Writer {
 public:
-  StatelessWriterT()
+  StatelessWriter()
       : m_transport(nullptr) {}
-  ~StatelessWriterT() override;
-  bool init(TopicData attributes, TopicKind_t topicKind, NetworkDriver &driver,
+  ~StatelessWriter() override;
+  bool init(TopicData attributes, TopicKind_t topicKind, EsppTransport &driver,
             bool enfUnicast = false);
 
   void progress() override;
@@ -55,15 +55,11 @@ public:
   void reset() override;
 
 private:
-  NetworkDriver *m_transport;
+  EsppTransport *m_transport;
 
   SimpleHistoryCache<Config::HISTORY_SIZE_STATELESS> m_history;
 };
 
-using StatelessWriter = StatelessWriterT<EsppTransport>;
-
 } // namespace rtps
-
-#include "StatelessWriter.tpp"
 
 #endif // RTPS_RTPSWRITER_H

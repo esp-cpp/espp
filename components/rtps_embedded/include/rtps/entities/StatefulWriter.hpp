@@ -41,12 +41,12 @@ namespace rtps {
 
 class EsppTransport;
 
-template <class NetworkDriver> class StatefulWriterT final : public Writer {
+class StatefulWriter final : public Writer {
 public:
-  StatefulWriterT()
+  StatefulWriter()
       : m_transport(nullptr) {}
-  ~StatefulWriterT() override;
-  bool init(TopicData attributes, TopicKind_t topicKind, NetworkDriver &driver,
+  ~StatefulWriter() override;
+  bool init(TopicData attributes, TopicKind_t topicKind, EsppTransport &driver,
             bool enfUnicast = false);
 
   //! Executes required steps like sending packets. Intended to be called by
@@ -76,7 +76,7 @@ public:
   void updateChangeKind(SequenceNumber_t &sequence_number);
 
 private:
-  NetworkDriver *m_transport = nullptr;
+  EsppTransport *m_transport = nullptr;
 
   HistoryCacheWithDeletion<Config::HISTORY_SIZE_STATEFUL> m_history;
 
@@ -103,9 +103,6 @@ private:
                const SequenceNumber_t &nextValid);
 };
 
-using StatefulWriter = StatefulWriterT<EsppTransport>;
 } // namespace rtps
-
-#include "StatefulWriter.tpp"
 
 #endif // RTPS_STATEFULWRITER_H
