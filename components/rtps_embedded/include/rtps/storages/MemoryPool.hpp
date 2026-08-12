@@ -43,23 +43,21 @@ public:
     using reference = IT_TYPE &;
 
     explicit MemoryPoolIterator(MemoryPool<TYPE, SIZE> &pool)
-        : m_pool(pool) {
-      memcpy(m_bitMap, m_pool.m_bitMap, sizeof(m_bitMap));
+        : m_pool(&pool) {
+      memcpy(m_bitMap, m_pool->m_bitMap, sizeof(m_bitMap));
     }
 
-    // bool operator==(const MemoryPoolIterator& other) const{
-    //    return bit == other.bit;
-    //}
+    bool operator==(const MemoryPoolIterator &other) const { return m_bit == other.m_bit; }
 
-    bool operator!=(const MemoryPoolIterator &other) const { return m_bit != other.m_bit; }
+    bool operator!=(const MemoryPoolIterator &other) const { return !(*this == other); }
 
-    reference operator*() const { return m_pool.m_data[m_bit]; }
+    reference operator*() const { return m_pool->m_data[m_bit]; }
 
-    pointer operator->() const { return &m_pool.m_data[m_bit]; }
+    pointer operator->() const { return &m_pool->m_data[m_bit]; }
 
     // Pre-increment
     MemoryPoolIterator &operator++() {
-      if (m_pool.m_numElements == 0) {
+      if (m_pool->m_numElements == 0) {
         m_bit = SIZE;
         return *this;
       }
@@ -81,7 +79,7 @@ public:
 
   private:
     friend class MemoryPool;
-    MemoryPool<TYPE, SIZE> &m_pool;
+    MemoryPool<TYPE, SIZE> *m_pool;
     uint8_t m_bitMap[SIZE / 8 + 1];
     uint32_t m_bit = 0;
   };
