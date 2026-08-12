@@ -37,13 +37,13 @@ namespace rtps {
 class EsppTransport;
 struct SubmessageHeartbeat;
 
-template <class NetworkDriver> class StatefulReaderT final : public Reader {
+class StatefulReader final : public Reader {
 public:
-  StatefulReaderT()
+  StatefulReader()
       : m_srcPort(0)
       , m_transport(nullptr) {}
-  ~StatefulReaderT() override;
-  bool init(const TopicData &attributes, NetworkDriver &driver);
+  ~StatefulReader() override;
+  bool init(const TopicData &attributes, EsppTransport &driver);
   void newChange(const ReaderCacheChange &cacheChange) override;
   bool addNewMatchedWriter(const WriterProxy &newProxy) override;
   bool onNewHeartbeat(const SubmessageHeartbeat &msg, const GuidPrefix_t &remotePrefix) override;
@@ -53,13 +53,9 @@ public:
 
 private:
   Ip4Port_t m_srcPort; // TODO intended for reuse but buffer not used as such
-  NetworkDriver *m_transport;
+  EsppTransport *m_transport;
 };
 
-using StatefulReader = StatefulReaderT<EsppTransport>;
-
 } // namespace rtps
-
-#include "StatefulReader.tpp"
 
 #endif // RTPS_STATEFULREADER_H

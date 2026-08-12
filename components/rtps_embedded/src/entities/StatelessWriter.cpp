@@ -23,9 +23,13 @@ This file is part of embeddedRTPS.
 Author: i11 - Embedded Software, RWTH Aachen University
 */
 
+#include "rtps/entities/StatelessWriter.hpp"
+
 #include <rtps/entities/ReaderProxy.hpp>
 #include <rtps/entities/Writer.hpp>
 
+#include "rtps/communication/EsppTransport.hpp"
+#include "rtps/communication/PacketInfo.hpp"
 #include "rtps/messages/MessageFactory.hpp"
 #include "rtps/storages/PayloadBuffer.hpp"
 #include "rtps/utils/Log.hpp"
@@ -35,7 +39,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 using rtps::CacheChange;
 using rtps::GuidPrefix_t;
 using rtps::SequenceNumber_t;
-using rtps::StatelessWriterT;
+using rtps::StatelessWriter;
 using rtps::SubmessageAckNack;
 
 #if SLW_VERBOSE && RTPS_GLOBAL_VERBOSE
@@ -47,16 +51,14 @@ using rtps::SubmessageAckNack;
   } while (0)
 #endif
 
-template <class NetworkDriver> StatelessWriterT<NetworkDriver>::~StatelessWriterT() {
+StatelessWriter::~StatelessWriter() {
   //  if(sys_mutex_valid(&m_mutex)){
   //    sys_mutex_free(&m_mutex);
   //  }
 }
 
-template <typename NetworkDriver>
-bool StatelessWriterT<NetworkDriver>::init(TopicData attributes, TopicKind_t topicKind,
-                                           NetworkDriver &driver,
-                                           bool enfUnicast) {
+bool StatelessWriter::init(TopicData attributes, TopicKind_t topicKind, EsppTransport &driver,
+                           bool enfUnicast) {
 
   m_attributes = attributes;
 
@@ -75,15 +77,11 @@ bool StatelessWriterT<NetworkDriver>::init(TopicData attributes, TopicKind_t top
   return true;
 }
 
-template <typename NetworkDriver> void StatelessWriterT<NetworkDriver>::reset() {
-  m_is_initialized_ = false;
-}
+void StatelessWriter::reset() { m_is_initialized_ = false; }
 
-template <typename NetworkDriver>
-const CacheChange *StatelessWriterT<NetworkDriver>::newChange(rtps::ChangeKind_t kind,
-                                                              const uint8_t *data, DataSize_t size,
-                                                              bool inLineQoS,
-                                                              bool markDisposedAfterWrite) {
+const CacheChange *StatelessWriter::newChange(rtps::ChangeKind_t kind, const uint8_t *data,
+                                              DataSize_t size, bool inLineQoS,
+                                              bool markDisposedAfterWrite) {
   INIT_GUARD();
   if (isIrrelevant(kind)) {
     return nullptr;
@@ -112,13 +110,12 @@ const CacheChange *StatelessWriterT<NetworkDriver>::newChange(rtps::ChangeKind_t
   return result;
 }
 
-template <typename NetworkDriver>
-bool StatelessWriterT<NetworkDriver>::removeFromHistory(const SequenceNumber_t &s) {
+bool StatelessWriter::removeFromHistory(const SequenceNumber_t &s) {
   return false; // Stateless Writers currently do not support deletion from
                 // history
 }
 
-template <typename NetworkDriver> void StatelessWriterT<NetworkDriver>::setAllChangesToUnsent() {
+void StatelessWriter::setAllChangesToUnsent() {
   INIT_GUARD();
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
@@ -131,14 +128,13 @@ template <typename NetworkDriver> void StatelessWriterT<NetworkDriver>::setAllCh
   }
 }
 
-template <typename NetworkDriver>
-void StatelessWriterT<NetworkDriver>::onNewAckNack(const SubmessageAckNack & /*msg*/,
-                                                   const GuidPrefix_t &sourceGuidPrefix) {
+void StatelessWriter::onNewAckNack(const SubmessageAckNack & /*msg*/,
+                                   const GuidPrefix_t &sourceGuidPrefix) {
   INIT_GUARD();
   // Too lazy to respond
 }
 
-template <typename NetworkDriver> void StatelessWriterT<NetworkDriver>::progress() {
+void StatelessWriter::progress() {
   INIT_GUARD();
   // TODO smarter packaging e.g. by creating MessageStruct and serializing
   // after adjusting values.
