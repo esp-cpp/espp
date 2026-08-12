@@ -8,10 +8,18 @@ std_msgs/String on /chatter, so `ros2 topic echo /chatter std_msgs/msg/String`
 Usage: python rtps_publisher.py [topic] [type] [interface_ipv4] [period_seconds]
 """
 
+import struct
 import sys
 import time
 
 import espp
+
+
+def serialize_string(text: str) -> bytes:
+    # Little-endian classic CDR (XCDR1) with a 4-byte encapsulation header - the wire
+    # format of std_msgs/msg/String: uint32 length (incl. null) + bytes + null.
+    data = text.encode() + b"\x00"
+    return b"\x00\x01\x00\x00" + struct.pack("<I", len(data)) + data
 
 
 def main() -> int:
@@ -33,9 +41,7 @@ def main() -> int:
     count = 0
     try:
         while True:
-            writer = espp.CdrWriter()  # little-endian CDR with encapsulation header
-            writer.write_string(f"espp python {count}")
-            if participant.publish(topic, bytes(writer.take_buffer())):
+            if participant.publish(topic, serialize_string(f"espp python {count}")):
                 count += 1
                 print(f"sent {count}")
             time.sleep(period)

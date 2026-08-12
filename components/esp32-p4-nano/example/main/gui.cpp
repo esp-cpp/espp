@@ -30,6 +30,12 @@ void Gui::init_tabview() {
   status_tab_ = lv_tabview_add_tab(tabview_, "Status");
   audio_tab_ = lv_tabview_add_tab(tabview_, "Audio");
   camera_tab_ = lv_tabview_add_tab(tabview_, "Camera");
+  // The tab pages themselves are scrollable by default; disable that so drags
+  // inside a page don't rubber-band/scroll the content (matches the other BSP
+  // example GUIs).
+  lv_obj_clear_flag(status_tab_, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_clear_flag(audio_tab_, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_clear_flag(camera_tab_, LV_OBJ_FLAG_SCROLLABLE);
   // switching tabs is done with the tab buttons only: disable swipe
   // scrolling of the content so drawing on the Status tab cannot accidentally
   // change pages
@@ -266,6 +272,17 @@ void Gui::init_circle_layer() {
 bool Gui::update(std::mutex &m, std::condition_variable &cv) {
   {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
+    // drain any touch points queued since the last cycle
+    {
+      std::vector<Circle> points;
+      {
+        std::lock_guard<std::mutex> plock(pending_points_mutex_);
+        points.swap(pending_points_);
+      }
+      for (const auto &c : points) {
+        draw_circle_pending(c);
+      }
+    }
     lv_task_handler();
     // keep the audio volume label in sync with the live BSP state, so the
     // first press of a volume button doesn't appear to jump from a stale
@@ -380,8 +397,18 @@ void Gui::next_rotation() {
 }
 
 void Gui::draw_circle(int x, int y, int radius) {
-  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  // Only queue the point here; the GUI update task drains the queue under the
+  // LVGL mutex. Taking mutex_ directly would block the caller (the touch poll
+  // task) for the duration of lv_task_handler() rendering, collapsing the
+  // touch sample rate.
+  std::lock_guard<std::mutex> lock(pending_points_mutex_);
+  pending_points_.push_back({.x = x, .y = y, .radius = radius, .visible = true});
+}
+
+void Gui::draw_circle_pending(const Circle &c) {
+  // caller holds mutex_
   lv_obj_move_foreground(circle_layer_);
+  int x = c.x, y = c.y, radius = c.radius;
   Circle previous_circle = circles_[next_circle_index_];
   circles_[next_circle_index_] = {.x = x, .y = y, .radius = radius, .visible = true};
   next_circle_index_ = (next_circle_index_ + 1) % circles_.size();

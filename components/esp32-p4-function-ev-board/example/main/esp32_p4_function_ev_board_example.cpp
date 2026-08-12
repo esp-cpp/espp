@@ -90,19 +90,21 @@ static void ping_target(espp::Logger &logger, const char *name, const std::strin
 namespace {
 /// Serialize a uint32 as an encapsulated little-endian CDR payload (matches std_msgs/msg/UInt32).
 inline std::vector<uint8_t> serialize_uint32(uint32_t value) {
-  espp::CdrWriter writer; // defaults: CDR_LE with a 4-byte encapsulation header
-  writer.write<uint32_t>(value);
-  return writer.take_buffer();
+  auto bytes = cdr::serialize<cdr::xcdr1>(value); // CDR_LE with a 4-byte encapsulation header
+  if (!bytes) {
+    return {};
+  }
+  const auto *data = reinterpret_cast<const uint8_t *>(bytes->data());
+  return std::vector<uint8_t>(data, data + bytes->size());
 }
 
 /// Parse a uint32 from an encapsulated CDR payload, or std::nullopt if invalid.
-inline std::optional<uint32_t> deserialize_uint32(std::span<const uint8_t> cdr) {
-  espp::CdrReader reader(cdr);
-  uint32_t value = 0;
-  if (!reader.valid() || !reader.read<uint32_t>(value)) {
+inline std::optional<uint32_t> deserialize_uint32(std::span<const uint8_t> cdr_payload) {
+  auto value = cdr::deserialize<uint32_t>(std::as_bytes(cdr_payload));
+  if (!value) {
     return std::nullopt;
   }
-  return value;
+  return *value;
 }
 } // namespace
 

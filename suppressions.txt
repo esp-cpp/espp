@@ -9,3 +9,5 @@ cstyleCast
 // Specific suppressions of the form:
 //   [error id]:[filename]:[line]
 *:lib/*
+*:components/reflect_cpp/detail/*
+*:components/cdr/detail/*

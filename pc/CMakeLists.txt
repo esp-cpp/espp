@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.11)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/../lib/espp.cmake)
 

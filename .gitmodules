@@ -40,3 +40,9 @@
 [submodule "components/rtps_embedded/thirdparty/Micro-CDR"]
 	path = components/rtps_embedded/thirdparty/Micro-CDR
 	url = git@github.com:esp-cpp/Micro-CDR.git
+[submodule "components/reflect_cpp/detail/reflect-cpp"]
+	path = components/reflect_cpp/detail/reflect-cpp
+	url = https://github.com/getml/reflect-cpp.git
+[submodule "components/cdr/detail/cdr"]
+	path = components/cdr/detail/cdr
+	url = https://github.com/finger563/cdr.git

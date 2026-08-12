@@ -8,10 +8,22 @@ std_msgs/String on /chatter, so `ros2 topic pub /chatter std_msgs/msg/String ...
 Usage: python rtps_subscriber.py [topic] [type] [interface_ipv4] [run_seconds]
 """
 
+import struct
 import sys
 import time
 
 import espp
+
+
+def deserialize_string(data: bytes):
+    # 4-byte encapsulation header + uint32 length + bytes (incl. trailing null).
+    if len(data) < 8:
+        return None
+    little_endian = data[1] & 0x01
+    (length,) = struct.unpack("<I" if little_endian else ">I", data[4:8])
+    if length < 1 or 8 + length > len(data):
+        return None
+    return data[8 : 8 + length - 1].decode(errors="replace")
 
 
 def main() -> int:
@@ -23,9 +35,10 @@ def main() -> int:
     stats = {"received": 0}
 
     def on_sample(data: bytes) -> None:
-        text = espp.CdrReader(data).read_string()
-        stats["received"] += 1
-        print(f"received {stats['received']}: {text!r}")
+        text = deserialize_string(data)
+        if text is not None:
+            stats["received"] += 1
+            print(f"received {stats['received']}: {text!r}")
 
     R = espp.RtpsParticipant
     participant = R(R.Config(interface_address=interface, log_level=espp.Logger.Verbosity.info))
@@ -46,7 +59,6 @@ def main() -> int:
     participant.stop()
     print(f"done; received={stats['received']}")
     return stats["received"] == 0
-    # exit 0 when samples arrived, 1 otherwise
 
 
 if __name__ == "__main__":

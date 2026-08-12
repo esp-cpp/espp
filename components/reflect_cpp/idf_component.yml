@@ -1,0 +1,16 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "reflect-cpp compile-time reflection headers (rfl::to_view, field names) vendored for ESP-IDF; reflection core only, no serialization formats."
+url: "https://github.com/esp-cpp/espp/tree/main/components/reflect_cpp"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/data/reflect_cpp.html"
+tags:
+  - cpp
+  - Component
+  - Reflection
+  - Serialization
+dependencies:
+  idf:
+    version: '>=5.2'
