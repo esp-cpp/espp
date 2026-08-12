@@ -34,8 +34,8 @@ namespace espp {
 /// One RtpsParticipant owns one RTPS domain participant: create it with a
 /// Config, start() it, then add writers/readers and publish CDR-encapsulated
 /// samples. Samples arriving on readers are delivered via the on_sample
-/// callback as CDR-encapsulated payload bytes (use espp::CdrReader/CdrWriter
-/// or Micro-CDR to (de)serialize them).
+/// callback as CDR-encapsulated payload bytes (use the reflection-driven `cdr`
+/// component - cdr::serialize / cdr::deserialize - to (de)serialize them).
 ///
 /// For ROS 2 interop, use ROS 2 naming conventions: topic "rt/<name>" and type
 /// "<pkg>::msg::dds_::<Type>_" (e.g. topic "rt/chatter" with type

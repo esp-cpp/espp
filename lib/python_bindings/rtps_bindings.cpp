@@ -107,7 +107,7 @@ void py_init_rtps(py::module &m) {
   auto rtps = py::class_<Rtps>(
       m, "RtpsParticipant",
       "RTPS/DDS participant (embeddedRTPS engine) for pub/sub interop with FastDDS and ROS 2.\n"
-      "Payloads are CDR-encapsulated bytes; use espp.CdrWriter / espp.CdrReader.\n"
+      "Payloads are CDR-encapsulated bytes (see the cdr component / struct.pack).\n"
       "For ROS 2 use topic 'rt/<name>' and type '<pkg>::msg::dds_::<Type>_'.");
 
   py::enum_<Rtps::Reliability>(rtps, "Reliability")

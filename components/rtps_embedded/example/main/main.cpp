@@ -10,6 +10,19 @@
 
 using namespace std::chrono_literals;
 
+// std_msgs/msg/String: the reflection-driven cdr component serializes any
+// reflectable struct straight to the DDS wire format (cdr::serialize<cdr::xcdr1>
+// emits the 4-byte encapsulation header + classic-CDR body ROS 2 speaks).
+struct StringMsg {
+  std::string data;
+};
+
+// The cdr component works in std::byte; the facade publish/on_sample API uses
+// uint8_t spans - bridge the two views (same bytes, different value type).
+inline std::span<const uint8_t> u8_span(const std::vector<std::byte> &bytes) {
+  return {reinterpret_cast<const uint8_t *>(bytes.data()), bytes.size()};
+}
+
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = "rtps_example", .level = espp::Logger::Verbosity::INFO});
 
@@ -74,10 +87,8 @@ extern "C" void app_main(void) {
           .type_name = type_name,
           .on_sample =
               [&](std::span<const uint8_t> cdr_payload) {
-                espp::CdrReader reader(cdr_payload);
-                std::string text;
-                if (reader.read_string(text)) {
-                  logger.info("rx: {}", text);
+                if (auto msg = cdr::deserialize<StringMsg>(std::as_bytes(cdr_payload)); msg) {
+                  logger.info("rx: {}", msg->data);
                 }
               },
       })) {
@@ -85,16 +96,15 @@ extern "C" void app_main(void) {
     return;
   }
 
-  // Publish a counter periodically; serialization via espp::CdrWriter.
+  // Publish a counter periodically; serialization via the cdr component.
   static uint32_t counter = 0;
   espp::Timer publish_timer({
       .name = "rtps_pub",
       .period = std::chrono::milliseconds(CONFIG_RTPS_EXAMPLE_ANNOUNCE_PERIOD_MS),
       .callback =
           [&]() {
-            espp::CdrWriter writer; // CDR_LE with encapsulation header
-            writer.write_string(fmt::format("msg {}", counter++));
-            if (participant.publish(pub_topic, writer.buffer())) {
+            auto bytes = cdr::serialize<cdr::xcdr1>(StringMsg{fmt::format("msg {}", counter++)});
+            if (bytes && participant.publish(pub_topic, u8_span(*bytes))) {
               logger.info("tx: msg {}", counter - 1);
             } else {
               logger.warn("tx dropped (history full)");

@@ -18,6 +18,19 @@
 #include "cdr.hpp"
 #include "rtps_participant.hpp"
 
+// std_msgs/msg/String, serialized via the reflection-driven cdr component:
+// cdr::serialize<cdr::xcdr1> emits the ROS 2 / classic-CDR wire format
+// (4-byte encapsulation header + CDR body) for any reflectable struct.
+struct StringMsg {
+  std::string data;
+};
+
+// The cdr component works in std::byte; the facade publish/on_sample API uses
+// uint8_t spans - bridge the two views (same bytes, different value type).
+inline std::span<const uint8_t> u8_span(const std::vector<std::byte> &bytes) {
+  return {reinterpret_cast<const uint8_t *>(bytes.data()), bytes.size()};
+}
+
 using namespace std::chrono_literals;
 
 int main() {
@@ -44,9 +57,7 @@ int main() {
                        .type_name = type,
                        .reliability = Reliability::RELIABLE,
                        .on_sample = [&received](std::span<const uint8_t> payload) {
-                         espp::CdrReader reader(payload);
-                         std::string text;
-                         if (reader.read_string(text)) {
+                         if (cdr::deserialize<StringMsg>(std::as_bytes(payload))) {
                            received.fetch_add(1);
                          }
                        }})) {
@@ -54,13 +65,11 @@ int main() {
     return 1;
   }
 
-  espp::CdrWriter writer;
   int sent = 0;
   const auto start = std::chrono::steady_clock::now();
   while (received.load() < kRequired && std::chrono::steady_clock::now() - start < kDeadline) {
-    writer.reset();
-    writer.write_string("facade loopback " + std::to_string(sent));
-    if (pub.publish(topic, writer.buffer())) {
+    auto bytes = cdr::serialize<cdr::xcdr1>(StringMsg{"facade loopback " + std::to_string(sent)});
+    if (bytes && pub.publish(topic, u8_span(*bytes))) {
       sent++;
     }
     std::this_thread::sleep_for(100ms);

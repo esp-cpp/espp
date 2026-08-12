@@ -18,6 +18,19 @@
 #include "cdr.hpp"
 #include "rtps_participant.hpp"
 
+// std_msgs/msg/String, serialized via the reflection-driven cdr component:
+// cdr::serialize<cdr::xcdr1> emits the ROS 2 / classic-CDR wire format
+// (4-byte encapsulation header + CDR body) for any reflectable struct.
+struct StringMsg {
+  std::string data;
+};
+
+// The cdr component works in std::byte; the facade publish/on_sample API uses
+// uint8_t spans - bridge the two views (same bytes, different value type).
+inline std::span<const uint8_t> u8_span(const std::vector<std::byte> &bytes) {
+  return {reinterpret_cast<const uint8_t *>(bytes.data()), bytes.size()};
+}
+
 using namespace std::chrono_literals;
 
 int main(int argc, char **argv) {
@@ -45,11 +58,10 @@ int main(int argc, char **argv) {
           .reliability = reliable ? Reliability::RELIABLE : Reliability::BEST_EFFORT,
           .on_sample =
               [&received](std::span<const uint8_t> cdr_payload) {
-                espp::CdrReader reader(cdr_payload); // expects the encapsulation header
-                std::string text;
-                if (reader.read_string(text)) {
+                auto msg = cdr::deserialize<StringMsg>(std::as_bytes(cdr_payload));
+                if (msg) {
                   const int n = received.fetch_add(1) + 1;
-                  std::printf("received %d: '%s'\n", n, text.c_str());
+                  std::printf("received %d: '%s'\n", n, msg->data.c_str());
                   std::fflush(stdout);
                 }
               },

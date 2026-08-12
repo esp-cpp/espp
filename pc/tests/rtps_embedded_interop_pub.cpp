@@ -17,6 +17,19 @@
 #include "cdr.hpp"
 #include "rtps_participant.hpp"
 
+// std_msgs/msg/String, serialized via the reflection-driven cdr component:
+// cdr::serialize<cdr::xcdr1> emits the ROS 2 / classic-CDR wire format
+// (4-byte encapsulation header + CDR body) for any reflectable struct.
+struct StringMsg {
+  std::string data;
+};
+
+// The cdr component works in std::byte; the facade publish/on_sample API uses
+// uint8_t spans - bridge the two views (same bytes, different value type).
+inline std::span<const uint8_t> u8_span(const std::vector<std::byte> &bytes) {
+  return {reinterpret_cast<const uint8_t *>(bytes.data()), bytes.size()};
+}
+
 using namespace std::chrono_literals;
 
 int main(int argc, char **argv) {
@@ -50,12 +63,10 @@ int main(int argc, char **argv) {
   // Give SPDP/SEDP a moment to match before the first sample.
   std::this_thread::sleep_for(2s);
 
-  espp::CdrWriter writer; // default: CDR_LE with encapsulation header
   int sent = 0;
   for (int i = 0; i < count; i++) {
-    writer.reset();
-    writer.write_string("espp interop " + std::to_string(i));
-    if (participant.publish(topic, writer.buffer())) {
+    auto bytes = cdr::serialize<cdr::xcdr1>(StringMsg{"espp interop " + std::to_string(i)});
+    if (bytes && participant.publish(topic, u8_span(*bytes))) {
       sent++;
       std::printf("sent %d\n", sent);
       std::fflush(stdout);
