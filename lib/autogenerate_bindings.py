@@ -3,10 +3,10 @@
 import os
 import re
 
-# NOTE: cdr.hpp is intentionally NOT generated here. srcmlcpp cannot parse it, and even when coerced
-# the generated CdrReader API is unusable (output-reference reads can't return values, and the
-# non-owning std::span would dangle). It is bound by hand instead in
-# python_bindings/cdr_bindings.cpp (registered via py_init_cdr in module.cpp).
+# NOTE: cdr.hpp is intentionally NOT generated here. The cdr component's API is template-based
+# (compiler-generated serialization per struct type), which litgen cannot bind generically — and it
+# needs no python bindings: the python side of a CDR message is a plain pycdr2 dataclass with the
+# same wire format (see components/cdr/README.md).
 
 
 # ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -438,7 +438,7 @@ def autogenerate() -> None:
 
     include_dir = repository_dir + "/components/"
     header_files = [include_dir + "base_component/include/base_component.hpp",
-                    # cdr.hpp is bound by hand in python_bindings/cdr_bindings.cpp (see note above).
+                    # cdr.hpp is excluded: template-based API, python uses pycdr2 instead (see note above).
                     include_dir + "cobs/include/cobs.hpp",
                     include_dir + "cobs/include/cobs_stream.hpp",
                     include_dir + "color/include/color.hpp",

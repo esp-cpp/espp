@@ -1,16 +1,19 @@
 # CDR Example
 
-This example demonstrates a small CDR round-trip using the `cdr` component.
+This example demonstrates the reflection-driven `cdr` component: the compiler
+generates CDR serialization code directly from a plain struct definition.
 
 It exercises:
 
-- a little-endian CDR encapsulation header
-- primitive value serialization
-- CDR string serialization
-- `uint16_t` sequence serialization
-- fixed-array serialization with `write_array` / `read_array`
-- headerless/body CDR helpers for embedding fields inside a larger protocol value
-- round-trip parsing with `CdrReader`
+- struct serialization to XCDR2 (appendable, the FastDDS/OpenDDS default) and
+  XCDR1 (plain CDR, the ROS 2 / CycloneDDS default)
+- deserialization driven by the received encapsulation header (version and
+  endianness)
+- `std::expected` error handling with error code, payload offset, and field
+  name
+- the zero-allocation `cdr::serialize_into` path and `cdr::serialized_size`
+- PL_CDR parameter-list writing and reading (the encoding RTPS SPDP/SEDP
+  discovery uses)
 
 ## How to use example
 
@@ -26,5 +29,6 @@ Replace `PORT` with the name of the serial port to use.
 
 ## Expected Output
 
-The example logs the encoded byte count and the decoded values. It finishes by
-printing `CDR round-trip succeeded`.
+The example logs the serialized sizes for both XCDR versions, the round-tripped
+field values, the zero-allocation write size, and the parameters found in the
+PL_CDR parameter list, finishing with `example complete`.

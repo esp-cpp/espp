@@ -10,6 +10,7 @@ Usage: python rtps_pubsub.py [advertised_ipv4] [run_seconds]
 
 import datetime
 import socket
+import struct
 import sys
 import time
 
@@ -29,13 +30,17 @@ def guess_local_ipv4() -> str:
 
 
 def serialize_uint32(value: int) -> bytes:
-    writer = espp.CdrWriter()  # default little-endian CDR with encapsulation header
-    writer.write_uint32(value)
-    return bytes(writer.take_buffer())
+    # Little-endian CDR (XCDR1) with a 4-byte encapsulation header — the wire format of
+    # std_msgs/msg/UInt32. Plain struct.pack; no native bindings needed for CDR payloads.
+    return b"\x00\x01\x00\x00" + struct.pack("<I", value)
 
 
 def deserialize_uint32(data: bytes):
-    return espp.CdrReader(data).read_uint32()  # int, or None on failure
+    # Accepts either endianness; the encapsulation identifier's low bit selects little-endian.
+    if len(data) < 8 or data[0] != 0x00 or data[1] not in (0x00, 0x01):
+        return None  # int, or None on failure
+    endian = "<" if data[1] & 1 else ">"
+    return struct.unpack_from(endian + "I", data, 4)[0]
 
 
 def main() -> int:

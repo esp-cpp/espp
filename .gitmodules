@@ -40,3 +40,6 @@
 [submodule "components/reflect_cpp/detail/reflect-cpp"]
 	path = components/reflect_cpp/detail/reflect-cpp
 	url = https://github.com/getml/reflect-cpp.git
+[submodule "components/cdr/detail/cdr"]
+	path = components/cdr/detail/cdr
+	url = https://github.com/finger563/cdr.git
