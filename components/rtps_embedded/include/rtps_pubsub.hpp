@@ -1,7 +1,11 @@
 #pragma once
 
+#include <concepts>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <memory>
+#include <mutex>
 #include <span>
 #include <string>
 #include <string_view>
@@ -70,7 +74,8 @@ public:
   [[nodiscard]] bool is_valid() const { return valid_; }
 
   /// Publish one sample. Serializes into a reused buffer (no steady-state
-  /// allocation) and hands the CDR bytes to the participant.
+  /// allocation) and hands the CDR bytes to the participant. Thread-safe:
+  /// concurrent calls are serialized (the reused buffer is mutex-guarded).
   /// \param sample The message to publish.
   /// \return True on success; false if invalid, serialization failed, or the
   ///         writer history was full.
@@ -78,6 +83,7 @@ public:
     if (!valid_) {
       return false;
     }
+    std::lock_guard<std::mutex> lock(mutex_);
     const std::size_t needed = cdr::serialized_size<cdr::xcdr1>(sample);
     if (buffer_.size() < needed) {
       buffer_.resize(needed);
@@ -94,6 +100,7 @@ public:
 private:
   RtpsParticipant *participant_{nullptr};
   std::string topic_;
+  std::mutex mutex_;              ///< guards buffer_ against concurrent publish()
   std::vector<std::byte> buffer_; ///< reused serialization scratch (grows once)
   bool valid_{false};
 };
@@ -125,24 +132,36 @@ public:
   };
 
   /// Construct and register a reader on the participant. The participant must
-  /// already be started and must outlive this subscriber.
+  /// already be started.
+  ///
+  /// \note The registered reader (and thus this subscriber's callback) lives on
+  ///       the participant until the participant is stopped - there is no
+  ///       per-reader removal. The callback holds a shared copy of the user
+  ///       callback, so destroying this Subscriber object is safe (it will not
+  ///       dangle); however, whatever the user callback itself references must
+  ///       outlive the participant. Stop the participant before tearing down
+  ///       state the callback captures.
   /// \param participant The started participant to subscribe through.
   /// \param config The subscriber configuration.
   Subscriber(RtpsParticipant &participant, const Config &config)
-      : on_message_(config.on_message) {
+      : on_message_(std::make_shared<message_callback_t>(config.on_message)) {
+    // Capture a shared_ptr copy (not `this`): the engine may invoke this
+    // callback until the participant is stopped, so it must stay valid even if
+    // the Subscriber object is destroyed first.
+    auto callback = on_message_;
     valid_ = participant.add_reader({
         .topic = config.topic,
         .type_name = config.type_name,
         .reliability = config.reliability,
         .on_sample =
-            [this](std::span<const uint8_t> cdr_payload) {
-              if (!on_message_) {
+            [callback](std::span<const uint8_t> cdr_payload) {
+              if (!*callback) {
                 return;
               }
               auto sample = cdr::deserialize<T>(std::span<const std::byte>(
                   reinterpret_cast<const std::byte *>(cdr_payload.data()), cdr_payload.size()));
               if (sample) {
-                on_message_(*sample);
+                (*callback)(*sample);
               }
             },
     });
@@ -152,7 +171,7 @@ public:
   [[nodiscard]] bool is_valid() const { return valid_; }
 
 private:
-  message_callback_t on_message_;
+  std::shared_ptr<message_callback_t> on_message_;
   bool valid_{false};
 };
 

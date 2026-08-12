@@ -7,6 +7,7 @@
 //
 // Exits 0 when at least kRequired typed samples arrive within the deadline.
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cstdio>
@@ -22,8 +23,8 @@ using namespace std::chrono_literals;
 
 // A plain reflectable message struct — no base class, macros, or methods.
 struct Telemetry {
-  uint32_t seq;
-  float value;
+  uint32_t seq{};
+  float value{};
   std::string label;
 };
 
@@ -83,12 +84,9 @@ int main() {
   bool fields_ok = false;
   {
     std::lock_guard<std::mutex> lk(m);
-    for (const auto &t : got) {
-      if (t.label == "sample" && t.value == 1.5f * t.seq) {
-        fields_ok = true;
-        break;
-      }
-    }
+    fields_ok = std::any_of(got.begin(), got.end(), [](const Telemetry &t) {
+      return t.label == "sample" && t.value == 1.5f * static_cast<float>(t.seq);
+    });
   }
   pub.stop();
   sub.stop();
