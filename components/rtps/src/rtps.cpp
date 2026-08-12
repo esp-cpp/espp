@@ -451,12 +451,18 @@ void append_cdr_parameter(ByteWriter &writer, ParameterId id, std::span<const st
 
 void append_parameter_string_cdr(ByteWriter &writer, ParameterId id, std::string_view text) {
   auto body = cdr::serialize_body<cdr::xcdr1>(std::string(text));
+  if (!body) {
+    return; // drop the parameter on serialization failure; keeps the list well-formed
+  }
   append_cdr_parameter(writer, id, *body);
 }
 
 void append_parameter_octet_sequence(ByteWriter &writer, ParameterId id,
                                      std::span<const uint8_t> bytes) {
   auto body = cdr::serialize_body<cdr::xcdr1>(std::vector<uint8_t>(bytes.begin(), bytes.end()));
+  if (!body) {
+    return; // drop the parameter on serialization failure; keeps the list well-formed
+  }
   append_cdr_parameter(writer, id, *body);
 }
 
