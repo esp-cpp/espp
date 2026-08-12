@@ -3,25 +3,19 @@
 
 #include "esp32-ethernet-kit.hpp"
 
-#include "cdr.hpp"
 #include "logger.hpp"
 #include "rtps_participant.hpp"
+#include "rtps_pubsub.hpp"
 #include "timer.hpp"
 
 using namespace std::chrono_literals;
 
-// std_msgs/msg/String: the reflection-driven cdr component serializes any
-// reflectable struct straight to the DDS wire format (cdr::serialize<cdr::xcdr1>
-// emits the 4-byte encapsulation header + classic-CDR body ROS 2 speaks).
+// std_msgs/msg/String as a plain reflectable struct. The typed Publisher<T> /
+// Subscriber<T> serialize any such struct to the DDS wire format (ROS 2 / classic
+// CDR) with no manual (de)serialization in application code.
 struct StringMsg {
   std::string data;
 };
-
-// The cdr component works in std::byte; the facade publish/on_sample API uses
-// uint8_t spans - bridge the two views (same bytes, different value type).
-inline std::span<const uint8_t> u8_span(const std::vector<std::byte> &bytes) {
-  return {reinterpret_cast<const uint8_t *>(bytes.data()), bytes.size()};
-}
 
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = "rtps_example", .level = espp::Logger::Verbosity::INFO});
@@ -69,42 +63,34 @@ extern "C" void app_main(void) {
     return;
   }
 
-  // Reliable writer: publishes are HEARTBEAT/ACKNACK-acknowledged and
-  // retransmitted to matched readers.
-  if (!participant.add_writer({
-          .topic = pub_topic,
-          .type_name = type_name,
-          .reliability = espp::RtpsParticipant::Reliability::RELIABLE,
-      })) {
-    logger.error("Failed to add the writer");
+  // Typed reliable publisher: publish StringMsg structs directly (HEARTBEAT/
+  // ACKNACK-acknowledged, retransmitted to matched readers). No manual CDR.
+  using Reliability = espp::RtpsParticipant::Reliability;
+  static espp::Publisher<StringMsg> publisher(participant, {
+                                                               .topic = pub_topic,
+                                                               .type_name = type_name,
+                                                               .reliability = Reliability::RELIABLE,
+                                                           });
+  // Typed subscriber: receive StringMsg structs directly.
+  static espp::Subscriber<StringMsg> subscriber(
+      participant, {
+                       .topic = sub_topic,
+                       .type_name = type_name,
+                       .on_message = [&](const StringMsg &msg) { logger.info("rx: {}", msg.data); },
+                   });
+  if (!publisher.is_valid() || !subscriber.is_valid()) {
+    logger.error("Failed to create the typed publisher/subscriber");
     return;
   }
 
-  // Best-effort reader: samples arrive as CDR-encapsulated bytes; decode with
-  // the reflection-driven cdr::deserialize.
-  if (!participant.add_reader({
-          .topic = sub_topic,
-          .type_name = type_name,
-          .on_sample =
-              [&](std::span<const uint8_t> cdr_payload) {
-                if (auto msg = cdr::deserialize<StringMsg>(std::as_bytes(cdr_payload)); msg) {
-                  logger.info("rx: {}", msg->data);
-                }
-              },
-      })) {
-    logger.error("Failed to add the reader");
-    return;
-  }
-
-  // Publish a counter periodically; serialization via the cdr component.
+  // Publish a counter periodically via the typed publisher.
   static uint32_t counter = 0;
   espp::Timer publish_timer({
       .name = "rtps_pub",
       .period = std::chrono::milliseconds(CONFIG_RTPS_EXAMPLE_ANNOUNCE_PERIOD_MS),
       .callback =
           [&]() {
-            auto bytes = cdr::serialize<cdr::xcdr1>(StringMsg{fmt::format("msg {}", counter++)});
-            if (bytes && participant.publish(pub_topic, u8_span(*bytes))) {
+            if (publisher.publish(StringMsg{fmt::format("msg {}", counter++)})) {
               logger.info("tx: msg {}", counter - 1);
             } else {
               logger.warn("tx dropped (history full)");
