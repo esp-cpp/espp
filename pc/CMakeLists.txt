@@ -4,6 +4,7 @@ set(CMAKE_CXX_STANDARD 23)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/../lib/espp.cmake)
 
+
 MACRO(GEN_TESTS curdir)
   # get test files
   FILE(GLOB tests RELATIVE ${curdir} ${curdir}/tests/*.cpp)
@@ -20,6 +21,8 @@ MACRO(GEN_TESTS curdir)
       add_definitions(-D_CRT_SECURE_NO_WARNINGS)
     endif()
 	  add_executable(${TEST_NAME} ${test_file})
+
+
     target_include_directories(${TEST_NAME} PRIVATE
       ${curdir}/../lib/pc/include)
     target_link_directories(${TEST_NAME} PRIVATE

@@ -34,6 +34,7 @@
 # build folder for ESP-IDF
 build/
 
+
 # we only version sdkconfig.defaults
 sdkconfig
 sdkconfig.old
@@ -51,3 +52,6 @@ managed_components/
 
 # local-only agent customizations
 .github/agents/
+
+# docker interop harness build tree (bind-mounted, built in-container)
+pc/build-linux/

@@ -36,7 +36,7 @@ set(ESPP_INCLUDES
   ${ESPP_COMPONENTS}/math/include
   ${ESPP_COMPONENTS}/ndef/include
   ${ESPP_COMPONENTS}/pid/include
-  ${ESPP_COMPONENTS}/rtps/include
+  ${ESPP_COMPONENTS}/rtps_embedded/include
   ${ESPP_COMPONENTS}/rtsp/include
   ${ESPP_COMPONENTS}/serialization/include
   ${ESPP_COMPONENTS}/tabulate/include
@@ -59,7 +59,20 @@ set(ESPP_SOURCES
   ${ESPP_COMPONENTS}/filters/src/lowpass_filter.cpp
   ${ESPP_COMPONENTS}/filters/src/simple_lowpass_filter.cpp
   ${ESPP_COMPONENTS}/joystick/src/joystick.cpp
-  ${ESPP_COMPONENTS}/rtps/src/rtps.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/src/rtps_participant.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/src/communication/EsppTransport.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/src/discovery/ParticipantProxyData.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/src/discovery/SEDPAgent.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/src/discovery/SPDPAgent.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/src/discovery/TopicData.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/src/entities/Domain.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/src/entities/Participant.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/src/entities/Reader.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/src/entities/StatelessReader.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/src/entities/Writer.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/src/messages/MessageReceiver.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/src/messages/MessageTypes.cpp
+  ${ESPP_COMPONENTS}/rtps_embedded/src/utils/Diagnostics.cpp
   ${ESPP_COMPONENTS}/rtsp/src/rtcp_packet.cpp
   ${ESPP_COMPONENTS}/rtsp/src/rtp_packet.cpp
   ${ESPP_COMPONENTS}/rtsp/src/rtsp_client.cpp
@@ -93,13 +106,14 @@ if(MSVC)
   list(APPEND ESPP_SOURCES ${CMAKE_CURRENT_LIST_DIR}/wcswidth.c)
 endif()
 
-# On Windows link against ws2_32 (sockets) and winmm (timeBeginPeriod, used by
-# the TimerResolution helper in espp.hpp). Centralizing these here keeps linkage
-# consistent across the static library, tests, and the _espp module, and works
-# on all Windows toolchains (MSVC, MinGW, clang) rather than relying on
+# On Windows link against ws2_32 (sockets), winmm (timeBeginPeriod, used by the
+# TimerResolution helper in espp.hpp), and iphlpapi (GetAdaptersAddresses, used
+# by RtpsParticipant interface auto-detection). Centralizing these here keeps
+# linkage consistent across the static library, tests, and the _espp module, and
+# works on all Windows toolchains (MSVC, MinGW, clang) rather than relying on
 # MSVC-only #pragma comment(lib, ...).
 if(WIN32)
-  set(ESPP_EXTERNAL_LIBS ws2_32 winmm)
+  set(ESPP_EXTERNAL_LIBS ws2_32 winmm iphlpapi)
 else()
   set(ESPP_EXTERNAL_LIBS pthread)
 endif()
