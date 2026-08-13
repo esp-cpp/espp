@@ -1,6 +1,7 @@
 #include "rtps_participant.hpp"
 
 #include <cstdio>
+#include <limits>
 
 #include "rtps/entities/Domain.hpp"
 
@@ -243,6 +244,16 @@ bool RtpsParticipant::publish(std::string_view topic, std::span<const uint8_t> c
   auto it = writers_.find(std::string(topic));
   if (it == writers_.end()) {
     logger_.error("No writer for topic '{}'", topic);
+    return false;
+  }
+  // Reject rather than silently truncate: DataSize_t (and the RTPS submessage
+  // length field) is 16-bit, so casting a larger size would wrap. Keep the
+  // header constant in sync with the engine's actual DataSize_t bound.
+  static_assert(RtpsParticipant::max_payload_size == std::numeric_limits<rtps::DataSize_t>::max());
+  if (cdr_payload.size() > max_payload_size) {
+    logger_.error("Payload for topic '{}' is {} bytes, exceeds the {}-byte RTPS limit; dropped "
+                  "(large payloads need DATA_FRAG fragmentation, not yet supported)",
+                  topic, cdr_payload.size(), max_payload_size);
     return false;
   }
   const auto *change = it->second->newChange(rtps::ChangeKind_t::ALIVE, cdr_payload.data(),

@@ -77,14 +77,20 @@ public:
   /// allocation) and hands the CDR bytes to the participant. Thread-safe:
   /// concurrent calls are serialized (the reused buffer is mutex-guarded).
   /// \param sample The message to publish.
-  /// \return True on success; false if invalid, serialization failed, or the
-  ///         writer history was full.
+  /// \return True on success; false if invalid, serialization failed, the
+  ///         writer history was full, or the serialized size exceeds
+  ///         RtpsParticipant::max_payload_size.
   bool publish(const T &sample) {
     if (!valid_) {
       return false;
     }
-    std::lock_guard<std::mutex> lock(mutex_);
     const std::size_t needed = cdr::serialized_size<cdr::xcdr1>(sample);
+    if (needed > RtpsParticipant::max_payload_size) {
+      // Reject before serializing: a sample above the RTPS 16-bit payload limit
+      // cannot be sent unfragmented (see RtpsParticipant::max_payload_size).
+      return false;
+    }
+    std::lock_guard<std::mutex> lock(mutex_);
     if (buffer_.size() < needed) {
       buffer_.resize(needed);
     }

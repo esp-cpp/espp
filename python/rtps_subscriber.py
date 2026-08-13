@@ -2,7 +2,7 @@
 """Standalone RTPS subscriber using the espp Python library (embeddedRTPS engine).
 
 Subscribes to the complex nested message published by rtps_publisher.py (or any
-DDS/ROS 2 peer publishing sensor_msgs/msg/Imu), using pycdr2 for CDR
+DDS/ROS 2 peer publishing espp_examples/msg/SensorSample), using pycdr2 for CDR
 deserialization and the light espp.rtps.Subscriber wrapper -- the callback
 receives fully-decoded message objects, not raw bytes.
 
@@ -16,7 +16,7 @@ import time
 
 import espp
 
-from rtps_messages import Imu
+from rtps_messages import SensorSample
 
 
 def main() -> int:
@@ -26,7 +26,7 @@ def main() -> int:
 
     stats = {"received": 0}
 
-    def on_message(msg) -> None:  # msg is a fully-decoded Imu
+    def on_message(msg) -> None:  # msg is a fully-decoded SensorSample
         stats["received"] += 1
         print(
             f"received {stats['received']}: seq={msg.seq} frame={msg.frame_id!r} "
@@ -38,11 +38,11 @@ def main() -> int:
     if not participant.start():
         print("failed to start participant")
         return 1
-    sub = espp.rtps.Subscriber(participant, topic, Imu, on_message=on_message, reliable=True)
+    sub = espp.rtps.Subscriber(participant, topic, SensorSample, on_message=on_message, reliable=True)
     if not sub.valid:
         print("failed to add reader")
         return 1
-    print(f"subscribed to '{topic}' (sensor_msgs/msg/Imu) for {run_seconds}s")
+    print(f"subscribed to '{topic}' (espp_examples/msg/SensorSample) for {run_seconds}s")
 
     try:
         time.sleep(run_seconds)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Standalone RTPS publisher using the espp Python library (embeddedRTPS engine).
 
-Publishes a complex nested message (sensor_msgs/msg/Imu-style: string + scalars +
+Publishes a complex nested message (espp_examples/msg/SensorSample demo message: string + scalars +
 nested struct + fixed array + variable sequence) using pycdr2 for CDR
 (de)serialization and the light espp.rtps.Publisher wrapper. Pair it with
 rtps_subscriber.py, a FastDDS peer, or a ROS 2 node (rmw_fastrtps).
@@ -16,7 +16,7 @@ import time
 
 import espp
 
-from rtps_messages import Imu, Vector3
+from rtps_messages import SensorSample, Vector3
 
 
 def main() -> int:
@@ -30,18 +30,18 @@ def main() -> int:
         print("failed to start participant")
         return 1
 
-    # Publisher<Imu>: the DDS type name is derived from the pycdr2 typename
-    # ("sensor_msgs/msg/Imu" -> "sensor_msgs::msg::dds_::Imu_").
-    pub = espp.rtps.Publisher(participant, topic, Imu, reliable=True)
+    # Publisher<SensorSample>: the DDS type name is derived from the pycdr2 typename
+    # ("espp_examples/msg/SensorSample" -> "espp_examples::msg::dds_::SensorSample_").
+    pub = espp.rtps.Publisher(participant, topic, SensorSample, reliable=True)
     if not pub.valid:
         print("failed to add writer")
         return 1
-    print(f"publishing '{topic}' (sensor_msgs/msg/Imu) every {period}s; ctrl-c to stop")
+    print(f"publishing '{topic}' (espp_examples/msg/SensorSample) every {period}s; ctrl-c to stop")
 
     count = 0
     try:
         while True:
-            msg = Imu(
+            msg = SensorSample(
                 frame_id="imu_link",
                 stamp_ns=time.time_ns(),
                 seq=count,

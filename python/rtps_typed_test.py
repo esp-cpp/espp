@@ -15,7 +15,7 @@ import time
 
 import espp
 
-from rtps_messages import Imu, Vector3
+from rtps_messages import SensorSample, Vector3
 
 REQUIRED = 5
 TOPIC = "rt/imu_test"
@@ -36,8 +36,8 @@ def main() -> int:
         print("FAIL: start")
         return 1
 
-    pub = espp.rtps.Publisher(pub_p, TOPIC, Imu, reliable=True)
-    sub = espp.rtps.Subscriber(sub_p, TOPIC, Imu, on_message=on_message, reliable=True)
+    pub = espp.rtps.Publisher(pub_p, TOPIC, SensorSample, reliable=True)
+    sub = espp.rtps.Subscriber(sub_p, TOPIC, SensorSample, on_message=on_message, reliable=True)
     if not pub.valid or not sub.valid:
         print("FAIL: registration")
         return 1
@@ -48,7 +48,7 @@ def main() -> int:
     deadline = time.monotonic() + 20.0
     while len(received) < REQUIRED and time.monotonic() < deadline:
         pub.publish(
-            Imu(
+            SensorSample(
                 frame_id="imu_link",
                 stamp_ns=1000 + sent,
                 seq=sent,
