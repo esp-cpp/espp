@@ -1,0 +1,33 @@
+menu "RTPS (rtps_embedded)"
+
+    choice RTPS_LIMITS_PROFILE
+        prompt "RTPS static limits profile"
+        default RTPS_LIMITS_PROFILE_EMBEDDED
+        help
+            Selects the compile-time capacity limits (profile header) used by the
+            rtps_embedded engine. All profiles use the same fully-static,
+            deterministic allocation model; only the capacity caps differ. These
+            caps are pure capacity limits and do NOT change any bytes on the wire.
+
+        config RTPS_LIMITS_PROFILE_EMBEDDED
+            bool "embedded (tight MCU caps)"
+            help
+                Tight caps sized for an ESP32-class MCU
+                (rtps/config_esp32.hpp). This is the default and the smallest
+                footprint.
+
+        config RTPS_LIMITS_PROFILE_HOST
+            bool "host (relaxed static caps)"
+            help
+                Relaxed static caps suitable for small-to-medium DDS graphs
+                (rtps/config_desktop.hpp). Larger footprint than embedded.
+
+        config RTPS_LIMITS_PROFILE_HOST_LARGE
+            bool "host_large (generous static caps)"
+            help
+                Generous static caps for large DDS graphs
+                (rtps/config_host_large.hpp). Significantly larger footprint;
+                only appropriate on targets with plenty of RAM.
+    endchoice
+
+endmenu

@@ -1,5 +1,41 @@
 set(ESPP_COMPONENTS "${CMAKE_CURRENT_LIST_DIR}/../components")
 
+# ---------------------------------------------------------------------------
+# RTPS static-limits profile selection.
+#
+# The rtps_embedded engine keeps a fully-static (deterministic) allocation model
+# whose compile-time capacity caps are chosen by a profile header (see
+# components/rtps_embedded/include/rtps/config.hpp). Profiles:
+#   embedded   - tight MCU caps (rtps/config_esp32.hpp)
+#   host       - relaxed static caps, DEFAULT for non-ESP builds
+#                (rtps/config_desktop.hpp)
+#   host_large - generous static caps for large DDS graphs
+#                (rtps/config_host_large.hpp)
+#
+# Select with -DRTPS_LIMITS_PROFILE=embedded|host|host_large. Default is "host"
+# (this file is only used for non-ESP / host builds; ESP/IDF builds pick the
+# profile via Kconfig in components/rtps_embedded/Kconfig).
+# ---------------------------------------------------------------------------
+if(NOT DEFINED RTPS_LIMITS_PROFILE)
+  set(RTPS_LIMITS_PROFILE "host")
+endif()
+set(RTPS_LIMITS_PROFILE "${RTPS_LIMITS_PROFILE}" CACHE STRING
+    "RTPS static limits profile: embedded|host|host_large")
+set_property(CACHE RTPS_LIMITS_PROFILE PROPERTY STRINGS embedded host host_large)
+
+if(RTPS_LIMITS_PROFILE STREQUAL "embedded")
+  add_compile_definitions(RTPS_CONFIG_HEADER="rtps/config_esp32.hpp")
+elseif(RTPS_LIMITS_PROFILE STREQUAL "host")
+  add_compile_definitions(RTPS_CONFIG_HEADER="rtps/config_desktop.hpp")
+elseif(RTPS_LIMITS_PROFILE STREQUAL "host_large")
+  add_compile_definitions(RTPS_CONFIG_HEADER="rtps/config_host_large.hpp")
+else()
+  message(FATAL_ERROR
+    "Invalid RTPS_LIMITS_PROFILE '${RTPS_LIMITS_PROFILE}' "
+    "(expected: embedded | host | host_large)")
+endif()
+message(STATUS "RTPS limits profile: ${RTPS_LIMITS_PROFILE}")
+
 set(ESPP_EXTERNAL_INCLUDES
   ${ESPP_COMPONENTS}/serialization/detail/alpaca/include
   ${ESPP_COMPONENTS}/cli/detail/cli/include
