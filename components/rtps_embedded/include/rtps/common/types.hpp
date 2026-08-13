@@ -39,7 +39,11 @@ namespace rtps {
 // TODO move types to where they are needed!
 
 typedef uint16_t Ip4Port_t;
-typedef uint16_t DataSize_t;
+// Internal whole-sample / payload size type. Widened to 32-bit so a single
+// sample can exceed 64 KB internally (prerequisite for DATA_FRAG). This is an
+// INTERNAL type only: on-the-wire per-submessage length fields (e.g.
+// SubmessageHeader::octetsToNextHeader) stay 16-bit per the RTPS spec.
+typedef uint32_t DataSize_t;
 typedef int8_t ParticipantId_t; // With UDP only 120 possible
 
 enum class EntityKind_t : uint8_t {

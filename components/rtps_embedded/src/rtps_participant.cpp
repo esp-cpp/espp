@@ -246,10 +246,13 @@ bool RtpsParticipant::publish(std::string_view topic, std::span<const uint8_t> c
     logger_.error("No writer for topic '{}'", topic);
     return false;
   }
-  // Reject rather than silently truncate: DataSize_t (and the RTPS submessage
-  // length field) is 16-bit, so casting a larger size would wrap. Keep the
-  // header constant in sync with the engine's actual DataSize_t bound.
-  static_assert(RtpsParticipant::max_payload_size == std::numeric_limits<rtps::DataSize_t>::max());
+  // Reject rather than silently truncate. The binding cap here is the RTPS wire
+  // format: a single DATA submessage's length field (octetsToNextHeader) is
+  // 16-bit, so one unfragmented sample cannot exceed 65535 bytes. The engine's
+  // internal DataSize_t is now 32-bit (to support DATA_FRAG later), so the cap
+  // is asserted against the uint16 wire bound, not DataSize_t. Raised once
+  // DATA_FRAG lands and oversized samples are split across fragment submessages.
+  static_assert(RtpsParticipant::max_payload_size == std::numeric_limits<uint16_t>::max());
   if (cdr_payload.size() > max_payload_size) {
     logger_.error("Payload for topic '{}' is {} bytes, exceeds the {}-byte RTPS limit; dropped "
                   "(large payloads need DATA_FRAG fragmentation, not yet supported)",

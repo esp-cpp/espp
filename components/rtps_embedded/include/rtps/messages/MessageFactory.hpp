@@ -108,8 +108,13 @@ void addSubMessageData(Buffer &buffer, const PayloadBuffer &filledPayload, bool 
   msg.header.flags = FLAG_BIG_ENDIAN;
 #endif
 
-  msg.header.octetsToNextHeader =
-      SubmessageData::getRawSize() + filledPayload.spaceUsed() - numBytesUntilEndOfLength;
+  // octetsToNextHeader is a 16-bit wire field. spaceUsed() is now DataSize_t
+  // (uint32) but the non-fragmented DATA path is only reached for samples that
+  // fit a single submessage (< 64 KB), so the narrowing to uint16 is correct
+  // and required for wire-format neutrality. (DATA_FRAG, when it lands, will
+  // carry oversized samples via fragment-sized submessages instead.)
+  msg.header.octetsToNextHeader = static_cast<uint16_t>(
+      SubmessageData::getRawSize() + filledPayload.spaceUsed() - numBytesUntilEndOfLength);
 
   if (containsInlineQos) {
     msg.header.flags |= FLAG_INLINE_QOS;
