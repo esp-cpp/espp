@@ -91,6 +91,11 @@ const CacheChange *StatelessWriter::newChange(rtps::ChangeKind_t kind, const uin
     return nullptr;
   }
 
+#ifndef RTPS_STORAGE_DYNAMIC
+  // Static ring: a full history means the next addChange overwrites (drops) the
+  // oldest sample, so advance the send cursor past it. On the dynamic path the
+  // history grows instead of dropping, so the cursor must NOT advance here - the
+  // retained oldest sample still needs to be sent.
   if (m_history.isFull()) {
     SequenceNumber_t newMin = ++SequenceNumber_t(m_history.getSeqNumMin());
     if (m_nextSequenceNumberToSend < newMin) {
@@ -98,6 +103,7 @@ const CacheChange *StatelessWriter::newChange(rtps::ChangeKind_t kind, const uin
     }
     SLW_LOG("History is full, dropping oldest {}", this->m_attributes.topicName);
   }
+#endif
 
   auto *result = m_history.addChange(data, size);
   if (m_transport != nullptr) {

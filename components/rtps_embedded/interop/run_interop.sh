@@ -28,7 +28,8 @@ cmake -S lib -B lib/build -DCMAKE_BUILD_TYPE=Release > /tmp/cmake_lib.log 2>&1 \
   && cmake -S pc -B pc/build -DCMAKE_BUILD_TYPE=Release > /tmp/cmake.log 2>&1 \
   && cmake --build pc/build -j"$(nproc)" --target \
        rtps_embedded_pubsub rtps_embedded_golden rtps_facade_pubsub rtps_typed_pubsub \
-       rtps_facade_frag rtps_embedded_interop_pub rtps_embedded_interop_sub > /tmp/build.log 2>&1
+       rtps_facade_frag rtps_facade_backlog rtps_facade_frag_sizes \
+       rtps_embedded_interop_pub rtps_embedded_interop_sub > /tmp/build.log 2>&1
 build_rc=$?
 result "build" $build_rc
 if [ $build_rc -ne 0 ]; then tail -30 /tmp/cmake_lib.log /tmp/build_lib.log /tmp/build.log; exit 1; fi
@@ -50,8 +51,15 @@ note "facade <-> facade in-process (two participants, port probing)"
 note "typed pub/sub in-process"
 "$BIN"/rtps_typed_pubsub; result "typed_loopback" $?
 
-# NOTE: the in-process >64 KB DATA_FRAG loopback (rtps_facade_frag) is run as a
-# standalone host gate (docker-free), not here: two participants sharing one
+# Regression guard: a reliable writer under backlog must retain + send every
+# sample on the dynamic (host) storage path (no cursor-advance-as-drop skip).
+# Non-fragmented small samples, so robust in the shared-netns container.
+note "reliable backlog: no sample skipped (dynamic history growth)"
+"$BIN"/rtps_facade_backlog; result "backlog_no_skip" $?
+
+# NOTE: the in-process fragmented loopbacks (rtps_facade_frag, rtps_facade_frag_sizes)
+# are BUILT above (compile guard) but run as standalone host gates (docker-free),
+# not here: two participants sharing one
 # process + reactor in the container, publishing many small MTU-capped fragments,
 # is an environment artifact (it passes on the host). The espp<->espp
 # fragmentation path is proven in-container by cross_process_frag_200k below.

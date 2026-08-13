@@ -98,6 +98,11 @@ const rtps::CacheChange *StatefulWriter::newChange(ChangeKind_t kind, const uint
     return nullptr;
   }
 
+#ifndef RTPS_STORAGE_DYNAMIC
+  // Static ring: a full history drops the oldest change on the next addChange, so
+  // advance the send cursor past it. On the dynamic path the history grows
+  // instead of dropping, so the cursor must NOT advance here - the retained
+  // change still needs to be sent.
   if (m_history.isFull()) {
     // Right now we drop elements anyway because we cannot detect non-responding
     // readers yet. return nullptr;
@@ -107,6 +112,7 @@ const rtps::CacheChange *StatefulWriter::newChange(ChangeKind_t kind, const uint
     }
     SFW_LOG("History full! Dropping changes {}.", this->m_attributes.topicName);
   }
+#endif
 
   auto *result = m_history.addChange(data, size, inLineQoS, markDisposedAfterWrite);
   if (m_transport != nullptr) {
