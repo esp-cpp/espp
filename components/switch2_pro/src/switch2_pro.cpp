@@ -1,5 +1,8 @@
 #include "switch2_pro.hpp"
 
+#include <cstdio>
+#include <string>
+
 #include "esp_mac.h"
 
 #include "switch2_pro_flash.hpp"
@@ -43,6 +46,7 @@ bool Switch2Pro::init() {
     return false;
   }
 
+  configure_callbacks();
   if (!ble_gatt_server_.init(device_name_)) {
     logger_.error("failed to init BLE GATT server");
     return false;
@@ -65,6 +69,38 @@ void Switch2Pro::configure_security() {
   // Secure Connections) and never initiate security ourselves.
   ble_gatt_server_.set_security(/*bonding=*/true, /*mitm=*/false, /*secure=*/false);
   ble_gatt_server_.set_io_capabilities(BLE_HS_IO_NO_INPUT_OUTPUT);
+}
+
+void Switch2Pro::configure_callbacks() {
+  BleGattServer::Callbacks callbacks;
+  callbacks.connect_callback = [this](NimBLEConnInfo &info) {
+    // The connection interval right after connect is the key diagnostic: the
+    // Switch 2 drives 5 ms (interval == 4 units). If a controller can't hold
+    // that, the console typically disconnects with a supervision timeout.
+    logger_.info("connected: peer={} interval={:.2f}ms supervision={}ms latency={}",
+                 info.getAddress().toString(), info.getConnInterval() * 1.25f,
+                 info.getConnTimeout() * 10, info.getConnLatency());
+  };
+  callbacks.disconnect_callback = [this](NimBLEConnInfo &info, BleGattServer::DisconnectReason r) {
+    logger_.warn("disconnected: peer={} reason={} (paired={})", info.getAddress().toString(), r,
+                 paired_);
+    paired_ = false;
+    start_advertising(/*wake=*/false);
+  };
+  ble_gatt_server_.set_callbacks(callbacks);
+}
+
+void Switch2Pro::log_hex(const char *prefix, const uint8_t *data, size_t len) {
+  if (logger_.get_verbosity() > Logger::Verbosity::DEBUG)
+    return;
+  std::string hex;
+  hex.reserve(len * 3);
+  char tmp[4];
+  for (size_t i = 0; i < len; ++i) {
+    std::snprintf(tmp, sizeof(tmp), "%02x ", data[i]);
+    hex += tmp;
+  }
+  logger_.debug("{} [{}]: {}", prefix, len, hex);
 }
 
 bool Switch2Pro::build_gatt() {
@@ -148,6 +184,7 @@ void Switch2Pro::send_response(bool via_vibration_command, uint8_t cmd, uint8_t 
   out.insert(out.end(), {cmd, DIR_DEVICE_TO_HOST, transport, sub, byte4, byte5, 0x00, 0x00});
   if (payload != nullptr && payload_len > 0)
     out.insert(out.end(), payload, payload + payload_len);
+  log_hex(via_vibration_command ? "rsp->0x001e" : "rsp->0x001a", out.data(), out.size());
   response_char->setValue(out.data(), out.size());
   response_char->notify();
 }
@@ -165,6 +202,7 @@ void Switch2Pro::send_ack(bool via_vibration_command, uint8_t cmd, uint8_t trans
 // ---------------------------------------------------------------------------
 
 void Switch2Pro::on_command_write(bool via_vibration_command, const uint8_t *data, size_t len) {
+  log_hex(via_vibration_command ? "cmd<-0x0016" : "cmd<-0x0014", data, len);
   if (len < COMMAND_HEADER_SIZE) {
     logger_.warn("short command write ({} bytes)", len);
     return;

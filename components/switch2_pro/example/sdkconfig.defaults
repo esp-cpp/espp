@@ -1,4 +1,14 @@
-CONFIG_IDF_TARGET="esp32c6"
+# Default target is esp32s3 (buildable/flashable today). NOTE: the Switch 2
+# drives a 5 ms connection interval that only RISC-V targets (C6/C61) can accept
+# via the opt-in NimBLE patch; on S3 the console may disconnect mid- or
+# post-pairing (watch the connect interval + disconnect reason in the log). Use
+# `idf.py set-target esp32c6` + CONFIG_SWITCH2_PRO_PATCH_NIMBLE_5MS=y for the
+# full path. See DESIGN.md.
+CONFIG_IDF_TARGET="esp32s3"
+
+# On the ESP32-S3 (native USB), route the console to USB-Serial-JTAG so the
+# monitor shows the pairing trace. Harmless on boards with a UART bridge too.
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
 
 # Common ESP-related
 CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=4096

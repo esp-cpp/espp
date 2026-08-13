@@ -61,7 +61,11 @@ protected:
   // --- setup ---
   bool build_gatt();
   void configure_security();
+  void configure_callbacks();
   void start_advertising(bool wake, const std::array<uint8_t, 6> &host_addr = {});
+
+  /// Log a byte buffer as hex at debug level (command/response tracing).
+  void log_hex(const char *prefix, const uint8_t *data, size_t len);
 
   // --- command channel ---
   /// Handle a write on a command characteristic. `via_vibration_command` is

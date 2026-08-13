@@ -15,16 +15,21 @@ extern "C" void app_main(void) {
   // crypto against a known-answer vector, builds the custom Nintendo GATT
   // services, configures security so the console (not BLE SMP) drives pairing,
   // and starts advertising with Nintendo manufacturer data.
+  //
+  // DEBUG log level traces every command write and response on the serial
+  // monitor — flip to INFO for quieter output once things work.
   espp::Switch2Pro controller({
       .device_name = "Pro Controller",
-      .log_level = espp::Logger::Verbosity::INFO,
+      .log_level = espp::Logger::Verbosity::DEBUG,
   });
 
   if (!controller.init()) {
     logger.error("failed to initialize Switch2Pro");
     return;
   }
-  logger.info("advertising — put the Switch 2 into controller pairing to connect");
+  logger.info("advertising — on the Switch 2, open Controllers > Pair, and watch "
+              "the log for the connect interval, the 0x15 pairing exchange, and "
+              "either 'pairing finalised' or a disconnect reason");
 
   // Report the current button/stick state once input streaming is enabled
   // (staged in a follow-up milestone). For now we just build a report to show
