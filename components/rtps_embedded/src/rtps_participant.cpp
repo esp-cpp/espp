@@ -198,6 +198,9 @@ bool RtpsParticipant::add_writer(const WriterConfig &config) {
                   config.topic);
     return false;
   }
+  // Per-writer fragment size (only used when a sample exceeds a single DATA
+  // submessage and fragmentation is compiled in; otherwise inert).
+  writer->setFragmentSize(config.fragment_size);
   writers_[config.topic] = writer;
   logger_.info("Added {} writer: topic='{}' type='{}'",
                config.reliability == Reliability::RELIABLE ? "reliable" : "best-effort",
@@ -246,19 +249,29 @@ bool RtpsParticipant::publish(std::string_view topic, std::span<const uint8_t> c
     logger_.error("No writer for topic '{}'", topic);
     return false;
   }
-  // Reject rather than silently truncate. The binding cap here is the RTPS wire
-  // format: a single DATA submessage's length field (octetsToNextHeader) is
-  // 16-bit, so one unfragmented sample cannot exceed 65535 bytes. The engine's
-  // internal DataSize_t is now 32-bit (to support DATA_FRAG later), so the cap
-  // is asserted against the uint16 wire bound, not DataSize_t. Raised once
-  // DATA_FRAG lands and oversized samples are split across fragment submessages.
+  // Reject rather than silently truncate.
+#if defined(RTPS_ENABLE_FRAGMENTATION)
+  // With fragmentation compiled in, the cap is the large-sample reassembly bound
+  // (RTPS_MAX_SAMPLE_SIZE). Samples above one DATA submessage are split into
+  // DATA_FRAG submessages by the engine writer.
+  if (cdr_payload.size() > max_payload_size) {
+    logger_.error(
+        "Payload for topic '{}' is {} bytes, exceeds the {}-byte max sample size; dropped", topic,
+        cdr_payload.size(), max_payload_size);
+    return false;
+  }
+#else
+  // Without fragmentation, the binding cap is the RTPS wire format: a single DATA
+  // submessage's length field (octetsToNextHeader) is 16-bit, so one unfragmented
+  // sample cannot exceed 65535 bytes.
   static_assert(RtpsParticipant::max_payload_size == std::numeric_limits<uint16_t>::max());
   if (cdr_payload.size() > max_payload_size) {
     logger_.error("Payload for topic '{}' is {} bytes, exceeds the {}-byte RTPS limit; dropped "
-                  "(large payloads need DATA_FRAG fragmentation, not yet supported)",
+                  "(large payloads need DATA_FRAG fragmentation, not enabled in this build)",
                   topic, cdr_payload.size(), max_payload_size);
     return false;
   }
+#endif
   const auto *change = it->second->newChange(rtps::ChangeKind_t::ALIVE, cdr_payload.data(),
                                              static_cast<rtps::DataSize_t>(cdr_payload.size()));
   if (change == nullptr) {

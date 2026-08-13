@@ -320,6 +320,13 @@ bool StatefulWriter::sendData(const ReaderProxy &reader, const CacheChange *next
   info.destAddr = locator.getIp4AddressBytes();
   info.destPort = (Ip4Port_t)locator.port;
 
+#ifdef RTPS_ENABLE_FRAGMENTATION
+  if (next->data.spaceUsed() > MAX_UNFRAGMENTED_PAYLOAD) {
+    return sendSampleFragmented(info.destAddr, info.destPort, reader.remoteReaderGuid.entityId,
+                                next);
+  }
+#endif
+
   MessageFactory::addSubMessageData(payload, next->data, next->inLineQoS, next->sequenceNumber,
                                     m_attributes.endpointGuid.entityId,
                                     reader.remoteReaderGuid.entityId);
@@ -331,6 +338,44 @@ bool StatefulWriter::sendData(const ReaderProxy &reader, const CacheChange *next
 
   return true;
 }
+
+#ifdef RTPS_ENABLE_FRAGMENTATION
+bool StatefulWriter::sendSampleFragmented(const Ip4AddressBytes &destAddr, Ip4Port_t destPort,
+                                          const EntityId_t &readerId, const CacheChange *next) {
+  INIT_GUARD()
+  const uint8_t *sampleData = next->data.bytes.data();
+  const uint32_t sampleSize = next->data.spaceUsed();
+  const uint16_t fragmentSize = m_fragmentSize > MAX_UNFRAGMENTED_PAYLOAD
+                                    ? static_cast<uint16_t>(MAX_UNFRAGMENTED_PAYLOAD)
+                                    : m_fragmentSize;
+  if (fragmentSize == 0) {
+    return false;
+  }
+  const uint32_t numFragments = (sampleSize + fragmentSize - 1) / fragmentSize;
+  for (uint32_t f = 0; f < numFragments; ++f) {
+    const uint32_t offset = f * fragmentSize;
+    const uint16_t fragLen = static_cast<uint16_t>(
+        (sampleSize - offset) < fragmentSize ? (sampleSize - offset) : fragmentSize);
+
+    PacketInfo info;
+    info.srcPort = m_srcPort;
+    info.destAddr = destAddr;
+    info.destPort = destPort;
+    PayloadBuffer payload;
+    MessageFactory::addHeader(payload, m_attributes.endpointGuid.prefix);
+    MessageFactory::addSubMessageTimeStamp(payload);
+    MessageFactory::addSubMessageDataFrag(payload, sampleData + offset, fragLen, f + 1, 1,
+                                          fragmentSize, sampleSize, next->sequenceNumber,
+                                          m_attributes.endpointGuid.entityId, readerId);
+    info.payload = std::move(payload.bytes);
+    if (info.payload.empty()) {
+      return false;
+    }
+    m_transport->sendPacket(info);
+  }
+  return true;
+}
+#endif
 
 void StatefulWriter::sendGap(const ReaderProxy &reader, const SequenceNumber_t &firstMissing,
                              const SequenceNumber_t &nextValid) {
@@ -387,6 +432,12 @@ bool StatefulWriter::sendDataWRMulticast(const ReaderProxy &reader, const CacheC
     } else {
       reid = reader.remoteReaderGuid.entityId;
     }
+
+#ifdef RTPS_ENABLE_FRAGMENTATION
+    if (next->data.spaceUsed() > MAX_UNFRAGMENTED_PAYLOAD) {
+      return sendSampleFragmented(info.destAddr, info.destPort, reid, next);
+    }
+#endif
 
     MessageFactory::addSubMessageData(payload, next->data, next->inLineQoS, next->sequenceNumber,
                                       m_attributes.endpointGuid.entityId, reid);

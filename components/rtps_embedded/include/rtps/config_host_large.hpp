@@ -57,6 +57,13 @@ const GuidPrefix_t BASE_GUID_PREFIX = GUID_RANDOM;
 // NOT affect any bytes on the wire.
 // ---------------------------------------------------------------------------
 const uint8_t DOMAIN_ID = 0; // 230 possible with UDP
+
+// Reassembly / large-sample cap (bytes). See config_desktop.hpp. Capacity only.
+#ifndef RTPS_MAX_SAMPLE_SIZE
+#define RTPS_MAX_SAMPLE_SIZE (8u * 1024u * 1024u) // 8 MB
+#endif
+const DataSize_t MAX_SAMPLE_SIZE = RTPS_MAX_SAMPLE_SIZE;
+
 const uint8_t MAX_NUM_PARTICIPANTS = 32;
 const uint8_t NUM_STATELESS_WRITERS = 64;
 const uint8_t NUM_STATELESS_READERS = 64;

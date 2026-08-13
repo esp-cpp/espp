@@ -25,16 +25,33 @@ set_property(CACHE RTPS_LIMITS_PROFILE PROPERTY STRINGS embedded host host_large
 
 if(RTPS_LIMITS_PROFILE STREQUAL "embedded")
   add_compile_definitions(RTPS_CONFIG_HEADER="rtps/config_esp32.hpp")
+  set(RTPS_MAX_SAMPLE_SIZE 262144)   # 256 KB (matches config_esp32.hpp)
 elseif(RTPS_LIMITS_PROFILE STREQUAL "host")
   add_compile_definitions(RTPS_CONFIG_HEADER="rtps/config_desktop.hpp")
+  set(RTPS_MAX_SAMPLE_SIZE 8388608)  # 8 MB (matches config_desktop.hpp)
 elseif(RTPS_LIMITS_PROFILE STREQUAL "host_large")
   add_compile_definitions(RTPS_CONFIG_HEADER="rtps/config_host_large.hpp")
+  set(RTPS_MAX_SAMPLE_SIZE 8388608)  # 8 MB (matches config_host_large.hpp)
 else()
   message(FATAL_ERROR
     "Invalid RTPS_LIMITS_PROFILE '${RTPS_LIMITS_PROFILE}' "
     "(expected: embedded | host | host_large)")
 endif()
 message(STATUS "RTPS limits profile: ${RTPS_LIMITS_PROFILE}")
+
+# ---------------------------------------------------------------------------
+# RTPS best-effort DATA_FRAG fragmentation (Slice C).
+#
+# On host builds fragmentation is ALWAYS enabled: samples larger than a single
+# DATA submessage are split into DATA_FRAG submessages and reassembled by the
+# peer (interoperates with FastDDS / ROS 2). RTPS_MAX_SAMPLE_SIZE is the
+# large-sample reassembly cap and is kept in sync with the profile's
+# Config::MAX_SAMPLE_SIZE. On ESP32/IDF fragmentation is opt-in via Kconfig (see
+# components/rtps_embedded/Kconfig / CMakeLists.txt), default off, so the MCU
+# pays nothing for it by default.
+# ---------------------------------------------------------------------------
+add_compile_definitions(RTPS_ENABLE_FRAGMENTATION RTPS_MAX_SAMPLE_SIZE=${RTPS_MAX_SAMPLE_SIZE})
+message(STATUS "RTPS fragmentation: ON (max sample size ${RTPS_MAX_SAMPLE_SIZE} bytes)")
 
 set(ESPP_EXTERNAL_INCLUDES
   ${ESPP_COMPONENTS}/serialization/detail/alpaca/include

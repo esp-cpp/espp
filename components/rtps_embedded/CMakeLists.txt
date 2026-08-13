@@ -35,3 +35,13 @@ elseif(CONFIG_RTPS_LIMITS_PROFILE_HOST_LARGE)
   target_compile_definitions(${COMPONENT_LIB} PUBLIC RTPS_CONFIG_HEADER="rtps/config_host_large.hpp")
 endif()
 
+# Best-effort DATA_FRAG fragmentation is opt-in on ESP targets (Kconfig, default
+# off) so the MCU pays nothing for it by default. When enabled, define
+# RTPS_ENABLE_FRAGMENTATION (compiles the fragment send/reassembly paths) and the
+# reassembly cap RTPS_MAX_SAMPLE_SIZE (256 KB on the embedded profile). The
+# facade's max payload size rises to this when fragmentation is enabled.
+if(CONFIG_RTPS_ENABLE_FRAGMENTATION)
+  target_compile_definitions(${COMPONENT_LIB} PUBLIC
+    RTPS_ENABLE_FRAGMENTATION RTPS_MAX_SAMPLE_SIZE=262144)
+endif()
+

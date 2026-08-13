@@ -59,6 +59,17 @@ const GuidPrefix_t BASE_GUID_PREFIX = GUID_RANDOM;
 // NOTE: these are pure capacity caps and do NOT affect any bytes on the wire.
 // ---------------------------------------------------------------------------
 const uint8_t DOMAIN_ID = 0; // 230 possible with UDP
+
+// Reassembly / large-sample cap (bytes). A sample larger than this is refused on
+// publish and any partial reassembly exceeding it is dropped. On host this is the
+// growable (Slice B deque) upper bound. Kept in sync with the facade's
+// max_payload_size via the RTPS_MAX_SAMPLE_SIZE build macro when fragmentation is
+// enabled. Capacity only - never touches wire bytes.
+#ifndef RTPS_MAX_SAMPLE_SIZE
+#define RTPS_MAX_SAMPLE_SIZE (8u * 1024u * 1024u) // 8 MB
+#endif
+const DataSize_t MAX_SAMPLE_SIZE = RTPS_MAX_SAMPLE_SIZE;
+
 const uint8_t MAX_NUM_PARTICIPANTS = 8;
 const uint8_t NUM_STATELESS_WRITERS = 16;
 const uint8_t NUM_STATELESS_READERS = 16;

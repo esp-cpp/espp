@@ -68,6 +68,11 @@ private:
                          const MessageSourceState &sourceState);
   bool processDataSubmessage(MessageProcessingInfo &msgInfo, const SubmessageHeader &submsgHeader,
                              const MessageSourceState &sourceState);
+#ifdef RTPS_ENABLE_FRAGMENTATION
+  bool processDataFragSubmessage(MessageProcessingInfo &msgInfo,
+                                 const SubmessageHeader &submsgHeader,
+                                 const MessageSourceState &sourceState);
+#endif
   bool processHeartbeatSubmessage(MessageProcessingInfo &msgInfo,
                                   const MessageSourceState &sourceState);
   bool processAckNackSubmessage(MessageProcessingInfo &msgInfo,

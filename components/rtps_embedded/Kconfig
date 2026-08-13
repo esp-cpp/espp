@@ -30,4 +30,16 @@ menu "RTPS (rtps_embedded)"
                 only appropriate on targets with plenty of RAM.
     endchoice
 
+    config RTPS_ENABLE_FRAGMENTATION
+        bool "Enable best-effort DATA_FRAG fragmentation"
+        default n
+        help
+            Enables sending and receiving samples larger than a single RTPS DATA
+            submessage (> ~64 KB) by splitting them into best-effort DATA_FRAG
+            submessages and reassembling them on receive (interoperates with
+            FastDDS / ROS 2). Default OFF so the MCU pays no code or memory cost
+            for it in the common (small-sample) case. When ON, reassembly is
+            bounded by RTPS_MAX_SAMPLE_SIZE (256 KB on the embedded profile) and
+            the participant's max payload size rises accordingly.
+
 endmenu

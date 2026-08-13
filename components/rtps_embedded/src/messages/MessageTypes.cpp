@@ -96,6 +96,48 @@ bool rtps::deserializeMessage(const MessageProcessingInfo &info, SubmessageData 
   return true;
 }
 
+#ifdef RTPS_ENABLE_FRAGMENTATION
+bool rtps::deserializeMessage(const MessageProcessingInfo &info, SubmessageDataFrag &msg) {
+  if (info.getRemainingSize() < SubmessageHeader::getRawSize()) {
+    return false;
+  }
+  if (!deserializeMessage(info, msg.header)) {
+    return false;
+  }
+
+  // The fixed DATA_FRAG header (without inlineQos / serializedData) must be
+  // present in full.
+  constexpr auto min_body_size = SubmessageDataFrag::getRawSize() - SubmessageHeader::getRawSize();
+  if (msg.header.octetsToNextHeader < min_body_size) {
+    return false;
+  }
+  if (info.getRemainingSize() < SubmessageHeader::getRawSize() + msg.header.octetsToNextHeader) {
+    return false;
+  }
+
+  const uint8_t *currentPos = info.getPointerToCurrentPos() + SubmessageHeader::getRawSize();
+
+  doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&msg.extraFlags), currentPos, sizeof(uint16_t));
+  doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&msg.octetsToInlineQos), currentPos,
+                  sizeof(uint16_t));
+  doCopyAndMoveOn(msg.readerId.entityKey.data(), currentPos, msg.readerId.entityKey.size());
+  msg.readerId.entityKind = static_cast<EntityKind_t>(*currentPos++);
+  doCopyAndMoveOn(msg.writerId.entityKey.data(), currentPos, msg.writerId.entityKey.size());
+  msg.writerId.entityKind = static_cast<EntityKind_t>(*currentPos++);
+  doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&msg.writerSN.high), currentPos,
+                  sizeof(msg.writerSN.high));
+  doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&msg.writerSN.low), currentPos,
+                  sizeof(msg.writerSN.low));
+  doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&msg.fragmentStartingNum), currentPos,
+                  sizeof(uint32_t));
+  doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&msg.fragmentsInSubmessage), currentPos,
+                  sizeof(uint16_t));
+  doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&msg.fragmentSize), currentPos, sizeof(uint16_t));
+  doCopyAndMoveOn(reinterpret_cast<uint8_t *>(&msg.sampleSize), currentPos, sizeof(uint32_t));
+  return true;
+}
+#endif
+
 bool rtps::deserializeMessage(const MessageProcessingInfo &info, SubmessageHeartbeat &msg) {
   if (info.getRemainingSize() < SubmessageHeartbeat::getRawSize()) {
     return false;

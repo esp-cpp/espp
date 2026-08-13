@@ -152,6 +152,15 @@ void StatelessWriter::progress() {
       info.srcPort = m_srcPort;
       PayloadBuffer payload;
 
+      // Just usable for IPv4. Decide which locator to be used unicast/multicast.
+      if (proxy.useMulticast && !m_enforceUnicast) {
+        info.destAddr = proxy.remoteMulticastLocator.getIp4AddressBytes();
+        info.destPort = (Ip4Port_t)proxy.remoteMulticastLocator.port;
+      } else {
+        info.destAddr = proxy.remoteLocator.getIp4AddressBytes();
+        info.destPort = (Ip4Port_t)proxy.remoteLocator.port;
+      }
+
       MessageFactory::addHeader(payload, m_attributes.endpointGuid.prefix);
       MessageFactory::addSubMessageTimeStamp(payload);
 
@@ -177,23 +186,22 @@ void StatelessWriter::progress() {
         } else {
           reid = proxy.remoteReaderGuid.entityId;
         }
+
+#ifdef RTPS_ENABLE_FRAGMENTATION
+        if (next->data.spaceUsed() > MAX_UNFRAGMENTED_PAYLOAD) {
+          // Oversized sample: emit DATA_FRAG submessages (built + sent under the
+          // lock so next->data stays valid across fragments) and skip the single
+          // DATA path for this proxy.
+          sendSampleFragmented(info.destAddr, info.destPort, reid, next);
+          continue;
+        }
+#endif
         MessageFactory::addSubMessageData(payload, next->data, false, next->sequenceNumber,
                                           m_attributes.endpointGuid.entityId,
                                           reid); // TODO
       }
 
       info.payload = std::move(payload.bytes);
-
-      // Just usable for IPv4
-      // Decide which locator to be used unicast/multicast
-
-      if (proxy.useMulticast && !m_enforceUnicast) {
-        info.destAddr = proxy.remoteMulticastLocator.getIp4AddressBytes();
-        info.destPort = (Ip4Port_t)proxy.remoteMulticastLocator.port;
-      } else {
-        info.destAddr = proxy.remoteLocator.getIp4AddressBytes();
-        info.destPort = (Ip4Port_t)proxy.remoteLocator.port;
-      }
       SLW_LOG("Sending to {}.{}.{}.{}:{}", info.destAddr[0], info.destAddr[1], info.destAddr[2],
               info.destAddr[3], info.destPort);
       if (info.payload.empty()) {
@@ -206,3 +214,40 @@ void StatelessWriter::progress() {
   m_history.removeUntilIncl(m_nextSequenceNumberToSend);
   ++m_nextSequenceNumberToSend;
 }
+
+#ifdef RTPS_ENABLE_FRAGMENTATION
+bool StatelessWriter::sendSampleFragmented(const Ip4AddressBytes &destAddr, Ip4Port_t destPort,
+                                           const EntityId_t &readerId, const CacheChange *next) {
+  const uint8_t *sampleData = next->data.bytes.data();
+  const uint32_t sampleSize = next->data.spaceUsed();
+  const uint16_t fragmentSize = m_fragmentSize > MAX_UNFRAGMENTED_PAYLOAD
+                                    ? static_cast<uint16_t>(MAX_UNFRAGMENTED_PAYLOAD)
+                                    : m_fragmentSize;
+  if (fragmentSize == 0) {
+    return false;
+  }
+  const uint32_t numFragments = (sampleSize + fragmentSize - 1) / fragmentSize;
+  for (uint32_t f = 0; f < numFragments; ++f) {
+    const uint32_t offset = f * fragmentSize;
+    const uint16_t fragLen = static_cast<uint16_t>(
+        (sampleSize - offset) < fragmentSize ? (sampleSize - offset) : fragmentSize);
+
+    PacketInfo info;
+    info.srcPort = m_srcPort;
+    info.destAddr = destAddr;
+    info.destPort = destPort;
+    PayloadBuffer payload;
+    MessageFactory::addHeader(payload, m_attributes.endpointGuid.prefix);
+    MessageFactory::addSubMessageTimeStamp(payload);
+    MessageFactory::addSubMessageDataFrag(payload, sampleData + offset, fragLen, f + 1, 1,
+                                          fragmentSize, sampleSize, next->sequenceNumber,
+                                          m_attributes.endpointGuid.entityId, readerId);
+    info.payload = std::move(payload.bytes);
+    if (info.payload.empty()) {
+      return false;
+    }
+    m_transport->sendPacket(info);
+  }
+  return true;
+}
+#endif
