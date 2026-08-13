@@ -55,3 +55,4 @@ managed_components/
 
 # docker interop harness build tree (bind-mounted, built in-container)
 pc/build-linux/
+python/env/

@@ -48,6 +48,7 @@ extern "C" {
 #include "rtp_packetizer.hpp"
 #include "rtp_types.hpp"
 #include "rtps_participant.hpp"
+#include "rtps_pubsub.hpp"
 #include "rtsp_client.hpp"
 #include "rtsp_server.hpp"
 #include "serialization.hpp"

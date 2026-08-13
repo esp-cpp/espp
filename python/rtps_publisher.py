@@ -1,47 +1,55 @@
 #!/usr/bin/env python3
 """Standalone RTPS publisher using the espp Python library (embeddedRTPS engine).
 
-Publishes CDR string samples on a topic; defaults follow the ROS 2 conventions for
-std_msgs/String on /chatter, so `ros2 topic echo /chatter std_msgs/msg/String`
-(with rmw_fastrtps) receives them. Pair it with rtps_subscriber.py or any DDS peer.
+Publishes a complex nested message (espp_examples/msg/SensorSample demo message: string + scalars +
+nested struct + fixed array + variable sequence) using pycdr2 for CDR
+(de)serialization and the light espp.rtps.Publisher wrapper. Pair it with
+rtps_subscriber.py, a FastDDS peer, or a ROS 2 node (rmw_fastrtps).
 
-Usage: python rtps_publisher.py [topic] [type] [interface_ipv4] [period_seconds]
+Requires pycdr2 (see python/requirements.txt).
+
+Usage: python rtps_publisher.py [topic] [interface_ipv4] [period_seconds]
 """
 
-import struct
 import sys
 import time
 
 import espp
 
-
-def serialize_string(text: str) -> bytes:
-    # Little-endian classic CDR (XCDR1) with a 4-byte encapsulation header - the wire
-    # format of std_msgs/msg/String: uint32 length (incl. null) + bytes + null.
-    data = text.encode() + b"\x00"
-    return b"\x00\x01\x00\x00" + struct.pack("<I", len(data)) + data
+from rtps_messages import SensorSample, Vector3
 
 
 def main() -> int:
-    topic = sys.argv[1] if len(sys.argv) > 1 else "rt/chatter"
-    type_name = sys.argv[2] if len(sys.argv) > 2 else "std_msgs::msg::dds_::String_"
-    interface = sys.argv[3] if len(sys.argv) > 3 else ""  # "" -> auto-detect
-    period = float(sys.argv[4]) if len(sys.argv) > 4 else 0.5
+    topic = sys.argv[1] if len(sys.argv) > 1 else "rt/imu"
+    interface = sys.argv[2] if len(sys.argv) > 2 else ""  # "" -> auto-detect
+    period = float(sys.argv[3]) if len(sys.argv) > 3 else 0.5
 
     R = espp.RtpsParticipant
     participant = R(R.Config(interface_address=interface, log_level=espp.Logger.Verbosity.info))
     if not participant.start():
         print("failed to start participant")
         return 1
-    if not participant.add_writer(topic=topic, type_name=type_name, reliable=True):
+
+    # Publisher<SensorSample>: the DDS type name is derived from the pycdr2 typename
+    # ("espp_examples/msg/SensorSample" -> "espp_examples::msg::dds_::SensorSample_").
+    pub = espp.rtps.Publisher(participant, topic, SensorSample, reliable=True)
+    if not pub.valid:
         print("failed to add writer")
         return 1
-    print(f"publishing '{topic}' ({type_name}) every {period}s; ctrl-c to stop")
+    print(f"publishing '{topic}' (espp_examples/msg/SensorSample) every {period}s; ctrl-c to stop")
 
     count = 0
     try:
         while True:
-            if participant.publish(topic, serialize_string(f"espp python {count}")):
+            msg = SensorSample(
+                frame_id="imu_link",
+                stamp_ns=time.time_ns(),
+                seq=count,
+                angular_velocity=Vector3(x=0.01 * count, y=0.0, z=-0.01 * count),
+                orientation_covariance=[0.0] * 9,
+                samples=[float(count), float(count) + 0.5],
+            )
+            if pub.publish(msg):  # pycdr2 serializes msg -> CDR bytes for you
                 count += 1
                 print(f"sent {count}")
             time.sleep(period)

@@ -130,12 +130,22 @@ public:
   ///         reader pool is exhausted).
   bool add_reader(const ReaderConfig &config);
 
+  /// Maximum size of a single published CDR payload, in bytes. Bounded by the
+  /// RTPS wire format: a DATA submessage's length (octetsToNextHeader) and the
+  /// engine's DataSize_t are both 16-bit, so one unfragmented sample cannot
+  /// exceed 65535 bytes. Larger payloads (e.g. images) require DATA_FRAG
+  /// fragmentation, which this engine does not yet implement - publish() rejects
+  /// oversized samples rather than silently truncating them.
+  static constexpr std::size_t max_payload_size = 65535;
+
   /// Publish a CDR-encapsulated sample on a topic previously registered with
   /// add_writer().
   /// \param topic The topic name used in add_writer().
   /// \param cdr_payload The CDR-encapsulated sample (4-byte encapsulation
-  ///        header + CDR body); copied into the writer's history.
-  /// \return True if the sample was accepted into the writer history.
+  ///        header + CDR body); copied into the writer's history. Must not
+  ///        exceed max_payload_size bytes.
+  /// \return True if the sample was accepted into the writer history; false if
+  ///         the payload exceeds max_payload_size (see that constant).
   bool publish(std::string_view topic, std::span<const uint8_t> cdr_payload);
 
 protected:
