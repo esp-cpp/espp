@@ -30,6 +30,8 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include <cstring>
 #include <iterator>
 
+#include "rtps/storages/StorageArray.hpp"
+
 namespace rtps {
 
 template <class TYPE, uint32_t SIZE> class MemoryPool {
@@ -42,10 +44,16 @@ public:
     using pointer = IT_TYPE *;
     using reference = IT_TYPE &;
 
+    // The bitmap is snapshotted so removals during iteration operate on stable
+    // bits. On the static path this StorageArray is a fixed std::array (a plain
+    // copy, exactly as the previous memcpy). On the dynamic path it is a vector
+    // sized to the pool's current (possibly grown) bitmap. The pool's capacity
+    // does not change during a single iteration, so m_pool->capacity() is a
+    // stable end sentinel on both paths (and folds to the constant SIZE on the
+    // static path).
     explicit MemoryPoolIterator(MemoryPool<TYPE, SIZE> &pool)
-        : m_pool(&pool) {
-      memcpy(m_bitMap, m_pool->m_bitMap, sizeof(m_bitMap));
-    }
+        : m_pool(&pool)
+        , m_bitMap(pool.m_bitMap) {}
 
     bool operator==(const MemoryPoolIterator &other) const { return m_bit == other.m_bit; }
 
@@ -58,14 +66,14 @@ public:
     // Pre-increment
     MemoryPoolIterator &operator++() {
       if (m_pool->m_numElements == 0) {
-        m_bit = SIZE;
+        m_bit = m_pool->capacity();
         return *this;
       }
       uint32_t bucket;
       do {
         ++m_bit;
         bucket = m_bit / static_cast<uint32_t>(8);
-      } while (!(m_bitMap[bucket] & (1 << (m_bit % 8))) && m_bit < SIZE);
+      } while (!(m_bitMap[bucket] & (1 << (m_bit % 8))) && m_bit < m_pool->capacity());
 
       return *this;
     }
@@ -80,7 +88,7 @@ public:
   private:
     friend class MemoryPool;
     MemoryPool<TYPE, SIZE> *m_pool;
-    uint8_t m_bitMap[SIZE / 8 + 1];
+    StorageArray<uint8_t, SIZE / 8 + 1> m_bitMap;
     uint32_t m_bit = 0;
   };
 
@@ -89,9 +97,14 @@ public:
 
   typedef bool (*condition_fp)(TYPE);
 
-  uint32_t getSize() { return SIZE; }
+  // Current capacity. On the static path capacity() folds to the constant SIZE
+  // (StorageArray::size() is constexpr), so all uses below generate identical
+  // code to the original `SIZE`. On the dynamic path it tracks the grown size.
+  uint32_t capacity() const { return static_cast<uint32_t>(m_data.size()); }
 
-  bool isFull() const { return m_numElements == SIZE; }
+  uint32_t getSize() { return capacity(); }
+
+  bool isFull() const { return m_numElements == capacity(); }
 
   bool isEmpty() const { return m_numElements == 0; }
 
@@ -99,10 +112,15 @@ public:
 
   bool add(const TYPE &data) {
     if (isFull()) {
+#ifdef RTPS_STORAGE_DYNAMIC
+      // Host: grow past the profile cap instead of hard-failing.
+      grow();
+#else
       printf("[MemoryPool] RESSOURCE LIMIT EXCEEDED \n");
       return false;
+#endif
     }
-    for (uint32_t bucket = 0; bucket < sizeof(m_bitMap); ++bucket) {
+    for (uint32_t bucket = 0; bucket < m_bitMap.size(); ++bucket) {
       if (m_bitMap[bucket] != 0xFF) {
         uint8_t byte = m_bitMap[bucket];
         for (uint8_t bit = 0; bit < 8; ++bit) {
@@ -146,7 +164,7 @@ public:
   }
 
   void clear() {
-    for (unsigned int i = 0; i < (SIZE / 8 + 1); i++) {
+    for (unsigned int i = 0; i < m_bitMap.size(); i++) {
       m_bitMap[i] = 0;
     }
     m_numElements = 0;
@@ -171,14 +189,28 @@ public:
 
   MemPoolIter end() {
     MemPoolIter endIt(*this);
-    endIt.m_bit = SIZE;
+    endIt.m_bit = capacity();
     return endIt;
   }
 
 private:
-  uint8_t m_bitMap[SIZE / 8 + 1]{};
+#ifdef RTPS_STORAGE_DYNAMIC
+  // Host only: double capacity, growing the data array and its bitmap in
+  // lockstep. New bitmap bytes are zero-initialized (all slots free) by the
+  // vector resize, so the free-slot scan in add() finds room immediately.
+  void grow() {
+    const uint32_t newCap = capacity() * 2;
+    m_data.ensureSize(newCap);
+    m_bitMap.ensureSize(newCap / 8 + 1);
+  }
+#endif
+
+  // Static path: fixed std::array (byte-identical footprint to the previous raw
+  // `uint8_t[SIZE/8+1]` / `TYPE[SIZE]`). Dynamic path: heap-backed, reserved to
+  // SIZE, grown by grow(). The two arrays always grow in lockstep.
+  StorageArray<uint8_t, SIZE / 8 + 1> m_bitMap;
   uint32_t m_numElements = 0;
-  TYPE m_data[SIZE];
+  StorageArray<TYPE, SIZE> m_data;
 };
 
 } // namespace rtps

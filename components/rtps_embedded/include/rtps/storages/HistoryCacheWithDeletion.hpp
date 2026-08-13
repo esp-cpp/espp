@@ -29,6 +29,10 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include <array>
 #include <stdint.h>
 
+#include "rtps/config.hpp"
+#include "rtps/storages/CacheChange.hpp"
+#include "rtps/storages/StorageArray.hpp"
+
 namespace rtps {
 
 /**
@@ -62,6 +66,14 @@ public:
     if (disposeAfterWrite) {
       m_dispose_after_write_cnt++;
     }
+
+#ifdef RTPS_STORAGE_DYNAMIC
+    // Host: grow (retain) instead of dropping the oldest change when full. Done
+    // before capturing `place` so growth cannot invalidate the pointer.
+    if (isFull()) {
+      grow();
+    }
+#endif
 
     CacheChange *place = &m_buffer[m_head];
     incrementHead();
@@ -204,12 +216,38 @@ public:
   }
 
 private:
-  std::array<CacheChange, SIZE + 1> m_buffer{};
+  // Static path: fixed std::array<CacheChange, SIZE + 1> (byte-identical to
+  // before). Dynamic path: heap-backed, reserved to SIZE + 1, grown by grow().
+  StorageArray<CacheChange, SIZE + 1> m_buffer;
   uint16_t m_head = 0;
   uint16_t m_tail = 0;
   static_assert(sizeof(SIZE) <= sizeof(m_head), "Iterator is large enough for given size");
 
   SequenceNumber_t m_lastUsedSequenceNumber{0, 0};
+
+#ifdef RTPS_STORAGE_DYNAMIC
+  // Host only: double the ring capacity, then re-linearize the live changes so
+  // the head/tail indices remain valid after the (append-only) resize. The live
+  // range [m_tail, m_head) is move-assigned into the freshly grown region
+  // [oldCap, ...) in logical order. Uses move-assignment only (CacheChange is
+  // move-assignable but not move-constructible).
+  void grow() {
+    const std::size_t oldCap = m_buffer.size();
+    m_buffer.ensureSize(oldCap * 2);
+    std::size_t dst = oldCap;
+    uint16_t src = m_tail;
+    while (src != m_head) {
+      m_buffer[dst] = std::move(m_buffer[src]);
+      ++dst;
+      ++src;
+      if (src >= oldCap) {
+        src = 0; // wrap at the OLD capacity
+      }
+    }
+    m_tail = static_cast<uint16_t>(oldCap);
+    m_head = static_cast<uint16_t>(dst);
+  }
+#endif
 
   bool getChangeBySN(const SequenceNumber_t &sn, CacheChange **out_change,
                      uint16_t &out_buffer_position) {

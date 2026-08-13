@@ -7,27 +7,33 @@ namespace rtps {
 template <typename T, uint16_t SIZE>
 bool ThreadSafeCircularBuffer<T, SIZE>::moveElementIntoBuffer(T &&elem) {
   std::lock_guard<std::mutex> lock(m_mutex);
-  if (!isFull()) {
-    m_buffer[m_head] = std::move(elem);
-    incrementHead();
-    return true;
-  } else {
+  if (isFull()) {
+#ifdef RTPS_STORAGE_DYNAMIC
+    grow(); // host: grow instead of dropping the incoming element
+#else
     m_insertion_failures++;
     return false;
+#endif
   }
+  m_buffer[m_head] = std::move(elem);
+  incrementHead();
+  return true;
 }
 
 template <typename T, uint16_t SIZE>
 bool ThreadSafeCircularBuffer<T, SIZE>::copyElementIntoBuffer(const T &elem) {
   std::lock_guard<std::mutex> lock(m_mutex);
-  if (!isFull()) {
-    m_buffer[m_head] = elem;
-    incrementHead();
-    return true;
-  } else {
+  if (isFull()) {
+#ifdef RTPS_STORAGE_DYNAMIC
+    grow(); // host: grow instead of dropping the incoming element
+#else
     m_insertion_failures++;
     return false;
+#endif
   }
+  m_buffer[m_head] = elem;
+  incrementHead();
+  return true;
 }
 
 template <typename T, uint16_t SIZE>
@@ -97,6 +103,31 @@ inline void ThreadSafeCircularBuffer<T, SIZE>::incrementHead() {
     incrementTail();
   }
 }
+
+#ifdef RTPS_STORAGE_DYNAMIC
+template <typename T, uint16_t SIZE> void ThreadSafeCircularBuffer<T, SIZE>::grow() {
+  // Caller holds m_mutex. Double the ring capacity, then re-linearize the live
+  // elements so the head/tail indices remain valid after the append-only
+  // resize. The live range [m_tail, m_head) is move-assigned into the freshly
+  // grown region [oldCap, ...) in logical order (move-assignment only, so the
+  // element type need not be move-constructible). Element count is preserved,
+  // so m_num_elements is left unchanged.
+  const std::size_t oldCap = m_buffer.size();
+  m_buffer.ensureSize(oldCap * 2);
+  std::size_t dst = oldCap;
+  uint16_t src = m_tail;
+  while (src != m_head) {
+    m_buffer[dst] = std::move(m_buffer[src]);
+    ++dst;
+    ++src;
+    if (src >= oldCap) {
+      src = 0; // wrap at the OLD capacity
+    }
+  }
+  m_tail = static_cast<uint16_t>(oldCap);
+  m_head = static_cast<uint16_t>(dst);
+}
+#endif
 } // namespace rtps
 
 #endif // RTPS_THREADSAFECIRCULARBUFFER_TPP

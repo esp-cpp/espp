@@ -32,6 +32,13 @@ namespace rtps {
 
 #define IS_LITTLE_ENDIAN 1
 
+// Storage policy: the "host" profile backs the engine's VALUE pools with
+// heap-backed, growable storage (std::vector reserved to the profile cap) so a
+// host build can grow past the compile-time cap instead of hard-failing when a
+// pool fills. NOT defined by config_esp32.hpp, which stays fully static.
+// See storages/StorageArray.hpp. Capacity only - never touches wire bytes.
+#define RTPS_STORAGE_DYNAMIC
+
 namespace Config {
 const VendorId_t VENDOR_ID = {13, 37};
 const std::array<uint8_t, 4> IP_ADDRESS = {192, 168, 4, 1}; // Needs to be set in lwipcfg.h too.

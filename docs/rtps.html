@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RTPS APIs - ESP32 -  &mdash; ESPP latest documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=becddca3"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="_static/copybutton.js?v=ff8fa330"></script>
+        <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+        <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";
+
+
+
+
+
+const initStyles = () => {
+    const defaultStyle = document.createElement('style');
+    defaultStyle.textContent = `pre.mermaid {
+    /* Same as .mermaid-container > pre */
+    display: block;
+    width: 100%;
+}
+
+pre.mermaid > svg {
+    /* Same as .mermaid-container > pre > svg */
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}`;
+    document.head.appendChild(defaultStyle);
+
+    const fullscreenStyle = document.createElement('style');
+    fullscreenStyle.textContent = `.mermaid-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.mermaid-container > pre {
+    display: block;
+    width: 100%;
+}
+
+.mermaid-container > pre > svg {
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}
+
+.mermaid-fullscreen-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    color: #333;
+}
+
+.mermaid-fullscreen-btn:hover {
+    opacity: 100% !important;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-btn.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-btn.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal {
+    display: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 95vw;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.98);
+    z-index: 9999;
+    padding: 20px;
+    overflow: auto;
+}
+
+.mermaid-fullscreen-modal.dark-theme {
+    background: rgba(0, 0, 0, 0.98);
+}
+
+.mermaid-fullscreen-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen {
+    position: relative;
+    width: 95vw;
+    height: 90vh;
+    max-width: 95vw;
+    max-height: 90vh;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen.dark-theme {
+    background: #1a1a1a;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.mermaid-container-fullscreen pre.mermaid {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen .mermaid svg {
+    height: 100% !important;
+    width: 100% !important;
+    cursor: grab;
+}
+
+.mermaid-fullscreen-close {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+    font-size: 24px;
+    line-height: 1;
+    color: #333;
+}
+
+.mermaid-fullscreen-close:hover {
+    background: white;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-close.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-close.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal .mermaid-fullscreen-btn {
+    display: none !important;
+}`;
+    document.head.appendChild(fullscreenStyle);
+}
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    // We use a set of heuristics:
+    // 1. Check for common dark mode classes or attributes
+    // 2. Check computed background color brightness
+    if (document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.body.classList.contains('dark') ||
+        document.body.getAttribute('data-theme') === 'dark') {
+        // console.log("Dark theme detected via class/attribute");
+        return true;
+    }
+    if (document.documentElement.classList.contains('light') ||
+        document.documentElement.getAttribute('data-theme') === 'light' ||
+        document.body.classList.contains('light') ||
+        document.body.getAttribute('data-theme') === 'light') {
+        // console.log("Light theme detected via class/attribute");
+        return false;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // console.log("Dark theme detected via prefers-color-scheme");
+        return true;
+    }
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // console.log("Background color brightness:", brightness);
+        return brightness < 128;
+    }
+    // console.log("No dark or light theme detected, defaulting to light theme");
+    return false;
+};
+
+let darkTheme = isDarkTheme();
+let modal = null;
+let modalContent = null;
+let previousScrollOffset = [window.scrollX, window.scrollY];
+
+const runMermaid = async (rerun) => {
+    console.log("Running mermaid diagrams, rerun =", rerun);
+    // clear all existing mermaid charts
+    let all_mermaids = document.querySelectorAll(".mermaid");
+
+    if (rerun) {
+        all_mermaids.forEach((el) => {
+            if(!el.hasAttribute("data-original-code")) {
+                // store original code
+                // console.log(`Storing original code for first run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+            if(el.getAttribute("data-processed") === "true") {
+                // remove and restore original
+                el.removeAttribute("data-processed");
+                // console.log(`Restoring original code for re-run: `, el.getAttribute('data-original-code'));
+                el.innerHTML = el.getAttribute('data-original-code');
+            } else {
+                // store original code
+                // console.log(`Storing original code for re-run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+        });
+        await mermaid.run();
+    }
+
+    all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+
+    if ("True" === "True") {
+        const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll(".mermaid svg");
+            if(all_mermaids.length !== mermaids_processed.length) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else if(svgs.size() !== mermaids_to_add_zoom) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else {
+                svgs.each(function() {
+                    var svg = d3.select(this);
+                    svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                    var inner = svg.select("g");
+                    var zoom = d3.zoom().on("zoom", function(event) {
+                        inner.attr("transform", event.transform);
+                    });
+                    svg.call(zoom);
+                });
+            }
+        }
+    } else if(all_mermaids.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(() => runMermaid(false), 200);
+        return;
+    }
+
+    // Stop here if not adding fullscreen capability
+    if ("True" !== "True") return;
+
+    if (modal !== null ) {
+        // Destroy existing modal
+        modal.remove();
+        modal = null;
+        modalContent = null;
+    }
+
+    modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    const closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            // Already processed, adjust button class if needed
+            const existingBtn = mermaidDiv.parentNode.querySelector('.mermaid-fullscreen-btn');
+            if (existingBtn) {
+                existingBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+            }
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = '⛶';
+        fullscreenBtn.style.opacity = '50%';
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scroll, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.sdisplay = 'block';
+
+                if ("True" === "True") {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        container.appendChild(fullscreenBtn);
+    });
+};
+
+const load = async () => {
+    initStyles();
+
+    await runMermaid(true);
+
+    const reRunIfThemeChanges = async () => {
+        const newDarkTheme = isDarkTheme();
+        if (newDarkTheme !== darkTheme) {
+            darkTheme = newDarkTheme;
+            console.log("Theme change detected, re-running mermaid with", darkTheme ? "neutral" : "neutral", "theme");
+            await mermaid.initialize(
+                {...JSON.parse(
+                    `{"startOnLoad": false}`
+                ),
+                ...{ darkMode: darkTheme, theme: darkTheme ? 'neutral' : 'neutral' },
+                }
+            );
+            await runMermaid(true);
+        }
+    };
+
+    // Update theme classes when theme changes
+    const themeObserver = new MutationObserver(reRunIfThemeChanges);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+};
+
+
+
+
+
+console.log("Initializing mermaid with", darkTheme ? "neutral" : "neutral", "theme");
+mermaid.initialize(
+    {...JSON.parse(
+        `{"startOnLoad": false}`
+    ),
+    ...{ darkMode: darkTheme, theme: darkTheme ? 'neutral' : 'neutral' },
+    }
+);
+
+window.addEventListener("load", load);
+window.runMermaid = runMermaid;</script>
+    <script src="_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'rtps';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'latest';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="RTPS Example" href="rtps_example.html" />
+    <link rel="prev" title="RX8130CE Example" href="rtc/rx8130ce_example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            ESPP
+              <img src="_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="adrc.html">ADRC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_component.html">Base Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l1"><a class="reference internal" href="battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="byte90.html">ALXV Labs Byte90</a></li>
+<li class="toctree-l1"><a class="reference internal" href="controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cdr.html">CDR (Common Data Representation)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cobs.html">COBS (Consistent Overhead Byte Stuffing)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="esp32_timer_cam.html">ESP32 TimerCam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="esp_box.html">ESP BOX</a></li>
+<li class="toctree-l1"><a class="reference internal" href="event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hid/index.html">HID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="interrupt.html">Interrupt APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="iperf_menu.html">Iperf Menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="m5stack_tab5.html">M5Stack Tab5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="matouch_rotary_display.html">MaTouch Rotary Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="motorgo_mini.html">MotorGo Mini</a></li>
+<li class="toctree-l1"><a class="reference internal" href="motorgo_plink.html">MotorGo Plink</a></li>
+<li class="toctree-l1"><a class="reference internal" href="neopixel.html">Neopixel APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nvs.html">NVS APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qtpy.html">QtPy ESP32 Pico and QtPy ESP32-S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="remote_debug.html">Remote Debug APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">RTPS APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#expected-compatibility">Expected Compatibility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#how-rtps-works">How RTPS Works</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#discovery-flow">Discovery Flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#ports-and-channels">Ports and Channels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#current-espp-scope">Current ESPP Scope</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#feature-status">Feature Status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#relevant-specifications">Relevant Specifications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#example">Example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="rtps_example.html">RTPS Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="runqueue.html">RunQueue APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="seeed_studio_round_display.html">Seeed Studio Round Display</a></li>
+<li class="toctree-l1"><a class="reference internal" href="serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smartpanlee_sc01_plus.html">Smart Panlee SC01 Plus</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spi.html">SPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="t_deck.html">LilyGo T-Deck</a></li>
+<li class="toctree-l1"><a class="reference internal" href="t_dongle_s3.html">LilyGo T-Dongle S3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wrover_kit.html">ESP32-WROVER-KIT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_geek.html">Waveshare ESP32-S3 GEEK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_lcd_1_47.html">Waveshare ESP32-S3 LCD 1.47”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ws_s3_touch.html">Waveshare ESP32-S3 TouchLCD</a></li>
+<li class="toctree-l1"><a class="reference internal" href="xiao_esp32s3_sense.html">XIAO ESP32S3 Sense</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">RTPS APIs</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/67e1937f/docs/en/rtps.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="rtps-apis">
+<h1>RTPS APIs<a class="headerlink" href="#rtps-apis" title="Permalink to this heading"></a></h1>
+<p>The <code class="docutils literal notranslate"><span class="pre">rtps</span></code> component is a cross-platform foundation for building RTPS
+(<code class="docutils literal notranslate"><span class="pre">Real-Time</span> <span class="pre">Publish-Subscribe</span></code>) functionality on top of the ESPP <code class="docutils literal notranslate"><span class="pre">socket</span></code>
+component.</p>
+<p>This version now implements the first RTPS discovery layer on top of the ESPP
+<code class="docutils literal notranslate"><span class="pre">socket</span></code> component:</p>
+<ul class="simple">
+<li><p>RTPS header and DATA submessage framing helpers</p></li>
+<li><p>standard RTPS UDPv4 port calculations</p></li>
+<li><p>GUID, entity ID, locator, and sequence number utility types</p></li>
+<li><p>SPDP participant announcements using PL_CDR parameter lists</p></li>
+<li><p>SEDP publication and subscription announcements for local endpoints</p></li>
+<li><p>parsing and tracking of discovered remote participants, writers, and readers</p></li>
+<li><p>CDR little-endian helpers for <code class="docutils literal notranslate"><span class="pre">std_msgs/msg/UInt32</span></code> payloads</p></li>
+<li><p>a participant transport layer that uses <code class="docutils literal notranslate"><span class="pre">UdpSocket</span></code> for metatraffic and
+user-traffic channels</p></li>
+</ul>
+<p>The long-term target is interoperability with ROS 2 nodes over DDS/RTPS,
+including best-effort and reliable data flows. Discovery messages are now
+standards-shaped, but full wire-compatible ROS 2 interop still needs the
+remaining endpoint metadata, matching rules, and reliable RTPS state machines.</p>
+<section id="expected-compatibility">
+<h2>Expected Compatibility<a class="headerlink" href="#expected-compatibility" title="Permalink to this heading"></a></h2>
+<p>The table below is deliberately conservative: <strong>expected</strong> means this is the
+intended compatibility envelope of the current code, not a claim that every
+peer implementation has already been validated in practice.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Peer implementation</p></th>
+<th class="head"><p>Expected compatibility</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>ESPP <code class="docutils literal notranslate"><span class="pre">rtps</span></code> component / <code class="docutils literal notranslate"><span class="pre">python/rtps_host.py</span></code></p></td>
+<td><p><strong>Yes</strong> for the current scaffold</p></td>
+<td><p>Intended smoke-test path for SPDP, SEDP, and the temporary <code class="docutils literal notranslate"><span class="pre">UInt32</span></code>
+<code class="docutils literal notranslate"><span class="pre">ESPPDATA</span></code> user-data payload.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Generic DDSI-RTPS 2.3 implementations</p></td>
+<td><p><strong>Partial</strong></p></td>
+<td><p>SPDP and SEDP messages are standards-shaped, but only the discovery
+slice is implemented today.</p></td>
+</tr>
+<tr class="row-even"><td><p>ROS 2 nodes backed by Fast DDS</p></td>
+<td><p><strong>Partial / discovery-targeted</strong></p></td>
+<td><p>The current discovery messages include ROS 2-relevant participant user
+data such as <code class="docutils literal notranslate"><span class="pre">enclave=...;</span></code>, but standards-based ROS 2 topic data
+exchange is not finished yet.</p></td>
+</tr>
+<tr class="row-odd"><td><p>ROS 2 nodes backed by Cyclone DDS or other DDS vendors</p></td>
+<td><p><strong>Partial / unverified</strong></p></td>
+<td><p>Expected to be limited to the minimal discovery subset if the peer
+accepts the currently emitted parameter set; not validated yet.</p></td>
+</tr>
+<tr class="row-even"><td><p>Reliable DDS/RTPS endpoints</p></td>
+<td><p><strong>No</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">HEARTBEAT</span></code>, <code class="docutils literal notranslate"><span class="pre">ACKNACK</span></code>, retransmission windows, and other reliable
+state-machine pieces are not implemented.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="how-rtps-works">
+<h2>How RTPS Works<a class="headerlink" href="#how-rtps-works" title="Permalink to this heading"></a></h2>
+<p>RTPS separates <em>metatraffic</em> from <em>user traffic</em>.</p>
+<ul class="simple">
+<li><p><strong>Metatraffic</strong> carries discovery and endpoint metadata. In this component,
+that means SPDP participant announcements plus SEDP publication and
+subscription announcements.</p></li>
+<li><p><strong>User traffic</strong> carries application samples. The current ESPP scaffold has a
+temporary best-effort <code class="docutils literal notranslate"><span class="pre">UInt32</span></code> user-data path while the standards-based
+ROS 2 data plane is still being completed.</p></li>
+</ul>
+<p>The current <code class="docutils literal notranslate"><span class="pre">RtpsParticipant</span></code> implementation opens three UDP sockets when
+<code class="docutils literal notranslate"><span class="pre">start()</span></code> is called:</p>
+<ol class="arabic simple">
+<li><p>metatraffic multicast receive on the well-known SPDP multicast port</p></li>
+<li><p>metatraffic unicast receive on the participant-specific discovery port</p></li>
+<li><p>user unicast receive on the participant-specific user-data port</p></li>
+</ol>
+<p>It then starts a periodic announce task which multicasts SPDP and unicasts SEDP
+endpoint announcements to each discovered peer.</p>
+<pre  class="mermaid">
+        flowchart LR
+  App[&quot;Application code&quot;] --&gt; Participant[&quot;RtpsParticipant&quot;]
+  Participant --&gt; SPDP[&quot;SPDP participant DATA&quot;]
+  Participant --&gt; SEDP[&quot;SEDP publication/subscription DATA&quot;]
+  Participant --&gt; User[&quot;User DATA submessages&quot;]
+  SPDP --&gt; MetaMC[&quot;Metatraffic multicast&quot;]
+  SEDP --&gt; MetaUC[&quot;Metatraffic unicast&quot;]
+  User --&gt; UserUC[&quot;User unicast&quot;]
+  MetaMC --&gt; Peer[&quot;Remote participant&quot;]
+  MetaUC --&gt; Peer
+  UserUC --&gt; Peer
+    </pre></section>
+<section id="discovery-flow">
+<h2>Discovery Flow<a class="headerlink" href="#discovery-flow" title="Permalink to this heading"></a></h2>
+<p>At a high level, discovery proceeds like this:</p>
+<pre  class="mermaid">
+        sequenceDiagram
+  participant A as Local participant
+  participant MC as 239.255.0.1
+  participant B as Remote participant
+  A-&gt;&gt;MC: SPDP DATA(participant GUID, locators, enclave, builtin endpoints)
+  MC--&gt;&gt;B: multicast delivery
+  B-&gt;&gt;MC: SPDP DATA(its participant metadata)
+  MC--&gt;&gt;A: multicast delivery
+  A-&gt;&gt;B: SEDP publication DATA(topic/type/reliability)
+  A-&gt;&gt;B: SEDP subscription DATA(topic/type/reliability)
+  B-&gt;&gt;A: SEDP publication/subscription DATA
+  Note over A,B: Matching user-data traffic can then use the user-unicast ports
+    </pre><p>When <code class="docutils literal notranslate"><span class="pre">handle_metatraffic_message()</span></code> receives SPDP, it parses:</p>
+<ul class="simple">
+<li><p>the remote participant GUID</p></li>
+<li><p>participant name</p></li>
+<li><p>the <code class="docutils literal notranslate"><span class="pre">enclave=...;</span></code> entry carried in <code class="docutils literal notranslate"><span class="pre">PID_USER_DATA</span></code></p></li>
+<li><p>built-in endpoint bitmasks</p></li>
+<li><p>metatraffic and user-data locators</p></li>
+</ul>
+<p>For SEDP it parses the endpoint GUID, topic name, type name, reliability,
+inline-QoS expectation, and unicast locator, then updates the discovered reader
+or writer cache.</p>
+</section>
+<section id="ports-and-channels">
+<h2>Ports and Channels<a class="headerlink" href="#ports-and-channels" title="Permalink to this heading"></a></h2>
+<p>The component follows the standard UDPv4 RTPS port mapping formula:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Channel</p></th>
+<th class="head"><p>Formula</p></th>
+<th class="head"><p>Domain 0, participant 0</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Metatraffic multicast</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">7400</span> <span class="pre">+</span> <span class="pre">250</span> <span class="pre">*</span> <span class="pre">domain</span> <span class="pre">+</span> <span class="pre">0</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">7400</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Metatraffic unicast</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">7400</span> <span class="pre">+</span> <span class="pre">250</span> <span class="pre">*</span> <span class="pre">domain</span> <span class="pre">+</span> <span class="pre">10</span> <span class="pre">+</span> <span class="pre">2</span> <span class="pre">*</span> <span class="pre">participant</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">7410</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>User multicast</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">7400</span> <span class="pre">+</span> <span class="pre">250</span> <span class="pre">*</span> <span class="pre">domain</span> <span class="pre">+</span> <span class="pre">1</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">7401</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>User unicast</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">7400</span> <span class="pre">+</span> <span class="pre">250</span> <span class="pre">*</span> <span class="pre">domain</span> <span class="pre">+</span> <span class="pre">11</span> <span class="pre">+</span> <span class="pre">2</span> <span class="pre">*</span> <span class="pre">participant</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">7411</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="current-espp-scope">
+<h2>Current ESPP Scope<a class="headerlink" href="#current-espp-scope" title="Permalink to this heading"></a></h2>
+<p>The current implementation is intentionally focused on the first
+interoperability milestone:</p>
+<ul class="simple">
+<li><p>RTPS message framing and parsing</p></li>
+<li><p>SPDP participant discovery</p></li>
+<li><p>SEDP publication and subscription discovery</p></li>
+<li><p>participant / endpoint caches and discovery callbacks</p></li>
+<li><p>simple CDR little-endian serialization helpers for <code class="docutils literal notranslate"><span class="pre">std_msgs/msg/UInt32</span></code></p></li>
+</ul>
+<p>The following pieces are <strong>not finished yet</strong>:</p>
+<ul class="simple">
+<li><p>reliable RTPS state machines such as <code class="docutils literal notranslate"><span class="pre">HEARTBEAT</span></code> and <code class="docutils literal notranslate"><span class="pre">ACKNACK</span></code></p></li>
+<li><p>standards-based ROS 2 user-data writers/readers</p></li>
+<li><p>full QoS matching beyond the currently emitted discovery parameters</p></li>
+</ul>
+</section>
+<section id="feature-status">
+<h2>Feature Status<a class="headerlink" href="#feature-status" title="Permalink to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Feature</p></th>
+<th class="head"><p>Status</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>RTPS header / DATA submessage serialize + parse</p></td>
+<td><p><strong>Implemented</strong></p></td>
+<td><p>Core message framing is present.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Standard UDPv4 RTPS port mapping</p></td>
+<td><p><strong>Implemented</strong></p></td>
+<td><p>Uses the DDSI-RTPS well-known port formula.</p></td>
+</tr>
+<tr class="row-even"><td><p>SPDP participant announce send/receive</p></td>
+<td><p><strong>Implemented</strong></p></td>
+<td><p>Multicast announce plus participant cache updates.</p></td>
+</tr>
+<tr class="row-odd"><td><p>SEDP publication / subscription announce send/receive</p></td>
+<td><p><strong>Implemented</strong></p></td>
+<td><p>Local endpoints are announced and remote endpoints are cached.</p></td>
+</tr>
+<tr class="row-even"><td><p>Participant / endpoint discovery callbacks</p></td>
+<td><p><strong>Implemented</strong></p></td>
+<td><p>Exposed through <code class="docutils literal notranslate"><span class="pre">on_participant_discovered</span></code> and
+<code class="docutils literal notranslate"><span class="pre">on_endpoint_discovered</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Temporary <code class="docutils literal notranslate"><span class="pre">UInt32</span></code> user-data path</p></td>
+<td><p><strong>Implemented</strong></p></td>
+<td><p>Uses the current ESPP-specific <code class="docutils literal notranslate"><span class="pre">ESPPDATA</span></code> payload, not a
+standards-based DDS sample representation.</p></td>
+</tr>
+<tr class="row-even"><td><p>QoS fields emitted in discovery</p></td>
+<td><p><strong>Partial</strong></p></td>
+<td><p>Reliability, durability, liveliness, and history parameters are
+advertised in SEDP.</p></td>
+</tr>
+<tr class="row-odd"><td><p>QoS matching / policy enforcement</p></td>
+<td><p><strong>Not implemented</strong></p></td>
+<td><p>Remote QoS is parsed, but full writer/reader matching logic is still
+missing.</p></td>
+</tr>
+<tr class="row-even"><td><p>Standards-based DDS user-data serialization</p></td>
+<td><p><strong>Not implemented</strong></p></td>
+<td><p>The current data path is a temporary ESPP scaffold for
+<code class="docutils literal notranslate"><span class="pre">std_msgs/msg/UInt32</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Inline QoS handling</p></td>
+<td><p><strong>Not implemented</strong></p></td>
+<td><p>Discovery and user-data handling assume no inline QoS.</p></td>
+</tr>
+<tr class="row-even"><td><p>Reliable RTPS (<code class="docutils literal notranslate"><span class="pre">HEARTBEAT</span></code>, <code class="docutils literal notranslate"><span class="pre">ACKNACK</span></code>, resend)</p></td>
+<td><p><strong>Not implemented</strong></p></td>
+<td><p>Reliable delivery is not interoperable yet.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Full ROS 2 topic interoperability</p></td>
+<td><p><strong>Not implemented</strong></p></td>
+<td><p>Discovery is the current milestone; ROS 2-compatible data
+writers/readers are still pending.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="relevant-specifications">
+<h2>Relevant Specifications<a class="headerlink" href="#relevant-specifications" title="Permalink to this heading"></a></h2>
+<p>These are the primary standards and references for understanding the current
+implementation and the remaining work:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Specification</p></th>
+<th class="head"><p>Why it matters here</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference external" href="https://www.omg.org/spec/DDSI-RTPS/2.3/PDF">OMG DDSI-RTPS 2.3</a></p></td>
+<td><p>Primary wire-level reference for RTPS headers, DATA submessages, SPDP,
+SEDP, locator encoding, GUIDs, and the UDP port mapping used by this
+component.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://www.omg.org/spec/DDS/1.4/PDF">OMG DDS 1.4</a></p></td>
+<td><p>Defines the conceptual participant, reader, writer, topic, and QoS model
+that RTPS discovery is advertising.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="example">
+<h2>Example<a class="headerlink" href="#example" title="Permalink to this heading"></a></h2>
+<p>The <a class="reference internal" href="rtps_example.html"><span class="doc">RTPS Example</span></a> page demonstrates the current discovery scaffold by:</p>
+<ul class="simple">
+<li><p>computing the RTPS ports for a participant</p></li>
+<li><p>building and parsing locally generated SPDP and SEDP messages</p></li>
+<li><p>round-tripping a <code class="docutils literal notranslate"><span class="pre">UInt32</span></code> value through the CDR helper functions</p></li>
+<li><p>registering best-effort and reliable topic endpoints in the participant API</p></li>
+</ul>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="rtps_example.html">RTPS Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="rtps_example.html#how-to-use-example">How to use example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="rtps_example.html#build-and-flash">Build and Flash</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="rtps_example.html#example-output">Example Output</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/67e1937f/components/rtps/include/rtps.hpp">components/rtps/include/rtps.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15RtpsParticipantE">
+<span id="_CPPv3N4espp15RtpsParticipantE"></span><span id="_CPPv2N4espp15RtpsParticipantE"></span><span id="espp::RtpsParticipant"></span><span class="target" id="classespp_1_1RtpsParticipant"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RtpsParticipant</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp15RtpsParticipantE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Cross-platform RTPS protocol foundation built on top of the socket component. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp15RtpsParticipant8get_nameEv">
+<span id="_CPPv3NK4espp15RtpsParticipant8get_nameEv"></span><span id="_CPPv2NK4espp15RtpsParticipant8get_nameEv"></span><span id="espp::RtpsParticipant::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp15RtpsParticipant8get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15RtpsParticipant11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp15RtpsParticipant11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp15RtpsParticipant11set_log_tagERKNSt11string_viewE"></span><span id="espp::RtpsParticipant::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp15RtpsParticipant11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp15RtpsParticipant13get_log_levelEv">
+<span id="_CPPv3NK4espp15RtpsParticipant13get_log_levelEv"></span><span id="_CPPv2NK4espp15RtpsParticipant13get_log_levelEv"></span><span id="espp::RtpsParticipant::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp15RtpsParticipant13get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15RtpsParticipant13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp15RtpsParticipant13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp15RtpsParticipant13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::RtpsParticipant::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp15RtpsParticipant13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15RtpsParticipant17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp15RtpsParticipant17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp15RtpsParticipant17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::RtpsParticipant::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp15RtpsParticipant17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="xiao_esp32s3_sense.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp15RtpsParticipant17get_log_verbosityEv">
+<span id="_CPPv3NK4espp15RtpsParticipant17get_log_verbosityEv"></span><span id="_CPPv2NK4espp15RtpsParticipant17get_log_verbosityEv"></span><span id="espp::RtpsParticipant::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp15RtpsParticipant17get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="xiao_esp32s3_sense.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15RtpsParticipant18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp15RtpsParticipant18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp15RtpsParticipant18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::RtpsParticipant::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp15RtpsParticipant18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15RtpsParticipant6ConfigE">
+<span id="_CPPv3N4espp15RtpsParticipant6ConfigE"></span><span id="_CPPv2N4espp15RtpsParticipant6ConfigE"></span><span id="espp::RtpsParticipant::Config"></span><span class="target" id="structespp_1_1RtpsParticipant_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp15RtpsParticipant6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15RtpsParticipant13EndpointProxyE">
+<span id="_CPPv3N4espp15RtpsParticipant13EndpointProxyE"></span><span id="_CPPv2N4espp15RtpsParticipant13EndpointProxyE"></span><span id="espp::RtpsParticipant::EndpointProxy"></span><span class="target" id="structespp_1_1RtpsParticipant_1_1EndpointProxy"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EndpointProxy</span></span></span><a class="headerlink" href="#_CPPv4N4espp15RtpsParticipant13EndpointProxyE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15RtpsParticipant8EntityIdE">
+<span id="_CPPv3N4espp15RtpsParticipant8EntityIdE"></span><span id="_CPPv2N4espp15RtpsParticipant8EntityIdE"></span><span id="espp::RtpsParticipant::EntityId"></span><span class="target" id="structespp_1_1RtpsParticipant_1_1EntityId"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EntityId</span></span></span><a class="headerlink" href="#_CPPv4N4espp15RtpsParticipant8EntityIdE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15RtpsParticipant4GuidE">
+<span id="_CPPv3N4espp15RtpsParticipant4GuidE"></span><span id="_CPPv2N4espp15RtpsParticipant4GuidE"></span><span id="espp::RtpsParticipant::Guid"></span><span class="target" id="structespp_1_1RtpsParticipant_1_1Guid"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Guid</span></span></span><a class="headerlink" href="#_CPPv4N4espp15RtpsParticipant4GuidE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15RtpsParticipant10GuidPrefixE">
+<span id="_CPPv3N4espp15RtpsParticipant10GuidPrefixE"></span><span id="_CPPv2N4espp15RtpsParticipant10GuidPrefixE"></span><span id="espp::RtpsParticipant::GuidPrefix"></span><span class="target" id="structespp_1_1RtpsParticipant_1_1GuidPrefix"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GuidPrefix</span></span></span><a class="headerlink" href="#_CPPv4N4espp15RtpsParticipant10GuidPrefixE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15RtpsParticipant6HeaderE">
+<span id="_CPPv3N4espp15RtpsParticipant6HeaderE"></span><span id="_CPPv2N4espp15RtpsParticipant6HeaderE"></span><span id="espp::RtpsParticipant::Header"></span><span class="target" id="structespp_1_1RtpsParticipant_1_1Header"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Header</span></span></span><a class="headerlink" href="#_CPPv4N4espp15RtpsParticipant6HeaderE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15RtpsParticipant7LocatorE">
+<span id="_CPPv3N4espp15RtpsParticipant7LocatorE"></span><span id="_CPPv2N4espp15RtpsParticipant7LocatorE"></span><span id="espp::RtpsParticipant::Locator"></span><span class="target" id="structespp_1_1RtpsParticipant_1_1Locator"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Locator</span></span></span><a class="headerlink" href="#_CPPv4N4espp15RtpsParticipant7LocatorE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15RtpsParticipant7MessageE">
+<span id="_CPPv3N4espp15RtpsParticipant7MessageE"></span><span id="_CPPv2N4espp15RtpsParticipant7MessageE"></span><span id="espp::RtpsParticipant::Message"></span><span class="target" id="structespp_1_1RtpsParticipant_1_1Message"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Message</span></span></span><a class="headerlink" href="#_CPPv4N4espp15RtpsParticipant7MessageE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15RtpsParticipant16ParticipantProxyE">
+<span id="_CPPv3N4espp15RtpsParticipant16ParticipantProxyE"></span><span id="_CPPv2N4espp15RtpsParticipant16ParticipantProxyE"></span><span id="espp::RtpsParticipant::ParticipantProxy"></span><span class="target" id="structespp_1_1RtpsParticipant_1_1ParticipantProxy"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ParticipantProxy</span></span></span><a class="headerlink" href="#_CPPv4N4espp15RtpsParticipant16ParticipantProxyE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15RtpsParticipant11PortMappingE">
+<span id="_CPPv3N4espp15RtpsParticipant11PortMappingE"></span><span id="_CPPv2N4espp15RtpsParticipant11PortMappingE"></span><span id="espp::RtpsParticipant::PortMapping"></span><span class="target" id="structespp_1_1RtpsParticipant_1_1PortMapping"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PortMapping</span></span></span><a class="headerlink" href="#_CPPv4N4espp15RtpsParticipant11PortMappingE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15RtpsParticipant15ProtocolVersionE">
+<span id="_CPPv3N4espp15RtpsParticipant15ProtocolVersionE"></span><span id="_CPPv2N4espp15RtpsParticipant15ProtocolVersionE"></span><span id="espp::RtpsParticipant::ProtocolVersion"></span><span class="target" id="structespp_1_1RtpsParticipant_1_1ProtocolVersion"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ProtocolVersion</span></span></span><a class="headerlink" href="#_CPPv4N4espp15RtpsParticipant15ProtocolVersionE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15RtpsParticipant12ReaderConfigE">
+<span id="_CPPv3N4espp15RtpsParticipant12ReaderConfigE"></span><span id="_CPPv2N4espp15RtpsParticipant12ReaderConfigE"></span><span id="espp::RtpsParticipant::ReaderConfig"></span><span class="target" id="structespp_1_1RtpsParticipant_1_1ReaderConfig"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ReaderConfig</span></span></span><a class="headerlink" href="#_CPPv4N4espp15RtpsParticipant12ReaderConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15RtpsParticipant14SequenceNumberE">
+<span id="_CPPv3N4espp15RtpsParticipant14SequenceNumberE"></span><span id="_CPPv2N4espp15RtpsParticipant14SequenceNumberE"></span><span id="espp::RtpsParticipant::SequenceNumber"></span><span class="target" id="structespp_1_1RtpsParticipant_1_1SequenceNumber"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SequenceNumber</span></span></span><a class="headerlink" href="#_CPPv4N4espp15RtpsParticipant14SequenceNumberE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15RtpsParticipant10SubmessageE">
+<span id="_CPPv3N4espp15RtpsParticipant10SubmessageE"></span><span id="_CPPv2N4espp15RtpsParticipant10SubmessageE"></span><span id="espp::RtpsParticipant::Submessage"></span><span class="target" id="structespp_1_1RtpsParticipant_1_1Submessage"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Submessage</span></span></span><a class="headerlink" href="#_CPPv4N4espp15RtpsParticipant10SubmessageE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15RtpsParticipant8VendorIdE">
+<span id="_CPPv3N4espp15RtpsParticipant8VendorIdE"></span><span id="_CPPv2N4espp15RtpsParticipant8VendorIdE"></span><span id="espp::RtpsParticipant::VendorId"></span><span class="target" id="structespp_1_1RtpsParticipant_1_1VendorId"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">VendorId</span></span></span><a class="headerlink" href="#_CPPv4N4espp15RtpsParticipant8VendorIdE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp15RtpsParticipant12WriterConfigE">
+<span id="_CPPv3N4espp15RtpsParticipant12WriterConfigE"></span><span id="_CPPv2N4espp15RtpsParticipant12WriterConfigE"></span><span id="espp::RtpsParticipant::WriterConfig"></span><span class="target" id="structespp_1_1RtpsParticipant_1_1WriterConfig"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">WriterConfig</span></span></span><a class="headerlink" href="#_CPPv4N4espp15RtpsParticipant12WriterConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="rtc/rx8130ce_example.html" class="btn btn-neutral float-left" title="RX8130CE Example" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="rtps_example.html" class="btn btn-neutral float-right" title="RTPS Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
