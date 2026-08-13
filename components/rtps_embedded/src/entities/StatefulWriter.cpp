@@ -351,8 +351,8 @@ bool StatefulWriter::sendSampleFragmented(const Ip4AddressBytes &destAddr, Ip4Po
   INIT_GUARD()
   const uint8_t *sampleData = next->data.bytes.data();
   const uint32_t sampleSize = next->data.spaceUsed();
-  const uint16_t fragmentSize = m_fragmentSize > MAX_UNFRAGMENTED_PAYLOAD
-                                    ? static_cast<uint16_t>(MAX_UNFRAGMENTED_PAYLOAD)
+  const uint16_t fragmentSize = m_fragmentSize > MAX_FRAGMENT_SIZE
+                                    ? static_cast<uint16_t>(MAX_FRAGMENT_SIZE)
                                     : m_fragmentSize;
   if (fragmentSize == 0) {
     return false;

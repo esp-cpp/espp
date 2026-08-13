@@ -84,8 +84,9 @@ public:
 
   /// Set the nominal per-fragment payload size used when a published sample is
   /// too large for a single DATA submessage and must be split into DATA_FRAG
-  /// submessages. Clamped to <= MAX_UNFRAGMENTED_PAYLOAD so each fragment still
-  /// fits one UDP datagram. No effect when fragmentation is compiled out.
+  /// submessages. Clamped to <= MAX_FRAGMENT_SIZE so each single-fragment
+  /// DATA_FRAG still fits one UDP datagram. No effect when fragmentation is
+  /// compiled out.
   void setFragmentSize(uint16_t fragmentSize) { m_fragmentSize = fragmentSize; }
 
 protected:

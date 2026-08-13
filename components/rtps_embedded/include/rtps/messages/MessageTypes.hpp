@@ -248,6 +248,16 @@ static constexpr DataSize_t MAX_UNFRAGMENTED_PAYLOAD =
     65507 - Header::getRawSize() - (SubmessageHeader::getRawSize() + sizeof(Time_t)) -
     SubmessageData::getRawSize();
 
+// Largest per-fragment payload that keeps a single-fragment DATA_FRAG submessage
+// within one UDP datagram (max UDP payload 65507 - RTPS header 20 - INFO_TS 12 -
+// DATA_FRAG submessage header 36). DATA_FRAG's fixed header is 12 bytes larger
+// than DATA's, so this bound is 12 bytes below MAX_UNFRAGMENTED_PAYLOAD (65439 vs
+// 65451). Configured fragment sizes are clamped to this so a fragment can never
+// build an oversized datagram whose send would silently fail.
+static constexpr DataSize_t MAX_FRAGMENT_SIZE = 65507 - Header::getRawSize() -
+                                                (SubmessageHeader::getRawSize() + sizeof(Time_t)) -
+                                                SubmessageDataFrag::getRawSize();
+
 struct SubmessageInfoDST {
   SubmessageHeader header;
   GuidPrefix_t guidPrefix;
