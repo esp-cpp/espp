@@ -56,3 +56,9 @@ managed_components/
 # docker interop harness build tree (bind-mounted, built in-container)
 pc/build-linux/
 python/env/
+
+# Locally generated documentation output (Doxygen/Sphinx build of doc/ -> docs/).
+docs/
+
+# Local example-build helper script (not part of the repo).
+build_examples.sh
