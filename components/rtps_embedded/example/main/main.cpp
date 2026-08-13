@@ -52,7 +52,10 @@ extern "C" void app_main(void) {
   constexpr const char *sub_topic = "pc_to_mcu";
   constexpr const char *type_name = "std_msgs::msg::String";
 
-  static espp::RtpsParticipant participant({
+  // Automatic locals: they RAII-clean up in reverse order on any early return
+  // (subscriber/publisher stop referencing the participant before it is
+  // destroyed), and the trailing while(true) keeps them alive in normal use.
+  espp::RtpsParticipant participant({
       .interface_address = interface_address,
       .on_publisher_matched = [&]() { logger.info("publisher matched a remote reader"); },
       .on_subscriber_matched = [&]() { logger.info("subscriber matched a remote writer"); },
@@ -66,13 +69,13 @@ extern "C" void app_main(void) {
   // Typed reliable publisher: publish StringMsg structs directly (HEARTBEAT/
   // ACKNACK-acknowledged, retransmitted to matched readers). No manual CDR.
   using Reliability = espp::RtpsParticipant::Reliability;
-  static espp::Publisher<StringMsg> publisher(participant, {
-                                                               .topic = pub_topic,
-                                                               .type_name = type_name,
-                                                               .reliability = Reliability::RELIABLE,
-                                                           });
+  espp::Publisher<StringMsg> publisher(participant, {
+                                                        .topic = pub_topic,
+                                                        .type_name = type_name,
+                                                        .reliability = Reliability::RELIABLE,
+                                                    });
   // Typed subscriber: receive StringMsg structs directly.
-  static espp::Subscriber<StringMsg> subscriber(
+  espp::Subscriber<StringMsg> subscriber(
       participant, {
                        .topic = sub_topic,
                        .type_name = type_name,
@@ -84,7 +87,7 @@ extern "C" void app_main(void) {
   }
 
   // Publish a counter periodically via the typed publisher.
-  static uint32_t counter = 0;
+  uint32_t counter = 0;
   espp::Timer publish_timer({
       .name = "rtps_pub",
       .period = std::chrono::milliseconds(CONFIG_RTPS_EXAMPLE_ANNOUNCE_PERIOD_MS),

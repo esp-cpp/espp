@@ -5,3 +5,4 @@ simplejpeg
 cobs
 sounddevice
 matplotlib
+pycdr2

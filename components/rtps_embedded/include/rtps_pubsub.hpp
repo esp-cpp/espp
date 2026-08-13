@@ -88,20 +88,22 @@ public:
     if (buffer_.size() < needed) {
       buffer_.resize(needed);
     }
-    const auto written = cdr::serialize_into<cdr::xcdr1>(sample, buffer_);
+    // Serialize into a byte view of the uint8_t buffer via std::as_writable_bytes
+    // (the standard, well-defined span conversion - no reinterpret_cast aliasing
+    // concern). The participant API takes the uint8_t span directly.
+    const auto written =
+        cdr::serialize_into<cdr::xcdr1>(sample, std::as_writable_bytes(std::span(buffer_)));
     if (!written) {
       return false;
     }
-    return participant_->publish(
-        topic_,
-        std::span<const uint8_t>(reinterpret_cast<const uint8_t *>(buffer_.data()), *written));
+    return participant_->publish(topic_, std::span<const uint8_t>(buffer_.data(), *written));
   }
 
 private:
   RtpsParticipant *participant_{nullptr};
   std::string topic_;
-  std::mutex mutex_;              ///< guards buffer_ against concurrent publish()
-  std::vector<std::byte> buffer_; ///< reused serialization scratch (grows once)
+  std::mutex mutex_;            ///< guards buffer_ against concurrent publish()
+  std::vector<uint8_t> buffer_; ///< reused serialization scratch (grows once)
   bool valid_{false};
 };
 
@@ -158,8 +160,9 @@ public:
               if (!*callback) {
                 return;
               }
-              auto sample = cdr::deserialize<T>(std::span<const std::byte>(
-                  reinterpret_cast<const std::byte *>(cdr_payload.data()), cdr_payload.size()));
+              // std::as_bytes: the standard, well-defined span<uint8_t> ->
+              // span<const std::byte> conversion (no reinterpret_cast aliasing).
+              auto sample = cdr::deserialize<T>(std::as_bytes(cdr_payload));
               if (sample) {
                 (*callback)(*sample);
               }
