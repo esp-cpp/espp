@@ -80,8 +80,8 @@ int main() {
                          if (match) {
                            ok.store(true);
                          } else {
-                           std::printf("received %zu bytes, byte-exact=%d\n", payload.size(),
-                                       match ? 1 : 0);
+                           // In this branch match is false by construction.
+                           std::printf("received %zu bytes, byte-exact=0\n", payload.size());
                          }
                        }})) {
     std::printf("FAIL: add_reader\n");

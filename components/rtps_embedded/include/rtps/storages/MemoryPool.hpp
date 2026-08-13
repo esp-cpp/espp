@@ -102,7 +102,7 @@ public:
   // code to the original `SIZE`. On the dynamic path it tracks the grown size.
   uint32_t capacity() const { return static_cast<uint32_t>(m_data.size()); }
 
-  uint32_t getSize() { return capacity(); }
+  uint32_t getSize() const { return capacity(); }
 
   bool isFull() const { return m_numElements == capacity(); }
 
