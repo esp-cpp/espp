@@ -73,7 +73,7 @@ private:
   inline void incrementHead();
 #ifdef RTPS_STORAGE_DYNAMIC
   // Host only: double the ring capacity (caller holds m_mutex).
-  void grow();
+  bool grow(); // returns false if the ring cannot grow further (16-bit indices)
 #endif
 };
 

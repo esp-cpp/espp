@@ -71,19 +71,26 @@ void Reader::newFragment(const Guid_t &writerGuid, const SequenceNumber_t &sn,
     if (offset >= sampleSize) {
       return; // out-of-range fragment; ignore
     }
-    // The final fragment's serializedData is padded to a 4-byte boundary (RTPS
-    // submessage alignment; FastDDS does this), so fragDataLen can exceed the
-    // real sample bytes remaining. Copy only up to the sample end - clamping
-    // instead of rejecting is what makes ROS 2 / FastDDS large-sample reassembly
-    // work (the last fragment would otherwise be dropped and the sample never
-    // completes).
-    const uint64_t copyLen = std::min<uint64_t>(fragDataLen, sampleSize - offset);
-    if (copyLen > 0 && fragData != nullptr) {
-      std::memcpy(m_reassembly.buffer.data() + offset, fragData, copyLen);
+    // A submessage may pack several contiguous fragments (fragmentsInSubmessage).
+    // Require the serialized data to actually contain all advertised fragments
+    // before copying or marking them received - otherwise a short DATA_FRAG could
+    // mark missing ranges complete and deliver zero-filled bytes. The expected
+    // length is fragmentSize per fragment, except the sample's final fragment
+    // ends at sampleSize; fragDataLen may be LARGER (trailing 4-byte alignment
+    // padding, which FastDDS adds) but must not be smaller.
+    if (fragmentsInSubmessage == 0) {
+      return; // must advertise at least one fragment
     }
-
-    const uint16_t packed = fragmentsInSubmessage == 0 ? 1 : fragmentsInSubmessage;
-    for (uint16_t k = 0; k < packed; ++k) {
+    const uint64_t expected =
+        std::min<uint64_t>(static_cast<uint64_t>(fragmentsInSubmessage) * m_reassembly.fragmentSize,
+                           sampleSize - offset);
+    if (fragDataLen < expected) {
+      return; // short / malformed submessage; do not mark ranges complete
+    }
+    if (expected > 0 && fragData != nullptr) {
+      std::memcpy(m_reassembly.buffer.data() + offset, fragData, expected);
+    }
+    for (uint16_t k = 0; k < fragmentsInSubmessage; ++k) {
       const uint32_t idx = fragmentStartingNum - 1 + k;
       if (idx < m_reassembly.totalFragments && !m_reassembly.received[idx]) {
         m_reassembly.received[idx] = true;

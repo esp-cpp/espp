@@ -29,6 +29,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/config.hpp"
 #include "rtps/storages/CacheChange.hpp"
 #include "rtps/storages/StorageArray.hpp"
+#include <limits>
 
 namespace rtps {
 
@@ -163,6 +164,13 @@ private:
   // move-assignable but not move-constructible).
   void grow() {
     const std::size_t oldCap = m_buffer.size();
+    // 16-bit ring indices: refuse to grow past what they can represent, else the
+    // m_head/m_tail casts below truncate and corrupt the ring. A history cache
+    // never legitimately needs this many entries; it then behaves as full
+    // (drop-oldest) at this bound.
+    if (oldCap * 2 > std::numeric_limits<uint16_t>::max()) {
+      return;
+    }
     m_buffer.ensureSize(oldCap * 2);
     std::size_t dst = oldCap;
     uint16_t src = m_tail;

@@ -150,7 +150,13 @@ public:
 #if defined(RTPS_ENABLE_FRAGMENTATION)
   static constexpr std::size_t max_payload_size = RTPS_MAX_SAMPLE_SIZE;
 #else
-  static constexpr std::size_t max_payload_size = 65535;
+  // The largest serialized payload that fits one unfragmented DATA submessage in
+  // a single UDP datagram: 65507 (max UDP payload) - 20 (RTPS header) - 12
+  // (INFO_TS) - 24 (DATA submessage header) = 65451. Kept in sync with the
+  // engine's rtps::MAX_UNFRAGMENTED_PAYLOAD by a static_assert in the .cpp. A
+  // larger sample would overflow the datagram and wrap the 16-bit submessage
+  // length, so publish() rejects it.
+  static constexpr std::size_t max_payload_size = 65451;
 #endif
 
   /// Publish a CDR-encapsulated sample on a topic previously registered with

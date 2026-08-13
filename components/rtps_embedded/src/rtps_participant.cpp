@@ -190,6 +190,13 @@ bool RtpsParticipant::add_writer(const WriterConfig &config) {
     logger_.error("Writer for topic '{}' already exists", config.topic);
     return false;
   }
+  // A zero fragment size is invalid: the fragmented send paths treat it as
+  // failure and would silently drop every large sample while publish() reports
+  // success. Reject it up front rather than creating a broken writer.
+  if (config.fragment_size == 0) {
+    logger_.error("Writer '{}': fragment_size must be non-zero", config.topic);
+    return false;
+  }
   rtps::Writer *writer =
       domain_->createWriter(*participant_, config.topic.c_str(), config.type_name.c_str(),
                             config.reliability == Reliability::RELIABLE);
@@ -262,9 +269,9 @@ bool RtpsParticipant::publish(std::string_view topic, std::span<const uint8_t> c
   }
 #else
   // Without fragmentation, the binding cap is the RTPS wire format: a single DATA
-  // submessage's length field (octetsToNextHeader) is 16-bit, so one unfragmented
-  // sample cannot exceed 65535 bytes.
-  static_assert(RtpsParticipant::max_payload_size == std::numeric_limits<uint16_t>::max());
+  // submessage must fit one UDP datagram and its 16-bit octetsToNextHeader. Keep
+  // the facade constant in sync with the engine's actual computed bound.
+  static_assert(RtpsParticipant::max_payload_size == rtps::MAX_UNFRAGMENTED_PAYLOAD);
   if (cdr_payload.size() > max_payload_size) {
     logger_.error("Payload for topic '{}' is {} bytes, exceeds the {}-byte RTPS limit; dropped "
                   "(large payloads need DATA_FRAG fragmentation, not enabled in this build)",
