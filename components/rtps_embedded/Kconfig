@@ -5,9 +5,12 @@ menu "RTPS (rtps_embedded)"
         default RTPS_LIMITS_PROFILE_EMBEDDED
         help
             Selects the compile-time capacity limits (profile header) used by the
-            rtps_embedded engine. All profiles use the same fully-static,
-            deterministic allocation model; only the capacity caps differ. These
-            caps are pure capacity limits and do NOT change any bytes on the wire.
+            rtps_embedded engine. Only the capacity caps differ between profiles.
+            The storage MODEL (static vs dynamic) is a separate knob
+            (RTPS_STORAGE_DYNAMIC below) and defaults to fully-static on ESP for
+            every profile - selecting a relaxed profile does NOT enable heap
+            storage. These caps are pure capacity limits and do NOT change any
+            bytes on the wire.
 
         config RTPS_LIMITS_PROFILE_EMBEDDED
             bool "embedded (tight MCU caps)"
@@ -29,6 +32,18 @@ menu "RTPS (rtps_embedded)"
                 (rtps/config_host_large.hpp). Significantly larger footprint;
                 only appropriate on targets with plenty of RAM.
     endchoice
+
+    config RTPS_STORAGE_DYNAMIC
+        bool "Use dynamic (heap) history/queue storage"
+        default n
+        help
+            By default the engine uses fully-static, zero-heap history and queue
+            storage on ESP targets (std::array), independent of the limits
+            profile above: when a history fills it drops the oldest sample.
+            Enable this to use heap-backed storage (std::deque) that instead
+            GROWS on demand to retain samples. Off by default so the MCU keeps
+            deterministic, zero-heap storage; enable only on targets that can
+            afford heap growth. Does not change any bytes on the wire.
 
     config RTPS_ENABLE_FRAGMENTATION
         bool "Enable best-effort DATA_FRAG fragmentation"

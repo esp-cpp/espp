@@ -98,23 +98,28 @@ const rtps::CacheChange *StatefulWriter::newChange(ChangeKind_t kind, const uint
     return nullptr;
   }
 
-#ifndef RTPS_STORAGE_DYNAMIC
-  // Static ring: a full history drops the oldest change on the next addChange, so
-  // advance the send cursor past it. On the dynamic path the history grows
-  // instead of dropping, so the cursor must NOT advance here - the retained
-  // change still needs to be sent.
-  if (m_history.isFull()) {
-    // Right now we drop elements anyway because we cannot detect non-responding
-    // readers yet. return nullptr;
-    SequenceNumber_t newMin = ++SequenceNumber_t(m_history.getCurrentSeqNumMin());
-    if (m_nextSequenceNumberToSend < newMin) {
-      m_nextSequenceNumberToSend = newMin; // Make sure we have the correct sn to send
-    }
-    SFW_LOG("History full! Dropping changes {}.", this->m_attributes.topicName);
-  }
-#endif
+  // A full history may drop its oldest change on the next addChange: the static
+  // ring always does, and the dynamic (host) ring does too when it hits its
+  // 16-bit index ceiling and grow() refuses to resize. When a drop happens the
+  // send cursor may point at a sequence number that no longer exists, which
+  // would stall progress() permanently; advance it past the drop. When the
+  // dynamic ring instead grows and RETAINS the oldest (the common host case) the
+  // minimum is unchanged, so the cursor stays put and the retained change is
+  // still sent. Distinguish the two by whether the history minimum advanced
+  // across the add - a copy, not a reference, because addChange may overwrite
+  // the underlying slot.
+  const bool wasFull = m_history.isFull();
+  const SequenceNumber_t minBefore = m_history.getCurrentSeqNumMin();
 
   auto *result = m_history.addChange(data, size, inLineQoS, markDisposedAfterWrite);
+
+  if (wasFull) {
+    const SequenceNumber_t minAfter = m_history.getCurrentSeqNumMin();
+    if (minBefore < minAfter && m_nextSequenceNumberToSend < minAfter) {
+      m_nextSequenceNumberToSend = minAfter; // Skip past the dropped change
+      SFW_LOG("History full, dropped oldest {}.", this->m_attributes.topicName);
+    }
+  }
   if (m_transport != nullptr) {
     // Run the send asynchronously on the transport's worker pool (never inline
     // under the caller's locks), matching the previous ThreadPool semantics.

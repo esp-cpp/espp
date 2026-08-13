@@ -32,12 +32,13 @@ namespace rtps {
 
 #define IS_LITTLE_ENDIAN 1
 
-// Storage policy: the "host" profile backs the engine's VALUE pools with
-// heap-backed, growable storage (std::vector reserved to the profile cap) so a
-// host build can grow past the compile-time cap instead of hard-failing when a
-// pool fills. NOT defined by config_esp32.hpp, which stays fully static.
-// See storages/StorageArray.hpp. Capacity only - never touches wire bytes.
-#define RTPS_STORAGE_DYNAMIC
+// NOTE: this header sets capacity LIMITS only. The storage POLICY (static
+// std::array vs heap-backed growable std::deque) is orthogonal and controlled
+// centrally by RTPS_STORAGE_DYNAMIC, selected in config.hpp: dynamic by default
+// on host/PC builds, explicit opt-in on ESP (Kconfig, default static). Selecting
+// this profile therefore does NOT by itself switch storage to dynamic - which
+// matters on ESP, where a relaxed limits profile must not silently enable heap
+// storage. See storages/StorageArray.hpp. Capacity only - never touches wire bytes.
 
 namespace Config {
 const VendorId_t VENDOR_ID = {13, 37};

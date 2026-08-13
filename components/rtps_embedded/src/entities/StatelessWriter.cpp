@@ -91,21 +91,28 @@ const CacheChange *StatelessWriter::newChange(rtps::ChangeKind_t kind, const uin
     return nullptr;
   }
 
-#ifndef RTPS_STORAGE_DYNAMIC
-  // Static ring: a full history means the next addChange overwrites (drops) the
-  // oldest sample, so advance the send cursor past it. On the dynamic path the
-  // history grows instead of dropping, so the cursor must NOT advance here - the
-  // retained oldest sample still needs to be sent.
-  if (m_history.isFull()) {
-    SequenceNumber_t newMin = ++SequenceNumber_t(m_history.getSeqNumMin());
-    if (m_nextSequenceNumberToSend < newMin) {
-      m_nextSequenceNumberToSend = newMin; // Make sure we have the correct sn to send
-    }
-    SLW_LOG("History is full, dropping oldest {}", this->m_attributes.topicName);
-  }
-#endif
+  // A full history may drop its oldest sample on the next addChange: the static
+  // ring always does, and the dynamic (host) ring does too when it hits its
+  // 16-bit index ceiling and grow() refuses to resize. When a drop happens the
+  // send cursor may point at a sequence number that no longer exists, which
+  // would stall progress() permanently; advance it past the drop. When the
+  // dynamic ring instead grows and RETAINS the oldest (the common host case) the
+  // minimum is unchanged, so the cursor stays put and the retained sample is
+  // still sent. Distinguish the two by whether the history minimum advanced
+  // across the add - a copy, not a reference, because addChange may overwrite
+  // the underlying slot.
+  const bool wasFull = m_history.isFull();
+  const SequenceNumber_t minBefore = m_history.getSeqNumMin();
 
   auto *result = m_history.addChange(data, size);
+
+  if (wasFull) {
+    const SequenceNumber_t minAfter = m_history.getSeqNumMin();
+    if (minBefore < minAfter && m_nextSequenceNumberToSend < minAfter) {
+      m_nextSequenceNumberToSend = minAfter; // Skip past the dropped sample
+      SLW_LOG("History full, dropped oldest {}", this->m_attributes.topicName);
+    }
+  }
   if (m_transport != nullptr) {
     // Run the send asynchronously on the transport's worker pool (never inline
     // under the caller's locks), matching the previous ThreadPool semantics.
