@@ -16,6 +16,15 @@ on:
       - ".github/workflows/rtps_interop.yml"
   workflow_dispatch:
 
+# Supersede in-progress runs: a new commit on the same PR (or the same branch for
+# a manual dispatch) cancels the earlier, now-stale interop run. Grouped by the
+# PR head branch (github.head_ref) so runs on different PRs never cancel each
+# other; falls back to github.ref for workflow_dispatch. This workflow never runs
+# on push to main, so cancel-in-progress is always safe here.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   interop:
     runs-on: ubuntu-latest
