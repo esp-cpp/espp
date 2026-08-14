@@ -315,6 +315,7 @@ void RtpsParticipant::subscriber_matched_trampoline(void *arg) {
   }
 }
 
+#ifdef RTPS_WITH_RPC
 // ===========================================================================
 // Services (RMI) - request/reply with related_sample_identity correlation.
 // ===========================================================================
@@ -1312,6 +1313,7 @@ RtpsParticipant::add_native_action_client(const ActionConfig &config) {
   logger_.info("Added native action client: '{}'", config.action);
   return client;
 }
+#endif // RTPS_WITH_RPC
 
 // stop() and ~RtpsParticipant are defined here (end of file) so every RPC
 // context type the member containers point to is complete when their
@@ -1330,6 +1332,7 @@ void RtpsParticipant::stop() {
   participant_ = nullptr;
   domain_.reset();
   reader_contexts_.clear();
+#ifdef RTPS_WITH_RPC
   // RPC endpoints are owned by the (now-reset) domain; drop our bookkeeping.
   // NOTE: an action server's detached execute threads are not joined here (v1);
   // goals are expected to finish before stop().
@@ -1341,6 +1344,7 @@ void RtpsParticipant::stop() {
   native_action_servers_.clear();
   native_service_clients_.clear();
   native_service_servers_.clear();
+#endif // RTPS_WITH_RPC
   logger_.info("Stopped");
 }
 

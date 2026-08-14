@@ -28,6 +28,14 @@ class Reader;
 class ReaderCacheChange;
 } // namespace rtps
 
+// The RPC layer (services + actions, ROS-interoperable and native) is compiled
+// in by default. Define RTPS_NO_RPC (the ESP Kconfig option RTPS_ENABLE_RPC=n
+// does this via CMake) to exclude it and its std::thread/std::future use, saving
+// flash on devices that only need pub/sub. Pure pub/sub is unaffected.
+#if !defined(RTPS_NO_RPC)
+#define RTPS_WITH_RPC 1
+#endif
+
 namespace espp {
 
 /// @brief RTPS/DDS participant for pub/sub interop with FastDDS and ROS 2.
@@ -182,6 +190,7 @@ public:
   // a <Service>_Request and the reply a <Service>_Response.
   // ---------------------------------------------------------------------------
 
+#ifdef RTPS_WITH_RPC
   /// Handler for a service server: given a CDR-encapsulated request, return the
   /// CDR-encapsulated reply. Runs on an engine worker thread - return promptly.
   using service_handler_t = std::function<std::vector<uint8_t>(std::span<const uint8_t> request)>;
@@ -457,6 +466,7 @@ public:
 
   /// Add a native action client. \return A handle, or nullptr.
   std::shared_ptr<NativeActionClient> add_native_action_client(const ActionConfig &config);
+#endif // RTPS_WITH_RPC
 
 protected:
   /// Per-reader context bridging the engine's C function-pointer callback to
@@ -473,12 +483,14 @@ protected:
   static void publisher_matched_trampoline(void *arg);
   static void subscriber_matched_trampoline(void *arg);
 
+#ifdef RTPS_WITH_RPC
   /// Per-server bridge from the engine request-reader callback to the user
   /// handler + reply writer. Heap-allocated for a stable address; defined in the
   /// .cpp so engine types stay out of this header.
   struct ServiceServerContext;
   static void service_request_trampoline(void *arg, const rtps::ReaderCacheChange &change);
   static void service_reply_trampoline(void *arg, const rtps::ReaderCacheChange &change);
+#endif // RTPS_WITH_RPC
 
   bool resolve_interface_address(std::array<uint8_t, 4> &ip_bytes) const;
 
@@ -489,6 +501,7 @@ protected:
   rtps::Participant *participant_{nullptr};
   std::unordered_map<std::string, rtps::Writer *> writers_;
   std::vector<std::unique_ptr<ReaderContext>> reader_contexts_;
+#ifdef RTPS_WITH_RPC
   // shared_ptr (not unique_ptr) so an incomplete ServiceServerContext can be held
   // here: shared_ptr's destructor is type-erased, so the member vector needs no
   // complete type at the participant's construction/destruction point (the
@@ -508,6 +521,7 @@ protected:
   struct NativeActionServerContext;
   std::vector<std::shared_ptr<NativeActionServerContext>> native_action_servers_;
   std::vector<std::shared_ptr<NativeActionClient>> native_action_clients_;
+#endif // RTPS_WITH_RPC
 };
 
 } // namespace espp
