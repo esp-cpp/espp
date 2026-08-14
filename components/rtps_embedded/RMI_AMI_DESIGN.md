@@ -380,10 +380,21 @@ h.cancel();
      and espp client -> rclpy server). Final gate: interop **16/16**.
    The actual correlation is inline QoS PIDs **0x0083 + 0x800f** (not 0x8002);
    both request and reply carry it. See §3.2.
-2. **M2 — Track A actions.** State machine over M1 + feedback/status topics. Gate:
-   both action interop directions incl. cancel.
+2. **M2 — Track A actions. ✅ DONE** (branch `feat/rtps-services`).
+   - M2.1 `rpc/action_naming.hpp` mangling (host test 12/12).
+   - M2.2 `rpc/action_types.hpp` envelope codec, byte-exact vs Fibonacci capture (11/11).
+   - M2.3 facade: deferred-reply service extension (`ServiceResponder` +
+     `add_service_server_deferred`, needed because get_result holds the request
+     until the goal finishes) + `add_action_server`/`add_action_client`,
+     `ActionGoalHandle` (publish_feedback/succeed/abort/canceled), goal
+     correlation by UUID.
+   - M2.4 in-process `rtps_action_loopback` (Fibonacci: feedback + deferred result).
+   - M2.5 live ROS 2 interop **both directions** (`ros2 action send_goal` -> espp;
+     espp client -> rclpy server). Final gate: interop **22/22**. No type-hash
+     needed for actions either (`ros2 action list` shows the espp action).
+   The client offers all three call styles on services (sync/callback/future).
 3. **M3 — Track B native RMI/AMI.** In-band header, lean service + action, host
-   loopback gates, esp32 budget profiles.
+   loopback gates, esp32 budget profiles. **NEXT.**
 4. **M4 — Consolidation.** Shared L2 over both strategies; Kconfig compile-out;
    docs + examples (C++ and the Python facade).
 
