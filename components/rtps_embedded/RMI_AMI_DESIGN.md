@@ -343,9 +343,20 @@ h.cancel();
 
 ## 8. Milestones (stacked PRs)
 
-1. **M1 — Track A request/reply core.** Inline-QoS `0x8002` emit/parse + pending
-   table + mangling helpers + `add_service_{server,client}`. Gate: golden reply
-   frame + both service interop directions. *De-risks the wire format first.*
+1. **M1 — Track A request/reply core. ✅ DONE** (branch `feat/rtps-services`).
+   - M1.1 `rpc/service_naming.hpp` mangling + host test (7/7).
+   - M1.2 `rpc/sample_identity.hpp` + `addSubMessageDataWithRelatedSampleIdentity`
+     emit + `MessageReceiver` parse into `ReaderCacheChange`; golden section
+     `data_related_sample_identity` (all prior golden bytes unchanged).
+   - M1.3 send-path plumbing: `CacheChange` carries the identity; both writers
+     branch to the RSI emit; plain pub/sub byte-identical.
+   - M1.4 facade `add_service_server` / `add_service_client` + `ServiceClient`
+     (sync `call` + `call_async`), pending-request correlation; in-process
+     `rtps_service_loopback`.
+   - M1.5 live ROS 2 interop **both directions** (`ros2 service call` -> espp,
+     and espp client -> rclpy server). Final gate: interop **16/16**.
+   The actual correlation is inline QoS PIDs **0x0083 + 0x800f** (not 0x8002);
+   both request and reply carry it. See §3.2.
 2. **M2 — Track A actions.** State machine over M1 + feedback/status topics. Gate:
    both action interop directions incl. cancel.
 3. **M3 — Track B native RMI/AMI.** In-band header, lean service + action, host
@@ -364,10 +375,11 @@ external dependency and no interop gate to satisfy.
       QoS PIDs **0x0083 + 0x800f** (24-byte SampleIdentity, CDR_LE), on BOTH
       request and reply. Corrected the earlier 0x8002 / no-request-QoS guesses.
 - [x] Target ROS distro → **Jazzy** (Fast-RTPS vendorId 01.15).
-- [ ] Does SEDP need service-specific discovery attributes (type hash,
-      `TypeInformation`) for `ros2 service list` / matching, or is topic+type name
-      match sufficient for rmw_fastrtps? Verify against a real node (non-blocking
-      for the wire format; needed before the interop gate is green).
+- [x] Does SEDP need service-specific discovery attributes (type hash,
+      `TypeInformation`) for `ros2 service list` / matching? **Answered: NO** (M1.5).
+      Plain rq/rr topic + `_Request_`/`_Response_` type-name matching suffices;
+      the espp service even appears in `ros2 service list` and a live
+      `ros2 service call` succeeds against it, with no type-hash exchange.
 - [ ] Confirm `action_msgs` / `unique_identifier_msgs` CDR layouts (UUID = 16 raw
       bytes; GoalStatus/GoalStatusArray) for Track A actions (M2).
 - [ ] Decide default `Wire` per platform and whether Track A is default-off on esp32.
