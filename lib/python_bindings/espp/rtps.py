@@ -141,3 +141,183 @@ class Subscriber:
             reliable=reliable,
             on_sample=_on_sample,
         )
+
+
+# ---------------------------------------------------------------------------
+# Services (RMI) and actions (AMI) - the typed Python counterparts to the C++
+# espp::ServiceServer/Client and espp::ActionServer/Client. Each pairs the
+# byte-level RtpsParticipant RPC methods with a pycdr2 (or compatible) codec, so
+# you deal in message objects instead of CDR bytes. Pass native=True to use the
+# lean espp<->espp protocol instead of the ROS 2-interoperable one.
+# ---------------------------------------------------------------------------
+
+
+class ServiceServer:
+    """Answer requests with responses, (de)serializing message objects for you.
+
+    :param participant: a started :class:`espp.RtpsParticipant`.
+    :param service: service name, e.g. ``"/add_two_ints"``.
+    :param type_name: base DDS service type, e.g.
+        ``"example_interfaces::srv::dds_::AddTwoInts"`` (any matching name for
+        native).
+    :param request_type: message class with ``.deserialize(bytes)``.
+    :param response_type: message class with ``.serialize()`` (documentary; the
+        handler returns an instance whose ``.serialize()`` is used).
+    :param handler: ``callable(request_msg) -> response_msg``. Runs on an engine
+        worker thread -- return promptly.
+    :param native: use the lean native protocol instead of ROS 2.
+    """
+
+    def __init__(self, participant, service, type_name, request_type, response_type, handler,
+                 *, native: bool = False) -> None:
+        def _byte_handler(request_bytes: bytes) -> bytes:
+            try:
+                req = request_type.deserialize(request_bytes)
+            except Exception:
+                return b""
+            return handler(req).serialize()
+
+        add = participant.add_native_service_server if native else participant.add_service_server
+        self.valid = add(service, type_name, _byte_handler)
+
+
+class ServiceClient:
+    """Call a service with a request object and get a response object back.
+
+    Blocking :meth:`call` (RMI) and callback :meth:`call_async` (AMI). See
+    :class:`ServiceServer` for the constructor parameters.
+    """
+
+    def __init__(self, participant, service, type_name, request_type, response_type,
+                 *, native: bool = False) -> None:
+        add = participant.add_native_service_client if native else participant.add_service_client
+        self._client = add(service, type_name)
+        self._response_type = response_type
+        self.valid = self._client is not None
+
+    def call(self, request, timeout: float = 5.0):
+        """Blocking call. Returns the response object, or ``None`` on timeout."""
+        reply = self._client.call(request.serialize(), timeout)
+        return None if reply is None else self._response_type.deserialize(reply)
+
+    def call_async(self, request, on_response) -> bool:
+        """Async call: ``on_response(response_msg)`` when the reply arrives."""
+        rt = self._response_type
+        return self._client.call_async(request.serialize(), lambda b: on_response(rt.deserialize(b)))
+
+    def call_future(self, request):
+        """Async call returning a :class:`concurrent.futures.Future` of the
+        response object (result is ``None`` if the request could not be queued).
+        Use ``fut.result(timeout=...)``. Works for both protocols."""
+        import concurrent.futures
+
+        fut: concurrent.futures.Future = concurrent.futures.Future()
+        if not self.call_async(request, fut.set_result):
+            fut.set_result(None)
+        return fut
+
+
+class GoalHandle:
+    """Typed view of a server-side goal handle, passed to an action ``execute``
+    callback. Publish feedback and terminate the goal with message objects."""
+
+    def __init__(self, handle, goal_type, result_type, feedback_type) -> None:
+        self._handle = handle
+        self._result_type = result_type
+        self._feedback_type = feedback_type
+        self.goal = goal_type.deserialize(handle.goal())
+
+    def publish_feedback(self, feedback) -> None:
+        self._handle.publish_feedback(feedback.serialize())
+
+    def succeed(self, result) -> None:
+        self._handle.succeed(result.serialize())
+
+    def abort(self, result) -> None:
+        self._handle.abort(result.serialize())
+
+    def canceled(self, result) -> None:
+        """Terminate the goal CANCELED (in response to a cancel request). Works on
+        both the ROS 2 and native protocols."""
+        canceled = getattr(self._handle, "canceled", None)
+        if canceled is not None:
+            canceled(result.serialize())
+
+    def is_canceling(self) -> bool:
+        """True if the client has requested cancellation of this goal (both the
+        ROS 2 and native protocols). Poll this in a long execute() and wind the
+        goal down - calling canceled() - when it becomes true."""
+        return getattr(self._handle, "is_canceling", lambda: False)()
+
+
+class ActionServer:
+    """Run long goals with typed goal / result / feedback messages.
+
+    :param on_goal: ``callable(goal_msg) -> bool`` (accept/reject).
+    :param execute: ``callable(GoalHandle)`` run on its own thread.
+
+    Other parameters mirror :class:`ServiceServer` (``action`` name + base
+    ``type_name`` + the three message classes).
+    """
+
+    def __init__(self, participant, action, type_name, goal_type, result_type, feedback_type,
+                 on_goal, execute, *, native: bool = False) -> None:
+        def _byte_on_goal(goal_bytes: bytes) -> bool:
+            try:
+                return bool(on_goal(goal_type.deserialize(goal_bytes)))
+            except Exception:
+                return False
+
+        def _byte_execute(handle) -> None:
+            execute(GoalHandle(handle, goal_type, result_type, feedback_type))
+
+        add = participant.add_native_action_server if native else participant.add_action_server
+        self.valid = add(action, type_name, _byte_on_goal, _byte_execute)
+
+
+class ActionClient:
+    """Send typed goals and receive typed feedback + result."""
+
+    def __init__(self, participant, action, type_name, goal_type, result_type, feedback_type,
+                 *, native: bool = False) -> None:
+        add = participant.add_native_action_client if native else participant.add_action_client
+        self._client = add(action, type_name)
+        self._native = native
+        self._result_type = result_type
+        self._feedback_type = feedback_type
+        self._last_goal = None  # native: int handle; ROS 2: bytes goal id
+        self.valid = self._client is not None
+
+    def send_goal(self, goal, on_feedback, on_result) -> bool:
+        """Send ``goal``; ``on_feedback(feedback_msg)`` per feedback,
+        ``on_result(status:int, result_msg)`` once at the end (result is ``None``
+        if the goal was rejected). Remembers the accepted goal so cancel_goal()
+        can target it."""
+        ft, rt = self._feedback_type, self._result_type
+
+        def _fb(b: bytes) -> None:
+            try:
+                on_feedback(ft.deserialize(b))
+            except Exception:
+                # Runs on an engine worker thread: a malformed / wrong-type
+                # feedback sample (or a raising user callback) must not kill it.
+                pass
+
+        def _res(status: int, b: bytes) -> None:
+            on_result(status, rt.deserialize(b) if b else None)
+
+        if self._native:
+            return self._client.send_goal(
+                goal.serialize(), _fb, _res, lambda handle: setattr(self, "_last_goal", handle))
+        gid = self._client.send_goal(goal.serialize(), _fb, _res)
+        if gid is not None:
+            self._last_goal = gid
+        return gid is not None
+
+    def cancel_goal(self) -> bool:
+        """Request cancellation of the most recently accepted goal (ROS 2 or
+        native). The server observes it via GoalHandle.is_canceling(). Returns
+        True if the cancel request was queued."""
+        if self._last_goal is None:
+            return False
+        return self._client.cancel_goal(self._last_goal)

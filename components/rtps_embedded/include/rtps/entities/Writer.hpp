@@ -62,6 +62,16 @@ public:
   virtual void reset() = 0;
   virtual const CacheChange *newChange(ChangeKind_t kind, const uint8_t *data, DataSize_t size);
 
+  //! Add a change that will be sent as a DATA carrying relatedSampleIdentity as
+  //! inline QoS (ROS 2 service request/reply correlation). Used by the service
+  //! request/reply writers; plain pub/sub uses the forms above and is unaffected.
+  const CacheChange *
+  newChangeWithRelatedSampleIdentity(ChangeKind_t kind, const uint8_t *data, DataSize_t size,
+                                     const rpc::SampleIdentity &relatedSampleIdentity) {
+    return newChange(kind, data, size, /*inLineQoS=*/false, /*markDisposedAfterWrite=*/false,
+                     /*hasRelatedSampleIdentity=*/true, relatedSampleIdentity);
+  }
+
   //! Executes required steps like sending packets. Intended to be called by
   //! worker threads
   virtual void progress() = 0;
@@ -107,7 +117,9 @@ protected:
 
   friend class SEDPAgent;
   virtual const CacheChange *newChange(ChangeKind_t kind, const uint8_t *data, DataSize_t size,
-                                       bool inLineQoS, bool markDisposedAfterWrite) = 0;
+                                       bool inLineQoS, bool markDisposedAfterWrite,
+                                       bool hasRelatedSampleIdentity = false,
+                                       const rpc::SampleIdentity &relatedSampleIdentity = {}) = 0;
 
   friend class SizeInspector;
   bool m_is_initialized_ = false;

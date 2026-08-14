@@ -69,6 +69,23 @@ std::vector<uint8_t> build_data() {
   return b.bytes;
 }
 
+std::vector<uint8_t> build_data_related_sample_identity() {
+  // DATA submessage carrying a related_sample_identity inline QoS (ROS 2 service
+  // request/reply correlation). Pins the inline-QoS layout: PID 0x0083 + 0x800f,
+  // each a 24-byte SampleIdentity {Guid, SequenceNumber}, then PID_SENTINEL,
+  // followed by the payload. The identity's guid uses kPrefix + a reader entity
+  // and sequence number {0, 1}, matching the shape seen in the live capture.
+  static constexpr uint8_t kPayload[] = {0x00, 0x01, 0x00, 0x00, 0x65, 0x00,
+                                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+  rtps::PayloadBuffer payload;
+  payload.append(kPayload, sizeof(kPayload));
+  rtps::rpc::SampleIdentity related{rtps::Guid_t{kPrefix, kReaderId}, rtps::SequenceNumber_t{0, 1}};
+  rtps::PayloadBuffer b;
+  rtps::MessageFactory::addSubMessageDataWithRelatedSampleIdentity(
+      b, payload, related, rtps::SequenceNumber_t{0, 1}, kWriterId, kReaderId);
+  return b.bytes;
+}
+
 std::vector<uint8_t> build_data_frag() {
   // One DATA_FRAG submessage: fragment #1 of a 200000-byte sample split at a
   // 63000-byte fragment size, carrying a 10-byte ramp payload chunk. Pins the
@@ -205,6 +222,8 @@ int main(int argc, char **argv) {
       {"info_dst", build_info_dst, kGolden_info_dst},
       {"info_ts_invalid", build_info_ts_invalid, kGolden_info_ts_invalid},
       {"data", build_data, kGolden_data},
+      {"data_related_sample_identity", build_data_related_sample_identity,
+       kGolden_data_related_sample_identity},
       {"data_frag", build_data_frag, kGolden_data_frag},
       {"heartbeat", build_heartbeat, kGolden_heartbeat},
       {"acknack", build_acknack, kGolden_acknack},

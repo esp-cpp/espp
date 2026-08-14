@@ -12,6 +12,7 @@
 //
 // It is kept out of the generated pybind_espp.cpp so regeneration never clobbers it.
 
+#include <algorithm>
 #include <functional>
 #include <memory>
 #include <span>
@@ -47,6 +48,15 @@ inline std::shared_ptr<py::function> make_gil_safe_holder(const py::function &fn
   });
 }
 
+// Same GIL-safe holder pattern for an arbitrary py::object (e.g. a
+// concurrent.futures.Future captured into a background reply callback).
+inline std::shared_ptr<py::object> make_gil_safe_object(const py::object &obj) {
+  return std::shared_ptr<py::object>(new py::object(obj), [](py::object *p) {
+    py::gil_scoped_acquire gil;
+    delete p;
+  });
+}
+
 Rtps::sample_callback_t wrap_sample_callback(const py::function &fn) {
   if (!fn) {
     return {};
@@ -73,6 +83,42 @@ Rtps::matched_callback_t wrap_matched_callback(const py::function &fn) {
       (*cb)();
     } catch (py::error_already_set &e) {
       e.discard_as_unraisable("RtpsParticipant matched callback");
+    }
+  };
+}
+
+std::vector<uint8_t> to_vec(const py::bytes &b) {
+  std::string s = b;
+  return std::vector<uint8_t>(s.begin(), s.end());
+}
+
+// A service handler: Python callable(bytes) -> bytes. Runs on an engine thread.
+Rtps::service_handler_t wrap_service_handler(const py::function &fn) {
+  auto cb = make_gil_safe_holder(fn);
+  return [cb](std::span<const uint8_t> request) -> std::vector<uint8_t> {
+    py::gil_scoped_acquire gil;
+    try {
+      py::object r = (*cb)(to_bytes(request));
+      if (r.is_none()) {
+        return {};
+      }
+      return to_vec(r.cast<py::bytes>());
+    } catch (py::error_already_set &e) {
+      e.discard_as_unraisable("RtpsParticipant service handler");
+      return {};
+    }
+  };
+}
+
+// A reply callback for call_async: Python callable(bytes).
+Rtps::ServiceClient::reply_callback_t wrap_reply_callback(const py::function &fn) {
+  auto cb = make_gil_safe_holder(fn);
+  return [cb](std::span<const uint8_t> reply) {
+    py::gil_scoped_acquire gil;
+    try {
+      (*cb)(to_bytes(reply));
+    } catch (py::error_already_set &e) {
+      e.discard_as_unraisable("RtpsParticipant reply callback");
     }
   };
 }
@@ -176,4 +222,419 @@ void py_init_rtps(py::module &m) {
           },
           py::arg("topic"), py::arg("data"),
           "Publish a CDR-encapsulated sample (bytes) on a topic added with add_writer().");
+
+  // ---- Services (RMI, ROS 2-interoperable) --------------------------------
+  py::class_<Rtps::ServiceClient, std::shared_ptr<Rtps::ServiceClient>>(
+      rtps, "ServiceClient", "Handle for calling a ROS 2-interoperable service.")
+      .def(
+          "call",
+          [](Rtps::ServiceClient &self, const py::bytes &request, double timeout) -> py::object {
+            auto req = to_vec(request);
+            std::optional<std::vector<uint8_t>> r;
+            {
+              py::gil_scoped_release rel;
+              r = self.call(req, std::chrono::milliseconds(static_cast<long>(timeout * 1000)));
+            }
+            return r ? py::object(to_bytes(*r)) : py::none();
+          },
+          py::arg("request"), py::arg("timeout") = 5.0,
+          "Blocking call (RMI). Returns the reply bytes, or None on timeout.")
+      .def(
+          "call_async",
+          [](Rtps::ServiceClient &self, const py::bytes &request, const py::function &on_reply) {
+            auto cb = wrap_reply_callback(on_reply);
+            auto req = to_vec(request);
+            py::gil_scoped_release rel;
+            return self.call_async(req, std::move(cb));
+          },
+          py::arg("request"), py::arg("on_reply"),
+          "Async call (AMI): on_reply(bytes) is invoked when the reply arrives.")
+      .def(
+          "call_future",
+          [](Rtps::ServiceClient &self, const py::bytes &request) {
+            py::object fut = py::module_::import("concurrent.futures").attr("Future")();
+            auto fut_holder = make_gil_safe_object(fut);
+            auto req = to_vec(request);
+            bool queued;
+            {
+              py::gil_scoped_release rel;
+              queued = self.call_async(req, [fut_holder](std::span<const uint8_t> reply) {
+                py::gil_scoped_acquire gil;
+                try {
+                  (*fut_holder).attr("set_result")(to_bytes(reply));
+                } catch (py::error_already_set &e) {
+                  e.discard_as_unraisable("ServiceClient.call_future");
+                }
+              });
+            }
+            if (!queued) {
+              fut.attr("set_result")(py::none());
+            }
+            return fut;
+          },
+          py::arg("request"),
+          "Async call (AMI): returns a concurrent.futures.Future for the reply bytes "
+          "(result is None if the request could not be queued). Use fut.result(timeout=...).");
+
+  rtps.def(
+          "add_service_server",
+          [](Rtps &self, const std::string &service, const std::string &type_name,
+             const py::function &handler) {
+            auto h = wrap_service_handler(handler);
+            py::gil_scoped_release rel;
+            return self.add_service_server({service, type_name}, std::move(h));
+          },
+          py::arg("service"), py::arg("type_name"), py::arg("handler"),
+          "Add a ROS 2 service server; handler(request_bytes) -> reply_bytes.")
+      .def(
+          "add_service_client",
+          [](Rtps &self, const std::string &service, const std::string &type_name) {
+            py::gil_scoped_release rel;
+            return self.add_service_client({service, type_name});
+          },
+          py::arg("service"), py::arg("type_name"), "Add a ROS 2 service client.");
+
+  // ---- Actions (AMI, ROS 2-interoperable) ---------------------------------
+  py::class_<Rtps::ActionGoalHandle>(
+      rtps, "ActionGoalHandle", "Server-side handle to a running goal (in the execute callback).")
+      .def("goal", [](Rtps::ActionGoalHandle &h) { return to_bytes(h.goal()); })
+      .def(
+          "publish_feedback",
+          [](Rtps::ActionGoalHandle &h, const py::bytes &fb) {
+            auto v = to_vec(fb);
+            py::gil_scoped_release rel;
+            h.publish_feedback(v);
+          },
+          py::arg("feedback"))
+      .def(
+          "succeed",
+          [](Rtps::ActionGoalHandle &h, const py::bytes &result) {
+            auto v = to_vec(result);
+            py::gil_scoped_release rel;
+            h.succeed(v);
+          },
+          py::arg("result"))
+      .def(
+          "abort",
+          [](Rtps::ActionGoalHandle &h, const py::bytes &result) {
+            auto v = to_vec(result);
+            py::gil_scoped_release rel;
+            h.abort(v);
+          },
+          py::arg("result"))
+      .def(
+          "canceled",
+          [](Rtps::ActionGoalHandle &h, const py::bytes &result) {
+            auto v = to_vec(result);
+            py::gil_scoped_release rel;
+            h.canceled(v);
+          },
+          py::arg("result"), "Terminate the goal CANCELED (in response to a cancel request).")
+      .def("is_canceling", &Rtps::ActionGoalHandle::is_canceling);
+
+  py::class_<Rtps::ActionClient, std::shared_ptr<Rtps::ActionClient>>(
+      rtps, "ActionClient", "Handle for driving a ROS 2-interoperable action.")
+      .def(
+          "send_goal",
+          [](Rtps::ActionClient &self, const py::bytes &goal, const py::function &on_feedback,
+             const py::function &on_result) -> py::object {
+            auto fb = make_gil_safe_holder(on_feedback);
+            auto rc = make_gil_safe_holder(on_result);
+            auto goal_v = to_vec(goal);
+            std::optional<Rtps::GoalId> gid;
+            {
+              py::gil_scoped_release rel;
+              gid = self.send_goal(
+                  goal_v,
+                  [fb](std::span<const uint8_t> f) {
+                    py::gil_scoped_acquire gil;
+                    try {
+                      (*fb)(to_bytes(f));
+                    } catch (py::error_already_set &e) {
+                      e.discard_as_unraisable("action feedback");
+                    }
+                  },
+                  [rc](int8_t status, std::span<const uint8_t> r) {
+                    py::gil_scoped_acquire gil;
+                    try {
+                      (*rc)(status, to_bytes(r));
+                    } catch (py::error_already_set &e) {
+                      e.discard_as_unraisable("action result");
+                    }
+                  });
+            }
+            if (!gid) {
+              return py::none();
+            }
+            return py::object(py::bytes(reinterpret_cast<const char *>(gid->data()), gid->size()));
+          },
+          py::arg("goal"), py::arg("on_feedback"), py::arg("on_result"),
+          "Send a goal. on_feedback(bytes); on_result(status:int, bytes). Returns the goal id.")
+      .def(
+          "cancel_goal",
+          [](Rtps::ActionClient &self, const py::bytes &goal_id) {
+            auto id_v = to_vec(goal_id);
+            Rtps::GoalId id{};
+            if (id_v.size() != id.size()) {
+              return false;
+            }
+            std::copy(id_v.begin(), id_v.end(), id.begin());
+            py::gil_scoped_release rel;
+            return self.cancel_goal(id);
+          },
+          py::arg("goal_id"), "Request cancellation of a goal by its id (from send_goal).");
+
+  rtps.def(
+      "add_action_server",
+      [](Rtps &self, const std::string &action, const std::string &type_name,
+         const py::function &on_goal, const py::function &execute) {
+        auto og = make_gil_safe_holder(on_goal);
+        auto ex = make_gil_safe_holder(execute);
+        py::gil_scoped_release rel;
+        return self.add_action_server(
+            {action, type_name},
+            [og](const Rtps::GoalId &, std::span<const uint8_t> goal) -> bool {
+              py::gil_scoped_acquire gil;
+              try {
+                return (*og)(to_bytes(goal)).cast<bool>();
+              } catch (py::error_already_set &e) {
+                e.discard_as_unraisable("action on_goal");
+                return false;
+              }
+            },
+            [ex](Rtps::ActionGoalHandle h) {
+              py::gil_scoped_acquire gil;
+              try {
+                (*ex)(h);
+              } catch (py::error_already_set &e) {
+                e.discard_as_unraisable("action execute");
+              }
+            });
+      },
+      py::arg("action"), py::arg("type_name"), py::arg("on_goal"), py::arg("execute"),
+      "Add a ROS 2 action server. on_goal(goal_bytes)->bool; execute(ActionGoalHandle).");
+  rtps.def(
+      "add_action_client",
+      [](Rtps &self, const std::string &action, const std::string &type_name) {
+        py::gil_scoped_release rel;
+        return self.add_action_client({action, type_name});
+      },
+      py::arg("action"), py::arg("type_name"), "Add a ROS 2 action client.");
+
+  // ---- Native (espp<->espp) services + actions ----------------------------
+  py::class_<Rtps::NativeServiceClient, std::shared_ptr<Rtps::NativeServiceClient>>(
+      rtps, "NativeServiceClient", "Handle for a lean native (espp<->espp) service.")
+      .def(
+          "call",
+          [](Rtps::NativeServiceClient &self, const py::bytes &request,
+             double timeout) -> py::object {
+            auto req = to_vec(request);
+            std::optional<std::vector<uint8_t>> r;
+            {
+              py::gil_scoped_release rel;
+              r = self.call(req, std::chrono::milliseconds(static_cast<long>(timeout * 1000)));
+            }
+            return r ? py::object(to_bytes(*r)) : py::none();
+          },
+          py::arg("request"), py::arg("timeout") = 5.0)
+      .def(
+          "call_async",
+          [](Rtps::NativeServiceClient &self, const py::bytes &request,
+             const py::function &on_reply) {
+            auto cb = make_gil_safe_holder(on_reply);
+            auto req = to_vec(request);
+            py::gil_scoped_release rel;
+            return self.call_async(req, [cb](std::span<const uint8_t> reply) {
+              py::gil_scoped_acquire gil;
+              try {
+                (*cb)(to_bytes(reply));
+              } catch (py::error_already_set &e) {
+                e.discard_as_unraisable("native reply");
+              }
+            });
+          },
+          py::arg("request"), py::arg("on_reply"))
+      .def(
+          "call_future",
+          [](Rtps::NativeServiceClient &self, const py::bytes &request) {
+            py::object fut = py::module_::import("concurrent.futures").attr("Future")();
+            auto fut_holder = make_gil_safe_object(fut);
+            auto req = to_vec(request);
+            bool queued;
+            {
+              py::gil_scoped_release rel;
+              queued = self.call_async(req, [fut_holder](std::span<const uint8_t> reply) {
+                py::gil_scoped_acquire gil;
+                try {
+                  (*fut_holder).attr("set_result")(to_bytes(reply));
+                } catch (py::error_already_set &e) {
+                  e.discard_as_unraisable("NativeServiceClient.call_future");
+                }
+              });
+            }
+            if (!queued) {
+              fut.attr("set_result")(py::none());
+            }
+            return fut;
+          },
+          py::arg("request"),
+          "Async call (AMI): returns a concurrent.futures.Future for the reply bytes.");
+
+  py::class_<Rtps::NativeActionClient, std::shared_ptr<Rtps::NativeActionClient>>(
+      rtps, "NativeActionClient", "Handle for a lean native (espp<->espp) action.")
+      .def(
+          "send_goal",
+          [](Rtps::NativeActionClient &self, const py::bytes &goal, const py::function &on_feedback,
+             const py::function &on_result, const py::object &on_accepted) {
+            auto fb = make_gil_safe_holder(on_feedback);
+            auto rc = make_gil_safe_holder(on_result);
+            Rtps::NativeActionClient::accepted_callback_t acc = nullptr;
+            if (!on_accepted.is_none()) {
+              auto ac = make_gil_safe_holder(on_accepted.cast<py::function>());
+              acc = [ac](uint32_t handle) {
+                py::gil_scoped_acquire gil;
+                try {
+                  (*ac)(handle);
+                } catch (py::error_already_set &e) {
+                  e.discard_as_unraisable("native on_accepted");
+                }
+              };
+            }
+            auto goal_v = to_vec(goal);
+            py::gil_scoped_release rel;
+            return self.send_goal(
+                goal_v,
+                [fb](std::span<const uint8_t> f) {
+                  py::gil_scoped_acquire gil;
+                  try {
+                    (*fb)(to_bytes(f));
+                  } catch (py::error_already_set &e) {
+                    e.discard_as_unraisable("native feedback");
+                  }
+                },
+                [rc](uint8_t status, std::span<const uint8_t> r) {
+                  py::gil_scoped_acquire gil;
+                  try {
+                    (*rc)(status, to_bytes(r));
+                  } catch (py::error_already_set &e) {
+                    e.discard_as_unraisable("native result");
+                  }
+                },
+                std::move(acc));
+          },
+          py::arg("goal"), py::arg("on_feedback"), py::arg("on_result"),
+          py::arg("on_accepted") = py::none())
+      .def(
+          "cancel_goal",
+          [](Rtps::NativeActionClient &self, uint32_t goal_handle) {
+            py::gil_scoped_release rel;
+            return self.cancel_goal(goal_handle);
+          },
+          py::arg("goal_handle"));
+
+  rtps.def(
+          "add_native_service_server",
+          [](Rtps &self, const std::string &service, const std::string &type_name,
+             const py::function &handler) {
+            auto h = wrap_service_handler(handler);
+            py::gil_scoped_release rel;
+            return self.add_native_service_server({service, type_name}, std::move(h));
+          },
+          py::arg("service"), py::arg("type_name"), py::arg("handler"))
+      .def(
+          "add_native_service_client",
+          [](Rtps &self, const std::string &service, const std::string &type_name) {
+            py::gil_scoped_release rel;
+            return self.add_native_service_client({service, type_name});
+          },
+          py::arg("service"), py::arg("type_name"))
+      .def(
+          "add_native_action_server",
+          [](Rtps &self, const std::string &action, const std::string &type_name,
+             const py::function &on_goal, const py::function &execute,
+             const py::object &on_cancel) {
+            auto og = make_gil_safe_holder(on_goal);
+            auto ex = make_gil_safe_holder(execute);
+            Rtps::native_cancel_callback_t oc = nullptr;
+            if (!on_cancel.is_none()) {
+              auto ocw = make_gil_safe_holder(on_cancel.cast<py::function>());
+              oc = [ocw](uint32_t handle) -> bool {
+                py::gil_scoped_acquire gil;
+                try {
+                  return (*ocw)(handle).cast<bool>();
+                } catch (py::error_already_set &e) {
+                  e.discard_as_unraisable("native on_cancel");
+                  return false;
+                }
+              };
+            }
+            py::gil_scoped_release rel;
+            return self.add_native_action_server(
+                {action, type_name},
+                [og](std::span<const uint8_t> goal) -> bool {
+                  py::gil_scoped_acquire gil;
+                  try {
+                    return (*og)(to_bytes(goal)).cast<bool>();
+                  } catch (py::error_already_set &e) {
+                    e.discard_as_unraisable("native on_goal");
+                    return false;
+                  }
+                },
+                [ex](Rtps::NativeGoalHandle h) {
+                  py::gil_scoped_acquire gil;
+                  try {
+                    (*ex)(h);
+                  } catch (py::error_already_set &e) {
+                    e.discard_as_unraisable("native execute");
+                  }
+                },
+                std::move(oc));
+          },
+          py::arg("action"), py::arg("type_name"), py::arg("on_goal"), py::arg("execute"),
+          py::arg("on_cancel") = py::none())
+      .def(
+          "add_native_action_client",
+          [](Rtps &self, const std::string &action, const std::string &type_name) {
+            py::gil_scoped_release rel;
+            return self.add_native_action_client({action, type_name});
+          },
+          py::arg("action"), py::arg("type_name"));
+
+  py::class_<Rtps::NativeGoalHandle>(rtps, "NativeGoalHandle",
+                                     "Server-side handle to a running native goal.")
+      .def("goal", [](Rtps::NativeGoalHandle &h) { return to_bytes(h.goal()); })
+      .def("goal_handle", &Rtps::NativeGoalHandle::goal_handle)
+      .def("is_canceling", &Rtps::NativeGoalHandle::is_canceling)
+      .def(
+          "publish_feedback",
+          [](Rtps::NativeGoalHandle &h, const py::bytes &fb) {
+            auto v = to_vec(fb);
+            py::gil_scoped_release rel;
+            h.publish_feedback(v);
+          },
+          py::arg("feedback"))
+      .def(
+          "succeed",
+          [](Rtps::NativeGoalHandle &h, const py::bytes &result) {
+            auto v = to_vec(result);
+            py::gil_scoped_release rel;
+            h.succeed(v);
+          },
+          py::arg("result"))
+      .def(
+          "abort",
+          [](Rtps::NativeGoalHandle &h, const py::bytes &result) {
+            auto v = to_vec(result);
+            py::gil_scoped_release rel;
+            h.abort(v);
+          },
+          py::arg("result"))
+      .def(
+          "canceled",
+          [](Rtps::NativeGoalHandle &h, const py::bytes &result) {
+            auto v = to_vec(result);
+            py::gil_scoped_release rel;
+            h.canceled(v);
+          },
+          py::arg("result"));
 }

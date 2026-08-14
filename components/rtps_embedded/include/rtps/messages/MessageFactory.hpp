@@ -32,6 +32,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/common/types.hpp"
 #include "rtps/config.hpp"
 #include "rtps/messages/MessageTypes.hpp"
+#include "rtps/rpc/sample_identity.hpp"
 #include "rtps/utils/sysFunctions.hpp"
 
 #include <array>
@@ -132,6 +133,75 @@ void addSubMessageData(Buffer &buffer, const PayloadBuffer &filledPayload, bool 
   msg.octetsToInlineQos = octetsToInlineQoS;
 
   serializeMessage(buffer, msg);
+
+  if (filledPayload.isValid()) {
+    buffer.append(filledPayload);
+  }
+}
+
+// Append a DATA submessage that carries a related_sample_identity inline QoS, as
+// rmw_fastrtps uses for ROS 2 service request/reply correlation (see
+// rpc/sample_identity.hpp and RMI_AMI_DESIGN.md 3.2). Distinct from
+// addSubMessageData so the plain pub/sub path stays byte-identical; only the
+// service request/reply writers call this.
+//
+// Layout after the SubmessageData header (readerId..writerSN): an inline QoS
+// ParameterList of two 24-byte related_sample_identity parameters (PID 0x0083
+// and 0x800f, both emitted with the identical value) terminated by PID_SENTINEL,
+// followed by the serialized payload.
+template <class Buffer, class PayloadBuffer>
+void addSubMessageDataWithRelatedSampleIdentity(Buffer &buffer, const PayloadBuffer &filledPayload,
+                                                const rpc::SampleIdentity &relatedSampleIdentity,
+                                                const SequenceNumber_t &SN,
+                                                const EntityId_t &writerID,
+                                                const EntityId_t &readerID) {
+  // Inline QoS parameter list byte count: two (PID + length + 24-byte value)
+  // parameters plus a (PID + length) sentinel.
+  constexpr uint16_t kParamHeader = 2 * sizeof(uint16_t); // parameterId + length
+  constexpr uint16_t kInlineQosBytes =
+      2 * (kParamHeader + rpc::SAMPLE_IDENTITY_CDR_SIZE) + kParamHeader; // + PID_SENTINEL
+
+  SubmessageData msg;
+  msg.header.submessageId = SubmessageKind::DATA;
+#if IS_LITTLE_ENDIAN
+  msg.header.flags = FLAG_LITTLE_ENDIAN;
+#else
+  msg.header.flags = FLAG_BIG_ENDIAN;
+#endif
+  msg.header.flags |= FLAG_INLINE_QOS;
+  if (filledPayload.isValid()) {
+    msg.header.flags |= FLAG_DATA_PAYLOAD;
+  }
+
+  // octetsToNextHeader spans the fixed DATA body + inline QoS + payload (the
+  // narrowing to uint16 is safe: a service request/reply always fits one
+  // submessage). See addSubMessageData for the base calculation.
+  msg.header.octetsToNextHeader =
+      static_cast<uint16_t>(SubmessageData::getRawSize() + kInlineQosBytes +
+                            filledPayload.spaceUsed() - numBytesUntilEndOfLength);
+
+  msg.writerSN = SN;
+  msg.extraFlags = 0;
+  msg.readerId = readerID;
+  msg.writerId = writerID;
+  constexpr uint16_t octetsToInlineQoS = 4 + 4 + 8; // EntityIds + SequenceNumber
+  msg.octetsToInlineQos = octetsToInlineQoS;
+
+  serializeMessage(buffer, msg);
+
+  // Inline QoS ParameterList: same 24-byte value under both PIDs, then sentinel.
+  const auto appendParam = [&](uint16_t pid) {
+    uint16_t length = rpc::SAMPLE_IDENTITY_CDR_SIZE;
+    buffer.append(reinterpret_cast<uint8_t *>(&pid), sizeof(pid));
+    buffer.append(reinterpret_cast<uint8_t *>(&length), sizeof(length));
+    rpc::serializeSampleIdentity(buffer, relatedSampleIdentity);
+  };
+  appendParam(rpc::PID_RELATED_SAMPLE_IDENTITY);
+  appendParam(rpc::PID_CUSTOM_RELATED_SAMPLE_IDENTITY);
+  uint16_t sentinel = SMElement::PID_SENTINEL;
+  uint16_t sentinelLen = 0;
+  buffer.append(reinterpret_cast<uint8_t *>(&sentinel), sizeof(sentinel));
+  buffer.append(reinterpret_cast<uint8_t *>(&sentinelLen), sizeof(sentinelLen));
 
   if (filledPayload.isValid()) {
     buffer.append(filledPayload);

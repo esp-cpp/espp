@@ -28,7 +28,12 @@ cmake -S lib -B lib/build -DCMAKE_BUILD_TYPE=Release > /tmp/cmake_lib.log 2>&1 \
   && cmake -S pc -B pc/build -DCMAKE_BUILD_TYPE=Release > /tmp/cmake.log 2>&1 \
   && cmake --build pc/build -j"$(nproc)" --target \
        rtps_embedded_pubsub rtps_embedded_golden rtps_facade_pubsub rtps_typed_pubsub \
-       rtps_facade_frag rtps_facade_backlog rtps_facade_frag_sizes \
+       rtps_facade_frag rtps_facade_backlog rtps_facade_frag_sizes rtps_service_loopback \
+       rtps_service_naming rtps_action_naming rtps_action_types rtps_native_protocol \
+       rtps_action_loopback \
+       rtps_native_service_loopback rtps_native_action_loopback rtps_typed_rpc_loopback \
+       rtps_service_interop_server rtps_service_interop_client \
+       rtps_action_interop_server rtps_action_interop_client \
        rtps_embedded_interop_pub rtps_embedded_interop_sub > /tmp/build.log 2>&1
 build_rc=$?
 result "build" $build_rc
@@ -41,6 +46,16 @@ export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 
 note "Golden wire-format tests"
 "$BIN"/rtps_embedded_golden; result "golden" $?
+
+note "ROS 2 service + action name/type mangling (host)"
+"$BIN"/rtps_service_naming; result "service_naming" $?
+"$BIN"/rtps_action_naming; result "action_naming" $?
+
+note "ROS 2 action envelope codec vs captured Fibonacci bytes (host)"
+"$BIN"/rtps_action_types; result "action_types" $?
+
+note "native (espp<->espp) protocol codec: header + action framing (host)"
+"$BIN"/rtps_native_protocol; result "native_protocol" $?
 
 note "espp <-> espp in-process loopback"
 "$BIN"/rtps_embedded_pubsub; result "loopback" $?
@@ -56,6 +71,30 @@ note "typed pub/sub in-process"
 # Non-fragmented small samples, so robust in the shared-netns container.
 note "reliable backlog: no sample skipped (dynamic history growth)"
 "$BIN"/rtps_facade_backlog; result "backlog_no_skip" $?
+
+# Service (RMI) request/reply in-process: exercises name mangling + the
+# related_sample_identity inline-QoS emit/parse + pending-request correlation.
+# Non-fragmented small payloads, so robust in the shared-netns container.
+note "service (RMI) request/reply loopback (related_sample_identity correlation)"
+"$BIN"/rtps_service_loopback; result "service_loopback" $?
+
+# Action (AMI) in-process: send_goal + feedback + get_result (deferred) over the
+# 3 services + 2 topics, correlated by goal UUID. Non-fragmented, container-robust.
+note "action (AMI) goal server loopback (Fibonacci: feedback + deferred result)"
+"$BIN"/rtps_action_loopback; result "action_loopback" $?
+
+# Native (espp<->espp) lean request/reply: 20-byte in-band header over pub/sub,
+# all three client styles (sync/async/future). Not ROS-interoperable by design.
+note "native (espp<->espp) service loopback (in-band correlation header)"
+"$BIN"/rtps_native_service_loopback; result "native_service_loopback" $?
+
+note "native (espp<->espp) action loopback (lean AMI: goal + feedback + result)"
+"$BIN"/rtps_native_action_loopback; result "native_action_loopback" $?
+
+# Typed espp-idiomatic wrappers (ServiceServer/Client, ActionServer/Client) over
+# reflectable structs - the RMI/AMI analogue of Publisher<T>/Subscriber<T>.
+note "typed RMI/AMI wrappers loopback (ServiceServer/Client + ActionServer/Client)"
+"$BIN"/rtps_typed_rpc_loopback; result "typed_rpc_loopback" $?
 
 # NOTE: the in-process fragmented loopbacks (rtps_facade_frag, rtps_facade_frag_sizes)
 # are BUILT above (compile guard) but run as standalone host gates (docker-free),
@@ -159,6 +198,90 @@ kill $ROSBIG_PID 2>/dev/null; wait $ROSBIG_PID 2>/dev/null
 echo "--- subbig tail ---"; tail -20 /tmp/subbig.log
 echo "--- rospubbig tail ---"; tail -5 /tmp/rospubbig.log
 result "ros2_pub->espp_sub_200k" $big2_rc
+
+# --- Services (RMI): live ROS 2 <-> espp request/reply -----------------------
+# The espp service uses the same rq/rr topics + _Request_/_Response_ types +
+# related_sample_identity inline QoS that rmw_fastrtps uses, so a real ROS 2
+# client/server interoperates with no type-hash exchange (verified: the service
+# even appears in `ros2 service list`).
+
+note "espp service server <- ROS 2 client (ros2 service call add_two_ints)"
+"$BIN"/rtps_service_interop_server /add_two_ints example_interfaces::srv::dds_::AddTwoInts 40 \
+  > /tmp/svcsrv.log 2>&1 &
+SVCSRV=$!
+sleep 4
+timeout 25 ros2 service call /add_two_ints example_interfaces/srv/AddTwoInts "{a: 7, b: 35}" \
+  > /tmp/svccall.log 2>&1
+# Pass iff ROS 2 got the correct response (sum=42).
+grep -q "sum=42" /tmp/svccall.log; svccall_rc=$?
+sleep 1
+kill $SVCSRV 2>/dev/null; wait $SVCSRV 2>/dev/null
+echo "--- ros2 service call ---"; tail -3 /tmp/svccall.log
+echo "--- espp server ---"; grep "server:" /tmp/svcsrv.log | tail -3
+result "espp_service_server<-ros2_client" $svccall_rc
+
+note "espp service client -> ROS 2 server (rclpy add_two_ints)"
+python3 /work/components/rtps_embedded/interop/ros2_add_two_ints_server.py > /tmp/rossvcsrv.log 2>&1 &
+ROSSVC=$!
+sleep 4
+timeout 35 "$BIN"/rtps_service_interop_client /add_two_ints example_interfaces::srv::dds_::AddTwoInts \
+  20 22 30 > /tmp/svcclient.log 2>&1
+svcclient_rc=$?
+kill $ROSSVC 2>/dev/null; wait $ROSSVC 2>/dev/null
+echo "--- espp client ---"; tail -2 /tmp/svcclient.log
+echo "--- rclpy server ---"; grep -iE "= [0-9]" /tmp/rossvcsrv.log | tail -2
+result "espp_service_client->ros2_server" $svcclient_rc
+
+# --- Actions (AMI): live ROS 2 <-> espp Fibonacci ---------------------------
+
+note "espp action server <- ROS 2 client (ros2 action send_goal -f fibonacci)"
+"$BIN"/rtps_action_interop_server /fibonacci example_interfaces::action::dds_::Fibonacci 45 \
+  > /tmp/actsrv.log 2>&1 &
+ACTSRV=$!
+sleep 5
+timeout 30 ros2 action send_goal -f /fibonacci example_interfaces/action/Fibonacci "{order: 5}" \
+  > /tmp/actsend.log 2>&1
+# Pass iff the ROS 2 client's goal completed on the espp server (full round-trip:
+# send_goal accepted -> feedback -> deferred get_result -> SUCCEEDED). The result
+# sequence itself is byte-validated separately by the action_types codec test.
+grep -q "status: SUCCEEDED" /tmp/actsend.log
+actsend_rc=$?
+sleep 1
+kill $ACTSRV 2>/dev/null; wait $ACTSRV 2>/dev/null
+echo "--- ros2 action send_goal ---"; grep -iE "Result:|sequence=|status|Goal finished" /tmp/actsend.log | tail -4
+echo "--- espp action server ---"; grep "server:" /tmp/actsrv.log | tail -3
+result "espp_action_server<-ros2_client" $actsend_rc
+
+note "espp action client -> ROS 2 server (rclpy Fibonacci)"
+python3 /work/components/rtps_embedded/interop/ros2_fibonacci_server.py > /tmp/rosactsrv.log 2>&1 &
+ROSACT=$!
+sleep 5
+timeout 40 "$BIN"/rtps_action_interop_client /fibonacci example_interfaces::action::dds_::Fibonacci \
+  5 30 > /tmp/actclient.log 2>&1
+actclient_rc=$?
+kill $ROSACT 2>/dev/null; wait $ROSACT 2>/dev/null
+echo "--- espp action client ---"; tail -2 /tmp/actclient.log
+echo "--- rclpy server ---"; grep -iE "order=" /tmp/rosactsrv.log | tail -2
+result "espp_action_client->ros2_server" $actclient_rc
+
+# --- Python bindings: functional round-trip of every RMI/AMI mechanism --------
+# Build the espp wheel in-container and run the demo (multicast discovery works
+# here via the shared network namespace), exercising the GIL-wrapped service /
+# action / native bindings that the C++ tests cannot reach.
+note "Python bindings functional demo (services + actions + native, 5 mechanisms)"
+# The container-local copy has no .git (rsync excludes it), so setuptools-scm
+# cannot derive a version - pin one via SETUPTOOLS_SCM_PRETEND_VERSION.
+SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0+interop \
+  /opt/espp-venv/bin/pip install --no-build-isolation --no-deps -q . > /tmp/pywheel.log 2>&1
+pywheel_rc=$?
+if [ $pywheel_rc -ne 0 ]; then
+  echo "python wheel build failed"; tail -20 /tmp/pywheel.log; result "python_rpc_demo" 1
+else
+  /opt/espp-venv/bin/python python/rtps_rpc_demo.py > /tmp/pydemo.log 2>&1
+  pydemo_rc=$?
+  grep -E "PASS|FAIL|ALL PASS|FAILURES" /tmp/pydemo.log | tail -8
+  result "python_rpc_demo" $pydemo_rc
+fi
 
 echo ""
 echo "==================== SUMMARY ===================="

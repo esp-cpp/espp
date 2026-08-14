@@ -81,7 +81,9 @@ void StatelessWriter::reset() { m_is_initialized_ = false; }
 
 const CacheChange *StatelessWriter::newChange(rtps::ChangeKind_t kind, const uint8_t *data,
                                               DataSize_t size, bool inLineQoS,
-                                              bool markDisposedAfterWrite) {
+                                              bool markDisposedAfterWrite,
+                                              bool hasRelatedSampleIdentity,
+                                              const rpc::SampleIdentity &relatedSampleIdentity) {
   INIT_GUARD();
   if (isIrrelevant(kind)) {
     return nullptr;
@@ -104,7 +106,8 @@ const CacheChange *StatelessWriter::newChange(rtps::ChangeKind_t kind, const uin
   const bool wasFull = m_history.isFull();
   const SequenceNumber_t minBefore = m_history.getSeqNumMin();
 
-  auto *result = m_history.addChange(data, size);
+  auto *result = m_history.addChange(data, size, inLineQoS, markDisposedAfterWrite,
+                                     hasRelatedSampleIdentity, relatedSampleIdentity);
 
   if (wasFull) {
     const SequenceNumber_t minAfter = m_history.getSeqNumMin();
@@ -200,18 +203,33 @@ void StatelessWriter::progress() {
           reid = proxy.remoteReaderGuid.entityId;
         }
 
+        if (next->hasRelatedSampleIdentity) {
+          // ROS 2 service request/reply: carry the related_sample_identity as
+          // inline QoS. Such a sample must fit one DATA submessage - DATA_FRAG
+          // carries no inline QoS, so fragmenting it would drop the correlation
+          // and the caller would time out. The RPC facade rejects payloads above
+          // MAX_UNFRAGMENTED_RPC_PAYLOAD; guard here too rather than emit an
+          // uncorrelated fragment.
+          if (next->data.spaceUsed() > MAX_UNFRAGMENTED_RPC_PAYLOAD) {
+            continue;
+          }
+          MessageFactory::addSubMessageDataWithRelatedSampleIdentity(
+              payload, next->data, next->relatedSampleIdentity, next->sequenceNumber,
+              m_attributes.endpointGuid.entityId, reid);
+        } else {
 #ifdef RTPS_ENABLE_FRAGMENTATION
-        if (next->data.spaceUsed() > MAX_UNFRAGMENTED_PAYLOAD) {
-          // Oversized sample: emit DATA_FRAG submessages (built + sent under the
-          // lock so next->data stays valid across fragments) and skip the single
-          // DATA path for this proxy.
-          sendSampleFragmented(info.destAddr, info.destPort, reid, next);
-          continue;
-        }
+          if (next->data.spaceUsed() > MAX_UNFRAGMENTED_PAYLOAD) {
+            // Oversized plain sample: emit DATA_FRAG submessages (built + sent
+            // under the lock so next->data stays valid across fragments) and
+            // skip the single DATA path for this proxy.
+            sendSampleFragmented(info.destAddr, info.destPort, reid, next);
+            continue;
+          }
 #endif
-        MessageFactory::addSubMessageData(payload, next->data, false, next->sequenceNumber,
-                                          m_attributes.endpointGuid.entityId,
-                                          reid); // TODO
+          MessageFactory::addSubMessageData(payload, next->data, false, next->sequenceNumber,
+                                            m_attributes.endpointGuid.entityId,
+                                            reid); // TODO
+        }
       }
 
       info.payload = std::move(payload.bytes);

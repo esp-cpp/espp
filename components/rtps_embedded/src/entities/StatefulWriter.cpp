@@ -85,9 +85,10 @@ void StatefulWriter::reset() {
   // TODO
 }
 
-const rtps::CacheChange *StatefulWriter::newChange(ChangeKind_t kind, const uint8_t *data,
-                                                   DataSize_t size, bool inLineQoS,
-                                                   bool markDisposedAfterWrite) {
+const rtps::CacheChange *
+StatefulWriter::newChange(ChangeKind_t kind, const uint8_t *data, DataSize_t size, bool inLineQoS,
+                          bool markDisposedAfterWrite, bool hasRelatedSampleIdentity,
+                          const rpc::SampleIdentity &relatedSampleIdentity) {
   INIT_GUARD()
   if (isIrrelevant(kind)) {
     return nullptr;
@@ -111,7 +112,8 @@ const rtps::CacheChange *StatefulWriter::newChange(ChangeKind_t kind, const uint
   const bool wasFull = m_history.isFull();
   const SequenceNumber_t minBefore = m_history.getCurrentSeqNumMin();
 
-  auto *result = m_history.addChange(data, size, inLineQoS, markDisposedAfterWrite);
+  auto *result = m_history.addChange(data, size, inLineQoS, markDisposedAfterWrite,
+                                     hasRelatedSampleIdentity, relatedSampleIdentity);
 
   if (wasFull) {
     const SequenceNumber_t minAfter = m_history.getCurrentSeqNumMin();
@@ -331,16 +333,29 @@ bool StatefulWriter::sendData(const ReaderProxy &reader, const CacheChange *next
   info.destAddr = locator.getIp4AddressBytes();
   info.destPort = (Ip4Port_t)locator.port;
 
+  if (next->hasRelatedSampleIdentity) {
+    // ROS 2 service request/reply: carry related_sample_identity as inline QoS.
+    // Such a sample must fit one DATA submessage - DATA_FRAG carries no inline
+    // QoS, so fragmenting it would drop the correlation and the caller would
+    // time out. The RPC facade rejects payloads above MAX_UNFRAGMENTED_RPC_PAYLOAD;
+    // guard here too rather than emit an uncorrelated fragment.
+    if (next->data.spaceUsed() > MAX_UNFRAGMENTED_RPC_PAYLOAD) {
+      return false;
+    }
+    MessageFactory::addSubMessageDataWithRelatedSampleIdentity(
+        payload, next->data, next->relatedSampleIdentity, next->sequenceNumber,
+        m_attributes.endpointGuid.entityId, reader.remoteReaderGuid.entityId);
+  } else {
 #ifdef RTPS_ENABLE_FRAGMENTATION
-  if (next->data.spaceUsed() > MAX_UNFRAGMENTED_PAYLOAD) {
-    return sendSampleFragmented(info.destAddr, info.destPort, reader.remoteReaderGuid.entityId,
-                                next);
-  }
+    if (next->data.spaceUsed() > MAX_UNFRAGMENTED_PAYLOAD) {
+      return sendSampleFragmented(info.destAddr, info.destPort, reader.remoteReaderGuid.entityId,
+                                  next);
+    }
 #endif
-
-  MessageFactory::addSubMessageData(payload, next->data, next->inLineQoS, next->sequenceNumber,
-                                    m_attributes.endpointGuid.entityId,
-                                    reader.remoteReaderGuid.entityId);
+    MessageFactory::addSubMessageData(payload, next->data, next->inLineQoS, next->sequenceNumber,
+                                      m_attributes.endpointGuid.entityId,
+                                      reader.remoteReaderGuid.entityId);
+  }
   info.payload = std::move(payload.bytes);
   if (info.payload.empty()) {
     return false;
@@ -450,8 +465,15 @@ bool StatefulWriter::sendDataWRMulticast(const ReaderProxy &reader, const CacheC
     }
 #endif
 
-    MessageFactory::addSubMessageData(payload, next->data, next->inLineQoS, next->sequenceNumber,
-                                      m_attributes.endpointGuid.entityId, reid);
+    if (next->hasRelatedSampleIdentity) {
+      // ROS 2 service request/reply: carry related_sample_identity as inline QoS.
+      MessageFactory::addSubMessageDataWithRelatedSampleIdentity(
+          payload, next->data, next->relatedSampleIdentity, next->sequenceNumber,
+          m_attributes.endpointGuid.entityId, reid);
+    } else {
+      MessageFactory::addSubMessageData(payload, next->data, next->inLineQoS, next->sequenceNumber,
+                                        m_attributes.endpointGuid.entityId, reid);
+    }
 
     info.payload = std::move(payload.bytes);
     if (info.payload.empty()) {

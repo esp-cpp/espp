@@ -54,3 +54,12 @@ if(CONFIG_RTPS_ENABLE_FRAGMENTATION)
     RTPS_ENABLE_FRAGMENTATION RTPS_MAX_SAMPLE_SIZE=262144)
 endif()
 
+# The RPC layer (services + actions) is compiled in by default; the facade
+# header defines RTPS_WITH_RPC unless RTPS_NO_RPC is set. When the Kconfig option
+# is turned OFF, define RTPS_NO_RPC so the whole services/actions surface (and its
+# std::thread/std::future use) is excluded, saving flash. ESP-only (this file is
+# the ESP-IDF component build); host builds always keep RPC on.
+if(NOT CONFIG_RTPS_ENABLE_RPC)
+  target_compile_definitions(${COMPONENT_LIB} PUBLIC RTPS_NO_RPC)
+endif()
+
