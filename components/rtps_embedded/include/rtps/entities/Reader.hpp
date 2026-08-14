@@ -31,6 +31,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/config.hpp"
 #include "rtps/discovery/TopicData.hpp"
 #include "rtps/entities/WriterProxy.hpp"
+#include "rtps/rpc/sample_identity.hpp"
 #include "rtps/storages/MemoryPool.hpp"
 #include <cstring>
 #include <mutex>
@@ -52,14 +53,23 @@ public:
   const DataSize_t size;
   const Guid_t writerGuid;
   const SequenceNumber_t sn;
+  // ROS 2 request/reply correlation: when the DATA carried a
+  // related_sample_identity inline QoS (PID 0x0083 / 0x800f), it is surfaced here
+  // so a service endpoint can correlate. Zero-cost for plain pub/sub (the flag
+  // stays false). See rpc/sample_identity.hpp.
+  const bool hasRelatedSampleIdentity;
+  const rpc::SampleIdentity relatedSampleIdentity;
 
   ReaderCacheChange(ChangeKind_t kind, Guid_t &writerGuid, SequenceNumber_t sn, const uint8_t *data,
-                    DataSize_t size)
+                    DataSize_t size, bool hasRelatedSampleIdentity = false,
+                    const rpc::SampleIdentity &relatedSampleIdentity = {})
       : data(data)
       , kind(kind)
       , size(size)
       , writerGuid(writerGuid)
-      , sn(sn){};
+      , sn(sn)
+      , hasRelatedSampleIdentity(hasRelatedSampleIdentity)
+      , relatedSampleIdentity(relatedSampleIdentity){};
 
   ~ReaderCacheChange() = default; // No need to free data. It's not owned by this object
   // Not allowed because this class doesn't own the ptr and the user isn't

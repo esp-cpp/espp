@@ -157,6 +157,12 @@ bool MessageReceiver::processDataSubmessage(MessageProcessingInfo &msgInfo,
     return false;
   }
 
+  // ROS 2 service correlation: capture a related_sample_identity inline QoS if
+  // present (PID 0x0083 or the eProsima legacy 0x800f, both a 24-byte
+  // SampleIdentity). Plain pub/sub leaves this unset.
+  bool hasRelatedSampleIdentity = false;
+  rpc::SampleIdentity relatedSampleIdentity{};
+
   if ((submsgHeader.flags & FLAG_INLINE_QOS) != 0) {
     const uint8_t *cursor = serializedData;
     bool foundSentinel = false;
@@ -178,6 +184,23 @@ bool MessageReceiver::processDataSubmessage(MessageProcessingInfo &msgInfo,
       if (cursor + length > submessageEnd) {
         return false;
       }
+
+      if ((pid == rpc::PID_RELATED_SAMPLE_IDENTITY ||
+           pid == rpc::PID_CUSTOM_RELATED_SAMPLE_IDENTITY) &&
+          length >= rpc::SAMPLE_IDENTITY_CDR_SIZE && !hasRelatedSampleIdentity) {
+        // 24-byte value: Guid_t (prefix 12 + entityKey 3 + entityKind 1) then
+        // SequenceNumber_t (high int32, low uint32), all little-endian.
+        Guid_t g{};
+        memcpy(g.prefix.id.data(), cursor, g.prefix.id.size());
+        memcpy(g.entityId.entityKey.data(), cursor + 12, g.entityId.entityKey.size());
+        memcpy(&g.entityId.entityKind, cursor + 15, sizeof(EntityKind_t));
+        SequenceNumber_t seq{};
+        memcpy(&seq.high, cursor + 16, sizeof(seq.high));
+        memcpy(&seq.low, cursor + 20, sizeof(seq.low));
+        relatedSampleIdentity = rpc::SampleIdentity{g, seq};
+        hasRelatedSampleIdentity = true;
+      }
+
       cursor += length;
 
       const std::size_t consumed = static_cast<std::size_t>(cursor - serializedData);
@@ -221,8 +244,9 @@ bool MessageReceiver::processDataSubmessage(MessageProcessingInfo &msgInfo,
   }
   if (reader != nullptr) {
     Guid_t writerGuid{sourceState.sourceGuidPrefix, dataSubmsg.writerId};
-    ReaderCacheChange change{ChangeKind_t::ALIVE, writerGuid, dataSubmsg.writerSN, serializedData,
-                             size};
+    ReaderCacheChange change{ChangeKind_t::ALIVE,  writerGuid, dataSubmsg.writerSN,
+                             serializedData,       size,       hasRelatedSampleIdentity,
+                             relatedSampleIdentity};
     reader->newChange(change);
   } else {
 #if RECV_VERBOSE && RTPS_GLOBAL_VERBOSE
