@@ -108,8 +108,13 @@ void addSubMessageData(Buffer &buffer, const PayloadBuffer &filledPayload, bool 
   msg.header.flags = FLAG_BIG_ENDIAN;
 #endif
 
-  msg.header.octetsToNextHeader =
-      SubmessageData::getRawSize() + filledPayload.spaceUsed() - numBytesUntilEndOfLength;
+  // octetsToNextHeader is a 16-bit wire field. spaceUsed() is now DataSize_t
+  // (uint32) but the non-fragmented DATA path is only reached for samples that
+  // fit a single submessage (< 64 KB), so the narrowing to uint16 is correct
+  // and required for wire-format neutrality. (DATA_FRAG, when it lands, will
+  // carry oversized samples via fragment-sized submessages instead.)
+  msg.header.octetsToNextHeader = static_cast<uint16_t>(
+      SubmessageData::getRawSize() + filledPayload.spaceUsed() - numBytesUntilEndOfLength);
 
   if (containsInlineQos) {
     msg.header.flags |= FLAG_INLINE_QOS;
@@ -132,6 +137,45 @@ void addSubMessageData(Buffer &buffer, const PayloadBuffer &filledPayload, bool 
     buffer.append(filledPayload);
   }
 }
+
+#ifdef RTPS_ENABLE_FRAGMENTATION
+// Append one DATA_FRAG submessage carrying [fragData, fragData+fragLen) as the
+// serializedData for fragment(s) starting at fragStartNum (1-based). fragLen must
+// be <= 65507 - overhead (guaranteed because callers pass fragmentSize-bounded
+// chunks). fragmentsInSubmessage is normally 1 (simplest, interop-friendly).
+template <class Buffer>
+void addSubMessageDataFrag(Buffer &buffer, const uint8_t *fragData, uint16_t fragLen,
+                           uint32_t fragStartNum, uint16_t fragsInSubmsg, uint16_t fragmentSize,
+                           uint32_t sampleSize, const SequenceNumber_t &SN,
+                           const EntityId_t &writerID, const EntityId_t &readerID) {
+  SubmessageDataFrag msg;
+  msg.header.submessageId = SubmessageKind::DATA_FRAG;
+#if IS_LITTLE_ENDIAN
+  msg.header.flags = FLAG_LITTLE_ENDIAN;
+#else
+  msg.header.flags = FLAG_BIG_ENDIAN;
+#endif
+  // DATA_FRAG has no separate "data present" flag (bit 2 is the Key flag); the
+  // serializedData is always present. Alive CDR samples set only E (+ Q if
+  // inlineQos, which we do not emit).
+  msg.header.octetsToNextHeader =
+      static_cast<uint16_t>(SubmessageDataFrag::getRawSize() + fragLen - numBytesUntilEndOfLength);
+  msg.extraFlags = 0;
+  msg.octetsToInlineQos = SubmessageDataFrag::octetsToInlineQosValue();
+  msg.readerId = readerID;
+  msg.writerId = writerID;
+  msg.writerSN = SN;
+  msg.fragmentStartingNum = fragStartNum;
+  msg.fragmentsInSubmessage = fragsInSubmsg;
+  msg.fragmentSize = fragmentSize;
+  msg.sampleSize = sampleSize;
+
+  serializeMessage(buffer, msg);
+
+  buffer.reserve(fragLen);
+  buffer.append(fragData, fragLen);
+}
+#endif // RTPS_ENABLE_FRAGMENTATION
 
 template <class Buffer>
 void addHeartbeat(Buffer &buffer, EntityId_t writerId, EntityId_t readerId,

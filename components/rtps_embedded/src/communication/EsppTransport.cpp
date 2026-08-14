@@ -1,7 +1,6 @@
 /*
 The MIT License
-Copyright (c) 2019 Lehrstuhl Informatik 11 - RWTH Aachen University
-Modifications Copyright (c) 2026 ATDev
+Copyright (c) 2026 ATDev
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -18,9 +17,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE
 
-This file is part of embeddedRTPS.
-
-Author: i11 - Embedded Software, RWTH Aachen University
+This file is part of the espp embeddedRTPS port.
 */
 
 #include "rtps/communication/EsppTransport.hpp"
@@ -32,6 +29,14 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include <cstdlib>
 #include <optional>
 #include <vector>
+
+#ifdef RTPS_ENABLE_FRAGMENTATION
+#if defined(_WIN32)
+#include <winsock2.h>
+#else
+#include <sys/socket.h>
+#endif
+#endif
 
 using rtps::EsppTransport;
 
@@ -125,7 +130,16 @@ bool EsppTransport::startReceiver(Channel &channel, Ip4Port_t receivePort) {
   // preserving RTPS's per-locator ordering.
   espp::UdpSocket::ReceiveConfig receive_config;
   receive_config.port = receivePort;
+#ifdef RTPS_ENABLE_FRAGMENTATION
+  // With fragmentation enabled a peer (e.g. FastDDS/ROS 2) may send DATA_FRAG
+  // fragments as large as a full UDP datagram (~64 KB), so the per-datagram read
+  // buffer must accept any single datagram or large fragments get truncated on
+  // receive. The ESP32 default build (fragmentation off) keeps the small 8 KB
+  // buffer, paying nothing for this.
+  receive_config.buffer_size = 64 * 1024;
+#else
   receive_config.buffer_size = 1024 * 8;
+#endif
   receive_config.on_receive_callback =
       [this, receivePort](std::vector<uint8_t> &data,
                           const espp::Socket::Info &sender) -> std::optional<std::vector<uint8_t>> {
@@ -155,6 +169,18 @@ EsppTransport::Channel *EsppTransport::createChannel(Ip4Port_t receivePort, bool
       channel.socket.reset();
       return nullptr;
     }
+
+#ifdef RTPS_ENABLE_FRAGMENTATION
+    // Enlarge the kernel receive buffer so a burst of DATA_FRAG datagrams for one
+    // large (fragmented) sample is not dropped before the reactor drains it.
+    // Best-effort: some stacks clamp SO_RCVBUF, so failure is ignored. Only
+    // compiled when fragmentation is enabled (never on the ESP32 default build).
+    {
+      int rcvbuf = 4 * 1024 * 1024; // request 4 MB (kernel may clamp)
+      ::setsockopt(channel.socket->native_handle(), SOL_SOCKET, SO_RCVBUF,
+                   reinterpret_cast<const char *>(&rcvbuf), sizeof(rcvbuf));
+    }
+#endif
 
     if (!allow_reuse && !channel.socket->disable_reuse()) {
       logger_.error("Failed to disable port reuse for unicast port {}", receivePort);

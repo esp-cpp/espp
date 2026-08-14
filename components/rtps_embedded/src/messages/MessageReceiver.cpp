@@ -105,6 +105,12 @@ bool MessageReceiver::processSubmessage(MessageProcessingInfo &msgInfo,
     RECV_LOG("Processing Data submessage");
     success = processDataSubmessage(msgInfo, submsgHeader, sourceState);
     break;
+#ifdef RTPS_ENABLE_FRAGMENTATION
+  case SubmessageKind::DATA_FRAG:
+    RECV_LOG("Processing DataFrag submessage");
+    success = processDataFragSubmessage(msgInfo, submsgHeader, sourceState);
+    break;
+#endif
   case SubmessageKind::HEARTBEAT:
     RECV_LOG("Processing Heartbeat submessage");
     success = processHeartbeatSubmessage(msgInfo, sourceState);
@@ -227,6 +233,81 @@ bool MessageReceiver::processDataSubmessage(MessageProcessingInfo &msgInfo,
 
   return true;
 }
+
+#ifdef RTPS_ENABLE_FRAGMENTATION
+bool MessageReceiver::processDataFragSubmessage(MessageProcessingInfo &msgInfo,
+                                                const SubmessageHeader &submsgHeader,
+                                                const rtps::MessageSourceState &sourceState) {
+  SubmessageDataFrag frag;
+  if (!deserializeMessage(msgInfo, frag)) {
+    return false;
+  }
+
+  const uint8_t *submessageStart = msgInfo.getPointerToCurrentPos();
+  const uint8_t *submessageEnd =
+      submessageStart + SubmessageHeader::getRawSize() + submsgHeader.octetsToNextHeader;
+  const uint16_t submessageBodyOffset = static_cast<uint16_t>(
+      sizeof(frag.extraFlags) + sizeof(frag.octetsToInlineQos) + frag.octetsToInlineQos);
+  const uint8_t *serializedData =
+      submessageStart + SubmessageHeader::getRawSize() + submessageBodyOffset;
+
+  if (serializedData > submessageEnd) {
+    return false;
+  }
+
+  // Skip an inlineQos ParameterList if present (a peer may attach a key hash to
+  // the first fragment), mirroring processDataSubmessage.
+  if ((submsgHeader.flags & FLAG_INLINE_QOS) != 0) {
+    const uint8_t *cursor = serializedData;
+    bool foundSentinel = false;
+    while ((cursor + sizeof(uint16_t) + sizeof(uint16_t)) <= submessageEnd) {
+      uint16_t pid = 0;
+      uint16_t length = 0;
+      memcpy(&pid, cursor, sizeof(pid));
+      cursor += sizeof(pid);
+      memcpy(&length, cursor, sizeof(length));
+      cursor += sizeof(length);
+      if (pid == SMElement::PID_SENTINEL) {
+        foundSentinel = true;
+        serializedData = cursor;
+        break;
+      }
+      if (cursor + length > submessageEnd) {
+        return false;
+      }
+      cursor += length;
+      const std::size_t consumed = static_cast<std::size_t>(cursor - serializedData);
+      const std::size_t alignment = (4 - (consumed % 4)) % 4;
+      if (cursor + alignment > submessageEnd) {
+        return false;
+      }
+      cursor += alignment;
+    }
+    if (!foundSentinel) {
+      return false;
+    }
+  }
+
+  if (serializedData > submessageEnd) {
+    return false;
+  }
+  const DataSize_t fragDataLen = static_cast<DataSize_t>(submessageEnd - serializedData);
+
+  Reader *reader;
+  if (frag.readerId == ENTITYID_UNKNOWN) {
+    reader = mp_part->getReaderByWriterId(Guid_t{sourceState.sourceGuidPrefix, frag.writerId});
+  } else {
+    reader = mp_part->getReader(frag.readerId);
+  }
+  if (reader != nullptr) {
+    Guid_t writerGuid{sourceState.sourceGuidPrefix, frag.writerId};
+    reader->newFragment(writerGuid, frag.writerSN, frag.fragmentStartingNum,
+                        frag.fragmentsInSubmessage, frag.fragmentSize, frag.sampleSize,
+                        serializedData, fragDataLen);
+  }
+  return true;
+}
+#endif
 
 bool MessageReceiver::processHeartbeatSubmessage(MessageProcessingInfo &msgInfo,
                                                  const rtps::MessageSourceState &sourceState) {

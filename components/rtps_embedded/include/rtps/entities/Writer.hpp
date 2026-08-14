@@ -82,9 +82,19 @@ public:
 
   bool isBuiltinEndpoint();
 
+  /// Set the nominal per-fragment payload size used when a published sample is
+  /// too large for a single DATA submessage and must be split into DATA_FRAG
+  /// submessages. Clamped to <= MAX_FRAGMENT_SIZE so each single-fragment
+  /// DATA_FRAG still fits one UDP datagram. No effect when fragmentation is
+  /// compiled out.
+  void setFragmentSize(uint16_t fragmentSize) { m_fragmentSize = fragmentSize; }
+
 protected:
   Writer();
   SequenceNumber_t m_sedp_sequence_number;
+
+  //! Nominal per-fragment payload size for DATA_FRAG (default 63000).
+  uint16_t m_fragmentSize = 63000;
 
   std::recursive_mutex m_mutex;
 

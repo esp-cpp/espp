@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <mutex>
 #include <rtps/entities/Reader.hpp>
 #include <rtps/entities/StatefulReader.hpp>
@@ -22,6 +23,99 @@ void Reader::executeCallbacks(const ReaderCacheChange &cacheChange) {
 }
 
 bool Reader::initMutex() { return true; }
+
+#ifdef RTPS_ENABLE_FRAGMENTATION
+void Reader::newFragment(const Guid_t &writerGuid, const SequenceNumber_t &sn,
+                         uint32_t fragmentStartingNum, uint16_t fragmentsInSubmessage,
+                         uint16_t fragmentSize, uint32_t sampleSize, const uint8_t *fragData,
+                         DataSize_t fragDataLen) {
+  if (fragmentSize == 0 || sampleSize == 0 || fragmentStartingNum == 0) {
+    return;
+  }
+  if (sampleSize > Config::MAX_SAMPLE_SIZE) {
+    logger_.warn("Dropping fragmented sample: sampleSize {} exceeds MAX_SAMPLE_SIZE {}",
+                 static_cast<unsigned>(sampleSize), static_cast<unsigned>(Config::MAX_SAMPLE_SIZE));
+    return;
+  }
+
+  std::vector<uint8_t> completedBuffer; // moved out on completion; owns the bytes
+  bool haveCompleted = false;
+
+  {
+    std::lock_guard<std::mutex> lock(m_reassembly_mutex);
+
+    // Start a fresh reassembly if this is a different sample (best-effort
+    // eviction of any older incomplete one) or nothing is in flight.
+    const bool sameSample =
+        m_reassembly.active && m_reassembly.writerGuid == writerGuid && m_reassembly.sn == sn;
+    if (!sameSample) {
+      m_reassembly.active = true;
+      m_reassembly.writerGuid = writerGuid;
+      m_reassembly.sn = sn;
+      m_reassembly.sampleSize = sampleSize;
+      m_reassembly.fragmentSize = fragmentSize;
+      m_reassembly.totalFragments = (sampleSize + fragmentSize - 1) / fragmentSize;
+      m_reassembly.receivedFragments = 0;
+      m_reassembly.buffer.assign(sampleSize, 0);
+      m_reassembly.received.assign(m_reassembly.totalFragments, false);
+    } else if (m_reassembly.sampleSize != sampleSize || m_reassembly.fragmentSize != fragmentSize) {
+      // Inconsistent metadata within one SN: drop and reset.
+      m_reassembly.active = false;
+      return;
+    }
+
+    // Copy the fragment payload at its byte offset. fragmentsInSubmessage packed
+    // fragments are contiguous, so a single memcpy covers them all.
+    const uint64_t offset =
+        static_cast<uint64_t>(fragmentStartingNum - 1) * m_reassembly.fragmentSize;
+    if (offset >= sampleSize) {
+      return; // out-of-range fragment; ignore
+    }
+    // A submessage may pack several contiguous fragments (fragmentsInSubmessage).
+    // Require the serialized data to actually contain all advertised fragments
+    // before copying or marking them received - otherwise a short DATA_FRAG could
+    // mark missing ranges complete and deliver zero-filled bytes. The expected
+    // length is fragmentSize per fragment, except the sample's final fragment
+    // ends at sampleSize; fragDataLen may be LARGER (trailing 4-byte alignment
+    // padding, which FastDDS adds) but must not be smaller.
+    if (fragmentsInSubmessage == 0) {
+      return; // must advertise at least one fragment
+    }
+    const uint64_t expected =
+        std::min<uint64_t>(static_cast<uint64_t>(fragmentsInSubmessage) * m_reassembly.fragmentSize,
+                           sampleSize - offset);
+    if (fragDataLen < expected) {
+      return; // short / malformed submessage; do not mark ranges complete
+    }
+    if (expected > 0 && fragData != nullptr) {
+      std::memcpy(m_reassembly.buffer.data() + offset, fragData, expected);
+    }
+    for (uint16_t k = 0; k < fragmentsInSubmessage; ++k) {
+      const uint32_t idx = fragmentStartingNum - 1 + k;
+      if (idx < m_reassembly.totalFragments && !m_reassembly.received[idx]) {
+        m_reassembly.received[idx] = true;
+        ++m_reassembly.receivedFragments;
+      }
+    }
+
+    if (m_reassembly.receivedFragments >= m_reassembly.totalFragments) {
+      // Sample complete: move the assembled buffer out and deliver it AFTER
+      // releasing the reassembly lock (the callback runs synchronously and must
+      // not be invoked under this lock).
+      completedBuffer = std::move(m_reassembly.buffer);
+      haveCompleted = true;
+      m_reassembly.active = false;
+    }
+  }
+
+  if (haveCompleted) {
+    Guid_t guid = writerGuid;
+    ReaderCacheChange completed{ChangeKind_t::ALIVE, guid, sn, completedBuffer.data(),
+                                static_cast<DataSize_t>(completedBuffer.size())};
+    newChange(completed);
+  }
+}
+#endif
 
 void Reader::reset() {
   std::lock_guard<std::recursive_mutex> lock1(m_proxies_mutex);

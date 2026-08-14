@@ -206,6 +206,58 @@ struct SubmessageHeartbeat {
   }
 };
 
+// DATA_FRAG submessage (SubmessageKind 0x16). Carries one (or more, packed)
+// fragment(s) of a serialized sample that is too large to fit a single DATA
+// submessage. See OMG DDSI-RTPS 2.3+, section 8.3.7.3. All the whole-sample size
+// bookkeeping (fragmentStartingNum is 1-based, sampleSize is the total serialized
+// sample size incl. the CDR encapsulation header); fragmentSize is the fixed
+// nominal per-fragment byte count (the last fragment is shorter).
+struct SubmessageDataFrag {
+  SubmessageHeader header;
+  uint16_t extraFlags;
+  uint16_t octetsToInlineQos;
+  EntityId_t readerId;
+  EntityId_t writerId;
+  SequenceNumber_t writerSN;
+  uint32_t fragmentStartingNum; // 1-based index of the first fragment here
+  uint16_t fragmentsInSubmessage;
+  uint16_t fragmentSize;
+  uint32_t sampleSize; // total serialized size of the whole sample
+  static constexpr uint16_t getRawSize() {
+    return SubmessageHeader::getRawSize() + sizeof(uint16_t) + sizeof(uint16_t) // extra/octetsToIQ
+           + (2 * 3 + 2 * 1)                                                    // 2 EntityIDs
+           + sizeof(SequenceNumber_t)                                           // writerSN
+           + sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint16_t) +
+           sizeof(uint32_t); // fragmentStartingNum + fragmentsInSubmessage + fragmentSize +
+                             // sampleSize
+  }
+  // octetsToInlineQos value: bytes from the field after octetsToInlineQos up to
+  // the first byte of inlineQos/serializedData (readerId+writerId+writerSN +
+  // fragmentStartingNum+fragmentsInSubmessage+fragmentSize+sampleSize).
+  static constexpr uint16_t octetsToInlineQosValue() {
+    return (2 * 3 + 2 * 1) + sizeof(SequenceNumber_t) + sizeof(uint32_t) + sizeof(uint16_t) +
+           sizeof(uint16_t) + sizeof(uint32_t);
+  }
+};
+
+// Largest serialized sample payload that still fits one unfragmented DATA
+// submessage inside a single UDP datagram (max UDP payload 65507 - RTPS header
+// 20 - INFO_TS 12 - DATA submessage header 24). Samples larger than this are
+// sent as DATA_FRAG; smaller ones keep the byte-identical single-DATA path.
+static constexpr DataSize_t MAX_UNFRAGMENTED_PAYLOAD =
+    65507 - Header::getRawSize() - (SubmessageHeader::getRawSize() + sizeof(Time_t)) -
+    SubmessageData::getRawSize();
+
+// Largest per-fragment payload that keeps a single-fragment DATA_FRAG submessage
+// within one UDP datagram (max UDP payload 65507 - RTPS header 20 - INFO_TS 12 -
+// DATA_FRAG submessage header 36). DATA_FRAG's fixed header is 12 bytes larger
+// than DATA's, so this bound is 12 bytes below MAX_UNFRAGMENTED_PAYLOAD (65439 vs
+// 65451). Configured fragment sizes are clamped to this so a fragment can never
+// build an oversized datagram whose send would silently fail.
+static constexpr DataSize_t MAX_FRAGMENT_SIZE = 65507 - Header::getRawSize() -
+                                                (SubmessageHeader::getRawSize() + sizeof(Time_t)) -
+                                                SubmessageDataFrag::getRawSize();
+
 struct SubmessageInfoDST {
   SubmessageHeader header;
   GuidPrefix_t guidPrefix;
@@ -306,6 +358,28 @@ template <typename Buffer> bool serializeMessage(Buffer &buffer, SubmessageData 
   return true;
 }
 
+template <typename Buffer> bool serializeMessage(Buffer &buffer, SubmessageDataFrag &msg) {
+  if (!buffer.reserve(SubmessageDataFrag::getRawSize())) {
+    return false;
+  }
+
+  serializeMessage(buffer, msg.header);
+
+  buffer.append(reinterpret_cast<uint8_t *>(&msg.extraFlags), sizeof(uint16_t));
+  buffer.append(reinterpret_cast<uint8_t *>(&msg.octetsToInlineQos), sizeof(uint16_t));
+  buffer.append(msg.readerId.entityKey.data(), msg.readerId.entityKey.size());
+  buffer.append(reinterpret_cast<uint8_t *>(&msg.readerId.entityKind), sizeof(EntityKind_t));
+  buffer.append(msg.writerId.entityKey.data(), msg.writerId.entityKey.size());
+  buffer.append(reinterpret_cast<uint8_t *>(&msg.writerId.entityKind), sizeof(EntityKind_t));
+  buffer.append(reinterpret_cast<uint8_t *>(&msg.writerSN.high), sizeof(msg.writerSN.high));
+  buffer.append(reinterpret_cast<uint8_t *>(&msg.writerSN.low), sizeof(msg.writerSN.low));
+  buffer.append(reinterpret_cast<uint8_t *>(&msg.fragmentStartingNum), sizeof(uint32_t));
+  buffer.append(reinterpret_cast<uint8_t *>(&msg.fragmentsInSubmessage), sizeof(uint16_t));
+  buffer.append(reinterpret_cast<uint8_t *>(&msg.fragmentSize), sizeof(uint16_t));
+  buffer.append(reinterpret_cast<uint8_t *>(&msg.sampleSize), sizeof(uint32_t));
+  return true;
+}
+
 template <typename Buffer> bool serializeMessage(Buffer &buffer, SubmessageHeartbeat &msg) {
   if (!buffer.reserve(SubmessageHeartbeat::getRawSize())) {
     return false;
@@ -396,6 +470,10 @@ bool deserializeMessage(const MessageProcessingInfo &info, Header &header);
 bool deserializeMessage(const MessageProcessingInfo &info, SubmessageHeader &header);
 
 bool deserializeMessage(const MessageProcessingInfo &info, SubmessageData &msg);
+
+#ifdef RTPS_ENABLE_FRAGMENTATION
+bool deserializeMessage(const MessageProcessingInfo &info, SubmessageDataFrag &msg);
+#endif
 
 bool deserializeMessage(const MessageProcessingInfo &info, SubmessageHeartbeat &msg);
 

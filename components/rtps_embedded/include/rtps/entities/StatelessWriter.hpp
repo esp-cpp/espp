@@ -55,6 +55,13 @@ public:
   void reset() override;
 
 private:
+#ifdef RTPS_ENABLE_FRAGMENTATION
+  // Split next->data into DATA_FRAG submessages (one per datagram) to
+  // destAddr:destPort. Used when a sample is too large for a single DATA.
+  bool sendSampleFragmented(const Ip4AddressBytes &destAddr, Ip4Port_t destPort,
+                            const EntityId_t &readerId, const CacheChange *next);
+#endif
+
   EsppTransport *m_transport;
 
   SimpleHistoryCache<Config::HISTORY_SIZE_STATELESS> m_history;

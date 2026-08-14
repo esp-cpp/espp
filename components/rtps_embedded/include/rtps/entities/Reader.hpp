@@ -34,6 +34,9 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/storages/MemoryPool.hpp"
 #include <cstring>
 #include <mutex>
+#ifdef RTPS_ENABLE_FRAGMENTATION
+#include <vector>
+#endif
 
 namespace rtps {
 
@@ -113,6 +116,18 @@ public:
 
   virtual bool sendPreemptiveAckNack(const WriterProxy &writer);
 
+#ifdef RTPS_ENABLE_FRAGMENTATION
+  /// Accumulate one DATA_FRAG fragment (best-effort reassembly). When all
+  /// fragments of the sample identified by (writerGuid, sn) have arrived, the
+  /// completed sample is delivered through the normal newChange() path (same as
+  /// a single DATA). A newer sample evicts an older incomplete one; samples
+  /// larger than Config::MAX_SAMPLE_SIZE are refused. Thread-safe.
+  void newFragment(const Guid_t &writerGuid, const SequenceNumber_t &sn,
+                   uint32_t fragmentStartingNum, uint16_t fragmentsInSubmessage,
+                   uint16_t fragmentSize, uint32_t sampleSize, const uint8_t *fragData,
+                   DataSize_t fragDataLen);
+#endif
+
 protected:
   void executeCallbacks(const ReaderCacheChange &cacheChange);
   bool initMutex();
@@ -140,6 +155,25 @@ protected:
 
   // Guards manipulation of callback array
   std::recursive_mutex m_callback_mutex;
+
+#ifdef RTPS_ENABLE_FRAGMENTATION
+  // Single best-effort reassembly slot: accumulates the fragments of one sample
+  // at a time (a newer sample or different writer evicts an older incomplete
+  // one). Bounded by Config::MAX_SAMPLE_SIZE.
+  struct Reassembly {
+    bool active = false;
+    Guid_t writerGuid{};
+    SequenceNumber_t sn{};
+    uint32_t sampleSize = 0;
+    uint16_t fragmentSize = 0;
+    uint32_t totalFragments = 0;
+    uint32_t receivedFragments = 0;
+    std::vector<uint8_t> buffer;
+    std::vector<bool> received;
+  };
+  Reassembly m_reassembly;
+  std::mutex m_reassembly_mutex;
+#endif
 };
 } // namespace rtps
 

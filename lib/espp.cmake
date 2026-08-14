@@ -1,5 +1,58 @@
 set(ESPP_COMPONENTS "${CMAKE_CURRENT_LIST_DIR}/../components")
 
+# ---------------------------------------------------------------------------
+# RTPS static-limits profile selection.
+#
+# The rtps_embedded engine keeps a fully-static (deterministic) allocation model
+# whose compile-time capacity caps are chosen by a profile header (see
+# components/rtps_embedded/include/rtps/config.hpp). Profiles:
+#   embedded   - tight MCU caps (rtps/config_esp32.hpp)
+#   host       - relaxed static caps, DEFAULT for non-ESP builds
+#                (rtps/config_desktop.hpp)
+#   host_large - generous static caps for large DDS graphs
+#                (rtps/config_host_large.hpp)
+#
+# Select with -DRTPS_LIMITS_PROFILE=embedded|host|host_large. Default is "host"
+# (this file is only used for non-ESP / host builds; ESP/IDF builds pick the
+# profile via Kconfig in components/rtps_embedded/Kconfig).
+# ---------------------------------------------------------------------------
+if(NOT DEFINED RTPS_LIMITS_PROFILE)
+  set(RTPS_LIMITS_PROFILE "host")
+endif()
+set(RTPS_LIMITS_PROFILE "${RTPS_LIMITS_PROFILE}" CACHE STRING
+    "RTPS static limits profile: embedded|host|host_large")
+set_property(CACHE RTPS_LIMITS_PROFILE PROPERTY STRINGS embedded host host_large)
+
+if(RTPS_LIMITS_PROFILE STREQUAL "embedded")
+  add_compile_definitions(RTPS_CONFIG_HEADER="rtps/config_esp32.hpp")
+  set(RTPS_MAX_SAMPLE_SIZE 262144)   # 256 KB (matches config_esp32.hpp)
+elseif(RTPS_LIMITS_PROFILE STREQUAL "host")
+  add_compile_definitions(RTPS_CONFIG_HEADER="rtps/config_desktop.hpp")
+  set(RTPS_MAX_SAMPLE_SIZE 8388608)  # 8 MB (matches config_desktop.hpp)
+elseif(RTPS_LIMITS_PROFILE STREQUAL "host_large")
+  add_compile_definitions(RTPS_CONFIG_HEADER="rtps/config_host_large.hpp")
+  set(RTPS_MAX_SAMPLE_SIZE 8388608)  # 8 MB (matches config_host_large.hpp)
+else()
+  message(FATAL_ERROR
+    "Invalid RTPS_LIMITS_PROFILE '${RTPS_LIMITS_PROFILE}' "
+    "(expected: embedded | host | host_large)")
+endif()
+message(STATUS "RTPS limits profile: ${RTPS_LIMITS_PROFILE}")
+
+# ---------------------------------------------------------------------------
+# RTPS best-effort DATA_FRAG fragmentation (Slice C).
+#
+# On host builds fragmentation is ALWAYS enabled: samples larger than a single
+# DATA submessage are split into DATA_FRAG submessages and reassembled by the
+# peer (interoperates with FastDDS / ROS 2). RTPS_MAX_SAMPLE_SIZE is the
+# large-sample reassembly cap and is kept in sync with the profile's
+# Config::MAX_SAMPLE_SIZE. On ESP32/IDF fragmentation is opt-in via Kconfig (see
+# components/rtps_embedded/Kconfig / CMakeLists.txt), default off, so the MCU
+# pays nothing for it by default.
+# ---------------------------------------------------------------------------
+add_compile_definitions(RTPS_ENABLE_FRAGMENTATION RTPS_MAX_SAMPLE_SIZE=${RTPS_MAX_SAMPLE_SIZE})
+message(STATUS "RTPS fragmentation: ON (max sample size ${RTPS_MAX_SAMPLE_SIZE} bytes)")
+
 set(ESPP_EXTERNAL_INCLUDES
   ${ESPP_COMPONENTS}/serialization/detail/alpaca/include
   ${ESPP_COMPONENTS}/cli/detail/cli/include

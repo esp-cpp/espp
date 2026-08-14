@@ -23,8 +23,8 @@ This file is part of embeddedRTPS.
 Author: i11 - Embedded Software, RWTH Aachen University
 */
 
-#ifndef RTPS_CONFIG_DESKTOP_H
-#define RTPS_CONFIG_DESKTOP_H
+#ifndef RTPS_CONFIG_HOST_LARGE_H
+#define RTPS_CONFIG_HOST_LARGE_H
 
 #include "rtps/common/types.hpp"
 
@@ -49,48 +49,42 @@ const std::array<uint8_t, 4> IP_ADDRESS = {192, 168, 4, 1}; // Needs to be set i
 const GuidPrefix_t BASE_GUID_PREFIX = GUID_RANDOM;
 
 // ---------------------------------------------------------------------------
-// "host" limits profile (DEFAULT for non-ESP builds).
+// "host_large" limits profile (opt-in via RTPS_LIMITS_PROFILE=host_large).
 //
-// RELAXED, fully-static capacity caps suitable for a compute host (laptop /
-// Jetson / server) out-of-the-box. This is NOT a tiny profile: it is sized for
-// real (small-to-medium) DDS graphs while keeping the deterministic,
-// compile-time-static allocation model. For very large graphs select the
-// "host_large" profile (config_host_large.hpp) via RTPS_LIMITS_PROFILE.
-//
-// NOTE: these are pure capacity caps and do NOT affect any bytes on the wire.
+// GENEROUS, fully-static capacity caps for large DDS graphs (big ROS 2 systems)
+// on a compute host with plenty of RAM. Same deterministic, compile-time-static
+// allocation model as the other profiles - just sized an order of magnitude
+// larger than "host" (config_desktop.hpp). These are pure capacity caps and do
+// NOT affect any bytes on the wire.
 // ---------------------------------------------------------------------------
 const uint8_t DOMAIN_ID = 0; // 230 possible with UDP
 
-// Reassembly / large-sample cap (bytes). A sample larger than this is refused on
-// publish and any partial reassembly exceeding it is dropped. On host this is the
-// growable (Slice B deque) upper bound. Kept in sync with the facade's
-// max_payload_size via the RTPS_MAX_SAMPLE_SIZE build macro when fragmentation is
-// enabled. Capacity only - never touches wire bytes.
+// Reassembly / large-sample cap (bytes). See config_desktop.hpp. Capacity only.
 #ifndef RTPS_MAX_SAMPLE_SIZE
 #define RTPS_MAX_SAMPLE_SIZE (8u * 1024u * 1024u) // 8 MB
 #endif
 const DataSize_t MAX_SAMPLE_SIZE = RTPS_MAX_SAMPLE_SIZE;
 
-const uint8_t MAX_NUM_PARTICIPANTS = 8;
-const uint8_t NUM_STATELESS_WRITERS = 16;
-const uint8_t NUM_STATELESS_READERS = 16;
-const uint8_t NUM_STATEFUL_READERS = 32;
-const uint8_t NUM_STATEFUL_WRITERS = 32;
-const uint8_t NUM_WRITERS_PER_PARTICIPANT = 16;
-const uint8_t NUM_READERS_PER_PARTICIPANT = 16;
-const uint8_t NUM_WRITER_PROXIES_PER_READER = 8;
-const uint8_t NUM_READER_PROXIES_PER_WRITER = 8;
+const uint8_t MAX_NUM_PARTICIPANTS = 32;
+const uint8_t NUM_STATELESS_WRITERS = 64;
+const uint8_t NUM_STATELESS_READERS = 64;
+const uint8_t NUM_STATEFUL_READERS = 128;
+const uint8_t NUM_STATEFUL_WRITERS = 128;
+const uint8_t NUM_WRITERS_PER_PARTICIPANT = 64;
+const uint8_t NUM_READERS_PER_PARTICIPANT = 64;
+const uint8_t NUM_WRITER_PROXIES_PER_READER = 16;
+const uint8_t NUM_READER_PROXIES_PER_WRITER = 16;
 
-// uint16_t (not uint8_t): these bound SEDP MemoryPool<> sizes and the host
-// value (256) already exceeds the 255 uint8_t range; host_large goes higher
-// still. MemoryPool<TYPE, uint32_t SIZE> widens the value, so uint16_t is safe.
-const uint16_t MAX_NUM_UNMATCHED_REMOTE_WRITERS = 256;
-const uint16_t MAX_NUM_UNMATCHED_REMOTE_READERS = 128;
+// uint16_t (not uint8_t): these bound SEDP MemoryPool<> sizes and the values
+// here (1024 / 512) far exceed the 255 uint8_t range.
+// MemoryPool<TYPE, uint32_t SIZE> widens the value, so uint16_t is safe.
+const uint16_t MAX_NUM_UNMATCHED_REMOTE_WRITERS = 1024;
+const uint16_t MAX_NUM_UNMATCHED_REMOTE_READERS = 512;
 
-const uint8_t MAX_NUM_READER_CALLBACKS = 8;
+const uint8_t MAX_NUM_READER_CALLBACKS = 16;
 
 const uint8_t HISTORY_SIZE_STATELESS = 2;
-const uint8_t HISTORY_SIZE_STATEFUL = 16;
+const uint8_t HISTORY_SIZE_STATEFUL = 32;
 
 const uint8_t MAX_TYPENAME_LENGTH = 64;
 const uint8_t MAX_TOPICNAME_LENGTH = 64;
@@ -104,22 +98,22 @@ const uint16_t SF_WRITER_HB_PERIOD_MS = 2000;
 const uint16_t SPDP_RESEND_PERIOD_MS = 1000;
 const uint8_t SPDP_CYCLECOUNT_HEARTBEAT = 2; // skip x SPDP rounds before checking liveliness
 const uint8_t SPDP_WRITER_PRIO = 3;
-const uint8_t SPDP_MAX_NUMBER_FOUND_PARTICIPANTS = 32;
-const uint8_t SPDP_MAX_NUM_LOCATORS = 8;
+const uint8_t SPDP_MAX_NUMBER_FOUND_PARTICIPANTS = 128;
+const uint8_t SPDP_MAX_NUM_LOCATORS = 16;
 const Duration_t SPDP_DEFAULT_REMOTE_LEASE_DURATION = {
     100, 0}; // Default lease duration for remote participants, usually
              // overwritten by remote info
 const Duration_t SPDP_MAX_REMOTE_LEASE_DURATION = {
     180, 0}; // Absolute maximum lease duration, ignoring remote participant info
 
-const int MAX_NUM_UDP_CONNECTIONS = 16;
+const int MAX_NUM_UDP_CONNECTIONS = 32;
 
 const int THREAD_POOL_NUM_WRITERS = 2;
 const int THREAD_POOL_NUM_READERS = 2;
 const int THREAD_POOL_WRITER_PRIO = 3;
 const int THREAD_POOL_READER_PRIO = 3;
-const int THREAD_POOL_WORKLOAD_QUEUE_LENGTH_USERTRAFFIC = 32;
-const int THREAD_POOL_WORKLOAD_QUEUE_LENGTH_METATRAFFIC = 32;
+const int THREAD_POOL_WORKLOAD_QUEUE_LENGTH_USERTRAFFIC = 64;
+const int THREAD_POOL_WORKLOAD_QUEUE_LENGTH_METATRAFFIC = 64;
 
 constexpr int OVERALL_HEAP_SIZE = THREAD_POOL_NUM_WRITERS * THREAD_POOL_WRITER_STACKSIZE +
                                   THREAD_POOL_NUM_READERS * THREAD_POOL_READER_STACKSIZE +
@@ -128,4 +122,4 @@ constexpr int OVERALL_HEAP_SIZE = THREAD_POOL_NUM_WRITERS * THREAD_POOL_WRITER_S
 } // namespace Config
 } // namespace rtps
 
-#endif // RTPS_CONFIG_DESKTOP_H
+#endif // RTPS_CONFIG_HOST_LARGE_H

@@ -98,6 +98,12 @@ private:
 
   bool sendData(const ReaderProxy &reader, const CacheChange *next);
   bool sendDataWRMulticast(const ReaderProxy &reader, const CacheChange *next);
+#ifdef RTPS_ENABLE_FRAGMENTATION
+  // Split next->data into DATA_FRAG submessages (one per datagram) and send them
+  // to destAddr:destPort. Used when a sample is too large for a single DATA.
+  bool sendSampleFragmented(const Ip4AddressBytes &destAddr, Ip4Port_t destPort,
+                            const EntityId_t &readerId, const CacheChange *next);
+#endif
   void sendHeartBeat();
   void sendGap(const ReaderProxy &reader, const SequenceNumber_t &firstMissing,
                const SequenceNumber_t &nextValid);

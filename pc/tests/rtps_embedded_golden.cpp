@@ -69,6 +69,20 @@ std::vector<uint8_t> build_data() {
   return b.bytes;
 }
 
+std::vector<uint8_t> build_data_frag() {
+  // One DATA_FRAG submessage: fragment #1 of a 200000-byte sample split at a
+  // 63000-byte fragment size, carrying a 10-byte ramp payload chunk. Pins the
+  // DATA_FRAG wire layout (extraFlags, octetsToInlineQos, ids, writerSN,
+  // fragmentStartingNum, fragmentsInSubmessage, fragmentSize, sampleSize, data).
+  static constexpr uint8_t kFrag[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09};
+  rtps::PayloadBuffer b;
+  rtps::MessageFactory::addSubMessageDataFrag(b, kFrag, sizeof(kFrag), /*fragStartNum=*/1,
+                                              /*fragsInSubmsg=*/1, /*fragmentSize=*/63000,
+                                              /*sampleSize=*/200000, rtps::SequenceNumber_t{0, 5},
+                                              kWriterId, kReaderId);
+  return b.bytes;
+}
+
 std::vector<uint8_t> build_heartbeat() {
   rtps::PayloadBuffer b;
   rtps::MessageFactory::addHeartbeat(b, kWriterId, kReaderId, rtps::SequenceNumber_t{0, 1},
@@ -191,6 +205,7 @@ int main(int argc, char **argv) {
       {"info_dst", build_info_dst, kGolden_info_dst},
       {"info_ts_invalid", build_info_ts_invalid, kGolden_info_ts_invalid},
       {"data", build_data, kGolden_data},
+      {"data_frag", build_data_frag, kGolden_data_frag},
       {"heartbeat", build_heartbeat, kGolden_heartbeat},
       {"acknack", build_acknack, kGolden_acknack},
       {"gap", build_gap, kGolden_gap},

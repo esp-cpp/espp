@@ -31,6 +31,8 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include <limits>
 #include <mutex>
 
+#include "rtps/storages/StorageArray.hpp"
+
 namespace rtps {
 
 template <typename T, uint16_t SIZE> class ThreadSafeCircularBuffer {
@@ -53,7 +55,9 @@ public:
   void clear();
 
 private:
-  std::array<T, SIZE + 1> m_buffer{};
+  // Static path: fixed std::array<T, SIZE + 1> (byte-identical to before).
+  // Dynamic path: heap-backed, reserved to SIZE + 1, grown by grow().
+  StorageArray<T, SIZE + 1> m_buffer;
   uint16_t m_head = 0;
   uint16_t m_tail = 0;
   uint32_t m_num_elements = 0;
@@ -67,6 +71,10 @@ private:
   inline void incrementIterator(uint16_t &iterator) const;
   inline void incrementTail();
   inline void incrementHead();
+#ifdef RTPS_STORAGE_DYNAMIC
+  // Host only: double the ring capacity (caller holds m_mutex).
+  bool grow(); // returns false if the ring cannot grow further (16-bit indices)
+#endif
 };
 
 } // namespace rtps

@@ -40,6 +40,15 @@ const std::array<uint8_t, 4> IP_ADDRESS = {192, 168, 4,
 const GuidPrefix_t BASE_GUID_PREFIX{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13};
 
 const uint8_t DOMAIN_ID = 0; // 230 possible with UDP
+
+// Reassembly / large-sample cap (bytes) when RTPS_ENABLE_FRAGMENTATION is opted
+// in on this MCU (Kconfig, default off). Bounded (256 KB) - a fragmented sample
+// larger than this is refused/dropped. Unused when fragmentation is off.
+#ifndef RTPS_MAX_SAMPLE_SIZE
+#define RTPS_MAX_SAMPLE_SIZE (256u * 1024u) // 256 KB
+#endif
+const DataSize_t MAX_SAMPLE_SIZE = RTPS_MAX_SAMPLE_SIZE;
+
 const uint8_t NUM_STATELESS_WRITERS = 5;
 const uint8_t NUM_STATELESS_READERS = 5;
 const uint8_t NUM_STATEFUL_READERS = 5;

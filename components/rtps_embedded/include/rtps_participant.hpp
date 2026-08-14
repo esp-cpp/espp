@@ -72,6 +72,13 @@ public:
     std::string topic;     ///< DDS topic name (e.g. "rt/chatter" for ROS 2).
     std::string type_name; ///< DDS type name (e.g. "std_msgs::msg::dds_::String_").
     Reliability reliability{Reliability::BEST_EFFORT}; ///< Reliability QoS.
+    /// Nominal per-fragment payload size (bytes) used when a published sample is
+    /// too large for a single DATA submessage and is split into DATA_FRAG
+    /// submessages. Default 63000 (large: fewer fragments). Lower it toward the
+    /// path MTU (e.g. ~1400) for lossy links. Only relevant when fragmentation is
+    /// compiled in (always on host; opt-in on ESP32). Ignored for samples that
+    /// fit a single DATA submessage.
+    uint16_t fragment_size{63000};
   };
 
   /// Configuration for a reader (subscribing endpoint).
@@ -130,13 +137,27 @@ public:
   ///         reader pool is exhausted).
   bool add_reader(const ReaderConfig &config);
 
-  /// Maximum size of a single published CDR payload, in bytes. Bounded by the
-  /// RTPS wire format: a DATA submessage's length (octetsToNextHeader) and the
-  /// engine's DataSize_t are both 16-bit, so one unfragmented sample cannot
-  /// exceed 65535 bytes. Larger payloads (e.g. images) require DATA_FRAG
-  /// fragmentation, which this engine does not yet implement - publish() rejects
-  /// oversized samples rather than silently truncating them.
-  static constexpr std::size_t max_payload_size = 65535;
+  /// Maximum size of a single published CDR payload, in bytes.
+  ///
+  /// When fragmentation is compiled in (RTPS_ENABLE_FRAGMENTATION - always on
+  /// host, opt-in on ESP32) this is the large-sample reassembly cap
+  /// (RTPS_MAX_SAMPLE_SIZE: 8 MB host, 256 KB ESP32): samples above one DATA
+  /// submessage are split into DATA_FRAG submessages and reassembled by the peer.
+  /// When fragmentation is compiled out (ESP32 default) it is bounded by the RTPS
+  /// wire format instead: a DATA submessage's length field (octetsToNextHeader)
+  /// is 16-bit, so one unfragmented sample cannot exceed 65535 bytes, and
+  /// publish() rejects larger samples rather than truncating them.
+#if defined(RTPS_ENABLE_FRAGMENTATION)
+  static constexpr std::size_t max_payload_size = RTPS_MAX_SAMPLE_SIZE;
+#else
+  // The largest serialized payload that fits one unfragmented DATA submessage in
+  // a single UDP datagram: 65507 (max UDP payload) - 20 (RTPS header) - 12
+  // (INFO_TS) - 24 (DATA submessage header) = 65451. Kept in sync with the
+  // engine's rtps::MAX_UNFRAGMENTED_PAYLOAD by a static_assert in the .cpp. A
+  // larger sample would overflow the datagram and wrap the 16-bit submessage
+  // length, so publish() rejects it.
+  static constexpr std::size_t max_payload_size = 65451;
+#endif
 
   /// Publish a CDR-encapsulated sample on a topic previously registered with
   /// add_writer().

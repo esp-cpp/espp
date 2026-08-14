@@ -36,4 +36,16 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #endif
 #endif
 
+// Storage POLICY, orthogonal to the limits profile selected above. Dynamic
+// (heap-backed, grow-on-full std::deque) storage is the default on host/PC
+// builds; on ESP it is an explicit opt-in (Kconfig RTPS_STORAGE_DYNAMIC ->
+// -DRTPS_STORAGE_DYNAMIC), so the MCU keeps zero-heap, deterministic history by
+// default no matter which limits profile is chosen. The limits headers set
+// capacity caps only and never enable dynamic storage by themselves. Define
+// RTPS_STORAGE_STATIC to force static storage on a host build. Neither policy
+// changes any bytes on the wire.
+#if !defined(RTPS_STORAGE_DYNAMIC) && !defined(RTPS_STORAGE_STATIC) && !defined(ESP_PLATFORM)
+#define RTPS_STORAGE_DYNAMIC
+#endif
+
 #endif // RTPS_CONFIG_H

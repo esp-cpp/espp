@@ -98,17 +98,28 @@ const rtps::CacheChange *StatefulWriter::newChange(ChangeKind_t kind, const uint
     return nullptr;
   }
 
-  if (m_history.isFull()) {
-    // Right now we drop elements anyway because we cannot detect non-responding
-    // readers yet. return nullptr;
-    SequenceNumber_t newMin = ++SequenceNumber_t(m_history.getCurrentSeqNumMin());
-    if (m_nextSequenceNumberToSend < newMin) {
-      m_nextSequenceNumberToSend = newMin; // Make sure we have the correct sn to send
-    }
-    SFW_LOG("History full! Dropping changes {}.", this->m_attributes.topicName);
-  }
+  // A full history may drop its oldest change on the next addChange: the static
+  // ring always does, and the dynamic (host) ring does too when it hits its
+  // 16-bit index ceiling and grow() refuses to resize. When a drop happens the
+  // send cursor may point at a sequence number that no longer exists, which
+  // would stall progress() permanently; advance it past the drop. When the
+  // dynamic ring instead grows and RETAINS the oldest (the common host case) the
+  // minimum is unchanged, so the cursor stays put and the retained change is
+  // still sent. Distinguish the two by whether the history minimum advanced
+  // across the add - a copy, not a reference, because addChange may overwrite
+  // the underlying slot.
+  const bool wasFull = m_history.isFull();
+  const SequenceNumber_t minBefore = m_history.getCurrentSeqNumMin();
 
   auto *result = m_history.addChange(data, size, inLineQoS, markDisposedAfterWrite);
+
+  if (wasFull) {
+    const SequenceNumber_t minAfter = m_history.getCurrentSeqNumMin();
+    if (minBefore < minAfter && m_nextSequenceNumberToSend < minAfter) {
+      m_nextSequenceNumberToSend = minAfter; // Skip past the dropped change
+      SFW_LOG("History full, dropped oldest {}.", this->m_attributes.topicName);
+    }
+  }
   if (m_transport != nullptr) {
     // Run the send asynchronously on the transport's worker pool (never inline
     // under the caller's locks), matching the previous ThreadPool semantics.
@@ -320,6 +331,13 @@ bool StatefulWriter::sendData(const ReaderProxy &reader, const CacheChange *next
   info.destAddr = locator.getIp4AddressBytes();
   info.destPort = (Ip4Port_t)locator.port;
 
+#ifdef RTPS_ENABLE_FRAGMENTATION
+  if (next->data.spaceUsed() > MAX_UNFRAGMENTED_PAYLOAD) {
+    return sendSampleFragmented(info.destAddr, info.destPort, reader.remoteReaderGuid.entityId,
+                                next);
+  }
+#endif
+
   MessageFactory::addSubMessageData(payload, next->data, next->inLineQoS, next->sequenceNumber,
                                     m_attributes.endpointGuid.entityId,
                                     reader.remoteReaderGuid.entityId);
@@ -331,6 +349,44 @@ bool StatefulWriter::sendData(const ReaderProxy &reader, const CacheChange *next
 
   return true;
 }
+
+#ifdef RTPS_ENABLE_FRAGMENTATION
+bool StatefulWriter::sendSampleFragmented(const Ip4AddressBytes &destAddr, Ip4Port_t destPort,
+                                          const EntityId_t &readerId, const CacheChange *next) {
+  INIT_GUARD()
+  const uint8_t *sampleData = next->data.bytes.data();
+  const uint32_t sampleSize = next->data.spaceUsed();
+  const uint16_t fragmentSize = m_fragmentSize > MAX_FRAGMENT_SIZE
+                                    ? static_cast<uint16_t>(MAX_FRAGMENT_SIZE)
+                                    : m_fragmentSize;
+  if (fragmentSize == 0) {
+    return false;
+  }
+  const uint32_t numFragments = (sampleSize + fragmentSize - 1) / fragmentSize;
+  for (uint32_t f = 0; f < numFragments; ++f) {
+    const uint32_t offset = f * fragmentSize;
+    const uint16_t fragLen = static_cast<uint16_t>(
+        (sampleSize - offset) < fragmentSize ? (sampleSize - offset) : fragmentSize);
+
+    PacketInfo info;
+    info.srcPort = m_srcPort;
+    info.destAddr = destAddr;
+    info.destPort = destPort;
+    PayloadBuffer payload;
+    MessageFactory::addHeader(payload, m_attributes.endpointGuid.prefix);
+    MessageFactory::addSubMessageTimeStamp(payload);
+    MessageFactory::addSubMessageDataFrag(payload, sampleData + offset, fragLen, f + 1, 1,
+                                          fragmentSize, sampleSize, next->sequenceNumber,
+                                          m_attributes.endpointGuid.entityId, readerId);
+    info.payload = std::move(payload.bytes);
+    if (info.payload.empty()) {
+      return false;
+    }
+    m_transport->sendPacket(info);
+  }
+  return true;
+}
+#endif
 
 void StatefulWriter::sendGap(const ReaderProxy &reader, const SequenceNumber_t &firstMissing,
                              const SequenceNumber_t &nextValid) {
@@ -387,6 +443,12 @@ bool StatefulWriter::sendDataWRMulticast(const ReaderProxy &reader, const CacheC
     } else {
       reid = reader.remoteReaderGuid.entityId;
     }
+
+#ifdef RTPS_ENABLE_FRAGMENTATION
+    if (next->data.spaceUsed() > MAX_UNFRAGMENTED_PAYLOAD) {
+      return sendSampleFragmented(info.destAddr, info.destPort, reid, next);
+    }
+#endif
 
     MessageFactory::addSubMessageData(payload, next->data, next->inLineQoS, next->sequenceNumber,
                                       m_attributes.endpointGuid.entityId, reid);
