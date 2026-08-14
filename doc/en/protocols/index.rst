@@ -8,6 +8,7 @@ Higher-level network protocols and networking tools built on top of the
    :maxdepth: 1
 
    rtps
+   rtps_rmi_ami
    rtsp
    remote_debug
    iperf_menu
