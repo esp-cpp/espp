@@ -31,6 +31,7 @@ cmake -S lib -B lib/build -DCMAKE_BUILD_TYPE=Release > /tmp/cmake_lib.log 2>&1 \
        rtps_facade_frag rtps_facade_backlog rtps_facade_frag_sizes rtps_service_loopback \
        rtps_service_naming rtps_action_naming rtps_action_types rtps_action_loopback \
        rtps_service_interop_server rtps_service_interop_client \
+       rtps_action_interop_server rtps_action_interop_client \
        rtps_embedded_interop_pub rtps_embedded_interop_sub > /tmp/build.log 2>&1
 build_rc=$?
 result "build" $build_rc
@@ -212,6 +213,38 @@ kill $ROSSVC 2>/dev/null; wait $ROSSVC 2>/dev/null
 echo "--- espp client ---"; tail -2 /tmp/svcclient.log
 echo "--- rclpy server ---"; grep -iE "= [0-9]" /tmp/rossvcsrv.log | tail -2
 result "espp_service_client->ros2_server" $svcclient_rc
+
+# --- Actions (AMI): live ROS 2 <-> espp Fibonacci ---------------------------
+
+note "espp action server <- ROS 2 client (ros2 action send_goal -f fibonacci)"
+"$BIN"/rtps_action_interop_server /fibonacci example_interfaces::action::dds_::Fibonacci 45 \
+  > /tmp/actsrv.log 2>&1 &
+ACTSRV=$!
+sleep 5
+timeout 30 ros2 action send_goal -f /fibonacci example_interfaces/action/Fibonacci "{order: 5}" \
+  > /tmp/actsend.log 2>&1
+# Pass iff the ROS 2 client's goal completed on the espp server (full round-trip:
+# send_goal accepted -> feedback -> deferred get_result -> SUCCEEDED). The result
+# sequence itself is byte-validated separately by the action_types codec test.
+grep -q "status: SUCCEEDED" /tmp/actsend.log
+actsend_rc=$?
+sleep 1
+kill $ACTSRV 2>/dev/null; wait $ACTSRV 2>/dev/null
+echo "--- ros2 action send_goal ---"; grep -iE "Result:|sequence=|status|Goal finished" /tmp/actsend.log | tail -4
+echo "--- espp action server ---"; grep "server:" /tmp/actsrv.log | tail -3
+result "espp_action_server<-ros2_client" $actsend_rc
+
+note "espp action client -> ROS 2 server (rclpy Fibonacci)"
+python3 /work/components/rtps_embedded/interop/ros2_fibonacci_server.py > /tmp/rosactsrv.log 2>&1 &
+ROSACT=$!
+sleep 5
+timeout 40 "$BIN"/rtps_action_interop_client /fibonacci example_interfaces::action::dds_::Fibonacci \
+  5 30 > /tmp/actclient.log 2>&1
+actclient_rc=$?
+kill $ROSACT 2>/dev/null; wait $ROSACT 2>/dev/null
+echo "--- espp action client ---"; tail -2 /tmp/actclient.log
+echo "--- rclpy server ---"; grep -iE "order=" /tmp/rosactsrv.log | tail -2
+result "espp_action_client->ros2_server" $actclient_rc
 
 echo ""
 echo "==================== SUMMARY ===================="
