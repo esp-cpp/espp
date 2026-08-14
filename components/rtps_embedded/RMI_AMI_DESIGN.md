@@ -393,13 +393,24 @@ h.cancel();
      espp client -> rclpy server). Final gate: interop **22/22**. No type-hash
      needed for actions either (`ros2 action list` shows the espp action).
    The client offers all three call styles on services (sync/callback/future).
-3. **M3 — Track B native RMI/AMI.** In-band header, lean service + action, host
-   loopback gates, esp32 budget profiles. **NEXT.**
-4. **M4 — Consolidation.** Shared L2 over both strategies; Kconfig compile-out;
-   docs + examples (C++ and the Python facade).
+3. **M3 — Track B native RMI/AMI. ✅ DONE.** In-band 20-byte header over pub/sub
+   (`rpc/native_protocol.hpp`); `add_native_service_*` (sync/async/future) +
+   `add_native_action_*` (lean: 1 goal service + 1 feedback topic carrying the
+   result, ~3 endpoints vs ROS's ~10). Host loopbacks
+   `rtps_native_service_loopback` / `rtps_native_action_loopback`.
+4. **M4 — Consolidation. ✅ DONE (examples/docs/compile-out).**
+   - Python bindings for every RMI/AMI API (`lib/python_bindings/rtps_bindings.cpp`)
+     + `python/rtps_rpc_demo.py` (all four mechanisms, 5/5).
+   - Docs: `doc/en/protocols/rtps_rmi_ami.rst` (function, use, rationale).
+   - Kconfig compile-out: `RTPS_ENABLE_RPC` (default y) → `RTPS_NO_RPC` excludes
+     the whole services/actions layer; esp32 builds both ways, host keeps it on.
+   - Not done (deliberately deferred): the "shared L2 over both strategies"
+     refactor — the ROS and native paths already share the pub/sub + service
+     primitives; a further template-unification is cosmetic and higher-risk, left
+     as a follow-up.
 
-Track B (M3) can precede M1/M2 if the immediate need is espp↔espp — it has no
-external dependency and no interop gate to satisfy.
+All milestones M1–M4 are implemented and gated (interop 24/24, esp32 on/off,
+Python demo 5/5) on branch `feat/rtps-services`.
 
 ---
 
