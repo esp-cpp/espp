@@ -66,6 +66,8 @@ protected:
 
   /// Log a byte buffer as hex at debug level (command/response tracing).
   void log_hex(const char *prefix, const uint8_t *data, size_t len);
+  /// Log the assigned GATT handles (call after the server has started).
+  void log_handle_map();
 
   // --- command channel ---
   /// Handle a write on a command characteristic. `via_vibration_command` is

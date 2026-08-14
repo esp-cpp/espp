@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <string>
 
+#include "esp_log.h"
 #include "esp_mac.h"
 
 #include "switch2_pro_flash.hpp"
@@ -47,6 +48,12 @@ private:
 };
 
 bool Switch2Pro::init() {
+  // Bring-up debugging: turn the NimBLE host log up to DEBUG for its tags only,
+  // so we see the console's ATT service discovery / reads / writes without
+  // flooding every other component. (Compiled in via CONFIG_LOG_MAXIMUM_LEVEL.)
+  esp_log_level_set("NimBLE", ESP_LOG_DEBUG);
+  esp_log_level_set("NimBLEGATTS", ESP_LOG_DEBUG);
+
   // The pairing crypto is the load-bearing part; verify it against the golden
   // vector up front so a broken build fails loudly rather than at the console.
   if (PairingCrypto::self_test()) {
@@ -68,6 +75,7 @@ bool Switch2Pro::init() {
   }
   ble_gatt_server_.start_services();
   ble_gatt_server_.start();
+  log_handle_map(); // after start(), so handles are assigned
   start_advertising(/*wake=*/false);
   logger_.info("Switch2Pro advertising as '{}'", device_name_);
   return true;
@@ -96,6 +104,12 @@ void Switch2Pro::configure_callbacks() {
                  paired_);
     paired_ = false;
     start_advertising(/*wake=*/false);
+  };
+  callbacks.authentication_complete_callback = [this](const NimBLEConnInfo &info) {
+    // If this fires, the console ran BLE SMP (which the research says it should
+    // NOT do). Encrypted={}, bonded={} tells us what security state it reached.
+    logger_.info("AUTH complete: encrypted={} bonded={} authenticated={}", info.isEncrypted(),
+                 info.isBonded(), info.isAuthenticated());
   };
   ble_gatt_server_.set_callbacks(callbacks);
 }
@@ -161,23 +175,22 @@ bool Switch2Pro::build_gatt() {
 
   svc1->start();
   svc2->start();
+  return true;
+}
 
-  // Dump the actual handle map. A real Pro Controller 2 has its custom services
-  // at low handles with the characteristics at fixed offsets (command 0x0014,
-  // vib+command 0x0016, responses 0x001a/0x001e, inputs 0x000a/0x000e). If the
-  // console keys off those handles and ours are shifted (because NimBLE/
-  // BleGattServer put GAP/GATT/DeviceInfo/Battery at the low handles first),
-  // that would explain why it connects but never drives the command channel.
+void Switch2Pro::log_handle_map() {
+  // Handles are only assigned once the server has started, so this must run
+  // after ble_gatt_server_.start(). A real Pro Controller 2 has these
+  // characteristics at fixed handles (parenthesized); if BleGattServer's
+  // GAP/GATT/DeviceInfo/Battery services shifted ours off those and the console
+  // keys off them, that explains connect-but-no-command-channel.
   logger_.info("GATT handle map (actual vs real-controller):");
-  logger_.info("  svc1          = 0x{:04x} (0x0001)", svc1->getHandle());
-  logger_.info("  svc2          = 0x{:04x} (0x0008)", svc2->getHandle());
   logger_.info("  common_input  = 0x{:04x} (0x000a)", common_input_->getHandle());
   logger_.info("  pro2_input    = 0x{:04x} (0x000e)", pro2_input_->getHandle());
   logger_.info("  command       = 0x{:04x} (0x0014)", command_->getHandle());
   logger_.info("  vib_command   = 0x{:04x} (0x0016)", vibration_command_->getHandle());
   logger_.info("  resp1         = 0x{:04x} (0x001a)", command_response1_->getHandle());
   logger_.info("  resp2         = 0x{:04x} (0x001e)", command_response2_->getHandle());
-  return true;
 }
 
 void Switch2Pro::start_advertising(bool wake, const std::array<uint8_t, 6> &host_addr) {
