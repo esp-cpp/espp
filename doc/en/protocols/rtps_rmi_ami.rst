@@ -32,6 +32,44 @@ topics** — *no new wire primitive*. Everything here is library code over pub/s
 plus one addition to the engine (carry a ``related_sample_identity`` inline-QoS on
 a reply, so a client can match replies to requests).
 
+Two API levels
+==============
+
+Like pub/sub (raw ``publish()``/``on_sample`` vs the typed ``Publisher<T>`` /
+``Subscriber<T>``), the RMI/AMI layer has two levels:
+
+- **Typed, espp-idiomatic wrappers** (recommended): ``espp::ServiceServer<Req,
+  Resp>`` / ``ServiceClient<Req, Resp>`` and ``ActionServer<Goal, Result,
+  Feedback>`` / ``ActionClient<...>`` in ``rtps_service.hpp`` / ``rtps_action.hpp``.
+  Reflectable structs are (de)serialized to CDR by the ``cdr`` component - your
+  code never touches bytes. Each takes a ``RtpsProtocol`` (``ROS2`` or ``NATIVE``),
+  so one class covers both flavours.
+- **Byte-level methods** on ``RtpsParticipant`` (``add_service_server`` etc.):
+  CDR-encapsulated ``std::span<const uint8_t>`` in/out. Use these for dynamic
+  types, or when you already have the bytes.
+
+.. code-block:: cpp
+
+   struct AddReq  { int64_t a, b; };
+   struct AddResp { int64_t sum; };
+   espp::ServiceServer<AddReq, AddResp> server(participant, {
+       .service = "/add_two_ints",
+       .type_name = "example_interfaces::srv::dds_::AddTwoInts",
+       .handler = [](const AddReq &r) { return AddResp{r.a + r.b}; }});
+
+   espp::ServiceClient<AddReq, AddResp> client(participant, {
+       .service = "/add_two_ints",
+       .type_name = "example_interfaces::srv::dds_::AddTwoInts"});
+   if (auto resp = client.call(AddReq{7, 35}, 1s)) use(resp->sum);   // -> 42
+
+   // Same classes, native protocol - just set .protocol:
+   espp::ServiceClient<AddReq, AddResp> native(participant,
+       {.service = "/mul", .type_name = "espp::native::Mul",
+        .protocol = espp::RtpsProtocol::NATIVE});
+
+The rest of this page shows the byte-level API to explain the wire; the typed
+wrappers are thin layers over exactly these calls.
+
 Services (RMI)
 ==============
 
@@ -169,9 +207,12 @@ Every mechanism is covered end-to-end:
 
 - **In-process loopbacks** (host, docker-free): ``rtps_service_loopback``,
   ``rtps_action_loopback``, ``rtps_native_service_loopback``,
-  ``rtps_native_action_loopback`` — plus wire-format unit tests
-  (``rtps_service_naming``, ``rtps_action_naming``, ``rtps_action_types``) checked
-  byte-for-byte against live ROS 2 captures.
+  ``rtps_native_action_loopback``, and ``rtps_typed_rpc_loopback`` (the typed
+  ``ServiceServer/Client`` + ``ActionServer/Client`` wrappers, both protocols) —
+  plus wire-format unit tests (``rtps_service_naming``, ``rtps_action_naming``,
+  ``rtps_action_types``) checked byte-for-byte against live ROS 2 captures.
+- **On-device**: the ``components/rtps_embedded/example`` (esp32) hosts a typed
+  ``/add_two_ints`` service and a ``/fibonacci`` action a ROS 2 client can drive.
 - **Live ROS 2 interop** (dockerised ``rmw_fastrtps``, both directions):
   ``ros2 service call`` ↔ espp server, espp client ↔ rclpy server, and the same
   for actions (``ros2 action send_goal`` ↔ espp, espp ↔ rclpy). See

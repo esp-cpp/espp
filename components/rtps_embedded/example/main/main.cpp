@@ -4,8 +4,10 @@
 #include "esp32-ethernet-kit.hpp"
 
 #include "logger.hpp"
+#include "rtps_action.hpp"
 #include "rtps_participant.hpp"
 #include "rtps_pubsub.hpp"
+#include "rtps_service.hpp"
 #include "timer.hpp"
 
 using namespace std::chrono_literals;
@@ -15,6 +17,23 @@ using namespace std::chrono_literals;
 // CDR) with no manual (de)serialization in application code.
 struct StringMsg {
   std::string data;
+};
+
+// Reflectable request/reply + goal/result structs for the typed service + action
+// servers below. Their fields map straight to CDR, matching example_interfaces
+// so a ROS 2 client (ros2 service call / ros2 action send_goal) can drive them.
+struct AddReq {
+  int64_t a;
+  int64_t b;
+};
+struct AddResp {
+  int64_t sum;
+};
+struct FibGoal {
+  int32_t order;
+};
+struct FibSeq {
+  std::vector<int32_t> sequence;
 };
 
 extern "C" void app_main(void) {
@@ -103,6 +122,50 @@ extern "C" void app_main(void) {
       .log_level = espp::Logger::Verbosity::WARN,
   });
   logger.info("started: pub='{}' sub='{}' type='{}'", pub_topic, sub_topic, type_name);
+
+#ifdef RTPS_WITH_RPC
+  // Typed service (RMI) server: a ROS 2 client can `ros2 service call
+  // /add_two_ints example_interfaces/srv/AddTwoInts "{a: 7, b: 35}"` and get 42.
+  // No manual CDR - the reflectable AddReq/AddResp structs are (de)serialized for
+  // us. (Compiled out when CONFIG_RTPS_ENABLE_RPC is disabled.)
+  espp::ServiceServer<AddReq, AddResp> add_service(
+      participant, {
+                       .service = "/add_two_ints",
+                       .type_name = "example_interfaces::srv::dds_::AddTwoInts",
+                       .handler =
+                           [&](const AddReq &r) {
+                             logger.info("service add_two_ints: {} + {} = {}", r.a, r.b, r.a + r.b);
+                             return AddResp{r.a + r.b};
+                           },
+                   });
+
+  // Typed action (AMI) server: a ROS 2 client can `ros2 action send_goal
+  // /fibonacci example_interfaces/action/Fibonacci "{order: 5}"` and receive
+  // feedback + the [0,1,1,2,3,5] result. execute() runs on its own thread.
+  espp::ActionServer<FibGoal, FibSeq, FibSeq> fib_action(
+      participant, {
+                       .action = "/fibonacci",
+                       .type_name = "example_interfaces::action::dds_::Fibonacci",
+                       .on_goal = [&](const FibGoal &g) { return g.order > 0; },
+                       .execute =
+                           [&](auto &h) {
+                             const int32_t order = h.goal().order;
+                             std::vector<int32_t> seq{0, 1};
+                             for (int32_t i = 1; i < order; ++i) {
+                               seq.push_back(seq[i] + seq[i - 1]);
+                               h.publish_feedback(FibSeq{seq});
+                               std::this_thread::sleep_for(200ms);
+                             }
+                             h.succeed(FibSeq{seq});
+                             logger.info("action fibonacci({}) done", order);
+                           },
+                   });
+  if (!add_service.is_valid() || !fib_action.is_valid()) {
+    logger.error("Failed to create the typed service/action servers");
+    return;
+  }
+  logger.info("service '/add_two_ints' + action '/fibonacci' ready");
+#endif // RTPS_WITH_RPC
   //! [rtps example]
 
   while (true) {
