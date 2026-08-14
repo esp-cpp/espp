@@ -151,15 +151,26 @@ void Switch2Pro::start_advertising(bool wake, const std::array<uint8_t, 6> &host
       mfr[MANUFACTURER_HOST_ADDR_OFFSET + i] = host_addr[5 - i];
   }
 
+  // The console filters on the Nintendo manufacturer data, so it MUST be in the
+  // primary advertisement. Flags (3) + manufacturer data (22) = 25 bytes, which
+  // fits the 31-byte legacy limit; the name goes in the scan response so the
+  // whole thing doesn't overflow (which would silently drop the manufacturer
+  // data and make the controller invisible to the console).
   BleGattServer::AdvertisedData adv_data;
-  adv_data.setFlags(BLE_HS_ADV_F_DISC_GEN);
-  adv_data.setName(device_name_);
-  adv_data.setManufacturerData(mfr.data(), mfr.size());
+  adv_data.setFlags(BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP);
+  if (!adv_data.setManufacturerData(mfr.data(), mfr.size()))
+    logger_.error("manufacturer data did not fit the advertisement!");
   ble_gatt_server_.set_advertisement_data(adv_data);
+
+  BleGattServer::AdvertisedData scan_response;
+  scan_response.setName(device_name_);
+  ble_gatt_server_.set_scan_response_data(scan_response);
 
   BleGattServer::AdvertisingParameters params{};
   params.connectable = true;
+  params.scan_response = true;
   ble_gatt_server_.start_advertising(params);
+  logger_.info("advertising: flags+mfr({} B) in adv, name in scan response", mfr.size());
 }
 
 std::array<uint8_t, 6> Switch2Pro::local_bt_address() const {
