@@ -8,6 +8,7 @@ FROM ros:jazzy-ros-base
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential cmake git rsync python3-dev pybind11-dev \
+    ros-jazzy-example-interfaces \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /work

@@ -29,6 +29,7 @@ cmake -S lib -B lib/build -DCMAKE_BUILD_TYPE=Release > /tmp/cmake_lib.log 2>&1 \
   && cmake --build pc/build -j"$(nproc)" --target \
        rtps_embedded_pubsub rtps_embedded_golden rtps_facade_pubsub rtps_typed_pubsub \
        rtps_facade_frag rtps_facade_backlog rtps_facade_frag_sizes rtps_service_loopback \
+       rtps_service_interop_server rtps_service_interop_client \
        rtps_embedded_interop_pub rtps_embedded_interop_sub > /tmp/build.log 2>&1
 build_rc=$?
 result "build" $build_rc
@@ -165,6 +166,39 @@ kill $ROSBIG_PID 2>/dev/null; wait $ROSBIG_PID 2>/dev/null
 echo "--- subbig tail ---"; tail -20 /tmp/subbig.log
 echo "--- rospubbig tail ---"; tail -5 /tmp/rospubbig.log
 result "ros2_pub->espp_sub_200k" $big2_rc
+
+# --- Services (RMI): live ROS 2 <-> espp request/reply -----------------------
+# The espp service uses the same rq/rr topics + _Request_/_Response_ types +
+# related_sample_identity inline QoS that rmw_fastrtps uses, so a real ROS 2
+# client/server interoperates with no type-hash exchange (verified: the service
+# even appears in `ros2 service list`).
+
+note "espp service server <- ROS 2 client (ros2 service call add_two_ints)"
+"$BIN"/rtps_service_interop_server /add_two_ints example_interfaces::srv::dds_::AddTwoInts 40 \
+  > /tmp/svcsrv.log 2>&1 &
+SVCSRV=$!
+sleep 4
+timeout 25 ros2 service call /add_two_ints example_interfaces/srv/AddTwoInts "{a: 7, b: 35}" \
+  > /tmp/svccall.log 2>&1
+# Pass iff ROS 2 got the correct response (sum=42).
+grep -q "sum=42" /tmp/svccall.log; svccall_rc=$?
+sleep 1
+kill $SVCSRV 2>/dev/null; wait $SVCSRV 2>/dev/null
+echo "--- ros2 service call ---"; tail -3 /tmp/svccall.log
+echo "--- espp server ---"; grep "server:" /tmp/svcsrv.log | tail -3
+result "espp_service_server<-ros2_client" $svccall_rc
+
+note "espp service client -> ROS 2 server (rclpy add_two_ints)"
+python3 /work/components/rtps_embedded/interop/ros2_add_two_ints_server.py > /tmp/rossvcsrv.log 2>&1 &
+ROSSVC=$!
+sleep 4
+timeout 35 "$BIN"/rtps_service_interop_client /add_two_ints example_interfaces::srv::dds_::AddTwoInts \
+  20 22 30 > /tmp/svcclient.log 2>&1
+svcclient_rc=$?
+kill $ROSSVC 2>/dev/null; wait $ROSSVC 2>/dev/null
+echo "--- espp client ---"; tail -2 /tmp/svcclient.log
+echo "--- rclpy server ---"; grep -iE "= [0-9]" /tmp/rossvcsrv.log | tail -2
+result "espp_service_client->ros2_server" $svcclient_rc
 
 echo ""
 echo "==================== SUMMARY ===================="
