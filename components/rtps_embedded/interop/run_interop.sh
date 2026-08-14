@@ -28,7 +28,7 @@ cmake -S lib -B lib/build -DCMAKE_BUILD_TYPE=Release > /tmp/cmake_lib.log 2>&1 \
   && cmake -S pc -B pc/build -DCMAKE_BUILD_TYPE=Release > /tmp/cmake.log 2>&1 \
   && cmake --build pc/build -j"$(nproc)" --target \
        rtps_embedded_pubsub rtps_embedded_golden rtps_facade_pubsub rtps_typed_pubsub \
-       rtps_facade_frag rtps_facade_backlog rtps_facade_frag_sizes \
+       rtps_facade_frag rtps_facade_backlog rtps_facade_frag_sizes rtps_service_loopback \
        rtps_embedded_interop_pub rtps_embedded_interop_sub > /tmp/build.log 2>&1
 build_rc=$?
 result "build" $build_rc
@@ -56,6 +56,12 @@ note "typed pub/sub in-process"
 # Non-fragmented small samples, so robust in the shared-netns container.
 note "reliable backlog: no sample skipped (dynamic history growth)"
 "$BIN"/rtps_facade_backlog; result "backlog_no_skip" $?
+
+# Service (RMI) request/reply in-process: exercises name mangling + the
+# related_sample_identity inline-QoS emit/parse + pending-request correlation.
+# Non-fragmented small payloads, so robust in the shared-netns container.
+note "service (RMI) request/reply loopback (related_sample_identity correlation)"
+"$BIN"/rtps_service_loopback; result "service_loopback" $?
 
 # NOTE: the in-process fragmented loopbacks (rtps_facade_frag, rtps_facade_frag_sizes)
 # are BUILT above (compile guard) but run as standalone host gates (docker-free),

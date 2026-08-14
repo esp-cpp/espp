@@ -2,10 +2,12 @@
 
 #include <array>
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -169,6 +171,67 @@ public:
   ///         the payload exceeds max_payload_size (see that constant).
   bool publish(std::string_view topic, std::span<const uint8_t> cdr_payload);
 
+  // ---------------------------------------------------------------------------
+  // Services (RMI: request/reply), ROS 2 (rmw_fastrtps) interoperable.
+  //
+  // A service maps onto a request topic (rq/<name>Request) + a reply topic
+  // (rr/<name>Reply), with replies correlated to requests via the
+  // related_sample_identity inline QoS (see RMI_AMI_DESIGN.md). Payloads are
+  // CDR-encapsulated, exactly like publish()/on_sample: for ROS 2 the request is
+  // a <Service>_Request and the reply a <Service>_Response.
+  // ---------------------------------------------------------------------------
+
+  /// Handler for a service server: given a CDR-encapsulated request, return the
+  /// CDR-encapsulated reply. Runs on an engine worker thread - return promptly.
+  using service_handler_t = std::function<std::vector<uint8_t>(std::span<const uint8_t> request)>;
+
+  /// Configuration for a service server or client.
+  struct ServiceConfig {
+    std::string service; ///< ROS 2 service name, e.g. "/add_two_ints".
+    /// Base DDS service type, e.g. "example_interfaces::srv::dds_::AddTwoInts".
+    /// The _Request_/_Response_ suffixes are derived internally.
+    std::string type_name;
+  };
+
+  /// Client handle for calling a service. Obtain one from add_service_client();
+  /// it stays valid until the participant is stopped/destroyed.
+  class ServiceClient {
+  public:
+    /// Callback delivering a CDR-encapsulated reply for a call_async() request.
+    using reply_callback_t = std::function<void(std::span<const uint8_t> reply)>;
+
+    ~ServiceClient();
+    ServiceClient(const ServiceClient &) = delete;
+    ServiceClient &operator=(const ServiceClient &) = delete;
+
+    /// Send a request and invoke on_reply when the correlated reply arrives.
+    /// \return False if the participant is not started or the request could not
+    ///         be queued. The callback runs on an engine worker thread.
+    bool call_async(std::span<const uint8_t> request, reply_callback_t on_reply);
+
+    /// Send a request and block until the correlated reply arrives or timeout.
+    /// \return The CDR-encapsulated reply, or std::nullopt on timeout/failure.
+    ///         Do not call from within an engine callback (it would deadlock).
+    std::optional<std::vector<uint8_t>> call(std::span<const uint8_t> request,
+                                             std::chrono::milliseconds timeout);
+
+  private:
+    friend class RtpsParticipant;
+    struct Impl;
+    explicit ServiceClient(std::unique_ptr<Impl> impl);
+    std::unique_ptr<Impl> impl_;
+  };
+
+  /// Add a service server. The handler is invoked for each request; its return
+  /// value is sent back as the reply, correlated to the requesting client.
+  /// \return True on success (false when not started or endpoint creation fails).
+  bool add_service_server(const ServiceConfig &config, service_handler_t handler);
+
+  /// Add a service client for calling a service.
+  /// \return A client handle, or nullptr on failure (not started / endpoint
+  ///         creation failed). Owned by the participant; valid until stop().
+  std::shared_ptr<ServiceClient> add_service_client(const ServiceConfig &config);
+
 protected:
   /// Per-reader context bridging the engine's C function-pointer callback to
   /// the std::function callback; heap-allocated so its address stays stable
@@ -184,6 +247,13 @@ protected:
   static void publisher_matched_trampoline(void *arg);
   static void subscriber_matched_trampoline(void *arg);
 
+  /// Per-server bridge from the engine request-reader callback to the user
+  /// handler + reply writer. Heap-allocated for a stable address; defined in the
+  /// .cpp so engine types stay out of this header.
+  struct ServiceServerContext;
+  static void service_request_trampoline(void *arg, const rtps::ReaderCacheChange &change);
+  static void service_reply_trampoline(void *arg, const rtps::ReaderCacheChange &change);
+
   bool resolve_interface_address(std::array<uint8_t, 4> &ip_bytes) const;
 
   Config config_;
@@ -193,6 +263,8 @@ protected:
   rtps::Participant *participant_{nullptr};
   std::unordered_map<std::string, rtps::Writer *> writers_;
   std::vector<std::unique_ptr<ReaderContext>> reader_contexts_;
+  std::vector<std::unique_ptr<ServiceServerContext>> service_servers_;
+  std::vector<std::shared_ptr<ServiceClient>> service_clients_;
 };
 
 } // namespace espp

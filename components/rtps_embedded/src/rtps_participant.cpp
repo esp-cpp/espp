@@ -1,9 +1,13 @@
 #include "rtps_participant.hpp"
 
+#include <condition_variable>
 #include <cstdio>
 #include <limits>
+#include <unordered_map>
 
 #include "rtps/entities/Domain.hpp"
+#include "rtps/rpc/sample_identity.hpp"
+#include "rtps/rpc/service_naming.hpp"
 
 // Host-side interface auto-detection uses platform-specific enumeration APIs.
 #if defined(ESP_PLATFORM)
@@ -316,6 +320,220 @@ void RtpsParticipant::subscriber_matched_trampoline(void *arg) {
   if (self != nullptr && self->config_.on_subscriber_matched) {
     self->config_.on_subscriber_matched();
   }
+}
+
+// ===========================================================================
+// Services (RMI) - request/reply with related_sample_identity correlation.
+// ===========================================================================
+
+namespace {
+// Pack a SequenceNumber_t into a single key for the pending-request map.
+uint64_t seq_key(const rtps::SequenceNumber_t &sn) {
+  return (static_cast<uint64_t>(static_cast<uint32_t>(sn.high)) << 32) | sn.low;
+}
+} // namespace
+
+// Per-server bridge: engine request-reader callback -> user handler -> reply.
+struct RtpsParticipant::ServiceServerContext {
+  RtpsParticipant *self{nullptr};
+  service_handler_t handler{nullptr};
+  rtps::Writer *reply_writer{nullptr};
+  rtps::Reader *request_reader{nullptr};
+};
+
+// Client state: request writer + pending-request table keyed by the request's
+// RTPS writerSeqNumber (which the server echoes in the reply's
+// related_sample_identity), matched on our own reply-reader GUID.
+struct RtpsParticipant::ServiceClient::Impl {
+  struct SyncSlot {
+    std::mutex m;
+    std::condition_variable cv;
+    bool done{false};
+    std::vector<uint8_t> reply;
+  };
+  struct Pending {
+    reply_callback_t on_reply{nullptr};      // set for call_async
+    std::shared_ptr<SyncSlot> sync{nullptr}; // set for call
+  };
+
+  RtpsParticipant *self{nullptr};
+  rtps::Writer *request_writer{nullptr};
+  rtps::Guid_t reply_reader_guid{};
+  std::mutex mutex;
+  std::unordered_map<uint64_t, Pending> pending;
+
+  // Send a request carrying our reply-reader GUID as related_sample_identity
+  // (with an UNKNOWN sequence number, per rmw), register the pending entry keyed
+  // by the assigned writerSeqNumber, and return that key. nullopt on failure.
+  std::optional<uint64_t> send(std::span<const uint8_t> request, reply_callback_t on_reply,
+                               std::shared_ptr<SyncSlot> sync) {
+    std::lock_guard<std::mutex> lock(mutex);
+    // Hold the lock across newChange + insert so a reply can never look up the
+    // key before it is registered (the send itself is async).
+    const rtps::rpc::SampleIdentity related{reply_reader_guid, rtps::SequenceNumber_t{-1, 0}};
+    const auto *change = request_writer->newChangeWithRelatedSampleIdentity(
+        rtps::ChangeKind_t::ALIVE, request.data(), static_cast<rtps::DataSize_t>(request.size()),
+        related);
+    if (change == nullptr) {
+      return std::nullopt;
+    }
+    const uint64_t key = seq_key(change->sequenceNumber);
+    pending[key] = Pending{std::move(on_reply), std::move(sync)};
+    return key;
+  }
+};
+
+void RtpsParticipant::service_request_trampoline(void *arg, const rtps::ReaderCacheChange &change) {
+  auto *ctx = static_cast<ServiceServerContext *>(arg);
+  if (ctx == nullptr || !ctx->handler || ctx->reply_writer == nullptr) {
+    return;
+  }
+  // Copy the request payload (valid only during this callback).
+  std::vector<uint8_t> request(change.getDataSize());
+  if (!request.empty() && !change.copyInto(request.data(), change.getDataSize())) {
+    return;
+  }
+  std::vector<uint8_t> reply = ctx->handler(request);
+
+  // Correlate: echo {client reply-reader GUID (from the request's related
+  // sample identity), request writerSeqNumber} so the client can match it.
+  rtps::rpc::SampleIdentity related;
+  related.writer_guid = change.hasRelatedSampleIdentity ? change.relatedSampleIdentity.writer_guid
+                                                        : change.writerGuid;
+  related.sequence_number = change.sn;
+  ctx->reply_writer->newChangeWithRelatedSampleIdentity(rtps::ChangeKind_t::ALIVE, reply.data(),
+                                                        static_cast<rtps::DataSize_t>(reply.size()),
+                                                        related);
+}
+
+void RtpsParticipant::service_reply_trampoline(void *arg, const rtps::ReaderCacheChange &change) {
+  auto *impl = static_cast<ServiceClient::Impl *>(arg);
+  if (impl == nullptr || !change.hasRelatedSampleIdentity) {
+    return;
+  }
+  // Only replies addressed to this client (our reply-reader GUID).
+  if (!(change.relatedSampleIdentity.writer_guid == impl->reply_reader_guid)) {
+    return;
+  }
+  const uint64_t key = seq_key(change.relatedSampleIdentity.sequence_number);
+
+  std::vector<uint8_t> reply(change.getDataSize());
+  if (!reply.empty() && !change.copyInto(reply.data(), change.getDataSize())) {
+    return;
+  }
+
+  ServiceClient::Impl::Pending pending;
+  {
+    std::lock_guard<std::mutex> lock(impl->mutex);
+    auto it = impl->pending.find(key);
+    if (it == impl->pending.end()) {
+      return; // unknown/duplicate/late reply
+    }
+    pending = std::move(it->second);
+    impl->pending.erase(it);
+  }
+  if (pending.sync) {
+    std::lock_guard<std::mutex> lock(pending.sync->m);
+    pending.sync->reply = std::move(reply);
+    pending.sync->done = true;
+    pending.sync->cv.notify_one();
+  } else if (pending.on_reply) {
+    pending.on_reply(reply);
+  }
+}
+
+RtpsParticipant::ServiceClient::ServiceClient(std::unique_ptr<Impl> impl)
+    : impl_(std::move(impl)) {}
+RtpsParticipant::ServiceClient::~ServiceClient() = default;
+
+bool RtpsParticipant::ServiceClient::call_async(std::span<const uint8_t> request,
+                                                reply_callback_t on_reply) {
+  return impl_->send(request, std::move(on_reply), nullptr).has_value();
+}
+
+std::optional<std::vector<uint8_t>>
+RtpsParticipant::ServiceClient::call(std::span<const uint8_t> request,
+                                     std::chrono::milliseconds timeout) {
+  auto slot = std::make_shared<Impl::SyncSlot>();
+  auto key = impl_->send(request, nullptr, slot);
+  if (!key.has_value()) {
+    return std::nullopt;
+  }
+  std::unique_lock<std::mutex> lock(slot->m);
+  if (!slot->cv.wait_for(lock, timeout, [&] { return slot->done; })) {
+    // Timed out: drop the pending entry so a late reply is ignored cleanly.
+    std::lock_guard<std::mutex> plock(impl_->mutex);
+    impl_->pending.erase(*key);
+    return std::nullopt;
+  }
+  return std::move(slot->reply);
+}
+
+bool RtpsParticipant::add_service_server(const ServiceConfig &config, service_handler_t handler) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (!started_) {
+    logger_.error("Cannot add service server '{}': not started", config.service);
+    return false;
+  }
+  const std::string req_topic = rtps::rpc::service_request_topic(config.service);
+  const std::string rep_topic = rtps::rpc::service_reply_topic(config.service);
+  const std::string req_type = rtps::rpc::service_request_type(config.type_name);
+  const std::string rep_type = rtps::rpc::service_response_type(config.type_name);
+
+  rtps::Writer *reply_writer =
+      domain_->createWriter(*participant_, rep_topic.c_str(), rep_type.c_str(), /*reliable=*/true);
+  rtps::Reader *request_reader =
+      domain_->createReader(*participant_, req_topic.c_str(), req_type.c_str(), /*reliable=*/true);
+  if (reply_writer == nullptr || request_reader == nullptr) {
+    logger_.error("Service server '{}': endpoint creation failed", config.service);
+    return false;
+  }
+  auto ctx = std::make_unique<ServiceServerContext>();
+  ctx->self = this;
+  ctx->handler = std::move(handler);
+  ctx->reply_writer = reply_writer;
+  ctx->request_reader = request_reader;
+  if (request_reader->registerCallback(&service_request_trampoline, ctx.get()) == 0) {
+    logger_.error("Service server '{}': could not register request callback", config.service);
+    return false;
+  }
+  service_servers_.push_back(std::move(ctx));
+  logger_.info("Added service server: '{}' ({})", config.service, config.type_name);
+  return true;
+}
+
+std::shared_ptr<RtpsParticipant::ServiceClient>
+RtpsParticipant::add_service_client(const ServiceConfig &config) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (!started_) {
+    logger_.error("Cannot add service client '{}': not started", config.service);
+    return nullptr;
+  }
+  const std::string req_topic = rtps::rpc::service_request_topic(config.service);
+  const std::string rep_topic = rtps::rpc::service_reply_topic(config.service);
+  const std::string req_type = rtps::rpc::service_request_type(config.type_name);
+  const std::string rep_type = rtps::rpc::service_response_type(config.type_name);
+
+  rtps::Reader *reply_reader =
+      domain_->createReader(*participant_, rep_topic.c_str(), rep_type.c_str(), /*reliable=*/true);
+  rtps::Writer *request_writer =
+      domain_->createWriter(*participant_, req_topic.c_str(), req_type.c_str(), /*reliable=*/true);
+  if (reply_reader == nullptr || request_writer == nullptr) {
+    logger_.error("Service client '{}': endpoint creation failed", config.service);
+    return nullptr;
+  }
+  auto impl = std::make_unique<ServiceClient::Impl>();
+  impl->self = this;
+  impl->request_writer = request_writer;
+  impl->reply_reader_guid = reply_reader->m_attributes.endpointGuid;
+  if (reply_reader->registerCallback(&service_reply_trampoline, impl.get()) == 0) {
+    logger_.error("Service client '{}': could not register reply callback", config.service);
+    return nullptr;
+  }
+  auto client = std::shared_ptr<ServiceClient>(new ServiceClient(std::move(impl)));
+  service_clients_.push_back(client);
+  logger_.info("Added service client: '{}' ({})", config.service, config.type_name);
+  return client;
 }
 
 } // namespace espp
