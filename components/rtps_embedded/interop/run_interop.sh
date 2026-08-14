@@ -29,7 +29,7 @@ cmake -S lib -B lib/build -DCMAKE_BUILD_TYPE=Release > /tmp/cmake_lib.log 2>&1 \
   && cmake --build pc/build -j"$(nproc)" --target \
        rtps_embedded_pubsub rtps_embedded_golden rtps_facade_pubsub rtps_typed_pubsub \
        rtps_facade_frag rtps_facade_backlog rtps_facade_frag_sizes rtps_service_loopback \
-       rtps_service_naming rtps_action_naming \
+       rtps_service_naming rtps_action_naming rtps_action_types \
        rtps_service_interop_server rtps_service_interop_client \
        rtps_embedded_interop_pub rtps_embedded_interop_sub > /tmp/build.log 2>&1
 build_rc=$?
@@ -47,6 +47,9 @@ note "Golden wire-format tests"
 note "ROS 2 service + action name/type mangling (host)"
 "$BIN"/rtps_service_naming; result "service_naming" $?
 "$BIN"/rtps_action_naming; result "action_naming" $?
+
+note "ROS 2 action envelope codec vs captured Fibonacci bytes (host)"
+"$BIN"/rtps_action_types; result "action_types" $?
 
 note "espp <-> espp in-process loopback"
 "$BIN"/rtps_embedded_pubsub; result "loopback" $?
