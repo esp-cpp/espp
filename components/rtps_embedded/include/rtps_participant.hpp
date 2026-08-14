@@ -194,6 +194,35 @@ public:
     std::string type_name;
   };
 
+  /// Handle to reply to a service request later (deferred reply). Copyable and
+  /// movable; safe to store and fulfill from any thread. reply() sends the
+  /// correlated response exactly once (subsequent calls are ignored). Used when
+  /// the response is not ready when the request arrives - e.g. an action's
+  /// get_result, which must wait for the goal to finish. See
+  /// add_service_server_deferred().
+  class ServiceResponder {
+  public:
+    ServiceResponder() = default; ///< Empty/invalid responder.
+    /// Send the CDR-encapsulated response, correlated to the original request.
+    /// No-op if invalid or already replied.
+    void reply(std::span<const uint8_t> response) const;
+    bool valid() const { return static_cast<bool>(state_); }
+
+  private:
+    friend class RtpsParticipant;
+    struct State;
+    explicit ServiceResponder(std::shared_ptr<State> state)
+        : state_(std::move(state)) {}
+    std::shared_ptr<State> state_;
+  };
+
+  /// Deferred service handler: invoked with the request and a responder. The
+  /// handler may call responder.reply() immediately or store the responder and
+  /// reply later (from any thread). Unlike service_handler_t this never blocks a
+  /// worker waiting for a slow response.
+  using service_deferred_handler_t =
+      std::function<void(std::span<const uint8_t> request, ServiceResponder responder)>;
+
   /// Client handle for calling a service. Obtain one from add_service_client();
   /// it stays valid until the participant is stopped/destroyed.
   class ServiceClient {
@@ -235,10 +264,104 @@ public:
   /// \return True on success (false when not started or endpoint creation fails).
   bool add_service_server(const ServiceConfig &config, service_handler_t handler);
 
+  /// Add a service server that replies asynchronously via a ServiceResponder.
+  /// Use this when the response may not be ready when the request arrives (e.g.
+  /// an action's get_result). \return True on success.
+  bool add_service_server_deferred(const ServiceConfig &config, service_deferred_handler_t handler);
+
   /// Add a service client for calling a service.
   /// \return A client handle, or nullptr on failure (not started / endpoint
   ///         creation failed). Owned by the participant; valid until stop().
   std::shared_ptr<ServiceClient> add_service_client(const ServiceConfig &config);
+
+  // ---------------------------------------------------------------------------
+  // Actions (AMI: goal server), ROS 2 (rmw_fastrtps) interoperable.
+  //
+  // An action maps onto 3 services (send_goal, cancel_goal, get_result) + 2
+  // topics (feedback, status) - no new wire primitive. Goal/result/feedback
+  // payloads are CDR-encapsulated exactly like publish()/services (for ROS 2, the
+  // action's Goal/Result/Feedback messages). See RMI_AMI_DESIGN.md.
+  // ---------------------------------------------------------------------------
+
+  /// 16-byte action goal id (unique_identifier_msgs/UUID).
+  using GoalId = std::array<uint8_t, 16>;
+
+  /// Configuration for an action server or client.
+  struct ActionConfig {
+    std::string action; ///< ROS 2 action name, e.g. "/fibonacci".
+    /// Base DDS action type, e.g. "example_interfaces::action::dds_::Fibonacci".
+    std::string type_name;
+  };
+
+  /// Server-side handle to a running goal, passed to the execute callback (which
+  /// runs on its own thread). Publish feedback and terminate the goal through it.
+  class ActionGoalHandle {
+  public:
+    const GoalId &goal_id() const;
+    /// The CDR-encapsulated goal payload.
+    std::span<const uint8_t> goal() const;
+    /// Publish a CDR-encapsulated feedback message for this goal.
+    void publish_feedback(std::span<const uint8_t> feedback) const;
+    /// Terminate the goal SUCCEEDED/ABORTED/CANCELED with a CDR result payload.
+    void succeed(std::span<const uint8_t> result) const;
+    void abort(std::span<const uint8_t> result) const;
+    void canceled(std::span<const uint8_t> result) const;
+    /// True if a cancel has been requested for this goal.
+    bool is_canceling() const;
+
+  private:
+    friend class RtpsParticipant;
+    struct State;
+    explicit ActionGoalHandle(std::shared_ptr<State> state)
+        : state_(std::move(state)) {}
+    void terminate(int status_value, std::span<const uint8_t> result) const;
+    std::shared_ptr<State> state_;
+  };
+
+  /// Called when a goal arrives; return true to accept, false to reject.
+  using action_goal_callback_t =
+      std::function<bool(const GoalId &goal_id, std::span<const uint8_t> goal)>;
+  /// Called (on its own thread) to run an accepted goal to completion.
+  using action_execute_callback_t = std::function<void(ActionGoalHandle handle)>;
+  /// Called when a cancel is requested for a goal; return true to accept.
+  using action_cancel_callback_t = std::function<bool(const GoalId &goal_id)>;
+
+  /// Add an action server. on_goal decides acceptance; execute runs each accepted
+  /// goal on its own thread; on_cancel (optional) accepts/rejects cancellations.
+  /// \return True on success (false when not started or endpoint creation fails).
+  bool add_action_server(const ActionConfig &config, action_goal_callback_t on_goal,
+                         action_execute_callback_t execute,
+                         action_cancel_callback_t on_cancel = nullptr);
+
+  /// Client handle for calling an action. Obtain from add_action_client().
+  class ActionClient {
+  public:
+    /// CDR-encapsulated feedback for an in-progress goal.
+    using feedback_callback_t = std::function<void(std::span<const uint8_t> feedback)>;
+    /// Terminal result: the GoalStatus value + the CDR-encapsulated result.
+    using result_callback_t = std::function<void(int8_t status, std::span<const uint8_t> result)>;
+
+    ~ActionClient();
+    ActionClient(const ActionClient &) = delete;
+    ActionClient &operator=(const ActionClient &) = delete;
+
+    /// Send a goal. on_feedback is invoked for each feedback message; on_result
+    /// once when the goal terminates (or is rejected, with an empty result).
+    /// \return The generated goal id, or std::nullopt on failure.
+    std::optional<GoalId> send_goal(std::span<const uint8_t> goal, feedback_callback_t on_feedback,
+                                    result_callback_t on_result);
+    /// Request cancellation of a previously sent goal.
+    bool cancel_goal(const GoalId &goal_id);
+
+  private:
+    friend class RtpsParticipant;
+    struct Impl;
+    explicit ActionClient(std::unique_ptr<Impl> impl);
+    std::unique_ptr<Impl> impl_;
+  };
+
+  /// Add an action client. \return A handle, or nullptr on failure.
+  std::shared_ptr<ActionClient> add_action_client(const ActionConfig &config);
 
 protected:
   /// Per-reader context bridging the engine's C function-pointer callback to
@@ -273,6 +396,10 @@ protected:
   std::vector<std::unique_ptr<ReaderContext>> reader_contexts_;
   std::vector<std::unique_ptr<ServiceServerContext>> service_servers_;
   std::vector<std::shared_ptr<ServiceClient>> service_clients_;
+
+  struct ActionServerContext;
+  std::vector<std::shared_ptr<ActionServerContext>> action_servers_;
+  std::vector<std::shared_ptr<ActionClient>> action_clients_;
 };
 
 } // namespace espp

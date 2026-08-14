@@ -126,6 +126,42 @@ int main() {
     }
   }
 
+  // Deferred server: a separate service whose handler replies from another
+  // thread after a delay (exercises add_service_server_deferred + ServiceResponder).
+  bool deferred_ok = false;
+  {
+    const char *dsvc = "/add_two_ints_deferred";
+    std::vector<std::thread> workers;
+    std::mutex wm;
+    server.add_service_server_deferred(
+        {dsvc, "example_interfaces::srv::dds_::AddTwoInts"},
+        [&](std::span<const uint8_t> req, espp::RtpsParticipant::ServiceResponder responder) {
+          std::vector<uint8_t> r(req.begin(), req.end());
+          std::lock_guard<std::mutex> lk(wm);
+          workers.emplace_back([r, responder]() {
+            std::this_thread::sleep_for(300ms); // reply later, off the worker thread
+            if (r.size() >= 4 + 16) {
+              responder.reply(encode_response(get_i64(r, 4) + get_i64(r, 12)));
+            }
+          });
+        });
+    auto dcall = client.add_service_client({dsvc, "example_interfaces::srv::dds_::AddTwoInts"});
+    std::this_thread::sleep_for(2s); // discovery for the new endpoints
+    if (dcall) {
+      auto reply = dcall->call(encode_request(11, 31), 10s);
+      if (reply.has_value() && reply->size() >= 4 + 8) {
+        deferred_ok = (get_i64(*reply, 4) == 42);
+      }
+      std::printf("deferred call: 11 + 31 = %lld => %s\n",
+                  reply.has_value() ? (long long)get_i64(*reply, 4) : -1,
+                  deferred_ok ? "ok" : "MISMATCH/timeout");
+    }
+    for (auto &t : workers) {
+      if (t.joinable())
+        t.join();
+    }
+  }
+
   // Future-based call: a third request must correlate independently.
   bool future_ok = false;
   {
@@ -147,7 +183,7 @@ int main() {
   server.stop();
   client.stop();
 
-  if (ok && async_ok && future_ok) {
+  if (ok && async_ok && future_ok && deferred_ok) {
     std::printf("PASS\n");
     return 0;
   }

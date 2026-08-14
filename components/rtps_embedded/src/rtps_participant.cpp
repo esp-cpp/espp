@@ -3,9 +3,14 @@
 #include <condition_variable>
 #include <cstdio>
 #include <limits>
+#include <map>
+#include <random>
+#include <thread>
 #include <unordered_map>
 
 #include "rtps/entities/Domain.hpp"
+#include "rtps/rpc/action_naming.hpp"
+#include "rtps/rpc/action_types.hpp"
 #include "rtps/rpc/sample_identity.hpp"
 #include "rtps/rpc/service_naming.hpp"
 
@@ -181,6 +186,13 @@ void RtpsParticipant::stop() {
   participant_ = nullptr;
   domain_.reset();
   reader_contexts_.clear();
+  // RPC endpoints are owned by the (now-reset) domain; drop our bookkeeping.
+  // NOTE: an action server's detached execute threads are not joined here (v1);
+  // goals are expected to finish before stop().
+  action_clients_.clear();
+  action_servers_.clear();
+  service_clients_.clear();
+  service_servers_.clear();
   logger_.info("Stopped");
 }
 
@@ -336,10 +348,31 @@ uint64_t seq_key(const rtps::SequenceNumber_t &sn) {
 // Per-server bridge: engine request-reader callback -> user handler -> reply.
 struct RtpsParticipant::ServiceServerContext {
   RtpsParticipant *self{nullptr};
-  service_handler_t handler{nullptr};
+  service_deferred_handler_t handler{nullptr}; // sync handlers are wrapped as deferred
   rtps::Writer *reply_writer{nullptr};
   rtps::Reader *request_reader{nullptr};
 };
+
+// Deferred-reply state: the reply writer + the identity to echo, so a response
+// can be sent once, later, from any thread.
+struct RtpsParticipant::ServiceResponder::State {
+  rtps::Writer *reply_writer{nullptr};
+  rtps::rpc::SampleIdentity related{};
+  std::atomic<bool> replied{false};
+};
+
+void RtpsParticipant::ServiceResponder::reply(std::span<const uint8_t> response) const {
+  if (!state_ || state_->reply_writer == nullptr) {
+    return;
+  }
+  bool expected = false;
+  if (!state_->replied.compare_exchange_strong(expected, true)) {
+    return; // reply exactly once
+  }
+  state_->reply_writer->newChangeWithRelatedSampleIdentity(
+      rtps::ChangeKind_t::ALIVE, response.data(), static_cast<rtps::DataSize_t>(response.size()),
+      state_->related);
+}
 
 // Client state: request writer + pending-request table keyed by the request's
 // RTPS writerSeqNumber (which the server echoes in the reply's
@@ -393,17 +426,17 @@ void RtpsParticipant::service_request_trampoline(void *arg, const rtps::ReaderCa
   if (!request.empty() && !change.copyInto(request.data(), change.getDataSize())) {
     return;
   }
-  std::vector<uint8_t> reply = ctx->handler(request);
 
-  // Correlate: echo {client reply-reader GUID (from the request's related
-  // sample identity), request writerSeqNumber} so the client can match it.
-  rtps::rpc::SampleIdentity related;
-  related.writer_guid = change.hasRelatedSampleIdentity ? change.relatedSampleIdentity.writer_guid
-                                                        : change.writerGuid;
-  related.sequence_number = change.sn;
-  ctx->reply_writer->newChangeWithRelatedSampleIdentity(rtps::ChangeKind_t::ALIVE, reply.data(),
-                                                        static_cast<rtps::DataSize_t>(reply.size()),
-                                                        related);
+  // Build a responder correlated to this request: echo {client reply-reader GUID
+  // (from the request's related sample identity), request writerSeqNumber}. A
+  // sync handler replies immediately; a deferred one may hold the responder.
+  auto state = std::make_shared<ServiceResponder::State>();
+  state->reply_writer = ctx->reply_writer;
+  state->related.writer_guid = change.hasRelatedSampleIdentity
+                                   ? change.relatedSampleIdentity.writer_guid
+                                   : change.writerGuid;
+  state->related.sequence_number = change.sn;
+  ctx->handler(request, ServiceResponder(state));
 }
 
 void RtpsParticipant::service_reply_trampoline(void *arg, const rtps::ReaderCacheChange &change) {
@@ -485,6 +518,15 @@ RtpsParticipant::ServiceClient::call_future(std::span<const uint8_t> request) {
 }
 
 bool RtpsParticipant::add_service_server(const ServiceConfig &config, service_handler_t handler) {
+  // A synchronous handler is a deferred handler that replies immediately.
+  return add_service_server_deferred(
+      config, [h = std::move(handler)](std::span<const uint8_t> request, ServiceResponder resp) {
+        resp.reply(h(request));
+      });
+}
+
+bool RtpsParticipant::add_service_server_deferred(const ServiceConfig &config,
+                                                  service_deferred_handler_t handler) {
   std::lock_guard<std::mutex> lock(mutex_);
   if (!started_) {
     logger_.error("Cannot add service server '{}': not started", config.service);
@@ -515,6 +557,377 @@ bool RtpsParticipant::add_service_server(const ServiceConfig &config, service_ha
   service_servers_.push_back(std::move(ctx));
   logger_.info("Added service server: '{}' ({})", config.service, config.type_name);
   return true;
+}
+
+// ===========================================================================
+// Actions (AMI) - 3 services (send_goal/cancel_goal/get_result) + 2 topics
+// (feedback/status), composed over the service + pub/sub facade above.
+// ===========================================================================
+
+namespace {
+namespace ract = rtps::rpc;
+
+// Generate a unique 16-byte goal id: random_device bytes mixed with a process
+// counter so uniqueness holds even if random_device is weak (e.g. on an MCU).
+ract::GoalUuid generate_goal_id() {
+  static std::atomic<uint32_t> counter{0};
+  ract::GoalUuid id{};
+  std::random_device rd;
+  for (auto &b : id) {
+    b = static_cast<uint8_t>(rd() & 0xFF);
+  }
+  const uint32_t c = counter.fetch_add(1);
+  id[0] = static_cast<uint8_t>(c & 0xFF);
+  id[1] = static_cast<uint8_t>((c >> 8) & 0xFF);
+  return id;
+}
+} // namespace
+
+// --- Action server -------------------------------------------------------
+
+// One accepted goal's state + the terminal-status plumbing.
+struct RtpsParticipant::ActionGoalHandle::State {
+  ract::GoalUuid goal_id{};
+  std::vector<uint8_t> goal;                   // CDR goal payload
+  RtpsParticipant *self{nullptr};              // for feedback/status publish
+  std::shared_ptr<ActionServerContext> server; // owning server (topics + goals)
+  std::mutex mutex;
+  ract::GoalStatus status{ract::GoalStatus::ACCEPTED};
+  bool done{false};
+  std::vector<uint8_t> result;       // set on terminate
+  ServiceResponder result_responder; // pending get_result (if any)
+  std::atomic<bool> cancel_requested{false};
+  std::thread exec_thread;
+};
+
+struct RtpsParticipant::ActionServerContext {
+  RtpsParticipant *self{nullptr};
+  std::string feedback_topic;
+  std::string status_topic;
+  action_execute_callback_t execute{nullptr};
+  std::mutex goals_mutex;
+  std::map<ract::GoalUuid, std::shared_ptr<ActionGoalHandle::State>> goals;
+};
+
+const RtpsParticipant::GoalId &RtpsParticipant::ActionGoalHandle::goal_id() const {
+  return state_->goal_id;
+}
+std::span<const uint8_t> RtpsParticipant::ActionGoalHandle::goal() const {
+  return {state_->goal.data(), state_->goal.size()};
+}
+bool RtpsParticipant::ActionGoalHandle::is_canceling() const {
+  return state_->cancel_requested.load();
+}
+
+void RtpsParticipant::ActionGoalHandle::publish_feedback(std::span<const uint8_t> feedback) const {
+  auto msg = ract::wrap_feedback(state_->goal_id, feedback);
+  state_->self->publish(state_->server->feedback_topic, {msg.data(), msg.size()});
+}
+
+// Publish a single-goal GoalStatusArray (the common case; a full multi-goal list
+// is not needed for correlation - clients match on the goal id).
+static void publish_goal_status(RtpsParticipant *self, const std::string &status_topic,
+                                const ract::GoalUuid &id, ract::GoalStatus status) {
+  ract::GoalStatusEntry e;
+  e.goal_id = id;
+  e.status = status;
+  std::array<ract::GoalStatusEntry, 1> arr{e};
+  auto msg = ract::make_goal_status_array(arr);
+  self->publish(status_topic, {msg.data(), msg.size()});
+}
+
+void RtpsParticipant::ActionGoalHandle::terminate(int status_value,
+                                                  std::span<const uint8_t> result) const {
+  const auto status = static_cast<ract::GoalStatus>(static_cast<int8_t>(status_value));
+  ServiceResponder responder;
+  {
+    std::lock_guard<std::mutex> lock(state_->mutex);
+    if (state_->done) {
+      return;
+    }
+    state_->done = true;
+    state_->status = status;
+    state_->result.assign(result.begin(), result.end());
+    responder = state_->result_responder; // fulfill any pending get_result
+  }
+  publish_goal_status(state_->self, state_->server->status_topic, state_->goal_id, status);
+  if (responder.valid()) {
+    responder.reply(
+        ract::wrap_get_result_response(status, {state_->result.data(), state_->result.size()}));
+  }
+}
+void RtpsParticipant::ActionGoalHandle::succeed(std::span<const uint8_t> result) const {
+  terminate(static_cast<int>(ract::GoalStatus::SUCCEEDED), result);
+}
+void RtpsParticipant::ActionGoalHandle::abort(std::span<const uint8_t> result) const {
+  terminate(static_cast<int>(ract::GoalStatus::ABORTED), result);
+}
+void RtpsParticipant::ActionGoalHandle::canceled(std::span<const uint8_t> result) const {
+  terminate(static_cast<int>(ract::GoalStatus::CANCELED), result);
+}
+
+bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_callback_t on_goal,
+                                        action_execute_callback_t execute,
+                                        action_cancel_callback_t on_cancel) {
+  if (!started_) {
+    logger_.error("Cannot add action server '{}': not started", config.action);
+    return false;
+  }
+  auto ctx = std::make_shared<ActionServerContext>();
+  ctx->self = this;
+  ctx->feedback_topic = rtps::rpc::action_feedback_topic(config.action);
+  ctx->status_topic = rtps::rpc::action_status_topic(config.action);
+  ctx->execute = std::move(execute);
+
+  // Feedback + status publishers (plain reliable topics).
+  if (!add_writer({ctx->feedback_topic, rtps::rpc::action_feedback_type(config.type_name),
+                   Reliability::RELIABLE}) ||
+      !add_writer({ctx->status_topic, rtps::rpc::action_status_type(), Reliability::RELIABLE})) {
+    logger_.error("Action server '{}': feedback/status writer creation failed", config.action);
+    return false;
+  }
+
+  auto weak = std::weak_ptr<ActionServerContext>(ctx);
+
+  // send_goal service: accept/reject, then spawn the execute thread.
+  const ServiceConfig send_goal_cfg{rtps::rpc::action_send_goal_service(config.action),
+                                    rtps::rpc::action_send_goal_type(config.type_name)};
+  bool ok = add_service_server(
+      send_goal_cfg, [this, weak, on_goal](std::span<const uint8_t> req) -> std::vector<uint8_t> {
+        auto server = weak.lock();
+        ract::GoalUuid id{};
+        std::vector<uint8_t> goal;
+        if (server == nullptr || !ract::unwrap_send_goal_request(req, id, goal)) {
+          return ract::make_send_goal_response(false);
+        }
+        const bool accept = !on_goal || on_goal(id, {goal.data(), goal.size()});
+        if (!accept) {
+          return ract::make_send_goal_response(false);
+        }
+        auto gstate = std::make_shared<ActionGoalHandle::State>();
+        gstate->goal_id = id;
+        gstate->goal = std::move(goal);
+        gstate->self = this;
+        gstate->server = server;
+        {
+          std::lock_guard<std::mutex> lock(server->goals_mutex);
+          server->goals[id] = gstate;
+        }
+        publish_goal_status(this, server->status_topic, id, ract::GoalStatus::EXECUTING);
+        if (server->execute) {
+          gstate->exec_thread =
+              std::thread([server, gstate]() { server->execute(ActionGoalHandle(gstate)); });
+          gstate->exec_thread.detach();
+        }
+        return ract::make_send_goal_response(true);
+      });
+
+  // get_result service (DEFERRED): reply now if done, else hold the responder.
+  const ServiceConfig get_result_cfg{rtps::rpc::action_get_result_service(config.action),
+                                     rtps::rpc::action_get_result_type(config.type_name)};
+  ok = ok && add_service_server_deferred(
+                 get_result_cfg, [weak](std::span<const uint8_t> req, ServiceResponder responder) {
+                   auto server = weak.lock();
+                   ract::GoalUuid id{};
+                   if (server == nullptr || !ract::parse_get_result_request(req, id)) {
+                     return;
+                   }
+                   std::shared_ptr<ActionGoalHandle::State> gstate;
+                   {
+                     std::lock_guard<std::mutex> lock(server->goals_mutex);
+                     auto it = server->goals.find(id);
+                     if (it != server->goals.end()) {
+                       gstate = it->second;
+                     }
+                   }
+                   if (gstate == nullptr) {
+                     responder.reply(ract::wrap_get_result_response(ract::GoalStatus::UNKNOWN, {}));
+                     return;
+                   }
+                   std::lock_guard<std::mutex> lock(gstate->mutex);
+                   if (gstate->done) {
+                     responder.reply(ract::wrap_get_result_response(
+                         gstate->status, {gstate->result.data(), gstate->result.size()}));
+                   } else {
+                     gstate->result_responder = responder; // fulfilled on terminate()
+                   }
+                 });
+
+  // cancel_goal service: mark the goal canceling; the execute callback observes
+  // is_canceling(). Minimal CancelGoal_Response (return_code=0, empty list).
+  const ServiceConfig cancel_cfg{rtps::rpc::action_cancel_goal_service(config.action),
+                                 rtps::rpc::action_cancel_goal_type()};
+  ok = ok &&
+       add_service_server(
+           cancel_cfg, [weak, on_cancel](std::span<const uint8_t> req) -> std::vector<uint8_t> {
+             auto server = weak.lock();
+             // CancelGoal_Request: goal_info{ goal_id: UUID(16), stamp }.
+             if (server != nullptr && req.size() >= 4 + 16) {
+               ract::GoalUuid id{};
+               std::memcpy(id.data(), req.data() + 4, 16);
+               std::shared_ptr<ActionGoalHandle::State> gstate;
+               {
+                 std::lock_guard<std::mutex> lock(server->goals_mutex);
+                 auto it = server->goals.find(id);
+                 if (it != server->goals.end()) {
+                   gstate = it->second;
+                 }
+               }
+               if (gstate && (!on_cancel || on_cancel(id))) {
+                 gstate->cancel_requested.store(true);
+               }
+             }
+             // CancelGoal_Response: return_code:int8 + pad(3) + goals[]=0.
+             std::vector<uint8_t> resp{0x00, 0x01, 0x00, 0x00, 0, 0, 0, 0, 0, 0, 0, 0};
+             return resp;
+           });
+
+  if (!ok) {
+    logger_.error("Action server '{}': service endpoint creation failed", config.action);
+    return false;
+  }
+  action_servers_.push_back(std::move(ctx));
+  logger_.info("Added action server: '{}' ({})", config.action, config.type_name);
+  return true;
+}
+
+// --- Action client -------------------------------------------------------
+
+struct RtpsParticipant::ActionClient::Impl {
+  struct Goal {
+    feedback_callback_t on_feedback{nullptr};
+    result_callback_t on_result{nullptr};
+  };
+  RtpsParticipant *self{nullptr};
+  std::shared_ptr<ServiceClient> send_goal_client;
+  std::shared_ptr<ServiceClient> get_result_client;
+  std::shared_ptr<ServiceClient> cancel_client;
+  std::string action;
+  std::mutex mutex;
+  std::map<ract::GoalUuid, Goal> goals;
+};
+
+RtpsParticipant::ActionClient::ActionClient(std::unique_ptr<Impl> impl)
+    : impl_(std::move(impl)) {}
+RtpsParticipant::ActionClient::~ActionClient() = default;
+
+std::optional<RtpsParticipant::GoalId> RtpsParticipant::ActionClient::send_goal(
+    std::span<const uint8_t> goal, feedback_callback_t on_feedback, result_callback_t on_result) {
+  const ract::GoalUuid id = generate_goal_id();
+  {
+    std::lock_guard<std::mutex> lock(impl_->mutex);
+    impl_->goals[id] = Impl::Goal{std::move(on_feedback), std::move(on_result)};
+  }
+  auto *impl = impl_.get();
+  const bool queued = impl->send_goal_client->call_async(
+      ract::wrap_send_goal_request(id, goal), [impl, id](std::span<const uint8_t> reply) {
+        bool accepted = false;
+        if (!ract::parse_send_goal_response(reply, accepted) || !accepted) {
+          Impl::Goal g;
+          {
+            std::lock_guard<std::mutex> lock(impl->mutex);
+            auto it = impl->goals.find(id);
+            if (it == impl->goals.end()) {
+              return;
+            }
+            g = std::move(it->second);
+            impl->goals.erase(it);
+          }
+          if (g.on_result) {
+            g.on_result(static_cast<int8_t>(ract::GoalStatus::ABORTED), {});
+          }
+          return;
+        }
+        // Accepted: request the result (completes when the goal finishes).
+        impl->get_result_client->call_async(
+            ract::make_get_result_request(id), [impl, id](std::span<const uint8_t> res) {
+              ract::GoalStatus status{};
+              std::vector<uint8_t> result;
+              ract::unwrap_get_result_response(res, status, result);
+              Impl::Goal g;
+              {
+                std::lock_guard<std::mutex> lock(impl->mutex);
+                auto it = impl->goals.find(id);
+                if (it == impl->goals.end()) {
+                  return;
+                }
+                g = std::move(it->second);
+                impl->goals.erase(it);
+              }
+              if (g.on_result) {
+                g.on_result(static_cast<int8_t>(status), {result.data(), result.size()});
+              }
+            });
+      });
+  if (!queued) {
+    std::lock_guard<std::mutex> lock(impl_->mutex);
+    impl_->goals.erase(id);
+    return std::nullopt;
+  }
+  return id;
+}
+
+bool RtpsParticipant::ActionClient::cancel_goal(const GoalId &goal_id) {
+  // CancelGoal_Request: goal_info{ goal_id: UUID(16), stamp{sec,nsec} }.
+  std::vector<uint8_t> req{0x00, 0x01, 0x00, 0x00};
+  req.insert(req.end(), goal_id.begin(), goal_id.end());
+  for (int i = 0; i < 8; ++i) {
+    req.push_back(0); // stamp
+  }
+  return impl_->cancel_client->call_async(req, [](std::span<const uint8_t>) {});
+}
+
+std::shared_ptr<RtpsParticipant::ActionClient>
+RtpsParticipant::add_action_client(const ActionConfig &config) {
+  if (!started_) {
+    logger_.error("Cannot add action client '{}': not started", config.action);
+    return nullptr;
+  }
+  auto impl = std::make_unique<ActionClient::Impl>();
+  impl->self = this;
+  impl->action = config.action;
+  impl->send_goal_client = add_service_client({rtps::rpc::action_send_goal_service(config.action),
+                                               rtps::rpc::action_send_goal_type(config.type_name)});
+  impl->get_result_client =
+      add_service_client({rtps::rpc::action_get_result_service(config.action),
+                          rtps::rpc::action_get_result_type(config.type_name)});
+  impl->cancel_client = add_service_client(
+      {rtps::rpc::action_cancel_goal_service(config.action), rtps::rpc::action_cancel_goal_type()});
+  if (!impl->send_goal_client || !impl->get_result_client || !impl->cancel_client) {
+    logger_.error("Action client '{}': service client creation failed", config.action);
+    return nullptr;
+  }
+
+  ActionClient::Impl *raw = impl.get();
+  // Feedback subscriber routes by goal id to the goal's on_feedback.
+  if (!add_reader({rtps::rpc::action_feedback_topic(config.action),
+                   rtps::rpc::action_feedback_type(config.type_name), Reliability::RELIABLE,
+                   [raw](std::span<const uint8_t> msg) {
+                     ract::GoalUuid id{};
+                     std::vector<uint8_t> fb;
+                     if (!ract::unwrap_feedback(msg, id, fb)) {
+                       return;
+                     }
+                     ActionClient::feedback_callback_t cb;
+                     {
+                       std::lock_guard<std::mutex> lock(raw->mutex);
+                       auto it = raw->goals.find(id);
+                       if (it != raw->goals.end()) {
+                         cb = it->second.on_feedback;
+                       }
+                     }
+                     if (cb) {
+                       cb({fb.data(), fb.size()});
+                     }
+                   }})) {
+    logger_.error("Action client '{}': feedback reader creation failed", config.action);
+    return nullptr;
+  }
+
+  auto client = std::shared_ptr<ActionClient>(new ActionClient(std::move(impl)));
+  action_clients_.push_back(client);
+  logger_.info("Added action client: '{}' ({})", config.action, config.type_name);
+  return client;
 }
 
 std::shared_ptr<RtpsParticipant::ServiceClient>
