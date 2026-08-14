@@ -32,9 +32,10 @@ classes = [
 class_methods = {
     "ServiceClient": ["call", "call_async", "call_future"],
     "NativeServiceClient": ["call", "call_async", "call_future"],
-    "ActionClient": ["send_goal"],
+    "ActionClient": ["send_goal", "cancel_goal"],
+    "NativeActionClient": ["send_goal", "cancel_goal"],
     "ActionGoalHandle": ["goal", "publish_feedback", "succeed", "abort", "canceled", "is_canceling"],
-    "NativeGoalHandle": ["goal", "publish_feedback", "succeed", "abort"],
+    "NativeGoalHandle": ["goal", "publish_feedback", "succeed", "abort", "canceled", "is_canceling"],
 }
 
 missing = [m for m in methods if not hasattr(p, m)] + [c for c in classes if not hasattr(p, c)]

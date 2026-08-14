@@ -423,6 +423,12 @@ public:
     void publish_feedback(std::span<const uint8_t> feedback) const;
     void succeed(std::span<const uint8_t> result) const;
     void abort(std::span<const uint8_t> result) const;
+    /// Terminate the goal CANCELED (in response to a cancel request).
+    void canceled(std::span<const uint8_t> result) const;
+    /// True if the client has requested cancellation of this goal (and the
+    /// server's on_cancel, if any, accepted it). A long-running execute callback
+    /// should poll this and wind down - calling canceled()/abort() - when set.
+    bool is_canceling() const;
 
   private:
     friend class RtpsParticipant;
@@ -435,11 +441,17 @@ public:
 
   using native_goal_callback_t = std::function<bool(std::span<const uint8_t> goal)>;
   using native_execute_callback_t = std::function<void(NativeGoalHandle handle)>;
+  /// Cancel policy: return true to accept a cancel request for the goal_handle
+  /// (the execute callback then observes is_canceling()). Default (nullptr)
+  /// accepts every cancel.
+  using native_cancel_callback_t = std::function<bool(uint32_t goal_handle)>;
 
   /// Add a native action server. on_goal accepts/rejects; execute runs each
-  /// accepted goal on its own thread. \return True on success.
+  /// accepted goal on its own thread; on_cancel (optional) gates cancel requests.
+  /// \return True on success.
   bool add_native_action_server(const ActionConfig &config, native_goal_callback_t on_goal,
-                                native_execute_callback_t execute);
+                                native_execute_callback_t execute,
+                                native_cancel_callback_t on_cancel = nullptr);
 
   /// Client handle for a native action.
   class NativeActionClient {
@@ -447,15 +459,23 @@ public:
     using feedback_callback_t = std::function<void(std::span<const uint8_t> feedback)>;
     /// Terminal result: the NativeGoalStatus value + the CDR result payload.
     using result_callback_t = std::function<void(uint8_t status, std::span<const uint8_t> result)>;
+    /// Invoked once when the server accepts the goal, with the server-assigned
+    /// goal_handle - keep it to cancel_goal() the goal later.
+    using accepted_callback_t = std::function<void(uint32_t goal_handle)>;
 
     ~NativeActionClient();
     NativeActionClient(const NativeActionClient &) = delete;
     NativeActionClient &operator=(const NativeActionClient &) = delete;
 
-    /// Send a goal; on_feedback per feedback message, on_result once at the end.
+    /// Send a goal; on_feedback per feedback message, on_result once at the end,
+    /// on_accepted (optional) with the assigned goal_handle when accepted.
     /// \return True if the goal was queued.
     bool send_goal(std::span<const uint8_t> goal, feedback_callback_t on_feedback,
-                   result_callback_t on_result);
+                   result_callback_t on_result, accepted_callback_t on_accepted = nullptr);
+
+    /// Request cancellation of a previously accepted goal by its goal_handle
+    /// (from on_accepted). \return True if the cancel request was queued.
+    bool cancel_goal(uint32_t goal_handle);
 
   private:
     friend class RtpsParticipant;

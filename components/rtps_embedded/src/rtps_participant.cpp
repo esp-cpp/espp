@@ -1241,6 +1241,7 @@ struct RtpsParticipant::NativeGoalHandle::State {
   RtpsParticipant *self{nullptr};
   std::string feedback_topic;
   std::atomic<bool> done{false};
+  std::atomic<bool> cancel_requested{false};
 };
 
 struct RtpsParticipant::NativeActionServerContext {
@@ -1252,11 +1253,18 @@ struct RtpsParticipant::NativeActionServerContext {
   // torn down, reaped as they finish. See ActionExecThread / reap_and_store.
   std::mutex threads_mutex;
   std::vector<ActionExecThread> exec_threads;
+  // Running goals keyed by handle, for routing cancel requests. weak so a
+  // finished goal's State can expire; the executing worker owns the strong ref.
+  std::mutex goals_mutex;
+  std::map<uint32_t, std::weak_ptr<NativeGoalHandle::State>> goals;
 };
 
 uint32_t RtpsParticipant::NativeGoalHandle::goal_handle() const { return state_->goal_handle; }
 std::span<const uint8_t> RtpsParticipant::NativeGoalHandle::goal() const {
   return {state_->goal.data(), state_->goal.size()};
+}
+bool RtpsParticipant::NativeGoalHandle::is_canceling() const {
+  return state_->cancel_requested.load();
 }
 void RtpsParticipant::NativeGoalHandle::publish_feedback(std::span<const uint8_t> feedback) const {
   auto msg = rtps::rpc::native_make_feedback(state_->goal_handle,
@@ -1279,10 +1287,14 @@ void RtpsParticipant::NativeGoalHandle::succeed(std::span<const uint8_t> result)
 void RtpsParticipant::NativeGoalHandle::abort(std::span<const uint8_t> result) const {
   terminate(static_cast<uint8_t>(rtps::rpc::NativeGoalStatus::ABORTED), result);
 }
+void RtpsParticipant::NativeGoalHandle::canceled(std::span<const uint8_t> result) const {
+  terminate(static_cast<uint8_t>(rtps::rpc::NativeGoalStatus::CANCELED), result);
+}
 
 bool RtpsParticipant::add_native_action_server(const ActionConfig &config,
                                                native_goal_callback_t on_goal,
-                                               native_execute_callback_t execute) {
+                                               native_execute_callback_t execute,
+                                               native_cancel_callback_t on_cancel) {
   if (!started_) {
     logger_.error("Cannot add native action server '{}': not started", config.action);
     return false;
@@ -1312,12 +1324,19 @@ bool RtpsParticipant::add_native_action_server(const ActionConfig &config,
         gstate->self = this;
         gstate->feedback_topic = server->feedback_topic;
         if (server->execute) {
+          {
+            std::lock_guard<std::mutex> lock(server->goals_mutex);
+            server->goals[handle] = gstate; // weak; for cancel routing
+          }
           // Own the worker (not detached) so stop() joins it before teardown.
           auto finished = std::make_shared<std::atomic<bool>>(false);
           std::weak_ptr<NativeActionServerContext> weak_server = server;
-          std::thread worker([gstate, weak_server, finished]() {
+          std::thread worker([gstate, weak_server, finished, handle]() {
             if (auto s = weak_server.lock()) {
               s->execute(NativeGoalHandle(gstate));
+              // Goal finished: drop it from the cancel-routing map.
+              std::lock_guard<std::mutex> lock(s->goals_mutex);
+              s->goals.erase(handle);
             }
             finished->store(true);
           });
@@ -1327,6 +1346,37 @@ bool RtpsParticipant::add_native_action_server(const ActionConfig &config,
       });
   if (!ok) {
     logger_.error("Native action server '{}': goal service failed", config.action);
+    return false;
+  }
+  // The cancel native service: mark a running goal canceling (the execute
+  // callback observes is_canceling()); on_cancel, if set, gates acceptance.
+  const bool cancel_ok = add_native_service_server(
+      {rtps::rpc::native_cancel_service(config.action), config.type_name},
+      [weak, on_cancel](std::span<const uint8_t> req) -> std::vector<uint8_t> {
+        auto server = weak.lock();
+        uint32_t handle = 0;
+        if (server == nullptr || !rtps::rpc::native_parse_cancel_request(req, handle)) {
+          return rtps::rpc::native_make_cancel_reply(false);
+        }
+        std::shared_ptr<NativeGoalHandle::State> gstate;
+        {
+          std::lock_guard<std::mutex> lock(server->goals_mutex);
+          auto it = server->goals.find(handle);
+          if (it != server->goals.end()) {
+            gstate = it->second.lock();
+          }
+        }
+        if (!gstate) {
+          return rtps::rpc::native_make_cancel_reply(false); // unknown/finished goal
+        }
+        const bool accept = !on_cancel || on_cancel(handle);
+        if (accept) {
+          gstate->cancel_requested.store(true);
+        }
+        return rtps::rpc::native_make_cancel_reply(accept);
+      });
+  if (!cancel_ok) {
+    logger_.error("Native action server '{}': cancel service failed", config.action);
     return false;
   }
   native_action_servers_.push_back(std::move(ctx));
@@ -1345,6 +1395,7 @@ struct RtpsParticipant::NativeActionClient::Impl {
   };
   RtpsParticipant *self{nullptr};
   std::shared_ptr<NativeServiceClient> goal_client;
+  std::shared_ptr<NativeServiceClient> cancel_client;
   std::mutex mutex;
   std::map<uint32_t, Goal> goals;
   // Feedback/result can arrive before send_goal's reply installs the goal (the
@@ -1392,10 +1443,11 @@ RtpsParticipant::NativeActionClient::~NativeActionClient() = default;
 
 bool RtpsParticipant::NativeActionClient::send_goal(std::span<const uint8_t> goal,
                                                     feedback_callback_t on_feedback,
-                                                    result_callback_t on_result) {
+                                                    result_callback_t on_result,
+                                                    accepted_callback_t on_accepted) {
   auto *impl = impl_.get();
   return impl->goal_client->call_async(
-      goal, [impl, on_feedback, on_result](std::span<const uint8_t> reply) {
+      goal, [impl, on_feedback, on_result, on_accepted](std::span<const uint8_t> reply) {
         bool accepted = false;
         uint32_t handle = 0;
         if (!rtps::rpc::native_parse_goal_reply(reply, accepted, handle) || !accepted) {
@@ -1416,10 +1468,21 @@ bool RtpsParticipant::NativeActionClient::send_goal(std::span<const uint8_t> goa
             impl->pending_early.erase(it);
           }
         }
+        if (on_accepted) {
+          on_accepted(handle); // hand the caller the goal_handle for cancel_goal()
+        }
         for (auto &m : replay) {
           Impl::deliver(impl, handle, m.status, m.payload);
         }
       });
+}
+
+bool RtpsParticipant::NativeActionClient::cancel_goal(uint32_t goal_handle) {
+  if (!impl_->cancel_client) {
+    return false;
+  }
+  return impl_->cancel_client->call_async(rtps::rpc::native_make_cancel_request(goal_handle),
+                                          [](std::span<const uint8_t>) {});
 }
 
 std::shared_ptr<RtpsParticipant::NativeActionClient>
@@ -1432,8 +1495,10 @@ RtpsParticipant::add_native_action_client(const ActionConfig &config) {
   impl->self = this;
   impl->goal_client =
       add_native_service_client({rtps::rpc::native_goal_service(config.action), config.type_name});
-  if (!impl->goal_client) {
-    logger_.error("Native action client '{}': goal client failed", config.action);
+  impl->cancel_client = add_native_service_client(
+      {rtps::rpc::native_cancel_service(config.action), config.type_name});
+  if (!impl->goal_client || !impl->cancel_client) {
+    logger_.error("Native action client '{}': goal/cancel client failed", config.action);
     return nullptr;
   }
   NativeActionClient::Impl *raw = impl.get();

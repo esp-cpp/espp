@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <span>
 #include <string>
@@ -34,8 +35,10 @@ template <RtpsMessage Goal, RtpsMessage Result, RtpsMessage Feedback> class Acti
 public:
   /// \return The typed goal being executed.
   const Goal &goal() const { return goal_; }
-  /// \return True if a cancel has been requested for this goal (ROS 2 protocol
-  ///         only; the native protocol has no cancel, so this is always false).
+  /// \return True if the client has requested cancellation of this goal (both
+  ///         the ROS 2 and native protocols). A long-running execute callback
+  ///         should poll this and wind the goal down - calling canceled() - when
+  ///         it becomes true.
   bool is_canceling() const { return is_canceling_ ? is_canceling_() : false; }
   /// Publish a typed feedback message for this goal.
   /// \param feedback The feedback to send to the client.
@@ -58,6 +61,14 @@ public:
       abort_(detail::rtps_serialize<Result>(result));
     }
   }
+  /// Terminate the goal as CANCELED (in response to is_canceling()) and deliver
+  /// the (partial) result to the client.
+  /// \param result The result gathered before cancellation.
+  void canceled(const Result &result) const {
+    if (canceled_) {
+      canceled_(detail::rtps_serialize<Result>(result));
+    }
+  }
 
   /// @cond INTERNAL
   // Populated by ActionServer from a byte-level goal handle; not user-facing.
@@ -65,6 +76,7 @@ public:
   std::function<void(std::span<const uint8_t>)> publish_feedback_;
   std::function<void(std::span<const uint8_t>)> succeed_;
   std::function<void(std::span<const uint8_t>)> abort_;
+  std::function<void(std::span<const uint8_t>)> canceled_;
   std::function<bool()> is_canceling_;
   /// @endcond
 };
@@ -130,6 +142,8 @@ public:
             h.publish_feedback_ = [bh](std::span<const uint8_t> b) { bh.publish_feedback(b); };
             h.succeed_ = [bh](std::span<const uint8_t> b) { bh.succeed(b); };
             h.abort_ = [bh](std::span<const uint8_t> b) { bh.abort(b); };
+            h.canceled_ = [bh](std::span<const uint8_t> b) { bh.canceled(b); };
+            h.is_canceling_ = [bh]() { return bh.is_canceling(); };
             if (execute) {
               execute(h);
             }
@@ -151,6 +165,7 @@ public:
             h.publish_feedback_ = [bh](std::span<const uint8_t> b) { bh.publish_feedback(b); };
             h.succeed_ = [bh](std::span<const uint8_t> b) { bh.succeed(b); };
             h.abort_ = [bh](std::span<const uint8_t> b) { bh.abort(b); };
+            h.canceled_ = [bh](std::span<const uint8_t> b) { bh.canceled(b); };
             h.is_canceling_ = [bh]() { return bh.is_canceling(); };
             if (execute) {
               execute(h);
@@ -231,18 +246,53 @@ public:
       }
     };
     if (ros_) {
-      return ros_->send_goal(goal_bytes, std::move(fb_cb), std::move(res_cb)).has_value();
+      auto id = ros_->send_goal(goal_bytes, std::move(fb_cb), std::move(res_cb));
+      if (id) {
+        std::lock_guard<std::mutex> lock(latest_->m);
+        latest_->ros_id = *id;
+      }
+      return id.has_value();
     }
     if (native_) {
-      return native_->send_goal(goal_bytes, std::move(fb_cb),
-                                [res_cb](uint8_t status, std::span<const uint8_t> b) {
-                                  res_cb(static_cast<int8_t>(status), b);
-                                });
+      auto lat = latest_;
+      return native_->send_goal(
+          goal_bytes, std::move(fb_cb),
+          [res_cb](uint8_t status, std::span<const uint8_t> b) {
+            res_cb(static_cast<int8_t>(status), b);
+          },
+          [lat](uint32_t handle) {
+            std::lock_guard<std::mutex> lock(lat->m);
+            lat->native_handle = handle;
+          });
+    }
+    return false;
+  }
+
+  /// Request cancellation of the most recently accepted goal (works on both the
+  /// ROS 2 and native protocols). The server observes the cancel via its goal
+  /// handle's is_canceling() and should wind the goal down cooperatively.
+  /// \return True if the cancel request was queued.
+  bool cancel_goal() {
+    std::lock_guard<std::mutex> lock(latest_->m);
+    if (native_ && latest_->native_handle) {
+      return native_->cancel_goal(*latest_->native_handle);
+    }
+    if (ros_ && latest_->ros_id) {
+      return ros_->cancel_goal(*latest_->ros_id);
     }
     return false;
   }
 
 private:
+  // Tracks the most recently accepted goal so cancel_goal() can target it. A
+  // shared_ptr so the native on_accepted callback (which runs later, on an engine
+  // thread) can record the server-assigned handle here.
+  struct Latest {
+    std::mutex m;
+    std::optional<uint32_t> native_handle;
+    std::optional<RtpsParticipant::GoalId> ros_id;
+  };
+  std::shared_ptr<Latest> latest_ = std::make_shared<Latest>();
   std::shared_ptr<RtpsParticipant::ActionClient> ros_;
   std::shared_ptr<RtpsParticipant::NativeActionClient> native_;
 };

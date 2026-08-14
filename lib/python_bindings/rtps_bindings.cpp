@@ -12,6 +12,7 @@
 //
 // It is kept out of the generated pybind_espp.cpp so regeneration never clobbers it.
 
+#include <algorithm>
 #include <functional>
 #include <memory>
 #include <span>
@@ -368,7 +369,20 @@ void py_init_rtps(py::module &m) {
             return py::object(py::bytes(reinterpret_cast<const char *>(gid->data()), gid->size()));
           },
           py::arg("goal"), py::arg("on_feedback"), py::arg("on_result"),
-          "Send a goal. on_feedback(bytes); on_result(status:int, bytes). Returns the goal id.");
+          "Send a goal. on_feedback(bytes); on_result(status:int, bytes). Returns the goal id.")
+      .def(
+          "cancel_goal",
+          [](Rtps::ActionClient &self, const py::bytes &goal_id) {
+            auto id_v = to_vec(goal_id);
+            Rtps::GoalId id{};
+            if (id_v.size() != id.size()) {
+              return false;
+            }
+            std::copy(id_v.begin(), id_v.end(), id.begin());
+            py::gil_scoped_release rel;
+            return self.cancel_goal(id);
+          },
+          py::arg("goal_id"), "Request cancellation of a goal by its id (from send_goal).");
 
   rtps.def(
       "add_action_server",
@@ -471,9 +485,21 @@ void py_init_rtps(py::module &m) {
       .def(
           "send_goal",
           [](Rtps::NativeActionClient &self, const py::bytes &goal, const py::function &on_feedback,
-             const py::function &on_result) {
+             const py::function &on_result, const py::object &on_accepted) {
             auto fb = make_gil_safe_holder(on_feedback);
             auto rc = make_gil_safe_holder(on_result);
+            Rtps::NativeActionClient::accepted_callback_t acc = nullptr;
+            if (!on_accepted.is_none()) {
+              auto ac = make_gil_safe_holder(on_accepted.cast<py::function>());
+              acc = [ac](uint32_t handle) {
+                py::gil_scoped_acquire gil;
+                try {
+                  (*ac)(handle);
+                } catch (py::error_already_set &e) {
+                  e.discard_as_unraisable("native on_accepted");
+                }
+              };
+            }
             auto goal_v = to_vec(goal);
             py::gil_scoped_release rel;
             return self.send_goal(
@@ -493,9 +519,18 @@ void py_init_rtps(py::module &m) {
                   } catch (py::error_already_set &e) {
                     e.discard_as_unraisable("native result");
                   }
-                });
+                },
+                std::move(acc));
           },
-          py::arg("goal"), py::arg("on_feedback"), py::arg("on_result"));
+          py::arg("goal"), py::arg("on_feedback"), py::arg("on_result"),
+          py::arg("on_accepted") = py::none())
+      .def(
+          "cancel_goal",
+          [](Rtps::NativeActionClient &self, uint32_t goal_handle) {
+            py::gil_scoped_release rel;
+            return self.cancel_goal(goal_handle);
+          },
+          py::arg("goal_handle"));
 
   rtps.def(
           "add_native_service_server",
@@ -516,9 +551,23 @@ void py_init_rtps(py::module &m) {
       .def(
           "add_native_action_server",
           [](Rtps &self, const std::string &action, const std::string &type_name,
-             const py::function &on_goal, const py::function &execute) {
+             const py::function &on_goal, const py::function &execute,
+             const py::object &on_cancel) {
             auto og = make_gil_safe_holder(on_goal);
             auto ex = make_gil_safe_holder(execute);
+            Rtps::native_cancel_callback_t oc = nullptr;
+            if (!on_cancel.is_none()) {
+              auto ocw = make_gil_safe_holder(on_cancel.cast<py::function>());
+              oc = [ocw](uint32_t handle) -> bool {
+                py::gil_scoped_acquire gil;
+                try {
+                  return (*ocw)(handle).cast<bool>();
+                } catch (py::error_already_set &e) {
+                  e.discard_as_unraisable("native on_cancel");
+                  return false;
+                }
+              };
+            }
             py::gil_scoped_release rel;
             return self.add_native_action_server(
                 {action, type_name},
@@ -538,9 +587,11 @@ void py_init_rtps(py::module &m) {
                   } catch (py::error_already_set &e) {
                     e.discard_as_unraisable("native execute");
                   }
-                });
+                },
+                std::move(oc));
           },
-          py::arg("action"), py::arg("type_name"), py::arg("on_goal"), py::arg("execute"))
+          py::arg("action"), py::arg("type_name"), py::arg("on_goal"), py::arg("execute"),
+          py::arg("on_cancel") = py::none())
       .def(
           "add_native_action_client",
           [](Rtps &self, const std::string &action, const std::string &type_name) {
@@ -553,6 +604,7 @@ void py_init_rtps(py::module &m) {
                                      "Server-side handle to a running native goal.")
       .def("goal", [](Rtps::NativeGoalHandle &h) { return to_bytes(h.goal()); })
       .def("goal_handle", &Rtps::NativeGoalHandle::goal_handle)
+      .def("is_canceling", &Rtps::NativeGoalHandle::is_canceling)
       .def(
           "publish_feedback",
           [](Rtps::NativeGoalHandle &h, const py::bytes &fb) {
@@ -575,6 +627,14 @@ void py_init_rtps(py::module &m) {
             auto v = to_vec(result);
             py::gil_scoped_release rel;
             h.abort(v);
+          },
+          py::arg("result"))
+      .def(
+          "canceled",
+          [](Rtps::NativeGoalHandle &h, const py::bytes &result) {
+            auto v = to_vec(result);
+            py::gil_scoped_release rel;
+            h.canceled(v);
           },
           py::arg("result"));
 }

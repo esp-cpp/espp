@@ -51,6 +51,12 @@ int main() {
           [](espp::RtpsParticipant::NativeGoalHandle h) {
             const int32_t n = get_i32(h.goal(), 4);
             for (int32_t i = 1; i <= n; ++i) {
+              // Cancel-aware: wind down (CANCELED) when the client cancels.
+              if (h.is_canceling()) {
+                auto partial = encode_i32(i - 1);
+                h.canceled({partial.data(), partial.size()});
+                return;
+              }
               auto fb = encode_i32(i);
               h.publish_feedback({fb.data(), fb.size()});
               std::this_thread::sleep_for(80ms);
@@ -99,13 +105,56 @@ int main() {
     cv.wait_for(lk, 15s, [&] { return done; });
   }
 
-  server.stop();
-  client.stop();
-
   const bool ok = done && status == 4 /*SUCCEEDED*/ && result == n && feedback_count > 0;
   std::printf("native action: status=%d result=%d feedback=%d => %s\n", (int)status, result,
               feedback_count, ok ? "PASS" : "FAIL");
-  if (ok) {
+
+  // Phase 2: cancel a long-running goal mid-flight. The client learns the goal
+  // handle via on_accepted, waits for the first feedback, then cancel_goal()s it;
+  // the server's execute observes is_canceling() and ends CANCELED.
+  std::mutex m2;
+  std::condition_variable cv2;
+  bool done2 = false, have_handle = false;
+  int feedback2 = 0;
+  uint8_t status2 = 0;
+  uint32_t handle2 = 0;
+  action->send_goal(
+      encode_i32(1000), // long enough (1000 * 80ms) that it can't finish before cancel
+      [&](std::span<const uint8_t> fb) {
+        std::lock_guard<std::mutex> lk(m2);
+        if (fb.size() >= 8)
+          ++feedback2;
+        cv2.notify_one();
+      },
+      [&](uint8_t st, std::span<const uint8_t>) {
+        std::lock_guard<std::mutex> lk(m2);
+        status2 = st;
+        done2 = true;
+        cv2.notify_one();
+      },
+      [&](uint32_t handle) {
+        std::lock_guard<std::mutex> lk(m2);
+        handle2 = handle;
+        have_handle = true;
+        cv2.notify_one();
+      });
+  {
+    std::unique_lock<std::mutex> lk(m2);
+    cv2.wait_for(lk, 5s, [&] { return have_handle && feedback2 >= 1; });
+  }
+  action->cancel_goal(handle2);
+  {
+    std::unique_lock<std::mutex> lk(m2);
+    cv2.wait_for(lk, 10s, [&] { return done2; });
+  }
+  const bool cancel_ok = done2 && status2 == 5 /*CANCELED*/;
+  std::printf("native cancel: handle=%u status=%d feedback=%d => %s\n", handle2, (int)status2,
+              feedback2, cancel_ok ? "PASS" : "FAIL");
+
+  server.stop();
+  client.stop();
+
+  if (ok && cancel_ok) {
     std::printf("PASS\n");
     return 0;
   }

@@ -237,14 +237,16 @@ class GoalHandle:
         self._handle.abort(result.serialize())
 
     def canceled(self, result) -> None:
-        """Terminate the goal CANCELED (ROS 2 protocol; in response to a cancel
-        request). No-op on the native protocol, which has no cancel."""
+        """Terminate the goal CANCELED (in response to a cancel request). Works on
+        both the ROS 2 and native protocols."""
         canceled = getattr(self._handle, "canceled", None)
         if canceled is not None:
             canceled(result.serialize())
 
     def is_canceling(self) -> bool:
-        """True if a cancel has been requested (ROS 2 protocol only)."""
+        """True if the client has requested cancellation of this goal (both the
+        ROS 2 and native protocols). Poll this in a long execute() and wind the
+        goal down - calling canceled() - when it becomes true."""
         return getattr(self._handle, "is_canceling", lambda: False)()
 
 
@@ -280,14 +282,17 @@ class ActionClient:
                  *, native: bool = False) -> None:
         add = participant.add_native_action_client if native else participant.add_action_client
         self._client = add(action, type_name)
+        self._native = native
         self._result_type = result_type
         self._feedback_type = feedback_type
+        self._last_goal = None  # native: int handle; ROS 2: bytes goal id
         self.valid = self._client is not None
 
     def send_goal(self, goal, on_feedback, on_result) -> bool:
         """Send ``goal``; ``on_feedback(feedback_msg)`` per feedback,
         ``on_result(status:int, result_msg)`` once at the end (result is ``None``
-        if the goal was rejected)."""
+        if the goal was rejected). Remembers the accepted goal so cancel_goal()
+        can target it."""
         ft, rt = self._feedback_type, self._result_type
 
         def _fb(b: bytes) -> None:
@@ -301,4 +306,18 @@ class ActionClient:
         def _res(status: int, b: bytes) -> None:
             on_result(status, rt.deserialize(b) if b else None)
 
-        return self._client.send_goal(goal.serialize(), _fb, _res)
+        if self._native:
+            return self._client.send_goal(
+                goal.serialize(), _fb, _res, lambda handle: setattr(self, "_last_goal", handle))
+        gid = self._client.send_goal(goal.serialize(), _fb, _res)
+        if gid is not None:
+            self._last_goal = gid
+        return gid is not None
+
+    def cancel_goal(self) -> bool:
+        """Request cancellation of the most recently accepted goal (ROS 2 or
+        native). The server observes it via GoalHandle.is_canceling(). Returns
+        True if the cancel request was queued."""
+        if self._last_goal is None:
+            return False
+        return self._client.cancel_goal(self._last_goal)

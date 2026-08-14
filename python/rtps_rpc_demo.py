@@ -86,6 +86,9 @@ def main():
     # -- 4. Native action (AMI): count up to n ------------------------------
     def count_execute(handle):
         for i in range(1, handle.goal.n + 1):
+            if handle.is_canceling():  # cooperative cancel (native protocol too)
+                handle.canceled(CountVal(value=i - 1))
+                return
             handle.publish_feedback(CountVal(value=i))
             time.sleep(0.03)
         handle.succeed(CountVal(value=handle.goal.n))
@@ -134,6 +137,17 @@ def main():
         lambda status, res: (cnt.update(status=status, n=res.value if res else None), ndone.set()))
     nok = ndone.wait(10.0)
     results["native_action"] = nok and cnt["status"] == 4 and cnt["n"] == 5 and cnt["fb"] > 0
+
+    # === 5. Native action cancel: send a long goal, cancel it mid-flight ===
+    ncdone = threading.Event()
+    ncancel = {"status": 0}
+    nact.send_goal(
+        CountGoal(n=100000),  # long enough (100000 * 0.03s) to cancel before it finishes
+        lambda f: None,
+        lambda status, res: (ncancel.update(status=status), ncdone.set()))
+    time.sleep(0.3)      # let the goal be accepted (so cancel_goal has its handle)
+    nact.cancel_goal()   # cancels the most recently accepted goal
+    results["native_cancel"] = ncdone.wait(10.0) and ncancel["status"] == 5  # CANCELED
 
     server.stop()
     client.stop()
