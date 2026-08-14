@@ -32,6 +32,18 @@ OBJECT = "ble_ll_conn.c.o"
 OLD = bytes([0x93, 0x07, 0xA7, 0xFF])  # min interval 6 units (7.5 ms)
 NEW = bytes([0x93, 0x07, 0xC7, 0xFF])  # min interval 4 units (5 ms)
 
+
+def resolve_ar(explicit: str | None) -> str:
+    """The controller archives are GNU-format (long-name symbol/string tables).
+    macOS's BSD `ar` cannot extract them, so prefer the RISC-V toolchain's GNU
+    `ar` (on PATH after the ESP-IDF export script), then llvm-ar, then `ar`."""
+    if explicit:
+        return explicit
+    for cand in ("riscv32-esp-elf-ar", "llvm-ar"):
+        if shutil.which(cand):
+            return cand
+    return "ar"
+
 # Target -> relative path of libble_app.a under $IDF_PATH.
 LIBS = {
     "esp32c6": "components/bt/controller/lib_esp32c6/esp32c6-bt-lib/esp32c6/libble_app.a",
@@ -51,19 +63,19 @@ def lib_path(idf_path: str, target: str) -> str:
     return path
 
 
-def read_object(lib: str) -> bytes:
+def read_object(ar: str, lib: str) -> bytes:
     with tempfile.TemporaryDirectory() as tmp:
-        subprocess.run(["ar", "x", lib, OBJECT], cwd=tmp, check=True)
+        subprocess.run([ar, "x", lib, OBJECT], cwd=tmp, check=True)
         with open(os.path.join(tmp, OBJECT), "rb") as f:
             return f.read()
 
 
-def write_object(lib: str, data: bytes) -> None:
+def write_object(ar: str, lib: str, data: bytes) -> None:
     with tempfile.TemporaryDirectory() as tmp:
         obj = os.path.join(tmp, OBJECT)
         with open(obj, "wb") as f:
             f.write(data)
-        subprocess.run(["ar", "r", lib, obj], cwd=os.path.dirname(obj) or ".", check=True)
+        subprocess.run([ar, "r", lib, obj], cwd=os.path.dirname(obj) or ".", check=True)
 
 
 def main() -> int:
@@ -72,10 +84,14 @@ def main() -> int:
     ap.add_argument("--target", required=True, help="esp32c6 / esp32c61 / esp32c2 / esp32h2")
     ap.add_argument("--verify-only", action="store_true", help="report state, change nothing")
     ap.add_argument("--restore", action="store_true", help="restore the .original backup")
+    ap.add_argument("--ar", default=None,
+                    help="archiver to use (default: riscv32-esp-elf-ar / llvm-ar / ar). "
+                         "macOS BSD ar cannot read these GNU-format archives.")
     args = ap.parse_args()
     if not args.idf_path:
         sys.exit("set --idf-path or the IDF_PATH environment variable")
 
+    ar = resolve_ar(args.ar)
     lib = lib_path(args.idf_path, args.target)
     backup = lib + ".original"
 
@@ -86,10 +102,10 @@ def main() -> int:
         print(f"restored {lib} from backup")
         return 0
 
-    data = read_object(lib)
+    data = read_object(ar, lib)
     n_old, n_new = data.count(OLD), data.count(NEW)
     if args.verify_only:
-        print(f"{OBJECT}: unpatched-pattern={n_old} patched-pattern={n_new}")
+        print(f"{OBJECT} (via {ar}): unpatched-pattern={n_old} patched-pattern={n_new}")
         return 0
     if n_new > 0 and n_old == 0:
         print("already patched; nothing to do")
@@ -100,7 +116,7 @@ def main() -> int:
     if not os.path.isfile(backup):
         shutil.copy2(lib, backup)
         print(f"backed up -> {backup}")
-    write_object(lib, data.replace(OLD, NEW))
+    write_object(ar, lib, data.replace(OLD, NEW))
     print(f"patched {n_old} occurrence(s); {lib} now accepts a 5 ms connection interval")
     return 0
 
