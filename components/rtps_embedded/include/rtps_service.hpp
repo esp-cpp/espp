@@ -8,40 +8,10 @@
 #include <string>
 #include <vector>
 
-#include "cdr.hpp"
+#include "rtps_message.hpp" // RtpsMessage, RtpsProtocol, detail::rtps_(de)serialize
 #include "rtps_participant.hpp"
-#include "rtps_pubsub.hpp" // RtpsMessage concept
 
 namespace espp {
-
-/// @brief Which request/reply protocol a typed service endpoint uses.
-enum class RtpsProtocol {
-  ROS2,   ///< ROS 2-interoperable (rq/rr topics + related_sample_identity).
-  NATIVE, ///< Lean espp<->espp protocol (in-band header, es_rq/es_rr topics).
-};
-
-namespace detail {
-/// Serialize a reflectable message to CDR (ROS 2 / XCDR1) bytes.
-template <RtpsMessage T> std::vector<uint8_t> rtps_serialize(const T &value) {
-  std::vector<uint8_t> buf(cdr::serialized_size<cdr::xcdr1>(value));
-  const auto written =
-      cdr::serialize_into<cdr::xcdr1>(value, std::as_writable_bytes(std::span(buf)));
-  if (!written) {
-    return {};
-  }
-  buf.resize(*written);
-  return buf;
-}
-/// Deserialize CDR bytes to a reflectable message (nullopt on failure).
-/// cdr::deserialize returns std::expected; collapse it to optional.
-template <RtpsMessage T> std::optional<T> rtps_deserialize(std::span<const uint8_t> bytes) {
-  auto result = cdr::deserialize<T>(std::as_bytes(bytes));
-  if (!result) {
-    return std::nullopt;
-  }
-  return std::move(*result);
-}
-} // namespace detail
 
 #ifdef RTPS_WITH_RPC
 
@@ -60,6 +30,9 @@ template <RtpsMessage T> std::optional<T> rtps_deserialize(std::span<const uint8
 ///     .type_name = "example_interfaces::srv::dds_::AddTwoInts",
 ///     .handler = [](const AddReq &r) { return AddResp{r.a + r.b}; }});
 /// @endcode
+///
+/// @tparam Request  Reflectable request message type (the service Request).
+/// @tparam Response Reflectable response message type (the service Response).
 template <RtpsMessage Request, RtpsMessage Response> class ServiceServer {
 public:
   /// Handler: given a typed request, return the typed response. Runs on an
@@ -76,6 +49,8 @@ public:
 
   /// Construct and register the server on a started participant, which must
   /// outlive this object. Check is_valid().
+  /// \param participant The started participant to serve through.
+  /// \param config The server configuration (service name, type, handler).
   ServiceServer(RtpsParticipant &participant, const Config &config) {
     auto handler = config.handler;
     auto byte_handler = [handler](std::span<const uint8_t> req_bytes) -> std::vector<uint8_t> {
@@ -110,9 +85,13 @@ private:
 ///     .type_name = "example_interfaces::srv::dds_::AddTwoInts"});
 /// if (auto resp = client.call(AddReq{7, 35}, 1s)) use(resp->sum);
 /// @endcode
+///
+/// @tparam Request  Reflectable request message type (the service Request).
+/// @tparam Response Reflectable response message type (the service Response).
 template <RtpsMessage Request, RtpsMessage Response> class ServiceClient {
 public:
-  /// Called with the typed response for call_async().
+  /// Callback delivering the typed response for a call_async() request. Runs on
+  /// an engine worker thread - return promptly.
   using response_callback_t = std::function<void(const Response &)>;
 
   /// Configuration for a typed service client.
@@ -122,7 +101,10 @@ public:
     RtpsProtocol protocol{RtpsProtocol::ROS2}; ///< Wire protocol.
   };
 
-  /// Construct and register the client on a started participant.
+  /// Construct and register the client on a started participant, which must
+  /// outlive this object. Check is_valid().
+  /// \param participant The started participant to call through.
+  /// \param config The client configuration (service name, type, protocol).
   ServiceClient(RtpsParticipant &participant, const Config &config) {
     if (config.protocol == RtpsProtocol::NATIVE) {
       native_ = participant.add_native_service_client({config.service, config.type_name});
@@ -134,8 +116,11 @@ public:
   /// \return True if the client registered successfully.
   [[nodiscard]] bool is_valid() const { return ros_ != nullptr || native_ != nullptr; }
 
-  /// Blocking call (RMI). \return the Response, or std::nullopt on timeout /
-  /// failure. Do not call from within an engine callback.
+  /// Blocking call (RMI): send the request and wait for the correlated reply.
+  /// \param request The typed request.
+  /// \param timeout How long to wait for the reply.
+  /// \return The Response, or std::nullopt on timeout / failure. Do not call
+  ///         from within an engine callback (it would deadlock).
   std::optional<Response> call(const Request &request, std::chrono::milliseconds timeout) {
     const auto req = detail::rtps_serialize<Request>(request);
     std::optional<std::vector<uint8_t>> reply;
@@ -150,7 +135,10 @@ public:
     return detail::rtps_deserialize<Response>(*reply);
   }
 
-  /// Async call (AMI): on_response(Response) is invoked when the reply arrives.
+  /// Async call (AMI): on_response(Response) is invoked when the correlated reply
+  /// arrives (on an engine worker thread).
+  /// \param request The typed request.
+  /// \param on_response Called once with the typed response.
   /// \return False if the request could not be queued.
   bool call_async(const Request &request, response_callback_t on_response) {
     const auto req = detail::rtps_serialize<Request>(request);
@@ -170,7 +158,9 @@ public:
   }
 
   /// Future-based call (AMI): the future becomes ready with the Response
-  /// (std::nullopt on failure). ROS 2 protocol only.
+  /// (std::nullopt if the request could not be queued). Works for both the ROS 2
+  /// and native protocols (built on call_async). Wait on the future - or
+  /// wait_for a timeout - from the caller; do not block a worker thread.
   std::future<std::optional<Response>> call_future(const Request &request) {
     auto promise = std::make_shared<std::promise<std::optional<Response>>>();
     auto future = promise->get_future();

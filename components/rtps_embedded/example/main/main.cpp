@@ -165,6 +165,47 @@ extern "C" void app_main(void) {
     return;
   }
   logger.info("service '/add_two_ints' + action '/fibonacci' ready");
+
+  // Also demonstrate the CLIENT side on-device: a typed service client + action
+  // client that call services a peer hosts ("/peer_add_two_ints", "/peer_fib").
+  // Run a ROS 2 / rclpy server (or another espp device) for those names to see a
+  // full round-trip; until then the calls simply time out (logged), which still
+  // exercises the client API on-target. (Calling this device's OWN services is
+  // not possible - a participant filters out its own messages.)
+  espp::ServiceClient<AddReq, AddResp> add_client(
+      participant,
+      {.service = "/peer_add_two_ints", .type_name = "example_interfaces::srv::dds_::AddTwoInts"});
+  espp::ActionClient<FibGoal, FibSeq, FibSeq> fib_client(
+      participant,
+      {.action = "/peer_fib", .type_name = "example_interfaces::action::dds_::Fibonacci"});
+
+  espp::Timer rpc_client_timer({
+      .name = "rtps_rpc_client",
+      .period = 5s,
+      .callback =
+          [&]() {
+            // Typed blocking service call (RMI).
+            if (auto resp = add_client.call(AddReq{20, 22}, 1s)) {
+              logger.info("[client] /peer_add_two_ints(20,22) = {}", resp->sum);
+            } else {
+              logger.info("[client] /peer_add_two_ints: no reply (peer serving it?)");
+            }
+            // Typed action goal (AMI) with typed feedback + result.
+            fib_client.send_goal(
+                FibGoal{5}, [&](const FibSeq &) { /* per-feedback */ },
+                [&](espp::GoalStatus status, const FibSeq &res) {
+                  logger.info("[client] /peer_fib result: status={} len={}",
+                              static_cast<int>(status), res.sequence.size());
+                });
+            return false; // keep the timer running
+          },
+      .log_level = espp::Logger::Verbosity::WARN,
+  });
+  if (!add_client.is_valid() || !fib_client.is_valid()) {
+    logger.error("Failed to create the typed service/action clients");
+    return;
+  }
+  logger.info("client for '/peer_add_two_ints' + '/peer_fib' running");
 #endif // RTPS_WITH_RPC
   //! [rtps example]
 

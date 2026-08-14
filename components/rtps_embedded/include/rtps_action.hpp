@@ -7,9 +7,9 @@
 #include <span>
 #include <string>
 
-#include "cdr.hpp"
+#include "rtps_message.hpp" // RtpsMessage, RtpsProtocol, detail::rtps_(de)serialize
 #include "rtps_participant.hpp"
-#include "rtps_service.hpp" // RtpsProtocol + detail::rtps_serialize/deserialize
+#include "rtps_service.hpp" // typed ServiceClient/Server (shares the CDR helpers)
 
 namespace espp {
 
@@ -24,38 +24,49 @@ enum class GoalStatus : int8_t {
 
 /// @brief Server-side handle to a running typed goal, passed to the execute
 /// callback (which runs on its own thread). Publish feedback and terminate the
-/// goal through it, all with typed messages (no manual CDR).
+/// goal through it, all with typed messages (no manual CDR). Exactly one
+/// terminator (succeed / abort) should be called per goal.
+///
+/// @tparam Goal     Reflectable goal message type.
+/// @tparam Result   Reflectable result message type.
+/// @tparam Feedback Reflectable feedback message type.
 template <RtpsMessage Goal, RtpsMessage Result, RtpsMessage Feedback> class ActionGoalHandle {
 public:
-  /// The typed goal for this handle.
+  /// \return The typed goal being executed.
   const Goal &goal() const { return goal_; }
-  /// True if a cancel has been requested (ROS 2 protocol only; native: false).
+  /// \return True if a cancel has been requested for this goal (ROS 2 protocol
+  ///         only; the native protocol has no cancel, so this is always false).
   bool is_canceling() const { return is_canceling_ ? is_canceling_() : false; }
   /// Publish a typed feedback message for this goal.
+  /// \param feedback The feedback to send to the client.
   void publish_feedback(const Feedback &feedback) const {
     if (publish_feedback_) {
       publish_feedback_(detail::rtps_serialize<Feedback>(feedback));
     }
   }
-  /// Terminate the goal SUCCEEDED with a typed result.
+  /// Terminate the goal as SUCCEEDED and deliver the result to the client.
+  /// \param result The final result.
   void succeed(const Result &result) const {
     if (succeed_) {
       succeed_(detail::rtps_serialize<Result>(result));
     }
   }
-  /// Terminate the goal ABORTED with a typed result.
+  /// Terminate the goal as ABORTED and deliver the result to the client.
+  /// \param result The (partial/error) result.
   void abort(const Result &result) const {
     if (abort_) {
       abort_(detail::rtps_serialize<Result>(result));
     }
   }
 
-  // Internal: constructed by ActionServer from a byte-level goal handle.
+  /// @cond INTERNAL
+  // Populated by ActionServer from a byte-level goal handle; not user-facing.
   Goal goal_{};
   std::function<void(std::span<const uint8_t>)> publish_feedback_;
   std::function<void(std::span<const uint8_t>)> succeed_;
   std::function<void(std::span<const uint8_t>)> abort_;
   std::function<bool()> is_canceling_;
+  /// @endcond
 };
 
 /// @brief Typed action server (AMI): runs long goals with typed Goal / Result /
@@ -71,23 +82,34 @@ public:
 ///     .execute = [](auto &h) {
 ///        h.publish_feedback(...); h.succeed(...); }});
 /// @endcode
+///
+/// @tparam Goal     Reflectable goal message type.
+/// @tparam Result   Reflectable result message type.
+/// @tparam Feedback Reflectable feedback message type.
 template <RtpsMessage Goal, RtpsMessage Result, RtpsMessage Feedback> class ActionServer {
 public:
+  /// The typed goal handle passed to the execute callback.
   using Handle = ActionGoalHandle<Goal, Result, Feedback>;
-  /// Called when a goal arrives; return true to accept.
+  /// Called when a goal arrives; return true to accept it, false to reject.
+  /// Runs on an engine worker thread - return promptly.
   using goal_callback_t = std::function<bool(const Goal &)>;
-  /// Called (own thread) to run an accepted goal to completion.
+  /// Called (on its own thread) to run an accepted goal to completion via the
+  /// handle (publish_feedback / succeed / abort).
   using execute_callback_t = std::function<void(Handle &)>;
 
   /// Configuration for a typed action server.
   struct Config {
-    std::string action;    ///< Action name, e.g. "/fibonacci".
-    std::string type_name; ///< Base DDS type (ROS 2), or any matching name (native).
-    goal_callback_t on_goal;
-    execute_callback_t execute;
-    RtpsProtocol protocol{RtpsProtocol::ROS2};
+    std::string action;         ///< Action name, e.g. "/fibonacci".
+    std::string type_name;      ///< Base DDS type (ROS 2), or any matching name (native).
+    goal_callback_t on_goal;    ///< Accept/reject each incoming goal.
+    execute_callback_t execute; ///< Run each accepted goal (own thread).
+    RtpsProtocol protocol{RtpsProtocol::ROS2}; ///< Wire protocol.
   };
 
+  /// Construct and register the action server on a started participant, which
+  /// must outlive this object. Check is_valid().
+  /// \param participant The started participant to serve through.
+  /// \param config The server configuration.
   ActionServer(RtpsParticipant &participant, const Config &config) {
     auto on_goal = config.on_goal;
     auto execute = config.execute;
@@ -137,6 +159,7 @@ public:
     }
   }
 
+  /// \return True if the action server registered successfully.
   [[nodiscard]] bool is_valid() const { return valid_; }
 
 private:
@@ -154,18 +177,28 @@ private:
 ///     [](const Seq &fb) { ... },
 ///     [](espp::GoalStatus st, const Seq &res) { ... });
 /// @endcode
+///
+/// @tparam Goal     Reflectable goal message type.
+/// @tparam Result   Reflectable result message type.
+/// @tparam Feedback Reflectable feedback message type.
 template <RtpsMessage Goal, RtpsMessage Result, RtpsMessage Feedback> class ActionClient {
 public:
+  /// Callback delivering one typed feedback message (on an engine worker thread).
   using feedback_callback_t = std::function<void(const Feedback &)>;
+  /// Callback delivering the terminal status + typed result, once per goal.
   using result_callback_t = std::function<void(GoalStatus, const Result &)>;
 
   /// Configuration for a typed action client.
   struct Config {
     std::string action;    ///< Action name, e.g. "/fibonacci".
     std::string type_name; ///< Base DDS type (ROS 2), or any matching name (native).
-    RtpsProtocol protocol{RtpsProtocol::ROS2};
+    RtpsProtocol protocol{RtpsProtocol::ROS2}; ///< Wire protocol.
   };
 
+  /// Construct and register the action client on a started participant, which
+  /// must outlive this object. Check is_valid().
+  /// \param participant The started participant to drive the action through.
+  /// \param config The client configuration.
   ActionClient(RtpsParticipant &participant, const Config &config) {
     if (config.protocol == RtpsProtocol::NATIVE) {
       native_ = participant.add_native_action_client({config.action, config.type_name});
@@ -174,10 +207,15 @@ public:
     }
   }
 
+  /// \return True if the action client registered successfully.
   [[nodiscard]] bool is_valid() const { return ros_ != nullptr || native_ != nullptr; }
 
-  /// Send a typed goal. on_feedback is invoked for each feedback message,
-  /// on_result once when the goal terminates. \return True if queued.
+  /// Send a typed goal to the server.
+  /// \param goal The typed goal.
+  /// \param on_feedback Invoked for each feedback message during execution.
+  /// \param on_result Invoked once with the terminal status + result (an empty
+  ///        Result and non-SUCCEEDED status if the goal was rejected).
+  /// \return True if the goal was queued.
   bool send_goal(const Goal &goal, feedback_callback_t on_feedback, result_callback_t on_result) {
     const auto goal_bytes = detail::rtps_serialize<Goal>(goal);
     auto fb_cb = [on_feedback](std::span<const uint8_t> b) {

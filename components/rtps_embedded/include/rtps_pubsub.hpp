@@ -12,20 +12,10 @@
 #include <vector>
 
 #include "cdr.hpp"
+#include "rtps_message.hpp" // RtpsMessage concept (shared with services/actions)
 #include "rtps_participant.hpp"
 
 namespace espp {
-
-/// @brief A type usable with the typed RTPS pub/sub layer.
-///
-/// Any reflectable struct the `cdr` component can serialize and deserialize
-/// qualifies - no base class, macros, or member functions required. This mirrors
-/// the ROS 2 / DDS message model: a plain data struct whose fields map to CDR.
-template <typename T>
-concept RtpsMessage = requires(const T &value, std::span<const std::byte> bytes) {
-  { cdr::serialized_size<cdr::xcdr1>(value) } -> std::convertible_to<std::size_t>;
-  {cdr::deserialize<T>(bytes)};
-};
 
 /// @brief Typed publisher: publish reflectable message structs on a topic.
 ///
