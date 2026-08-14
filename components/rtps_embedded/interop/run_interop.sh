@@ -29,7 +29,8 @@ cmake -S lib -B lib/build -DCMAKE_BUILD_TYPE=Release > /tmp/cmake_lib.log 2>&1 \
   && cmake --build pc/build -j"$(nproc)" --target \
        rtps_embedded_pubsub rtps_embedded_golden rtps_facade_pubsub rtps_typed_pubsub \
        rtps_facade_frag rtps_facade_backlog rtps_facade_frag_sizes rtps_service_loopback \
-       rtps_service_naming rtps_action_naming rtps_action_types rtps_action_loopback \
+       rtps_service_naming rtps_action_naming rtps_action_types rtps_native_protocol \
+       rtps_action_loopback \
        rtps_native_service_loopback rtps_native_action_loopback rtps_typed_rpc_loopback \
        rtps_service_interop_server rtps_service_interop_client \
        rtps_action_interop_server rtps_action_interop_client \
@@ -52,6 +53,9 @@ note "ROS 2 service + action name/type mangling (host)"
 
 note "ROS 2 action envelope codec vs captured Fibonacci bytes (host)"
 "$BIN"/rtps_action_types; result "action_types" $?
+
+note "native (espp<->espp) protocol codec: header + action framing (host)"
+"$BIN"/rtps_native_protocol; result "native_protocol" $?
 
 note "espp <-> espp in-process loopback"
 "$BIN"/rtps_embedded_pubsub; result "loopback" $?
@@ -259,6 +263,25 @@ kill $ROSACT 2>/dev/null; wait $ROSACT 2>/dev/null
 echo "--- espp action client ---"; tail -2 /tmp/actclient.log
 echo "--- rclpy server ---"; grep -iE "order=" /tmp/rosactsrv.log | tail -2
 result "espp_action_client->ros2_server" $actclient_rc
+
+# --- Python bindings: functional round-trip of every RMI/AMI mechanism --------
+# Build the espp wheel in-container and run the demo (multicast discovery works
+# here via the shared network namespace), exercising the GIL-wrapped service /
+# action / native bindings that the C++ tests cannot reach.
+note "Python bindings functional demo (services + actions + native, 5 mechanisms)"
+# The container-local copy has no .git (rsync excludes it), so setuptools-scm
+# cannot derive a version - pin one via SETUPTOOLS_SCM_PRETEND_VERSION.
+SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0+interop \
+  /opt/espp-venv/bin/pip install --no-build-isolation --no-deps -q . > /tmp/pywheel.log 2>&1
+pywheel_rc=$?
+if [ $pywheel_rc -ne 0 ]; then
+  echo "python wheel build failed"; tail -20 /tmp/pywheel.log; result "python_rpc_demo" 1
+else
+  /opt/espp-venv/bin/python python/rtps_rpc_demo.py > /tmp/pydemo.log 2>&1
+  pydemo_rc=$?
+  grep -E "PASS|FAIL|ALL PASS|FAILURES" /tmp/pydemo.log | tail -8
+  result "python_rpc_demo" $pydemo_rc
+fi
 
 echo ""
 echo "==================== SUMMARY ===================="
