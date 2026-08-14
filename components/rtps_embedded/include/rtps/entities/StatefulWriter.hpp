@@ -53,8 +53,9 @@ public:
   //! worker threads
   void progress() override;
   const CacheChange *newChange(ChangeKind_t kind, const uint8_t *data, DataSize_t size,
-                               bool inLineQoS = false,
-                               bool markDisposedAfterWrite = false) override;
+                               bool inLineQoS = false, bool markDisposedAfterWrite = false,
+                               bool hasRelatedSampleIdentity = false,
+                               const rpc::SampleIdentity &relatedSampleIdentity = {}) override;
 
   bool removeFromHistory(const SequenceNumber_t &s);
 

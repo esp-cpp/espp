@@ -27,6 +27,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #define PROJECT_CACHECHANGE_H
 
 #include "rtps/common/types.hpp"
+#include "rtps/rpc/sample_identity.hpp"
 #include "rtps/storages/PayloadBuffer.hpp"
 
 #include <chrono>
@@ -38,6 +39,12 @@ struct CacheChange {
   ChangeKind_t kind = ChangeKind_t::INVALID;
   bool inLineQoS = false;
   bool disposeAfterWrite = false;
+  // ROS 2 service request/reply correlation: when true, this change is sent as a
+  // DATA carrying relatedSampleIdentity as inline QoS (PID 0x0083/0x800f) instead
+  // of the plain DATA path. False for all plain pub/sub, so the pub/sub wire
+  // format is unchanged. See rpc/sample_identity.hpp.
+  bool hasRelatedSampleIdentity = false;
+  rpc::SampleIdentity relatedSampleIdentity{};
   TimePoint sentTime{};
   SequenceNumber_t sequenceNumber = SEQUENCENUMBER_UNKNOWN;
   PayloadBuffer data;
@@ -48,6 +55,8 @@ struct CacheChange {
     kind = other.kind;
     inLineQoS = other.inLineQoS;
     disposeAfterWrite = other.disposeAfterWrite;
+    hasRelatedSampleIdentity = other.hasRelatedSampleIdentity;
+    relatedSampleIdentity = other.relatedSampleIdentity;
     sentTime = other.sentTime;
     sequenceNumber = other.sequenceNumber;
     data = std::move(other.data);
@@ -64,6 +73,8 @@ struct CacheChange {
     sequenceNumber = SEQUENCENUMBER_UNKNOWN;
     inLineQoS = false;
     disposeAfterWrite = false;
+    hasRelatedSampleIdentity = false;
+    relatedSampleIdentity = rpc::SampleIdentity{};
     sentTime = TimePoint{};
   }
 

@@ -81,7 +81,9 @@ void StatelessWriter::reset() { m_is_initialized_ = false; }
 
 const CacheChange *StatelessWriter::newChange(rtps::ChangeKind_t kind, const uint8_t *data,
                                               DataSize_t size, bool inLineQoS,
-                                              bool markDisposedAfterWrite) {
+                                              bool markDisposedAfterWrite,
+                                              bool hasRelatedSampleIdentity,
+                                              const rpc::SampleIdentity &relatedSampleIdentity) {
   INIT_GUARD();
   if (isIrrelevant(kind)) {
     return nullptr;
@@ -104,7 +106,8 @@ const CacheChange *StatelessWriter::newChange(rtps::ChangeKind_t kind, const uin
   const bool wasFull = m_history.isFull();
   const SequenceNumber_t minBefore = m_history.getSeqNumMin();
 
-  auto *result = m_history.addChange(data, size);
+  auto *result = m_history.addChange(data, size, inLineQoS, markDisposedAfterWrite,
+                                     hasRelatedSampleIdentity, relatedSampleIdentity);
 
   if (wasFull) {
     const SequenceNumber_t minAfter = m_history.getSeqNumMin();
@@ -209,9 +212,17 @@ void StatelessWriter::progress() {
           continue;
         }
 #endif
-        MessageFactory::addSubMessageData(payload, next->data, false, next->sequenceNumber,
-                                          m_attributes.endpointGuid.entityId,
-                                          reid); // TODO
+        if (next->hasRelatedSampleIdentity) {
+          // ROS 2 service request/reply: carry the related_sample_identity as
+          // inline QoS. Plain samples take the byte-identical path below.
+          MessageFactory::addSubMessageDataWithRelatedSampleIdentity(
+              payload, next->data, next->relatedSampleIdentity, next->sequenceNumber,
+              m_attributes.endpointGuid.entityId, reid);
+        } else {
+          MessageFactory::addSubMessageData(payload, next->data, false, next->sequenceNumber,
+                                            m_attributes.endpointGuid.entityId,
+                                            reid); // TODO
+        }
       }
 
       info.payload = std::move(payload.bytes);

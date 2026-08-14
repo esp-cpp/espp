@@ -55,11 +55,14 @@ public:
   }
 
   const CacheChange *addChange(const uint8_t *data, DataSize_t size, bool inLineQoS,
-                               bool disposeAfterWrite) {
+                               bool disposeAfterWrite, bool hasRelatedSampleIdentity = false,
+                               const rpc::SampleIdentity &relatedSampleIdentity = {}) {
     CacheChange change;
     change.kind = ChangeKind_t::ALIVE;
     change.inLineQoS = inLineQoS;
     change.disposeAfterWrite = disposeAfterWrite;
+    change.hasRelatedSampleIdentity = hasRelatedSampleIdentity;
+    change.relatedSampleIdentity = relatedSampleIdentity;
     change.data.reserve(size);
     change.data.append(data, size);
     change.sequenceNumber = ++m_lastUsedSequenceNumber;

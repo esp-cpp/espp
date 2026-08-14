@@ -85,9 +85,10 @@ void StatefulWriter::reset() {
   // TODO
 }
 
-const rtps::CacheChange *StatefulWriter::newChange(ChangeKind_t kind, const uint8_t *data,
-                                                   DataSize_t size, bool inLineQoS,
-                                                   bool markDisposedAfterWrite) {
+const rtps::CacheChange *
+StatefulWriter::newChange(ChangeKind_t kind, const uint8_t *data, DataSize_t size, bool inLineQoS,
+                          bool markDisposedAfterWrite, bool hasRelatedSampleIdentity,
+                          const rpc::SampleIdentity &relatedSampleIdentity) {
   INIT_GUARD()
   if (isIrrelevant(kind)) {
     return nullptr;
@@ -111,7 +112,8 @@ const rtps::CacheChange *StatefulWriter::newChange(ChangeKind_t kind, const uint
   const bool wasFull = m_history.isFull();
   const SequenceNumber_t minBefore = m_history.getCurrentSeqNumMin();
 
-  auto *result = m_history.addChange(data, size, inLineQoS, markDisposedAfterWrite);
+  auto *result = m_history.addChange(data, size, inLineQoS, markDisposedAfterWrite,
+                                     hasRelatedSampleIdentity, relatedSampleIdentity);
 
   if (wasFull) {
     const SequenceNumber_t minAfter = m_history.getCurrentSeqNumMin();
@@ -338,9 +340,16 @@ bool StatefulWriter::sendData(const ReaderProxy &reader, const CacheChange *next
   }
 #endif
 
-  MessageFactory::addSubMessageData(payload, next->data, next->inLineQoS, next->sequenceNumber,
-                                    m_attributes.endpointGuid.entityId,
-                                    reader.remoteReaderGuid.entityId);
+  if (next->hasRelatedSampleIdentity) {
+    // ROS 2 service request/reply: carry related_sample_identity as inline QoS.
+    MessageFactory::addSubMessageDataWithRelatedSampleIdentity(
+        payload, next->data, next->relatedSampleIdentity, next->sequenceNumber,
+        m_attributes.endpointGuid.entityId, reader.remoteReaderGuid.entityId);
+  } else {
+    MessageFactory::addSubMessageData(payload, next->data, next->inLineQoS, next->sequenceNumber,
+                                      m_attributes.endpointGuid.entityId,
+                                      reader.remoteReaderGuid.entityId);
+  }
   info.payload = std::move(payload.bytes);
   if (info.payload.empty()) {
     return false;
@@ -450,8 +459,15 @@ bool StatefulWriter::sendDataWRMulticast(const ReaderProxy &reader, const CacheC
     }
 #endif
 
-    MessageFactory::addSubMessageData(payload, next->data, next->inLineQoS, next->sequenceNumber,
-                                      m_attributes.endpointGuid.entityId, reid);
+    if (next->hasRelatedSampleIdentity) {
+      // ROS 2 service request/reply: carry related_sample_identity as inline QoS.
+      MessageFactory::addSubMessageDataWithRelatedSampleIdentity(
+          payload, next->data, next->relatedSampleIdentity, next->sequenceNumber,
+          m_attributes.endpointGuid.entityId, reid);
+    } else {
+      MessageFactory::addSubMessageData(payload, next->data, next->inLineQoS, next->sequenceNumber,
+                                        m_attributes.endpointGuid.entityId, reid);
+    }
 
     info.payload = std::move(payload.bytes);
     if (info.payload.empty()) {
