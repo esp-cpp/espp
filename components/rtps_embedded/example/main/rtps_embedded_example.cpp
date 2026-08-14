@@ -1,3 +1,11 @@
+// rtps_embedded component example (ESP32 / esp32-ethernet-kit).
+//
+// Brings up an espp::RtpsParticipant over Ethernet and demonstrates the typed
+// APIs: a Publisher<T>/Subscriber<T> pair (pub/sub), typed ServiceServer +
+// ActionServer the device hosts, and typed ServiceClient + ActionClient the
+// device runs. See components/rtps_embedded/example/README.md and the RMI/AMI
+// docs (doc/en/protocols/rtps_rmi_ami.rst).
+
 #include <chrono>
 #include <thread>
 
