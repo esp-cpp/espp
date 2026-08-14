@@ -194,6 +194,29 @@ CANCELING=3, SUCCEEDED=4, CANCELED=5, ABORTED=6`. The action server is a state
 machine driving these across the 3 services + status topic; the action client
 mirrors it. All of this is library code over L2a + L0.
 
+**Wire format CONFIRMED** against a live `example_interfaces/action/Fibonacci`
+capture (ROS 2 Jazzy, order=5, tshark; goal UUID `93beb052…d15de68e`). All CDR_LE,
+after the 4-byte encapsulation header. The 3 services correlate exactly like §3.2
+(related_sample_identity); actions add NO new wire primitive. Endpoint mangling:
+services `rq|rr/<action>/_action/{send_goal,cancel_goal,get_result}{Request,Reply}`,
+topics `rt/<action>/_action/{feedback,status}`; types
+`<pkg>::action::dds_::<Action>_{SendGoal,GetResult}_{Request,Response}_`,
+`_FeedbackMessage_`, and `action_msgs::{srv::dds_::CancelGoal_*, msg::dds_::GoalStatusArray_}`.
+
+| Message | CDR layout (post-encap) | captured bytes |
+|---|---|---|
+| SendGoal_Request | `goal_id:UUID(16)` + goal | `…UUID… 05000000` (order=5) |
+| SendGoal_Response | `accepted:bool(1)`+pad(3) + `stamp{sec:i32,nsec:u32}` | `01000000 a3927e6a dc014325` |
+| GetResult_Request | `goal_id:UUID(16)` | `…UUID…` |
+| GetResult_Response | `status:i8(1)`+pad(3) + result | `04000000 06000000 00.. 01.. 01.. 02.. 03.. 05..` (SUCCEEDED, [0,1,1,2,3,5]) |
+| FeedbackMessage | `goal_id:UUID(16)` + feedback | `…UUID… 03000000 00.. 01.. 01..` (seq len 3) |
+| GoalStatusArray | `status_list[]{goal_id:UUID(16), stamp{sec,nsec}, status:i8+pad}` | `01000000 …UUID… a3927e6a 298f4425 01000000` (1 entry, ACCEPTED→…) |
+
+UUID = 16 raw bytes (`unique_identifier_msgs/UUID`), identical across all messages
+for one goal - the correlation key for feedback/status/get_result. Arrays are
+length-prefixed (uint32) then elements; a leading array count of 1 in
+GoalStatusArray is the sequence length.
+
 ```cpp
 participant.add_action_server({
   .action = "/fibonacci", .type_name = ".../Fibonacci",

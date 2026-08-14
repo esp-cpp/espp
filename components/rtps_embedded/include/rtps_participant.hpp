@@ -5,6 +5,7 @@
 #include <chrono>
 #include <cstdint>
 #include <functional>
+#include <future>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -214,6 +215,13 @@ public:
     ///         Do not call from within an engine callback (it would deadlock).
     std::optional<std::vector<uint8_t>> call(std::span<const uint8_t> request,
                                              std::chrono::milliseconds timeout);
+
+    /// Send a request and return a future that becomes ready with the correlated
+    /// reply (or std::nullopt if the request could not be queued). The future
+    /// never blocks a worker thread; wait on it (or wait_for a timeout) from the
+    /// caller. A pending request without a reply leaves the future unfulfilled
+    /// until the participant stops.
+    std::future<std::optional<std::vector<uint8_t>>> call_future(std::span<const uint8_t> request);
 
   private:
     friend class RtpsParticipant;

@@ -126,10 +126,28 @@ int main() {
     }
   }
 
+  // Future-based call: a third request must correlate independently.
+  bool future_ok = false;
+  {
+    const int64_t a3 = 500, b3 = 500;
+    auto fut = call->call_future(encode_request(a3, b3));
+    if (fut.wait_for(10s) == std::future_status::ready) {
+      auto reply3 = fut.get();
+      if (reply3.has_value() && reply3->size() >= 4 + 8) {
+        const int64_t sum = get_i64(*reply3, 4);
+        future_ok = (sum == a3 + b3);
+        std::printf("future call: got %lld (expected %lld) => %s\n", (long long)sum,
+                    (long long)(a3 + b3), future_ok ? "ok" : "MISMATCH");
+      }
+    } else {
+      std::printf("future call: timed out\n");
+    }
+  }
+
   server.stop();
   client.stop();
 
-  if (ok && async_ok) {
+  if (ok && async_ok && future_ok) {
     std::printf("PASS\n");
     return 0;
   }

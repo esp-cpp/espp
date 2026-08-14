@@ -469,6 +469,21 @@ RtpsParticipant::ServiceClient::call(std::span<const uint8_t> request,
   return std::move(slot->reply);
 }
 
+std::future<std::optional<std::vector<uint8_t>>>
+RtpsParticipant::ServiceClient::call_future(std::span<const uint8_t> request) {
+  // Promise fulfilled from the async reply callback (shared_ptr so it outlives
+  // this call and is owned by the pending entry until the reply arrives).
+  auto promise = std::make_shared<std::promise<std::optional<std::vector<uint8_t>>>>();
+  auto future = promise->get_future();
+  const bool queued = call_async(request, [promise](std::span<const uint8_t> reply) {
+    promise->set_value(std::vector<uint8_t>(reply.begin(), reply.end()));
+  });
+  if (!queued) {
+    promise->set_value(std::nullopt);
+  }
+  return future;
+}
+
 bool RtpsParticipant::add_service_server(const ServiceConfig &config, service_handler_t handler) {
   std::lock_guard<std::mutex> lock(mutex_);
   if (!started_) {
