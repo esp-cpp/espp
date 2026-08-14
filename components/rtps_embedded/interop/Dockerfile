@@ -18,6 +18,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # system deps if needed; the demo itself is pure espp (no rclpy).
 RUN python3 -m venv --system-site-packages /opt/espp-venv \
     && /opt/espp-venv/bin/pip install --no-cache-dir \
-       scikit-build-core pybind11 setuptools-scm
+       scikit-build-core pybind11 setuptools-scm pycdr2
 
 WORKDIR /work

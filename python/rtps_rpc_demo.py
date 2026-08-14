@@ -2,63 +2,48 @@
 """Showcase + self-test of the espp RTPS RMI/AMI APIs from Python.
 
 Demonstrates, in one process (two participants), every request/reply mechanism
-the espp RtpsParticipant exposes:
+the espp RtpsParticipant exposes, using the typed ``espp.rtps`` wrappers and
+pycdr2 message schemas - so you work with message objects, never CDR bytes:
 
-  1. ROS 2-interoperable service (RMI)   - add_service_server / add_service_client
-  2. ROS 2-interoperable action  (AMI)   - add_action_server  / add_action_client
-  3. Native (espp<->espp) service (RMI)  - add_native_service_*  (lean, in-band header)
-  4. Native (espp<->espp) action  (AMI)  - add_native_action_*   (lean, ~3 endpoints)
+  1. ROS 2-interoperable service (RMI)   - espp.rtps.ServiceServer / ServiceClient
+  2. ROS 2-interoperable action  (AMI)   - espp.rtps.ActionServer  / ActionClient
+  3. Native (espp<->espp) service (RMI)   - the same wrappers with native=True
+  4. Native (espp<->espp) action  (AMI)   - the same wrappers with native=True
 
-Payloads are CDR-encapsulated bytes: a 4-byte little-endian encapsulation header
-{00 01 00 00} followed by the CDR body. We hand-pack simple int fields with
-struct; for real ROS 2 types use the `cdr` component or pycdr2 (see rtps_messages.py).
+Message types are defined with pycdr2's ``make_idl_struct`` (the functional form
+works on every Python, incl. 3.14; the ``@dataclass`` form does not). pycdr2 emits
+ROS 2 / classic-CDR, so the AddTwoInts / Fibonacci schemas below match
+example_interfaces on the wire.
 
+Requires pycdr2 (see python/requirements.txt).
 Run:  python/env/bin/python python/rtps_rpc_demo.py
-Exit code 0 iff every mechanism round-trips correctly.
+Exit 0 iff every mechanism round-trips correctly.
 """
 
-import struct
 import sys
 import threading
 import time
 
 import espp
+import espp.rtps as rtps
+from pycdr2 import make_idl_struct
+from pycdr2.types import int32, int64, sequence
 
-ENCAP = b"\x00\x01\x00\x00"  # CDR_LE encapsulation header
-
-
-# --- CDR helpers for the demo message shapes -------------------------------
-def enc_two_ints(a, b):  # example_interfaces/srv/AddTwoInts Request
-    return ENCAP + struct.pack("<qq", a, b)
-
-
-def enc_int64(x):  # AddTwoInts Response / generic
-    return ENCAP + struct.pack("<q", x)
-
-
-def dec_int64(b, off=4):
-    return struct.unpack_from("<q", b, off)[0]
-
-
-def enc_int32(x):
-    return ENCAP + struct.pack("<i", x)
-
-
-def dec_int32(b, off=4):
-    return struct.unpack_from("<i", b, off)[0]
-
-
-def enc_fib_goal(order):  # Fibonacci Goal { order: int32 }
-    return ENCAP + struct.pack("<i", order)
-
-
-def enc_seq(values):  # { sequence: int32[] } - uint32 length + elements
-    return ENCAP + struct.pack("<I", len(values)) + b"".join(struct.pack("<i", v) for v in values)
-
-
-def dec_seq(b):
-    n = struct.unpack_from("<I", b, 4)[0]
-    return list(struct.unpack_from("<%di" % n, b, 8))
+# --- pycdr2 message schemas (fields map straight to CDR / the ROS 2 wire) -----
+# ROS 2 example_interfaces/srv/AddTwoInts.
+AddReq = make_idl_struct("AddTwoInts_Request", "example_interfaces/srv/AddTwoInts_Request",
+                         {"a": int64, "b": int64})
+AddResp = make_idl_struct("AddTwoInts_Response", "example_interfaces/srv/AddTwoInts_Response",
+                          {"sum": int64})
+# ROS 2 example_interfaces/action/Fibonacci (Result + Feedback share the shape).
+FibGoal = make_idl_struct("Fibonacci_Goal", "example_interfaces/action/Fibonacci_Goal",
+                          {"order": int32})
+FibSeq = make_idl_struct("Fibonacci_Seq", "example_interfaces/action/Fibonacci_Seq",
+                         {"sequence": sequence[int32]})
+# Native (espp<->espp) demo types - any consistent schema/name works.
+MulResp = make_idl_struct("Mul_Response", "espp_examples/srv/Mul_Response", {"product": int64})
+CountGoal = make_idl_struct("CountUp_Goal", "espp_examples/action/CountUp_Goal", {"n": int32})
+CountVal = make_idl_struct("CountUp_Value", "espp_examples/action/CountUp_Value", {"value": int32})
 
 
 def main():
@@ -68,79 +53,76 @@ def main():
 
     results = {}
 
-    # -- 1. ROS 2 service (RMI) ---------------------------------------------
-    server.add_service_server(
-        "/add_two_ints", "example_interfaces::srv::dds_::AddTwoInts",
-        lambda req: enc_int64(dec_int64(req, 4) + dec_int64(req, 12)))
-    svc = client.add_service_client("/add_two_ints", "example_interfaces::srv::dds_::AddTwoInts")
+    # -- 1. ROS 2 service (RMI): sum = a + b --------------------------------
+    rtps.ServiceServer(server, "/add_two_ints", "example_interfaces::srv::dds_::AddTwoInts",
+                       AddReq, AddResp, lambda req: AddResp(sum=req.a + req.b))
+    svc = rtps.ServiceClient(client, "/add_two_ints", "example_interfaces::srv::dds_::AddTwoInts",
+                             AddReq, AddResp)
 
     # -- 2. ROS 2 action (AMI): Fibonacci -----------------------------------
     def fib_execute(handle):
-        order = dec_int32(handle.goal())
         seq = [0, 1]
-        for i in range(1, order):
+        for i in range(1, handle.goal.order):
             seq.append(seq[i] + seq[i - 1])
-            handle.publish_feedback(enc_seq(seq))
+            handle.publish_feedback(FibSeq(sequence=seq))
             time.sleep(0.05)
-        handle.succeed(enc_seq(seq))
+        handle.succeed(FibSeq(sequence=seq))
 
-    server.add_action_server(
-        "/fibonacci", "example_interfaces::action::dds_::Fibonacci",
-        lambda goal: dec_int32(goal) > 0, fib_execute)
-    act = client.add_action_client("/fibonacci", "example_interfaces::action::dds_::Fibonacci")
+    rtps.ActionServer(server, "/fibonacci", "example_interfaces::action::dds_::Fibonacci",
+                      FibGoal, FibSeq, FibSeq, lambda goal: goal.order > 0, fib_execute)
+    act = rtps.ActionClient(client, "/fibonacci", "example_interfaces::action::dds_::Fibonacci",
+                            FibGoal, FibSeq, FibSeq)
 
-    # -- 3. Native service (RMI) --------------------------------------------
-    server.add_native_service_server(
-        "/mul", "espp::native::Mul",
-        lambda req: enc_int64(dec_int64(req, 4) * dec_int64(req, 12)))
-    nsvc = client.add_native_service_client("/mul", "espp::native::Mul")
+    # -- 3. Native service (RMI): product = a * b ---------------------------
+    rtps.ServiceServer(server, "/mul", "espp::native::Mul", AddReq, MulResp,
+                       lambda req: MulResp(product=req.a * req.b), native=True)
+    nsvc = rtps.ServiceClient(client, "/mul", "espp::native::Mul", AddReq, MulResp, native=True)
 
-    # -- 4. Native action (AMI): countup ------------------------------------
+    # -- 4. Native action (AMI): count up to n ------------------------------
     def count_execute(handle):
-        n = dec_int32(handle.goal())
-        for i in range(1, n + 1):
-            handle.publish_feedback(enc_int32(i))
+        for i in range(1, handle.goal.n + 1):
+            handle.publish_feedback(CountVal(value=i))
             time.sleep(0.03)
-        handle.succeed(enc_int32(n))
+        handle.succeed(CountVal(value=handle.goal.n))
 
-    server.add_native_action_server(
-        "/countup", "espp::native::CountUp",
-        lambda goal: dec_int32(goal) > 0, count_execute)
-    nact = client.add_native_action_client("/countup", "espp::native::CountUp")
+    rtps.ActionServer(server, "/countup", "espp::native::CountUp", CountGoal, CountVal, CountVal,
+                      lambda goal: goal.n > 0, count_execute, native=True)
+    nact = rtps.ActionClient(client, "/countup", "espp::native::CountUp", CountGoal, CountVal,
+                             CountVal, native=True)
 
     time.sleep(2.0)  # SEDP discovery for every endpoint
 
     # === 1. Service: blocking + async ===
-    reply = svc.call(enc_two_ints(7, 35), timeout=5.0)
-    results["ros_service_sync"] = reply is not None and dec_int64(reply) == 42
+    reply = svc.call(AddReq(a=7, b=35), timeout=5.0)
+    results["ros_service_sync"] = reply is not None and reply.sum == 42
 
     ev = threading.Event()
     got = {}
-    svc.call_async(enc_two_ints(100, 23), lambda r: (got.update(v=dec_int64(r)), ev.set()))
+    svc.call_async(AddReq(a=100, b=23), lambda r: (got.update(v=r.sum), ev.set()))
     results["ros_service_async"] = ev.wait(5.0) and got.get("v") == 123
 
     # === 2. Action: feedback + result ===
     done = threading.Event()
     fib = {"fb": 0, "status": 0, "seq": None}
     act.send_goal(
-        enc_fib_goal(5),  # Fibonacci(5) = [0, 1, 1, 2, 3, 5]
+        FibGoal(order=5),
         lambda f: fib.__setitem__("fb", fib["fb"] + 1),
-        lambda status, res: (fib.update(status=status, seq=dec_seq(res)), done.set()))
-    ok = done.wait(15.0)
+        lambda status, res: (fib.update(status=status, seq=res.sequence if res else None), done.set()))
+    ok = done.wait(10.0)
     results["ros_action"] = (ok and fib["status"] == 4 and fib["seq"] == [0, 1, 1, 2, 3, 5]
                              and fib["fb"] > 0)
 
     # === 3. Native service ===
-    nreply = nsvc.call(enc_two_ints(6, 7), timeout=5.0)
-    results["native_service"] = nreply is not None and dec_int64(nreply) == 42
+    nreply = nsvc.call(AddReq(a=6, b=7), timeout=5.0)
+    results["native_service"] = nreply is not None and nreply.product == 42
 
     # === 4. Native action ===
     ndone = threading.Event()
     cnt = {"fb": 0, "status": 0, "n": None}
     nact.send_goal(
-        enc_int32(5),
+        CountGoal(n=5),
         lambda f: cnt.__setitem__("fb", cnt["fb"] + 1),
-        lambda status, res: (cnt.update(status=status, n=dec_int32(res)), ndone.set()))
+        lambda status, res: (cnt.update(status=status, n=res.value if res else None), ndone.set()))
     nok = ndone.wait(10.0)
     results["native_action"] = nok and cnt["status"] == 4 and cnt["n"] == 5 and cnt["fb"] > 0
 
