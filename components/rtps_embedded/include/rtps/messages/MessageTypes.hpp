@@ -248,6 +248,19 @@ static constexpr DataSize_t MAX_UNFRAGMENTED_PAYLOAD =
     65507 - Header::getRawSize() - (SubmessageHeader::getRawSize() + sizeof(Time_t)) -
     SubmessageData::getRawSize();
 
+// Largest RPC (service/action) payload that still fits one unfragmented DATA
+// carrying a related_sample_identity. Such a DATA appends an inline QoS
+// ParameterList - two (PID + length + 24-byte SampleIdentity) parameters plus a
+// (PID + length) sentinel = 60 bytes - which eats into the single-DATA budget.
+// A related-identity sample must NOT be fragmented (DATA_FRAG carries no inline
+// QoS, so the correlation would be lost and the caller would time out), so the
+// RPC facade rejects requests/replies above this bound instead. Keep the 60 in
+// sync with MessageFactory::addSubMessageDataWithRelatedSampleIdentity's
+// kInlineQosBytes.
+static constexpr DataSize_t RELATED_SAMPLE_IDENTITY_INLINE_QOS_BYTES = 60;
+static constexpr DataSize_t MAX_UNFRAGMENTED_RPC_PAYLOAD =
+    MAX_UNFRAGMENTED_PAYLOAD - RELATED_SAMPLE_IDENTITY_INLINE_QOS_BYTES;
+
 // Largest per-fragment payload that keeps a single-fragment DATA_FRAG submessage
 // within one UDP datagram (max UDP payload 65507 - RTPS header 20 - INFO_TS 12 -
 // DATA_FRAG submessage header 36). DATA_FRAG's fixed header is 12 bytes larger

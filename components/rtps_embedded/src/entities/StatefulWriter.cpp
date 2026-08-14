@@ -333,19 +333,25 @@ bool StatefulWriter::sendData(const ReaderProxy &reader, const CacheChange *next
   info.destAddr = locator.getIp4AddressBytes();
   info.destPort = (Ip4Port_t)locator.port;
 
-#ifdef RTPS_ENABLE_FRAGMENTATION
-  if (next->data.spaceUsed() > MAX_UNFRAGMENTED_PAYLOAD) {
-    return sendSampleFragmented(info.destAddr, info.destPort, reader.remoteReaderGuid.entityId,
-                                next);
-  }
-#endif
-
   if (next->hasRelatedSampleIdentity) {
     // ROS 2 service request/reply: carry related_sample_identity as inline QoS.
+    // Such a sample must fit one DATA submessage - DATA_FRAG carries no inline
+    // QoS, so fragmenting it would drop the correlation and the caller would
+    // time out. The RPC facade rejects payloads above MAX_UNFRAGMENTED_RPC_PAYLOAD;
+    // guard here too rather than emit an uncorrelated fragment.
+    if (next->data.spaceUsed() > MAX_UNFRAGMENTED_RPC_PAYLOAD) {
+      return false;
+    }
     MessageFactory::addSubMessageDataWithRelatedSampleIdentity(
         payload, next->data, next->relatedSampleIdentity, next->sequenceNumber,
         m_attributes.endpointGuid.entityId, reader.remoteReaderGuid.entityId);
   } else {
+#ifdef RTPS_ENABLE_FRAGMENTATION
+    if (next->data.spaceUsed() > MAX_UNFRAGMENTED_PAYLOAD) {
+      return sendSampleFragmented(info.destAddr, info.destPort, reader.remoteReaderGuid.entityId,
+                                  next);
+    }
+#endif
     MessageFactory::addSubMessageData(payload, next->data, next->inLineQoS, next->sequenceNumber,
                                       m_attributes.endpointGuid.entityId,
                                       reader.remoteReaderGuid.entityId);

@@ -501,6 +501,19 @@ protected:
   rtps::Participant *participant_{nullptr};
   std::unordered_map<std::string, rtps::Writer *> writers_;
   std::vector<std::unique_ptr<ReaderContext>> reader_contexts_;
+
+  // Shared liveness token for async RPC reply paths. A deferred service responder
+  // (which user code may hold and fulfill arbitrarily long after the request)
+  // checks `alive` under this mutex before writing through its engine reply
+  // writer; stop() flips it false under the same mutex before destroying the
+  // domain, so a reply that races shutdown safely no-ops instead of using a
+  // freed writer. A shared_ptr so it outlives the participant - a late reply
+  // then sees `alive == false` and never dereferences freed state.
+  struct Liveness {
+    std::mutex m;
+    bool alive{true};
+  };
+  std::shared_ptr<Liveness> live_;
 #ifdef RTPS_WITH_RPC
   // shared_ptr (not unique_ptr) so an incomplete ServiceServerContext can be held
   // here: shared_ptr's destructor is type-erased, so the member vector needs no

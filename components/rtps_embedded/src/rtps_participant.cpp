@@ -1,13 +1,17 @@
 #include "rtps_participant.hpp"
 
 #include <algorithm>
+#include <atomic>
 #include <condition_variable>
 #include <cstdio>
 #include <limits>
 #include <map>
+#include <memory>
+#include <mutex>
 #include <random>
 #include <thread>
 #include <unordered_map>
+#include <vector>
 
 #include "rtps/entities/Domain.hpp"
 #include "rtps/rpc/action_naming.hpp"
@@ -148,6 +152,8 @@ bool RtpsParticipant::start() {
   }
 
   domain_ = std::make_unique<rtps::Domain>(ip_bytes);
+  // Fresh liveness token for this run (a prior stop() left the old one flipped).
+  live_ = std::make_shared<Liveness>();
 
   // Engine lifecycle: participants must be created before completeInit()
   // starts the discovery machinery; endpoints are added after.
@@ -342,15 +348,31 @@ struct RtpsParticipant::ServiceResponder::State {
   rtps::Writer *reply_writer{nullptr};
   rtps::rpc::SampleIdentity related{};
   std::atomic<bool> replied{false};
+  // Held so a deferred reply that races participant shutdown no-ops instead of
+  // writing through a freed engine writer (see RtpsParticipant::Liveness).
+  std::shared_ptr<Liveness> live;
 };
 
 void RtpsParticipant::ServiceResponder::reply(std::span<const uint8_t> response) const {
-  if (!state_ || state_->reply_writer == nullptr) {
+  if (!state_ || state_->reply_writer == nullptr || !state_->live) {
+    return;
+  }
+  // A reply carries its related_sample_identity as inline QoS, so it must fit a
+  // single DATA submessage (a fragmented reply loses the correlation - see
+  // MAX_UNFRAGMENTED_RPC_PAYLOAD). Reject rather than send an uncorrelated reply.
+  if (response.size() > rtps::MAX_UNFRAGMENTED_RPC_PAYLOAD) {
     return;
   }
   bool expected = false;
   if (!state_->replied.compare_exchange_strong(expected, true)) {
     return; // reply exactly once
+  }
+  // Hold the liveness lock across the write: stop() flips `alive` false under
+  // the same lock before destroying the domain, so we either complete the write
+  // against a still-valid writer or observe !alive and drop.
+  std::lock_guard<std::mutex> live_lock(state_->live->m);
+  if (!state_->live->alive) {
+    return;
   }
   state_->reply_writer->newChangeWithRelatedSampleIdentity(
       rtps::ChangeKind_t::ALIVE, response.data(), static_cast<rtps::DataSize_t>(response.size()),
@@ -383,6 +405,11 @@ struct RtpsParticipant::ServiceClient::Impl {
   // by the assigned writerSeqNumber, and return that key. nullopt on failure.
   std::optional<uint64_t> send(std::span<const uint8_t> request, reply_callback_t on_reply,
                                std::shared_ptr<SyncSlot> sync) {
+    // A request carries its related_sample_identity as inline QoS, so it must
+    // fit a single DATA submessage (see MAX_UNFRAGMENTED_RPC_PAYLOAD).
+    if (request.size() > rtps::MAX_UNFRAGMENTED_RPC_PAYLOAD) {
+      return std::nullopt;
+    }
     std::lock_guard<std::mutex> lock(mutex);
     // Hold the lock across newChange + insert so a reply can never look up the
     // key before it is registered (the send itself is async).
@@ -415,6 +442,7 @@ void RtpsParticipant::service_request_trampoline(void *arg, const rtps::ReaderCa
   // sync handler replies immediately; a deferred one may hold the responder.
   auto state = std::make_shared<ServiceResponder::State>();
   state->reply_writer = ctx->reply_writer;
+  state->live = ctx->self->live_;
   state->related.writer_guid = change.hasRelatedSampleIdentity
                                    ? change.relatedSampleIdentity.writer_guid
                                    : change.writerGuid;
@@ -550,6 +578,34 @@ bool RtpsParticipant::add_service_server_deferred(const ServiceConfig &config,
 namespace {
 namespace ract = rtps::rpc;
 
+// An owned action-execute worker: the std::thread plus a flag it sets true just
+// before returning. Threads are stored (not detached) so shutdown can join them
+// before the participant is torn down; finished ones are reaped when new goals
+// arrive so the list stays bounded over a long-lived server. See
+// reap_and_store / the join loop in stop().
+struct ActionExecThread {
+  std::thread thread;
+  std::shared_ptr<std::atomic<bool>> finished;
+};
+
+// Append a freshly-spawned worker after reaping any that have finished (joining
+// them releases their captured goal state). Bounds the vector without blocking.
+void reap_and_store(std::mutex &m, std::vector<ActionExecThread> &threads, std::thread th,
+                    std::shared_ptr<std::atomic<bool>> finished) {
+  std::lock_guard<std::mutex> lock(m);
+  for (auto it = threads.begin(); it != threads.end();) {
+    if (it->finished->load()) {
+      if (it->thread.joinable()) {
+        it->thread.join();
+      }
+      it = threads.erase(it);
+    } else {
+      ++it;
+    }
+  }
+  threads.push_back(ActionExecThread{std::move(th), std::move(finished)});
+}
+
 // Generate a unique 16-byte goal id: random_device bytes mixed with a process
 // counter so uniqueness holds even if random_device is weak (e.g. on an MCU).
 ract::GoalUuid generate_goal_id() {
@@ -569,16 +625,21 @@ ract::GoalUuid generate_goal_id() {
 // One accepted goal's state + the terminal-status plumbing.
 struct RtpsParticipant::ActionGoalHandle::State {
   ract::GoalUuid goal_id{};
-  std::vector<uint8_t> goal;                   // CDR goal payload
-  RtpsParticipant *self{nullptr};              // for feedback/status publish
-  std::shared_ptr<ActionServerContext> server; // owning server (topics + goals)
+  std::vector<uint8_t> goal;      // CDR goal payload
+  RtpsParticipant *self{nullptr}; // for feedback/status publish (via publish())
+  // weak (not shared) back-reference: the server's goals map owns the State, so
+  // a shared_ptr here would form a cycle and leak both. Only needed to retire
+  // the goal from that map; publishing uses the copied topics below.
+  std::weak_ptr<ActionServerContext> server;
+  std::string feedback_topic; // copied so feedback/status publishing needs no
+  std::string status_topic;   // server lock and survives server teardown.
   std::mutex mutex;
   ract::GoalStatus status{ract::GoalStatus::ACCEPTED};
-  bool done{false};
+  bool done{false};                  // terminate() has run
+  bool result_delivered{false};      // get_result answered -> goal may be retired
   std::vector<uint8_t> result;       // set on terminate
   ServiceResponder result_responder; // pending get_result (if any)
   std::atomic<bool> cancel_requested{false};
-  std::thread exec_thread;
 };
 
 struct RtpsParticipant::ActionServerContext {
@@ -588,6 +649,10 @@ struct RtpsParticipant::ActionServerContext {
   action_execute_callback_t execute{nullptr};
   std::mutex goals_mutex;
   std::map<ract::GoalUuid, std::shared_ptr<ActionGoalHandle::State>> goals;
+  // Owned execute workers (not detached): joined in stop() before the domain is
+  // torn down, reaped as they finish. See ActionExecThread / reap_and_store.
+  std::mutex threads_mutex;
+  std::vector<ActionExecThread> exec_threads;
 };
 
 const RtpsParticipant::GoalId &RtpsParticipant::ActionGoalHandle::goal_id() const {
@@ -602,7 +667,7 @@ bool RtpsParticipant::ActionGoalHandle::is_canceling() const {
 
 void RtpsParticipant::ActionGoalHandle::publish_feedback(std::span<const uint8_t> feedback) const {
   auto msg = ract::wrap_feedback(state_->goal_id, feedback);
-  state_->self->publish(state_->server->feedback_topic, {msg.data(), msg.size()});
+  state_->self->publish(state_->feedback_topic, {msg.data(), msg.size()});
 }
 
 // Publish a single-goal GoalStatusArray (the common case; a full multi-goal list
@@ -621,6 +686,7 @@ void RtpsParticipant::ActionGoalHandle::terminate(int status_value,
                                                   std::span<const uint8_t> result) const {
   const auto status = static_cast<ract::GoalStatus>(static_cast<int8_t>(status_value));
   ServiceResponder responder;
+  bool retire = false;
   {
     std::lock_guard<std::mutex> lock(state_->mutex);
     if (state_->done) {
@@ -629,12 +695,25 @@ void RtpsParticipant::ActionGoalHandle::terminate(int status_value,
     state_->done = true;
     state_->status = status;
     state_->result.assign(result.begin(), result.end());
-    responder = state_->result_responder; // fulfill any pending get_result
+    if (state_->result_responder.valid()) {
+      responder = state_->result_responder; // get_result already waiting
+      state_->result_delivered = true;
+      retire = true;
+    }
   }
-  publish_goal_status(state_->self, state_->server->status_topic, state_->goal_id, status);
+  publish_goal_status(state_->self, state_->status_topic, state_->goal_id, status);
   if (responder.valid()) {
     responder.reply(
         ract::wrap_get_result_response(status, {state_->result.data(), state_->result.size()}));
+  }
+  if (retire) {
+    // Terminated with the client's get_result already waiting: it now has the
+    // result, so drop the goal from the server map (a still-running worker keeps
+    // the State alive via its own reference).
+    if (auto server = state_->server.lock()) {
+      std::lock_guard<std::mutex> lock(server->goals_mutex);
+      server->goals.erase(state_->goal_id);
+    }
   }
 }
 void RtpsParticipant::ActionGoalHandle::succeed(std::span<const uint8_t> result) const {
@@ -689,16 +768,27 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
         gstate->goal_id = id;
         gstate->goal = std::move(goal);
         gstate->self = this;
-        gstate->server = server;
+        gstate->server = server; // weak back-reference (see State)
+        gstate->feedback_topic = server->feedback_topic;
+        gstate->status_topic = server->status_topic;
         {
           std::lock_guard<std::mutex> lock(server->goals_mutex);
           server->goals[id] = gstate;
         }
         publish_goal_status(this, server->status_topic, id, ract::GoalStatus::EXECUTING);
         if (server->execute) {
-          gstate->exec_thread =
-              std::thread([server, gstate]() { server->execute(ActionGoalHandle(gstate)); });
-          gstate->exec_thread.detach();
+          // Own the worker (not detached) so stop() joins it before the domain
+          // is torn down. It captures a weak server ref (locked only while
+          // running), so a finished worker forms no goals<->server cycle.
+          auto finished = std::make_shared<std::atomic<bool>>(false);
+          std::weak_ptr<ActionServerContext> weak_server = server;
+          std::thread worker([gstate, weak_server, finished]() {
+            if (auto s = weak_server.lock()) {
+              s->execute(ActionGoalHandle(gstate));
+            }
+            finished->store(true);
+          });
+          reap_and_store(server->threads_mutex, server->exec_threads, std::move(worker), finished);
         }
         return ract::make_send_goal_response(true);
       });
@@ -725,12 +815,22 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
                      responder.reply(ract::wrap_get_result_response(ract::GoalStatus::UNKNOWN, {}));
                      return;
                    }
-                   std::lock_guard<std::mutex> lock(gstate->mutex);
-                   if (gstate->done) {
-                     responder.reply(ract::wrap_get_result_response(
-                         gstate->status, {gstate->result.data(), gstate->result.size()}));
-                   } else {
-                     gstate->result_responder = responder; // fulfilled on terminate()
+                   bool retire = false;
+                   {
+                     std::lock_guard<std::mutex> lock(gstate->mutex);
+                     if (gstate->done) {
+                       responder.reply(ract::wrap_get_result_response(
+                           gstate->status, {gstate->result.data(), gstate->result.size()}));
+                       gstate->result_delivered = true;
+                       retire = true;
+                     } else {
+                       gstate->result_responder = responder; // fulfilled on terminate()
+                     }
+                   }
+                   if (retire) {
+                     // Client has its result: drop the goal from the server map.
+                     std::lock_guard<std::mutex> glock(server->goals_mutex);
+                     server->goals.erase(id);
                    }
                  });
 
@@ -1148,6 +1248,10 @@ struct RtpsParticipant::NativeActionServerContext {
   std::string feedback_topic;
   native_execute_callback_t execute{nullptr};
   std::atomic<uint32_t> next_handle{1};
+  // Owned execute workers (not detached): joined in stop() before the domain is
+  // torn down, reaped as they finish. See ActionExecThread / reap_and_store.
+  std::mutex threads_mutex;
+  std::vector<ActionExecThread> exec_threads;
 };
 
 uint32_t RtpsParticipant::NativeGoalHandle::goal_handle() const { return state_->goal_handle; }
@@ -1208,7 +1312,16 @@ bool RtpsParticipant::add_native_action_server(const ActionConfig &config,
         gstate->self = this;
         gstate->feedback_topic = server->feedback_topic;
         if (server->execute) {
-          std::thread([server, gstate]() { server->execute(NativeGoalHandle(gstate)); }).detach();
+          // Own the worker (not detached) so stop() joins it before teardown.
+          auto finished = std::make_shared<std::atomic<bool>>(false);
+          std::weak_ptr<NativeActionServerContext> weak_server = server;
+          std::thread worker([gstate, weak_server, finished]() {
+            if (auto s = weak_server.lock()) {
+              s->execute(NativeGoalHandle(gstate));
+            }
+            finished->store(true);
+          });
+          reap_and_store(server->threads_mutex, server->exec_threads, std::move(worker), finished);
         }
         return rtps::rpc::native_make_goal_reply(true, handle);
       });
@@ -1226,10 +1339,51 @@ struct RtpsParticipant::NativeActionClient::Impl {
     feedback_callback_t on_feedback{nullptr};
     result_callback_t on_result{nullptr};
   };
+  struct BufferedMsg {
+    rtps::rpc::NativeGoalStatus status{};
+    std::vector<uint8_t> payload;
+  };
   RtpsParticipant *self{nullptr};
   std::shared_ptr<NativeServiceClient> goal_client;
   std::mutex mutex;
   std::map<uint32_t, Goal> goals;
+  // Feedback/result can arrive before send_goal's reply installs the goal (the
+  // server starts executing immediately, so a fast native action may publish
+  // before the reply lands). Buffer such early messages by handle and replay
+  // them on registration. Bounded so a stray/unknown handle cannot grow it
+  // without limit.
+  std::map<uint32_t, std::vector<BufferedMsg>> pending_early;
+  size_t pending_early_count{0};
+  static constexpr size_t kMaxPendingEarly = 64;
+
+  // Route a parsed feedback/result message to the registered goal's callbacks;
+  // terminal status delivers the result and retires the goal. No-op for an
+  // unknown handle. Callbacks run outside the lock.
+  static void deliver(Impl *impl, uint32_t handle, rtps::rpc::NativeGoalStatus status,
+                      std::span<const uint8_t> payload) {
+    const bool terminal = status == rtps::rpc::NativeGoalStatus::SUCCEEDED ||
+                          status == rtps::rpc::NativeGoalStatus::ABORTED ||
+                          status == rtps::rpc::NativeGoalStatus::CANCELED;
+    Goal g;
+    {
+      std::lock_guard<std::mutex> lock(impl->mutex);
+      auto it = impl->goals.find(handle);
+      if (it == impl->goals.end()) {
+        return;
+      }
+      g = it->second;
+      if (terminal) {
+        impl->goals.erase(it);
+      }
+    }
+    if (terminal) {
+      if (g.on_result) {
+        g.on_result(static_cast<uint8_t>(status), {payload.data(), payload.size()});
+      }
+    } else if (g.on_feedback) {
+      g.on_feedback({payload.data(), payload.size()});
+    }
+  }
 };
 
 RtpsParticipant::NativeActionClient::NativeActionClient(std::unique_ptr<Impl> impl)
@@ -1250,8 +1404,21 @@ bool RtpsParticipant::NativeActionClient::send_goal(std::span<const uint8_t> goa
           }
           return;
         }
-        std::lock_guard<std::mutex> lock(impl->mutex);
-        impl->goals[handle] = Impl::Goal{on_feedback, on_result};
+        std::vector<Impl::BufferedMsg> replay;
+        {
+          std::lock_guard<std::mutex> lock(impl->mutex);
+          impl->goals[handle] = Impl::Goal{on_feedback, on_result};
+          // Drain any feedback/result that arrived before this registration.
+          auto it = impl->pending_early.find(handle);
+          if (it != impl->pending_early.end()) {
+            replay = std::move(it->second);
+            impl->pending_early_count -= replay.size();
+            impl->pending_early.erase(it);
+          }
+        }
+        for (auto &m : replay) {
+          Impl::deliver(impl, handle, m.status, m.payload);
+        }
       });
 }
 
@@ -1272,38 +1439,30 @@ RtpsParticipant::add_native_action_client(const ActionConfig &config) {
   NativeActionClient::Impl *raw = impl.get();
   // Feedback subscriber: route feedback/result by goal_handle; terminal status
   // (>= SUCCEEDED) delivers the result and retires the goal.
-  if (!add_reader(
-          {rtps::rpc::native_feedback_topic(config.action), config.type_name, Reliability::RELIABLE,
-           [raw](std::span<const uint8_t> msg) {
-             uint32_t handle = 0;
-             rtps::rpc::NativeGoalStatus status{};
-             std::vector<uint8_t> payload;
-             if (!rtps::rpc::native_parse_feedback(msg, handle, status, payload)) {
-               return;
-             }
-             const bool terminal = status == rtps::rpc::NativeGoalStatus::SUCCEEDED ||
-                                   status == rtps::rpc::NativeGoalStatus::ABORTED ||
-                                   status == rtps::rpc::NativeGoalStatus::CANCELED;
-             NativeActionClient::Impl::Goal g;
-             {
-               std::lock_guard<std::mutex> lock(raw->mutex);
-               auto it = raw->goals.find(handle);
-               if (it == raw->goals.end()) {
-                 return;
-               }
-               g = it->second;
-               if (terminal) {
-                 raw->goals.erase(it);
-               }
-             }
-             if (terminal) {
-               if (g.on_result) {
-                 g.on_result(static_cast<uint8_t>(status), {payload.data(), payload.size()});
-               }
-             } else if (g.on_feedback) {
-               g.on_feedback({payload.data(), payload.size()});
-             }
-           }})) {
+  if (!add_reader({rtps::rpc::native_feedback_topic(config.action), config.type_name,
+                   Reliability::RELIABLE, [raw](std::span<const uint8_t> msg) {
+                     uint32_t handle = 0;
+                     rtps::rpc::NativeGoalStatus status{};
+                     std::vector<uint8_t> payload;
+                     if (!rtps::rpc::native_parse_feedback(msg, handle, status, payload)) {
+                       return;
+                     }
+                     {
+                       std::lock_guard<std::mutex> lock(raw->mutex);
+                       if (raw->goals.find(handle) == raw->goals.end()) {
+                         // Goal not registered yet (its send_goal reply is still in
+                         // flight): buffer this early message, bounded, for replay when
+                         // send_goal installs the goal. See Impl::pending_early.
+                         if (raw->pending_early_count <
+                             NativeActionClient::Impl::kMaxPendingEarly) {
+                           raw->pending_early[handle].push_back({status, std::move(payload)});
+                           ++raw->pending_early_count;
+                         }
+                         return;
+                       }
+                     }
+                     NativeActionClient::Impl::deliver(raw, handle, status, payload);
+                   }})) {
     logger_.error("Native action client '{}': feedback reader failed", config.action);
     return nullptr;
   }
@@ -1318,32 +1477,86 @@ RtpsParticipant::add_native_action_client(const ActionConfig &config) {
 // context type the member containers point to is complete when their
 // unique_ptr/shared_ptr elements are destroyed - see the note by the constructor.
 void RtpsParticipant::stop() {
-  std::lock_guard<std::mutex> lock(mutex_);
-  if (!started_) {
-    return;
+  // Phase 1: flip started_ under mutex_ so no further publish()/add_*()/reply
+  // proceeds past its started_ check.
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!started_) {
+      return;
+    }
+    started_ = false;
   }
-  started_ = false;
-  domain_->stop();
-  // The engine owns the endpoint objects; drop our references before the
-  // domain (and with it every writer/reader and their callback registrations)
-  // goes away.
-  writers_.clear();
-  participant_ = nullptr;
-  domain_.reset();
-  reader_contexts_.clear();
+  // Phase 2: invalidate deferred RPC replies. A service responder held by user
+  // code checks live_->alive under this lock before writing through its engine
+  // reply writer; flipping it here (before the domain and its writers are
+  // destroyed) turns any racing reply into a safe no-op, and holding the lock
+  // first waits for an in-flight reply to finish.
+  if (live_) {
+    std::lock_guard<std::mutex> lock(live_->m);
+    live_->alive = false;
+  }
+  // Phase 3: stop the engine (no more reader/service callbacks fire), then join
+  // every owned action-execute worker so none touches this participant after
+  // the domain and its writers are gone. Done WITHOUT mutex_ held: a worker's
+  // final publish()/reply must be able to take mutex_/live_ and run to
+  // completion (as a no-op) so the thread can exit and be joined. The RPC
+  // container vectors are stable here - after phase 1 no add_*() can mutate them.
+  if (domain_) {
+    domain_->stop();
+  }
 #ifdef RTPS_WITH_RPC
-  // RPC endpoints are owned by the (now-reset) domain; drop our bookkeeping.
-  // NOTE: an action server's detached execute threads are not joined here (v1);
-  // goals are expected to finish before stop().
-  action_clients_.clear();
-  action_servers_.clear();
-  service_clients_.clear();
-  service_servers_.clear();
-  native_action_clients_.clear();
-  native_action_servers_.clear();
-  native_service_clients_.clear();
-  native_service_servers_.clear();
+  const auto join_workers = [](std::mutex &m, std::vector<ActionExecThread> &threads) {
+    std::lock_guard<std::mutex> lock(m);
+    for (auto &t : threads) {
+      if (t.thread.joinable()) {
+        t.thread.join();
+      }
+    }
+    threads.clear();
+  };
+  for (auto &ctx : action_servers_) {
+    if (!ctx) {
+      continue;
+    }
+    // Ask cooperative execute callbacks (those that poll is_canceling()) to wind
+    // down, then join. A callback that ignores the signal blocks stop() until it
+    // returns - execute callbacks must be finite / cancel-aware.
+    {
+      std::lock_guard<std::mutex> lock(ctx->goals_mutex);
+      for (auto &kv : ctx->goals) {
+        kv.second->cancel_requested.store(true);
+      }
+    }
+    join_workers(ctx->threads_mutex, ctx->exec_threads);
+  }
+  for (auto &ctx : native_action_servers_) {
+    if (ctx) {
+      join_workers(ctx->threads_mutex, ctx->exec_threads);
+    }
+  }
 #endif // RTPS_WITH_RPC
+  // Phase 4: tear the domain down and drop bookkeeping under mutex_. The engine
+  // owns the endpoint objects, so release our references before the domain (and
+  // with it every writer/reader and their callback registrations) goes away.
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    writers_.clear();
+    participant_ = nullptr;
+    domain_.reset();
+    reader_contexts_.clear();
+#ifdef RTPS_WITH_RPC
+    // RPC endpoints are owned by the (now-reset) domain; drop our bookkeeping.
+    // Execute workers were joined above, so nothing here races teardown.
+    action_clients_.clear();
+    action_servers_.clear();
+    service_clients_.clear();
+    service_servers_.clear();
+    native_action_clients_.clear();
+    native_action_servers_.clear();
+    native_service_clients_.clear();
+    native_service_servers_.clear();
+#endif // RTPS_WITH_RPC
+  }
   logger_.info("Stopped");
 }
 

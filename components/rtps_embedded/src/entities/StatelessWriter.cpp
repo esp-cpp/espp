@@ -203,22 +203,29 @@ void StatelessWriter::progress() {
           reid = proxy.remoteReaderGuid.entityId;
         }
 
-#ifdef RTPS_ENABLE_FRAGMENTATION
-        if (next->data.spaceUsed() > MAX_UNFRAGMENTED_PAYLOAD) {
-          // Oversized sample: emit DATA_FRAG submessages (built + sent under the
-          // lock so next->data stays valid across fragments) and skip the single
-          // DATA path for this proxy.
-          sendSampleFragmented(info.destAddr, info.destPort, reid, next);
-          continue;
-        }
-#endif
         if (next->hasRelatedSampleIdentity) {
           // ROS 2 service request/reply: carry the related_sample_identity as
-          // inline QoS. Plain samples take the byte-identical path below.
+          // inline QoS. Such a sample must fit one DATA submessage - DATA_FRAG
+          // carries no inline QoS, so fragmenting it would drop the correlation
+          // and the caller would time out. The RPC facade rejects payloads above
+          // MAX_UNFRAGMENTED_RPC_PAYLOAD; guard here too rather than emit an
+          // uncorrelated fragment.
+          if (next->data.spaceUsed() > MAX_UNFRAGMENTED_RPC_PAYLOAD) {
+            continue;
+          }
           MessageFactory::addSubMessageDataWithRelatedSampleIdentity(
               payload, next->data, next->relatedSampleIdentity, next->sequenceNumber,
               m_attributes.endpointGuid.entityId, reid);
         } else {
+#ifdef RTPS_ENABLE_FRAGMENTATION
+          if (next->data.spaceUsed() > MAX_UNFRAGMENTED_PAYLOAD) {
+            // Oversized plain sample: emit DATA_FRAG submessages (built + sent
+            // under the lock so next->data stays valid across fragments) and
+            // skip the single DATA path for this proxy.
+            sendSampleFragmented(info.destAddr, info.destPort, reid, next);
+            continue;
+          }
+#endif
           MessageFactory::addSubMessageData(payload, next->data, false, next->sequenceNumber,
                                             m_attributes.endpointGuid.entityId,
                                             reid); // TODO

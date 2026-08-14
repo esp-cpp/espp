@@ -6,6 +6,7 @@
 // device runs. See components/rtps_embedded/example/README.md and the RMI/AMI
 // docs (doc/en/protocols/rtps_rmi_ami.rst).
 
+#include <atomic>
 #include <chrono>
 #include <thread>
 
@@ -187,6 +188,10 @@ extern "C" void app_main(void) {
       participant,
       {.action = "/peer_fib", .type_name = "example_interfaces::action::dds_::Fibonacci"});
 
+  // Only one action goal in flight at a time: without a peer the goal never
+  // completes, so re-sending on every tick would leak a pending goal each time.
+  // The service call() below self-cleans on its 1s timeout, so it can run freely.
+  std::atomic<bool> fib_in_flight{false};
   espp::Timer rpc_client_timer({
       .name = "rtps_rpc_client",
       .period = 5s,
@@ -198,13 +203,17 @@ extern "C" void app_main(void) {
             } else {
               logger.info("[client] /peer_add_two_ints: no reply (peer serving it?)");
             }
-            // Typed action goal (AMI) with typed feedback + result.
-            fib_client.send_goal(
-                FibGoal{5}, [&](const FibSeq &) { /* per-feedback */ },
-                [&](espp::GoalStatus status, const FibSeq &res) {
-                  logger.info("[client] /peer_fib result: status={} len={}",
-                              static_cast<int>(status), res.sequence.size());
-                });
+            // Typed action goal (AMI) with typed feedback + result. Skip if the
+            // previous goal has not finished (e.g. no peer is serving it).
+            if (!fib_in_flight.exchange(true)) {
+              fib_client.send_goal(
+                  FibGoal{5}, [&](const FibSeq &) { /* per-feedback */ },
+                  [&](espp::GoalStatus status, const FibSeq &res) {
+                    logger.info("[client] /peer_fib result: status={} len={}",
+                                static_cast<int>(status), res.sequence.size());
+                    fib_in_flight.store(false);
+                  });
+            }
             return false; // keep the timer running
           },
       .log_level = espp::Logger::Verbosity::WARN,
