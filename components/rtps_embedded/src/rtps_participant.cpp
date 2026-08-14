@@ -11,6 +11,7 @@
 #include "rtps/entities/Domain.hpp"
 #include "rtps/rpc/action_naming.hpp"
 #include "rtps/rpc/action_types.hpp"
+#include "rtps/rpc/native_protocol.hpp"
 #include "rtps/rpc/sample_identity.hpp"
 #include "rtps/rpc/service_naming.hpp"
 
@@ -193,6 +194,8 @@ void RtpsParticipant::stop() {
   action_servers_.clear();
   service_clients_.clear();
   service_servers_.clear();
+  native_service_clients_.clear();
+  native_service_servers_.clear();
   logger_.info("Stopped");
 }
 
@@ -961,6 +964,191 @@ RtpsParticipant::add_service_client(const ServiceConfig &config) {
   auto client = std::shared_ptr<ServiceClient>(new ServiceClient(std::move(impl)));
   service_clients_.push_back(client);
   logger_.info("Added service client: '{}' ({})", config.service, config.type_name);
+  return client;
+}
+
+// ===========================================================================
+// Native services (espp<->espp): lean request/reply over plain pub/sub with a
+// 20-byte in-band correlation header. No engine wire support needed.
+// ===========================================================================
+
+struct RtpsParticipant::NativeServiceServerContext {
+  RtpsParticipant *self{nullptr};
+  std::string reply_topic;
+  service_handler_t handler{nullptr};
+};
+
+struct RtpsParticipant::NativeServiceClient::Impl {
+  struct SyncSlot {
+    std::mutex m;
+    std::condition_variable cv;
+    bool done{false};
+    std::vector<uint8_t> reply;
+  };
+  struct Pending {
+    reply_callback_t on_reply{nullptr};
+    std::shared_ptr<SyncSlot> sync{nullptr};
+  };
+  RtpsParticipant *self{nullptr};
+  std::string request_topic;
+  std::array<uint8_t, 12> my_prefix{};
+  std::atomic<uint32_t> next_id{1};
+  std::mutex mutex;
+  std::unordered_map<uint32_t, Pending> pending;
+
+  std::optional<uint32_t> send(std::span<const uint8_t> request, reply_callback_t on_reply,
+                               std::shared_ptr<SyncSlot> sync) {
+    rtps::rpc::NativeHeader h;
+    h.client_prefix = my_prefix;
+    h.op = rtps::rpc::NativeOp::REQUEST;
+    const uint32_t id = next_id.fetch_add(1);
+    h.request_id = id;
+    auto frame = rtps::rpc::native_encode(h, request);
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      pending[id] = Pending{std::move(on_reply), std::move(sync)};
+    }
+    if (!self->publish(request_topic, {frame.data(), frame.size()})) {
+      std::lock_guard<std::mutex> lock(mutex);
+      pending.erase(id);
+      return std::nullopt;
+    }
+    return id;
+  }
+};
+
+RtpsParticipant::NativeServiceClient::NativeServiceClient(std::unique_ptr<Impl> impl)
+    : impl_(std::move(impl)) {}
+RtpsParticipant::NativeServiceClient::~NativeServiceClient() = default;
+
+bool RtpsParticipant::NativeServiceClient::call_async(std::span<const uint8_t> request,
+                                                      reply_callback_t on_reply) {
+  return impl_->send(request, std::move(on_reply), nullptr).has_value();
+}
+
+std::optional<std::vector<uint8_t>>
+RtpsParticipant::NativeServiceClient::call(std::span<const uint8_t> request,
+                                           std::chrono::milliseconds timeout) {
+  auto slot = std::make_shared<Impl::SyncSlot>();
+  auto id = impl_->send(request, nullptr, slot);
+  if (!id.has_value()) {
+    return std::nullopt;
+  }
+  std::unique_lock<std::mutex> lock(slot->m);
+  if (!slot->cv.wait_for(lock, timeout, [&] { return slot->done; })) {
+    std::lock_guard<std::mutex> plock(impl_->mutex);
+    impl_->pending.erase(*id);
+    return std::nullopt;
+  }
+  return std::move(slot->reply);
+}
+
+std::future<std::optional<std::vector<uint8_t>>>
+RtpsParticipant::NativeServiceClient::call_future(std::span<const uint8_t> request) {
+  auto promise = std::make_shared<std::promise<std::optional<std::vector<uint8_t>>>>();
+  auto future = promise->get_future();
+  const bool queued = call_async(request, [promise](std::span<const uint8_t> reply) {
+    promise->set_value(std::vector<uint8_t>(reply.begin(), reply.end()));
+  });
+  if (!queued) {
+    promise->set_value(std::nullopt);
+  }
+  return future;
+}
+
+bool RtpsParticipant::add_native_service_server(const ServiceConfig &config,
+                                                service_handler_t handler) {
+  if (!started_) {
+    logger_.error("Cannot add native service server '{}': not started", config.service);
+    return false;
+  }
+  auto ctx = std::make_shared<NativeServiceServerContext>();
+  ctx->self = this;
+  ctx->reply_topic = rtps::rpc::native_reply_topic(config.service);
+  ctx->handler = std::move(handler);
+  const std::string req_topic = rtps::rpc::native_request_topic(config.service);
+
+  if (!add_writer({ctx->reply_topic, config.type_name, Reliability::RELIABLE})) {
+    logger_.error("Native service server '{}': reply writer failed", config.service);
+    return false;
+  }
+  NativeServiceServerContext *raw = ctx.get();
+  if (!add_reader({req_topic, config.type_name, Reliability::RELIABLE,
+                   [raw](std::span<const uint8_t> frame) {
+                     rtps::rpc::NativeHeader h;
+                     std::span<const uint8_t> payload;
+                     if (!rtps::rpc::native_decode(frame, h, payload) ||
+                         h.op != rtps::rpc::NativeOp::REQUEST) {
+                       return;
+                     }
+                     std::vector<uint8_t> reply =
+                         raw->handler ? raw->handler(payload) : std::vector<uint8_t>{};
+                     // Echo {client_prefix, request_id} back as a REPLY.
+                     rtps::rpc::NativeHeader rh;
+                     rh.client_prefix = h.client_prefix;
+                     rh.request_id = h.request_id;
+                     rh.op = rtps::rpc::NativeOp::REPLY;
+                     auto out = rtps::rpc::native_encode(rh, reply);
+                     raw->self->publish(raw->reply_topic, {out.data(), out.size()});
+                   }})) {
+    logger_.error("Native service server '{}': request reader failed", config.service);
+    return false;
+  }
+  native_service_servers_.push_back(std::move(ctx));
+  logger_.info("Added native service server: '{}'", config.service);
+  return true;
+}
+
+std::shared_ptr<RtpsParticipant::NativeServiceClient>
+RtpsParticipant::add_native_service_client(const ServiceConfig &config) {
+  if (!started_ || participant_ == nullptr) {
+    logger_.error("Cannot add native service client '{}': not started", config.service);
+    return nullptr;
+  }
+  auto impl = std::make_unique<NativeServiceClient::Impl>();
+  impl->self = this;
+  impl->request_topic = rtps::rpc::native_request_topic(config.service);
+  impl->my_prefix = participant_->m_guidPrefix.id;
+  const std::string rep_topic = rtps::rpc::native_reply_topic(config.service);
+
+  if (!add_writer({impl->request_topic, config.type_name, Reliability::RELIABLE})) {
+    logger_.error("Native service client '{}': request writer failed", config.service);
+    return nullptr;
+  }
+  NativeServiceClient::Impl *raw = impl.get();
+  if (!add_reader({rep_topic, config.type_name, Reliability::RELIABLE,
+                   [raw](std::span<const uint8_t> frame) {
+                     rtps::rpc::NativeHeader h;
+                     std::span<const uint8_t> payload;
+                     if (!rtps::rpc::native_decode(frame, h, payload) ||
+                         h.op != rtps::rpc::NativeOp::REPLY || h.client_prefix != raw->my_prefix) {
+                       return;
+                     }
+                     NativeServiceClient::Impl::Pending p;
+                     {
+                       std::lock_guard<std::mutex> lock(raw->mutex);
+                       auto it = raw->pending.find(h.request_id);
+                       if (it == raw->pending.end()) {
+                         return;
+                       }
+                       p = std::move(it->second);
+                       raw->pending.erase(it);
+                     }
+                     if (p.sync) {
+                       std::lock_guard<std::mutex> lock(p.sync->m);
+                       p.sync->reply.assign(payload.begin(), payload.end());
+                       p.sync->done = true;
+                       p.sync->cv.notify_one();
+                     } else if (p.on_reply) {
+                       p.on_reply(payload);
+                     }
+                   }})) {
+    logger_.error("Native service client '{}': reply reader failed", config.service);
+    return nullptr;
+  }
+  auto client = std::shared_ptr<NativeServiceClient>(new NativeServiceClient(std::move(impl)));
+  native_service_clients_.push_back(client);
+  logger_.info("Added native service client: '{}'", config.service);
   return client;
 }
 

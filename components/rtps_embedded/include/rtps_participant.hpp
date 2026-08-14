@@ -363,6 +363,42 @@ public:
   /// Add an action client. \return A handle, or nullptr on failure.
   std::shared_ptr<ActionClient> add_action_client(const ActionConfig &config);
 
+  // ---------------------------------------------------------------------------
+  // Native services (espp<->espp): a lean request/reply that trades ROS 2
+  // interop for simplicity. Correlation is a 20-byte in-band header (no inline
+  // QoS, no rq/rr mangling), riding plain reliable pub/sub on es_rq/es_rr topics.
+  // Same client ergonomics as the ROS services (sync / callback / future). NOT
+  // interoperable with ROS 2 - use add_service_* for that. See RMI_AMI_DESIGN.md.
+  // ---------------------------------------------------------------------------
+
+  /// Client handle for a native service (see add_native_service_client()).
+  class NativeServiceClient {
+  public:
+    using reply_callback_t = std::function<void(std::span<const uint8_t> reply)>;
+    ~NativeServiceClient();
+    NativeServiceClient(const NativeServiceClient &) = delete;
+    NativeServiceClient &operator=(const NativeServiceClient &) = delete;
+
+    /// Send a request; invoke on_reply when the correlated reply arrives.
+    bool call_async(std::span<const uint8_t> request, reply_callback_t on_reply);
+    /// Send a request and block for the reply (std::nullopt on timeout/failure).
+    std::optional<std::vector<uint8_t>> call(std::span<const uint8_t> request,
+                                             std::chrono::milliseconds timeout);
+    /// Send a request and return a future for the reply.
+    std::future<std::optional<std::vector<uint8_t>>> call_future(std::span<const uint8_t> request);
+
+  private:
+    friend class RtpsParticipant;
+    struct Impl;
+    explicit NativeServiceClient(std::unique_ptr<Impl> impl);
+    std::unique_ptr<Impl> impl_;
+  };
+
+  /// Add a native (espp<->espp) service server. \return True on success.
+  bool add_native_service_server(const ServiceConfig &config, service_handler_t handler);
+  /// Add a native (espp<->espp) service client. \return A handle, or nullptr.
+  std::shared_ptr<NativeServiceClient> add_native_service_client(const ServiceConfig &config);
+
 protected:
   /// Per-reader context bridging the engine's C function-pointer callback to
   /// the std::function callback; heap-allocated so its address stays stable
@@ -400,6 +436,10 @@ protected:
   struct ActionServerContext;
   std::vector<std::shared_ptr<ActionServerContext>> action_servers_;
   std::vector<std::shared_ptr<ActionClient>> action_clients_;
+
+  struct NativeServiceServerContext;
+  std::vector<std::shared_ptr<NativeServiceServerContext>> native_service_servers_;
+  std::vector<std::shared_ptr<NativeServiceClient>> native_service_clients_;
 };
 
 } // namespace espp
