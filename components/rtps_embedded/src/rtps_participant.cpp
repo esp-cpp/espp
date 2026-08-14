@@ -37,7 +37,11 @@ RtpsParticipant::RtpsParticipant(const Config &config)
     : BaseComponent("RtpsParticipant", config.log_level)
     , config_(config) {}
 
-RtpsParticipant::~RtpsParticipant() { stop(); }
+// NOTE: ~RtpsParticipant is defined at the END of this file, after the RPC
+// context structs (ServiceServerContext, ActionServerContext, Native*Context,
+// *Client::Impl) are complete - the destructor destroys vectors of
+// unique_ptr/shared_ptr to those types, and libc++ requires the pointee to be
+// complete at the point of destruction (libstdc++ is more lenient).
 
 bool RtpsParticipant::resolve_interface_address(std::array<uint8_t, 4> &ip_bytes) const {
   std::string addr = config_.interface_address;
@@ -171,32 +175,6 @@ bool RtpsParticipant::start() {
   logger_.info("Started (interface {}.{}.{}.{})", ip_bytes[0], ip_bytes[1], ip_bytes[2],
                ip_bytes[3]);
   return true;
-}
-
-void RtpsParticipant::stop() {
-  std::lock_guard<std::mutex> lock(mutex_);
-  if (!started_) {
-    return;
-  }
-  started_ = false;
-  domain_->stop();
-  // The engine owns the endpoint objects; drop our references before the
-  // domain (and with it every writer/reader and their callback registrations)
-  // goes away.
-  writers_.clear();
-  participant_ = nullptr;
-  domain_.reset();
-  reader_contexts_.clear();
-  // RPC endpoints are owned by the (now-reset) domain; drop our bookkeeping.
-  // NOTE: an action server's detached execute threads are not joined here (v1);
-  // goals are expected to finish before stop().
-  action_clients_.clear();
-  action_servers_.clear();
-  service_clients_.clear();
-  service_servers_.clear();
-  native_service_clients_.clear();
-  native_service_servers_.clear();
-  logger_.info("Stopped");
 }
 
 bool RtpsParticipant::add_writer(const WriterConfig &config) {
@@ -548,7 +526,7 @@ bool RtpsParticipant::add_service_server_deferred(const ServiceConfig &config,
     logger_.error("Service server '{}': endpoint creation failed", config.service);
     return false;
   }
-  auto ctx = std::make_unique<ServiceServerContext>();
+  auto ctx = std::make_shared<ServiceServerContext>();
   ctx->self = this;
   ctx->handler = std::move(handler);
   ctx->reply_writer = reply_writer;
@@ -1151,5 +1129,221 @@ RtpsParticipant::add_native_service_client(const ServiceConfig &config) {
   logger_.info("Added native service client: '{}'", config.service);
   return client;
 }
+
+// ===========================================================================
+// Native actions (espp<->espp): lean AMI - a native send_goal service + a
+// feedback topic carrying the terminal result.
+// ===========================================================================
+
+struct RtpsParticipant::NativeGoalHandle::State {
+  uint32_t goal_handle{0};
+  std::vector<uint8_t> goal;
+  RtpsParticipant *self{nullptr};
+  std::string feedback_topic;
+  std::atomic<bool> done{false};
+};
+
+struct RtpsParticipant::NativeActionServerContext {
+  RtpsParticipant *self{nullptr};
+  std::string feedback_topic;
+  native_execute_callback_t execute{nullptr};
+  std::atomic<uint32_t> next_handle{1};
+};
+
+uint32_t RtpsParticipant::NativeGoalHandle::goal_handle() const { return state_->goal_handle; }
+std::span<const uint8_t> RtpsParticipant::NativeGoalHandle::goal() const {
+  return {state_->goal.data(), state_->goal.size()};
+}
+void RtpsParticipant::NativeGoalHandle::publish_feedback(std::span<const uint8_t> feedback) const {
+  auto msg = rtps::rpc::native_make_feedback(state_->goal_handle,
+                                             rtps::rpc::NativeGoalStatus::EXECUTING, feedback);
+  state_->self->publish(state_->feedback_topic, {msg.data(), msg.size()});
+}
+void RtpsParticipant::NativeGoalHandle::terminate(uint8_t status,
+                                                  std::span<const uint8_t> result) const {
+  bool expected = false;
+  if (!state_->done.compare_exchange_strong(expected, true)) {
+    return;
+  }
+  auto msg = rtps::rpc::native_make_feedback(
+      state_->goal_handle, static_cast<rtps::rpc::NativeGoalStatus>(status), result);
+  state_->self->publish(state_->feedback_topic, {msg.data(), msg.size()});
+}
+void RtpsParticipant::NativeGoalHandle::succeed(std::span<const uint8_t> result) const {
+  terminate(static_cast<uint8_t>(rtps::rpc::NativeGoalStatus::SUCCEEDED), result);
+}
+void RtpsParticipant::NativeGoalHandle::abort(std::span<const uint8_t> result) const {
+  terminate(static_cast<uint8_t>(rtps::rpc::NativeGoalStatus::ABORTED), result);
+}
+
+bool RtpsParticipant::add_native_action_server(const ActionConfig &config,
+                                               native_goal_callback_t on_goal,
+                                               native_execute_callback_t execute) {
+  if (!started_) {
+    logger_.error("Cannot add native action server '{}': not started", config.action);
+    return false;
+  }
+  auto ctx = std::make_shared<NativeActionServerContext>();
+  ctx->self = this;
+  ctx->feedback_topic = rtps::rpc::native_feedback_topic(config.action);
+  ctx->execute = std::move(execute);
+
+  if (!add_writer({ctx->feedback_topic, config.type_name, Reliability::RELIABLE})) {
+    logger_.error("Native action server '{}': feedback writer failed", config.action);
+    return false;
+  }
+  auto weak = std::weak_ptr<NativeActionServerContext>(ctx);
+  // The send_goal native service: accept -> spawn execute -> reply goal_handle.
+  const bool ok = add_native_service_server(
+      {rtps::rpc::native_goal_service(config.action), config.type_name},
+      [this, weak, on_goal](std::span<const uint8_t> goal) -> std::vector<uint8_t> {
+        auto server = weak.lock();
+        if (server == nullptr || (on_goal && !on_goal(goal))) {
+          return rtps::rpc::native_make_goal_reply(false, 0);
+        }
+        const uint32_t handle = server->next_handle.fetch_add(1);
+        auto gstate = std::make_shared<NativeGoalHandle::State>();
+        gstate->goal_handle = handle;
+        gstate->goal.assign(goal.begin(), goal.end());
+        gstate->self = this;
+        gstate->feedback_topic = server->feedback_topic;
+        if (server->execute) {
+          std::thread([server, gstate]() { server->execute(NativeGoalHandle(gstate)); }).detach();
+        }
+        return rtps::rpc::native_make_goal_reply(true, handle);
+      });
+  if (!ok) {
+    logger_.error("Native action server '{}': goal service failed", config.action);
+    return false;
+  }
+  native_action_servers_.push_back(std::move(ctx));
+  logger_.info("Added native action server: '{}'", config.action);
+  return true;
+}
+
+struct RtpsParticipant::NativeActionClient::Impl {
+  struct Goal {
+    feedback_callback_t on_feedback{nullptr};
+    result_callback_t on_result{nullptr};
+  };
+  RtpsParticipant *self{nullptr};
+  std::shared_ptr<NativeServiceClient> goal_client;
+  std::mutex mutex;
+  std::map<uint32_t, Goal> goals;
+};
+
+RtpsParticipant::NativeActionClient::NativeActionClient(std::unique_ptr<Impl> impl)
+    : impl_(std::move(impl)) {}
+RtpsParticipant::NativeActionClient::~NativeActionClient() = default;
+
+bool RtpsParticipant::NativeActionClient::send_goal(std::span<const uint8_t> goal,
+                                                    feedback_callback_t on_feedback,
+                                                    result_callback_t on_result) {
+  auto *impl = impl_.get();
+  return impl->goal_client->call_async(
+      goal, [impl, on_feedback, on_result](std::span<const uint8_t> reply) {
+        bool accepted = false;
+        uint32_t handle = 0;
+        if (!rtps::rpc::native_parse_goal_reply(reply, accepted, handle) || !accepted) {
+          if (on_result) {
+            on_result(static_cast<uint8_t>(rtps::rpc::NativeGoalStatus::ABORTED), {});
+          }
+          return;
+        }
+        std::lock_guard<std::mutex> lock(impl->mutex);
+        impl->goals[handle] = Impl::Goal{on_feedback, on_result};
+      });
+}
+
+std::shared_ptr<RtpsParticipant::NativeActionClient>
+RtpsParticipant::add_native_action_client(const ActionConfig &config) {
+  if (!started_) {
+    logger_.error("Cannot add native action client '{}': not started", config.action);
+    return nullptr;
+  }
+  auto impl = std::make_unique<NativeActionClient::Impl>();
+  impl->self = this;
+  impl->goal_client =
+      add_native_service_client({rtps::rpc::native_goal_service(config.action), config.type_name});
+  if (!impl->goal_client) {
+    logger_.error("Native action client '{}': goal client failed", config.action);
+    return nullptr;
+  }
+  NativeActionClient::Impl *raw = impl.get();
+  // Feedback subscriber: route feedback/result by goal_handle; terminal status
+  // (>= SUCCEEDED) delivers the result and retires the goal.
+  if (!add_reader(
+          {rtps::rpc::native_feedback_topic(config.action), config.type_name, Reliability::RELIABLE,
+           [raw](std::span<const uint8_t> msg) {
+             uint32_t handle = 0;
+             rtps::rpc::NativeGoalStatus status{};
+             std::vector<uint8_t> payload;
+             if (!rtps::rpc::native_parse_feedback(msg, handle, status, payload)) {
+               return;
+             }
+             const bool terminal = status == rtps::rpc::NativeGoalStatus::SUCCEEDED ||
+                                   status == rtps::rpc::NativeGoalStatus::ABORTED ||
+                                   status == rtps::rpc::NativeGoalStatus::CANCELED;
+             NativeActionClient::Impl::Goal g;
+             {
+               std::lock_guard<std::mutex> lock(raw->mutex);
+               auto it = raw->goals.find(handle);
+               if (it == raw->goals.end()) {
+                 return;
+               }
+               g = it->second;
+               if (terminal) {
+                 raw->goals.erase(it);
+               }
+             }
+             if (terminal) {
+               if (g.on_result) {
+                 g.on_result(static_cast<uint8_t>(status), {payload.data(), payload.size()});
+               }
+             } else if (g.on_feedback) {
+               g.on_feedback({payload.data(), payload.size()});
+             }
+           }})) {
+    logger_.error("Native action client '{}': feedback reader failed", config.action);
+    return nullptr;
+  }
+  auto client = std::shared_ptr<NativeActionClient>(new NativeActionClient(std::move(impl)));
+  native_action_clients_.push_back(client);
+  logger_.info("Added native action client: '{}'", config.action);
+  return client;
+}
+
+// stop() and ~RtpsParticipant are defined here (end of file) so every RPC
+// context type the member containers point to is complete when their
+// unique_ptr/shared_ptr elements are destroyed - see the note by the constructor.
+void RtpsParticipant::stop() {
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (!started_) {
+    return;
+  }
+  started_ = false;
+  domain_->stop();
+  // The engine owns the endpoint objects; drop our references before the
+  // domain (and with it every writer/reader and their callback registrations)
+  // goes away.
+  writers_.clear();
+  participant_ = nullptr;
+  domain_.reset();
+  reader_contexts_.clear();
+  // RPC endpoints are owned by the (now-reset) domain; drop our bookkeeping.
+  // NOTE: an action server's detached execute threads are not joined here (v1);
+  // goals are expected to finish before stop().
+  action_clients_.clear();
+  action_servers_.clear();
+  service_clients_.clear();
+  service_servers_.clear();
+  native_action_clients_.clear();
+  native_action_servers_.clear();
+  native_service_clients_.clear();
+  native_service_servers_.clear();
+  logger_.info("Stopped");
+}
+
+RtpsParticipant::~RtpsParticipant() { stop(); }
 
 } // namespace espp

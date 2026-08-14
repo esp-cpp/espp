@@ -399,6 +399,65 @@ public:
   /// Add a native (espp<->espp) service client. \return A handle, or nullptr.
   std::shared_ptr<NativeServiceClient> add_native_service_client(const ServiceConfig &config);
 
+  // ---------------------------------------------------------------------------
+  // Native actions (espp<->espp): a lean AMI - one native request/reply
+  // (send_goal -> {accepted, goal_handle}) + one feedback topic carrying the
+  // terminal result. ~3 endpoints vs the ROS action's ~10. NOT ROS-interoperable.
+  // ---------------------------------------------------------------------------
+
+  /// Server-side handle to a running native goal (passed to the execute callback,
+  /// which runs on its own thread).
+  class NativeGoalHandle {
+  public:
+    uint32_t goal_handle() const;
+    std::span<const uint8_t> goal() const;
+    void publish_feedback(std::span<const uint8_t> feedback) const;
+    void succeed(std::span<const uint8_t> result) const;
+    void abort(std::span<const uint8_t> result) const;
+
+  private:
+    friend class RtpsParticipant;
+    struct State;
+    explicit NativeGoalHandle(std::shared_ptr<State> state)
+        : state_(std::move(state)) {}
+    void terminate(uint8_t status, std::span<const uint8_t> result) const;
+    std::shared_ptr<State> state_;
+  };
+
+  using native_goal_callback_t = std::function<bool(std::span<const uint8_t> goal)>;
+  using native_execute_callback_t = std::function<void(NativeGoalHandle handle)>;
+
+  /// Add a native action server. on_goal accepts/rejects; execute runs each
+  /// accepted goal on its own thread. \return True on success.
+  bool add_native_action_server(const ActionConfig &config, native_goal_callback_t on_goal,
+                                native_execute_callback_t execute);
+
+  /// Client handle for a native action.
+  class NativeActionClient {
+  public:
+    using feedback_callback_t = std::function<void(std::span<const uint8_t> feedback)>;
+    /// Terminal result: the NativeGoalStatus value + the CDR result payload.
+    using result_callback_t = std::function<void(uint8_t status, std::span<const uint8_t> result)>;
+
+    ~NativeActionClient();
+    NativeActionClient(const NativeActionClient &) = delete;
+    NativeActionClient &operator=(const NativeActionClient &) = delete;
+
+    /// Send a goal; on_feedback per feedback message, on_result once at the end.
+    /// \return True if the goal was queued.
+    bool send_goal(std::span<const uint8_t> goal, feedback_callback_t on_feedback,
+                   result_callback_t on_result);
+
+  private:
+    friend class RtpsParticipant;
+    struct Impl;
+    explicit NativeActionClient(std::unique_ptr<Impl> impl);
+    std::unique_ptr<Impl> impl_;
+  };
+
+  /// Add a native action client. \return A handle, or nullptr.
+  std::shared_ptr<NativeActionClient> add_native_action_client(const ActionConfig &config);
+
 protected:
   /// Per-reader context bridging the engine's C function-pointer callback to
   /// the std::function callback; heap-allocated so its address stays stable
@@ -430,7 +489,12 @@ protected:
   rtps::Participant *participant_{nullptr};
   std::unordered_map<std::string, rtps::Writer *> writers_;
   std::vector<std::unique_ptr<ReaderContext>> reader_contexts_;
-  std::vector<std::unique_ptr<ServiceServerContext>> service_servers_;
+  // shared_ptr (not unique_ptr) so an incomplete ServiceServerContext can be held
+  // here: shared_ptr's destructor is type-erased, so the member vector needs no
+  // complete type at the participant's construction/destruction point (the
+  // context is defined in the .cpp). All the other RPC context containers below
+  // follow the same rule.
+  std::vector<std::shared_ptr<ServiceServerContext>> service_servers_;
   std::vector<std::shared_ptr<ServiceClient>> service_clients_;
 
   struct ActionServerContext;
@@ -440,6 +504,10 @@ protected:
   struct NativeServiceServerContext;
   std::vector<std::shared_ptr<NativeServiceServerContext>> native_service_servers_;
   std::vector<std::shared_ptr<NativeServiceClient>> native_service_clients_;
+
+  struct NativeActionServerContext;
+  std::vector<std::shared_ptr<NativeActionServerContext>> native_action_servers_;
+  std::vector<std::shared_ptr<NativeActionClient>> native_action_clients_;
 };
 
 } // namespace espp

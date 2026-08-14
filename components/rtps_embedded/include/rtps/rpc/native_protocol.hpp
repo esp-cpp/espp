@@ -107,19 +107,91 @@ inline bool native_decode(std::span<const uint8_t> frame, NativeHeader &h_out,
 }
 
 // Native topics - a distinct prefix so they never alias the ROS rq/rr topics.
-inline std::string native_request_topic(std::string_view service) {
-  std::string s(service);
-  if (!s.empty() && s.front() == '/') {
-    s.erase(0, 1);
+inline std::string native_strip_slash(std::string_view s) {
+  std::string r(s);
+  if (!r.empty() && r.front() == '/') {
+    r.erase(0, 1);
   }
-  return "es_rq/" + s;
+  return r;
+}
+inline std::string native_request_topic(std::string_view service) {
+  return "es_rq/" + native_strip_slash(service);
 }
 inline std::string native_reply_topic(std::string_view service) {
-  std::string s(service);
-  if (!s.empty() && s.front() == '/') {
-    s.erase(0, 1);
+  return "es_rr/" + native_strip_slash(service);
+}
+
+// ---------------------------------------------------------------------------
+// Native action (Track B, lean AMI): collapses ROS's 3 services + 2 topics to
+// ONE native request/reply (send_goal -> {accepted, goal_handle}) + ONE feedback
+// topic. No UUIDs (a uint32 goal_handle), no separate get_result / status - the
+// terminal result rides the feedback stream as a SUCCEEDED/ABORTED/CANCELED
+// message. ~3 endpoints/pair vs ROS's ~10. See RMI_AMI_DESIGN.md 4.3.
+// ---------------------------------------------------------------------------
+
+// Reuse the ROS GoalStatus values for conceptual parity (see action_types.hpp,
+// but kept independent here so the native path has no ROS-envelope dependency).
+enum class NativeGoalStatus : uint8_t {
+  ACCEPTED = 1,
+  EXECUTING = 2,
+  SUCCEEDED = 4,
+  CANCELED = 5,
+  ABORTED = 6,
+};
+
+inline std::string native_goal_service(std::string_view action) {
+  return native_strip_slash(action) + "/goal";
+}
+inline std::string native_feedback_topic(std::string_view action) {
+  return "es_fb/" + native_strip_slash(action);
+}
+
+// send_goal reply = { accepted:uint8 + pad(3), goal_handle:uint32 } (after encap).
+inline std::vector<uint8_t> native_make_goal_reply(bool accepted, uint32_t goal_handle) {
+  std::vector<uint8_t> v{0x00, 0x01, 0x00, 0x00, static_cast<uint8_t>(accepted ? 1 : 0), 0, 0, 0};
+  for (int i = 0; i < 4; ++i) {
+    v.push_back(static_cast<uint8_t>((goal_handle >> (8 * i)) & 0xFF));
   }
-  return "es_rr/" + s;
+  return v;
+}
+inline bool native_parse_goal_reply(std::span<const uint8_t> msg, bool &accepted_out,
+                                    uint32_t &goal_handle_out) {
+  if (msg.size() < 4 + 8) {
+    return false;
+  }
+  accepted_out = (msg[4] != 0);
+  goal_handle_out = static_cast<uint32_t>(msg[8]) | (static_cast<uint32_t>(msg[9]) << 8) |
+                    (static_cast<uint32_t>(msg[10]) << 16) | (static_cast<uint32_t>(msg[11]) << 24);
+  return true;
+}
+
+// feedback/result msg = { goal_handle:uint32, status:uint8 + pad(3), payload } (after encap).
+inline std::vector<uint8_t> native_make_feedback(uint32_t goal_handle, NativeGoalStatus status,
+                                                 std::span<const uint8_t> payload) {
+  std::vector<uint8_t> v{0x00, 0x01, 0x00, 0x00};
+  for (int i = 0; i < 4; ++i) {
+    v.push_back(static_cast<uint8_t>((goal_handle >> (8 * i)) & 0xFF));
+  }
+  v.push_back(static_cast<uint8_t>(status));
+  v.push_back(0);
+  v.push_back(0);
+  v.push_back(0);
+  if (payload.size() >= 4) {
+    v.insert(v.end(), payload.begin() + 4, payload.end()); // splice past the payload's encap
+  }
+  return v;
+}
+inline bool native_parse_feedback(std::span<const uint8_t> msg, uint32_t &goal_handle_out,
+                                  NativeGoalStatus &status_out, std::vector<uint8_t> &payload_out) {
+  if (msg.size() < 4 + 8) {
+    return false;
+  }
+  goal_handle_out = static_cast<uint32_t>(msg[4]) | (static_cast<uint32_t>(msg[5]) << 8) |
+                    (static_cast<uint32_t>(msg[6]) << 16) | (static_cast<uint32_t>(msg[7]) << 24);
+  status_out = static_cast<NativeGoalStatus>(msg[8]);
+  payload_out.assign({0x00, 0x01, 0x00, 0x00});
+  payload_out.insert(payload_out.end(), msg.begin() + 12, msg.end());
+  return true;
 }
 
 } // namespace rpc
