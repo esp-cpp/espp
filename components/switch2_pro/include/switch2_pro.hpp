@@ -87,7 +87,7 @@ protected:
   /// Our own BT address (6 bytes) for the exchange-addresses reply.
   std::array<uint8_t, 6> local_bt_address() const;
 
-  friend class CommandCallbacks;
+  friend class ChannelCallbacks;
 
   std::string device_name_;
   BleGattServer ble_gatt_server_;

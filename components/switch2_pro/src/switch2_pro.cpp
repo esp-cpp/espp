@@ -11,30 +11,40 @@ namespace espp {
 
 using namespace switch2;
 
-/// Forwards NimBLE characteristic writes on a command channel into the owner,
-/// tagged with which channel (0x0014 vs the vibration+command 0x0016) so the
-/// response goes out on the matching notify characteristic.
-class CommandCallbacks : public NimBLECharacteristicCallbacks {
+/// Characteristic callbacks that (a) trace everything the console does — reads,
+/// writes, notification subscriptions — for debugging bring-up, and (b) for the
+/// two command channels, dispatch writes into the owner. role: 0 = passive
+/// (log only), 1 = command channel 0x0014, 2 = vibration+command 0x0016.
+class ChannelCallbacks : public NimBLECharacteristicCallbacks {
 public:
-  CommandCallbacks(Switch2Pro *owner, bool via_vibration_command)
+  ChannelCallbacks(Switch2Pro *owner, const char *name, int role)
       : owner_(owner)
-      , via_vibration_command_(via_vibration_command) {}
+      , name_(name)
+      , role_(role) {}
+
   void onWrite(NimBLECharacteristic *characteristic, NimBLEConnInfo & /*conn*/) override {
     auto value = characteristic->getValue();
-    owner_->on_command_write(via_vibration_command_, value.data(), value.size());
+    owner_->logger_.info("WRITE {} ({} bytes)", name_, value.size());
+    owner_->log_hex(name_, value.data(), value.size());
+    if (role_ == 1)
+      owner_->on_command_write(/*via_vibration_command=*/false, value.data(), value.size());
+    else if (role_ == 2)
+      owner_->on_command_write(/*via_vibration_command=*/true, value.data(), value.size());
+  }
+  void onRead(NimBLECharacteristic * /*c*/, NimBLEConnInfo & /*conn*/) override {
+    owner_->logger_.info("READ  {}", name_);
+  }
+  void onSubscribe(NimBLECharacteristic * /*c*/, NimBLEConnInfo & /*conn*/,
+                   uint16_t sub_value) override {
+    owner_->logger_.info("SUBSCRIBE {} value=0x{:04x} ({})", name_, sub_value,
+                         sub_value ? "on" : "off");
   }
 
 private:
   Switch2Pro *owner_;
-  bool via_vibration_command_;
+  const char *name_;
+  int role_;
 };
-
-namespace {
-// Per-channel callbacks instances. Live for the process (NimBLE keeps raw
-// pointers to them).
-CommandCallbacks *g_command_cb = nullptr;           // 0x0014 -> response 0x001a
-CommandCallbacks *g_vibration_command_cb = nullptr; // 0x0016 -> response 0x001e
-} // namespace
 
 bool Switch2Pro::init() {
   // The pairing crypto is the load-bearing part; verify it against the golden
@@ -91,8 +101,6 @@ void Switch2Pro::configure_callbacks() {
 }
 
 void Switch2Pro::log_hex(const char *prefix, const uint8_t *data, size_t len) {
-  if (logger_.get_verbosity() > Logger::Verbosity::DEBUG)
-    return;
   std::string hex;
   hex.reserve(len * 3);
   char tmp[4];
@@ -100,7 +108,9 @@ void Switch2Pro::log_hex(const char *prefix, const uint8_t *data, size_t len) {
     std::snprintf(tmp, sizeof(tmp), "%02x ", data[i]);
     hex += tmp;
   }
-  logger_.debug("{} [{}]: {}", prefix, len, hex);
+  // INFO during bring-up so the raw command/response bytes always show; dial
+  // back to debug once the protocol is settled.
+  logger_.info("{} [{}]: {}", prefix, len, hex);
 }
 
 bool Switch2Pro::build_gatt() {
@@ -108,35 +118,46 @@ bool Switch2Pro::build_gatt() {
   if (server == nullptr)
     return false;
 
+  // Attach a tracing callback to every characteristic so bring-up logs show
+  // exactly what the console does. Roles: 1 = command 0x0014, 2 = vibration+
+  // command 0x0016, 0 = passive.
+  auto attach = [this](NimBLECharacteristic *c, const char *name, int role) {
+    c->setCallbacks(new ChannelCallbacks(this, name, role));
+  };
+
   // Service 1 (purpose not fully understood; created so the handle map matches
   // what the console observed from a real controller).
   auto *svc1 = server->createService(NimBLEUUID(SERVICE1_UUID));
-  svc1->createCharacteristic(NimBLEUUID(SERVICE1_CHR_281_UUID), NIMBLE_PROPERTY::READ);
-  svc1->createCharacteristic(NimBLEUUID(SERVICE1_CHR_282_UUID), NIMBLE_PROPERTY::WRITE);
-  svc1->createCharacteristic(NimBLEUUID(SERVICE1_CHR_283_UUID), NIMBLE_PROPERTY::READ);
+  attach(svc1->createCharacteristic(NimBLEUUID(SERVICE1_CHR_281_UUID), NIMBLE_PROPERTY::READ),
+         "svc1.281", 0);
+  attach(svc1->createCharacteristic(NimBLEUUID(SERVICE1_CHR_282_UUID), NIMBLE_PROPERTY::WRITE),
+         "svc1.282", 0);
+  attach(svc1->createCharacteristic(NimBLEUUID(SERVICE1_CHR_283_UUID), NIMBLE_PROPERTY::READ),
+         "svc1.283", 0);
 
   // Service 2 — the main HID-like service.
   auto *svc2 = server->createService(NimBLEUUID(SERVICE2_UUID));
   common_input_ = svc2->createCharacteristic(NimBLEUUID(COMMON_INPUT_UUID),
                                              NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::NOTIFY);
+  attach(common_input_, "common_input(0x000a)", 0);
   pro2_input_ = svc2->createCharacteristic(NimBLEUUID(PRO2_INPUT_UUID),
                                            NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::NOTIFY);
-  svc2->createCharacteristic(NimBLEUUID(VIBRATION_UUID), NIMBLE_PROPERTY::WRITE_NR);
+  attach(pro2_input_, "pro2_input(0x000e)", 0);
+  attach(svc2->createCharacteristic(NimBLEUUID(VIBRATION_UUID), NIMBLE_PROPERTY::WRITE_NR),
+         "vibration(0x0012)", 0);
   command_ = svc2->createCharacteristic(NimBLEUUID(COMMAND_UUID), NIMBLE_PROPERTY::WRITE_NR);
+  attach(command_, "command(0x0014)", 1);
   vibration_command_ =
       svc2->createCharacteristic(NimBLEUUID(VIBRATION_COMMAND_UUID), NIMBLE_PROPERTY::WRITE_NR);
-  svc2->createCharacteristic(NimBLEUUID(FIRMWARE_UPDATE_UUID), NIMBLE_PROPERTY::WRITE);
+  attach(vibration_command_, "vib_command(0x0016)", 2);
+  attach(svc2->createCharacteristic(NimBLEUUID(FIRMWARE_UPDATE_UUID), NIMBLE_PROPERTY::WRITE),
+         "firmware(0x0018)", 0);
   command_response1_ =
       svc2->createCharacteristic(NimBLEUUID(COMMAND_RESPONSE1_UUID), NIMBLE_PROPERTY::NOTIFY);
+  attach(command_response1_, "resp1(0x001a)", 0);
   command_response2_ =
       svc2->createCharacteristic(NimBLEUUID(COMMAND_RESPONSE2_UUID), NIMBLE_PROPERTY::NOTIFY);
-
-  if (g_command_cb == nullptr)
-    g_command_cb = new CommandCallbacks(this, /*via_vibration_command=*/false);
-  if (g_vibration_command_cb == nullptr)
-    g_vibration_command_cb = new CommandCallbacks(this, /*via_vibration_command=*/true);
-  command_->setCallbacks(g_command_cb);
-  vibration_command_->setCallbacks(g_vibration_command_cb);
+  attach(command_response2_, "resp2(0x001e)", 0);
 
   svc1->start();
   svc2->start();
