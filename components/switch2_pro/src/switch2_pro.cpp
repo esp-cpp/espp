@@ -82,11 +82,17 @@ bool Switch2Pro::init() {
 }
 
 void Switch2Pro::configure_security() {
-  // The console performs its own app-level pairing over the command channel and
-  // will drop a peer that initiates BLE SMP. We enable bonding + legacy (not LE
-  // Secure Connections) and never initiate security ourselves.
-  ble_gatt_server_.set_security(/*bonding=*/true, /*mitm=*/false, /*secure=*/false);
+  // The Switch 2 does its own app-level pairing over the command channel (the
+  // 0x15 exchange), NOT BLE SMP. BLE-level bonding here just creates a bond the
+  // console then uses for GATT caching, which makes it skip service discovery
+  // on reconnect and get stuck. So: no bonding, no SMP-initiated security.
+  ble_gatt_server_.set_security(/*bonding=*/false, /*mitm=*/false, /*secure=*/false);
   ble_gatt_server_.set_io_capabilities(BLE_HS_IO_NO_INPUT_OUTPUT);
+  // Clear any bonds left from earlier rounds so the console re-discovers our
+  // GATT cleanly instead of using a stale cache.
+  size_t cleared = ble_gatt_server_.unpair_all().size();
+  if (cleared)
+    logger_.info("cleared {} stale BLE bond(s)", cleared);
 }
 
 void Switch2Pro::configure_callbacks() {
