@@ -148,9 +148,9 @@ int main() {
     auto dcall = client.add_service_client({dsvc, "example_interfaces::srv::dds_::AddTwoInts"});
     std::this_thread::sleep_for(2s); // discovery for the new endpoints
     if (dcall) {
-      auto reply = dcall->call(encode_request(11, 31), 10s);
-      if (reply.has_value() && reply->size() >= 4 + 8) {
-        deferred_ok = (get_i64(*reply, 4) == 42);
+      auto dreply = dcall->call(encode_request(11, 31), 10s);
+      if (dreply.has_value() && dreply->size() >= 4 + 8) {
+        deferred_ok = (get_i64(*dreply, 4) == 42);
       }
       std::printf("deferred call: 11 + 31 = %lld => %s\n",
                   reply.has_value() ? (long long)get_i64(*reply, 4) : -1,

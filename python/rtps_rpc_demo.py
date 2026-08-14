@@ -49,7 +49,12 @@ CountVal = make_idl_struct("CountUp_Value", "espp_examples/action/CountUp_Value"
 def main():
     server = espp.RtpsParticipant(espp.RtpsParticipant.Config(log_level=espp.Logger.Verbosity.warn))
     client = espp.RtpsParticipant(espp.RtpsParticipant.Config(log_level=espp.Logger.Verbosity.warn))
-    assert server.start() and client.start(), "participants failed to start"
+    # Explicit check (not assert: asserts are skipped under `python -O`).
+    if not server.start() or not client.start():
+        print("FAIL: participants failed to start", file=sys.stderr)
+        server.stop()
+        client.stop()
+        return 1
 
     results = {}
 
@@ -92,7 +97,7 @@ def main():
 
     time.sleep(2.0)  # SEDP discovery for every endpoint
 
-    # === 1. Service: blocking + async ===
+    # === 1. Service: blocking, async, and future (the three call styles) ===
     reply = svc.call(AddReq(a=7, b=35), timeout=5.0)
     results["ros_service_sync"] = reply is not None and reply.sum == 42
 
@@ -100,6 +105,10 @@ def main():
     got = {}
     svc.call_async(AddReq(a=100, b=23), lambda r: (got.update(v=r.sum), ev.set()))
     results["ros_service_async"] = ev.wait(5.0) and got.get("v") == 123
+
+    fut = svc.call_future(AddReq(a=40, b=2))
+    fut_reply = fut.result(timeout=5.0)
+    results["ros_service_future"] = fut_reply is not None and fut_reply.sum == 42
 
     # === 2. Action: feedback + result ===
     done = threading.Event()

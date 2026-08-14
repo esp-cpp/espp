@@ -1,5 +1,6 @@
 #include "rtps_participant.hpp"
 
+#include <algorithm>
 #include <condition_variable>
 #include <cstdio>
 #include <limits>
@@ -555,9 +556,7 @@ ract::GoalUuid generate_goal_id() {
   static std::atomic<uint32_t> counter{0};
   ract::GoalUuid id{};
   std::random_device rd;
-  for (auto &b : id) {
-    b = static_cast<uint8_t>(rd() & 0xFF);
-  }
+  std::generate(id.begin(), id.end(), [&rd]() { return static_cast<uint8_t>(rd() & 0xFF); });
   const uint32_t c = counter.fetch_add(1);
   id[0] = static_cast<uint8_t>(c & 0xFF);
   id[1] = static_cast<uint8_t>((c >> 8) & 0xFF);

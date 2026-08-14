@@ -28,7 +28,20 @@ classes = [
     "NativeServiceClient", "NativeActionClient", "NativeGoalHandle",
 ]
 
+# Methods on the client / goal-handle classes (the full client call surface).
+class_methods = {
+    "ServiceClient": ["call", "call_async", "call_future"],
+    "NativeServiceClient": ["call", "call_async", "call_future"],
+    "ActionClient": ["send_goal"],
+    "ActionGoalHandle": ["goal", "publish_feedback", "succeed", "abort", "canceled", "is_canceling"],
+    "NativeGoalHandle": ["goal", "publish_feedback", "succeed", "abort"],
+}
+
 missing = [m for m in methods if not hasattr(p, m)] + [c for c in classes if not hasattr(p, c)]
+for cls, method_names in class_methods.items():
+    handle = getattr(p, cls, None)
+    missing += [f"{cls}.{m}" for m in method_names if handle is None or not hasattr(handle, m)]
+
 if missing:
     print("espp RTPS binding surface INCOMPLETE, missing:", missing, file=sys.stderr)
     sys.exit(1)

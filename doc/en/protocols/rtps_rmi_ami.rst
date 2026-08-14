@@ -143,6 +143,23 @@ Goals are identified by a 16-byte UUID; feedback, status, and the result are all
 routed to the right goal by that id. The result rides ``get_result`` (a deferred
 service reply that completes when the goal terminates).
 
+.. note::
+
+   **Action result alignment limitation.** The action ``get_result`` envelope is
+   ``status:int8`` followed by the result message. The framework splices the
+   result's CDR bytes immediately after ``status`` + 3 bytes of padding (offset
+   4), which is byte-exact only when the result message's **first field is at most
+   4-byte aligned** (int32/uint32, arrays, strings, and structs of those - e.g.
+   Fibonacci's ``int32[]``). A result whose first field needs 8-byte alignment
+   (``int64``/``uint64``/``float64`` as the first member) would be placed at
+   offset 4 instead of the CDR-correct offset 8 and would mis-decode on a ROS 2
+   peer. This affects both the byte-level and typed action APIs. If your result
+   starts with an 8-byte-aligned field, reorder it (put a 4-byte field first) or
+   wrap it in a leading 4-byte field. Goal and feedback payloads are unaffected
+   (they follow the 16-byte UUID, which is already 8-aligned). Services (request/
+   reply) are unaffected. This is a known v1 limitation of the byte-splice
+   envelope; a future revision may build the envelope via full CDR serialization.
+
 Native (espp ↔ espp) services & actions
 =======================================
 

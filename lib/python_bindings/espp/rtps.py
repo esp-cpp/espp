@@ -205,6 +205,17 @@ class ServiceClient:
         rt = self._response_type
         return self._client.call_async(request.serialize(), lambda b: on_response(rt.deserialize(b)))
 
+    def call_future(self, request):
+        """Async call returning a :class:`concurrent.futures.Future` of the
+        response object (result is ``None`` if the request could not be queued).
+        Use ``fut.result(timeout=...)``. Works for both protocols."""
+        import concurrent.futures
+
+        fut: concurrent.futures.Future = concurrent.futures.Future()
+        if not self.call_async(request, fut.set_result):
+            fut.set_result(None)
+        return fut
+
 
 class GoalHandle:
     """Typed view of a server-side goal handle, passed to an action ``execute``
@@ -224,6 +235,17 @@ class GoalHandle:
 
     def abort(self, result) -> None:
         self._handle.abort(result.serialize())
+
+    def canceled(self, result) -> None:
+        """Terminate the goal CANCELED (ROS 2 protocol; in response to a cancel
+        request). No-op on the native protocol, which has no cancel."""
+        canceled = getattr(self._handle, "canceled", None)
+        if canceled is not None:
+            canceled(result.serialize())
+
+    def is_canceling(self) -> bool:
+        """True if a cancel has been requested (ROS 2 protocol only)."""
+        return getattr(self._handle, "is_canceling", lambda: False)()
 
 
 class ActionServer:
@@ -272,6 +294,8 @@ class ActionClient:
             try:
                 on_feedback(ft.deserialize(b))
             except Exception:
+                # Runs on an engine worker thread: a malformed / wrong-type
+                # feedback sample (or a raising user callback) must not kill it.
                 pass
 
         def _res(status: int, b: bytes) -> None:

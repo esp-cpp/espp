@@ -47,6 +47,15 @@ inline std::shared_ptr<py::function> make_gil_safe_holder(const py::function &fn
   });
 }
 
+// Same GIL-safe holder pattern for an arbitrary py::object (e.g. a
+// concurrent.futures.Future captured into a background reply callback).
+inline std::shared_ptr<py::object> make_gil_safe_object(const py::object &obj) {
+  return std::shared_ptr<py::object>(new py::object(obj), [](py::object *p) {
+    py::gil_scoped_acquire gil;
+    delete p;
+  });
+}
+
 Rtps::sample_callback_t wrap_sample_callback(const py::function &fn) {
   if (!fn) {
     return {};
@@ -238,7 +247,33 @@ void py_init_rtps(py::module &m) {
             return self.call_async(req, std::move(cb));
           },
           py::arg("request"), py::arg("on_reply"),
-          "Async call (AMI): on_reply(bytes) is invoked when the reply arrives.");
+          "Async call (AMI): on_reply(bytes) is invoked when the reply arrives.")
+      .def(
+          "call_future",
+          [](Rtps::ServiceClient &self, const py::bytes &request) {
+            py::object fut = py::module_::import("concurrent.futures").attr("Future")();
+            auto fut_holder = make_gil_safe_object(fut);
+            auto req = to_vec(request);
+            bool queued;
+            {
+              py::gil_scoped_release rel;
+              queued = self.call_async(req, [fut_holder](std::span<const uint8_t> reply) {
+                py::gil_scoped_acquire gil;
+                try {
+                  (*fut_holder).attr("set_result")(to_bytes(reply));
+                } catch (py::error_already_set &e) {
+                  e.discard_as_unraisable("ServiceClient.call_future");
+                }
+              });
+            }
+            if (!queued) {
+              fut.attr("set_result")(py::none());
+            }
+            return fut;
+          },
+          py::arg("request"),
+          "Async call (AMI): returns a concurrent.futures.Future for the reply bytes "
+          "(result is None if the request could not be queued). Use fut.result(timeout=...).");
 
   rtps.def(
           "add_service_server",
@@ -286,6 +321,14 @@ void py_init_rtps(py::module &m) {
             h.abort(v);
           },
           py::arg("result"))
+      .def(
+          "canceled",
+          [](Rtps::ActionGoalHandle &h, const py::bytes &result) {
+            auto v = to_vec(result);
+            py::gil_scoped_release rel;
+            h.canceled(v);
+          },
+          py::arg("result"), "Terminate the goal CANCELED (in response to a cancel request).")
       .def("is_canceling", &Rtps::ActionGoalHandle::is_canceling);
 
   py::class_<Rtps::ActionClient, std::shared_ptr<Rtps::ActionClient>>(
@@ -396,7 +439,32 @@ void py_init_rtps(py::module &m) {
               }
             });
           },
-          py::arg("request"), py::arg("on_reply"));
+          py::arg("request"), py::arg("on_reply"))
+      .def(
+          "call_future",
+          [](Rtps::NativeServiceClient &self, const py::bytes &request) {
+            py::object fut = py::module_::import("concurrent.futures").attr("Future")();
+            auto fut_holder = make_gil_safe_object(fut);
+            auto req = to_vec(request);
+            bool queued;
+            {
+              py::gil_scoped_release rel;
+              queued = self.call_async(req, [fut_holder](std::span<const uint8_t> reply) {
+                py::gil_scoped_acquire gil;
+                try {
+                  (*fut_holder).attr("set_result")(to_bytes(reply));
+                } catch (py::error_already_set &e) {
+                  e.discard_as_unraisable("NativeServiceClient.call_future");
+                }
+              });
+            }
+            if (!queued) {
+              fut.attr("set_result")(py::none());
+            }
+            return fut;
+          },
+          py::arg("request"),
+          "Async call (AMI): returns a concurrent.futures.Future for the reply bytes.");
 
   py::class_<Rtps::NativeActionClient, std::shared_ptr<Rtps::NativeActionClient>>(
       rtps, "NativeActionClient", "Handle for a lean native (espp<->espp) action.")

@@ -140,7 +140,7 @@ public:
   /// \param request The typed request.
   /// \param on_response Called once with the typed response.
   /// \return False if the request could not be queued.
-  bool call_async(const Request &request, response_callback_t on_response) {
+  bool call_async(const Request &request, const response_callback_t &on_response) {
     const auto req = detail::rtps_serialize<Request>(request);
     auto cb = [on_response](std::span<const uint8_t> reply_bytes) {
       auto resp = detail::rtps_deserialize<Response>(reply_bytes);
