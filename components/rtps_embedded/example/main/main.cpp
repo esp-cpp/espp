@@ -206,6 +206,57 @@ extern "C" void app_main(void) {
     return;
   }
   logger.info("client for '/peer_add_two_ints' + '/peer_fib' running");
+
+#if CONFIG_RTPS_EXAMPLE_SECOND_PARTICIPANT
+  // Purely additive on-device SELF-TEST (Kconfig, default off): a SECOND
+  // participant with its own service + action clients that call THIS device's own
+  // /add_two_ints and /fibonacci servers, for a full local round-trip (a
+  // participant filters out its own messages, so the loopback needs a distinct
+  // participant). This roughly doubles the RTPS engine RAM - only enable on a
+  // target with headroom (e.g. PSRAM).
+  espp::RtpsParticipant selftest_participant({
+      .interface_address = interface_address,
+      .log_level = espp::Logger::Verbosity::WARN,
+  });
+  if (!selftest_participant.start()) {
+    logger.error("Failed to start the self-test participant");
+    return;
+  }
+  espp::ServiceClient<AddReq, AddResp> selftest_add_client(
+      selftest_participant,
+      {.service = "/add_two_ints", .type_name = "example_interfaces::srv::dds_::AddTwoInts"});
+  espp::ActionClient<FibGoal, FibSeq, FibSeq> selftest_fib_client(
+      selftest_participant,
+      {.action = "/fibonacci", .type_name = "example_interfaces::action::dds_::Fibonacci"});
+  espp::Timer selftest_timer({
+      .name = "rtps_selftest",
+      .period = 5s,
+      .callback =
+          [&]() {
+            if (auto resp = selftest_add_client.call(AddReq{20, 22}, 2s)) {
+              logger.info("[self-test] /add_two_ints(20,22) = {} ({})", resp->sum,
+                          resp->sum == 42 ? "PASS" : "FAIL");
+            } else {
+              logger.warn("[self-test] /add_two_ints: no reply");
+            }
+            selftest_fib_client.send_goal(
+                FibGoal{5}, [&](const FibSeq &) {},
+                [&](espp::GoalStatus status, const FibSeq &res) {
+                  const std::vector<int32_t> expected{0, 1, 1, 2, 3, 5};
+                  const bool ok = status == espp::GoalStatus::SUCCEEDED && res.sequence == expected;
+                  logger.info("[self-test] /fibonacci(5) len={} ({})", res.sequence.size(),
+                              ok ? "PASS" : "FAIL");
+                });
+            return false; // keep the timer running
+          },
+      .log_level = espp::Logger::Verbosity::WARN,
+  });
+  if (!selftest_add_client.is_valid() || !selftest_fib_client.is_valid()) {
+    logger.error("Failed to create the self-test clients");
+    return;
+  }
+  logger.info("self-test participant round-tripping the local service + action");
+#endif // CONFIG_RTPS_EXAMPLE_SECOND_PARTICIPANT
 #endif // RTPS_WITH_RPC
   //! [rtps example]
 
