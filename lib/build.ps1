@@ -9,8 +9,8 @@ if (-not (Test-Path -Path $buildDir)) {
 # Change to the build directory
 Set-Location -Path $buildDir
 
-# Run cmake
-cmake ..
+# Run cmake (ESPP_BUILD_PYTHON=ON also builds/installs the python package)
+cmake -DESPP_BUILD_PYTHON=ON ..
 
 # Run cmake --build . --config Release --target install
 cmake --build . --config Release --target install --parallel 4

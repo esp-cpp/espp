@@ -192,6 +192,58 @@ function(espp_install_includes FOLDER)
   install(DIRECTORY ${ESPP_EXTERNAL_INCLUDES_SEPARATE} DESTINATION ${FOLDER}/include/)
 endfunction()
 
+# make an espp_install_cmake_package command that gives the C++ library target a
+# proper install + export so a separate project can `find_package(espp)` and link
+# `espp::espp`. Installs into GNUInstallDirs under CMAKE_INSTALL_PREFIX:
+#   <prefix>/lib/libespp_pc.a
+#   <prefix>/include/...                (all component + vendored headers, flat)
+#   <prefix>/lib/cmake/espp/esppTargets.cmake, esppConfig.cmake, ...Version.cmake
+#
+# All third-party deps (reflect-cpp, magic_enum, tabulate, fmt, alpaca, cli,
+# csv2, hid-rp, cdr) are VENDORED: their headers are installed under
+# <prefix>/include and their objects are compiled into libespp_pc.a, so a
+# consumer needs no extra find_package for them. The only non-bundled PUBLIC
+# dependency is the system threads library (handled via find_dependency(Threads)
+# in esppConfig.cmake.in; on Windows the ws2_32/winmm/iphlpapi system libs
+# resolve automatically).
+function(espp_install_cmake_package TARGET_NAME)
+  include(GNUInstallDirs)
+  include(CMakePackageConfigHelpers)
+
+  install(TARGETS ${TARGET_NAME}
+          EXPORT esppTargets
+          ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+          LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+          RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+          INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+  # Install the public headers the library exposes, merged flat into
+  # <prefix>/include (mirrors the historical lib/pc/include layout, so the same
+  # quote-includes such as "logger.hpp" / "magic_enum.hpp" resolve). A trailing
+  # slash on the source installs the directory CONTENTS.
+  foreach(_inc IN LISTS ESPP_INCLUDES ESPP_EXTERNAL_INCLUDES ESPP_EXTERNAL_INCLUDES_SEPARATE)
+    install(DIRECTORY ${_inc}/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+  endforeach()
+
+  install(EXPORT esppTargets
+          NAMESPACE espp::
+          DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/espp
+          FILE esppTargets.cmake)
+
+  configure_package_config_file(
+    ${CMAKE_CURRENT_LIST_DIR}/cmake/esppConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/esppConfig.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/espp)
+  write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/esppConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion)
+  install(FILES
+          ${CMAKE_CURRENT_BINARY_DIR}/esppConfig.cmake
+          ${CMAKE_CURRENT_BINARY_DIR}/esppConfigVersion.cmake
+          DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/espp)
+endfunction()
+
 # make an espp_add_python_module command that defines the `_espp` pybind11
 # extension module target (the native part of the `espp` python package)
 function(espp_add_python_module)
