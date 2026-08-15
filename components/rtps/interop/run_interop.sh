@@ -6,10 +6,10 @@
 #
 # NOTE: no `set -u` - ROS 2's setup.bash references unset variables.
 
-# Work on a container-local copy: the pc tests link the lib installed into
-# lib/pc inside the source tree, which on the bind mount holds the developer's
-# host-platform (e.g. macOS) artifacts. Building in-place would either link
-# incompatible objects or clobber them with linux ones.
+# Work on a container-local copy: the build installs espp into a staging prefix
+# (/tmp/espp/install) and the pc tests find_package it from there. Doing this on
+# the bind mount would either mix in the developer's host-platform (e.g. macOS)
+# artifacts or clobber them with linux ones, so copy to a container-local tree.
 echo "===== Copy sources to container-local tree ====="
 rsync -a --delete   --exclude '.git/' --exclude 'build/' --exclude 'build-*/'   --exclude 'managed_components/' --exclude 'docs/' --exclude 'dependencies.lock'   /work/ /tmp/espp/
 cd /tmp/espp
@@ -23,9 +23,9 @@ result() { # name exit_code
 }
 
 note "Build espp lib + host binaries (linux)"
-cmake -S lib -B lib/build -DCMAKE_BUILD_TYPE=Release > /tmp/cmake_lib.log 2>&1 \
+cmake -S lib -B lib/build -DCMAKE_BUILD_TYPE=Release -DESPP_INSTALL=ON -DCMAKE_INSTALL_PREFIX=/tmp/espp/install > /tmp/cmake_lib.log 2>&1 \
   && cmake --build lib/build -j"$(nproc)" --target install > /tmp/build_lib.log 2>&1 \
-  && cmake -S pc -B pc/build -DCMAKE_BUILD_TYPE=Release > /tmp/cmake.log 2>&1 \
+  && cmake -S pc -B pc/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/tmp/espp/install > /tmp/cmake.log 2>&1 \
   && cmake --build pc/build -j"$(nproc)" --target \
        rtps_pubsub rtps_golden rtps_facade_pubsub rtps_typed_pubsub \
        rtps_facade_frag rtps_facade_backlog rtps_facade_frag_sizes rtps_service_loopback \

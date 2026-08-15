@@ -75,26 +75,57 @@ PyPI on each release.
 
 ## Building for PC (C++ & Python)
 
-To build the library for use on PC (with C++ and Python), simply build with
-cmake:
+To build the library for use on PC (with C++ and Python), install it into a
+staging prefix with cmake:
 
 ``` sh
-mkdir build
-cd build
-cmake ..
-cmake --build . --config Release --target install
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+  -DESPP_INSTALL=ON -DESPP_BUILD_PYTHON=ON \
+  -DCMAKE_INSTALL_PREFIX=../install
+cmake --build build --config Release --target install --parallel 4
 ```
 
 This is conveniently scripted up for you into [./build.sh](./build.sh) and
-[./build.ps1](./build.ps1) scripts you can simply run from your terminal.
+[./build.ps1](./build.ps1) scripts you can simply run from your terminal; they
+install into `<repo>/install`.
 
-This will build and install the following files:
+This installs a standard, relocatable CMake package plus the python package
+into the prefix:
 
-* `./pc/libespp_pc` - C++ static library for use with other C++ code.
-* `./pc/include` - All the header files need for using the library from C++ code.
-* `./pc/espp/` - The `espp` python package (pure-python files, type stubs, and
-  the compiled `espp._espp` pybind11 extension) - add `./pc` to your
+* `<prefix>/lib/libespp_pc.a` - C++ static library.
+* `<prefix>/include/` - all the header files needed to use the library from C++.
+* `<prefix>/lib/cmake/espp/` - `esppConfig.cmake` + friends, so another project
+  can `find_package(espp)` and link the `espp::espp` target (see below).
+* `<prefix>/espp/` - the `espp` python package (pure-python files, type stubs,
+  and the compiled `espp._espp` pybind11 extension) - add `<prefix>` to your
   `PYTHONPATH` / `sys.path` to `import espp` from python code.
+
+The package version is derived from the latest git tag at configure time (a
+leading `v` is stripped), and falls back to `0.0.0` for tarball / no-git builds.
+The python wheel's version comes separately from `setuptools_scm`.
+
+### Using espp from another C++ project (find_package)
+
+Point `CMAKE_PREFIX_PATH` at the install prefix and link the `espp::espp`
+target - it carries the include dirs, the C++23 requirement, and the PUBLIC
+system libraries, so nothing else is needed:
+
+``` cmake
+find_package(espp REQUIRED)
+target_link_libraries(my_app PRIVATE espp::espp)
+# If your app relies on espp's global-ctor / registration code (e.g. the Windows
+# timer-period adjustment), whole-archive it (CMake 3.24+):
+#   target_link_libraries(my_app PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,espp::espp>")
+```
+
+``` sh
+cmake -S . -B build -DCMAKE_PREFIX_PATH=/path/to/install
+```
+
+The same `espp::espp` target is also available without installing, via
+`FetchContent` / CPM `add_subdirectory` of `lib/` (build-tree consumers get the
+component headers directly). The [../pc](../pc) example tests consume the
+installed package this way.
 
 ## Updating the python bindings
 

@@ -1,19 +1,14 @@
-# powershell script to build the project using cmake
+# powershell script to build the pc/ example tests against the INSTALLED espp
+# package. Run ../lib/build.ps1 first; it installs espp into <repo>/install,
+# which we point find_package(espp) at via CMAKE_PREFIX_PATH.
 
-# Create build directory if it doesn't exist
-$buildDir = "build"
-if (-not (Test-Path -Path $buildDir)) {
-    New-Item -ItemType Directory -Path $buildDir
-}
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repoRoot = Split-Path -Parent $scriptDir
+$prefix = Join-Path $repoRoot "install"
+$buildDir = Join-Path $scriptDir "build"
 
-# Change to the build directory
-Set-Location -Path $buildDir
+cmake -S $scriptDir -B $buildDir `
+  -DCMAKE_BUILD_TYPE=Release `
+  -DCMAKE_PREFIX_PATH=$prefix
 
-# Run cmake
-cmake ..
-
-# Run cmake --build . --config Release
-cmake --build . --config Release
-
-# Change back to the original directory
-Set-Location -Path ..
+cmake --build $buildDir --config Release --parallel 4

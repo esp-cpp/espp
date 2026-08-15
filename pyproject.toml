@@ -47,7 +47,7 @@ sdist.exclude = [
   "docs/",
   "pc/",
   "python/",
-  # local build helpers / outputs (lib/pc, build/, _build/ already gitignored)
+  # local build helpers / outputs (install/, build/, _build/ already gitignored)
   "*.sh",
   "*.ps1",
   # embedded-only submodules and components not referenced by lib/espp.cmake

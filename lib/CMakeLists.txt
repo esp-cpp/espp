@@ -1,27 +1,59 @@
-# 3.21+ for a reliable PROJECT_IS_TOP_LEVEL (used to guard the source-tree
-# lib/pc install so it never fires when espp is consumed via FetchContent/CPM).
+# 3.21+ for a reliable PROJECT_IS_TOP_LEVEL (used to default ESPP_INSTALL to ON
+# only for a top-level build, so a FetchContent/CPM consumer's `cmake --install`
+# never installs espp into the parent's prefix unless it opts in).
 cmake_minimum_required(VERSION 3.21)
+
+# ---------------------------------------------------------------------------
+# Package version, derived from the latest git tag (strip a leading 'v' and keep
+# the MAJOR.MINOR.PATCH numeric core). This flows into PROJECT_VERSION and thus
+# esppConfigVersion.cmake, so `find_package(espp X.Y.Z)` version checks work.
+# Falls back to 0.0.0 when git or a tag is unavailable (e.g. tarball builds) so
+# configure still succeeds.
+#
+# NOTE: the python wheel gets its version independently from setuptools_scm (see
+# pyproject.toml [tool.setuptools_scm] / SKBUILD_PROJECT_VERSION); this git-tag
+# derivation is only for the CMake / find_package package version.
+# ---------------------------------------------------------------------------
+set(ESPP_VERSION "0.0.0")
+find_package(Git QUIET)
+if(GIT_FOUND)
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=0
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_VARIABLE _espp_git_tag
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+    RESULT_VARIABLE _espp_git_result)
+  if(_espp_git_result EQUAL 0 AND _espp_git_tag)
+    string(REGEX REPLACE "^v" "" _espp_git_tag "${_espp_git_tag}")
+    if(_espp_git_tag MATCHES "^([0-9]+)(\\.[0-9]+)?(\\.[0-9]+)?")
+      set(ESPP_VERSION "${CMAKE_MATCH_0}")
+    endif()
+  endif()
+endif()
 
 # Build the PC (host) C++ static library. Python bindings are opt-in (see the
 # ESPP_BUILD_PYTHON option below); a plain `cmake -S lib` is C++-only.
-project(espp VERSION 1.1.8)
+project(espp VERSION ${ESPP_VERSION})
+message(STATUS "espp package version: ${PROJECT_VERSION} (from git tag; 0.0.0 = no tag)")
 
 # Build the espp Python bindings (_espp)? Default OFF so a plain
 # `cmake -S lib` produces just the C++ static library + its install/export
 # (find_package(espp) / espp::espp) with no pybind11 dependency. The standalone
 # scripts (build.sh / build.ps1) pass -DESPP_BUILD_PYTHON=ON to also build and
-# install the python package into lib/pc (this is what CI publishes). Wheel
-# builds via scikit-build-core take the SKBUILD path below regardless of this
-# option.
+# install the python package (the `espp/` package) alongside the C++ package
+# under CMAKE_INSTALL_PREFIX (this is what CI publishes). Wheel builds via
+# scikit-build-core take the SKBUILD path below regardless of this option.
 option(ESPP_BUILD_PYTHON "Build the espp Python bindings module (_espp)" OFF)
 
 # Install the standard, relocatable CMake package (install(TARGETS ... EXPORT),
 # esppConfig.cmake, flattened headers) so a separate project can
-# `find_package(espp)` and link `espp::espp`. OFF by default so build.sh's plain
-# `cmake --build . --target install` (which sets no CMAKE_INSTALL_PREFIX) does
-# NOT write the export into the default system prefix (/usr/local). A real
-# consumer opts in explicitly: `-DESPP_INSTALL=ON -DCMAKE_INSTALL_PREFIX=<prefix>`.
-option(ESPP_INSTALL "Install espp as a find_package-able package (standard install/export under CMAKE_INSTALL_PREFIX)" OFF)
+# `find_package(espp)` and link `espp::espp`. This is THE install path (there is
+# no longer a legacy source-tree lib/pc install). Defaults to ON for a top-level
+# build (build.sh passes an explicit CMAKE_INSTALL_PREFIX, so no /usr/local
+# surprise) and OFF when espp is a subproject, so a FetchContent/CPM consumer's
+# `cmake --install` does not drag espp into the parent's prefix unless asked.
+option(ESPP_INSTALL "Install espp as a find_package-able package (standard install/export under CMAKE_INSTALL_PREFIX)" ${PROJECT_IS_TOP_LEVEL})
 
 # Report what this configure will actually build (Python is opt-in).
 if(SKBUILD OR ESPP_BUILD_PYTHON)
@@ -55,18 +87,18 @@ include(espp.cmake)
 
 include_directories(${ESPP_INCLUDE_DIRS})
 
-set(LINK_ARG "--whole-archive")
-
 # settings for Windows / MSVC
 if(MSVC)
   add_compile_options(/utf-8 /D_USE_MATH_DEFINES /bigobj)
   add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 endif()
 
-# settings for MacOS
-if(APPLE)
-  set(LINK_ARG "-all_load")
-endif()
+# NOTE: whole-archive linking (so global-ctor / registration code such as the
+# Windows timer-period adjustment in espp.hpp is not stripped) is now the
+# CONSUMER's responsibility, applied where espp::espp is linked (see
+# pc/CMakeLists.txt, which wraps it with $<LINK_LIBRARY:WHOLE_ARCHIVE,...>). It
+# is a no-op on the static archive itself (ar ignores link flags), so it does
+# not belong here.
 
 if(SKBUILD)
   # Building a python wheel via scikit-build-core (pip install). Only build the
@@ -79,7 +111,8 @@ if(SKBUILD)
           RUNTIME DESTINATION espp)
 else()
   # Standalone build (./build.sh / ./build.ps1): build the C++ static library
-  # and the python package, and install both into ./pc for local use.
+  # (and, with -DESPP_BUILD_PYTHON=ON, the python package) and install the
+  # find_package-able package into CMAKE_INSTALL_PREFIX.
   set(TARGET_NAME "espp_pc")
 
   # main library (which can be built for pc, android, and iOS)
@@ -97,7 +130,6 @@ else()
   # archive name stays libespp_pc.a (OUTPUT_NAME unchanged) for pc/ and CI.
   set_target_properties(${TARGET_NAME} PROPERTIES EXPORT_NAME espp)
   set_property(TARGET ${TARGET_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
-  target_link_options(${TARGET_NAME} PRIVATE "${LINK_ARG}")
   # PUBLIC so the system link deps (pthread, or ws2_32/winmm/iphlpapi on Windows)
   # propagate to consumers of the exported target.
   target_link_libraries(${TARGET_NAME} PUBLIC ${ESPP_EXTERNAL_LIBS})
@@ -107,6 +139,10 @@ else()
   # PUBLIC/INTERFACE so consumers of espp::espp automatically compile as C++23
   # (the espp headers require it).
   target_compile_features(${TARGET_NAME} PUBLIC cxx_std_23)
+  # PUBLIC so find_package(espp) consumers compile the rtps headers with the SAME
+  # limits/fragmentation profile the archive was built with (ABI-critical; see
+  # espp.cmake). These export into esppTargets.cmake as INTERFACE definitions.
+  target_compile_definitions(${TARGET_NAME} PUBLIC ${ESPP_RTPS_COMPILE_DEFINITIONS})
 
   # ---------------------------------------------------------------------------
   # Usage requirements (modern, target-based). Expose every include dir espp.cmake
@@ -121,31 +157,18 @@ else()
     PUBLIC $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
   # ---------------------------------------------------------------------------
-  # Legacy local install into lib/pc (kept for the pc/ test build and for the
-  # libespp_* CI artifacts, which consume lib/pc/{include,libespp_pc.a}). This
-  # writes into the espp SOURCE tree, so guard it to the standalone/CI build
-  # (build.sh, top-level) and the python-package build -- it must NOT fire when
-  # espp is a subproject and a parent project runs `cmake --install` (that would
-  # mutate the espp source tree of a FetchContent/CPM consumer).
-  # ---------------------------------------------------------------------------
-  if(PROJECT_IS_TOP_LEVEL OR ESPP_BUILD_PYTHON)
-    install(TARGETS ${TARGET_NAME}
-            ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/pc)
-    espp_install_includes(${PROJECT_SOURCE_DIR}/pc)
-  endif()
-
-  # ---------------------------------------------------------------------------
   # Proper install + export so `find_package(espp)` works from a separate
-  # project. Installs into GNUInstallDirs under CMAKE_INSTALL_PREFIX. Opt-in via
-  # -DESPP_INSTALL=ON so the plain build.sh install (no CMAKE_INSTALL_PREFIX)
-  # does not write to the default system prefix (/usr/local).
+  # project. Installs into GNUInstallDirs under CMAKE_INSTALL_PREFIX. This is THE
+  # install path; ESPP_INSTALL defaults ON for a top-level build (build.sh passes
+  # an explicit prefix) and OFF for a subproject.
   # ---------------------------------------------------------------------------
   if(ESPP_INSTALL)
     espp_install_cmake_package(${TARGET_NAME})
   endif()
 
   # Build and install the python package (espp/ with the _espp extension inside)
+  # into CMAKE_INSTALL_PREFIX (put <prefix> on PYTHONPATH to `import espp`).
   if(ESPP_BUILD_PYTHON)
-    espp_install_python_module(${PROJECT_SOURCE_DIR}/pc)
+    espp_install_python_module()
   endif()
 endif()
