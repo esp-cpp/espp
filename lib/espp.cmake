@@ -3,9 +3,9 @@ set(ESPP_COMPONENTS "${CMAKE_CURRENT_LIST_DIR}/../components")
 # ---------------------------------------------------------------------------
 # RTPS static-limits profile selection.
 #
-# The rtps_embedded engine keeps a fully-static (deterministic) allocation model
+# The rtps engine keeps a fully-static (deterministic) allocation model
 # whose compile-time capacity caps are chosen by a profile header (see
-# components/rtps_embedded/include/rtps/config.hpp). Profiles:
+# components/rtps/include/rtps/config.hpp). Profiles:
 #   embedded   - tight MCU caps (rtps/config_esp32.hpp)
 #   host       - relaxed static caps, DEFAULT for non-ESP builds
 #                (rtps/config_desktop.hpp)
@@ -14,7 +14,7 @@ set(ESPP_COMPONENTS "${CMAKE_CURRENT_LIST_DIR}/../components")
 #
 # Select with -DRTPS_LIMITS_PROFILE=embedded|host|host_large. Default is "host"
 # (this file is only used for non-ESP / host builds; ESP/IDF builds pick the
-# profile via Kconfig in components/rtps_embedded/Kconfig).
+# profile via Kconfig in components/rtps/Kconfig).
 # ---------------------------------------------------------------------------
 if(NOT DEFINED RTPS_LIMITS_PROFILE)
   set(RTPS_LIMITS_PROFILE "host")
@@ -47,7 +47,7 @@ message(STATUS "RTPS limits profile: ${RTPS_LIMITS_PROFILE}")
 # peer (interoperates with FastDDS / ROS 2). RTPS_MAX_SAMPLE_SIZE is the
 # large-sample reassembly cap and is kept in sync with the profile's
 # Config::MAX_SAMPLE_SIZE. On ESP32/IDF fragmentation is opt-in via Kconfig (see
-# components/rtps_embedded/Kconfig / CMakeLists.txt), default off, so the MCU
+# components/rtps/Kconfig / CMakeLists.txt), default off, so the MCU
 # pays nothing for it by default.
 # ---------------------------------------------------------------------------
 add_compile_definitions(RTPS_ENABLE_FRAGMENTATION RTPS_MAX_SAMPLE_SIZE=${RTPS_MAX_SAMPLE_SIZE})
@@ -89,7 +89,7 @@ set(ESPP_INCLUDES
   ${ESPP_COMPONENTS}/math/include
   ${ESPP_COMPONENTS}/ndef/include
   ${ESPP_COMPONENTS}/pid/include
-  ${ESPP_COMPONENTS}/rtps_embedded/include
+  ${ESPP_COMPONENTS}/rtps/include
   ${ESPP_COMPONENTS}/rtsp/include
   ${ESPP_COMPONENTS}/serialization/include
   ${ESPP_COMPONENTS}/tabulate/include
@@ -112,23 +112,23 @@ set(ESPP_SOURCES
   ${ESPP_COMPONENTS}/filters/src/lowpass_filter.cpp
   ${ESPP_COMPONENTS}/filters/src/simple_lowpass_filter.cpp
   ${ESPP_COMPONENTS}/joystick/src/joystick.cpp
-  ${ESPP_COMPONENTS}/rtps_embedded/src/rtps_participant.cpp
-  ${ESPP_COMPONENTS}/rtps_embedded/src/communication/EsppTransport.cpp
-  ${ESPP_COMPONENTS}/rtps_embedded/src/discovery/ParticipantProxyData.cpp
-  ${ESPP_COMPONENTS}/rtps_embedded/src/discovery/SEDPAgent.cpp
-  ${ESPP_COMPONENTS}/rtps_embedded/src/discovery/SPDPAgent.cpp
-  ${ESPP_COMPONENTS}/rtps_embedded/src/discovery/TopicData.cpp
-  ${ESPP_COMPONENTS}/rtps_embedded/src/entities/Domain.cpp
-  ${ESPP_COMPONENTS}/rtps_embedded/src/entities/Participant.cpp
-  ${ESPP_COMPONENTS}/rtps_embedded/src/entities/Reader.cpp
-  ${ESPP_COMPONENTS}/rtps_embedded/src/entities/StatefulReader.cpp
-  ${ESPP_COMPONENTS}/rtps_embedded/src/entities/StatefulWriter.cpp
-  ${ESPP_COMPONENTS}/rtps_embedded/src/entities/StatelessReader.cpp
-  ${ESPP_COMPONENTS}/rtps_embedded/src/entities/StatelessWriter.cpp
-  ${ESPP_COMPONENTS}/rtps_embedded/src/entities/Writer.cpp
-  ${ESPP_COMPONENTS}/rtps_embedded/src/messages/MessageReceiver.cpp
-  ${ESPP_COMPONENTS}/rtps_embedded/src/messages/MessageTypes.cpp
-  ${ESPP_COMPONENTS}/rtps_embedded/src/utils/Diagnostics.cpp
+  ${ESPP_COMPONENTS}/rtps/src/rtps_participant.cpp
+  ${ESPP_COMPONENTS}/rtps/src/communication/EsppTransport.cpp
+  ${ESPP_COMPONENTS}/rtps/src/discovery/ParticipantProxyData.cpp
+  ${ESPP_COMPONENTS}/rtps/src/discovery/SEDPAgent.cpp
+  ${ESPP_COMPONENTS}/rtps/src/discovery/SPDPAgent.cpp
+  ${ESPP_COMPONENTS}/rtps/src/discovery/TopicData.cpp
+  ${ESPP_COMPONENTS}/rtps/src/entities/Domain.cpp
+  ${ESPP_COMPONENTS}/rtps/src/entities/Participant.cpp
+  ${ESPP_COMPONENTS}/rtps/src/entities/Reader.cpp
+  ${ESPP_COMPONENTS}/rtps/src/entities/StatefulReader.cpp
+  ${ESPP_COMPONENTS}/rtps/src/entities/StatefulWriter.cpp
+  ${ESPP_COMPONENTS}/rtps/src/entities/StatelessReader.cpp
+  ${ESPP_COMPONENTS}/rtps/src/entities/StatelessWriter.cpp
+  ${ESPP_COMPONENTS}/rtps/src/entities/Writer.cpp
+  ${ESPP_COMPONENTS}/rtps/src/messages/MessageReceiver.cpp
+  ${ESPP_COMPONENTS}/rtps/src/messages/MessageTypes.cpp
+  ${ESPP_COMPONENTS}/rtps/src/utils/Diagnostics.cpp
   ${ESPP_COMPONENTS}/rtsp/src/rtcp_packet.cpp
   ${ESPP_COMPONENTS}/rtsp/src/rtp_packet.cpp
   ${ESPP_COMPONENTS}/rtsp/src/rtsp_client.cpp

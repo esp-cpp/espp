@@ -1,119 +1,201 @@
-# RTPS Component
+# RTPS
 
 [![Badge](https://components.espressif.com/components/espp/rtps/badge.svg)](https://components.espressif.com/components/espp/rtps)
 
-The `RtpsParticipant` component is the beginning of a cross-platform RTPS
-(Real-Time Publish-Subscribe) implementation built on top of the ESPP `socket`
-component.
+ESPP component that integrates the [embeddedRTPS](https://github.com/embedded-software-laboratory/embeddedRTPS)
+RTPS/DDS stack into the ESPP ecosystem, behind an idiomatic `espp::RtpsParticipant`
+facade. Any platform that can build ESPP — ESP32, Linux, macOS, Windows — can use
+it to interoperate with **ROS 2** nodes (rmw_fastrtps) or any DDS participant on
+the network over the standard RTPS wire protocol.
 
-This component now includes the first real RTPS discovery slice:
+It provides three messaging patterns, all validated against live ROS 2 (Jazzy):
 
-- RTPS header and DATA submessage framing helpers
-- standard RTPS UDPv4 port calculations
-- GUID, entity ID, locator, and sequence number utility types
-- SPDP participant announcements using PL_CDR parameter lists
-- SEDP publication and subscription announcements for local endpoints
-- parsing and tracking of discovered remote participants, writers, and readers
-- integration with the shared `cdr` component for CDR/PL_CDR payload handling
-- optional best-effort user-data multicast transport, including endpoint-specific groups
+- **Pub/sub** — topic-based, best-effort or reliable (HEARTBEAT/ACKNACK).
+- **Services (RMI)** — request/reply with correlated responses.
+- **Actions (AMI)** — long-running goals with feedback, result, and cancellation.
 
-The long-term goal for this component is DDS/RTPS interoperability with ROS 2
-nodes, including best-effort and reliable user-data flows. Discovery is now
-standards-shaped, but the reliable RTPS state machines (`HEARTBEAT`,
-`ACKNACK`, resend windows) and ROS 2 endpoint/user-data interoperability are
-still incomplete.
+Each has a **typed** layer (reflectable structs, no manual bytes) and a
+**byte-level** layer. Services and actions come in a ROS 2-interoperable flavour
+and a lean **native** (espp ↔ espp) flavour.
 
-## How RTPS Works
+The upstream embeddedRTPS library hard-depends on FreeRTOS and lwIP; this
+component removes those by routing all socket, task, and synchronisation through
+ESPP's platform-agnostic `UdpSocket`, `Task`, `ThreadPool`, and `SocketReactor`.
+On ESP32 those map to lwIP + FreeRTOS; elsewhere to the host OS. Micro-CDR is
+gone — (de)serialization uses ESPP's reflection-driven `cdr`.
 
-RTPS separates *metatraffic* from *user traffic*.
+> **History:** this component was developed as `rtps_embedded` alongside an
+> earlier from-scratch `rtps`; it is now the single `rtps` component. See
+> [`REFACTOR_PLAN.md`](REFACTOR_PLAN.md) and [`RMI_AMI_DESIGN.md`](RMI_AMI_DESIGN.md).
 
-- **Metatraffic** carries discovery and endpoint metadata. In this component,
-  that means SPDP participant announcements plus SEDP publication and
-  subscription announcements.
-- **User traffic** carries application samples. Samples are sent as standard
-  RTPS `DATA` submessages whose `serializedPayload` is the raw CDR-encapsulated
-  sample (no ESPP-specific framing); the topic is identified by the writer GUID
-  resolved through SEDP discovery. The `publish()` / `on_sample` API works with
-  any CDR-encoded type. Reliable delivery (`HEARTBEAT`/`ACKNACK`) is not yet
-  implemented, so user traffic is currently best-effort.
+---
 
-The current `RtpsParticipant` implementation opens three UDP sockets when
-`start()` is called:
+## Architecture
 
-1. metatraffic multicast receive on the well-known SPDP multicast port
-2. metatraffic unicast receive on the participant-specific discovery port
-3. user unicast receive on the participant-specific user-data port
+The only platform-specific code is `EsppTransport`; everything above it is
+portable C++23. The `espp::` facade is a thin, typed surface over the `rtps::`
+engine.
 
-It then starts a periodic announce task which multicasts SPDP and unicasts SEDP
-endpoint announcements to each discovered peer.
+```mermaid
+flowchart TD
+    U["User code / ROS 2 peer"]
+
+    subgraph facade["espp:: facade (typed + byte-level)"]
+        direction TB
+        PS["Publisher / Subscriber (typed)"]
+        SVC["ServiceServer / ServiceClient"]
+        ACT["ActionServer / ActionClient"]
+        RP["espp::RtpsParticipant"]
+        PS --> RP
+        SVC --> RP
+        ACT --> RP
+    end
+
+    subgraph engine["rtps:: engine (embeddedRTPS, de-vendored)"]
+        direction TB
+        DOM["rtps::Domain — packet routing + discovery"]
+        PART["rtps::Participant"]
+        WR["rtps::Writer (history + HEARTBEAT)"]
+        RD["rtps::Reader (ACKNACK + delivery)"]
+        DISC["SPDP + SEDP discovery agents"]
+        DOM --> PART --> WR & RD
+        DOM --> DISC
+    end
+
+    subgraph plat["platform adapter (the ONLY porting layer)"]
+        direction TB
+        TR["rtps::EsppTransport"]
+        SOCK["espp::UdpSocket × N ports"]
+        REACT["espp::SocketReactor → espp::ThreadPool"]
+        CDR["espp::cdr (reflection CDR/XCDR)"]
+        TR --> SOCK --> REACT
+    end
+
+    U --> facade --> engine --> plat
+    WR -. serialize .-> CDR
+    RD -. deserialize .-> CDR
+```
+
+| Build target | Socket backend | Task backend |
+|---|---|---|
+| ESP32 | lwIP (via ESP-IDF) | FreeRTOS |
+| Linux / macOS / PC | POSIX sockets | `std::thread` |
+
+Services and actions are **pure library code** over pub/sub — the only wire
+addition is a `related_sample_identity` inline QoS on service request/reply (for
+ROS 2 correlation). Actions add no wire primitive at all: they compose services
+and topics.
 
 ```mermaid
 flowchart LR
-  App["Application code"] --> Participant["RtpsParticipant"]
-  Participant --> SPDP["SPDP participant DATA"]
-  Participant --> SEDP["SEDP publication/subscription DATA"]
-  Participant --> User["User DATA submessages"]
-  SPDP --> MetaMC["Metatraffic multicast"]
-  SEDP --> MetaUC["Metatraffic unicast"]
-  User --> UserUC["User unicast"]
-  MetaMC --> Peer["Remote participant"]
-  MetaUC --> Peer
-  UserUC --> Peer
+    subgraph patterns["Messaging patterns → RTPS primitives"]
+        direction TB
+        P1["Pub/sub"] --> W1["1 reliable/best-effort topic"]
+        P2["Service (RMI)"] --> W2["2 topics (rq/rr) + related_sample_identity"]
+        P3["Action (AMI)"] --> W3["3 services + 2 topics (feedback/status)"]
+        P4["Native service"] --> W4["2 es_rq/es_rr topics + 20-byte in-band header"]
+        P5["Native action"] --> W5["goal svc + cancel svc + 1 feedback topic (~4 endpoints)"]
+    end
 ```
 
-## Discovery Flow
+---
 
-At a high level, discovery proceeds like this:
+## Quick-start (typed facade)
 
-```mermaid
-sequenceDiagram
-  participant A as Local participant
-  participant MC as 239.255.0.1
-  participant B as Remote participant
-  A->>MC: SPDP DATA(participant GUID, locators, enclave, builtin endpoints)
-  MC-->>B: multicast delivery
-  B->>MC: SPDP DATA(its participant metadata)
-  MC-->>A: multicast delivery
-  A->>B: SEDP publication DATA(topic/type/reliability)
-  A->>B: SEDP subscription DATA(topic/type/reliability)
-  B->>A: SEDP publication/subscription DATA
-  Note over A,B: Matching user-data traffic can then use the user-unicast ports
+```cpp
+#include "rtps_participant.hpp"
+#include "rtps_pubsub.hpp"   // typed Publisher<T> / Subscriber<T>
+#include "rtps_service.hpp"  // typed ServiceServer / ServiceClient
+#include "rtps_action.hpp"   // typed ActionServer  / ActionClient
+
+// Any reflectable struct is a message - fields map straight to CDR.
+struct StringMsg  { std::string data; };
+struct AddReq     { int64_t a, b; };
+struct AddResp    { int64_t sum; };
+
+espp::RtpsParticipant participant({.interface_address = "192.168.1.10"});
+participant.start();
+
+// Pub/sub
+espp::Publisher<StringMsg>  pub(participant, {.topic = "rt/chatter",
+                                              .type_name = "std_msgs::msg::dds_::String_",
+                                              .reliability = espp::RtpsParticipant::Reliability::RELIABLE});
+espp::Subscriber<StringMsg> sub(participant, {.topic = "rt/chatter",
+                                              .type_name = "std_msgs::msg::dds_::String_",
+                                              .on_message = [](const StringMsg &m) { /* use m.data */ }});
+pub.publish(StringMsg{"hello"});
+
+// Service (RMI) - ros2 service call /add_two_ints ... hits this server
+espp::ServiceServer<AddReq, AddResp> server(participant, {
+    .service = "/add_two_ints", .type_name = "example_interfaces::srv::dds_::AddTwoInts",
+    .handler = [](const AddReq &r) { return AddResp{r.a + r.b}; }});
+espp::ServiceClient<AddReq, AddResp> client(participant, {
+    .service = "/add_two_ints", .type_name = "example_interfaces::srv::dds_::AddTwoInts"});
+if (auto resp = client.call(AddReq{7, 35}, std::chrono::seconds(1))) { /* resp->sum == 42 */ }
 ```
 
-## Expected Compatibility
+For ROS 2 interop use ROS 2 naming: topic `rt/<name>`, type `<pkg>::msg::dds_::<Type>_`.
+The full request/reply + goal APIs (including the three client call styles and the
+native protocol) are documented in
+[`doc/en/protocols/rtps_rmi_ami.rst`](../../doc/en/protocols/rtps_rmi_ami.rst).
 
-The table below is intentionally conservative: **expected** means "this is the
-intended scope based on the current wire format and code", not "fully verified
-against every stack".
+### Byte-level API
 
-| Peer implementation | Expected compatibility | Notes |
-| --- | --- | --- |
-| ESPP `rtps` component / `python/rtps_host.py` | **Yes** for current scaffold | Intended smoke-test path for SPDP, SEDP, and the standard CDR-over-RTPS best-effort user-data path. |
-| Generic DDSI-RTPS 2.3 implementations | **Partial** | SPDP, SEDP, and best-effort `DATA` samples are standards-shaped; reliable delivery is not implemented today. |
-| ROS 2 nodes backed by Fast DDS | **Partial / discovery-targeted** | Discovery includes ROS 2-relevant participant user data such as `enclave=...;`, and user samples are standard CDR-over-RTPS. Full ROS 2 topic interop additionally needs ROS 2 topic/type name mangling (`rt/...`, `std_msgs::msg::dds_::UInt32_`). |
-| ROS 2 nodes backed by Cyclone DDS or other DDS vendors | **Partial / unverified** | Expected to be limited to the minimal discovery subset if the peer accepts the currently emitted parameter set; not validated yet. |
-| Reliable DDS/RTPS endpoints | **No** | `HEARTBEAT`, `ACKNACK`, retransmission windows, and other reliable state-machine pieces are not implemented. |
+The typed wrappers are thin layers over `espp::RtpsParticipant`'s byte-level
+methods (`add_writer`/`add_reader`/`publish`, `add_service_server`/`_client`,
+`add_action_server`/`_client`, and the `add_native_*` variants), which take/return
+CDR-encapsulated `std::span<const uint8_t>`. Use those for dynamic types.
 
-## Feature Status
+Python bindings expose the same surface via the `espp` module (see
+[`python/rtps_rpc_demo.py`](../../python/rtps_rpc_demo.py)).
 
-| Feature | Status | Notes |
-| --- | --- | --- |
-| RTPS header / DATA submessage serialize + parse | **Implemented** | Core message framing is present. |
-| Standard UDPv4 RTPS port mapping | **Implemented** | Uses the DDSI-RTPS well-known port formula. |
-| SPDP participant announce send/receive | **Implemented** | Multicast announce plus participant cache updates. |
-| SEDP publication / subscription announce send/receive | **Implemented** | Local endpoints are announced and remote endpoints are cached. |
-| Participant / endpoint discovery callbacks | **Implemented** | Exposed through `on_participant_discovered` and `on_endpoint_discovered`. |
-| Standard CDR-over-RTPS user-data path | **Implemented** | `DATA` `serializedPayload` is the raw CDR sample; the `publish()` / `on_sample` API carries any CDR-encoded type, routed by writer GUID via SEDP. |
-| Best-effort user-data multicast transport | **Implemented** | Supports shared participant-level multicast or endpoint-specific multicast locators advertised in SEDP; local readers only join the multicast groups configured for their topics. |
-| QoS fields emitted in discovery | **Partial** | Reliability, durability, liveliness, and history parameters are advertised in SEDP. |
-| QoS matching / policy enforcement | **Not implemented** | Remote QoS is parsed, but full writer/reader matching logic is still missing. |
-| ROS 2 topic/type name mangling | **Not implemented** | Topic/type names are emitted verbatim; ROS 2 interop needs `rt/...` topic and `std_msgs::msg::dds_::UInt32_` type mangling. |
-| Inline QoS handling | **Partial** | Inline QoS is skipped on receive to reach the payload; it is not emitted or interpreted. |
-| Reliable RTPS (`HEARTBEAT`, `ACKNACK`, resend`) | **Not implemented** | Reliable delivery is not interoperable yet. |
-| Full ROS 2 topic interoperability | **Not implemented** | Discovery is the current milestone; ROS 2-compatible data writers/readers are still pending. |
+---
+
+## Configuration
+
+Capacity limits are chosen at build time by a **limits profile** header; storage
+policy, fragmentation, and the RPC layer are separate, independent knobs. On
+ESP32 these are ESP-IDF menuconfig options (under `RTPS`); on host they default
+via `include/rtps/config.hpp`.
+
+| Knob | Options / default | Effect |
+|---|---|---|
+| `RTPS_LIMITS_PROFILE` | `embedded` (default) / `host` / `host_large` | Compile-time endpoint/history capacity caps (`config_esp32.hpp` / `config_desktop.hpp` / `config_host_large.hpp`). Wire-neutral. |
+| `RTPS_STORAGE_DYNAMIC` | off on ESP32 / on host | Static `std::array` history (zero-heap, drop-oldest) vs heap-backed `std::deque` (grows). Orthogonal to the profile. |
+| `RTPS_ENABLE_FRAGMENTATION` | off on ESP32 / on host | DATA_FRAG for samples > ~64 KB (interoperates with FastDDS/ROS 2). |
+| `RTPS_ENABLE_RPC` | on (default) | Compile in services + actions (RMI/AMI). Disable to drop that code + its threads on a pure-pub/sub device. |
+
+The domain id, announcement/heartbeat periods, and pool sizes live in the profile
+headers.
+
+---
+
+## ESPP component dependencies
+
+| Component | Purpose |
+|---|---|
+| `base_component` | ESPP base class with integrated `espp::Logger` |
+| `socket` | `UdpSocket` + `SocketReactor` used by `EsppTransport` |
+| `task` | `espp::Task` / `espp::Timer` |
+| `thread_pool` | shared worker pool for receive dispatch + async writer work |
+| `cdr` | reflection-driven CDR/XCDR (de)serialization |
+
+The engine carries no vendored third-party code and has no direct dependency on
+FreeRTOS, lwIP, or any platform library.
+
+---
 
 ## Example
 
-The [example](./example) exercises the protocol helpers, computes the standard
-RTPS ports, builds/parses SPDP and SEDP messages, and demonstrates the
-participant API without requiring a second device.
+See [`example/`](example/) — an ESP32 (esp32-ethernet-kit) node that brings up a
+participant over Ethernet and exercises the typed APIs: a `Publisher`/`Subscriber`
+pair, a `ServiceServer` (`/add_two_ints`) + `ActionServer` (`/fibonacci`) a ROS 2
+client can drive, and a `ServiceClient` + `ActionClient`. A `menuconfig` option
+adds a second, self-testing participant. See [`example/README.md`](example/README.md).
+
+## Interop & tests
+
+[`interop/`](interop/) runs a dockerised FastDDS / ROS 2 (Jazzy) matrix — golden
+byte-for-byte wire tests, in-process loopbacks (pub/sub, services, actions,
+native, typed), and live `ros2 service call` / `ros2 action send_goal` both
+directions. It is gated in CI (`.github/workflows/rtps_interop.yml`).

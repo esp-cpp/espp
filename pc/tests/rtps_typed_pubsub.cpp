@@ -1,4 +1,4 @@
-// Typed pub/sub test (Phase 5 of components/rtps_embedded/REFACTOR_PLAN.md).
+// Typed pub/sub test (Phase 5 of components/rtps/REFACTOR_PLAN.md).
 //
 // Exercises espp::Publisher<T> / espp::Subscriber<T>: two facade participants in
 // one process exchange a reflectable message struct end-to-end, with no manual

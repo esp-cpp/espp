@@ -138,15 +138,20 @@ def main():
     nok = ndone.wait(10.0)
     results["native_action"] = nok and cnt["status"] == 4 and cnt["n"] == 5 and cnt["fb"] > 0
 
-    # === 5. Native action cancel: send a long goal, cancel it mid-flight ===
+    # === 5. Native action cancel: cancel a goal mid-flight ===
+    # n is bounded (~6s if never canceled) so a rare lost cancel can't wall-clock
+    # block stop()'s join of the execute thread. Cancel triggers off the FIRST
+    # feedback (goal is accepted + executing, so cancel_goal() has its handle)
+    # rather than a fixed sleep - deterministic under CI load.
     ncdone = threading.Event()
+    nexecuting = threading.Event()
     ncancel = {"status": 0}
     nact.send_goal(
-        CountGoal(n=100000),  # long enough (100000 * 0.03s) to cancel before it finishes
-        lambda f: None,
+        CountGoal(n=200),
+        lambda f: nexecuting.set(),
         lambda status, res: (ncancel.update(status=status), ncdone.set()))
-    time.sleep(0.3)      # let the goal be accepted (so cancel_goal has its handle)
-    nact.cancel_goal()   # cancels the most recently accepted goal
+    nexecuting.wait(5.0)  # goal is executing (and accepted) -> cancel is effective
+    nact.cancel_goal()
     results["native_cancel"] = ncdone.wait(10.0) and ncancel["status"] == 5  # CANCELED
 
     server.stop()

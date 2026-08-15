@@ -18,7 +18,7 @@
 #include "base_component.hpp"
 
 // Forward declarations of the embeddedRTPS engine types (see
-// components/rtps_embedded/include/rtps/). The engine headers are only needed
+// components/rtps/include/rtps/). The engine headers are only needed
 // by the implementation; users of this facade never touch them directly.
 namespace rtps {
 class Domain;
@@ -41,7 +41,7 @@ namespace espp {
 /// @brief RTPS/DDS participant for pub/sub interop with FastDDS and ROS 2.
 ///
 /// An espp-idiomatic facade over the embeddedRTPS engine (the FastDDS/ROS 2
-/// interop-proven RTPS implementation vendored in components/rtps_embedded).
+/// interop-proven RTPS implementation vendored in components/rtps).
 /// One RtpsParticipant owns one RTPS domain participant: create it with a
 /// Config, start() it, then add writers/readers and publish CDR-encapsulated
 /// samples. Samples arriving on readers are delivered via the on_sample
@@ -53,7 +53,7 @@ namespace espp {
 /// "std_msgs::msg::dds_::String_" matches a ROS 2 std_msgs/String subscriber
 /// on /chatter).
 ///
-/// Phase 1 facade (see components/rtps_embedded/REFACTOR_PLAN.md): the engine
+/// Phase 1 facade (see components/rtps/REFACTOR_PLAN.md): the engine
 /// beneath is unchanged, so its current limitations apply - domain id is fixed
 /// at compile time (Config::DOMAIN_ID, default 0), announcement/heartbeat
 /// periods are compile-time constants, endpoint counts are bounded by the

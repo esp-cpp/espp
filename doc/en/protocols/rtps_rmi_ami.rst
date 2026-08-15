@@ -1,7 +1,7 @@
 RTPS Services & Actions (RMI / AMI)
 ***********************************
 
-The ``rtps_embedded`` component's :cpp:class:`espp::RtpsParticipant` facade adds
+The ``rtps`` component's :cpp:class:`espp::RtpsParticipant` facade adds
 request/reply (**RMI** — Remote Method Invocation) and goal-oriented (**AMI** —
 Asynchronous Method Invocation) messaging on top of its RTPS pub/sub, in two
 flavours:
@@ -13,7 +13,7 @@ flavours:
 
 Both flavours are *composition over the same reliable RTPS pub/sub* — no separate
 transport. The full design and the wire-format captures that back it are in
-``components/rtps_embedded/RMI_AMI_DESIGN.md``.
+``components/rtps/RMI_AMI_DESIGN.md``.
 
 Why services and actions matter
 ===============================
@@ -228,10 +228,10 @@ Every mechanism is covered end-to-end:
   ``ServiceServer/Client`` + ``ActionServer/Client`` wrappers, both protocols) —
   plus wire-format unit tests (``rtps_service_naming``, ``rtps_action_naming``,
   ``rtps_action_types``) checked byte-for-byte against live ROS 2 captures.
-- **On-device**: the ``components/rtps_embedded/example`` (esp32) hosts a typed
+- **On-device**: the ``components/rtps/example`` (esp32) hosts a typed
   ``/add_two_ints`` service and a ``/fibonacci`` action a ROS 2 client can drive.
 - **Live ROS 2 interop** (dockerised ``rmw_fastrtps``, both directions):
   ``ros2 service call`` ↔ espp server, espp client ↔ rclpy server, and the same
   for actions (``ros2 action send_goal`` ↔ espp, espp ↔ rclpy). See
-  ``components/rtps_embedded/interop/``.
+  ``components/rtps/interop/``.
 - **Python**: ``python/rtps_rpc_demo.py`` exercises all four mechanisms.

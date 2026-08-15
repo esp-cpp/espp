@@ -1,11 +1,11 @@
-// RTPS interop subscriber (Phase 1 of components/rtps_embedded/REFACTOR_PLAN.md).
+// RTPS interop subscriber (Phase 1 of components/rtps/REFACTOR_PLAN.md).
 //
 // Exercises the espp::RtpsParticipant facade end-to-end: subscribes to CDR string
 // samples (deserialized with the reflection-driven cdr::deserialize) published by an external DDS
 // peer (FastDDS or a ROS 2 node via rmw_fastrtps). Defaults follow the ROS 2 conventions for
 // std_msgs/String on /chatter.
 //
-// Usage: rtps_embedded_interop_sub [topic] [type] [reliable(0|1)] [required] [timeout_s]
+// Usage: rtps_interop_sub [topic] [type] [reliable(0|1)] [required] [timeout_s]
 // [interface_ip] [payload_bytes]
 // When payload_bytes > 0, each received String is verified byte-exact against the
 // deterministic payload_bytes-long pattern (proving fragmented >64 KB samples are
@@ -29,7 +29,7 @@ struct StringMsg {
   std::string data;
 };
 
-// Deterministic printable pattern shared with rtps_embedded_interop_pub and the
+// Deterministic printable pattern shared with rtps_interop_pub and the
 // ROS 2 generator in run_interop.sh (see that file).
 inline std::string make_pattern(std::size_t n) {
   std::string s(n, '\0');

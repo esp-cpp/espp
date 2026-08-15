@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(rtps_embedded_host_pc_example LANGUAGES CXX)
+project(rtps_host_pc_example LANGUAGES CXX)
 
 find_package(fastdds REQUIRED COMPONENTS shared)
 find_package(OpenSSL REQUIRED)

@@ -371,7 +371,11 @@ INPUT = \
   $(PROJECT_PATH)/components/remote_debug/include/remote_debug.hpp \
   $(PROJECT_PATH)/components/rmt/include/rmt.hpp \
   $(PROJECT_PATH)/components/rmt/include/rmt_encoder.hpp \
-  $(PROJECT_PATH)/components/rtps/include/rtps.hpp \
+  $(PROJECT_PATH)/components/rtps/include/rtps_participant.hpp \
+  $(PROJECT_PATH)/components/rtps/include/rtps_pubsub.hpp \
+  $(PROJECT_PATH)/components/rtps/include/rtps_service.hpp \
+  $(PROJECT_PATH)/components/rtps/include/rtps_action.hpp \
+  $(PROJECT_PATH)/components/rtps/include/rtps_message.hpp \
   $(PROJECT_PATH)/components/rtsp/include/generic_depacketizer.hpp \
   $(PROJECT_PATH)/components/rtsp/include/generic_packetizer.hpp \
   $(PROJECT_PATH)/components/rtsp/include/h264_depacketizer.hpp \
