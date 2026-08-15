@@ -5,14 +5,14 @@
 using namespace espp;
 
 namespace {
-#ifdef _MSC_VER
+#ifdef _WIN32
 int last_socket_error() { return WSAGetLastError(); }
 #else
 int last_socket_error() { return errno; }
 #endif
 
 bool is_transient_send_error(int err) {
-#ifdef _MSC_VER
+#ifdef _WIN32
   return err == WSAEWOULDBLOCK || err == WSAENOBUFS;
 #else
   return err == EAGAIN || err == EWOULDBLOCK || err == ENOBUFS || err == ENOMEM;

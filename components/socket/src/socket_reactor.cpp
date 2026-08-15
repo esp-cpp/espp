@@ -3,7 +3,7 @@
 #include <exception>
 #include <thread>
 
-#ifndef _MSC_VER
+#ifndef _WIN32
 #include <fcntl.h>
 #endif
 
@@ -26,7 +26,7 @@ struct DispatchGuard {
 // Close a socket with the platform-correct call (Winsock sockets must use
 // closesocket(), not ::close()).
 void close_socket(sock_type_t fd) {
-#if defined(_MSC_VER)
+#if defined(_WIN32)
   closesocket(fd);
 #else
   ::close(fd);
@@ -144,7 +144,7 @@ bool SocketReactor::check_fd(sock_type_t fd) const {
     logger_.error("register: invalid socket fd");
     return false;
   }
-#if !defined(_MSC_VER)
+#if !defined(_WIN32)
   // The select() backend uses fd_set, a bitmap indexed by fd value on
   // POSIX/lwip; FD_SET(fd) with fd >= FD_SETSIZE is undefined behavior. (On
   // Winsock, fd_set is a bounded array of SOCKETs, so the value is not the
@@ -458,7 +458,7 @@ bool SocketReactor::create_wakeup_socket() {
     logger_.error("Could not create wakeup socket");
     return false;
   }
-#if !defined(_MSC_VER)
+#if !defined(_WIN32)
   // The wakeup fd is FD_SET into the select set every iteration, so it too must
   // be below FD_SETSIZE (see check_fd). It is created before any registrations,
   // so on lwip it takes a low-offset fd - but guard anyway.
@@ -505,7 +505,7 @@ void SocketReactor::close_wakeup_socket() {
 }
 
 bool SocketReactor::set_nonblocking(sock_type_t fd) {
-#if defined(_MSC_VER)
+#if defined(_WIN32)
   u_long mode = 1;
   return ioctlsocket(fd, FIONBIO, &mode) == 0;
 #else

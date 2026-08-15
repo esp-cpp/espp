@@ -76,7 +76,7 @@ void Socket::Info::from_sockaddr(const struct sockaddr_in6 &source_address) {
 [[maybe_unused]] static bool _socket_initialized = false;
 Socket::Socket(sock_type_t socket_fd, const Logger::Config &logger_config)
     : BaseComponent(logger_config) {
-#ifdef _MSC_VER
+#ifdef _WIN32
   if (!_socket_initialized) {
     logger_.debug("Initializing Winsock");
     WSADATA wsa_data;
@@ -92,7 +92,7 @@ Socket::Socket(sock_type_t socket_fd, const Logger::Config &logger_config)
 
 Socket::Socket(Type type, const Logger::Config &logger_config)
     : BaseComponent(logger_config) {
-#ifdef _MSC_VER
+#ifdef _WIN32
   if (!_socket_initialized) {
     logger_.debug("Initializing Winsock");
     WSADATA wsa_data;
@@ -109,7 +109,7 @@ Socket::Socket(Type type, const Logger::Config &logger_config)
 Socket::~Socket() { cleanup(); }
 
 bool Socket::is_valid() const {
-#ifdef _MSC_VER
+#ifdef _WIN32
   return socket_ != INVALID_SOCKET;
 #else
   return socket_ >= 0;
@@ -117,7 +117,7 @@ bool Socket::is_valid() const {
 }
 
 bool Socket::is_valid_fd(sock_type_t socket_fd) {
-#ifdef _MSC_VER
+#ifdef _WIN32
   return socket_fd != INVALID_SOCKET;
 #else
   return socket_fd >= 0;
@@ -162,6 +162,51 @@ bool Socket::set_receive_timeout(const std::chrono::duration<float> &timeout) {
   return true;
 }
 
+bool Socket::set_option(int level, int option_name, const void *value, size_t size) {
+#if defined(_WIN32)
+  int err = setsockopt(socket_, level, option_name, reinterpret_cast<const char *>(value),
+                       static_cast<int>(size));
+#else
+  int err = setsockopt(socket_, level, option_name, value, static_cast<socklen_t>(size));
+#endif
+  if (err < 0) {
+    logger_.error("Couldn't set socket option (level={}, option={}): {}", level, option_name,
+                  error_string());
+    return false;
+  }
+  return true;
+}
+
+bool Socket::set_receive_buffer_size(size_t bytes) {
+  int value = static_cast<int>(bytes);
+  return set_option(SOL_SOCKET, SO_RCVBUF, value);
+}
+
+bool Socket::set_send_buffer_size(size_t bytes) {
+  int value = static_cast<int>(bytes);
+  return set_option(SOL_SOCKET, SO_SNDBUF, value);
+}
+
+bool Socket::set_reuse_address(bool enable) {
+  int value = enable ? 1 : 0;
+  return set_option(SOL_SOCKET, SO_REUSEADDR, value);
+}
+
+std::optional<size_t> Socket::get_receive_buffer_size() {
+  int value = 0;
+  socklen_t len = sizeof(value);
+#if defined(_WIN32)
+  int err = getsockopt(socket_, SOL_SOCKET, SO_RCVBUF, reinterpret_cast<char *>(&value), &len);
+#else
+  int err = getsockopt(socket_, SOL_SOCKET, SO_RCVBUF, &value, &len);
+#endif
+  if (err < 0) {
+    logger_.error("Couldn't get SO_RCVBUF: {}", error_string());
+    return {};
+  }
+  return static_cast<size_t>(value);
+}
+
 bool Socket::disable_reuse() {
 #if !CONFIG_LWIP_SO_REUSE && defined(ESP_PLATFORM)
   // reuse is not compiled into lwip, so it is already effectively disabled
@@ -175,14 +220,14 @@ bool Socket::disable_reuse() {
     fmt::print(fg(fmt::color::red), "Couldn't clear SO_REUSEADDR: {}\n", error_string());
     return false;
   }
-#if !defined(ESP_PLATFORM) && !defined(_MSC_VER)
+#if !defined(ESP_PLATFORM) && !defined(_WIN32)
   err = setsockopt(socket_, SOL_SOCKET, SO_REUSEPORT, reinterpret_cast<const char *>(&disabled),
                    sizeof(disabled));
   if (err < 0) {
     fmt::print(fg(fmt::color::red), "Couldn't clear SO_REUSEPORT: {}\n", error_string());
     return false;
   }
-#endif // !defined(ESP_PLATFORM) && !defined(_MSC_VER)
+#endif // !defined(ESP_PLATFORM) && !defined(_WIN32)
   return true;
 #endif // !CONFIG_LWIP_SO_REUSE && defined(ESP_PLATFORM)
 }
@@ -201,7 +246,7 @@ bool Socket::enable_reuse() {
     return false;
   }
 #if !defined(ESP_PLATFORM)
-#ifdef _MSC_VER
+#ifdef _WIN32
   // NOTE: according to stackoverflow, we have to set broadcast instead of reuseport
   err = setsockopt(socket_, SOL_SOCKET, SO_BROADCAST, reinterpret_cast<const char *>(&enabled),
                    sizeof(enabled));
@@ -216,7 +261,7 @@ bool Socket::enable_reuse() {
     fmt::print(fg(fmt::color::red), "Couldn't set SO_REUSEPORT: {}\n", error_string());
     return false;
   }
-#endif // _MSC_VER
+#endif // _WIN32
 #endif // !defined(ESP_PLATFORM)
   return true;
 #endif // !CONFIG_LWIP_SO_REUSE && defined(ESP_PLATFORM)
@@ -233,7 +278,7 @@ static bool resolve_interface_address(const std::string &interface_address, stru
 #endif
     return true;
   }
-#ifdef _MSC_VER
+#ifdef _WIN32
   return inet_pton(AF_INET, interface_address.c_str(), &out) == 1;
 #else
   return inet_aton(interface_address.c_str(), &out) == 1;
@@ -297,11 +342,11 @@ bool Socket::add_multicast_group(const std::string &multicast_group,
 #if defined(ESP_PLATFORM)
   err = inet_aton(multicast_group.c_str(), &imreq.imr_multiaddr.s_addr);
 #else
-#ifdef _MSC_VER
+#ifdef _WIN32
   err = inet_pton(AF_INET, multicast_group.c_str(), &imreq.imr_multiaddr);
 #else
   err = inet_aton(multicast_group.c_str(), &imreq.imr_multiaddr);
-#endif // _MSC_VER
+#endif // _WIN32
 #endif // defined(ESP_PLATFORM)
 
   if (err != 1 || !IN_MULTICAST(ntohl(imreq.imr_multiaddr.s_addr))) {
@@ -373,7 +418,7 @@ bool Socket::init(Socket::Type type) {
 }
 
 std::string Socket::error_string() const {
-#ifdef _MSC_VER
+#ifdef _WIN32
   int err = WSAGetLastError();
   return error_string(err);
 #else
@@ -382,7 +427,7 @@ std::string Socket::error_string() const {
 }
 
 std::string Socket::error_string(int err) const {
-#ifdef _MSC_VER
+#ifdef _WIN32
   if (err == WSAEWOULDBLOCK) {
     return "WSAEWOULDBLOCK";
   } else if (err == WSAECONNRESET) {
@@ -410,7 +455,7 @@ std::string Socket::error_string(int err) const {
 void Socket::cleanup() {
   if (is_valid()) {
     auto socket_fd = socket_;
-#ifdef _MSC_VER
+#ifdef _WIN32
     socket_ = INVALID_SOCKET;
     int status = shutdown(socket_fd, SD_BOTH);
     if (status != 0) {

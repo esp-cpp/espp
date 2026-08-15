@@ -2,9 +2,9 @@
 
 #include "socket_msvc.hpp"
 
-#ifndef _MSC_VER
+#ifndef _WIN32
 #include <netinet/tcp.h>
-#endif // _MSC_VER
+#endif // _WIN32
 
 #include <atomic>
 #include <optional>
