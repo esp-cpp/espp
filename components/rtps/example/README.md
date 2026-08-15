@@ -36,7 +36,7 @@ Under **RTPS Example Configuration**:
 | `RTPS_EXAMPLE_ANNOUNCE_PERIOD_MS` | Period of the outgoing publisher (default 1500 ms). |
 | `RTPS_EXAMPLE_SECOND_PARTICIPANT` | Additively bring up a second, self-testing participant that calls the device's own `/add_two_ints` + `/fibonacci` for a full on-device round-trip (default off; roughly doubles the RTPS engine RAM). |
 
-Under **RTPS (rtps)** you can also toggle the limits profile, dynamic
+Under **RTPS** you can also toggle the limits profile, dynamic
 storage, DATA_FRAG fragmentation, and the RPC (services + actions) layer.
 
 ### Build and Flash

@@ -1,6 +1,7 @@
 ## IDF Component Manager Manifest File
 license: "MIT"
 description: "RTPS / DDS component for ESP-IDF: ROS 2-interoperable pub/sub, services (RMI), and actions (AMI) over an embeddedRTPS engine with espp transport and task abstractions"
+documentation: "https://esp-cpp.github.io/espp/protocols/rtps.html"
 url: "https://github.com/esp-cpp/espp/tree/main/components/rtps"
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
