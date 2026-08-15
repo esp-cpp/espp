@@ -213,10 +213,12 @@ bool Socket::set_reuse_address(bool enable) {
 
 std::optional<size_t> Socket::get_receive_buffer_size() {
   int value = 0;
-  socklen_t len = sizeof(value);
 #if defined(_WIN32)
+  // Winsock's getsockopt takes the optlen as int*, not socklen_t*.
+  int len = sizeof(value);
   int err = getsockopt(socket_, SOL_SOCKET, SO_RCVBUF, reinterpret_cast<char *>(&value), &len);
 #else
+  socklen_t len = sizeof(value);
   int err = getsockopt(socket_, SOL_SOCKET, SO_RCVBUF, &value, &len);
 #endif
   if (err < 0) {

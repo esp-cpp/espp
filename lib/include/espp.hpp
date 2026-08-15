@@ -2,9 +2,10 @@
 
 #include "socket_win32.hpp"
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 // windows.h is a C++ header and must not be wrapped in extern "C"; only the C
-// header (wcswidth) needs it.
+// header (wcswidth) needs it. Guard on _WIN32 (not _MSC_VER) so MinGW / clang-cl
+// Windows builds also pull it in.
 #include <windows.h>
 extern "C" {
 // NOTE: needed for tabulate
