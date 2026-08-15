@@ -175,11 +175,7 @@ EsppTransport::Channel *EsppTransport::createChannel(Ip4Port_t receivePort, bool
     // large (fragmented) sample is not dropped before the reactor drains it.
     // Best-effort: some stacks clamp SO_RCVBUF, so failure is ignored. Only
     // compiled when fragmentation is enabled (never on the ESP32 default build).
-    {
-      int rcvbuf = 4 * 1024 * 1024; // request 4 MB (kernel may clamp)
-      ::setsockopt(channel.socket->native_handle(), SOL_SOCKET, SO_RCVBUF,
-                   reinterpret_cast<const char *>(&rcvbuf), sizeof(rcvbuf));
-    }
+    (void)channel.socket->set_receive_buffer_size(4 * 1024 * 1024); // request 4 MB (kernel may clamp)
 #endif
 
     if (!allow_reuse && !channel.socket->disable_reuse()) {
