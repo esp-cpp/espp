@@ -13,6 +13,11 @@ on:
     types: [published]
   workflow_dispatch:
 
+# Least-privilege default: these jobs only check out the repo and build/upload
+# artifacts, so read-only access to repository contents is sufficient.
+permissions:
+  contents: read
+
 # Supersede in-progress runs: a new commit on the same PR cancels the earlier,
 # now-stale build. Keyed by the workflow (so it never cross-cancels other
 # workflows) + the PR number, which is globally unique - unlike the head branch
