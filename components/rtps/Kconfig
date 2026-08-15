@@ -1,11 +1,11 @@
-menu "RTPS (rtps_embedded)"
+menu "RTPS"
 
     choice RTPS_LIMITS_PROFILE
         prompt "RTPS static limits profile"
         default RTPS_LIMITS_PROFILE_EMBEDDED
         help
             Selects the compile-time capacity limits (profile header) used by the
-            rtps_embedded engine. Only the capacity caps differ between profiles.
+            rtps engine. Only the capacity caps differ between profiles.
             The storage MODEL (static vs dynamic) is a separate knob
             (RTPS_STORAGE_DYNAMIC below) and defaults to fully-static on ESP for
             every profile - selecting a relaxed profile does NOT enable heap

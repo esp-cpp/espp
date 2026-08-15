@@ -7,12 +7,11 @@ permissions:
 on:
   pull_request:
     paths:
-      - "components/rtps_embedded/**"
       - "components/rtps/**"
       - "components/socket/**"
       - "components/cdr/**"
       - "lib/espp.cmake"
-      - "pc/tests/rtps_embedded_*"
+      - "pc/tests/rtps_*"
       - ".github/workflows/rtps_interop.yml"
   workflow_dispatch:
 
@@ -36,5 +35,5 @@ jobs:
           submodules: "recursive"
       - name: Run interop matrix
         run: |
-          cd components/rtps_embedded/interop
+          cd components/rtps/interop
           ./run.sh

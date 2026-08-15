@@ -119,7 +119,9 @@ int main() {
   uint8_t status2 = 0;
   uint32_t handle2 = 0;
   action->send_goal(
-      encode_i32(1000), // long enough (1000 * 80ms) that it can't finish before cancel
+      encode_i32(100), // bounded (100 * 80ms = 8s) so a lost cancel can't block stop()'s join;
+                       // the client waits for the first feedback before canceling, so cancel
+                       // lands mid-flight (the goal exits within ~80ms of the flag being set)
       [&](std::span<const uint8_t> fb) {
         std::lock_guard<std::mutex> lk(m2);
         if (fb.size() >= 8)

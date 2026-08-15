@@ -1,5 +1,5 @@
 // Hand-written pybind11 bindings for espp::RtpsParticipant (the facade over the
-// embeddedRTPS engine in components/rtps_embedded — see its REFACTOR_PLAN.md).
+// embeddedRTPS engine in components/rtps — see its REFACTOR_PLAN.md).
 //
 // Why hand-written (like cdr): the participant exposes std::function callbacks
 // taking std::span<const uint8_t> (no pybind caster) and is invoked from engine

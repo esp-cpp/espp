@@ -1,6 +1,6 @@
 // Unit test for ROS 2 service name/type mangling (rtps::rpc). The expected
 // strings are taken verbatim from a live rmw_fastrtps (ROS 2 Jazzy) AddTwoInts
-// capture (see components/rtps_embedded/RMI_AMI_DESIGN.md 3.1/3.2). Header-only,
+// capture (see components/rtps/RMI_AMI_DESIGN.md 3.1/3.2). Header-only,
 // no engine/runtime needed.
 
 #include <cstdio>

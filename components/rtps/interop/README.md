@@ -6,7 +6,7 @@ this matrix green.
 ## Run
 
 ```bash
-cd components/rtps_embedded/interop
+cd components/rtps/interop
 ./run.sh
 ```
 
@@ -20,7 +20,7 @@ before building, so your host `lib/pc` artifacts are never touched.
 | test | what it proves |
 |---|---|
 | build | the engine + espp lib build on linux |
-| golden | wire-format bytes unchanged (see `pc/tests/rtps_embedded_golden.cpp`) |
+| golden | wire-format bytes unchanged (see `pc/tests/rtps_golden.cpp`) |
 | loopback | espp<->espp discovery + delivery in one process |
 | espp_pub->ros2_echo | espp reliable writer -> ROS 2 subscriber (`rt/chatter`, `std_msgs::msg::dds_::String_`) |
 | ros2_pub->espp_sub | ROS 2 publisher -> espp reliable reader |

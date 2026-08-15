@@ -30,7 +30,7 @@ This file is part of embeddedRTPS.
 //  - raw byte arrays written/read without alignment,
 //  - fixed caller-owned buffers (span_sink), no heap.
 // Used for the SPDP/SEDP PL_CDR discovery parameter lists; the byte-identity
-// of the output is frozen by pc/tests/rtps_embedded_golden.cpp.
+// of the output is frozen by pc/tests/rtps_golden.cpp.
 
 #include <algorithm>
 #include <cstdint>

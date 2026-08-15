@@ -4,7 +4,7 @@
 // byte-exact against the deterministic pattern that was published.
 //
 // This is the docker-free proof of Slice C's send-split + reassembly path
-// (components/rtps_embedded/REFACTOR_PLAN.md). The engine transports the raw
+// (components/rtps/REFACTOR_PLAN.md). The engine transports the raw
 // payload bytes unchanged, so we publish an arbitrary 200 KB byte ramp (well
 // above the ~64 KB single-DATA limit) and assert the subscriber receives the
 // identical bytes.

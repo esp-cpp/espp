@@ -1,6 +1,6 @@
-// Host loopback pub/sub test for the embeddedRTPS engine (components/rtps_embedded).
+// Host loopback pub/sub test for the embeddedRTPS engine (components/rtps).
 //
-// Phase 0a of components/rtps_embedded/REFACTOR_PLAN.md: establish a host-buildable,
+// Phase 0a of components/rtps/REFACTOR_PLAN.md: establish a host-buildable,
 // runnable baseline of the engine BEFORE any refactoring, so every later phase can be
 // checked against it. Two participants in one Domain discover each other via SPDP/SEDP
 // and exchange CDR string samples (best-effort both ends; see the pool-sizing
