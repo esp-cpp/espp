@@ -10,8 +10,20 @@ on:
       - '!**/idf_component.yml'
       - '!**/README.md'
 
+# Supersede in-progress runs: a new commit on the same PR cancels the earlier,
+# now-stale build. Keyed by the workflow (so it never cross-cancels other
+# workflows) + the PR number, which is globally unique - unlike the head branch
+# name, two fork PRs can't collide on it. Falls back to github.ref otherwise.
+# cancel-in-progress is gated to pull_request events only so that push-to-main
+# runs are never cancelled (distinct refs also get distinct groups anyway).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build:
+    # Skip build CI for draft PRs; still runs on push-to-main and non-draft PRs.
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
 
     runs-on: ubuntu-latest
     continue-on-error: true

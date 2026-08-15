@@ -9,8 +9,20 @@ on:
     types: [published]
   workflow_dispatch:
 
+# Supersede in-progress runs: a new commit on the same PR cancels the earlier,
+# now-stale build. Keyed by the workflow (so it never cross-cancels other
+# workflows) + the PR number, which is globally unique - unlike the head branch
+# name, two fork PRs can't collide on it. Falls back to github.ref otherwise.
+# cancel-in-progress is gated to pull_request events only so that push-to-main
+# (and release) runs are never cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build_windows:
+    # Skip build CI for draft PRs; still runs on push-to-main and non-draft PRs.
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
 
     runs-on: windows-latest
     continue-on-error: false
@@ -42,6 +54,8 @@ jobs:
         path: lib/pc
 
   build_linux:
+    # Skip build CI for draft PRs; still runs on push-to-main and non-draft PRs.
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
 
     runs-on: ubuntu-latest
     continue-on-error: false
@@ -70,6 +84,8 @@ jobs:
         path: lib/pc
 
   build_macos:
+    # Skip build CI for draft PRs; still runs on push-to-main and non-draft PRs.
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
 
     runs-on: macos-latest
     continue-on-error: false
