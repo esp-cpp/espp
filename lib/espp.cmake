@@ -222,10 +222,19 @@ function(espp_install_cmake_package TARGET_NAME)
           RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
           INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
-  # Install the public headers the library exposes, merged flat into
-  # <prefix>/include (mirrors the historical lib/pc/include layout, so the same
-  # quote-includes such as "logger.hpp" / "magic_enum.hpp" resolve). A trailing
-  # slash on the source installs the directory CONTENTS.
+  # Install the public headers flat into <prefix>/include so every quote-include
+  # espp uses resolves against a single -I<prefix>/include. All three lists are
+  # already on the build include path, and their headers are referenced flat
+  # relative to those roots, so installing each dir's CONTENTS (the trailing
+  # slash) yields the exact layout consumers compile against:
+  #  - ESPP_INCLUDES / ESPP_EXTERNAL_INCLUDES: ".../include" dirs -> "logger.hpp".
+  #  - ESPP_EXTERNAL_INCLUDES_SEPARATE: dirs NOT named "include" but still on the
+  #    -I path, referenced flat -> "magic_enum.hpp", "hid/...", "sized_unsigned.hpp".
+  # This intentionally differs from the old lib/pc helper (which preserved the
+  # SEPARATE dir names under include/): that only worked because the pc build also
+  # had the source dirs on its -I path; a pure find_package consumer needs flat.
+  # Verified by building a find_package consumer that includes both a regular and
+  # a SEPARATE header.
   foreach(_inc IN LISTS ESPP_INCLUDES ESPP_EXTERNAL_INCLUDES ESPP_EXTERNAL_INCLUDES_SEPARATE)
     install(DIRECTORY ${_inc}/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
   endforeach()

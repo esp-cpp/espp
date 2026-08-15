@@ -49,7 +49,7 @@ PyPI](https://pypi.org/project/espp/) (see
 pip install espp
 ```
 
-You can also install straight from git (requires CMake >= 3.20 and a C++20
+You can also install straight from git (requires CMake >= 3.21 and a C++23
 compiler; pip clones the needed submodules automatically):
 
 ``` console
