@@ -22,7 +22,7 @@
 
 #include "cdr.hpp"
 #include "ping.hpp"
-#include "rtps.hpp"
+#include "rtps_participant.hpp"
 
 #include "esp32-p4-function-ev-board.hpp"
 
@@ -30,11 +30,6 @@
 
 using namespace std::chrono_literals;
 using Board = espp::Esp32P4FunctionEvBoard;
-
-// Address of the most recently discovered RTPS peer (filled by the participant's
-// on_participant_discovered callback, read by the ping self-test).
-static std::mutex g_peer_mutex;
-static std::string g_peer_addr;
 
 static std::vector<uint8_t> audio_bytes;
 
@@ -363,10 +358,8 @@ extern "C" void app_main(void) {
     logger.info("BOOT button not initialized (shared with Ethernet RMII TXD1 pin)");
   }
 
-  // Connectivity self-test: once we have an IP (and a moment for RTPS discovery),
-  // ping the gateway and the discovered peer once, then stop. This makes it easy
-  // to tell board-vs-network problems apart (e.g. gateway reachable but peer not
-  // => client isolation / L2 reachability problem, not the board).
+  // Connectivity self-test: once we have an IP, ping the gateway once, then stop.
+  // This makes it easy to tell board-vs-network problems apart.
   espp::Task ping_task(
       espp::Task::Config{.callback = [&logger](std::mutex &m, std::condition_variable &cv) -> bool {
                            if (!have_ip) {
@@ -374,7 +367,7 @@ extern "C" void app_main(void) {
                              cv.wait_for(lk, 250ms);
                              return false; // keep waiting for an IP
                            }
-                           // give RTPS discovery a few seconds to find the peer
+                           // let the link settle for a few seconds before pinging
                            {
                              std::unique_lock<std::mutex> lk(m);
                              cv.wait_for(lk, 4s);
@@ -387,16 +380,6 @@ extern "C" void app_main(void) {
                            char gw[16] = {0};
                            esp_ip4addr_ntoa(&ip_info.gw, gw, sizeof(gw));
                            ping_target(logger, "gateway", gw);
-                           std::string peer;
-                           {
-                             std::lock_guard<std::mutex> lk(g_peer_mutex);
-                             peer = g_peer_addr;
-                           }
-                           if (!peer.empty()) {
-                             ping_target(logger, "peer", peer);
-                           } else {
-                             logger.warn("Ping self-test: no RTPS peer discovered yet to ping");
-                           }
                            logger.info("=== Connectivity self-test done ===");
                            return true; // one-shot
                          },
@@ -426,29 +409,19 @@ extern "C" void app_main(void) {
       std::string address = ip_str;
       logger.info("Got IP {}, starting RTPS participant", address);
       participant = std::make_shared<espp::RtpsParticipant>(espp::RtpsParticipant::Config{
-          .node_name = "espp_publisher",
-          .participant_id = 10,
-          .advertised_address = address,
-          .announce_period = 500ms,
-          .on_participant_discovered =
-              [&logger](const auto &p) {
-                {
-                  std::lock_guard<std::mutex> lk(g_peer_mutex);
-                  if (g_peer_addr.empty()) {
-                    g_peer_addr = p.address;
-                  }
-                }
-                logger.info("discovered participant at {}", p.address);
-              },
-          .on_endpoint_discovered =
-              [&logger](const auto &endpoint) {
-                logger.info("discovered {} '{}'", endpoint.is_reader ? "reader" : "writer",
-                            endpoint.topic_name);
+          .interface_address = address,
+          // A remote reader (e.g. a ROS 2 subscriber) matched our writer: we now
+          // have a peer to publish to. The facade signals matches through this
+          // callback (it runs on an engine worker thread).
+          .on_publisher_matched =
+              [&logger]() {
+                rtps_has_peers = true;
+                logger.info("RTPS writer matched a remote reader");
               },
           .log_level = espp::Logger::Verbosity::DEBUG,
       });
       participant->add_writer({
-          .topic_name = topic,
+          .topic = topic,
           .type_name = rtps_type,
       });
       if (!participant->start()) {
@@ -460,6 +433,7 @@ extern "C" void app_main(void) {
     } else if (did_have_ip && !have_ip) {
       logger.warn("Lost IP, stopping RTPS participant");
       participant.reset();
+      rtps_has_peers = false;
       did_have_ip = false;
     }
     rtps_running = (participant != nullptr);
@@ -467,8 +441,7 @@ extern "C" void app_main(void) {
     // Publish the next counter value at 2 Hz (independent of the status refresh).
     // Only publish if there is a discovered peer (otherwise the publish() call will return false).
     bool publish_period_elapsed = (now_us - last_publish_us) >= publish_period_us;
-    bool can_publish =
-        participant && !participant->discovered_participants().empty() && publish_period_elapsed;
+    bool can_publish = participant && rtps_has_peers.load() && publish_period_elapsed;
     if (can_publish) {
       last_publish_us = now_us;
       published = participant->publish(topic, serialize_uint32(value));
@@ -480,9 +453,9 @@ extern "C" void app_main(void) {
       }
     }
 
-    // Publish the RTPS counter/peer state for the status task to render.
+    // Publish the RTPS counter value for the status task to render (peer state
+    // is driven by on_publisher_matched above).
     rtps_value = value;
-    rtps_has_peers = published;
 
     // Stream any active playback to the speaker in chunks, advancing by
     // however much the stream buffer accepted
