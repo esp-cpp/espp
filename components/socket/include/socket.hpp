@@ -1,11 +1,11 @@
 #pragma once
 
-#include "socket_win32.hpp"
+#include "socket_msvc.hpp"
 
 #ifdef _WIN32
 /* Windows SOCKET is UINT_PTR (pointer-sized on 64-bit); use the real type so
  * handles aren't truncated. SOCKET comes from <winsock2.h>, included above via
- * socket_win32.hpp. */
+ * socket_msvc.hpp. */
 typedef SOCKET sock_type_t;
 #else
 /* Assume that any non-Windows platform uses POSIX-style sockets instead. */
