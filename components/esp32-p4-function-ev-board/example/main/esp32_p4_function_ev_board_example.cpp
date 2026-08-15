@@ -395,7 +395,6 @@ extern "C" void app_main(void) {
   const std::string topic = "espp/test/counter";
   const std::string rtps_type = "std_msgs::msg::dds_::UInt32_";
   uint32_t value = 0;
-  bool published = false;
   static constexpr auto loop_tick = 20ms; // RTPS loop tick
   static constexpr int64_t publish_period_us = 50'000'000;
   int64_t last_publish_us = 0;
@@ -444,7 +443,7 @@ extern "C" void app_main(void) {
     bool can_publish = participant && rtps_has_peers.load() && publish_period_elapsed;
     if (can_publish) {
       last_publish_us = now_us;
-      published = participant->publish(topic, serialize_uint32(value));
+      bool published = participant->publish(topic, serialize_uint32(value));
       if (published) {
         logger.info("published {}", value);
         ++value;
