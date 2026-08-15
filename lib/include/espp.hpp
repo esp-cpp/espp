@@ -1,6 +1,6 @@
 #pragma once
 
-#include "socket_msvc.hpp"
+#include "socket_win32.hpp"
 
 #ifdef _MSC_VER
 // windows.h is a C++ header and must not be wrapped in extern "C"; only the C

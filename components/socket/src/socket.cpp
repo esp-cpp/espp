@@ -1,5 +1,8 @@
 #include "socket.hpp"
 
+#include <climits>
+#include <mutex>
+
 using namespace espp;
 
 void Socket::Info::init_ipv4(const std::string &addr, size_t prt) {
@@ -73,19 +76,26 @@ void Socket::Info::from_sockaddr(const struct sockaddr_in6 &source_address) {
 }
 #endif // !defined(ESP_PLATFORM) || LWIP_IPV6
 
-[[maybe_unused]] static bool _socket_initialized = false;
-Socket::Socket(sock_type_t socket_fd, const Logger::Config &logger_config)
-    : BaseComponent(logger_config) {
 #ifdef _WIN32
-  if (!_socket_initialized) {
+// Ensure Winsock is initialized exactly once, even if multiple Sockets are
+// constructed concurrently (std::call_once serializes the check-then-act).
+void Socket::initialize_winsock() {
+  static std::once_flag winsock_once;
+  std::call_once(winsock_once, [this]() {
     logger_.debug("Initializing Winsock");
     WSADATA wsa_data;
     int err = WSAStartup(MAKEWORD(1, 1), &wsa_data);
     if (err != 0) {
       logger_.error("WSAStartup failed: {}", error_string(err));
     }
-    _socket_initialized = true;
-  }
+  });
+}
+#endif
+
+Socket::Socket(sock_type_t socket_fd, const Logger::Config &logger_config)
+    : BaseComponent(logger_config) {
+#ifdef _WIN32
+  initialize_winsock();
 #endif
   socket_ = socket_fd;
 }
@@ -93,15 +103,7 @@ Socket::Socket(sock_type_t socket_fd, const Logger::Config &logger_config)
 Socket::Socket(Type type, const Logger::Config &logger_config)
     : BaseComponent(logger_config) {
 #ifdef _WIN32
-  if (!_socket_initialized) {
-    logger_.debug("Initializing Winsock");
-    WSADATA wsa_data;
-    int err = WSAStartup(MAKEWORD(1, 1), &wsa_data);
-    if (err != 0) {
-      logger_.error("WSAStartup failed: {}", error_string(err));
-    }
-    _socket_initialized = true;
-  }
+  initialize_winsock();
 #endif
   init(type);
 }
@@ -163,6 +165,13 @@ bool Socket::set_receive_timeout(const std::chrono::duration<float> &timeout) {
 }
 
 bool Socket::set_option(int level, int option_name, const void *value, size_t size) {
+  // setsockopt's optlen is a signed int (Windows) / socklen_t; guard against a
+  // size_t that would narrow/overflow when cast.
+  if (size > static_cast<size_t>(INT_MAX)) {
+    logger_.error("set_option size too large (level={}, option={}): {} > {}", level, option_name,
+                  size, INT_MAX);
+    return false;
+  }
 #if defined(_WIN32)
   int err = setsockopt(socket_, level, option_name, reinterpret_cast<const char *>(value),
                        static_cast<int>(size));
@@ -178,11 +187,21 @@ bool Socket::set_option(int level, int option_name, const void *value, size_t si
 }
 
 bool Socket::set_receive_buffer_size(size_t bytes) {
+  // SO_RCVBUF takes an int; reject values that would overflow the cast.
+  if (bytes > static_cast<size_t>(INT_MAX)) {
+    logger_.error("set_receive_buffer_size too large: {} > {}", bytes, INT_MAX);
+    return false;
+  }
   int value = static_cast<int>(bytes);
   return set_option(SOL_SOCKET, SO_RCVBUF, value);
 }
 
 bool Socket::set_send_buffer_size(size_t bytes) {
+  // SO_SNDBUF takes an int; reject values that would overflow the cast.
+  if (bytes > static_cast<size_t>(INT_MAX)) {
+    logger_.error("set_send_buffer_size too large: {} > {}", bytes, INT_MAX);
+    return false;
+  }
   int value = static_cast<int>(bytes);
   return set_option(SOL_SOCKET, SO_SNDBUF, value);
 }

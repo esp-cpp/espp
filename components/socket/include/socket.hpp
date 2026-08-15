@@ -1,9 +1,12 @@
 #pragma once
 
-#include "socket_msvc.hpp"
+#include "socket_win32.hpp"
 
 #ifdef _WIN32
-typedef unsigned int sock_type_t;
+/* Windows SOCKET is UINT_PTR (pointer-sized on 64-bit); use the real type so
+ * handles aren't truncated. SOCKET comes from <winsock2.h>, included above via
+ * socket_win32.hpp. */
+typedef SOCKET sock_type_t;
 #else
 /* Assume that any non-Windows platform uses POSIX-style sockets instead. */
 #include <arpa/inet.h>
@@ -18,6 +21,7 @@ typedef int sock_type_t;
 #include <functional>
 #include <optional>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include <math.h>
@@ -198,6 +202,9 @@ public:
    * @return true if setsockopt() succeeded, false otherwise (logs on failure).
    */
   template <typename T> bool set_option(int level, int option_name, const T &value) {
+    static_assert(std::is_trivially_copyable_v<T>,
+                  "set_option forwards the raw object bytes to setsockopt(); T must be "
+                  "trivially copyable");
     return set_option(level, option_name, &value, sizeof(value));
   }
 
@@ -318,6 +325,15 @@ protected:
    *  @brief If the socket was created, we shut it down and close it here.
    */
   void cleanup();
+
+#ifdef _WIN32
+  /**
+   * @brief Initialize Winsock (WSAStartup) exactly once for the process.
+   * @note Thread-safe: uses std::call_once so concurrent Socket construction
+   *       cannot race the one-time initialization.
+   */
+  void initialize_winsock();
+#endif
 
   static constexpr int address_family_{AF_INET};
   static constexpr int ip_protocol_{IPPROTO_IP};
