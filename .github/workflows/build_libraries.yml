@@ -3,14 +3,37 @@ name: Build Host C++ / Python Libraries
 on:
   pull_request:
     branches: [main]
+    # ready_for_review is included so that marking a draft PR "Ready for
+    # review" triggers a build (the draft guard below skips draft PRs);
+    # it is not in GitHub's default set (opened/synchronize/reopened).
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main]
   release:
     types: [published]
   workflow_dispatch:
 
+# Least-privilege default: these jobs only check out the repo and build/upload
+# artifacts, so read-only access to repository contents is sufficient.
+permissions:
+  contents: read
+
+# Supersede in-progress runs: a new commit on the same PR cancels the earlier,
+# now-stale build. Keyed by the workflow (so it never cross-cancels other
+# workflows) + the PR number, which is globally unique - unlike the head branch
+# name, two fork PRs can't collide on it. For non-PR events (push, release) we
+# fall back to github.run_id, which is unique per run, so those runs each get
+# their own group and never serialize or cancel each other.
+# cancel-in-progress is gated to pull_request events only so that push-to-main
+# (and release) runs are never cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build_windows:
+    # Skip build CI for draft PRs; still runs on push-to-main and non-draft PRs.
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
 
     runs-on: windows-latest
     continue-on-error: false
@@ -42,6 +65,8 @@ jobs:
         path: lib/pc
 
   build_linux:
+    # Skip build CI for draft PRs; still runs on push-to-main and non-draft PRs.
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
 
     runs-on: ubuntu-latest
     continue-on-error: false
@@ -70,6 +95,8 @@ jobs:
         path: lib/pc
 
   build_macos:
+    # Skip build CI for draft PRs; still runs on push-to-main and non-draft PRs.
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
 
     runs-on: macos-latest
     continue-on-error: false
