@@ -55,8 +55,20 @@ option(ESPP_BUILD_PYTHON "Build the espp Python bindings module (_espp)" OFF)
 # `cmake --install` does not drag espp into the parent's prefix unless asked.
 option(ESPP_INSTALL "Install espp as a find_package-able package (standard install/export under CMAKE_INSTALL_PREFIX)" ${PROJECT_IS_TOP_LEVEL})
 
+# `SKBUILD` is set for ANY scikit-build-core configure in the tree - including
+# when a DOWNSTREAM scikit-build-core project pulls espp in via FetchContent. In
+# that case espp is not the top-level project and must still build the normal C++
+# static library + the advertised `espp::espp` target, NOT just the `_espp` wheel
+# module. So the wheel-only path is taken only when espp itself is the top-level
+# scikit-build project (i.e. `pip wheel .` of espp).
+if(SKBUILD AND PROJECT_IS_TOP_LEVEL)
+  set(ESPP_WHEEL_BUILD ON)
+else()
+  set(ESPP_WHEEL_BUILD OFF)
+endif()
+
 # Report what this configure will actually build (Python is opt-in).
-if(SKBUILD OR ESPP_BUILD_PYTHON)
+if(ESPP_WHEEL_BUILD OR ESPP_BUILD_PYTHON)
   message(STATUS "Building espp for PC: C++ static library + Python bindings (_espp)")
 else()
   message(STATUS "Building espp for PC: C++ static library only (set -DESPP_BUILD_PYTHON=ON for Python bindings)")
@@ -66,7 +78,7 @@ endif()
 # python wheels via pip / scikit-build-core); fall back to fetching it with CPM
 # for standalone CMake builds (e.g. ./build.sh). Only needed when the python
 # bindings are actually being built.
-if(SKBUILD OR ESPP_BUILD_PYTHON)
+if(ESPP_WHEEL_BUILD OR ESPP_BUILD_PYTHON)
   find_package(pybind11 CONFIG QUIET)
   if(NOT pybind11_FOUND)
     include(cmake/CPM.cmake)
@@ -100,7 +112,7 @@ endif()
 # is a no-op on the static archive itself (ar ignores link flags), so it does
 # not belong here.
 
-if(SKBUILD)
+if(ESPP_WHEEL_BUILD)
   # Building a python wheel via scikit-build-core (pip install). Only build the
   # espp._espp extension module and install it into the `espp` package; the
   # pure-python package files come from lib/python_bindings/espp via the
