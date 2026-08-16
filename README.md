@@ -137,16 +137,27 @@ only need to do one of them; they are not steps to be run one after another.**
     ```
 
   Or pull it into your CMake build directly — no install step — with
-  FetchContent (or [CPM](https://github.com/cpm-cmake/CPM.cmake)), which exposes
-  the same `espp::espp` target:
+  FetchContent or [CPM](https://github.com/cpm-cmake/CPM.cmake), which expose the
+  same `espp::espp` target (both recurse espp's vendored submodules for you):
 
     ```cmake
+    # FetchContent
     include(FetchContent)
     FetchContent_Declare(espp
       GIT_REPOSITORY https://github.com/esp-cpp/espp.git
       GIT_TAG main
       SOURCE_SUBDIR lib)   # the cross-platform C++ library lives in lib/
     FetchContent_MakeAvailable(espp)
+    target_link_libraries(my_app PRIVATE espp::espp)
+    ```
+
+    ```cmake
+    # CPM  (https://github.com/cpm-cmake/CPM.cmake)
+    CPMAddPackage(
+      NAME espp
+      GITHUB_REPOSITORY esp-cpp/espp
+      GIT_TAG main
+      SOURCE_SUBDIR lib)   # the cross-platform C++ library lives in lib/
     target_link_libraries(my_app PRIVATE espp::espp)
     ```
 

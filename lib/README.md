@@ -129,12 +129,23 @@ third-party submodules (fmt, magic_enum, alpaca, cli, csv2, hid-rp, cdr, ...)
 for you, so no extra submodule step is needed:
 
 ``` cmake
+# FetchContent
 include(FetchContent)
 FetchContent_Declare(espp
   GIT_REPOSITORY https://github.com/esp-cpp/espp.git
   GIT_TAG main
   SOURCE_SUBDIR lib)          # the C++ library lives in lib/
 FetchContent_MakeAvailable(espp)
+target_link_libraries(my_app PRIVATE espp::espp)
+```
+
+``` cmake
+# CPM (https://github.com/cpm-cmake/CPM.cmake); after include(cmake/CPM.cmake)
+CPMAddPackage(
+  NAME espp
+  GITHUB_REPOSITORY esp-cpp/espp
+  GIT_TAG main
+  SOURCE_SUBDIR lib)          # the C++ library lives in lib/
 target_link_libraries(my_app PRIVATE espp::espp)
 ```
 
