@@ -24,19 +24,20 @@ set(RTPS_LIMITS_PROFILE "${RTPS_LIMITS_PROFILE}" CACHE STRING
 set_property(CACHE RTPS_LIMITS_PROFILE PROPERTY STRINGS embedded host host_large)
 
 if(RTPS_LIMITS_PROFILE STREQUAL "embedded")
-  add_compile_definitions(RTPS_CONFIG_HEADER="rtps/config_esp32.hpp")
+  set(RTPS_CONFIG_HEADER_FILE "rtps/config_esp32.hpp")
   set(RTPS_MAX_SAMPLE_SIZE 262144)   # 256 KB (matches config_esp32.hpp)
 elseif(RTPS_LIMITS_PROFILE STREQUAL "host")
-  add_compile_definitions(RTPS_CONFIG_HEADER="rtps/config_desktop.hpp")
+  set(RTPS_CONFIG_HEADER_FILE "rtps/config_desktop.hpp")
   set(RTPS_MAX_SAMPLE_SIZE 8388608)  # 8 MB (matches config_desktop.hpp)
 elseif(RTPS_LIMITS_PROFILE STREQUAL "host_large")
-  add_compile_definitions(RTPS_CONFIG_HEADER="rtps/config_host_large.hpp")
+  set(RTPS_CONFIG_HEADER_FILE "rtps/config_host_large.hpp")
   set(RTPS_MAX_SAMPLE_SIZE 8388608)  # 8 MB (matches config_host_large.hpp)
 else()
   message(FATAL_ERROR
     "Invalid RTPS_LIMITS_PROFILE '${RTPS_LIMITS_PROFILE}' "
     "(expected: embedded | host | host_large)")
 endif()
+add_compile_definitions(RTPS_CONFIG_HEADER="${RTPS_CONFIG_HEADER_FILE}")
 message(STATUS "RTPS limits profile: ${RTPS_LIMITS_PROFILE}")
 
 # ---------------------------------------------------------------------------
@@ -52,6 +53,18 @@ message(STATUS "RTPS limits profile: ${RTPS_LIMITS_PROFILE}")
 # ---------------------------------------------------------------------------
 add_compile_definitions(RTPS_ENABLE_FRAGMENTATION RTPS_MAX_SAMPLE_SIZE=${RTPS_MAX_SAMPLE_SIZE})
 message(STATUS "RTPS fragmentation: ON (max sample size ${RTPS_MAX_SAMPLE_SIZE} bytes)")
+
+# The RTPS static-limits + fragmentation config is compiled into libespp_pc.a AND
+# is part of the public ABI: any consumer that compiles rtps headers (templates /
+# inline code) must use the SAME profile, else it sees a different Config and a
+# different set of guarded declarations (e.g. addSubMessageDataFrag). Expose them
+# as PUBLIC compile definitions on the exported target (see lib/CMakeLists.txt) so
+# find_package(espp) consumers inherit them automatically. The above
+# add_compile_definitions still covers the in-tree python module / SKBUILD build.
+set(ESPP_RTPS_COMPILE_DEFINITIONS
+  RTPS_CONFIG_HEADER="${RTPS_CONFIG_HEADER_FILE}"
+  RTPS_ENABLE_FRAGMENTATION
+  RTPS_MAX_SAMPLE_SIZE=${RTPS_MAX_SAMPLE_SIZE})
 
 set(ESPP_EXTERNAL_INCLUDES
   ${ESPP_COMPONENTS}/serialization/detail/alpaca/include
@@ -184,12 +197,65 @@ set(ESPP_PYTHON_SOURCES
   ${ESPP_SOURCES}
 )
 
-# make an espp_install_includes command that can be used by other scripts, where
-# they just need to specify the folder they want to install into
-function(espp_install_includes FOLDER)
-  install(DIRECTORY ${ESPP_INCLUDES} DESTINATION ${FOLDER}/)
-  install(DIRECTORY ${ESPP_EXTERNAL_INCLUDES} DESTINATION ${FOLDER}/)
-  install(DIRECTORY ${ESPP_EXTERNAL_INCLUDES_SEPARATE} DESTINATION ${FOLDER}/include/)
+# make an espp_install_cmake_package command that gives the C++ library target a
+# proper install + export so a separate project can `find_package(espp)` and link
+# `espp::espp`. Installs into GNUInstallDirs under CMAKE_INSTALL_PREFIX:
+#   <prefix>/lib/libespp_pc.a
+#   <prefix>/include/...                (all component + vendored headers, flat)
+#   <prefix>/lib/cmake/espp/esppTargets.cmake, esppConfig.cmake, ...Version.cmake
+#
+# All third-party deps (reflect-cpp, magic_enum, tabulate, fmt, alpaca, cli,
+# csv2, hid-rp, cdr) are VENDORED: their headers are installed under
+# <prefix>/include and their objects are compiled into libespp_pc.a, so a
+# consumer needs no extra find_package for them. The only non-bundled PUBLIC
+# dependency is the system threads library (handled via find_dependency(Threads)
+# in esppConfig.cmake.in; on Windows the ws2_32/winmm/iphlpapi system libs
+# resolve automatically).
+function(espp_install_cmake_package TARGET_NAME)
+  include(GNUInstallDirs)
+  include(CMakePackageConfigHelpers)
+
+  install(TARGETS ${TARGET_NAME}
+          EXPORT esppTargets
+          ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+          LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+          RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+          INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+  # Install the public headers flat into <prefix>/include so every quote-include
+  # espp uses resolves against a single -I<prefix>/include. All three lists are
+  # already on the build include path, and their headers are referenced flat
+  # relative to those roots, so installing each dir's CONTENTS (the trailing
+  # slash) yields the exact layout consumers compile against:
+  #  - ESPP_INCLUDES / ESPP_EXTERNAL_INCLUDES: ".../include" dirs -> "logger.hpp".
+  #  - ESPP_EXTERNAL_INCLUDES_SEPARATE: dirs NOT named "include" but still on the
+  #    -I path, referenced flat -> "magic_enum.hpp", "hid/...", "sized_unsigned.hpp".
+  # This intentionally differs from the old lib/pc helper (which preserved the
+  # SEPARATE dir names under include/): that only worked because the pc build also
+  # had the source dirs on its -I path; a pure find_package consumer needs flat.
+  # Verified by building a find_package consumer that includes both a regular and
+  # a SEPARATE header.
+  foreach(_inc IN LISTS ESPP_INCLUDES ESPP_EXTERNAL_INCLUDES ESPP_EXTERNAL_INCLUDES_SEPARATE)
+    install(DIRECTORY ${_inc}/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+  endforeach()
+
+  install(EXPORT esppTargets
+          NAMESPACE espp::
+          DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/espp
+          FILE esppTargets.cmake)
+
+  configure_package_config_file(
+    ${CMAKE_CURRENT_LIST_DIR}/cmake/esppConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/esppConfig.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/espp)
+  write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/esppConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion)
+  install(FILES
+          ${CMAKE_CURRENT_BINARY_DIR}/esppConfig.cmake
+          ${CMAKE_CURRENT_BINARY_DIR}/esppConfigVersion.cmake
+          DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/espp)
 endfunction()
 
 # make an espp_add_python_module command that defines the `_espp` pybind11
@@ -213,17 +279,18 @@ function(espp_add_python_module)
   endif()
 endfunction()
 
-# make an espp_install_python_module command that can be used by other scripts,
-# where they just need to specify the folder they want to install into. This
-# installs the full `espp` python package (pure-python files + the compiled
-# `_espp` extension) into FOLDER/espp so FOLDER can be put on sys.path.
-function(espp_install_python_module FOLDER)
+# make an espp_install_python_module command that installs the full `espp` python
+# package (pure-python files + the compiled `_espp` extension) into the standard
+# install prefix as <prefix>/espp, so CMAKE_INSTALL_PREFIX can be put on sys.path
+# / PYTHONPATH to `import espp`. Relative DESTINATIONs are interpreted against
+# CMAKE_INSTALL_PREFIX.
+function(espp_install_python_module)
   espp_add_python_module()
   install(DIRECTORY ${ESPP_PYTHON_BINDINGS_DIR}/espp
-    DESTINATION ${FOLDER}/
+    DESTINATION .
     PATTERN "__pycache__" EXCLUDE
     PATTERN ".mypy_cache" EXCLUDE)
   install(TARGETS _espp
-    LIBRARY DESTINATION ${FOLDER}/espp/
-    RUNTIME DESTINATION ${FOLDER}/espp/)
+    LIBRARY DESTINATION espp/
+    RUNTIME DESTINATION espp/)
 endfunction()

@@ -108,8 +108,11 @@ only need to do one of them; they are not steps to be run one after another.**
 
 - **Use the cross-platform components from Python or desktop C++ (no ESP
   hardware needed).** The portable subset of espp (tasks, timers, sockets,
-  RTSP, RTPS, CDR, COBS, serialization, math, and more) is also packaged as the
-  [`espp` python package](https://pypi.org/project/espp/):
+  RTSP, RTPS, CDR, COBS, serialization, math, and more) builds for Linux,
+  macOS, and Windows.
+
+  **From Python** — packaged as the [`espp` python
+  package](https://pypi.org/project/espp/):
 
     ```console
     pip install espp
@@ -117,8 +120,50 @@ only need to do one of them; they are not steps to be run one after another.**
     pip install git+https://github.com/esp-cpp/espp.git
     ```
 
-  See [lib/](./lib) for details, including how to build the same subset as a
-  C++ static library for PC, and [python/](./python) for example scripts.
+  **From C++** — install it as a relocatable CMake package and consume it with
+  `find_package(espp)`. Link the `espp::espp` target; it carries the include
+  dirs, the C++23 requirement, and the system libraries, so nothing else is
+  needed:
+
+    ```sh
+    # build + install espp into a prefix (or just run lib/build.sh)
+    cmake -S lib -B build -DESPP_INSTALL=ON -DCMAKE_INSTALL_PREFIX=/path/to/install
+    cmake --build build --target install
+    ```
+
+    ```cmake
+    find_package(espp REQUIRED)
+    target_link_libraries(my_app PRIVATE espp::espp)
+    ```
+
+  Or pull it into your CMake build directly — no install step — with
+  FetchContent or [CPM](https://github.com/cpm-cmake/CPM.cmake), which expose the
+  same `espp::espp` target (both recurse espp's vendored submodules for you):
+
+    ```cmake
+    # FetchContent
+    include(FetchContent)
+    FetchContent_Declare(espp
+      GIT_REPOSITORY https://github.com/esp-cpp/espp.git
+      GIT_TAG main
+      SOURCE_SUBDIR lib)   # the cross-platform C++ library lives in lib/
+    FetchContent_MakeAvailable(espp)
+    target_link_libraries(my_app PRIVATE espp::espp)
+    ```
+
+    ```cmake
+    # CPM  (https://github.com/cpm-cmake/CPM.cmake)
+    CPMAddPackage(
+      NAME espp
+      GITHUB_REPOSITORY esp-cpp/espp
+      GIT_TAG main
+      SOURCE_SUBDIR lib)   # the cross-platform C++ library lives in lib/
+    target_link_libraries(my_app PRIVATE espp::espp)
+    ```
+
+  See [lib/](./lib) for the full C++ details (whole-archive linking, versioning,
+  the build scripts), [pc/](./pc) for example C++ tests that consume the
+  installed package, and [python/](./python) for example Python scripts.
 
 ## Additional Information and Links
 

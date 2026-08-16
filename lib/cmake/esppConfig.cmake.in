@@ -1,0 +1,15 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+# espp's only non-bundled, PUBLIC runtime dependency is the system threads
+# library (pthread on POSIX). Every other third-party library used by espp
+# (reflect-cpp, magic_enum, tabulate, fmt, alpaca, cli, csv2, hid-rp, cdr) is
+# vendored: its headers are installed under <prefix>/include and its objects are
+# compiled into libespp_pc.a, so no find_dependency is required for those. On
+# Windows the system libs (ws2_32, winmm, iphlpapi) resolve automatically.
+find_dependency(Threads)
+
+include("${CMAKE_CURRENT_LIST_DIR}/esppTargets.cmake")
+
+check_required_components(espp)

@@ -44,7 +44,9 @@ dependencies.lock
 
 # weird mac folders...
 .DS_Store
-lib/pc
+# local espp staging install prefix produced by lib/build.sh (find_package tree
+# + python package); consumed by pc/build.sh via CMAKE_PREFIX_PATH.
+/install/
 _build/
 __pycache__/
 managed_components/

@@ -52,17 +52,13 @@ jobs:
 
     - name: Build libraries
       working-directory: lib/
-      run: |
-        mkdir build
-        cd build
-        cmake ..
-        cmake --build . --config Release --target install
+      run: ./build.ps1
 
     - name: Upload output folder
       uses: actions/upload-artifact@v7
       with:
         name: libespp_windows
-        path: lib/pc
+        path: install
 
   build_linux:
     # Skip build CI for draft PRs; still runs on push-to-main and non-draft PRs.
@@ -92,7 +88,7 @@ jobs:
       uses: actions/upload-artifact@v7
       with:
         name: libespp_linux
-        path: lib/pc
+        path: install
 
   build_macos:
     # Skip build CI for draft PRs; still runs on push-to-main and non-draft PRs.
@@ -127,4 +123,4 @@ jobs:
       uses: actions/upload-artifact@v7
       with:
         name: libespp_macos
-        path: lib/pc
+        path: install

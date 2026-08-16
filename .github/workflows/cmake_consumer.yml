@@ -1,0 +1,79 @@
+name: CMake consumer smoke test
+
+# Least-privilege token (CodeQL: actions/missing-workflow-permissions).
+permissions:
+  contents: read
+
+# Verify the cross-platform C++ library can be consumed by an external project
+# via each supported path: find_package (installed), FetchContent, and CPM. Guards
+# against regressions in the install/export, the espp::espp target, or the build
+# scripts. The consumer includes fast_math.hpp (which uses M_PI in non-template
+# code), so the windows leg also exercises the MSVC _USE_MATH_DEFINES usage
+# requirement the exported target propagates. See lib/tests/consumer/.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "lib/**"
+      - "pc/**"
+      - "components/math/**"
+      - ".github/workflows/cmake_consumer.yml"
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  consumer:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash # same commands on all three runners (git-bash on windows)
+    steps:
+      - name: Checkout (recursive submodules)
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      # Install the find_package package into a staging prefix (C++ only).
+      - name: Install espp
+        run: |
+          cmake -S lib -B build/lib -DCMAKE_BUILD_TYPE=Release \
+            -DESPP_INSTALL=ON -DCMAKE_INSTALL_PREFIX="$PWD/prefix"
+          cmake --build build/lib --config Release --parallel --target install
+
+      # find_package runs on every OS. On windows this compiles fast_math.hpp with
+      # MSVC, which only works if espp::espp propagates _USE_MATH_DEFINES.
+      - name: Consume via find_package
+        run: |
+          cmake -S lib/tests/consumer -B build/fp \
+            -DESPP_CONSUMER_METHOD=find_package -DCMAKE_PREFIX_PATH="$PWD/prefix"
+          cmake --build build/fp --config Release --parallel
+          ctest --test-dir build/fp -C Release --output-on-failure
+
+      # FetchContent / CPM are OS-independent CMake-behaviour checks (and rebuild
+      # espp from source), so run them on Linux only. They consume the local
+      # checkout via SOURCE_DIR / CPM_espp_SOURCE, so no second network clone.
+      - name: Consume via FetchContent
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cmake -S lib/tests/consumer -B build/fc \
+            -DESPP_CONSUMER_METHOD=fetchcontent -DESPP_SOURCE_DIR="$PWD"
+          cmake --build build/fc --config Release --parallel
+          ctest --test-dir build/fc -C Release --output-on-failure
+
+      - name: Consume via CPM
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cmake -S lib/tests/consumer -B build/cpm \
+            -DESPP_CONSUMER_METHOD=cpm -DESPP_SOURCE_DIR="$PWD" -DCPM_espp_SOURCE="$PWD"
+          cmake --build build/cpm --config Release --parallel
+          ctest --test-dir build/cpm -C Release --output-on-failure
