@@ -30,3 +30,8 @@ endif()
 
 add_executable(espp_consumer main.cpp)
 target_link_libraries(espp_consumer PRIVATE espp::espp)
+
+# Register it as a test so CI can run it cross-platform with `ctest -C <cfg>`
+# (handles the multi-config MSVC output layout without hard-coding paths).
+enable_testing()
+add_test(NAME espp_consumer_runs COMMAND espp_consumer)
