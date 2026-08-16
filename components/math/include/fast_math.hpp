@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm> // std::find_if
 #include <bit>
 #include <cmath>
 #include <cstdint>
