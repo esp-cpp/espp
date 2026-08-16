@@ -123,9 +123,26 @@ cmake -S . -B build -DCMAKE_PREFIX_PATH=/path/to/install
 ```
 
 The same `espp::espp` target is also available without installing, via
-`FetchContent` / CPM `add_subdirectory` of `lib/` (build-tree consumers get the
-component headers directly). The [../pc](../pc) example tests consume the
-installed package this way.
+`FetchContent` or [CPM](https://github.com/cpm-cmake/CPM.cmake) (build-tree
+consumers get the component headers directly). Both recurse espp's vendored
+third-party submodules (fmt, magic_enum, alpaca, cli, csv2, hid-rp, cdr, ...)
+for you, so no extra submodule step is needed:
+
+``` cmake
+include(FetchContent)
+FetchContent_Declare(espp
+  GIT_REPOSITORY https://github.com/esp-cpp/espp.git
+  GIT_TAG main
+  SOURCE_SUBDIR lib)          # the C++ library lives in lib/
+FetchContent_MakeAvailable(espp)
+target_link_libraries(my_app PRIVATE espp::espp)
+```
+
+All three consumption paths (`find_package`, FetchContent, CPM) are exercised in
+CI by
+[cmake_consumer.yml](../.github/workflows/cmake_consumer.yml) against the
+[tests/consumer](./tests/consumer) smoke project. The [../pc](../pc) example
+tests consume the installed package via `find_package`.
 
 ## Updating the python bindings
 

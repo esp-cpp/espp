@@ -1,0 +1,66 @@
+name: CMake consumer smoke test
+
+# Least-privilege token (CodeQL: actions/missing-workflow-permissions).
+permissions:
+  contents: read
+
+# Verify the cross-platform C++ library can be consumed by an external project
+# via each supported path: find_package (installed), FetchContent, and CPM. Guards
+# against regressions in the install/export, the espp::espp target, or the build
+# scripts. See lib/tests/consumer/.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "lib/**"
+      - "pc/**"
+      - ".github/workflows/cmake_consumer.yml"
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  consumer:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (recursive submodules)
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      # Install the find_package package into a staging prefix.
+      - name: Install espp
+        run: |
+          cmake -S lib -B build/lib -DCMAKE_BUILD_TYPE=Release \
+            -DESPP_INSTALL=ON -DCMAKE_INSTALL_PREFIX="$PWD/prefix"
+          cmake --build build/lib --parallel --target install
+
+      - name: Consume via find_package
+        run: |
+          cmake -S lib/tests/consumer -B build/fp -DCMAKE_BUILD_TYPE=Release \
+            -DESPP_CONSUMER_METHOD=find_package -DCMAKE_PREFIX_PATH="$PWD/prefix"
+          cmake --build build/fp --parallel
+          ./build/fp/espp_consumer
+
+      # FetchContent / CPM consume the local checkout (with its recursive
+      # submodules) via SOURCE_DIR / CPM_espp_SOURCE, so the job needs no second
+      # network clone; both recurse submodules automatically for a real
+      # GIT_REPOSITORY consumer.
+      - name: Consume via FetchContent
+        run: |
+          cmake -S lib/tests/consumer -B build/fc -DCMAKE_BUILD_TYPE=Release \
+            -DESPP_CONSUMER_METHOD=fetchcontent -DESPP_SOURCE_DIR="$PWD"
+          cmake --build build/fc --parallel
+          ./build/fc/espp_consumer
+
+      - name: Consume via CPM
+        run: |
+          cmake -S lib/tests/consumer -B build/cpm -DCMAKE_BUILD_TYPE=Release \
+            -DESPP_CONSUMER_METHOD=cpm -DESPP_SOURCE_DIR="$PWD" -DCPM_espp_SOURCE="$PWD"
+          cmake --build build/cpm --parallel
+          ./build/cpm/espp_consumer
