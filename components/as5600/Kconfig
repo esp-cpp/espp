@@ -10,12 +10,15 @@ menu "AS5600 Configuration"
           the velocity will be set to 0. This helps filter out noise and
           small jitter in the encoder readings.
 
-    config AS5600_USE_TIMER
-        bool "Use high resolution timer instead of task"
+    config AS5600_USE_HIGH_RESOLUTION_TIMER
+        bool "Use high resolution timer instead of software timer"
         default y
         help
-          Use the high resolution timer instead of a FreeRTOS task for
-          periodic updates. The timer is more precise and has lower overhead.
-          Disable this if you prefer to use a task-based implementation.
+          Drive the periodic encoder update with an esp_timer-backed
+          HighResolutionTimer (microsecond resolution). This is the right
+          choice for sub-millisecond update periods. Disable this to instead
+          use an espp::Timer, which schedules against an absolute wake-up time
+          (drift-free and in phase) but is limited to the FreeRTOS tick
+          resolution.
 
 endmenu

@@ -1,14 +1,11 @@
 #pragma once
 
 #include <atomic>
-#include <cmath>
-#include <functional>
+#include <cstdint>
 
 #include <sdkconfig.h>
 
-#include "base_peripheral.hpp"
-#include "high_resolution_timer.hpp"
-#include "task.hpp"
+#include "magnetic_encoder_base.hpp"
 
 namespace espp {
 /// @brief Enum class for the interface type of the MT6701.
@@ -16,6 +13,15 @@ enum class Mt6701Interface : uint8_t {
   I2C = 0, ///< Inter-Integrated Circuit (I2C)
   SSI = 1, ///< Synchronous Serial Interface (SSI), which can be SPI or SSI
 };
+
+/// @brief Whether the Mt6701 drives its update loop with a HighResolutionTimer
+///        (true) or an espp::Timer (false). Selected by Kconfig / menuconfig.
+#if defined(CONFIG_MT6701_USE_HIGH_RESOLUTION_TIMER)
+inline constexpr bool mt6701_use_high_resolution_timer = true;
+#else
+inline constexpr bool mt6701_use_high_resolution_timer = false;
+#endif
+
 /**
  * @brief Class for position and velocity measurement using a MT6701 magnetic
  *        encoder. This class starts its own measurement task at the specified
@@ -24,14 +30,17 @@ enum class Mt6701Interface : uint8_t {
  *        SSI, ABZ, UVW, Analog/PWM, and Push-Button interfaces.
  *
  * This component can be configured to automatically update within its own
- * timer/task (timer is default, and can be changed via KConfig / menuconfig),
- * or if you do not configure it to manage its own timer/task, then you can call
- * update() within your own function to update the state of the encoder.
+ * timer (a HighResolutionTimer by default, changeable to an espp::Timer via
+ * KConfig / menuconfig), or if you do not configure it to manage its own timer,
+ * then you can call update() within your own function to update the state of
+ * the encoder.
  *
  * @warning You should not call update() if you have configured the encoder to
- *          use its own timer/task or if you have called start() yourself.
+ *          use its own timer or if you have called start() yourself.
  *
  * @note This implementation currently only supports I2C and SSI interfaces.
+ *
+ * @note The MT6701 has 14-bit angular resolution (16384 counts / revolution).
  *
  * @note There is an implicit assumption in this class regarding the maximum
  *       velocity it can measure (above which there will be aliasing). The
@@ -48,32 +57,34 @@ enum class Mt6701Interface : uint8_t {
  * \snippet mt6701_example.cpp mt6701 ssi example
  */
 template <Mt6701Interface Interface = Mt6701Interface::I2C>
-class Mt6701 : public BasePeripheral<uint8_t, Interface == Mt6701Interface::I2C> {
-  // Since the BasePeripheral is a dependent base class (e.g. its template
-  // parameters depend on our template parameters), we need to use the `using`
-  // keyword to bring in the functions / members we want to use, otherwise we
-  // have to either use `this->` or explicitly scope each call, which clutters
-  // the code / is annoying. This is needed because of the two phases of name
-  // lookups for templates.
-  using BasePeripheral<uint8_t, Interface == Mt6701Interface::I2C>::set_address;
-  using BasePeripheral<uint8_t, Interface == Mt6701Interface::I2C>::set_write;
-  using BasePeripheral<uint8_t, Interface == Mt6701Interface::I2C>::set_read;
-  using BasePeripheral<uint8_t, Interface == Mt6701Interface::I2C>::read_u8_from_register;
-  using BasePeripheral<uint8_t, Interface == Mt6701Interface::I2C>::read;
-  using BasePeripheral<uint8_t, Interface == Mt6701Interface::I2C>::logger_;
-  using BasePeripheral<uint8_t, Interface == Mt6701Interface::I2C>::base_mutex_;
+class Mt6701 : public MagneticEncoderBase<Mt6701<Interface>, mt6701_use_high_resolution_timer,
+                                          16384, CONFIG_MT6701_MIN_DIFF, uint8_t,
+                                          Interface == Mt6701Interface::I2C> {
+  // Since the base class is a dependent base (its template parameters depend on
+  // ours), we bring in the base / grand-base members we use with `using`
+  // declarations, otherwise we would have to scope each call with `this->`. This
+  // is needed because of the two-phase name lookup for templates.
+  using Base =
+      MagneticEncoderBase<Mt6701<Interface>, mt6701_use_high_resolution_timer, 16384,
+                          CONFIG_MT6701_MIN_DIFF, uint8_t, Interface == Mt6701Interface::I2C>;
+  using Base::base_mutex_;
+  using Base::count_;
+  using Base::logger_;
+  using Base::read; // BasePeripheral's buffer read, used by the SSI read() below
+  using Base::read_u8_from_register;
+  using Base::set_address;
+  using Base::set_read;
+  using Base::set_write;
+
+  // Allow the base to invoke our (protected) read() via CRTP static dispatch.
+  friend Base;
 
 public:
   static constexpr uint8_t DEFAULT_ADDRESS =
       (0b0000110); ///< I2C address of the MT6701. It can be programmed to be 0b1000110 as well.
                    ///< Only used if Interface == Mt6701Interface::I2C.
 
-  /**
-   * @brief Filter the input raw velocity and return it.
-   * @param raw Most recent raw velocity measured.
-   * @return Filtered velocity.
-   */
-  typedef std::function<float(float raw)> velocity_filter_fn;
+  using typename Base::velocity_filter_fn;
 
   /**
    * @brief Enum class for the magnetic field strength of the MT6701.
@@ -92,22 +103,6 @@ public:
     LOST = 1,   ///< Tracking has been lost.
   };
 
-  static constexpr int COUNTS_PER_REVOLUTION =
-      16384; ///< Int number of counts per revolution for the magnetic encoder.
-  static constexpr float COUNTS_PER_REVOLUTION_F =
-      16384.0f; ///< Float number of counts per revolution for the magnetic encoder.
-  static constexpr float COUNTS_TO_RADIANS =
-      2.0f * (float)(M_PI) /
-      COUNTS_PER_REVOLUTION_F; ///< Conversion factor to convert from count value to radians.
-  static constexpr float COUNTS_TO_DEGREES =
-      360.0f /
-      COUNTS_PER_REVOLUTION_F; ///< Conversion factor to convert from count value to degrees.
-  static constexpr float SECONDS_PER_MINUTE =
-      60.0f; ///< Conversion factor to convert from seconds to minutes.
-
-  static constexpr int MIN_DIFF =
-      CONFIG_MT6701_MIN_DIFF; ///< Minimum difference for velocity calculation.
-
   /**
    * @brief Configuration information for the Mt6701.
    */
@@ -122,23 +117,21 @@ public:
                                                  ///< called once every update_period seconds.
     std::chrono::duration<float> update_period{
         .01f}; ///< Update period (1/sample rate) in seconds. This determines the periodicity of the
-               ///< task which will read the position, update the accumulator, and update/filter
+               ///< timer which will read the position, update the accumulator, and update/filter
                ///< velocity.
     bool auto_init{true}; ///< Whether to automatically initialize the accumulator to the current
                           ///< position on startup.
-    bool run_task{true};  ///< Whether to run the task/timer on startup. If
+    bool run_task{true};  ///< Whether to run the timer on startup. If
                           ///< false, you must call update() manually.
     Logger::Verbosity log_level{Logger::Verbosity::WARN};
   };
 
   /**
-   * @brief Construct the Mt6701 and start the update task/timer if auto_init and run_task are true.
+   * @brief Construct the Mt6701 and start the update timer if auto_init and run_task are true.
    * @param config Configuration for the Mt6701.
    */
   explicit Mt6701(const Config &config)
-      : BasePeripheral<uint8_t, Interface == Mt6701Interface::I2C>({}, "Mt6701", config.log_level)
-      , velocity_filter_(config.velocity_filter)
-      , update_period_(config.update_period) {
+      : Base("Mt6701", config.velocity_filter, config.update_period, config.log_level) {
     if constexpr (Interface == Mt6701Interface::I2C) {
       set_address(config.device_address);
       set_write(config.write);
@@ -148,146 +141,12 @@ public:
     }
     if (config.auto_init) {
       std::error_code ec;
-      initialize(config.run_task, ec);
+      this->initialize(config.run_task, ec);
     }
   }
 
-#if !defined(CONFIG_MT6701_USE_TIMER) || defined(_DOXYGEN_)
-  /**
-   * @brief Construct the Mt6701 and start the update task/timer if auto_init and run_task are true.
-   * @param config Configuration for the Mt6701.
-   * @param task_config Configuration for the internal task.
-   */
-  explicit Mt6701(const Config &config, const espp::Task::Config &task_config)
-      : BasePeripheral<uint8_t, Interface == Mt6701Interface::I2C>({}, "Mt6701", config.log_level)
-      , velocity_filter_(config.velocity_filter)
-      , update_period_(config.update_period)
-      , task_(espp::Task::make_unique(task_config)) {
-    if constexpr (Interface == Mt6701Interface::I2C) {
-      set_address(config.device_address);
-      set_write(config.write);
-      set_read(config.read);
-    } else {
-      set_read(config.read);
-    }
-    if (config.auto_init) {
-      std::error_code ec;
-      initialize(config.run_task, ec);
-    }
-  }
-#endif
-
-  /**
-   * @brief Initialize the accumulator to the current position and start the
-   *        update task.
-   * @param ec Error code to set if there is an error.
-   * @note This version of initialize() starts the update task, so you do not
-   *       need to call update() manually.
-   */
-  void initialize(std::error_code &ec) { initialize(true, ec); }
-
-  /**
-   * @brief Initialize the accumulator to the current position and start the
-   *        update task, if desired.
-   * @param run_task Whether to start the update task.
-   * @param ec Error code to set if there is an error.
-   * @note If you do not start the task, you must call update() manually.
-   */
-  void initialize(bool run_task, std::error_code &ec) {
-    logger_.info("Initializing. Fastest measurable velocity will be {:.3f} RPM",
-                 // half a rotation in one update period is the fastest we can
-                 // measure
-                 0.5f / update_period_.count() * SECONDS_PER_MINUTE);
-    init(run_task, ec);
-    if (ec) {
-      logger_.error("Error initializing: {}", ec.message());
-    }
-  }
-
-#if !defined(CONFIG_MT6701_USE_TIMER) || defined(_DOXYGEN_)
-  /**
-   * @brief Initialize the accumulator to the current position and start the
-   *        update task, if desired.
-   * @param run_task Whether to start the update task.
-   * @param task_config Configuration for the internal task.
-   * @param ec Error code to set if there is an error.
-   * @note If you do not start the task, you must call update() manually.
-   */
-  void initialize(bool run_task, const espp::Task::Config &task_config, std::error_code &ec) {
-    // create the task (discard any previous one)
-    task_.reset();
-    task_ = espp::Task::make_unique(task_config);
-    initialize(run_task, ec);
-  }
-#endif
-
-  /**
-   * @brief Return whether the sensor needs to search for absolute 0 on startup.
-   * @note The MT6701 (using I2C/SPI) does not need to search for absolute 0
-   *       and will always know it on startup. Therefore this function always
-   *       returns false.
-   * @return False because the magnetic sensor (using I2C/SPI) does not need to
-   *         search for 0.
-   */
-  bool needs_zero_search() const { return false; }
-
-  /**
-   * @brief Get the most recently updated raw count value from the encoder.
-   * @note This value always represents the angle of the encoder modulo one
-   *       rotation, meaning it only represents the range 0 to 360 degrees. It
-   *       is not recommended to use this function, but is provided for edge use
-   *       cases.
-   * @return Raw count value in the range [0, 16384] (0 to 360 degrees).
-   */
-  int get_count() const { return count_.load(); }
-
-  /**
-   * @brief Return the accumulated count that the encoder has generated since it
-   *        was initialized.
-   * @note This value is a raw counter value that can be +/-, meaning
-   *       COUNTS_PER_REVOLUTION can be used to convert it to revolutions.
-   * @return Raw accumulator value.
-   */
-  int get_accumulator() const { return accumulator_.load(); }
-
-  /**
-   * @brief Reset the accumulator to zero.
-   */
-  void reset_accumulator() { accumulator_ = 0; }
-
-  /**
-   * @brief Return the mechanical / shaft angle of the encoder, in radians,
-   *        within the range [0, 2pi].
-   * @return Angle in radians of the encoder within the range [0, 2pi].
-   */
-  float get_mechanical_radians() const { return (float)get_count() * COUNTS_TO_RADIANS; }
-
-  /**
-   * @brief Return the mechanical / shaft angle of the encoder, in degrees,
-   *        within the range [0, 360].
-   * @return Angle in degrees of the encoder within the range [0, 360].
-   */
-  float get_mechanical_degrees() const { return (float)get_count() * COUNTS_TO_DEGREES; }
-
-  /**
-   * @brief Return the accumulated position of the encoder, in radians.
-   * @note This can be any value, it is not restricted to [0, 2pi].
-   * @return Position in radians of the encoder.
-   */
-  float get_radians() const { return (float)get_accumulator() * COUNTS_TO_RADIANS; }
-
-  /**
-   * @brief Return the accumulated position of the encoder, in degrees.
-   * @note This can be any value, it is not restricted to [0, 360].
-   * @return Position in degrees of the encoder.
-   */
-  float get_degrees() const { return (float)get_accumulator() * COUNTS_TO_DEGREES; }
-
-  /**
-   * @brief Return the filtered velocity of the encoder, in RPM.
-   * @return Filtered velocity (revolutions / minute, RPM).
-   */
-  float get_rpm() const { return velocity_rpm_.load(); }
+  /// @brief Stop the update timer before the object is destroyed.
+  ~Mt6701() { this->stop(); }
 
   /**
    * @brief Return the magnetic field strength of the encoder.
@@ -317,107 +176,7 @@ public:
     return push_button_.load();
   }
 
-  /**
-   * @brief Update the state of the encoder by reading the latest data from the
-   *       encoder and updating the associated state.
-   * @param ec Error code to set if there is an error.
-   * @note You should not call this function if you have started the encoder's
-   *       update task (e.g. run_task = true in the constructor, or you called
-   *       initialize(true)).
-   */
-  void update(std::error_code &ec) {
-    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-    // measure update timing
-    uint64_t now_us = esp_timer_get_time();
-    auto dt = now_us - prev_time_us_;
-    float seconds = dt / 1e6f;
-    prev_time_us_ = now_us;
-    // store the previous count
-    int prev_count = count_;
-    // read the latest data from the encoder and update the state
-    read(ec);
-    if (ec) {
-      return;
-    }
-    // compute diff
-    int diff = count_ - prev_count;
-    // check for zero crossing
-    if (diff > COUNTS_PER_REVOLUTION / 2) {
-      // we crossed zero going clockwise (1 -> 359)
-      diff -= COUNTS_PER_REVOLUTION;
-    } else if (diff < -COUNTS_PER_REVOLUTION / 2) {
-      // we crossed zero going counter-clockwise (359 -> 1)
-      diff += COUNTS_PER_REVOLUTION;
-    }
-    // update accumulator
-    accumulator_ += diff;
-    logger_.debug_rate_limited("CDA: {}, {}, {}", count_, diff, accumulator_);
-    // update velocity (filtering it)
-    float raw_velocity =
-        (dt > 0 && std::abs(diff) > MIN_DIFF)
-            ? (float)(diff) / COUNTS_PER_REVOLUTION_F / seconds * SECONDS_PER_MINUTE
-            : 0.0f;
-    velocity_rpm_ = velocity_filter_ ? velocity_filter_(raw_velocity) : raw_velocity;
-    if (dt > 0) {
-      float max_velocity = 0.5f / seconds * SECONDS_PER_MINUTE;
-      if (raw_velocity >= max_velocity) {
-        logger_.warn_rate_limited(
-            "Velocity nearing measurement limit ({:.3f} RPM), consider decreasing your "
-            "update period!",
-            max_velocity);
-      }
-    }
-  }
-
-  /**
-   * @brief Start the update task/timer.
-   * @note This will start the task/timer that calls update() at the update_period.
-   * @note This is only useful if you previously stopped the task/timer or if you
-   *       initialized with run_task = false.
-   * @return True if the task/timer was started successfully, false otherwise.
-   */
-  bool start() {
-    logger_.info("Starting task with update period of {:.3f} seconds", update_period_.count());
-    prev_time_us_ = esp_timer_get_time();
-#if defined(CONFIG_MT6701_USE_TIMER)
-    uint64_t period_us =
-        std::chrono::duration_cast<std::chrono::microseconds>(update_period_).count();
-    return timer_.periodic(period_us);
-#else
-    if (!task_) {
-      return false;
-    }
-    return task_->start();
-#endif
-  }
-
-  /**
-   * @brief Stop the update task/timer.
-   * @note This will stop the task/timer that calls update() at the update_period.
-   * @note After stopping, you can manually call update() or restart with start().
-   */
-  void stop() {
-    logger_.info("Stopping task");
-#if defined(CONFIG_MT6701_USE_TIMER)
-    timer_.stop();
-#else
-    if (task_) {
-      task_->stop();
-    }
-#endif
-  }
-
 protected:
-#pragma pack(push, 1)
-
-  struct MagneticFieldStatus {
-    uint8_t magnetic_field_strength : 2;
-    uint8_t push_button : 1;
-    uint8_t tracking_status : 1;
-  };
-
-#pragma pack(pop)
-
   void read(std::error_code &ec) requires(Interface == Mt6701Interface::I2C) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     // read the angle count registers
@@ -443,18 +202,27 @@ protected:
       logger_.error_rate_limited("Error reading: {}", ec.message());
       return;
     }
-    // the first 14 bits is the angle data, followed by 4 bit status, and 6 bit
+    // the first 14 bits are the angle data, followed by 4 bit status, and 6 bit
     // crc
     uint16_t angle_h = buffer[0];
     uint8_t angle_l = buffer[1] >> 2;
+    uint16_t raw_count = (angle_h << 6) | angle_l;
     // status is the lower 2 bits of the second byte and the upper 2 bits of
     // the third byte
     uint8_t status = ((buffer[1] & 0b11) << 2) | (buffer[2] >> 6);
     // crc is the lower 6 bits of the third byte
     uint8_t crc = buffer[2] & 0b111111;
-    logger_.debug("Angle: {}, Status: {}, CRC: {}", (angle_h << 8) | angle_l, status, crc);
+    // The CRC is computed over the 18 data bits (14-bit angle + 4-bit status).
+    // NOTE: this is currently observability-only (a mismatch is logged but the
+    // sample is still used) since the CRC implementation has not been verified
+    // against hardware; it can be promoted to rejecting the sample once verified.
+    uint8_t expected_crc = crc6((static_cast<uint32_t>(raw_count) << 4) | (status & 0x0F));
+    if (crc != expected_crc) {
+      logger_.warn_rate_limited("CRC mismatch: got {:#04x}, expected {:#04x}", crc, expected_crc);
+    }
+    logger_.debug("Angle: {}, Status: {}, CRC: {}", raw_count, status, crc);
     // update the count
-    count_ = ((angle_h << 6) | angle_l);
+    count_ = raw_count;
     // update the magnetic field strength, tracking status, and push button.
     // strength is the lower two bits [0:1], push button is the third bit [2],
     // and tracking status is the fourth bit [3]
@@ -463,52 +231,20 @@ protected:
     tracking_status_ = (TrackingStatus)((status >> 3) & 0b1);
   }
 
-#if defined(CONFIG_MT6701_USE_TIMER)
-  bool update_task() {
-    std::error_code ec;
-    update(ec);
-    if (ec) {
-      logger_.error("Error updating: {}", ec.message());
-    }
-    // don't want to stop the task
-    return false;
-  }
-#else
-  bool update_task(std::mutex &m, std::condition_variable &cv, bool &task_notified) {
-    auto start_time = std::chrono::high_resolution_clock::now();
-    std::error_code ec;
-    update(ec);
-    if (ec) {
-      logger_.error("Error updating: {}", ec.message());
-    }
-    // sleep until the next update period
-    {
-      std::unique_lock<std::mutex> lk(m);
-      cv.wait_until(lk, start_time + update_period_, [&task_notified] { return task_notified; });
-      task_notified = false;
-    }
-    // don't want to stop the task
-    return false;
-  }
-#endif
-
-  void init(bool run_task, std::error_code &ec) {
-    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-    // initialize the accumulator to have the current angle
-    read(ec);
-    if (ec) {
-      return;
-    }
-    accumulator_ = count_.load();
-    if (!run_task) {
-      logger_.info(
-          "Not starting task, run_task is false. Manually call update() to update the state.");
-      return;
-    }
-    if (!start()) {
-      logger_.error("Error starting task");
-      ec = make_error_code(std::errc::operation_not_permitted);
-    }
+  /// @brief MT6701 SSI CRC-6 (polynomial x^6 + x + 1) over the 18-bit payload.
+  /// @param data18 The 18-bit payload: (14-bit angle << 4) | 4-bit status.
+  /// @return The computed 6-bit CRC.
+  static uint8_t crc6(uint32_t data18) {
+    static constexpr uint8_t table[64] = {
+        0x00, 0x03, 0x06, 0x05, 0x0C, 0x0F, 0x0A, 0x09, 0x18, 0x1B, 0x1E, 0x1D, 0x14,
+        0x17, 0x12, 0x11, 0x30, 0x33, 0x36, 0x35, 0x3C, 0x3F, 0x3A, 0x39, 0x28, 0x2B,
+        0x2E, 0x2D, 0x24, 0x27, 0x22, 0x21, 0x23, 0x20, 0x25, 0x26, 0x2F, 0x2C, 0x29,
+        0x2A, 0x3B, 0x38, 0x3D, 0x3E, 0x37, 0x34, 0x31, 0x32, 0x13, 0x10, 0x15, 0x16,
+        0x1F, 0x1C, 0x19, 0x1A, 0x0B, 0x08, 0x0D, 0x0E, 0x07, 0x04, 0x01, 0x02};
+    uint8_t crc = table[(data18 >> 12) & 0x3F];
+    crc = table[crc ^ ((data18 >> 6) & 0x3F)];
+    crc = table[crc ^ (data18 & 0x3F)];
+    return crc;
   }
 
   /**
@@ -540,25 +276,9 @@ protected:
     A_STOP_LOW = 0x40,  ///< A_STOP[7:0]
   };
 
-  velocity_filter_fn velocity_filter_{nullptr};
-  uint64_t prev_time_us_{0};
-  std::chrono::duration<float> update_period_;
-  std::atomic<int> count_{0};
-  std::atomic<int> accumulator_{0};
-  std::atomic<float> velocity_rpm_{0};
   std::atomic<MagneticFieldStrength> magnetic_field_strength_{MagneticFieldStrength::NORMAL};
   std::atomic<TrackingStatus> tracking_status_{TrackingStatus::NORMAL};
   std::atomic<bool> push_button_{false};
-#if defined(CONFIG_MT6701_USE_TIMER)
-  espp::HighResolutionTimer timer_{
-      {.name = "Mt6701",
-       .callback = std::bind(&Mt6701::update_task, this) }};
-#else
-  std::unique_ptr<Task> task_ = espp::Task::make_unique(Task::Config{
-      .callback = std::bind_front(&Mt6701::update_task, this),
-      .task_config = {.name = "Mt6701"},
-  });
-#endif
 };
 } // namespace espp
 

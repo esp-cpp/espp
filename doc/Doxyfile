@@ -335,6 +335,7 @@ INPUT = \
   $(PROJECT_PATH)/components/lsm6dso/include/lsm6dso_detail.hpp \
   $(PROJECT_PATH)/components/m5stack-cardputer/include/m5stack-cardputer.hpp \
   $(PROJECT_PATH)/components/m5stack-tab5/include/m5stack-tab5.hpp \
+  $(PROJECT_PATH)/components/magnetic_encoder/include/magnetic_encoder_base.hpp \
   $(PROJECT_PATH)/components/math/include/bezier.hpp \
   $(PROJECT_PATH)/components/math/include/fast_math.hpp \
   $(PROJECT_PATH)/components/math/include/gaussian.hpp \
