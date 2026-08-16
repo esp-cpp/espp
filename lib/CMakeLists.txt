@@ -155,6 +155,16 @@ else()
   # limits/fragmentation profile the archive was built with (ABI-critical; see
   # espp.cmake). These export into esppTargets.cmake as INTERFACE definitions.
   target_compile_definitions(${TARGET_NAME} PUBLIC ${ESPP_RTPS_COMPILE_DEFINITIONS})
+  # MSVC's <cmath> only defines M_PI / M_PI_2 etc. when _USE_MATH_DEFINES is set
+  # before the include. espp's PUBLIC headers (math/fast_math.hpp, several filter
+  # headers) use M_PI, so propagate the macro as a PUBLIC usage requirement for
+  # MSVC-like toolchains (the `MSVC` variable is also true for clang-cl). Without
+  # this, find_package / FetchContent consumers on Windows fail to compile those
+  # headers (the directory-level /D_USE_MATH_DEFINES above only covers espp's own
+  # build; the pc tests only pass because they define it themselves).
+  if(MSVC)
+    target_compile_definitions(${TARGET_NAME} PUBLIC _USE_MATH_DEFINES)
+  endif()
 
   # ---------------------------------------------------------------------------
   # Usage requirements (modern, target-based). Expose every include dir espp.cmake
