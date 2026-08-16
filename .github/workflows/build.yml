@@ -286,6 +286,8 @@ jobs:
           target: esp32s3
         - path: 'components/vl53l/example'
           target: esp32s3
+        - path: 'components/vmu-pro/example'
+          target: esp32s3
         - path: 'components/wifi/example'
           target: esp32
         - path: 'components/wrover-kit/example'

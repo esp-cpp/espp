@@ -10,6 +10,7 @@ target a board without configuring each peripheral by hand.
    :maxdepth: 2
 
    espressif/index
+   8bitmods/index
    adafruit/index
    lilygo/index
    m5stack/index
