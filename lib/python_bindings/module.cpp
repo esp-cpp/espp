@@ -6,11 +6,16 @@
 namespace py = pybind11;
 
 void py_init_module_espp(py::module &m);
-// Hand-written bindings for the `cdr` and `rtps` components (see *_bindings.cpp for why they are
-// not generated). Both must run after py_init_module_espp so shared types (e.g. Logger::Verbosity)
-// and the module's classes are already registered.
-void py_init_cdr(py::module &m);
+// Hand-written bindings for the `rtps` component (see rtps_bindings.cpp for why they are not
+// generated). Must run after py_init_module_espp so shared types (e.g. Logger::Verbosity) and the
+// module's classes are already registered. The cdr component has no python bindings: its C++ API
+// is template-based, and the python side of a message is a plain pycdr2 dataclass instead (see
+// the cdr component README).
 void py_init_rtps(py::module &m);
+// Hand-written bindings for espp::SocketReactor (litgen cannot parse it; see
+// socket_reactor_bindings.cpp). Runs after py_init_module_espp so UdpSocket / Socket::Info /
+// Logger::Verbosity are already registered.
+void py_init_socket_reactor(py::module &m);
 
 // This builds the native python extension module `espp._espp`, which the
 // `espp` python package (python_bindings/espp/__init__.py) re-exports.
@@ -22,6 +27,6 @@ PYBIND11_MODULE(_espp, m) {
 #endif
 
   py_init_module_espp(m);
-  py_init_cdr(m);
   py_init_rtps(m);
+  py_init_socket_reactor(m);
 }

@@ -10,11 +10,27 @@ BSP component on the Smart Panlee SC01 Plus touchscreen display module.
 - ST7796 display initialization over the ESP32-S3 8-bit parallel LCD bus
 - FT5x06 touch handling with LVGL integration
 - Foreground custom-drawn touch trail with bounded invalidation for smooth redraws
-- I2S speaker playback with a bundled touch-click sound
+- I2S speaker playback with a bundled touch-click sound, plus an on-screen
+  audio row (bottom-left) to play the sound, toggle mute, and adjust the
+  volume
 - Backlight brightness control
 - Optional microSD mounting and filesystem inspection
 - Published peripheral pin maps for I2S, RS-485, and external GPIOs
 - Rotation-aware UI layout with wrapped instructions that stay on-screen in portrait/landscape
+
+## Configuration notes
+
+This example raises some espp BSP task stack sizes above their component
+defaults via `sdkconfig.defaults`, because the example does more work in
+those tasks than the defaults assume:
+
+- **Interrupt / touch task stack (`CONFIG_SMARTPANLEE_SC01_PLUS_INTERRUPT_STACK_SIZE` = 8192, up from the 4 KB
+  BSP default).** The interrupt task services the touch controller over
+  I2C; if an I2C transaction errors, the error is logged through espp's
+  `fmt`-based (colorized) logger, whose formatting path needs several KB of
+  stack. With only 4 KB this can overflow and corrupt memory. If you base
+  your own project on this example (or reproduce its functionality), keep
+  this override in your `sdkconfig` / `sdkconfig.defaults`.
 
 ## Hardware Required
 

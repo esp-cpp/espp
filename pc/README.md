@@ -15,9 +15,20 @@ Linux, MacOS, or Windows.
 
 ## Setup
 
-First, ensure that you have built the shared objects in the `espp/lib` folder.
-If you haven't done so yet, navigate to the `espp/lib` folder and run the
-following:
+First, install the espp library from the `espp/lib` folder. If you haven't done
+so yet, navigate to the `espp/lib` folder and run the following, which installs
+espp into `<repo>/install`:
+
+```console
+# if macos/linux:
+./build.sh
+# if windows
+./build.ps1
+```
+
+Then build the tests here; they `find_package(espp)` from that install prefix
+(the [./build.sh](./build.sh) / [./build.ps1](./build.ps1) scripts pass
+`-DCMAKE_PREFIX_PATH=<repo>/install` for you):
 
 ```console
 # if macos/linux:

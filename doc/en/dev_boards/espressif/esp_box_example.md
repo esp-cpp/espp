@@ -1,2 +1,2 @@
-```{include} ../../components/esp-box/example/README.md
+```{include} ../../../../components/esp-box/example/README.md
 ```

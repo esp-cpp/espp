@@ -1,2 +1,2 @@
-```{include} ../../components/csv/example/README.md
+```{include} ../../../components/csv/example/README.md
 ```

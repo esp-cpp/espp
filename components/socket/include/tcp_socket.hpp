@@ -2,10 +2,11 @@
 
 #include "socket_msvc.hpp"
 
-#ifndef _MSC_VER
+#ifndef _WIN32
 #include <netinet/tcp.h>
-#endif // _MSC_VER
+#endif // _WIN32
 
+#include <atomic>
 #include <optional>
 #include <span>
 #include <string_view>
@@ -235,7 +236,9 @@ protected:
                      const std::chrono::seconds &interval = std::chrono::seconds{10},
                      int max_probes = 5);
 
-  bool connected_{false};
+  // atomic: with SocketReactor a pool worker may run receive() (which clears
+  // connected_ on EOF) while another thread calls is_connected()/close().
+  std::atomic<bool> connected_{false};
   espp::Socket::Info remote_info_{};
 };
 } // namespace espp

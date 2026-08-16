@@ -28,6 +28,7 @@
 #include "base_component.hpp"
 #include "bmi270.hpp"
 #include "fast_math.hpp"
+#include "gps.hpp"
 #include "i2c.hpp"
 #include "interrupt.hpp"
 #include "led.hpp"
@@ -35,6 +36,7 @@
 #include "oneshot_adc.hpp"
 #include "spi.hpp"
 #include "st7789.hpp"
+#include "sx126x.hpp"
 #include "task.hpp"
 
 namespace espp {
@@ -59,13 +61,20 @@ namespace espp {
 /// - IR transmitter and Grove port pin definitions
 /// - Internal I2C bus accessor (ADV only; also hosts a BMI270 IMU at 0x68
 ///   which can be used with the espp bmi270 component)
+/// - LoRa radio + GNSS receiver on the LoRa+GPS Cap (U201 / U214) expansion
+///   module for the Cardputer ADV (SX1262 + ATGM336H)
 ///
 /// The class is a singleton and can be accessed using the get() method.
 ///
-/// \note The speaker and the microphone share I2S pins (GPIO 43 word-select /
-///       PDM clock on the original; GPIO 41/43 bit-clock and word-select on
-///       the ADV), so they cannot be used at the same time. Initializing one
-///       while the other is active will fail.
+/// \note On the original Cardputer the speaker and microphone cannot be used
+///       at the same time: GPIO 43 doubles as the speaker's I2S word-select
+///       and the PDM microphone's (MHz-range) clock - two different signals
+///       on one physical pin - so initializing one while the other is active
+///       will fail. On the Cardputer ADV both go through the ES8311 codec in
+///       full duplex on a single I2S bus (shared bit/word clocks, separate
+///       data pins), so the speaker and microphone can be used
+///       simultaneously; they share the I2S sample rate, which is set by
+///       whichever subsystem is initialized first.
 ///
 /// \section m5stack_cardputer_example Example
 /// \snippet m5stack_cardputer_example.cpp m5stack-cardputer example
@@ -361,8 +370,11 @@ public:
   ///        come from the M5STACK_CARDPUTER_AUDIO_TASK_* Kconfig options.
   /// \return true if the sound subsystem was successfully initialized, false
   ///         otherwise
-  /// \note The speaker shares I2S pins with the microphone, so this will
-  ///       fail if the microphone has been initialized.
+  /// \note On the original Cardputer this will fail if the microphone has
+  ///       been initialized (see the class notes). On the ADV the speaker
+  ///       and microphone run full duplex and share the I2S sample rate; if
+  ///       the microphone was initialized first, its sample rate is kept and
+  ///       \p default_audio_rate is ignored (with a warning).
   bool initialize_sound(uint32_t default_audio_rate = 44100,
                         const espp::Task::BaseConfig &task_config = {
                             .name = "audio",
@@ -402,16 +414,24 @@ public:
 
   /// Play the audio data
   /// \param data The audio data to play (16-bit signed mono samples)
+  /// \return The number of bytes actually queued (may be less than the data
+  ///         size if the internal stream buffer is full)
   /// \note This function is non-blocking and queues the data for the audio
-  ///       task to play
-  void play_audio(const std::vector<uint8_t> &data);
+  ///       task to play; to stream data larger than the internal buffer,
+  ///       call it repeatedly, advancing by the returned number of bytes
+  /// \note Must be called from task context, not from an ISR.
+  size_t play_audio(const std::vector<uint8_t> &data);
 
   /// Play the audio data
   /// \param data The audio data to play (16-bit signed mono samples)
   /// \param num_bytes The number of bytes to play
+  /// \return The number of bytes actually queued (may be less than \p
+  ///         num_bytes if the internal stream buffer is full)
   /// \note This function is non-blocking and queues the data for the audio
-  ///       task to play
-  void play_audio(const uint8_t *data, uint32_t num_bytes);
+  ///       task to play; to stream data larger than the internal buffer,
+  ///       call it repeatedly, advancing by the returned number of bytes
+  /// \note Must be called from task context, not from an ISR.
+  size_t play_audio(const uint8_t *data, uint32_t num_bytes);
 
   /////////////////////////////////////////////////////////////////////////////
   // Microphone
@@ -431,8 +451,12 @@ public:
   /// \note The callback runs in the microphone task's context, so the task's
   ///       stack must be large enough for whatever the callback does with
   ///       the audio data.
-  /// \note The microphone shares I2S pins with the speaker, so this will fail
-  ///       if the sound subsystem has been initialized.
+  /// \note On the original Cardputer this will fail if the sound subsystem
+  ///       has been initialized (see the class notes). On the ADV the
+  ///       speaker and microphone run full duplex and share the I2S sample
+  ///       rate; if the sound subsystem was initialized first, its sample
+  ///       rate is kept and \p sample_rate is ignored (with a warning) -
+  ///       check microphone_sample_rate() for the actual rate.
   bool
   initialize_microphone(const microphone_callback_t &callback, uint32_t sample_rate = 16000,
                         const espp::Task::BaseConfig &task_config = {
@@ -444,6 +468,20 @@ public:
   /// Get the microphone sample rate
   /// \return The microphone sample rate, in Hz
   uint32_t microphone_sample_rate() const;
+
+  /// Set the microphone volume
+  /// \param volume The volume as a percentage (0 - 100); 75 is unity (0 dB,
+  ///        the default)
+  /// \note On the ADV this adjusts the ES8311 codec's digital ADC volume
+  ///       (values above 75 amplify, up to +32 dB at 100); on the original
+  ///       the samples are scaled in software in the microphone task (values
+  ///       above 75 amplify with saturation)
+  void microphone_volume(float volume);
+
+  /// Get the microphone volume
+  /// \return The microphone volume as a percentage (0 - 100); 75 is unity
+  ///         (0 dB)
+  float microphone_volume() const;
 
   /////////////////////////////////////////////////////////////////////////////
   // uSD Card
@@ -533,6 +571,67 @@ public:
   std::shared_ptr<Imu> imu() const { return imu_; }
 
   /////////////////////////////////////////////////////////////////////////////
+  // LoRa + GPS Cap (U201 / U214 expansion module for the Cardputer ADV)
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// Initialize the LoRa radio (SX1262) on the LoRa+GPS Cap
+  /// \param radio_config The radio (modem) configuration to apply
+  /// \return True if the radio was initialized properly
+  /// \note The Cap mounts on the Cardputer ADV's rear expansion connector;
+  ///       the radio shares the uSD card's SPI bus with its own chip select,
+  ///       so the radio and uSD card can be used together.
+  /// \note On the U214 Cap the radio's RF switch is controlled through a
+  ///       PI4IOE5V6408 I2C IO expander, which this method configures to
+  ///       connect the antenna. If no expander is found (e.g. the older U201
+  ///       Cap), initialization proceeds without it.
+  /// \note The radio's DIO1 interrupt is automatically serviced via the
+  ///       board's interrupt handler, so packets are delivered through the
+  ///       callbacks registered on the returned driver (see
+  ///       espp::Sx126x::set_receive_callback and friends).
+  bool initialize_lora(const Sx126x::RadioConfig &radio_config = {});
+
+  /// Get the LoRa radio
+  /// \return A shared pointer to the LoRa radio driver
+  /// \note The radio is only available if initialize_lora() succeeded
+  std::shared_ptr<Sx126x> lora() const { return lora_; }
+
+  /// Initialize the GNSS receiver (ATGM336H) on the LoRa+GPS Cap
+  /// \param fix_cb Optional callback invoked on each fix update
+  /// \param baud_rate The baud rate of the GPS UART. The Cap ships
+  ///        configured for 115200 baud.
+  /// \return True if the GPS was initialized properly
+  bool initialize_gps(const Gps::fix_callback_fn &fix_cb = nullptr, uint32_t baud_rate = 115200);
+
+  /// Get the GPS
+  /// \return A shared pointer to the GPS driver
+  /// \note The GPS is only available if initialize_gps() succeeded
+  std::shared_ptr<Gps> gps() const { return gps_; }
+
+  /// Get the GPIO pin for the LoRa radio chip select
+  /// \return The GPIO pin for the LoRa radio chip select
+  static constexpr auto lora_cs_gpio() { return lora_cs_io; }
+
+  /// Get the GPIO pin for the LoRa radio DIO1 (interrupt) line
+  /// \return The GPIO pin for the LoRa radio DIO1 line
+  static constexpr auto lora_dio1_gpio() { return lora_dio1_io; }
+
+  /// Get the GPIO pin for the LoRa radio BUSY line
+  /// \return The GPIO pin for the LoRa radio BUSY line
+  static constexpr auto lora_busy_gpio() { return lora_busy_io; }
+
+  /// Get the GPIO pin for the LoRa radio reset line
+  /// \return The GPIO pin for the LoRa radio reset line
+  static constexpr auto lora_reset_gpio() { return lora_reset_io; }
+
+  /// Get the GPIO pin for the GPS UART TX (ESP32 -> GPS)
+  /// \return The GPIO pin for the GPS UART TX
+  static constexpr auto gps_tx_gpio() { return gps_tx_io; }
+
+  /// Get the GPIO pin for the GPS UART RX (GPS -> ESP32)
+  /// \return The GPIO pin for the GPS UART RX
+  static constexpr auto gps_rx_gpio() { return gps_rx_io; }
+
+  /////////////////////////////////////////////////////////////////////////////
   // Misc. pins (IR transmitter, Grove port)
   /////////////////////////////////////////////////////////////////////////////
 
@@ -552,11 +651,15 @@ protected:
   M5StackCardputer();
   void lcd_wait_lines();
   bool initialize_i2s(uint32_t default_audio_rate);
+  bool ensure_adv_i2s(uint32_t sample_rate);
+  bool es8311_ensure_common();
   bool audio_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
   bool microphone_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
   bool keyboard_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
   void detect_variant();
   bool initialize_keyboard_matrix();
+  bool ensure_expansion_spi_bus();
+  bool enable_cap_expander_outputs(uint8_t mask);
   bool initialize_keyboard_tca8418();
   void scan_keyboard_matrix();
   void process_tca8418_events();
@@ -725,7 +828,12 @@ protected:
   static constexpr int UPDATE_FREQUENCY = 60;
 
   static constexpr int calc_audio_buffer_size(int sample_rate) {
-    return sample_rate * NUM_CHANNELS * NUM_BYTES_PER_CHANNEL / UPDATE_FREQUENCY;
+    // NOTE: divide the rate by the update frequency FIRST so the result is
+    // always a whole number of samples. Otherwise rates that are not a
+    // multiple of the update frequency (e.g. 16 kHz) yield an odd byte
+    // count, and reading/writing partial samples shifts the I2S sample
+    // framing on every transfer - heard as loud static.
+    return (sample_rate / UPDATE_FREQUENCY) * NUM_CHANNELS * NUM_BYTES_PER_CHANNEL;
   }
 
   // Microphone. Original: SPM1423 PDM (clk = GPIO 43, shared with the
@@ -741,6 +849,22 @@ protected:
   static constexpr gpio_num_t sdcard_mosi = GPIO_NUM_14;
   static constexpr gpio_num_t sdcard_miso = GPIO_NUM_39;
   static constexpr gpio_num_t sdcard_cs = GPIO_NUM_12;
+
+  // LoRa + GPS Cap (U201 / U214) on the rear expansion connector. The
+  // SX1262 shares the uSD card's SPI bus with its own chip select.
+  static constexpr gpio_num_t lora_cs_io = GPIO_NUM_5;
+  static constexpr gpio_num_t lora_dio1_io = GPIO_NUM_4;
+  static constexpr gpio_num_t lora_busy_io = GPIO_NUM_6;
+  static constexpr gpio_num_t lora_reset_io = GPIO_NUM_3;
+  static constexpr int lora_spi_clock_speed = 8 * 1000 * 1000;
+  static constexpr gpio_num_t gps_tx_io = GPIO_NUM_13; // ESP32 -> GPS
+  static constexpr gpio_num_t gps_rx_io = GPIO_NUM_15; // GPS -> ESP32
+  static constexpr auto gps_uart_port = UART_NUM_1;
+  // PI4IOE5V6408 IO expander on the U214 Cap (internal I2C bus):
+  // P0 = LoRa RF switch (high = antenna connected), P1 = GPS LNA enable
+  static constexpr uint8_t cap_expander_address = 0x43;
+  static constexpr uint8_t cap_expander_lora_rf_switch_mask = 0x01;
+  static constexpr uint8_t cap_expander_gps_lna_mask = 0x02;
 
   // RGB LED (WS2812 on the StampS3 module)
   static constexpr gpio_num_t rgb_led_io = GPIO_NUM_21;
@@ -779,6 +903,24 @@ protected:
 
   // sdcard
   sdmmc_card_t *sdcard_{nullptr};
+  // whether the (shared) uSD / LoRa Cap SPI bus has been initialized
+  bool expansion_spi_bus_initialized_{false};
+
+  // LoRa + GPS Cap
+  spi_device_handle_t lora_spi_handle_{nullptr};
+  std::shared_ptr<Sx126x> lora_{nullptr};
+  std::shared_ptr<Gps> gps_{nullptr};
+  espp::Interrupt::PinConfig lora_dio1_interrupt_pin_{
+      .gpio_num = lora_dio1_io,
+      .callback =
+          [this](const auto &event) {
+            if (lora_) {
+              std::error_code ec;
+              lora_->handle_dio1_interrupt(ec);
+            }
+          },
+      .active_level = espp::Interrupt::ActiveLevel::HIGH,
+      .interrupt_type = espp::Interrupt::Type::RISING_EDGE};
 
   // RGB LED
   std::shared_ptr<Neopixel> rgb_led_{nullptr};
@@ -828,6 +970,8 @@ protected:
 
   // microphone sample rate (Hz), set by initialize_microphone()
   std::atomic<uint32_t> mic_sample_rate_{0};
+  // microphone volume (percent, 75 = unity / 0 dB)
+  std::atomic<float> mic_volume_{75.0f};
 
   // display
   std::shared_ptr<Display<Pixel>> display_;
@@ -840,6 +984,9 @@ protected:
 
   // sound
   std::atomic<bool> sound_initialized_{false};
+  // whether the ES8311's common (reset / clocking / analog power) registers
+  // have been written (ADV only; shared by the speaker and microphone paths)
+  bool es8311_common_initialized_{false};
   std::atomic<bool> mute_{false};
   std::atomic<float> volume_{50.0f};
   std::unique_ptr<espp::Task> audio_task_{nullptr};
@@ -855,6 +1002,9 @@ protected:
   std::unique_ptr<espp::Task> microphone_task_{nullptr};
   i2s_chan_handle_t audio_rx_handle{nullptr};
   std::vector<uint8_t> audio_rx_buffer;
+  // true when the RX channel captures both 16-bit slots per frame (ADV full
+  // duplex); the microphone task then keeps only the left slot
+  bool mic_stereo_capture_{false};
   i2s_pdm_rx_config_t mic_pdm_cfg;
 }; // class M5StackCardputer
 } // namespace espp

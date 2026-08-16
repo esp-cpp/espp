@@ -1,93 +1,128 @@
-// Self-contained RTPS test: two participants (a publisher and a subscriber) in one process exchange
-// std_msgs/msg/UInt32 samples over best-effort CDR-over-RTPS, exercising SPDP/SEDP discovery and
-// the user-data path end to end. Exits 0 if the subscriber received samples, 1 otherwise.
+// Host loopback pub/sub test for the embeddedRTPS engine (components/rtps).
 //
-// Usage: rtps_pubsub [advertised_ipv4] [run_seconds]
+// Phase 0a of components/rtps/REFACTOR_PLAN.md: establish a host-buildable,
+// runnable baseline of the engine BEFORE any refactoring, so every later phase can be
+// checked against it. Two participants in one Domain discover each other via SPDP/SEDP
+// and exchange CDR string samples (best-effort both ends; see the pool-sizing
+// note at the createWriter call).
+//
+// Exits 0 when at least kRequiredSamples samples arrive within the deadline; 1 otherwise.
 
+#include <array>
 #include <atomic>
 #include <chrono>
+#include <cstdio>
+#include <cstring>
+#include <string>
 #include <thread>
 
-#include "espp.hpp"
+#include "rtps/entities/Domain.hpp"
+#include "rtps/utils/CdrBuffer.hpp"
+
 #include "rtps_common.hpp"
 
 using namespace std::chrono_literals;
 
-int main(int argc, char **argv) {
-  espp::Logger logger({.tag = "rtps_pubsub", .level = espp::Logger::Verbosity::INFO});
+namespace {
+constexpr int kRequiredSamples = 5;
+constexpr auto kDeadline = 20s;
+constexpr const char *kTopic = "espp_loopback";
+constexpr const char *kType = "std_msgs::msg::String";
 
-  const std::string address = argc > 1 ? argv[1] : rtps_test::guess_local_ipv4();
-  const int run_seconds = argc > 2 ? std::atoi(argv[2]) : 8;
-  const std::string topic = "espp/test/counter";
-  logger.info("advertising on {} for {}s, topic '{}'", address, run_seconds, topic);
+std::atomic<int> g_received{0};
 
-  std::atomic<uint32_t> received_count{0};
-  std::atomic<uint32_t> last_received{0};
+void reader_cb(void * /*callee*/, const rtps::ReaderCacheChange &change) {
+  // 4-byte CDR encapsulation header + at least a string length prefix
+  if (change.getDataSize() < 8) {
+    return;
+  }
+  g_received.fetch_add(1);
+}
 
-  // --- Subscriber participant ---
-  espp::RtpsParticipant subscriber({
-      .node_name = "espp_pubsub_subscriber",
-      .participant_id = 11,
-      .advertised_address = address,
-      .announce_period = 200ms,
-      .log_level = espp::Logger::Verbosity::WARN,
-  });
-  subscriber.add_reader({
-      .topic_name = topic,
-      .on_sample =
-          [&](std::span<const uint8_t> cdr) {
-            if (auto value = rtps_test::deserialize_uint32(cdr)) {
-              received_count++;
-              last_received = *value;
-            }
-          },
-  });
+bool publish_string(rtps::Writer *writer, const char *text) {
+  uint8_t cdr_buf[4 + 4 + 128];
+  cdr_buf[0] = 0x00; // CDR_LE encapsulation
+  cdr_buf[1] = 0x01;
+  cdr_buf[2] = 0x00;
+  cdr_buf[3] = 0x00;
+  // CDR string body: uint32 length (incl. null terminator) + chars + null.
+  rtps::CdrSink sink{rtps::asWritableBytes(cdr_buf + 4, sizeof(cdr_buf) - 4)};
+  rtps::CdrWriter writer_cdr(sink);
+  const auto len = static_cast<uint32_t>(std::strlen(text) + 1);
+  writer_cdr.write<uint32_t>(len);
+  rtps::writeBytes(writer_cdr, reinterpret_cast<const uint8_t *>(text), len);
+  if (!writer_cdr.ok()) {
+    return false;
+  }
+  const auto total = static_cast<rtps::DataSize_t>(4 + sink.size());
+  return writer->newChange(rtps::ChangeKind_t::ALIVE, cdr_buf, total) != nullptr;
+}
+} // namespace
 
-  // --- Publisher participant ---
-  espp::RtpsParticipant publisher({
-      .node_name = "espp_pubsub_publisher",
-      .participant_id = 10,
-      .advertised_address = address,
-      .announce_period = 200ms,
-      .log_level = espp::Logger::Verbosity::WARN,
-  });
-  publisher.add_writer({.topic_name = topic});
+int main() {
+  const std::string ip_str = rtps_test::guess_local_ipv4();
+  rtps::Ip4AddressBytes ip{};
+  unsigned a = 0, b = 0, c = 0, d = 0;
+  if (std::sscanf(ip_str.c_str(), "%u.%u.%u.%u", &a, &b, &c, &d) != 4) {
+    std::printf("FAIL: could not parse local ip '%s'\n", ip_str.c_str());
+    return 1;
+  }
+  ip = {static_cast<uint8_t>(a), static_cast<uint8_t>(b), static_cast<uint8_t>(c),
+        static_cast<uint8_t>(d)};
+  std::printf("local ip: %s\n", ip_str.c_str());
 
-  if (!subscriber.start() || !publisher.start()) {
-    logger.error("Failed to start participants (is multicast networking available?)");
+  static rtps::Domain domain(ip);
+
+  // Participants must exist before completeInit() starts discovery.
+  rtps::Participant *pub_part = domain.createParticipant();
+  rtps::Participant *sub_part = domain.createParticipant();
+  if (pub_part == nullptr || sub_part == nullptr) {
+    std::printf("FAIL: could not create participants\n");
     return 1;
   }
 
-  // Give SPDP/SEDP discovery a moment to match the writer and reader.
-  logger.info("waiting for discovery...");
-  for (int i = 0; i < 50; i++) {
-    if (!publisher.discovered_readers().empty() && !subscriber.discovered_writers().empty()) {
-      break;
+  if (!domain.completeInit()) {
+    std::printf("FAIL: completeInit\n");
+    return 1;
+  }
+
+  // Best-effort on both ends: with MAX_NUM_PARTICIPANTS=2 the SEDP builtins consume
+  // the entire desktop stateful pools (2 participants x 2 SEDP writers = 4 = cap), so
+  // the loopback baseline uses the spare stateless slots. Reliable QoS is exercised
+  // against FastDDS in the Phase 0c interop harness (single local participant).
+  rtps::Writer *writer = domain.createWriter(*pub_part, kTopic, kType, /*reliable=*/false);
+  rtps::Reader *reader = domain.createReader(*sub_part, kTopic, kType, /*reliable=*/false);
+  if (writer == nullptr || reader == nullptr) {
+    std::printf("FAIL: could not create writer/reader\n");
+    domain.stop();
+    return 1;
+  }
+  if (reader->registerCallback(reader_cb, nullptr) == 0) {
+    std::printf("FAIL: registerCallback\n");
+    domain.stop();
+    return 1;
+  }
+
+  const auto start = std::chrono::steady_clock::now();
+  int sent = 0;
+  while (g_received.load() < kRequiredSamples &&
+         std::chrono::steady_clock::now() - start < kDeadline) {
+    char text[64];
+    std::snprintf(text, sizeof(text), "hello espp rtps %d", sent);
+    if (publish_string(writer, text)) {
+      sent++;
     }
     std::this_thread::sleep_for(100ms);
   }
-  logger.info("discovered {} remote reader(s), {} remote writer(s)",
-              publisher.discovered_readers().size(), subscriber.discovered_writers().size());
 
-  uint32_t sent_count = 0;
-  const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(run_seconds);
-  while (std::chrono::steady_clock::now() < deadline) {
-    uint32_t value = ++sent_count;
-    if (publisher.publish(topic, rtps_test::serialize_uint32(value))) {
-      logger.info("published {} -> received so far {} (last={})", value, received_count.load(),
-                  last_received.load());
-    }
-    std::this_thread::sleep_for(500ms);
+  const int received = g_received.load();
+  std::printf("sent=%d received=%d\n", sent, received);
+  domain.stop();
+
+  if (received >= kRequiredSamples) {
+    std::printf("PASS\n");
+    return 0;
   }
-
-  publisher.stop();
-  subscriber.stop();
-
-  logger.info("done: sent {}, received {}, last value {}", sent_count, received_count.load(),
-              last_received.load());
-  if (received_count == 0) {
-    logger.error("subscriber received no samples");
-    return 1;
-  }
-  return 0;
+  std::printf("FAIL: received %d < %d\n", received, kRequiredSamples);
+  return 1;
 }

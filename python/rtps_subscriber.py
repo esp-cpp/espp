@@ -1,75 +1,56 @@
 #!/usr/bin/env python3
-"""Standalone RTPS subscriber using the espp Python library.
+"""Standalone RTPS subscriber using the espp Python library (embeddedRTPS engine).
 
-Announces a reader and prints received std_msgs/msg/UInt32 samples. Pair it with rtps_publisher.py,
-the C++ rtps_publisher, or rtps_host.py.
+Subscribes to the complex nested message published by rtps_publisher.py (or any
+DDS/ROS 2 peer publishing espp_examples/msg/SensorSample), using pycdr2 for CDR
+deserialization and the light espp.rtps.Subscriber wrapper -- the callback
+receives fully-decoded message objects, not raw bytes.
 
-Usage: python rtps_subscriber.py [topic] [advertised_ipv4]
+Requires pycdr2 (see python/requirements.txt).
+
+Usage: python rtps_subscriber.py [topic] [interface_ipv4] [run_seconds]
 """
 
-import datetime
-import socket
 import sys
 import time
 
 import espp
 
-
-def guess_local_ipv4() -> str:
-    probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        probe.connect(("8.8.8.8", 53))
-        return probe.getsockname()[0]
-    except OSError:
-        return "127.0.0.1"
-    finally:
-        probe.close()
-
-
-def deserialize_uint32(data: bytes):
-    return espp.CdrReader(data).read_uint32()
+from rtps_messages import SensorSample
 
 
 def main() -> int:
+    topic = sys.argv[1] if len(sys.argv) > 1 else "rt/imu"
+    interface = sys.argv[2] if len(sys.argv) > 2 else ""  # "" -> auto-detect
+    run_seconds = float(sys.argv[3]) if len(sys.argv) > 3 else 30.0
+
+    stats = {"received": 0}
+
+    def on_message(msg) -> None:  # msg is a fully-decoded SensorSample
+        stats["received"] += 1
+        print(
+            f"received {stats['received']}: seq={msg.seq} frame={msg.frame_id!r} "
+            f"wz={msg.angular_velocity.z:.3f} samples={list(msg.samples)}"
+        )
+
     R = espp.RtpsParticipant
-    topic = sys.argv[1] if len(sys.argv) > 1 else "espp/test/counter"
-    address = sys.argv[2] if len(sys.argv) > 2 else guess_local_ipv4()
-
-    count = {"n": 0}
-
-    cfg = R.Config()
-    cfg.node_name = "py_subscriber"
-    cfg.participant_id = 22
-    cfg.advertised_address = address
-    cfg.announce_period = datetime.timedelta(milliseconds=500)
-    cfg.on_participant_discovered = lambda p: print(
-        f"discovered participant '{p.name}' at {p.address}")
-    participant = R(cfg)
-
-    def on_sample(cdr: bytes):
-        value = deserialize_uint32(cdr)
-        if value is not None:
-            count["n"] += 1
-            print(f"received {value} (#{count['n']})")
-
-    rc = R.ReaderConfig()
-    rc.topic_name = topic
-    rc.on_sample = on_sample
-    participant.add_reader(rc)
-
+    participant = R(R.Config(interface_address=interface, log_level=espp.Logger.Verbosity.info))
     if not participant.start():
-        print("Failed to start participant (is multicast networking available?)")
+        print("failed to start participant")
         return 1
-    print(f"subscribed to '{topic}' on {address} (Ctrl-C to stop)")
+    sub = espp.rtps.Subscriber(participant, topic, SensorSample, on_message=on_message, reliable=True)
+    if not sub.valid:
+        print("failed to add reader")
+        return 1
+    print(f"subscribed to '{topic}' (espp_examples/msg/SensorSample) for {run_seconds}s")
 
     try:
-        while True:
-            time.sleep(5)
-            print(f"status: {count['n']} samples received, "
-                  f"{len(participant.discovered_writers())} known publisher(s)")
+        time.sleep(run_seconds)
     except KeyboardInterrupt:
-        participant.stop()
-    return 0
+        pass
+    participant.stop()
+    print(f"done; received={stats['received']}")
+    return 0 if stats["received"] else 1
 
 
 if __name__ == "__main__":

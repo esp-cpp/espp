@@ -1,5 +1,8 @@
 #include "socket.hpp"
 
+#include <climits>
+#include <mutex>
+
 using namespace espp;
 
 void Socket::Info::init_ipv4(const std::string &addr, size_t prt) {
@@ -15,15 +18,22 @@ struct sockaddr_in *Socket::Info::ipv4_ptr() {
   return reinterpret_cast<struct sockaddr_in *>(&raw);
 }
 
+#if !defined(ESP_PLATFORM) || LWIP_IPV6
 struct sockaddr_in6 *Socket::Info::ipv6_ptr() {
   return reinterpret_cast<struct sockaddr_in6 *>(&raw);
 }
+#endif // !defined(ESP_PLATFORM) || LWIP_IPV6
 
 void Socket::Info::update() {
   if (raw.ss_family == PF_INET) {
     const auto *ipv4 = reinterpret_cast<const struct sockaddr_in *>(&raw);
-    address = inet_ntoa(ipv4->sin_addr);
+    // inet_ntop into a local buffer (inet_ntoa returns a shared static buffer,
+    // which races when multiple threads - e.g. reactor pool workers - build
+    // Socket::Info concurrently).
+    char buf[INET_ADDRSTRLEN];
+    address = inet_ntop(AF_INET, &ipv4->sin_addr, buf, sizeof(buf)) ? buf : "";
     port = ntohs(ipv4->sin_port);
+#if !defined(ESP_PLATFORM) || LWIP_IPV6
   } else if (raw.ss_family == PF_INET6) {
     const auto *ipv6 = reinterpret_cast<const struct sockaddr_in6 *>(&raw);
 #if defined(ESP_PLATFORM)
@@ -34,6 +44,7 @@ void Socket::Info::update() {
     address = str;
 #endif
     port = ntohs(ipv6->sin6_port);
+#endif // !defined(ESP_PLATFORM) || LWIP_IPV6
   }
 }
 
@@ -44,10 +55,14 @@ void Socket::Info::from_sockaddr(const struct sockaddr_storage &source_address) 
 
 void Socket::Info::from_sockaddr(const struct sockaddr_in &source_address) {
   memcpy(&raw, &source_address, sizeof(source_address));
-  address = inet_ntoa(source_address.sin_addr);
+  // inet_ntop into a local buffer (inet_ntoa's shared static buffer is not
+  // thread-safe - see Info::update()).
+  char buf[INET_ADDRSTRLEN];
+  address = inet_ntop(AF_INET, &source_address.sin_addr, buf, sizeof(buf)) ? buf : "";
   port = ntohs(source_address.sin_port);
 }
 
+#if !defined(ESP_PLATFORM) || LWIP_IPV6
 void Socket::Info::from_sockaddr(const struct sockaddr_in6 &source_address) {
 #if defined(ESP_PLATFORM)
   address = inet_ntoa(source_address.sin6_addr);
@@ -59,36 +74,36 @@ void Socket::Info::from_sockaddr(const struct sockaddr_in6 &source_address) {
   port = ntohs(source_address.sin6_port);
   memcpy(&raw, &source_address, sizeof(source_address));
 }
+#endif // !defined(ESP_PLATFORM) || LWIP_IPV6
 
-[[maybe_unused]] static bool _socket_initialized = false;
-Socket::Socket(sock_type_t socket_fd, const Logger::Config &logger_config)
-    : BaseComponent(logger_config) {
-#ifdef _MSC_VER
-  if (!_socket_initialized) {
+#ifdef _WIN32
+// Ensure Winsock is initialized exactly once, even if multiple Sockets are
+// constructed concurrently (std::call_once serializes the check-then-act).
+void Socket::initialize_winsock() {
+  static std::once_flag winsock_once;
+  std::call_once(winsock_once, [this]() {
     logger_.debug("Initializing Winsock");
     WSADATA wsa_data;
     int err = WSAStartup(MAKEWORD(1, 1), &wsa_data);
     if (err != 0) {
       logger_.error("WSAStartup failed: {}", error_string(err));
     }
-    _socket_initialized = true;
-  }
+  });
+}
+#endif
+
+Socket::Socket(sock_type_t socket_fd, const Logger::Config &logger_config)
+    : BaseComponent(logger_config) {
+#ifdef _WIN32
+  initialize_winsock();
 #endif
   socket_ = socket_fd;
 }
 
 Socket::Socket(Type type, const Logger::Config &logger_config)
     : BaseComponent(logger_config) {
-#ifdef _MSC_VER
-  if (!_socket_initialized) {
-    logger_.debug("Initializing Winsock");
-    WSADATA wsa_data;
-    int err = WSAStartup(MAKEWORD(1, 1), &wsa_data);
-    if (err != 0) {
-      logger_.error("WSAStartup failed: {}", error_string(err));
-    }
-    _socket_initialized = true;
-  }
+#ifdef _WIN32
+  initialize_winsock();
 #endif
   init(type);
 }
@@ -96,7 +111,7 @@ Socket::Socket(Type type, const Logger::Config &logger_config)
 Socket::~Socket() { cleanup(); }
 
 bool Socket::is_valid() const {
-#ifdef _MSC_VER
+#ifdef _WIN32
   return socket_ != INVALID_SOCKET;
 #else
   return socket_ >= 0;
@@ -104,7 +119,7 @@ bool Socket::is_valid() const {
 }
 
 bool Socket::is_valid_fd(sock_type_t socket_fd) {
-#ifdef _MSC_VER
+#ifdef _WIN32
   return socket_fd != INVALID_SOCKET;
 #else
   return socket_fd >= 0;
@@ -149,6 +164,95 @@ bool Socket::set_receive_timeout(const std::chrono::duration<float> &timeout) {
   return true;
 }
 
+bool Socket::set_option(int level, int option_name, const void *value, size_t size) {
+  // setsockopt's optlen is a signed int (Windows) / socklen_t; guard against a
+  // size_t that would narrow/overflow when cast.
+  if (size > static_cast<size_t>(INT_MAX)) {
+    logger_.error("set_option size too large (level={}, option={}): {} > {}", level, option_name,
+                  size, INT_MAX);
+    return false;
+  }
+#if defined(_WIN32)
+  int err = setsockopt(socket_, level, option_name, reinterpret_cast<const char *>(value),
+                       static_cast<int>(size));
+#else
+  int err = setsockopt(socket_, level, option_name, value, static_cast<socklen_t>(size));
+#endif
+  if (err < 0) {
+    logger_.error("Couldn't set socket option (level={}, option={}): {}", level, option_name,
+                  error_string());
+    return false;
+  }
+  return true;
+}
+
+bool Socket::set_receive_buffer_size(size_t bytes) {
+  // SO_RCVBUF takes an int; reject values that would overflow the cast.
+  if (bytes > static_cast<size_t>(INT_MAX)) {
+    logger_.error("set_receive_buffer_size too large: {} > {}", bytes, INT_MAX);
+    return false;
+  }
+  int value = static_cast<int>(bytes);
+  return set_option(SOL_SOCKET, SO_RCVBUF, value);
+}
+
+bool Socket::set_send_buffer_size(size_t bytes) {
+  // SO_SNDBUF takes an int; reject values that would overflow the cast.
+  if (bytes > static_cast<size_t>(INT_MAX)) {
+    logger_.error("set_send_buffer_size too large: {} > {}", bytes, INT_MAX);
+    return false;
+  }
+  int value = static_cast<int>(bytes);
+  return set_option(SOL_SOCKET, SO_SNDBUF, value);
+}
+
+bool Socket::set_reuse_address(bool enable) {
+  int value = enable ? 1 : 0;
+  return set_option(SOL_SOCKET, SO_REUSEADDR, value);
+}
+
+std::optional<size_t> Socket::get_receive_buffer_size() {
+  int value = 0;
+#if defined(_WIN32)
+  // Winsock's getsockopt takes the optlen as int*, not socklen_t*.
+  int len = sizeof(value);
+  int err = getsockopt(socket_, SOL_SOCKET, SO_RCVBUF, reinterpret_cast<char *>(&value), &len);
+#else
+  socklen_t len = sizeof(value);
+  int err = getsockopt(socket_, SOL_SOCKET, SO_RCVBUF, &value, &len);
+#endif
+  if (err < 0) {
+    logger_.error("Couldn't get SO_RCVBUF: {}", error_string());
+    return {};
+  }
+  return static_cast<size_t>(value);
+}
+
+bool Socket::disable_reuse() {
+#if !CONFIG_LWIP_SO_REUSE && defined(ESP_PLATFORM)
+  // reuse is not compiled into lwip, so it is already effectively disabled
+  return true;
+#else // CONFIG_LWIP_SO_REUSE || !defined(ESP_PLATFORM)
+  int err = 0;
+  int disabled = 0;
+  err = setsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char *>(&disabled),
+                   sizeof(disabled));
+  if (err < 0) {
+    fmt::print(fg(fmt::color::red), "Couldn't clear SO_REUSEADDR: {}\n", error_string());
+    return false;
+  }
+#if !defined(ESP_PLATFORM) && !defined(_WIN32)
+  err = setsockopt(socket_, SOL_SOCKET, SO_REUSEPORT, reinterpret_cast<const char *>(&disabled),
+                   sizeof(disabled));
+  if (err < 0) {
+    fmt::print(fg(fmt::color::red), "Couldn't clear SO_REUSEPORT: {}\n", error_string());
+    return false;
+  }
+#endif // !defined(ESP_PLATFORM) && !defined(_WIN32)
+  return true;
+#endif // !CONFIG_LWIP_SO_REUSE && defined(ESP_PLATFORM)
+}
+
 bool Socket::enable_reuse() {
 #if !CONFIG_LWIP_SO_REUSE && defined(ESP_PLATFORM)
   fmt::print(fg(fmt::color::red), "CONFIG_LWIP_SO_REUSE not defined!\n");
@@ -163,7 +267,7 @@ bool Socket::enable_reuse() {
     return false;
   }
 #if !defined(ESP_PLATFORM)
-#ifdef _MSC_VER
+#ifdef _WIN32
   // NOTE: according to stackoverflow, we have to set broadcast instead of reuseport
   err = setsockopt(socket_, SOL_SOCKET, SO_BROADCAST, reinterpret_cast<const char *>(&enabled),
                    sizeof(enabled));
@@ -178,7 +282,7 @@ bool Socket::enable_reuse() {
     fmt::print(fg(fmt::color::red), "Couldn't set SO_REUSEPORT: {}\n", error_string());
     return false;
   }
-#endif // _MSC_VER
+#endif // _WIN32
 #endif // !defined(ESP_PLATFORM)
   return true;
 #endif // !CONFIG_LWIP_SO_REUSE && defined(ESP_PLATFORM)
@@ -195,7 +299,7 @@ static bool resolve_interface_address(const std::string &interface_address, stru
 #endif
     return true;
   }
-#ifdef _MSC_VER
+#ifdef _WIN32
   return inet_pton(AF_INET, interface_address.c_str(), &out) == 1;
 #else
   return inet_aton(interface_address.c_str(), &out) == 1;
@@ -259,11 +363,11 @@ bool Socket::add_multicast_group(const std::string &multicast_group,
 #if defined(ESP_PLATFORM)
   err = inet_aton(multicast_group.c_str(), &imreq.imr_multiaddr.s_addr);
 #else
-#ifdef _MSC_VER
+#ifdef _WIN32
   err = inet_pton(AF_INET, multicast_group.c_str(), &imreq.imr_multiaddr);
 #else
   err = inet_aton(multicast_group.c_str(), &imreq.imr_multiaddr);
-#endif // _MSC_VER
+#endif // _WIN32
 #endif // defined(ESP_PLATFORM)
 
   if (err != 1 || !IN_MULTICAST(ntohl(imreq.imr_multiaddr.s_addr))) {
@@ -335,7 +439,7 @@ bool Socket::init(Socket::Type type) {
 }
 
 std::string Socket::error_string() const {
-#ifdef _MSC_VER
+#ifdef _WIN32
   int err = WSAGetLastError();
   return error_string(err);
 #else
@@ -344,7 +448,7 @@ std::string Socket::error_string() const {
 }
 
 std::string Socket::error_string(int err) const {
-#ifdef _MSC_VER
+#ifdef _WIN32
   if (err == WSAEWOULDBLOCK) {
     return "WSAEWOULDBLOCK";
   } else if (err == WSAECONNRESET) {
@@ -372,7 +476,7 @@ std::string Socket::error_string(int err) const {
 void Socket::cleanup() {
   if (is_valid()) {
     auto socket_fd = socket_;
-#ifdef _MSC_VER
+#ifdef _WIN32
     socket_ = INVALID_SOCKET;
     int status = shutdown(socket_fd, SD_BOTH);
     if (status != 0) {

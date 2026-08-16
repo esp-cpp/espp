@@ -11,11 +11,11 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py cdr logger"
+  "main esptool_py cdr reflect_cpp logger"
   CACHE STRING
   "List of components to include"
   )
 
 project(cdr_example)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)

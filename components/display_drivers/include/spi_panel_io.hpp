@@ -16,10 +16,10 @@
 #include "spi.hpp"
 
 namespace espp {
-/// @brief LCD-style command/data helper built on top of `Spi`.
+/// @brief LCD-style command/data helper built on top of <tt>Spi</tt>.
 /// @details
-/// `queue_command()` transmits with D/C low. `queue_data()` and
-/// `queue_pixels()` always transmit with D/C high, so callers should treat them
+/// <tt>queue_command()</tt> transmits with D/C low. <tt>queue_data()</tt> and
+/// <tt>queue_pixels()</tt> always transmit with D/C high, so callers should treat them
 /// as payload helpers rather than manually setting the D/C bit for normal panel
 /// data transactions.
 class SpiPanelIo : public display_drivers::PanelIo, public BaseComponent {
@@ -27,7 +27,7 @@ public:
   /// @brief IRQ-safe callback invoked after matching queued transactions finish.
   using post_transaction_callback_t = void (*)(uint32_t user_flags);
 
-  /// @brief Configuration for `SpiPanelIo`.
+  /// @brief Configuration for <tt>SpiPanelIo</tt>.
   struct Config {
     Spi *spi = nullptr;                       ///< Bus on which to register the display device.
     Spi::DeviceConfig device_config{};        ///< SPI device configuration.

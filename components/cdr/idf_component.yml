@@ -1,6 +1,6 @@
 ## IDF Component Manager Manifest File
 license: "MIT"
-description: "Common Data Representation (CDR) read/write helpers for ESP-IDF and cross-platform use."
+description: "Reflection-driven CDR/XCDR serialization for plain C++ structs (no IDL compiler) — wire-compatible with DDS/RTPS, byte-verified against CycloneDDS."
 url: "https://github.com/esp-cpp/espp/tree/main/components/cdr"
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
@@ -14,8 +14,12 @@ tags:
   - CDR
   - DDS
   - RTPS
+  - ROS2
   - Serialization
   - XCDR
+  - Reflection
 dependencies:
   idf:
-    version: '>=5.0'
+    version: '>=5.2'
+  espp/reflect_cpp:
+    version: '>=1.0'

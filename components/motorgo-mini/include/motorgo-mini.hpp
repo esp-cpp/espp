@@ -356,13 +356,13 @@ public:
 
   /// Get one motor driver helper.
   /// \param index Zero-based motor index in the range [0, num_motor_channels()).
-  /// \return Shared pointer to the requested driver, or `nullptr` if the index
+  /// \return Shared pointer to the requested driver, or <tt>nullptr</tt> if the index
   ///         is invalid or that driver has not been initialized.
   std::shared_ptr<MotorDriver> motor_driver(size_t index);
 
   /// Get one encoder helper.
   /// \param index Zero-based encoder index in the range [0, num_motor_channels()).
-  /// \return Shared pointer to the requested encoder, or `nullptr` if the index
+  /// \return Shared pointer to the requested encoder, or <tt>nullptr</tt> if the index
   ///         is invalid or that encoder has not been initialized.
   std::shared_ptr<Encoder> encoder(size_t index);
 
@@ -401,7 +401,7 @@ public:
   /// \param config The motor configuration. Its driver and sensor fields are
   ///        overridden with the board's per-channel driver and encoder.
   /// \return Shared pointer to the created (and initialized) BldcMotor, or
-  ///         `nullptr` if the index is invalid or the channel's driver/encoder
+  ///         <tt>nullptr</tt> if the index is invalid or the channel's driver/encoder
   ///         could not be initialized.
   /// \details If the encoder / driver for the channel have not been initialized
   ///          yet, this initializes them first, so a single call is enough to
@@ -410,7 +410,7 @@ public:
 
   /// Get one FOC motor controller.
   /// \param index Zero-based motor index in the range [0, num_motor_channels()).
-  /// \return Shared pointer to the requested motor, or `nullptr` if the index is
+  /// \return Shared pointer to the requested motor, or <tt>nullptr</tt> if the index is
   ///         invalid or the motor has not been initialized.
   std::shared_ptr<BldcMotor> motor(size_t index);
 

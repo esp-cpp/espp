@@ -20,8 +20,9 @@
 #include <esp_lcd_panel_ops.h>
 
 #if CONFIG_ESP_P4_EV_BOARD_ETHERNET
-#include <esp_eth.h>
 #include <esp_netif.h>
+
+#include "ethernet.hpp"
 #endif
 
 #include <freertos/FreeRTOS.h>
@@ -50,7 +51,7 @@ namespace espp {
 /// - ES8311 audio codec (+ NS4150B speaker amplifier) over I2S
 /// - 10/100 Ethernet (EMAC + IP101 RMII PHY)
 /// - microSD card (4-bit SDMMC)
-/// - MIPI-CSI camera (SC2336/OV5647) — pins wired, capture pipeline is a stub
+/// - MIPI-CSI camera (SC2336/OV5647) - pins wired, capture pipeline is a stub
 ///
 /// \note The BOOT button cannot be used simultaneously with the ethernet PHY,
 ///       since the BOOT button is connected to the PHY's RMII_TXD1 pin. If you
@@ -270,13 +271,61 @@ public:
   size_t audio_buffer_size() const;
 
   /// Play audio data
-  /// \param data The audio data to play
+  /// \param data The audio data to play (16-bit signed mono samples)
   /// \param num_bytes The number of bytes to play
-  void play_audio(const uint8_t *data, uint32_t num_bytes);
+  /// \return The number of bytes actually queued (may be less than \p
+  ///         num_bytes if the internal stream buffer is full)
+  /// \note This function is non-blocking and queues the data for the audio
+  ///       task to play; to stream data larger than the internal buffer,
+  ///       call it repeatedly, advancing by the returned number of bytes
+  /// \note Must be called from task context, not from an ISR.
+  size_t play_audio(const uint8_t *data, uint32_t num_bytes);
 
   /// Play audio data
-  /// \param data The audio data to play
-  void play_audio(std::span<const uint8_t> data);
+  /// \param data The audio data to play (16-bit signed mono samples)
+  /// \return The number of bytes actually queued (may be less than the data
+  ///         size if the internal stream buffer is full)
+  /// \note This function is non-blocking and queues the data for the audio
+  ///       task to play; to stream data larger than the internal buffer,
+  ///       call it repeatedly, advancing by the returned number of bytes
+  /// \note Must be called from task context, not from an ISR.
+  size_t play_audio(std::span<const uint8_t> data);
+
+  /////////////////////////////////////////////////////////////////////////////
+  // Microphone
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// Alias for the microphone callback, called with recorded audio data
+  using microphone_callback_t = std::function<void(const uint8_t *data, size_t num_bytes)>;
+
+  /// Initialize the microphone (the onboard analog microphone through the
+  /// ES8311 codec's ADC) and start delivering audio data to the provided
+  /// callback
+  /// \param callback The callback to call with recorded audio data (16-bit
+  ///        signed mono samples at audio_sample_rate())
+  /// \param task_config The configuration for the microphone task
+  /// \return true if the microphone was successfully initialized, false
+  ///         otherwise
+  /// \note The audio subsystem must be initialized first (the ES8311 is a
+  ///       full-duplex codec on a single I2S bus, so the microphone records
+  ///       at the speaker's sample rate)
+  /// \note The callback runs in the microphone task's context, so the task's
+  ///       stack must be large enough for whatever the callback does with
+  ///       the audio data
+  bool initialize_microphone(const microphone_callback_t &callback,
+                             const espp::Task::BaseConfig &task_config = {.name = "microphone",
+                                                                          .stack_size_bytes = 4096,
+                                                                          .priority = 10,
+                                                                          .core_id = 1});
+
+  /// Set the microphone volume
+  /// \param volume The volume as a percentage (0 - 100), mapped onto the
+  ///        ES8311 analog microphone gain range (0 dB - +42 dB)
+  void microphone_volume(float volume);
+
+  /// Get the microphone volume
+  /// \return The microphone volume as a percentage (0 - 100)
+  float microphone_volume() const;
 
   /////////////////////////////////////////////////////////////////////////////
   // uSD Card (4-bit SDMMC)
@@ -324,20 +373,20 @@ public:
 
   /// Check whether the Ethernet link is up (cable connected + negotiated)
   /// \return True if the link is up
-  bool is_ethernet_connected() const { return ethernet_connected_; }
+  bool is_ethernet_connected() const { return ethernet_ && ethernet_->is_connected(); }
 
   /// Get the most recently acquired IPv4 address (0 if none)
   /// \return The IPv4 address
-  esp_ip4_addr_t ethernet_ip() const { return ethernet_ip_; }
+  esp_ip4_addr_t ethernet_ip() const { return ethernet_ ? ethernet_->ip() : esp_ip4_addr_t{}; }
 #endif // CONFIG_ESP_P4_EV_BOARD_ETHERNET || defined(_DOXYGEN_)
 
   /////////////////////////////////////////////////////////////////////////////
-  // Camera (MIPI-CSI) — pins wired, capture pipeline is a stub
+  // Camera (MIPI-CSI) - pins wired, capture pipeline is a stub
   /////////////////////////////////////////////////////////////////////////////
 
   /// Initialize the MIPI-CSI camera (SC2336/OV5647).
   /// \return True if successful
-  /// \note Not yet implemented — the camera pins/SCCB are documented in this
+  /// \note Not yet implemented - the camera pins/SCCB are documented in this
   ///       BSP but the esp_video capture pipeline is not wired up. This always
   ///       returns false for now.
   bool initialize_camera();
@@ -360,6 +409,7 @@ protected:
 
   bool update_touch();
   bool audio_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
+  bool microphone_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
 
   /////////////////////////////////////////////////////////////////////////////
   // Display geometry / per-panel parameters
@@ -433,7 +483,7 @@ protected:
   static constexpr gpio_num_t internal_i2c_sda = GPIO_NUM_7;
   static constexpr gpio_num_t internal_i2c_scl = GPIO_NUM_8;
 
-  // Touch (GT911) — interrupt/reset are NOT connected on this board
+  // Touch (GT911) - interrupt/reset are NOT connected on this board
   static constexpr uint8_t gt911_default_address = 0x5D;
   static constexpr uint8_t gt911_backup_address = 0x14;
 
@@ -461,7 +511,7 @@ protected:
   static constexpr gpio_num_t sd_d3_io = GPIO_NUM_42;
 
   /////////////////////////////////////////////////////////////////////////////
-  // Camera (MIPI-CSI) — SCCB shares the internal I2C bus; reset/xclk not connected
+  // Camera (MIPI-CSI) - SCCB shares the internal I2C bus; reset/xclk not connected
   /////////////////////////////////////////////////////////////////////////////
   static constexpr gpio_num_t camera_reset_io = GPIO_NUM_NC;
   static constexpr gpio_num_t camera_xclk_io = GPIO_NUM_NC;
@@ -539,24 +589,24 @@ protected:
   StreamBufferHandle_t audio_tx_stream{nullptr};
   std::atomic<bool> has_sound{false};
 
+  // Microphone (ES8311 ADC, full duplex with the speaker)
+  std::atomic<bool> microphone_initialized_{false};
+  microphone_callback_t microphone_callback_{nullptr};
+  std::unique_ptr<espp::Task> microphone_task_{nullptr};
+  i2s_chan_handle_t audio_rx_handle{nullptr};
+  std::vector<uint8_t> audio_rx_buffer;
+  // microphone volume (percent), mapped onto the ES8311 analog gain range
+  std::atomic<float> mic_volume_{70.0f};
+
   // uSD card
   std::atomic<bool> sd_card_initialized_{false};
   sdmmc_card_t *sdcard_{nullptr};
   void *sd_pwr_ctrl_handle_{nullptr};
 
 #if CONFIG_ESP_P4_EV_BOARD_ETHERNET
-  // Ethernet
-  std::atomic<bool> ethernet_initialized_{false};
-  std::atomic<bool> ethernet_connected_{false};
-  esp_ip4_addr_t ethernet_ip_{};
-  ethernet_link_callback_t ethernet_link_callback_{nullptr};
-  esp_eth_handle_t eth_handle_{nullptr};
-  void *eth_glue_{nullptr}; // esp_eth_netif_glue_handle_t
-  esp_netif_t *eth_netif_{nullptr};
-  static void ethernet_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id,
-                                     void *event_data);
-  static void ethernet_got_ip_handler(void *arg, esp_event_base_t event_base, int32_t event_id,
-                                      void *event_data);
+  // The board's RMII Ethernet is driven by the reusable espp::Ethernet component
+  // (this BSP just supplies the board-specific pins / PHY).
+  std::unique_ptr<espp::Ethernet> ethernet_;
 #endif
 
   // Display state

@@ -1,17 +1,35 @@
+#include <algorithm>
+#include <utility>
+
 #include "gui.hpp"
 
 using Board = espp::Esp32P4FunctionEvBoard;
 
 void Gui::init_ui() {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
-  init_background();
+  init_tabview();
   init_labels();
   init_buttons();
+  init_audio_controls();
   init_circle_layer();
-  // disable scrolling on the screen (so that it doesn't behave weirdly when
-  // rotated and drawing with your finger)
-  lv_obj_set_scrollbar_mode(lv_screen_active(), LV_SCROLLBAR_MODE_OFF);
-  lv_obj_clear_flag(lv_screen_active(), LV_OBJ_FLAG_SCROLLABLE);
+}
+
+void Gui::init_tabview() {
+  // the tabview gives each subsystem its own uncrowded page; the tab bar
+  // (top) is the page switcher
+  tabview_ = lv_tabview_create(lv_screen_active());
+  lv_tabview_set_tab_bar_position(tabview_, LV_DIR_TOP);
+  lv_tabview_set_tab_bar_size(tabview_, TAB_BAR_HEIGHT);
+  lv_obj_set_size(tabview_, lv_display_get_horizontal_resolution(lv_display_get_default()),
+                  lv_display_get_vertical_resolution(lv_display_get_default()));
+  status_tab_ = lv_tabview_add_tab(tabview_, "Status");
+  audio_tab_ = lv_tabview_add_tab(tabview_, "Audio");
+  // switching tabs is done with the tab buttons only: disable swipe
+  // scrolling of the content so drawing on the Draw tab cannot accidentally
+  // change pages
+  lv_obj_clear_flag(lv_tabview_get_content(tabview_), LV_OBJ_FLAG_SCROLLABLE);
+  // hide the touch-trail overlay whenever a non-drawing tab is shown
+  lv_obj_add_event_cb(tabview_, event_callback, LV_EVENT_VALUE_CHANGED, this);
 }
 
 void Gui::deinit_ui() {
@@ -19,53 +37,137 @@ void Gui::deinit_ui() {
   lv_obj_clean(lv_screen_active());
 }
 
-void Gui::init_background() {
-  auto &board = Board::get();
-  background_ = lv_obj_create(lv_screen_active());
-  lv_obj_set_size(background_, board.display_width(), board.display_height());
-  lv_obj_set_style_bg_color(background_, lv_color_make(0, 0, 0), 0);
-}
-
 void Gui::init_labels() {
-  // a title label at the top of the screen
-  title_label_ = lv_label_create(lv_screen_active());
+  // a title label at the top of the Status tab
+  title_label_ = lv_label_create(status_tab_);
+  lv_label_set_long_mode(title_label_, LV_LABEL_LONG_WRAP);
+  lv_obj_set_width(title_label_, lv_pct(100));
   lv_label_set_text(title_label_, "ESP32-P4 Function EV Board  -  touch to draw!");
-  lv_obj_align(title_label_, LV_ALIGN_TOP_MID, 0, 8);
+  lv_obj_align(title_label_, LV_ALIGN_TOP_MID, 0, 0);
 
   // a status label showing the live subsystem state, updated via
   // set_status_text()
-  status_label_ = lv_label_create(lv_screen_active());
+  status_label_ = lv_label_create(status_tab_);
+  lv_label_set_long_mode(status_label_, LV_LABEL_LONG_WRAP);
+  lv_obj_set_width(status_label_, lv_pct(100));
   lv_label_set_text(status_label_, "");
   lv_obj_set_style_text_align(status_label_, LV_TEXT_ALIGN_LEFT, 0);
-  lv_obj_align(status_label_, LV_ALIGN_TOP_LEFT, 8, 40);
+  lv_obj_align(status_label_, LV_ALIGN_TOP_LEFT, 0, 32);
 }
 
 void Gui::init_buttons() {
-  // a button in the top right which rotates the display through
-  // 0/90/180/270 degrees
-  rotate_button_ = lv_btn_create(lv_screen_active());
+  // a button in the top right of the Status tab which rotates the display
+  // through 0/90/180/270 degrees
+  rotate_button_ = lv_btn_create(status_tab_);
   lv_obj_set_size(rotate_button_, 50, 50);
-  lv_obj_align(rotate_button_, LV_ALIGN_TOP_RIGHT, -8, 8);
+  lv_obj_align(rotate_button_, LV_ALIGN_TOP_RIGHT, 0, 0);
   lv_obj_t *rotate_label = lv_label_create(rotate_button_);
   lv_label_set_text(rotate_label, LV_SYMBOL_REFRESH);
   lv_obj_align(rotate_label, LV_ALIGN_CENTER, 0, 0);
   lv_obj_add_event_cb(rotate_button_, event_callback, LV_EVENT_CLICKED, this);
 
   // a button next to it which clears the circles
-  clear_button_ = lv_btn_create(lv_screen_active());
+  clear_button_ = lv_btn_create(status_tab_);
   lv_obj_set_size(clear_button_, 50, 50);
-  lv_obj_align(clear_button_, LV_ALIGN_TOP_RIGHT, -66, 8);
+  lv_obj_align(clear_button_, LV_ALIGN_TOP_RIGHT, -58, 0);
   lv_obj_t *clear_label = lv_label_create(clear_button_);
   lv_label_set_text(clear_label, LV_SYMBOL_TRASH);
   lv_obj_align(clear_label, LV_ALIGN_CENTER, 0, 0);
   lv_obj_add_event_cb(clear_button_, event_callback, LV_EVENT_CLICKED, this);
 }
 
+void Gui::init_audio_controls() {
+  // the Audio tab: a column with a status line, the volume line, then the
+  // buttons in a wrapping row
+  lv_obj_set_flex_flow(audio_tab_, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_style_pad_row(audio_tab_, 12, 0);
+
+  audio_status_label_ = lv_label_create(audio_tab_);
+  lv_label_set_long_mode(audio_status_label_, LV_LABEL_LONG_WRAP);
+  lv_obj_set_width(audio_status_label_, lv_pct(100));
+  lv_label_set_text(audio_status_label_, "Idle");
+
+  audio_label_ = lv_label_create(audio_tab_);
+  lv_label_set_long_mode(audio_label_, LV_LABEL_LONG_WRAP);
+  lv_obj_set_width(audio_label_, lv_pct(100));
+  update_audio_label();
+
+  lv_obj_t *row = lv_obj_create(audio_tab_);
+  lv_obj_remove_style_all(row);
+  lv_obj_set_size(row, lv_pct(100), LV_SIZE_CONTENT);
+  lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW_WRAP);
+  lv_obj_set_style_pad_column(row, 12, 0);
+  lv_obj_set_style_pad_row(row, 12, 0);
+
+  struct ButtonSpec {
+    lv_obj_t **button;
+    const char *symbol;
+  };
+  const ButtonSpec buttons[] = {
+      {&record_button_, LV_SYMBOL_AUDIO},           {&play_button_, LV_SYMBOL_PLAY},
+      {&volume_down_button_, LV_SYMBOL_VOLUME_MID}, {&volume_up_button_, LV_SYMBOL_VOLUME_MAX},
+      {&mic_down_button_, LV_SYMBOL_MINUS},         {&mic_up_button_, LV_SYMBOL_PLUS},
+  };
+  for (const auto &spec : buttons) {
+    *spec.button = lv_btn_create(row);
+    lv_obj_set_size(*spec.button, 50, 50);
+    lv_obj_t *label = lv_label_create(*spec.button);
+    lv_label_set_text(label, spec.symbol);
+    lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_add_event_cb(*spec.button, event_callback, LV_EVENT_CLICKED, this);
+  }
+  // remember the record / play button labels so set_record_active /
+  // set_play_active can swap their symbols
+  record_button_label_ = lv_obj_get_child(record_button_, 0);
+  play_button_label_ = lv_obj_get_child(play_button_, 0);
+  // color the volume buttons so the speaker and microphone pairs are
+  // distinguishable from each other
+  lv_obj_set_style_bg_color(mic_down_button_, lv_palette_main(LV_PALETTE_TEAL), 0);
+  lv_obj_set_style_bg_color(mic_up_button_, lv_palette_main(LV_PALETTE_TEAL), 0);
+}
+
+void Gui::update_audio_label() {
+  auto &board = espp::Esp32P4FunctionEvBoard::get();
+  int speaker_volume = static_cast<int>(board.volume());
+  int mic_volume = static_cast<int>(board.microphone_volume());
+  // this is called every GUI tick; only reformat the label when a value
+  // actually changes (lv_label_set_text_fmt formats a new string each call)
+  if (speaker_volume == last_speaker_volume_ && mic_volume == last_mic_volume_) {
+    return;
+  }
+  last_speaker_volume_ = speaker_volume;
+  last_mic_volume_ = mic_volume;
+  // Pass the LVGL symbols as %s arguments rather than concatenating them into
+  // the format-string literal: cppcheck cannot expand the LVGL symbol macros
+  // and flags the literal concatenation as an unknown macro.
+  lv_label_set_text_fmt(audio_label_, "Speaker %d%% (%s/%s)\nMic %d%% (teal %s/%s)", speaker_volume,
+                        LV_SYMBOL_VOLUME_MID, LV_SYMBOL_VOLUME_MAX, mic_volume, LV_SYMBOL_MINUS,
+                        LV_SYMBOL_PLUS);
+}
+
+void Gui::set_record_active(bool active) {
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  lv_label_set_text(record_button_label_, active ? LV_SYMBOL_STOP : LV_SYMBOL_AUDIO);
+  lv_obj_set_style_bg_color(
+      record_button_, active ? lv_palette_main(LV_PALETTE_RED) : lv_palette_main(LV_PALETTE_BLUE),
+      0);
+}
+
+void Gui::set_play_active(bool active) {
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  lv_label_set_text(play_button_label_, active ? LV_SYMBOL_STOP : LV_SYMBOL_PLAY);
+  lv_obj_set_style_bg_color(
+      play_button_, active ? lv_palette_main(LV_PALETTE_GREEN) : lv_palette_main(LV_PALETTE_BLUE),
+      0);
+}
+
 void Gui::init_circle_layer() {
-  auto &board = Board::get();
+  // a transparent, click-through overlay above the tabview which shows the
+  // touch trail (only populated while the Status tab is active)
   circle_layer_ = lv_obj_create(lv_screen_active());
   lv_obj_remove_style_all(circle_layer_);
-  lv_obj_set_size(circle_layer_, board.display_width(), board.display_height());
+  lv_obj_set_size(circle_layer_, lv_display_get_horizontal_resolution(lv_display_get_default()),
+                  lv_display_get_vertical_resolution(lv_display_get_default()));
   lv_obj_align(circle_layer_, LV_ALIGN_CENTER, 0, 0);
   lv_obj_clear_flag(circle_layer_, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_clear_flag(circle_layer_, LV_OBJ_FLAG_SCROLLABLE);
@@ -81,6 +183,10 @@ bool Gui::update(std::mutex &m, std::condition_variable &cv) {
   {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     lv_task_handler();
+    // keep the audio volume label in sync with the live BSP state, so the
+    // first press of a volume button doesn't appear to jump from a stale
+    // default (the values are set by app_main after the Gui is constructed)
+    update_audio_label();
   }
   std::unique_lock<std::mutex> lock(m);
   cv.wait_for(lock, std::chrono::milliseconds(16));
@@ -96,13 +202,59 @@ void Gui::event_callback(lv_event_t *e) {
   case LV_EVENT_CLICKED:
     gui->on_clicked(e);
     break;
+  case LV_EVENT_VALUE_CHANGED:
+    gui->on_tab_changed(e);
+    break;
   default:
     break;
   }
 }
 
+void Gui::on_tab_changed(lv_event_t *e) {
+  const auto *target = static_cast<const lv_obj_t *>(lv_event_get_target(e));
+  if (target != tabview_) {
+    return;
+  }
+  // the touch trail only belongs to the drawing tab; hide it (and its
+  // circles) everywhere else
+  if (lv_tabview_get_tab_active(tabview_) == 0) {
+    lv_obj_clear_flag(circle_layer_, LV_OBJ_FLAG_HIDDEN);
+  } else {
+    lv_obj_add_flag(circle_layer_, LV_OBJ_FLAG_HIDDEN);
+  }
+}
+
 void Gui::on_clicked(lv_event_t *e) {
   const auto *target = static_cast<const lv_obj_t *>(lv_event_get_target(e));
+  auto &board = espp::Esp32P4FunctionEvBoard::get();
+  if (target == record_button_) {
+    logger_.info("Record button clicked");
+    if (record_callback_) {
+      record_callback_();
+    }
+    return;
+  }
+  if (target == play_button_) {
+    logger_.info("Play button clicked");
+    if (play_callback_) {
+      play_callback_();
+    }
+    return;
+  }
+  if (target == volume_down_button_ || target == volume_up_button_) {
+    float delta = target == volume_down_button_ ? -10.0f : 10.0f;
+    board.volume(board.volume() + delta);
+    logger_.info("Speaker volume: {:.0f}%", board.volume());
+    update_audio_label();
+    return;
+  }
+  if (target == mic_down_button_ || target == mic_up_button_) {
+    float delta = target == mic_down_button_ ? -10.0f : 10.0f;
+    board.microphone_volume(board.microphone_volume() + delta);
+    logger_.info("Microphone volume: {:.0f}%", board.microphone_volume());
+    update_audio_label();
+    return;
+  }
   if (target == rotate_button_) {
     logger_.info("Rotate button clicked");
     next_rotation();
@@ -117,6 +269,16 @@ void Gui::set_status_text(std::string_view text) {
   lv_label_set_text(status_label_, std::string(text).c_str());
 }
 
+void Gui::set_audio_status(std::string_view text) {
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  lv_label_set_text(audio_status_label_, std::string(text).c_str());
+}
+
+bool Gui::draw_page_active() {
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  return lv_tabview_get_tab_active(tabview_) == 0;
+}
+
 void Gui::next_rotation() {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
   auto &board = Board::get();
@@ -125,14 +287,11 @@ void Gui::next_rotation() {
   rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
   lv_display_set_rotation(lv_display_get_default(), rotation);
   // update the size of the screen-filling objects
-  lv_obj_set_size(background_, board.rotated_display_width(), board.rotated_display_height());
+  lv_obj_set_size(tabview_, board.rotated_display_width(), board.rotated_display_height());
   lv_obj_set_size(circle_layer_, board.rotated_display_width(), board.rotated_display_height());
   lv_obj_align(circle_layer_, LV_ALIGN_CENTER, 0, 0);
   lv_obj_move_foreground(circle_layer_);
   lv_obj_invalidate(circle_layer_);
-  // re-align the labels to the (now reoriented) screen edges
-  lv_obj_align(title_label_, LV_ALIGN_TOP_MID, 0, 8);
-  lv_obj_align(status_label_, LV_ALIGN_TOP_LEFT, 8, 40);
 }
 
 void Gui::draw_circle(int x, int y, int radius) {

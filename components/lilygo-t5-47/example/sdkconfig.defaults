@@ -1,0 +1,26 @@
+CONFIG_IDF_TARGET="esp32s3"
+
+# The T5 4.7" has PSRAM (octal); epdiy uses it for the framebuffer.
+CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="16MB"
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_MODE_OCT=y
+CONFIG_SPIRAM_SPEED_80M=y
+
+# epdiy wants a 64-byte data cache line; the S3 default is 32B, which forces it
+# to halve the pixel clock (20 -> 10 MHz) and slows every refresh. Use 64B.
+CONFIG_ESP32S3_DATA_CACHE_LINE_64B=y
+
+# Larger main task stack for the C++ / drawing code.
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
+
+# Extra LVGL fonts for the demo UI (large clock + headings).
+CONFIG_LV_FONT_MONTSERRAT_20=y
+CONFIG_LV_FONT_MONTSERRAT_28=y
+CONFIG_LV_FONT_MONTSERRAT_48=y
+
+# The extra fonts push the app past the default 1 MB partition; use the larger
+# single-app layout (the board has 16 MB of flash).
+CONFIG_PARTITION_TABLE_SINGLE_APP_LARGE=y

@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "logger.hpp"
+#include "socket_reactor.hpp"
 #include "task.hpp"
 #include "tcp_socket.hpp"
 #include "udp_socket.hpp"
@@ -495,6 +496,377 @@ ScenarioResult run_tcp_connect_failure_scenario() {
   }
   return pass("TCP connect failure", "connect failed as expected");
 }
+
+ScenarioResult run_socket_reactor_scenario() {
+  // Two UDP receiver sockets, on two ports, both driven by ONE reactor (one
+  // select() loop thread + a shared 2-worker pool) - no dedicated thread per
+  // socket. Each server echoes the request back reversed.
+  constexpr size_t port_a = 5020;
+  constexpr size_t port_b = 5021;
+  auto echo_reversed = [](const ByteVector &data, const espp::Socket::Info &) {
+    return std::optional<ByteVector>(reversed(data));
+  };
+
+  //! [socket reactor example]
+  espp::SocketReactor reactor({.log_level = espp::Logger::Verbosity::WARN});
+
+  espp::UdpSocket server_a({.log_level = espp::Logger::Verbosity::WARN});
+  espp::UdpSocket server_b({.log_level = espp::Logger::Verbosity::WARN});
+  auto id_a = reactor.add_udp_receiver(
+      server_a,
+      {.port = port_a, .buffer_size = kMaxPacketSize, .on_receive_callback = echo_reversed});
+  auto id_b = reactor.add_udp_receiver(
+      server_b,
+      {.port = port_b, .buffer_size = kMaxPacketSize, .on_receive_callback = echo_reversed});
+  //! [socket reactor example]
+
+  if (id_a == espp::SocketReactor::INVALID_ID || id_b == espp::SocketReactor::INVALID_ID) {
+    return fail("Socket reactor", "failed to register one or both UDP receivers");
+  }
+  if (reactor.num_registered() != 2) {
+    return fail("Socket reactor",
+                fmt::format("expected 2 registrations, got {}", reactor.num_registered()));
+  }
+
+  // Send a distinct request to each server and verify each reversed response.
+  auto send_and_check = [&](size_t port, uint8_t seed) -> bool {
+    auto request = make_payload(512, seed);
+    auto expected = reversed(request);
+    ByteVector response;
+    std::atomic_bool got_response{false};
+    espp::UdpSocket client({.log_level = espp::Logger::Verbosity::WARN});
+    client.send(request, {.ip_address = kLoopbackAddress,
+                          .port = port,
+                          .wait_for_response = true,
+                          .response_size = kMaxPacketSize,
+                          .on_response_callback =
+                              [&](const ByteVector &r) {
+                                response = r;
+                                got_response = true;
+                              },
+                          .response_timeout = 500ms});
+    return got_response.load() && response == expected;
+  };
+
+  if (!send_and_check(port_a, 0x10)) {
+    return fail("Socket reactor", "server A did not echo correctly via the reactor");
+  }
+  if (!send_and_check(port_b, 0x80)) {
+    return fail("Socket reactor", "server B did not echo correctly via the reactor");
+  }
+
+  // Unregister one socket and confirm the count drops.
+  reactor.remove(id_a);
+  if (!wait_until([&] { return reactor.num_registered() == 1; }, 500ms)) {
+    return fail("Socket reactor", fmt::format("expected 1 registration after remove, got {}",
+                                              reactor.num_registered()));
+  }
+
+  return pass("Socket reactor",
+              "2 UDP sockets multiplexed on 1 select loop + shared pool, both echoed");
+}
+
+ScenarioResult run_tcp_reactor_scenario() {
+  // A TCP echo server built entirely on the reactor: one listener registration
+  // accepts clients, and each accepted client is registered as a stream that
+  // echoes bytes back - no accept thread and no thread-per-client.
+  constexpr size_t port = 6010;
+  auto request = make_payload(256, 0x40);
+  std::atomic_bool got_echo{false};
+  std::atomic_int accepted{0};
+  std::atomic_bool closed{false};
+
+  // Accepted server-side client sockets must outlive their reactor stream
+  // registration, so keep them alive here (populated from a pool worker).
+  std::mutex clients_mutex;
+  std::vector<std::unique_ptr<espp::TcpSocket>> clients;
+
+  {
+    espp::SocketReactor reactor({.log_level = espp::Logger::Verbosity::WARN});
+
+    espp::TcpSocket server({.log_level = espp::Logger::Verbosity::WARN});
+    if (!server.bind(port) || !server.listen(kMaxConnections)) {
+      return fail("TCP reactor", "failed to bind/listen");
+    }
+
+    //! [socket reactor tcp example]
+    reactor.add_tcp_listener(server, [&](std::unique_ptr<espp::TcpSocket> client) {
+      ++accepted;
+      espp::TcpSocket *conn = nullptr;
+      {
+        std::lock_guard<std::mutex> lk(clients_mutex);
+        clients.push_back(std::move(client));
+        conn = clients.back().get();
+      }
+      // Register the accepted connection as a stream that echoes bytes back.
+      reactor.add_tcp_stream(
+          *conn, [](espp::TcpSocket &connection, ByteVector &data) { connection.transmit(data); },
+          kMaxPacketSize, [&closed]() { closed = true; });
+    });
+    //! [socket reactor tcp example]
+
+    ByteVector echo;
+    espp::TcpSocket client({.log_level = espp::Logger::Verbosity::WARN});
+    if (!client.connect({.ip_address = kLoopbackAddress, .port = port})) {
+      return fail("TCP reactor", "client failed to connect");
+    }
+    client.transmit(request, {.wait_for_response = true,
+                              .response_size = kMaxPacketSize,
+                              .on_response_callback =
+                                  [&](const ByteVector &r) {
+                                    echo = r;
+                                    got_echo = true;
+                                  },
+                              .response_timeout = 1s});
+
+    if (!got_echo.load() || echo != request) {
+      return fail("TCP reactor", "did not receive correct echo via the reactor");
+    }
+    if (accepted.load() != 1) {
+      return fail("TCP reactor", fmt::format("expected 1 accept, got {}", accepted.load()));
+    }
+
+    // Close the client and verify the server-side stream notices the disconnect
+    // and auto-unregisters, leaving only the listener.
+    client.close();
+    if (!wait_until([&] { return closed.load(); }, 1s)) {
+      return fail("TCP reactor", "server did not observe client disconnect");
+    }
+    if (!wait_until([&] { return reactor.num_registered() == 1; }, 1s)) {
+      return fail("TCP reactor", fmt::format("expected 1 registration after disconnect, got {}",
+                                             reactor.num_registered()));
+    }
+  }
+  return pass("TCP reactor", "listener + stream echo on one reactor, auto-removed on disconnect");
+}
+
+// Helper: send `request` to a UDP echo server on `port` and check the reversed
+// reply comes back. Returns true on a correct round-trip.
+bool udp_echo_roundtrip(size_t port, const ByteVector &request) {
+  ByteVector response;
+  std::atomic_bool got_response{false};
+  espp::UdpSocket client({.log_level = espp::Logger::Verbosity::WARN});
+  client.send(request, {.ip_address = kLoopbackAddress,
+                        .port = port,
+                        .wait_for_response = true,
+                        .response_size = kMaxPacketSize,
+                        .on_response_callback =
+                            [&](const ByteVector &r) {
+                              response = r;
+                              got_response = true;
+                            },
+                        .response_timeout = 500ms});
+  return got_response.load() && response == reversed(request);
+}
+
+ScenarioResult run_reactor_shared_pool_scenario() {
+  // One externally-owned ThreadPool shared with the reactor, multiplexing three
+  // UDP echo receivers, plus a dynamic remove() while running.
+  constexpr size_t base_port = 5030;
+  auto echo = [](const ByteVector &d, const espp::Socket::Info &) {
+    return std::optional<ByteVector>(reversed(d));
+  };
+  auto pool = std::make_shared<espp::ThreadPool>(
+      espp::ThreadPool::Config{.worker_count = 3, .log_level = espp::Logger::Verbosity::WARN});
+  // Declare the sockets before the reactor so the reactor is destroyed first.
+  std::vector<std::unique_ptr<espp::UdpSocket>> servers;
+  {
+    espp::SocketReactor reactor({.thread_pool = pool, .log_level = espp::Logger::Verbosity::WARN});
+    std::vector<espp::SocketReactor::Id> ids;
+    for (int i = 0; i < 3; ++i) {
+      servers.push_back(std::make_unique<espp::UdpSocket>(
+          espp::UdpSocket::Config{.log_level = espp::Logger::Verbosity::WARN}));
+      auto id = reactor.add_udp_receiver(
+          *servers.back(),
+          {.port = base_port + i, .buffer_size = kMaxPacketSize, .on_receive_callback = echo});
+      if (id == espp::SocketReactor::INVALID_ID) {
+        return fail("Reactor shared pool", fmt::format("failed to register receiver {}", i));
+      }
+      ids.push_back(id);
+    }
+    if (reactor.num_registered() != 3) {
+      return fail("Reactor shared pool", "expected 3 registrations");
+    }
+    for (int i = 0; i < 3; ++i) {
+      if (!udp_echo_roundtrip(base_port + i, make_payload(200, static_cast<uint8_t>(i * 10 + 1)))) {
+        return fail("Reactor shared pool", fmt::format("receiver {} echo failed", i));
+      }
+    }
+    // Dynamically drop the middle receiver; the others keep working.
+    reactor.remove(ids[1]);
+    if (!wait_until([&] { return reactor.num_registered() == 2; }, 500ms)) {
+      return fail("Reactor shared pool", "count did not drop to 2 after remove()");
+    }
+    if (!udp_echo_roundtrip(base_port + 0, make_payload(200, 0x01)) ||
+        !udp_echo_roundtrip(base_port + 2, make_payload(200, 0x15))) {
+      return fail("Reactor shared pool", "remaining receivers broke after remove()");
+    }
+    reactor.stop(); // quiesce before the sockets/pool go out of scope
+  }
+  return pass("Reactor shared pool", "3 UDP receivers on a shared pool; dynamic remove works");
+}
+
+ScenarioResult run_reactor_lifecycle_scenario() {
+  espp::SocketReactor reactor({.auto_start = false, .log_level = espp::Logger::Verbosity::WARN});
+  if (reactor.is_running()) {
+    return fail("Reactor lifecycle", "running before start()");
+  }
+  // Invalid registrations are rejected with INVALID_ID.
+  if (reactor.add_fd(-1, []() {}) != espp::SocketReactor::INVALID_ID) {
+    return fail("Reactor lifecycle", "invalid fd was not rejected");
+  }
+  if (reactor.add_fd(0, nullptr) != espp::SocketReactor::INVALID_ID) {
+    return fail("Reactor lifecycle", "null handler was not rejected");
+  }
+  if (!reactor.start() || !reactor.is_running()) {
+    return fail("Reactor lifecycle", "start() failed");
+  }
+  {
+    constexpr size_t port = 5040;
+    espp::UdpSocket server({.log_level = espp::Logger::Verbosity::WARN});
+    auto id = reactor.add_udp_receiver(
+        server, {.port = port,
+                 .buffer_size = kMaxPacketSize,
+                 .on_receive_callback = [](const ByteVector &d, const espp::Socket::Info &) {
+                   return std::optional<ByteVector>(reversed(d));
+                 }});
+    if (id == espp::SocketReactor::INVALID_ID) {
+      return fail("Reactor lifecycle", "register after manual start failed");
+    }
+    if (!udp_echo_roundtrip(port, make_payload(128, 0x55))) {
+      return fail("Reactor lifecycle", "echo after manual start failed");
+    }
+    reactor.stop();
+  }
+  if (reactor.is_running()) {
+    return fail("Reactor lifecycle", "still running after stop()");
+  }
+  return pass("Reactor lifecycle",
+              "auto_start=false then start(); invalid registrations rejected; stop() works");
+}
+
+ScenarioResult run_reactor_tcp_multiclient_scenario() {
+  // One reactor accepts and services two concurrent TCP clients (no accept
+  // thread, no thread-per-client).
+  constexpr size_t port = 6020;
+  std::atomic_int accepted{0};
+  std::mutex clients_mutex;
+  std::vector<std::unique_ptr<espp::TcpSocket>> clients;
+  {
+    espp::SocketReactor reactor({.log_level = espp::Logger::Verbosity::WARN});
+    espp::TcpSocket server({.log_level = espp::Logger::Verbosity::WARN});
+    if (!server.bind(port) || !server.listen(4)) {
+      return fail("Reactor TCP multi-client", "failed to bind/listen");
+    }
+    reactor.add_tcp_listener(server, [&](std::unique_ptr<espp::TcpSocket> client) {
+      ++accepted;
+      espp::TcpSocket *conn = nullptr;
+      {
+        std::lock_guard<std::mutex> lk(clients_mutex);
+        clients.push_back(std::move(client));
+        conn = clients.back().get();
+      }
+      reactor.add_tcp_stream(
+          *conn, [](espp::TcpSocket &c, ByteVector &data) { c.transmit(data); }, kMaxPacketSize);
+    });
+
+    // Two clients each round-trip a distinct payload concurrently.
+    auto client_roundtrip = [&](uint8_t seed) -> bool {
+      auto request = make_payload(200, seed);
+      ByteVector echo;
+      std::atomic_bool got{false};
+      espp::TcpSocket client({.log_level = espp::Logger::Verbosity::WARN});
+      if (!client.connect({.ip_address = kLoopbackAddress, .port = port})) {
+        return false;
+      }
+      client.transmit(request, {.wait_for_response = true,
+                                .response_size = kMaxPacketSize,
+                                .on_response_callback =
+                                    [&](const ByteVector &r) {
+                                      echo = r;
+                                      got = true;
+                                    },
+                                .response_timeout = 1s});
+      return got.load() && echo == request;
+    };
+    if (!client_roundtrip(0x11) || !client_roundtrip(0x22)) {
+      return fail("Reactor TCP multi-client", "one or both clients did not echo");
+    }
+    if (!wait_until([&] { return accepted.load() == 2; }, 1s)) {
+      return fail("Reactor TCP multi-client",
+                  fmt::format("expected 2 accepts, got {}", accepted.load()));
+    }
+    reactor.stop(); // quiesce before clients/server go out of scope
+  }
+  return pass("Reactor TCP multi-client", "2 concurrent clients accepted + echoed on one reactor");
+}
+
+ScenarioResult run_udp_send_overloads_scenario() {
+  // Exercise the string_view and span send overloads and verify the server sees
+  // the correct sender address/port.
+  constexpr size_t port = 5050;
+  std::atomic_bool saw_sender{false};
+  std::string sender_addr;
+  espp::UdpSocket server({.log_level = espp::Logger::Verbosity::WARN});
+  auto server_task_config = make_task_config("UdpOverloadServer");
+  server.start_receiving(
+      server_task_config,
+      {.port = port,
+       .buffer_size = kMaxPacketSize,
+       .on_receive_callback = [&](const ByteVector &d, const espp::Socket::Info &sender) {
+         sender_addr = sender.address;
+         saw_sender = true;
+         return std::optional<ByteVector>(reversed(d));
+       }});
+
+  // string_view overload
+  {
+    std::string_view msg = "hello-string-view";
+    ByteVector resp;
+    std::atomic_bool got{false};
+    espp::UdpSocket client({.log_level = espp::Logger::Verbosity::WARN});
+    client.send(msg, {.ip_address = kLoopbackAddress,
+                      .port = port,
+                      .wait_for_response = true,
+                      .response_size = kMaxPacketSize,
+                      .on_response_callback =
+                          [&](const ByteVector &r) {
+                            resp = r;
+                            got = true;
+                          },
+                      .response_timeout = 500ms});
+    ByteVector expected(msg.begin(), msg.end());
+    if (!got.load() || resp != reversed(expected)) {
+      return fail("UDP send overloads", "string_view send/echo failed");
+    }
+  }
+  // span overload
+  {
+    auto payload = make_payload(64, 0x33);
+    ByteVector resp;
+    std::atomic_bool got{false};
+    espp::UdpSocket client({.log_level = espp::Logger::Verbosity::WARN});
+    client.send(std::span<const uint8_t>{payload.data(), payload.size()},
+                {.ip_address = kLoopbackAddress,
+                 .port = port,
+                 .wait_for_response = true,
+                 .response_size = kMaxPacketSize,
+                 .on_response_callback =
+                     [&](const ByteVector &r) {
+                       resp = r;
+                       got = true;
+                     },
+                 .response_timeout = 500ms});
+    if (!got.load() || resp != reversed(payload)) {
+      return fail("UDP send overloads", "span send/echo failed");
+    }
+  }
+  server.stop_receiving();
+  if (!saw_sender.load() || sender_addr != kLoopbackAddress) {
+    return fail("UDP send overloads", fmt::format("sender address wrong: '{}'", sender_addr));
+  }
+  return pass("UDP send overloads", "string_view + span overloads round-trip; sender info correct");
+}
 } // namespace
 
 extern "C" void app_main(void) {
@@ -506,7 +878,7 @@ extern "C" void app_main(void) {
                         .log_level = espp::Logger::Verbosity::INFO});
 
   std::vector<ScenarioResult> results;
-  results.reserve(9);
+  results.reserve(15);
 
   auto run_and_record = [&results](auto &&scenario_runner, std::string_view name) {
     print_scenario_start(name);
@@ -525,13 +897,35 @@ extern "C" void app_main(void) {
   run_and_record(run_tcp_response_reconnect_scenario, "TCP response/reconnect");
   run_and_record(run_tcp_blocked_accept_teardown_scenario, "TCP blocked accept teardown");
   run_and_record(run_tcp_connect_failure_scenario, "TCP connect failure");
+  run_and_record(run_socket_reactor_scenario, "Socket reactor (select + thread pool)");
+  run_and_record(run_tcp_reactor_scenario, "TCP reactor (listener + streams)");
+  run_and_record(run_reactor_shared_pool_scenario, "Reactor shared pool + dynamic remove");
+  run_and_record(run_reactor_lifecycle_scenario, "Reactor lifecycle + input validation");
+  run_and_record(run_reactor_tcp_multiclient_scenario, "Reactor TCP multi-client");
+  run_and_record(run_udp_send_overloads_scenario, "UDP send overloads + sender info");
 
+  // ---- final summary ----
   auto passed_count = std::count_if(results.begin(), results.end(),
                                     [](const auto &result) { return result.passed; });
+  const auto failed_count = results.size() - static_cast<size_t>(passed_count);
+  fmt::print("\n");
   fmt::print(fg(fmt::terminal_color::cyan) | fmt::emphasis::bold,
-             "Socket example summary: {}/{} scenarios passed\n", passed_count, results.size());
+             "======== Socket example summary: {}/{} scenarios passed ========\n", passed_count,
+             results.size());
   for (const auto &result : results) {
     print_scenario_result(result);
+  }
+  if (failed_count == 0) {
+    fmt::print(fg(fmt::terminal_color::green) | fmt::emphasis::bold, "ALL {} SCENARIOS PASSED\n",
+               results.size());
+  } else {
+    fmt::print(fg(fmt::terminal_color::red) | fmt::emphasis::bold, "{} SCENARIO(S) FAILED:\n",
+               failed_count);
+    for (const auto &result : results) {
+      if (!result.passed) {
+        fmt::print(fg(fmt::terminal_color::red), "  - {}: {}\n", result.name, result.detail);
+      }
+    }
   }
 
   while (true) {

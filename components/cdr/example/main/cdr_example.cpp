@@ -1,4 +1,3 @@
-#include <algorithm>
 #include <array>
 #include <string>
 #include <vector>
@@ -6,63 +5,84 @@
 #include "cdr.hpp"
 #include "logger.hpp"
 
+namespace {
+
+// A plain aggregate is all it takes — the compiler generates the
+// serialization code from the struct definition itself. Types default to
+// @appendable extensibility (XTypes default); opt into @final with
+// `static constexpr auto cdr_extensibility = cdr::extensibility::final;`.
+struct ImuSample {
+  uint64_t stamp_us{};
+  std::array<float, 3> accel{};
+  std::array<float, 3> gyro{};
+  float temperature{};
+  std::string frame_id{};
+};
+
+} // namespace
+
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = "cdr_example", .level = espp::Logger::Verbosity::INFO});
 
-  std::array<uint8_t, 4> input_magic{'C', 'D', 'R', '!'};
-  std::array<uint16_t, 3> input_values{10, 20, 30};
-
   //! [cdr example]
-  espp::CdrWriter writer({
-      .encapsulation = espp::CdrEncapsulation::CDR_LE,
-      .include_encapsulation = true,
-  });
-  writer.write<uint32_t>(42);
-  writer.write<float>(3.25f);
-  writer.write_string("hello cdr");
-  writer.write_sequence<uint16_t>(input_values);
+  const ImuSample sample{
+      .stamp_us = 123456789,
+      .accel = {0.0f, 0.0f, 9.81f},
+      .gyro = {0.01f, -0.02f, 0.0f},
+      .temperature = 25.5f,
+      .frame_id = "imu_link",
+  };
 
-  auto payload = writer.take_buffer();
-  logger.info("Serialized {} bytes of CDR data", payload.size());
-
-  auto inline_writer = espp::CdrWriter::make_body_writer(espp::CdrEncapsulation::CDR_LE);
-  inline_writer.write_array(input_magic);
-  inline_writer.write_string("embedded field");
-  auto inline_payload =
-      espp::CdrWriter::encapsulate(inline_writer.payload(), espp::CdrEncapsulation::PL_CDR_LE);
-
-  espp::CdrReader reader(payload);
-  espp::CdrReader inline_reader(inline_payload);
-  uint32_t decoded_count = 0;
-  float decoded_scale = 0.0f;
-  std::string decoded_text;
-  std::vector<uint16_t> decoded_values;
-  std::array<uint8_t, 4> decoded_magic{};
-  std::string decoded_inline_text;
-
-  bool ok = reader.read<uint32_t>(decoded_count) && reader.read<float>(decoded_scale) &&
-            reader.read_string(decoded_text) && reader.read_sequence<uint16_t>(decoded_values);
-  bool inline_ok = inline_reader.encapsulation() == espp::CdrEncapsulation::PL_CDR_LE &&
-                   inline_reader.read_array(decoded_magic) &&
-                   inline_reader.read_string(decoded_inline_text);
-  //! [cdr example]
-
-  if (!ok || !inline_ok) {
-    logger.error("Failed to decode CDR payload");
+  // XCDR2 (appendable): what FastDDS / OpenDDS speak by default.
+  auto bytes = cdr::serialize(sample);
+  // XCDR1 (plain CDR): what ROS 2 and CycloneDDS speak by default.
+  auto ros2_bytes = cdr::serialize<cdr::xcdr1>(sample);
+  if (!bytes) {
+    logger.error("XCDR2 serialize failed: {}", cdr::to_string(bytes.error().code));
     return;
   }
-
-  logger.info("Decoded count={}, scale={:.2f}, text='{}', sequence size={}, embedded='{}'",
-              decoded_count, decoded_scale, decoded_text, decoded_values.size(),
-              decoded_inline_text);
-
-  if (decoded_count != 42 || decoded_scale != 3.25f || decoded_text != "hello cdr" ||
-      decoded_values.size() != input_values.size() ||
-      !std::equal(decoded_values.begin(), decoded_values.end(), input_values.begin()) ||
-      decoded_magic != input_magic || decoded_inline_text != "embedded field") {
-    logger.error("CDR round-trip mismatch");
+  if (!ros2_bytes) {
+    logger.error("XCDR1 serialize failed: {}", cdr::to_string(ros2_bytes.error().code));
     return;
   }
+  logger.info("ImuSample: {} bytes as XCDR2, {} bytes as XCDR1 (ROS 2)", bytes->size(),
+              ros2_bytes->size());
 
-  logger.info("CDR round-trip succeeded");
+  // Deserialize picks version + endianness from the encapsulation header and
+  // returns std::expected — errors carry a code, payload offset, and the
+  // field that failed.
+  auto restored = cdr::deserialize<ImuSample>(*bytes);
+  if (!restored) {
+    logger.error("deserialize failed at {} offset {} in field '{}'",
+                 cdr::to_string(restored.error().code), restored.error().offset,
+                 restored.error().field);
+    return;
+  }
+  logger.info("round-trip ok: stamp={} frame='{}' accel.z={}", restored->stamp_us,
+              restored->frame_id, restored->accel[2]);
+
+  // Zero-allocation path for hot loops: serialize into a fixed buffer.
+  std::array<std::byte, 128> fixed{};
+  if (auto n = cdr::serialize_into(sample, fixed)) {
+    logger.info("serialize_into wrote {} bytes (exact size query: {})", *n,
+                cdr::serialized_size(sample));
+  }
+
+  // PL_CDR parameter lists — the encoding RTPS discovery (SPDP/SEDP) uses.
+  std::vector<std::byte> pl_buf;
+  cdr::param_list_writer pl(pl_buf);
+  pl.add(uint16_t{0x0050}, std::array<uint8_t, 16>{1, 2, 3, 4}); // PID_PARTICIPANT_GUID
+  pl.add(uint16_t{0x0062}, std::string("esp32_node"));           // PID_ENTITY_NAME
+  if (pl.finish()) {
+    auto reader = cdr::param_list_reader::from_encapsulated(pl_buf);
+    while (reader) {
+      auto param = reader->next();
+      if (!param || !*param)
+        break;
+      logger.info("  parameter pid=0x{:04x} ({} bytes)", (*param)->pid, (*param)->value.size());
+    }
+  }
+  //! [cdr example]
+
+  logger.info("example complete");
 }

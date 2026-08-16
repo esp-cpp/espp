@@ -4,9 +4,10 @@
 
 void Gui::init_ui() {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
-  init_background();
+  init_tabview();
   init_label();
   init_buttons();
+  init_audio_controls();
   init_circle_layer();
   // disable scrolling on the screen (so that it doesn't behave weirdly when
   // rotated and drawing with your finger)
@@ -19,41 +20,46 @@ void Gui::deinit_ui() {
   lv_obj_clean(lv_screen_active());
 }
 
-void Gui::init_background() {
-  auto &board = espp::SmartPanleeSc01Plus::get();
-  background_ = lv_obj_create(lv_screen_active());
-  lv_obj_set_size(background_, board.rotated_display_width(), board.rotated_display_height());
-  lv_obj_set_style_bg_color(background_, lv_color_make(8, 12, 24), 0);
+void Gui::init_tabview() {
+  // the tabview gives each subsystem its own uncrowded page; the tab bar
+  // (top) is the page switcher
+  tabview_ = lv_tabview_create(lv_screen_active());
+  lv_tabview_set_tab_bar_position(tabview_, LV_DIR_TOP);
+  lv_tabview_set_tab_bar_size(tabview_, TAB_BAR_HEIGHT);
+  lv_obj_set_size(tabview_, lv_display_get_horizontal_resolution(lv_display_get_default()),
+                  lv_display_get_vertical_resolution(lv_display_get_default()));
+  draw_tab_ = lv_tabview_add_tab(tabview_, "Draw");
+  audio_tab_ = lv_tabview_add_tab(tabview_, "Audio");
+  // switching tabs is done with the tab buttons only: disable swipe
+  // scrolling of the content so drawing on the Draw tab cannot accidentally
+  // change pages
+  lv_obj_clear_flag(lv_tabview_get_content(tabview_), LV_OBJ_FLAG_SCROLLABLE);
+  // hide the touch-trail overlay whenever a non-drawing tab is shown
+  lv_obj_add_event_cb(tabview_, event_callback, LV_EVENT_VALUE_CHANGED, this);
 }
 
 void Gui::init_label() {
-  auto &board = espp::SmartPanleeSc01Plus::get();
-  label_ = lv_label_create(lv_screen_active());
-  lv_label_set_text(label_, "");
+  label_ = lv_label_create(draw_tab_);
   lv_label_set_long_mode(label_, LV_LABEL_LONG_WRAP);
+  lv_obj_set_width(label_, lv_pct(75));
+  lv_label_set_text(label_, "");
+  lv_obj_align(label_, LV_ALIGN_TOP_LEFT, 0, 0);
   lv_obj_set_style_text_align(label_, LV_TEXT_ALIGN_LEFT, 0);
-  // size / align the label for the current display width, leaving room on
-  // the right for the buttons
-  auto label_width = std::max(static_cast<int>(board.rotated_display_width()) - 96, 120);
-  lv_obj_set_width(label_, label_width);
-  lv_obj_align(label_, LV_ALIGN_TOP_LEFT, 16, 16);
 }
 
 void Gui::init_buttons() {
-  // a button in the top right which rotates the display through
-  // 0/90/180/270 degrees
-  rotate_button_ = lv_btn_create(lv_screen_active());
+  // rotate / clear buttons in the top right of the Draw tab
+  rotate_button_ = lv_btn_create(draw_tab_);
   lv_obj_set_size(rotate_button_, 56, 56);
-  lv_obj_align(rotate_button_, LV_ALIGN_TOP_RIGHT, -12, 12);
+  lv_obj_align(rotate_button_, LV_ALIGN_TOP_RIGHT, 0, 0);
   lv_obj_t *rotate_label = lv_label_create(rotate_button_);
   lv_label_set_text(rotate_label, LV_SYMBOL_REFRESH);
   lv_obj_align(rotate_label, LV_ALIGN_CENTER, 0, 0);
   lv_obj_add_event_cb(rotate_button_, event_callback, LV_EVENT_PRESSED, this);
 
-  // a button below the rotate button which clears the circles
-  clear_button_ = lv_btn_create(lv_screen_active());
+  clear_button_ = lv_btn_create(draw_tab_);
   lv_obj_set_size(clear_button_, 56, 56);
-  lv_obj_align(clear_button_, LV_ALIGN_TOP_RIGHT, -12, 80);
+  lv_obj_align(clear_button_, LV_ALIGN_TOP_RIGHT, 0, 66);
   lv_obj_add_state(clear_button_, LV_STATE_CHECKED); // make the button red
   lv_obj_t *clear_label = lv_label_create(clear_button_);
   lv_label_set_text(clear_label, LV_SYMBOL_TRASH);
@@ -61,11 +67,65 @@ void Gui::init_buttons() {
   lv_obj_add_event_cb(clear_button_, event_callback, LV_EVENT_PRESSED, this);
 }
 
-void Gui::init_circle_layer() {
+void Gui::init_audio_controls() {
+  // the Audio tab: a column with the volume line, then play / mute / volume
+  // buttons in a wrapping row
+  lv_obj_set_flex_flow(audio_tab_, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_style_pad_row(audio_tab_, 12, 0);
+
+  audio_label_ = lv_label_create(audio_tab_);
+  lv_label_set_long_mode(audio_label_, LV_LABEL_LONG_WRAP);
+  lv_obj_set_width(audio_label_, lv_pct(100));
+  update_audio_label();
+
+  lv_obj_t *row = lv_obj_create(audio_tab_);
+  lv_obj_remove_style_all(row);
+  lv_obj_set_size(row, lv_pct(100), LV_SIZE_CONTENT);
+  lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW_WRAP);
+  lv_obj_set_style_pad_column(row, 12, 0);
+  lv_obj_set_style_pad_row(row, 12, 0);
+
+  struct ButtonSpec {
+    lv_obj_t **button;
+    const char *symbol;
+  };
+  const ButtonSpec buttons[] = {
+      {&play_button_, LV_SYMBOL_PLAY},
+      {&mute_button_, LV_SYMBOL_MUTE},
+      {&volume_down_button_, LV_SYMBOL_VOLUME_MID},
+      {&volume_up_button_, LV_SYMBOL_VOLUME_MAX},
+  };
+  for (const auto &spec : buttons) {
+    *spec.button = lv_btn_create(row);
+    lv_obj_set_size(*spec.button, 56, 56);
+    lv_obj_t *label = lv_label_create(*spec.button);
+    lv_label_set_text(label, spec.symbol);
+    lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_add_event_cb(*spec.button, event_callback, LV_EVENT_PRESSED, this);
+  }
+}
+
+void Gui::update_audio_label() {
   auto &board = espp::SmartPanleeSc01Plus::get();
+  int volume = static_cast<int>(board.volume());
+  bool muted = board.is_muted();
+  if (volume == last_volume_ && muted == last_muted_) {
+    return;
+  }
+  last_volume_ = volume;
+  last_muted_ = muted;
+  // pass the LVGL symbol as a %s argument rather than concatenating it into the
+  // format-string literal: cppcheck cannot expand the LVGL symbol macros and
+  // flags the literal concatenation as an unknown macro
+  lv_label_set_text_fmt(audio_label_, "%s %d%%%s", LV_SYMBOL_VOLUME_MAX, volume,
+                        muted ? " (muted)" : "");
+}
+
+void Gui::init_circle_layer() {
   circle_layer_ = lv_obj_create(lv_screen_active());
   lv_obj_remove_style_all(circle_layer_);
-  lv_obj_set_size(circle_layer_, board.rotated_display_width(), board.rotated_display_height());
+  lv_obj_set_size(circle_layer_, lv_display_get_horizontal_resolution(lv_display_get_default()),
+                  lv_display_get_vertical_resolution(lv_display_get_default()));
   lv_obj_align(circle_layer_, LV_ALIGN_CENTER, 0, 0);
   lv_obj_clear_flag(circle_layer_, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_clear_flag(circle_layer_, LV_OBJ_FLAG_SCROLLABLE);
@@ -81,14 +141,7 @@ void Gui::update_layout() {
   auto &board = espp::SmartPanleeSc01Plus::get();
   int width = board.rotated_display_width();
   int height = board.rotated_display_height();
-  lv_obj_set_size(background_, width, height);
-  // size / align the label for the new display width, leaving room on the
-  // right for the buttons
-  auto label_width = std::max(width - 96, 120);
-  lv_obj_set_width(label_, label_width);
-  lv_obj_align(label_, LV_ALIGN_TOP_LEFT, 16, 16);
-  lv_obj_align(rotate_button_, LV_ALIGN_TOP_RIGHT, -12, 12);
-  lv_obj_align(clear_button_, LV_ALIGN_TOP_RIGHT, -12, 80);
+  lv_obj_set_size(tabview_, width, height);
   lv_obj_set_size(circle_layer_, width, height);
   lv_obj_align(circle_layer_, LV_ALIGN_CENTER, 0, 0);
   lv_obj_move_foreground(circle_layer_);
@@ -99,6 +152,10 @@ bool Gui::update(std::mutex &m, std::condition_variable &cv) {
   {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     lv_task_handler();
+    // keep the audio volume label in sync with the live BSP state, so the
+    // first press of a volume button doesn't appear to jump from a stale
+    // default (the values are set by app_main after the Gui is constructed)
+    update_audio_label();
   }
   std::unique_lock<std::mutex> lock(m);
   cv.wait_for(lock, std::chrono::milliseconds(16));
@@ -114,13 +171,51 @@ void Gui::event_callback(lv_event_t *e) {
   case LV_EVENT_PRESSED:
     gui->on_pressed(e);
     break;
+  case LV_EVENT_VALUE_CHANGED:
+    gui->on_tab_changed(e);
+    break;
   default:
     break;
   }
 }
 
+void Gui::on_tab_changed(lv_event_t *e) {
+  const auto *target = static_cast<const lv_obj_t *>(lv_event_get_target(e));
+  if (target != tabview_) {
+    return;
+  }
+  // the touch trail only belongs to the drawing tab; hide it (and its
+  // circles) everywhere else
+  if (lv_tabview_get_tab_active(tabview_) == 0) {
+    lv_obj_clear_flag(circle_layer_, LV_OBJ_FLAG_HIDDEN);
+  } else {
+    lv_obj_add_flag(circle_layer_, LV_OBJ_FLAG_HIDDEN);
+  }
+}
+
 void Gui::on_pressed(lv_event_t *e) {
   const auto *target = static_cast<const lv_obj_t *>(lv_event_get_target(e));
+  auto &board = espp::SmartPanleeSc01Plus::get();
+  if (target == play_button_) {
+    logger_.info("Play button pressed");
+    if (play_callback_) {
+      play_callback_();
+    }
+    return;
+  }
+  if (target == mute_button_) {
+    board.mute(!board.is_muted());
+    logger_.info("Muted: {}", board.is_muted());
+    update_audio_label();
+    return;
+  }
+  if (target == volume_down_button_ || target == volume_up_button_) {
+    float delta = target == volume_down_button_ ? -10.0f : 10.0f;
+    board.volume(board.volume() + delta);
+    logger_.info("Speaker volume: {:.0f}%", board.volume());
+    update_audio_label();
+    return;
+  }
   if (target == rotate_button_) {
     logger_.info("Rotate button pressed");
     next_rotation();
@@ -128,6 +223,11 @@ void Gui::on_pressed(lv_event_t *e) {
     logger_.info("Clear button pressed");
     clear_circles();
   }
+}
+
+bool Gui::draw_page_active() {
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  return lv_tabview_get_tab_active(tabview_) == 0;
 }
 
 void Gui::set_label_text(std::string_view text) {

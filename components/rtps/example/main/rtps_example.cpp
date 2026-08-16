@@ -1,291 +1,283 @@
-#include <algorithm>
+// rtps component example (ESP32 / esp32-ethernet-kit).
+//
+// Brings up an espp::RtpsParticipant over Ethernet and demonstrates the typed
+// APIs: a Publisher<T>/Subscriber<T> pair (pub/sub), typed ServiceServer +
+// ActionServer the device hosts, and typed ServiceClient + ActionClient the
+// device runs. See components/rtps/example/README.md and the RMI/AMI
+// docs (doc/en/protocols/rtps_rmi_ami.rst).
+
 #include <atomic>
 #include <chrono>
-#include <cstdint>
-#include <optional>
-#include <span>
 #include <thread>
-#include <vector>
 
-#include "cdr.hpp"
+#include "esp32-ethernet-kit.hpp"
+
 #include "logger.hpp"
-#include "rtps.hpp"
-#include "wifi_sta.hpp"
+#include "rtps_action.hpp"
+#include "rtps_participant.hpp"
+#include "rtps_pubsub.hpp"
+#include "rtps_service.hpp"
+#include "timer.hpp"
 
 using namespace std::chrono_literals;
 
-namespace {
-constexpr std::string_view kTypeName = "std_msgs/msg/UInt32";
+// std_msgs/msg/String as a plain reflectable struct. The typed Publisher<T> /
+// Subscriber<T> serialize any such struct to the DDS wire format (ROS 2 / classic
+// CDR) with no manual (de)serialization in application code.
+struct StringMsg {
+  std::string data;
+};
 
-// Thin wrappers over the `cdr` component for the std_msgs/msg/UInt32 payload used by this example.
-// The rtps `publish()` / `on_sample` API works with any CDR-encoded type, so serialization lives in
-// the application rather than the participant.
-std::vector<uint8_t> serialize_uint32(uint32_t value) {
-  // The encapsulation options below are the CdrWriter defaults (little-endian CDR with a 4-byte
-  // encapsulation header); shown explicitly for clarity about the on-the-wire format.
-  espp::CdrWriter writer({
-      .encapsulation = espp::CdrEncapsulation::CDR_LE,
-      .include_encapsulation = true,
-  });
-  writer.write<uint32_t>(value);
-  return writer.take_buffer();
-}
-
-std::optional<uint32_t> deserialize_uint32(std::span<const uint8_t> cdr) {
-  // The config below matches the CdrReader defaults (expects a little-endian CDR encapsulation
-  // header); shown explicitly to mirror serialize_uint32() above.
-  espp::CdrReader reader(cdr, {
-                                  .expect_encapsulation = true,
-                                  .default_encapsulation = espp::CdrEncapsulation::CDR_LE,
-                              });
-  uint32_t value = 0;
-  if (!reader.valid() || !reader.read<uint32_t>(value)) {
-    return std::nullopt;
-  }
-  return value;
-}
-
-bool run_local_protocol_checks(espp::Logger &logger, const espp::RtpsParticipant &participant) {
-  auto announce_message = participant.build_announce_message();
-  auto parsed_message = espp::RtpsParticipant::Message::parse(announce_message);
-  if (!parsed_message) {
-    logger.error("Failed to parse locally built announce message");
-    return false;
-  }
-  logger.info("Built and parsed SPDP announce message with {} submessage(s)",
-              parsed_message->submessages.size());
-
-  if (!participant.writers().empty()) {
-    auto sedp_publication_message =
-        participant.build_sedp_publication_message(participant.writers().front());
-    auto parsed_publication_message =
-        espp::RtpsParticipant::Message::parse(sedp_publication_message);
-    if (!parsed_publication_message) {
-      logger.error("Failed to parse locally built SEDP publication message");
-      return false;
-    }
-    logger.info("Built and parsed SEDP publication message with {} submessage(s)",
-                parsed_publication_message->submessages.size());
-  }
-
-  if (!participant.readers().empty()) {
-    auto sedp_subscription_message =
-        participant.build_sedp_subscription_message(participant.readers().front());
-    auto parsed_subscription_message =
-        espp::RtpsParticipant::Message::parse(sedp_subscription_message);
-    if (!parsed_subscription_message) {
-      logger.error("Failed to parse locally built SEDP subscription message");
-      return false;
-    }
-    logger.info("Built and parsed SEDP subscription message with {} submessage(s)",
-                parsed_subscription_message->submessages.size());
-  }
-
-  auto uint32_payload = serialize_uint32(42);
-  auto maybe_value = deserialize_uint32(uint32_payload);
-  if (!maybe_value || *maybe_value != 42) {
-    logger.error("UInt32 CDR round trip failed");
-    return false;
-  }
-  logger.info("UInt32 CDR round trip succeeded with value {}", *maybe_value);
-  return true;
-}
-
-[[maybe_unused]] bool has_endpoint(std::span<const espp::RtpsParticipant::EndpointProxy> endpoints,
-                                   std::string_view topic_name, bool is_reader) {
-  return std::any_of(endpoints.begin(), endpoints.end(),
-                     [topic_name, is_reader](const auto &endpoint) {
-                       return endpoint.topic_name == topic_name && endpoint.is_reader == is_reader;
-                     });
-}
-} // namespace
+// Reflectable request/reply + goal/result structs for the typed service + action
+// servers below. Their fields map straight to CDR, matching example_interfaces
+// so a ROS 2 client (ros2 service call / ros2 action send_goal) can drive them.
+struct AddReq {
+  int64_t a;
+  int64_t b;
+};
+struct AddResp {
+  int64_t sum;
+};
+struct FibGoal {
+  int32_t order;
+};
+struct FibSeq {
+  std::vector<int32_t> sequence;
+};
 
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = "rtps_example", .level = espp::Logger::Verbosity::INFO});
 
   //! [rtps example]
-  std::string ip_address;
-  espp::WifiSta wifi_sta({.ssid = CONFIG_ESP_WIFI_SSID,
-                          .password = CONFIG_ESP_WIFI_PASSWORD,
-                          .num_connect_retries = CONFIG_ESP_MAXIMUM_RETRY,
-                          .on_connected = nullptr,
-                          .on_disconnected = nullptr,
-                          .on_got_ip = [&ip_address](ip_event_got_ip_t *eventdata) {
-                            ip_address = fmt::format("{}.{}.{}.{}", IP2STR(&eventdata->ip_info.ip));
-                            fmt::print("got IP: {}\n", ip_address);
-                          }});
-
-  logger.info("Waiting for WiFi connection...");
-  while (!wifi_sta.is_connected()) {
+  // Bring up Ethernet (DHCP server on 192.168.4.1/24 so a directly-attached PC
+  // gets an address); any espp network interface works - the RTPS participant
+  // only needs the interface's IPv4 address.
+  auto &board = espp::Esp32EthernetKit::get();
+  bool eth_ok = board.initialize_ethernet({
+      .mode = espp::Esp32EthernetKit::DhcpMode::SERVER,
+      .on_link_up = [&]() { logger.info("Ethernet link up"); },
+      .on_link_down = [&]() { logger.warn("Ethernet link down"); },
+  });
+  if (!eth_ok) {
+    logger.error("Ethernet initialization failed");
+    return;
+  }
+  logger.info("Waiting for Ethernet link...");
+  while (!board.is_ethernet_connected()) {
     std::this_thread::sleep_for(100ms);
   }
-  logger.info("WiFi connected, local IP {}", ip_address);
+  auto eth_ip = board.ethernet_ip();
+  const std::string interface_address =
+      fmt::format("{}.{}.{}.{}", esp_ip4_addr1_16(&eth_ip), esp_ip4_addr2_16(&eth_ip),
+                  esp_ip4_addr3_16(&eth_ip), esp_ip4_addr4_16(&eth_ip));
+  logger.info("Ethernet up, IP {}", interface_address);
 
-  const std::string node_name = CONFIG_RTPS_EXAMPLE_NODE_NAME;
-  const std::string topic_prefix = CONFIG_RTPS_EXAMPLE_TOPIC_PREFIX;
-  const std::string request_topic = topic_prefix + "/request";
-  const std::string response_topic = topic_prefix + "/response";
-#if CONFIG_RTPS_EXAMPLE_USE_USER_MULTICAST
-#if defined(CONFIG_RTPS_EXAMPLE_REQUEST_MULTICAST_GROUP) &&                                        \
-    defined(CONFIG_RTPS_EXAMPLE_RESPONSE_MULTICAST_GROUP)
-  const std::string request_multicast_group = CONFIG_RTPS_EXAMPLE_REQUEST_MULTICAST_GROUP;
-  const std::string response_multicast_group = CONFIG_RTPS_EXAMPLE_RESPONSE_MULTICAST_GROUP;
-#elif defined(CONFIG_RTPS_EXAMPLE_USER_MULTICAST_GROUP)
-  const std::string request_multicast_group = CONFIG_RTPS_EXAMPLE_USER_MULTICAST_GROUP;
-  const std::string response_multicast_group = CONFIG_RTPS_EXAMPLE_USER_MULTICAST_GROUP;
-#else
-  const std::string request_multicast_group = "239.255.0.11";
-  const std::string response_multicast_group = "239.255.0.12";
-#endif
-#else
-  const std::string request_multicast_group;
-  const std::string response_multicast_group;
-#endif
+  // RTPS/DDS participant (embeddedRTPS engine behind the espp facade). The
+  // topics pair with the FastDDS host peer in example/pc/host_pubsub.cpp; for
+  // ROS 2 instead, use topic "rt/<name>" with type "<pkg>::msg::dds_::<Type>_"
+  // (e.g. "rt/chatter" + "std_msgs::msg::dds_::String_").
+  constexpr const char *pub_topic = "mcu_to_pc";
+  constexpr const char *sub_topic = "pc_to_mcu";
+  constexpr const char *type_name = "std_msgs::msg::String";
 
-  std::atomic<uint32_t> request_count{0};
-  std::atomic<uint32_t> response_count{0};
-  std::atomic<uint32_t> next_request_value{1};
-  std::atomic<uint32_t> last_sent_request{0};
-
+  // Automatic locals: they RAII-clean up in reverse order on any early return
+  // (subscriber/publisher stop referencing the participant before it is
+  // destroyed), and the trailing while(true) keeps them alive in normal use.
   espp::RtpsParticipant participant({
-      .node_name = node_name,
-      .domain_id = CONFIG_RTPS_EXAMPLE_DOMAIN_ID,
-      .participant_id = CONFIG_RTPS_EXAMPLE_PARTICIPANT_ID,
-      .advertised_address = ip_address,
-      .announce_period = std::chrono::milliseconds(CONFIG_RTPS_EXAMPLE_ANNOUNCE_PERIOD_MS),
-      .on_participant_discovered =
-          [&logger](const auto &proxy) {
-            logger.info("Discovered participant '{}' at {} (meta {}, user {})",
-                        proxy.name.empty() ? proxy.guid_prefix.to_string() : proxy.name,
-                        proxy.address, proxy.ports.metatraffic_unicast, proxy.ports.user_unicast);
-          },
-      .on_endpoint_discovered =
-          [&logger](const auto &endpoint) {
-            logger.info("Discovered remote {} '{}' [{}]", endpoint.is_reader ? "reader" : "writer",
-                        endpoint.topic_name, endpoint.type_name);
-          },
+      .interface_address = interface_address,
+      .on_publisher_matched = [&]() { logger.info("publisher matched a remote reader"); },
+      .on_subscriber_matched = [&]() { logger.info("subscriber matched a remote writer"); },
       .log_level = espp::Logger::Verbosity::INFO,
-      // Keep the underlying UDP sockets quieter than the participant so routine socket activity
-      // does not clutter the logs. Raise this to debug transport issues independently.
-      .socket_log_level = espp::Logger::Verbosity::WARN,
   });
-
-#if CONFIG_RTPS_EXAMPLE_ROLE_INITIATOR
-  participant.add_writer({
-      .topic_name = request_topic,
-      .type_name = std::string(kTypeName),
-      .reliability = espp::RtpsParticipant::ReliabilityKind::BEST_EFFORT,
-      .multicast_group = request_multicast_group,
-      .entity_index = 0,
-  });
-  participant.add_reader({
-      .topic_name = response_topic,
-      .type_name = std::string(kTypeName),
-      .reliability = espp::RtpsParticipant::ReliabilityKind::BEST_EFFORT,
-      .multicast_group = response_multicast_group,
-      .entity_index = 0,
-      .on_sample =
-          [&logger, &response_count, &last_sent_request](std::span<const uint8_t> cdr) {
-            auto value = deserialize_uint32(cdr);
-            if (!value) {
-              return;
-            }
-            response_count++;
-            logger.info("Received response {} (expected {})", *value, last_sent_request.load());
-          },
-  });
-#else
-  auto *participant_ptr = &participant;
-  participant.add_writer({
-      .topic_name = response_topic,
-      .type_name = std::string(kTypeName),
-      .reliability = espp::RtpsParticipant::ReliabilityKind::BEST_EFFORT,
-      .multicast_group = response_multicast_group,
-      .entity_index = 0,
-  });
-  participant.add_reader({
-      .topic_name = request_topic,
-      .type_name = std::string(kTypeName),
-      .reliability = espp::RtpsParticipant::ReliabilityKind::BEST_EFFORT,
-      .multicast_group = request_multicast_group,
-      .entity_index = 0,
-      .on_sample =
-          [&logger, &request_count, &response_topic,
-           &participant_ptr](std::span<const uint8_t> cdr) {
-            auto value = deserialize_uint32(cdr);
-            if (!value) {
-              return;
-            }
-            request_count++;
-            logger.info("Received request {}, sending response", *value);
-            if (!participant_ptr->publish(response_topic, serialize_uint32(*value))) {
-              logger.warn("Failed to publish response {}", *value);
-            }
-          },
-  });
-#endif
-
-  auto ports = participant.ports();
-  logger.info("Role: {}",
-#if CONFIG_RTPS_EXAMPLE_ROLE_INITIATOR
-              "initiator"
-#else
-              "responder"
-#endif
-  );
-  logger.info("Participant name: {}", node_name);
-  logger.info("Participant GUID: {}", participant.participant_guid().to_string());
-  logger.info("Domain ID: {}, Participant ID: {}", CONFIG_RTPS_EXAMPLE_DOMAIN_ID,
-              CONFIG_RTPS_EXAMPLE_PARTICIPANT_ID);
-  logger.info("Topic prefix: {}", topic_prefix);
-  logger.info("Request topic: {}, Response topic: {}", request_topic, response_topic);
-  logger.info("Ports: meta mc={}, meta uc={}, user mc={}, user uc={}", ports.metatraffic_multicast,
-              ports.metatraffic_unicast, ports.user_multicast, ports.user_unicast);
-#if CONFIG_RTPS_EXAMPLE_USE_USER_MULTICAST
-  logger.info("User-data multicast enabled: request group {}, response group {}",
-              request_multicast_group, response_multicast_group);
-#endif
-
-  if (!run_local_protocol_checks(logger, participant)) {
-    return;
-  }
-
   if (!participant.start()) {
-    logger.error("Failed to start RTPS participant");
+    logger.error("Failed to start the RTPS participant");
     return;
   }
+
+  // Typed reliable publisher: publish StringMsg structs directly (HEARTBEAT/
+  // ACKNACK-acknowledged, retransmitted to matched readers). No manual CDR.
+  using Reliability = espp::RtpsParticipant::Reliability;
+  espp::Publisher<StringMsg> publisher(participant, {
+                                                        .topic = pub_topic,
+                                                        .type_name = type_name,
+                                                        .reliability = Reliability::RELIABLE,
+                                                    });
+  // Typed subscriber: receive StringMsg structs directly.
+  espp::Subscriber<StringMsg> subscriber(
+      participant, {
+                       .topic = sub_topic,
+                       .type_name = type_name,
+                       .on_message = [&](const StringMsg &msg) { logger.info("rx: {}", msg.data); },
+                   });
+  if (!publisher.is_valid() || !subscriber.is_valid()) {
+    logger.error("Failed to create the typed publisher/subscriber");
+    return;
+  }
+
+  // Publish a counter periodically via the typed publisher.
+  uint32_t counter = 0;
+  espp::Timer publish_timer({
+      .name = "rtps_pub",
+      .period = std::chrono::milliseconds(CONFIG_RTPS_EXAMPLE_ANNOUNCE_PERIOD_MS),
+      .callback =
+          [&]() {
+            if (publisher.publish(StringMsg{fmt::format("msg {}", counter++)})) {
+              logger.info("tx: msg {}", counter - 1);
+            } else {
+              logger.warn("tx dropped (history full)");
+            }
+            return false; // keep the timer running
+          },
+      .log_level = espp::Logger::Verbosity::WARN,
+  });
+  logger.info("started: pub='{}' sub='{}' type='{}'", pub_topic, sub_topic, type_name);
+
+#ifdef RTPS_WITH_RPC
+  // Typed service (RMI) server: a ROS 2 client can `ros2 service call
+  // /add_two_ints example_interfaces/srv/AddTwoInts "{a: 7, b: 35}"` and get 42.
+  // No manual CDR - the reflectable AddReq/AddResp structs are (de)serialized for
+  // us. (Compiled out when CONFIG_RTPS_ENABLE_RPC is disabled.)
+  espp::ServiceServer<AddReq, AddResp> add_service(
+      participant, {
+                       .service = "/add_two_ints",
+                       .type_name = "example_interfaces::srv::dds_::AddTwoInts",
+                       .handler =
+                           [&](const AddReq &r) {
+                             logger.info("service add_two_ints: {} + {} = {}", r.a, r.b, r.a + r.b);
+                             return AddResp{r.a + r.b};
+                           },
+                   });
+
+  // Typed action (AMI) server: a ROS 2 client can `ros2 action send_goal
+  // /fibonacci example_interfaces/action/Fibonacci "{order: 5}"` and receive
+  // feedback + the [0,1,1,2,3,5] result. execute() runs on its own thread.
+  espp::ActionServer<FibGoal, FibSeq, FibSeq> fib_action(
+      participant, {
+                       .action = "/fibonacci",
+                       .type_name = "example_interfaces::action::dds_::Fibonacci",
+                       .on_goal = [&](const FibGoal &g) { return g.order > 0; },
+                       .execute =
+                           [&](auto &h) {
+                             const int32_t order = h.goal().order;
+                             std::vector<int32_t> seq{0, 1};
+                             for (int32_t i = 1; i < order; ++i) {
+                               seq.push_back(seq[i] + seq[i - 1]);
+                               h.publish_feedback(FibSeq{seq});
+                               std::this_thread::sleep_for(200ms);
+                             }
+                             h.succeed(FibSeq{seq});
+                             logger.info("action fibonacci({}) done", order);
+                           },
+                   });
+  if (!add_service.is_valid() || !fib_action.is_valid()) {
+    logger.error("Failed to create the typed service/action servers");
+    return;
+  }
+  logger.info("service '/add_two_ints' + action '/fibonacci' ready");
+
+  // Also demonstrate the CLIENT side on-device: a typed service client + action
+  // client that call services a peer hosts ("/peer_add_two_ints", "/peer_fib").
+  // Run a ROS 2 / rclpy server (or another espp device) for those names to see a
+  // full round-trip; until then the calls simply time out (logged), which still
+  // exercises the client API on-target. (Calling this device's OWN services is
+  // not possible - a participant filters out its own messages.)
+  espp::ServiceClient<AddReq, AddResp> add_client(
+      participant,
+      {.service = "/peer_add_two_ints", .type_name = "example_interfaces::srv::dds_::AddTwoInts"});
+  espp::ActionClient<FibGoal, FibSeq, FibSeq> fib_client(
+      participant,
+      {.action = "/peer_fib", .type_name = "example_interfaces::action::dds_::Fibonacci"});
+
+  // Only one action goal in flight at a time: without a peer the goal never
+  // completes, so re-sending on every tick would leak a pending goal each time.
+  // The service call() below self-cleans on its 1s timeout, so it can run freely.
+  std::atomic<bool> fib_in_flight{false};
+  espp::Timer rpc_client_timer({
+      .name = "rtps_rpc_client",
+      .period = 5s,
+      .callback =
+          [&]() {
+            // Typed blocking service call (RMI).
+            if (auto resp = add_client.call(AddReq{20, 22}, 1s)) {
+              logger.info("[client] /peer_add_two_ints(20,22) = {}", resp->sum);
+            } else {
+              logger.info("[client] /peer_add_two_ints: no reply (peer serving it?)");
+            }
+            // Typed action goal (AMI) with typed feedback + result. Skip if the
+            // previous goal has not finished (e.g. no peer is serving it).
+            if (!fib_in_flight.exchange(true)) {
+              fib_client.send_goal(
+                  FibGoal{5}, [&](const FibSeq &) { /* per-feedback */ },
+                  [&](espp::GoalStatus status, const FibSeq &res) {
+                    logger.info("[client] /peer_fib result: status={} len={}",
+                                static_cast<int>(status), res.sequence.size());
+                    fib_in_flight.store(false);
+                  });
+            }
+            return false; // keep the timer running
+          },
+      .log_level = espp::Logger::Verbosity::WARN,
+  });
+  if (!add_client.is_valid() || !fib_client.is_valid()) {
+    logger.error("Failed to create the typed service/action clients");
+    return;
+  }
+  logger.info("client for '/peer_add_two_ints' + '/peer_fib' running");
+
+#if CONFIG_RTPS_EXAMPLE_SECOND_PARTICIPANT
+  // Purely additive on-device SELF-TEST (Kconfig, default off): a SECOND
+  // participant with its own service + action clients that call THIS device's own
+  // /add_two_ints and /fibonacci servers, for a full local round-trip (a
+  // participant filters out its own messages, so the loopback needs a distinct
+  // participant). This roughly doubles the RTPS engine RAM - only enable on a
+  // target with headroom (e.g. PSRAM).
+  espp::RtpsParticipant selftest_participant({
+      .interface_address = interface_address,
+      .log_level = espp::Logger::Verbosity::WARN,
+  });
+  if (!selftest_participant.start()) {
+    logger.error("Failed to start the self-test participant");
+    return;
+  }
+  espp::ServiceClient<AddReq, AddResp> selftest_add_client(
+      selftest_participant,
+      {.service = "/add_two_ints", .type_name = "example_interfaces::srv::dds_::AddTwoInts"});
+  espp::ActionClient<FibGoal, FibSeq, FibSeq> selftest_fib_client(
+      selftest_participant,
+      {.action = "/fibonacci", .type_name = "example_interfaces::action::dds_::Fibonacci"});
+  espp::Timer selftest_timer({
+      .name = "rtps_selftest",
+      .period = 5s,
+      .callback =
+          [&]() {
+            if (auto resp = selftest_add_client.call(AddReq{20, 22}, 2s)) {
+              logger.info("[self-test] /add_two_ints(20,22) = {} ({})", resp->sum,
+                          resp->sum == 42 ? "PASS" : "FAIL");
+            } else {
+              logger.warn("[self-test] /add_two_ints: no reply");
+            }
+            selftest_fib_client.send_goal(
+                FibGoal{5}, [&](const FibSeq &) {},
+                [&](espp::GoalStatus status, const FibSeq &res) {
+                  const std::vector<int32_t> expected{0, 1, 1, 2, 3, 5};
+                  const bool ok = status == espp::GoalStatus::SUCCEEDED && res.sequence == expected;
+                  logger.info("[self-test] /fibonacci(5) len={} ({})", res.sequence.size(),
+                              ok ? "PASS" : "FAIL");
+                });
+            return false; // keep the timer running
+          },
+      .log_level = espp::Logger::Verbosity::WARN,
+  });
+  if (!selftest_add_client.is_valid() || !selftest_fib_client.is_valid()) {
+    logger.error("Failed to create the self-test clients");
+    return;
+  }
+  logger.info("self-test participant round-tripping the local service + action");
+#endif // CONFIG_RTPS_EXAMPLE_SECOND_PARTICIPANT
+#endif // RTPS_WITH_RPC
   //! [rtps example]
 
-#if CONFIG_RTPS_EXAMPLE_ROLE_INITIATOR
-  logger.info("Initiator is waiting for a responder on the same domain/topic prefix...");
   while (true) {
-    auto remote_readers = participant.discovered_readers();
-    auto remote_writers = participant.discovered_writers();
-    bool request_reader_ready = has_endpoint(remote_readers, request_topic, true);
-    bool response_writer_ready = has_endpoint(remote_writers, response_topic, false);
-    if (!request_reader_ready || !response_writer_ready) {
-      logger.info("Waiting for responder endpoints (request_reader={}, response_writer={})",
-                  request_reader_ready, response_writer_ready);
-      std::this_thread::sleep_for(2s);
-      continue;
-    }
-
-    auto value = next_request_value.fetch_add(1);
-    last_sent_request = value;
-    if (participant.publish(request_topic, serialize_uint32(value))) {
-      logger.info("Published request {} on '{}'", value, request_topic);
-    } else {
-      logger.warn("Failed to publish request {}", value);
-    }
-    std::this_thread::sleep_for(std::chrono::milliseconds(CONFIG_RTPS_EXAMPLE_PUBLISH_PERIOD_MS));
+    std::this_thread::sleep_for(1s);
   }
-#else
-  logger.info("Responder is ready and will echo '{}' samples back on '{}'", request_topic,
-              response_topic);
-  while (true) {
-    std::this_thread::sleep_for(5s);
-    logger.info("Responder status: discovered participants={}, requests handled={}",
-                participant.discovered_participants().size(), request_count.load());
-  }
-#endif
 }

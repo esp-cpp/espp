@@ -2,8 +2,11 @@
 
 #include "socket_msvc.hpp"
 
-#ifdef _MSC_VER
-typedef unsigned int sock_type_t;
+#ifdef _WIN32
+/* Windows SOCKET is UINT_PTR (pointer-sized on 64-bit); use the real type so
+ * handles aren't truncated. SOCKET comes from <winsock2.h>, included above via
+ * socket_msvc.hpp. */
+typedef SOCKET sock_type_t;
 #else
 /* Assume that any non-Windows platform uses POSIX-style sockets instead. */
 #include <arpa/inet.h>
@@ -18,6 +21,7 @@ typedef int sock_type_t;
 #include <functional>
 #include <optional>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include <math.h>
@@ -65,12 +69,14 @@ public:
      */
     struct sockaddr_in *ipv4_ptr();
 
+#if !defined(ESP_PLATFORM) || LWIP_IPV6
     /**
      * @brief Gives access to IPv6 sockaddr structure (sockaddr_in6) for use
      *        with low level socket calls like sendto / recvfrom.
      * @return *sockaddr_in6 pointer to ipv6 data structure
      */
     struct sockaddr_in6 *ipv6_ptr();
+#endif // !defined(ESP_PLATFORM) || LWIP_IPV6
 
     /**
      * @brief Will update address and port based on the curent data in raw.
@@ -89,11 +95,13 @@ public:
      */
     void from_sockaddr(const struct sockaddr_in &source_address);
 
+#if !defined(ESP_PLATFORM) || LWIP_IPV6
     /**
      * @brief Fill this Info from the provided sockaddr struct.
      * @param &source_address sockaddr info filled out by recvfrom.
      */
     void from_sockaddr(const struct sockaddr_in6 &source_address);
+#endif // !defined(ESP_PLATFORM) || LWIP_IPV6
   };
 
   /**
@@ -149,6 +157,15 @@ public:
   static bool is_valid_fd(sock_type_t socket_fd);
 
   /**
+   * @brief Get the underlying native socket file descriptor / handle.
+   * @note Provided so an external event loop (e.g. SocketReactor) can add this
+   *       socket to a select()/poll() set. The Socket retains ownership of the
+   *       descriptor; do not close it directly.
+   * @return The socket file descriptor.
+   */
+  sock_type_t native_handle() const { return socket_; }
+
+  /**
    * @brief Get the Socket::Info for the socket.
    * @details This will call getsockname() on the socket to get the
    *          sockaddr_storage structure, and then fill out the Socket::Info
@@ -165,11 +182,80 @@ public:
   bool set_receive_timeout(const std::chrono::duration<float> &timeout);
 
   /**
+   * @brief Generic wrapper around setsockopt() so callers don't have to touch
+   *        the raw native handle (or worry about the Windows const char* cast).
+   * @param level protocol level of the option (e.g. SOL_SOCKET, IPPROTO_IP).
+   * @param option_name option to set (e.g. SO_RCVBUF).
+   * @param value pointer to the option value.
+   * @param size size of the option value in bytes.
+   * @return true if setsockopt() succeeded, false otherwise (logs on failure).
+   */
+  bool set_option(int level, int option_name, const void *value, size_t size);
+
+  /**
+   * @brief Convenience wrapper around set_option() for a trivially-copyable
+   *        option value.
+   * @param level protocol level of the option (e.g. SOL_SOCKET).
+   * @param option_name option to set (e.g. SO_RCVBUF).
+   * @param value option value; its address and size are forwarded to
+   *        setsockopt().
+   * @return true if setsockopt() succeeded, false otherwise (logs on failure).
+   */
+  template <typename T> bool set_option(int level, int option_name, const T &value) {
+    static_assert(std::is_trivially_copyable_v<T>,
+                  "set_option forwards the raw object bytes to setsockopt(); T must be "
+                  "trivially copyable");
+    return set_option(level, option_name, &value, sizeof(value));
+  }
+
+  /**
+   * @brief Set the size of the kernel receive buffer (SO_RCVBUF).
+   * @note The kernel may clamp or double the requested value.
+   * @param bytes requested receive buffer size in bytes.
+   * @return true if SO_RCVBUF was successfully set.
+   */
+  bool set_receive_buffer_size(size_t bytes);
+
+  /**
+   * @brief Set the size of the kernel send buffer (SO_SNDBUF).
+   * @note The kernel may clamp or double the requested value.
+   * @param bytes requested send buffer size in bytes.
+   * @return true if SO_SNDBUF was successfully set.
+   */
+  bool set_send_buffer_size(size_t bytes);
+
+  /**
+   * @brief Set (or clear) SO_REUSEADDR on the socket.
+   * @note Unlike enable_reuse()/disable_reuse(), this only touches SO_REUSEADDR
+   *       (not SO_REUSEPORT / SO_BROADCAST).
+   * @param enable true to allow address reuse, false to disallow it.
+   * @return true if SO_REUSEADDR was successfully set.
+   */
+  bool set_reuse_address(bool enable);
+
+  /**
+   * @brief Get the size of the kernel receive buffer (SO_RCVBUF).
+   * @return the receive buffer size in bytes, or std::nullopt on failure.
+   */
+  std::optional<size_t> get_receive_buffer_size();
+
+  /**
    * @brief Allow others to use this address/port combination after we're done
    *        with it.
    * @return true if SO_REUSEADDR and SO_REUSEPORT were successfully set.
    */
   bool enable_reuse();
+
+  /**
+   * @brief Disallow sharing this address/port combination.
+   * espp sockets enable address/port reuse at creation (see Socket::init), so a
+   * second bind of an in-use port silently succeeds. Call this before bind()
+   * when a conflict must fail loudly instead - e.g. RTPS unicast ports, where
+   * each participant needs a unique port and probes the next candidate on bind
+   * failure.
+   * @return true if SO_REUSEADDR and SO_REUSEPORT were successfully cleared.
+   */
+  bool disable_reuse();
 
   /**
    * @brief Configure the socket to be multicast (if time_to_live > 0).
@@ -239,6 +325,15 @@ protected:
    *  @brief If the socket was created, we shut it down and close it here.
    */
   void cleanup();
+
+#ifdef _WIN32
+  /**
+   * @brief Initialize Winsock (WSAStartup) exactly once for the process.
+   * @note Thread-safe: uses std::call_once so concurrent Socket construction
+   *       cannot race the one-time initialization.
+   */
+  void initialize_winsock();
+#endif
 
   static constexpr int address_family_{AF_INET};
   static constexpr int ip_protocol_{IPPROTO_IP};

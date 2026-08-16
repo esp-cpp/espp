@@ -47,7 +47,7 @@ sdist.exclude = [
   "docs/",
   "pc/",
   "python/",
-  # local build helpers / outputs (lib/pc, build/, _build/ already gitignored)
+  # local build helpers / outputs (install/, build/, _build/ already gitignored)
   "*.sh",
   "*.ps1",
   # embedded-only submodules and components not referenced by lib/espp.cmake
@@ -74,7 +74,10 @@ provider = "scikit_build_core.metadata.setuptools_scm"
 [tool.cibuildwheel]
 build = ["cp310-*", "cp311-*", "cp312-*", "cp313-*", "cp314-*"]
 skip = ["*-musllinux_*", "*_i686", "*-win32"]
-test-command = "python -c \"import espp; print('espp', espp.__version__)\""
+# Smoke-test the wheel: import + assert the RTPS RMI/AMI binding surface is
+# exposed (a functional in-process round-trip needs multicast, so it lives in the
+# dockerised interop harness / python/rtps_rpc_demo.py, not here).
+test-command = "python \"{project}/python/rtps_bindings_smoke.py\""
 
 [tool.cibuildwheel.linux]
 # The repo is mounted at /project inside the manylinux container; git must

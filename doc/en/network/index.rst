@@ -5,12 +5,15 @@ Network APIs
     :maxdepth: 1
 
     dns_server
+    ethernet
+    ethernet_example
     ping
     provisioning
     socket_example
     socket
     tcp_socket
     udp_socket
+    socket_reactor
 
 The network APIs provide a useful abstraction over POSIX sockets enabling easily
 starting client/server sockets and allowing their use with std::function

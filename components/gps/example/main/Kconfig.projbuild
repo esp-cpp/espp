@@ -1,0 +1,42 @@
+menu "Example Configuration"
+
+choice EXAMPLE_HARDWARE
+  prompt "Hardware"
+  default EXAMPLE_HARDWARE_CARDPUTER_ADV
+  help
+    Select the hardware to run this example on.
+
+config EXAMPLE_HARDWARE_CARDPUTER_ADV
+  depends on IDF_TARGET_ESP32S3
+  bool "M5Stack Cardputer-Adv + LoRa+GPS Cap (ATGM336H)"
+
+config EXAMPLE_HARDWARE_TDECK_PLUS
+  depends on IDF_TARGET_ESP32S3
+  bool "LilyGo T-Deck Plus (u-blox MIA-M10Q)"
+
+config EXAMPLE_HARDWARE_CUSTOM
+  bool "Custom"
+endchoice
+
+config EXAMPLE_GPS_RX_GPIO
+  int "GPS RX GPIO Num (connected to the receiver's TX)"
+  range 0 50
+  default 15 if EXAMPLE_HARDWARE_CARDPUTER_ADV
+  default 44 if EXAMPLE_HARDWARE_TDECK_PLUS
+  default 16 if EXAMPLE_HARDWARE_CUSTOM
+
+config EXAMPLE_GPS_TX_GPIO
+  int "GPS TX GPIO Num (connected to the receiver's RX)"
+  range 0 50
+  default 13 if EXAMPLE_HARDWARE_CARDPUTER_ADV
+  default 43 if EXAMPLE_HARDWARE_TDECK_PLUS
+  default 17 if EXAMPLE_HARDWARE_CUSTOM
+
+config EXAMPLE_GPS_BAUD_RATE
+  int "GPS baud rate"
+  range 4800 921600
+  default 115200 if EXAMPLE_HARDWARE_CARDPUTER_ADV
+  default 9600 if EXAMPLE_HARDWARE_TDECK_PLUS
+  default 9600 if EXAMPLE_HARDWARE_CUSTOM
+
+endmenu

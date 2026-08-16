@@ -1,0 +1,39 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "Ethernet component in C++ wrapping esp_eth for RMII (internal EMAC) and SPI (W5500, etc.) interfaces"
+url: "https://github.com/esp-cpp/espp/tree/main/components/ethernet"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/network/ethernet.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - Ethernet
+  - Network
+  - RMII
+  - SPI
+  - W5500
+dependencies:
+  idf:
+    # 5.4 is the floor: esp_eth_phy_new_generic() was added in v5.4 and the split
+    # esp_driver_spi / esp_driver_gpio components (see CMakeLists REQUIRES) are only
+    # separately requireable on recent IDF.
+    version: ">=5.4"
+  espp/base_component: ">=1.0"
+  # The concrete SPI ethernet chip drivers are managed components pulled in only
+  # when the matching CONFIG_ESPP_ETHERNET_* Kconfig option is enabled.
+  espressif/w5500:
+    version: "^2.0.0"
+    rules:
+      - if: "$CONFIG{ESPP_ETHERNET_W5500} == True"
+  espressif/dm9051:
+    version: "*"
+    rules:
+      - if: "$CONFIG{ESPP_ETHERNET_DM9051} == True"
+  espressif/enc28j60:
+    version: "*"
+    rules:
+      - if: "$CONFIG{ESPP_ETHERNET_ENC28J60} == True"

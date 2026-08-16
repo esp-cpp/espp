@@ -11,6 +11,7 @@ the command-line interface.
    base_component
    base_peripheral
    task
+   thread_pool
    runqueue
    timer
    interrupt

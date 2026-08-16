@@ -1,6 +1,7 @@
 #include "esp32-p4-function-ev-board.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 
 #include <driver/gpio.h>
@@ -43,10 +44,12 @@ bool Esp32P4FunctionEvBoard::initialize_audio(uint32_t sample_rate,
   set_es8311_write(espp::make_i2c_addressed_write(es8311_i2c_device_));
   set_es8311_read(espp::make_i2c_addressed_read_register(es8311_i2c_device_));
 
-  // Create the I2S standard channel for playback (TX). MCLK = 256 * fs (default).
+  // Create the I2S standard channels: TX for playback, RX for the ES8311's
+  // ADC (initialized on demand by initialize_microphone(); the codec is full
+  // duplex on this single bus, sharing the clock). MCLK = 256 * fs (default).
   i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(audio_i2s_port, I2S_ROLE_MASTER);
   chan_cfg.auto_clear = true;
-  if (i2s_new_channel(&chan_cfg, &audio_tx_handle, nullptr) != ESP_OK) {
+  if (i2s_new_channel(&chan_cfg, &audio_tx_handle, &audio_rx_handle) != ESP_OK) {
     logger_.error("Failed to create I2S channel");
     return false;
   }
@@ -124,33 +127,158 @@ void Esp32P4FunctionEvBoard::mute(bool mute) {
 
 bool Esp32P4FunctionEvBoard::is_muted() const { return mute_; }
 
-void Esp32P4FunctionEvBoard::play_audio(const uint8_t *data, uint32_t num_bytes) {
+size_t Esp32P4FunctionEvBoard::play_audio(const uint8_t *data, uint32_t num_bytes) {
   if (!audio_initialized_ || !data || num_bytes == 0) {
-    return;
+    return 0;
   }
-  // Non-blocking: enqueue as much as currently fits in the TX stream buffer for
-  // the audio task to drain to I2S. This never blocks the caller, so it is safe
-  // to call from a touch callback / any task. If the buffer is full the excess
-  // is dropped (the clip is truncated) rather than stalling the caller.
-  xStreamBufferSend(audio_tx_stream, data, num_bytes, 0);
+  // Enqueue only whole 16-bit samples (2 bytes; the TX slot is mono) that
+  // actually fit: xStreamBufferSend can accept fewer bytes than requested when
+  // the buffer is nearly full, and a partial (odd) send would strand a byte and
+  // shift framing on subsequent appends. Cap the request to the free space
+  // rounded down to a whole sample. This runs in task context, so the non-ISR
+  // send with a 0 timeout never blocks; the number of bytes actually queued is
+  // returned so callers can stream data larger than the buffer.
+  size_t sendable = std::min<size_t>(num_bytes, xStreamBufferSpacesAvailable(audio_tx_stream));
+  sendable -= sendable % 2;
+  if (sendable == 0) {
+    return 0;
+  }
+  return xStreamBufferSend(audio_tx_stream, data, sendable, 0);
 }
 
-void Esp32P4FunctionEvBoard::play_audio(std::span<const uint8_t> data) {
-  play_audio(data.data(), data.size());
+size_t Esp32P4FunctionEvBoard::play_audio(std::span<const uint8_t> data) {
+  return play_audio(data.data(), data.size());
 }
+
+//////////////////////////
+// Microphone Functions //
+//////////////////////////
+
+// Map a 0-100% microphone volume onto the ES8311's analog microphone gain
+// steps (ES8311_MIC_GAIN_0DB .. ES8311_MIC_GAIN_42DB, 6 dB apart)
+static es8311_mic_gain_t microphone_gain_from_volume(float volume) {
+  int step = static_cast<int>(std::lround(volume / 100.0f * 7.0f));
+  step = std::clamp(step, static_cast<int>(ES8311_MIC_GAIN_0DB),
+                    static_cast<int>(ES8311_MIC_GAIN_42DB));
+  return static_cast<es8311_mic_gain_t>(step);
+}
+
+bool Esp32P4FunctionEvBoard::initialize_microphone(const microphone_callback_t &callback,
+                                                   const espp::Task::BaseConfig &task_config) {
+  logger_.info("Initializing microphone");
+  if (microphone_initialized_) {
+    logger_.warn("Microphone already initialized, not initializing again!");
+    return false;
+  }
+  if (!audio_initialized_) {
+    logger_.error("The audio subsystem must be initialized first: the ES8311 is a full-duplex "
+                  "codec on a single I2S bus");
+    return false;
+  }
+  if (!callback) {
+    logger_.error("A callback is required to receive the recorded audio data");
+    return false;
+  }
+  microphone_callback_ = callback;
+
+  // The RX channel shares the TX BCLK/WS in full-duplex mode. Receive in
+  // stereo (both 16-bit slots of every frame) even though the codec's ADC is
+  // mono: a mono RX slot configuration in this full-duplex setup does not
+  // deliver one sample per frame (each sample comes through twice, i.e. at
+  // half speed); capturing both slots gives a deterministic L,R word layout
+  // and the microphone task keeps only the left slot, where the ES8311
+  // drives its ADC data.
+  i2s_std_config_t rx_cfg = audio_std_cfg;
+  rx_cfg.slot_cfg =
+      I2S_STD_PHILIP_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_STEREO);
+  if (i2s_channel_init_std_mode(audio_rx_handle, &rx_cfg) != ESP_OK) {
+    logger_.error("Failed to init I2S RX std mode");
+    return false;
+  }
+  // one update period's worth of stereo frames (NUM_CHANNELS is 2)
+  audio_rx_buffer.resize(calc_audio_buffer_size(audio_sample_rate()));
+  if (i2s_channel_enable(audio_rx_handle) != ESP_OK) {
+    logger_.error("Failed to enable I2S RX channel");
+    return false;
+  }
+
+  // Enable the codec's ADC path alongside the running DAC and apply the
+  // stored microphone gain
+  es8311_codec_ctrl_state(AUDIO_HAL_CODEC_MODE_BOTH, AUDIO_HAL_CTRL_START);
+  es8311_set_mic_gain(microphone_gain_from_volume(mic_volume_));
+
+  using namespace std::placeholders;
+  microphone_task_ = espp::Task::make_unique({
+      .callback = std::bind(&Esp32P4FunctionEvBoard::microphone_task_callback, this, _1, _2, _3),
+      .task_config = task_config,
+  });
+
+  if (!microphone_task_->start()) {
+    i2s_channel_disable(audio_rx_handle);
+    microphone_task_.reset();
+    return false;
+  }
+
+  microphone_initialized_ = true;
+  return true;
+}
+
+bool Esp32P4FunctionEvBoard::microphone_task_callback(std::mutex &m, std::condition_variable &cv,
+                                                      bool &task_notified) {
+  size_t bytes_read = 0;
+  // Use a finite read timeout (not portMAX_DELAY) so this task returns
+  // periodically and can observe a stop request; an infinite read would block
+  // Task::stop() from joining during teardown.
+  auto err = i2s_channel_read(audio_rx_handle, audio_rx_buffer.data(), audio_rx_buffer.size(),
+                              &bytes_read, pdMS_TO_TICKS(100));
+  if (err == ESP_OK && bytes_read > 0 && microphone_callback_) {
+    // compact the L,R word pairs down to mono in place, keeping the left
+    // slot (the ES8311's ADC data)
+    auto *samples = reinterpret_cast<int16_t *>(audio_rx_buffer.data());
+    size_t num_frames = bytes_read / (2 * sizeof(int16_t));
+    for (size_t i = 0; i < num_frames; i++) {
+      samples[i] = samples[2 * i];
+    }
+    microphone_callback_(audio_rx_buffer.data(), num_frames * sizeof(int16_t));
+  }
+  // honor a stop request per the Task contract: check/clear notified under m
+  std::unique_lock<std::mutex> lock(m);
+  if (task_notified) {
+    task_notified = false;
+    return true; // stop the task
+  }
+  return false; // keep running
+}
+
+void Esp32P4FunctionEvBoard::microphone_volume(float volume) {
+  mic_volume_ = std::clamp(volume, 0.0f, 100.0f);
+  if (microphone_initialized_) {
+    es8311_set_mic_gain(microphone_gain_from_volume(mic_volume_));
+  }
+}
+
+float Esp32P4FunctionEvBoard::microphone_volume() const { return mic_volume_; }
 
 bool Esp32P4FunctionEvBoard::audio_task_callback(std::mutex &m, std::condition_variable &cv,
                                                  bool &task_notified) {
-  uint16_t available = xStreamBufferBytesAvailable(audio_tx_stream);
-  int buffer_size = audio_tx_buffer.size();
-  available = std::min<uint16_t>(available, buffer_size);
+  size_t available = xStreamBufferBytesAvailable(audio_tx_stream);
+  size_t buffer_size = audio_tx_buffer.size();
+  available = std::min(available, buffer_size);
+  // only ever hand whole 16-bit samples to I2S; a partial sample would shift
+  // the framing of everything after it
+  available &= ~static_cast<size_t>(1);
   uint8_t *tx_buf = audio_tx_buffer.data();
   memset(tx_buf, 0, buffer_size);
   if (available == 0) {
     i2s_channel_write(audio_tx_handle, tx_buf, buffer_size, NULL, portMAX_DELAY);
   } else {
     xStreamBufferReceive(audio_tx_stream, tx_buf, available, 0);
-    i2s_channel_write(audio_tx_handle, tx_buf, available, NULL, portMAX_DELAY);
+    // Always write a full, frame-aligned buffer (queued samples zero-padded to
+    // buffer_size) so the I2S DMA is fed at a constant cadence - matching the
+    // esp-box / t-deck / m5stack-tab5 playback path. Writing only `available`
+    // bytes makes the drain cadence variable and interleaves whole frames of
+    // silence into bursty streams, which sounds choppy/glitchy.
+    i2s_channel_write(audio_tx_handle, tx_buf, buffer_size, NULL, portMAX_DELAY);
   }
   return false;
 }

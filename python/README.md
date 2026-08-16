@@ -31,6 +31,14 @@ This section gives a brief overview of what the scripts in this folder do.
   `espp` library to create a UDP client and server. The server listens for
   incoming UDP packets and prints them to the console, while the client sends
   UDP packets to the server.
+- `socket_reactor.py`: Demonstrates `espp.SocketReactor` - a single select()
+  event loop plus a thread pool that services many receiver sockets instead of
+  one thread per socket. It multiplexes two UDP echo receivers on one reactor and
+  round-trips a datagram through each.
+- `socket_reactor_test.py`: Self-checking test for the `espp.SocketReactor`
+  Python binding (lifecycle, UDP receiver + echo, sender info, `None` responses,
+  multiple receivers, dynamic `remove()`). Exits 0 on full pass, 1 on any
+  failure. Mirrors the C++ `pc/tests/socket_reactor.cpp`.
 - `rtsp_client.py` and `rtsp_server.py`: These scripts demonstrate how to use the
   `espp` library to create an RTSP client and server. The server streams MJPEG
   video from a webcam or display capture. The camera path captures live

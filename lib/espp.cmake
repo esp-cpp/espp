@@ -1,5 +1,71 @@
 set(ESPP_COMPONENTS "${CMAKE_CURRENT_LIST_DIR}/../components")
 
+# ---------------------------------------------------------------------------
+# RTPS static-limits profile selection.
+#
+# The rtps engine keeps a fully-static (deterministic) allocation model
+# whose compile-time capacity caps are chosen by a profile header (see
+# components/rtps/include/rtps/config.hpp). Profiles:
+#   embedded   - tight MCU caps (rtps/config_esp32.hpp)
+#   host       - relaxed static caps, DEFAULT for non-ESP builds
+#                (rtps/config_desktop.hpp)
+#   host_large - generous static caps for large DDS graphs
+#                (rtps/config_host_large.hpp)
+#
+# Select with -DRTPS_LIMITS_PROFILE=embedded|host|host_large. Default is "host"
+# (this file is only used for non-ESP / host builds; ESP/IDF builds pick the
+# profile via Kconfig in components/rtps/Kconfig).
+# ---------------------------------------------------------------------------
+if(NOT DEFINED RTPS_LIMITS_PROFILE)
+  set(RTPS_LIMITS_PROFILE "host")
+endif()
+set(RTPS_LIMITS_PROFILE "${RTPS_LIMITS_PROFILE}" CACHE STRING
+    "RTPS static limits profile: embedded|host|host_large")
+set_property(CACHE RTPS_LIMITS_PROFILE PROPERTY STRINGS embedded host host_large)
+
+if(RTPS_LIMITS_PROFILE STREQUAL "embedded")
+  set(RTPS_CONFIG_HEADER_FILE "rtps/config_esp32.hpp")
+  set(RTPS_MAX_SAMPLE_SIZE 262144)   # 256 KB (matches config_esp32.hpp)
+elseif(RTPS_LIMITS_PROFILE STREQUAL "host")
+  set(RTPS_CONFIG_HEADER_FILE "rtps/config_desktop.hpp")
+  set(RTPS_MAX_SAMPLE_SIZE 8388608)  # 8 MB (matches config_desktop.hpp)
+elseif(RTPS_LIMITS_PROFILE STREQUAL "host_large")
+  set(RTPS_CONFIG_HEADER_FILE "rtps/config_host_large.hpp")
+  set(RTPS_MAX_SAMPLE_SIZE 8388608)  # 8 MB (matches config_host_large.hpp)
+else()
+  message(FATAL_ERROR
+    "Invalid RTPS_LIMITS_PROFILE '${RTPS_LIMITS_PROFILE}' "
+    "(expected: embedded | host | host_large)")
+endif()
+add_compile_definitions(RTPS_CONFIG_HEADER="${RTPS_CONFIG_HEADER_FILE}")
+message(STATUS "RTPS limits profile: ${RTPS_LIMITS_PROFILE}")
+
+# ---------------------------------------------------------------------------
+# RTPS best-effort DATA_FRAG fragmentation (Slice C).
+#
+# On host builds fragmentation is ALWAYS enabled: samples larger than a single
+# DATA submessage are split into DATA_FRAG submessages and reassembled by the
+# peer (interoperates with FastDDS / ROS 2). RTPS_MAX_SAMPLE_SIZE is the
+# large-sample reassembly cap and is kept in sync with the profile's
+# Config::MAX_SAMPLE_SIZE. On ESP32/IDF fragmentation is opt-in via Kconfig (see
+# components/rtps/Kconfig / CMakeLists.txt), default off, so the MCU
+# pays nothing for it by default.
+# ---------------------------------------------------------------------------
+add_compile_definitions(RTPS_ENABLE_FRAGMENTATION RTPS_MAX_SAMPLE_SIZE=${RTPS_MAX_SAMPLE_SIZE})
+message(STATUS "RTPS fragmentation: ON (max sample size ${RTPS_MAX_SAMPLE_SIZE} bytes)")
+
+# The RTPS static-limits + fragmentation config is compiled into libespp_pc.a AND
+# is part of the public ABI: any consumer that compiles rtps headers (templates /
+# inline code) must use the SAME profile, else it sees a different Config and a
+# different set of guarded declarations (e.g. addSubMessageDataFrag). Expose them
+# as PUBLIC compile definitions on the exported target (see lib/CMakeLists.txt) so
+# find_package(espp) consumers inherit them automatically. The above
+# add_compile_definitions still covers the in-tree python module / SKBUILD build.
+set(ESPP_RTPS_COMPILE_DEFINITIONS
+  RTPS_CONFIG_HEADER="${RTPS_CONFIG_HEADER_FILE}"
+  RTPS_ENABLE_FRAGMENTATION
+  RTPS_MAX_SAMPLE_SIZE=${RTPS_MAX_SAMPLE_SIZE})
+
 set(ESPP_EXTERNAL_INCLUDES
   ${ESPP_COMPONENTS}/serialization/detail/alpaca/include
   ${ESPP_COMPONENTS}/cli/detail/cli/include
@@ -20,6 +86,8 @@ set(ESPP_INCLUDES
   ${ESPP_COMPONENTS}/base_component/include
   ${ESPP_COMPONENTS}/base_peripheral/include
   ${ESPP_COMPONENTS}/cdr/include
+  ${ESPP_COMPONENTS}/cdr/detail/cdr/include
+  ${ESPP_COMPONENTS}/reflect_cpp/detail/reflect-cpp/include
   ${ESPP_COMPONENTS}/cobs/include
   ${ESPP_COMPONENTS}/color/include
   ${ESPP_COMPONENTS}/csv/include
@@ -39,14 +107,15 @@ set(ESPP_INCLUDES
   ${ESPP_COMPONENTS}/serialization/include
   ${ESPP_COMPONENTS}/tabulate/include
   ${ESPP_COMPONENTS}/task/include
+  ${ESPP_COMPONENTS}/thread_pool/include
   ${ESPP_COMPONENTS}/timer/include
+  ${ESPP_COMPONENTS}/trajectory_planner/include
   ${ESPP_COMPONENTS}/socket/include
   ${ESPP_COMPONENTS}/state_machine/include
   ${CMAKE_CURRENT_LIST_DIR}/include
 )
 
 set(ESPP_SOURCES
-  ${ESPP_COMPONENTS}/cdr/src/cdr.cpp
   ${ESPP_COMPONENTS}/cobs/src/cobs.cpp
   ${ESPP_COMPONENTS}/cobs/src/cobs_stream.cpp
   ${ESPP_COMPONENTS}/color/src/color.cpp
@@ -56,7 +125,23 @@ set(ESPP_SOURCES
   ${ESPP_COMPONENTS}/filters/src/lowpass_filter.cpp
   ${ESPP_COMPONENTS}/filters/src/simple_lowpass_filter.cpp
   ${ESPP_COMPONENTS}/joystick/src/joystick.cpp
-  ${ESPP_COMPONENTS}/rtps/src/rtps.cpp
+  ${ESPP_COMPONENTS}/rtps/src/rtps_participant.cpp
+  ${ESPP_COMPONENTS}/rtps/src/communication/EsppTransport.cpp
+  ${ESPP_COMPONENTS}/rtps/src/discovery/ParticipantProxyData.cpp
+  ${ESPP_COMPONENTS}/rtps/src/discovery/SEDPAgent.cpp
+  ${ESPP_COMPONENTS}/rtps/src/discovery/SPDPAgent.cpp
+  ${ESPP_COMPONENTS}/rtps/src/discovery/TopicData.cpp
+  ${ESPP_COMPONENTS}/rtps/src/entities/Domain.cpp
+  ${ESPP_COMPONENTS}/rtps/src/entities/Participant.cpp
+  ${ESPP_COMPONENTS}/rtps/src/entities/Reader.cpp
+  ${ESPP_COMPONENTS}/rtps/src/entities/StatefulReader.cpp
+  ${ESPP_COMPONENTS}/rtps/src/entities/StatefulWriter.cpp
+  ${ESPP_COMPONENTS}/rtps/src/entities/StatelessReader.cpp
+  ${ESPP_COMPONENTS}/rtps/src/entities/StatelessWriter.cpp
+  ${ESPP_COMPONENTS}/rtps/src/entities/Writer.cpp
+  ${ESPP_COMPONENTS}/rtps/src/messages/MessageReceiver.cpp
+  ${ESPP_COMPONENTS}/rtps/src/messages/MessageTypes.cpp
+  ${ESPP_COMPONENTS}/rtps/src/utils/Diagnostics.cpp
   ${ESPP_COMPONENTS}/rtsp/src/rtcp_packet.cpp
   ${ESPP_COMPONENTS}/rtsp/src/rtp_packet.cpp
   ${ESPP_COMPONENTS}/rtsp/src/rtsp_client.cpp
@@ -69,10 +154,13 @@ set(ESPP_SOURCES
   ${ESPP_COMPONENTS}/rtsp/src/mjpeg_depacketizer.cpp
   ${ESPP_COMPONENTS}/rtsp/src/mjpeg_packetizer.cpp
   ${ESPP_COMPONENTS}/task/src/task.cpp
+  ${ESPP_COMPONENTS}/thread_pool/src/thread_pool.cpp
   ${ESPP_COMPONENTS}/timer/src/timer.cpp
+  ${ESPP_COMPONENTS}/trajectory_planner/src/trajectory_planner.cpp
   ${ESPP_COMPONENTS}/socket/src/socket.cpp
   ${ESPP_COMPONENTS}/socket/src/tcp_socket.cpp
   ${ESPP_COMPONENTS}/socket/src/udp_socket.cpp
+  ${ESPP_COMPONENTS}/socket/src/socket_reactor.cpp
   ${CMAKE_CURRENT_LIST_DIR}/espp.cpp
 )
 
@@ -87,9 +175,14 @@ if(MSVC)
   list(APPEND ESPP_SOURCES ${CMAKE_CURRENT_LIST_DIR}/wcswidth.c)
 endif()
 
-# if we're on Windows, we need to link against ws2_32
+# On Windows link against ws2_32 (sockets), winmm (timeBeginPeriod, used by the
+# TimerResolution helper in espp.hpp), and iphlpapi (GetAdaptersAddresses, used
+# by RtpsParticipant interface auto-detection). Centralizing these here keeps
+# linkage consistent across the static library, tests, and the _espp module, and
+# works on all Windows toolchains (MSVC, MinGW, clang) rather than relying on
+# MSVC-only #pragma comment(lib, ...).
 if(WIN32)
-  set(ESPP_EXTERNAL_LIBS ws2_32)
+  set(ESPP_EXTERNAL_LIBS ws2_32 winmm iphlpapi)
 else()
   set(ESPP_EXTERNAL_LIBS pthread)
 endif()
@@ -99,24 +192,77 @@ set(ESPP_PYTHON_BINDINGS_DIR ${CMAKE_CURRENT_LIST_DIR}/python_bindings)
 set(ESPP_PYTHON_SOURCES
   ${ESPP_PYTHON_BINDINGS_DIR}/module.cpp
   ${ESPP_PYTHON_BINDINGS_DIR}/pybind_espp.cpp
-  ${ESPP_PYTHON_BINDINGS_DIR}/cdr_bindings.cpp
   ${ESPP_PYTHON_BINDINGS_DIR}/rtps_bindings.cpp
+  ${ESPP_PYTHON_BINDINGS_DIR}/socket_reactor_bindings.cpp
   ${ESPP_SOURCES}
 )
 
-# make an espp_install_includes command that can be used by other scripts, where
-# they just need to specify the folder they want to install into
-function(espp_install_includes FOLDER)
-  install(DIRECTORY ${ESPP_INCLUDES} DESTINATION ${FOLDER}/)
-  install(DIRECTORY ${ESPP_EXTERNAL_INCLUDES} DESTINATION ${FOLDER}/)
-  install(DIRECTORY ${ESPP_EXTERNAL_INCLUDES_SEPARATE} DESTINATION ${FOLDER}/include/)
+# make an espp_install_cmake_package command that gives the C++ library target a
+# proper install + export so a separate project can `find_package(espp)` and link
+# `espp::espp`. Installs into GNUInstallDirs under CMAKE_INSTALL_PREFIX:
+#   <prefix>/lib/libespp_pc.a
+#   <prefix>/include/...                (all component + vendored headers, flat)
+#   <prefix>/lib/cmake/espp/esppTargets.cmake, esppConfig.cmake, ...Version.cmake
+#
+# All third-party deps (reflect-cpp, magic_enum, tabulate, fmt, alpaca, cli,
+# csv2, hid-rp, cdr) are VENDORED: their headers are installed under
+# <prefix>/include and their objects are compiled into libespp_pc.a, so a
+# consumer needs no extra find_package for them. The only non-bundled PUBLIC
+# dependency is the system threads library (handled via find_dependency(Threads)
+# in esppConfig.cmake.in; on Windows the ws2_32/winmm/iphlpapi system libs
+# resolve automatically).
+function(espp_install_cmake_package TARGET_NAME)
+  include(GNUInstallDirs)
+  include(CMakePackageConfigHelpers)
+
+  install(TARGETS ${TARGET_NAME}
+          EXPORT esppTargets
+          ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+          LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+          RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+          INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+  # Install the public headers flat into <prefix>/include so every quote-include
+  # espp uses resolves against a single -I<prefix>/include. All three lists are
+  # already on the build include path, and their headers are referenced flat
+  # relative to those roots, so installing each dir's CONTENTS (the trailing
+  # slash) yields the exact layout consumers compile against:
+  #  - ESPP_INCLUDES / ESPP_EXTERNAL_INCLUDES: ".../include" dirs -> "logger.hpp".
+  #  - ESPP_EXTERNAL_INCLUDES_SEPARATE: dirs NOT named "include" but still on the
+  #    -I path, referenced flat -> "magic_enum.hpp", "hid/...", "sized_unsigned.hpp".
+  # This intentionally differs from the old lib/pc helper (which preserved the
+  # SEPARATE dir names under include/): that only worked because the pc build also
+  # had the source dirs on its -I path; a pure find_package consumer needs flat.
+  # Verified by building a find_package consumer that includes both a regular and
+  # a SEPARATE header.
+  foreach(_inc IN LISTS ESPP_INCLUDES ESPP_EXTERNAL_INCLUDES ESPP_EXTERNAL_INCLUDES_SEPARATE)
+    install(DIRECTORY ${_inc}/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+  endforeach()
+
+  install(EXPORT esppTargets
+          NAMESPACE espp::
+          DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/espp
+          FILE esppTargets.cmake)
+
+  configure_package_config_file(
+    ${CMAKE_CURRENT_LIST_DIR}/cmake/esppConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/esppConfig.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/espp)
+  write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/esppConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion)
+  install(FILES
+          ${CMAKE_CURRENT_BINARY_DIR}/esppConfig.cmake
+          ${CMAKE_CURRENT_BINARY_DIR}/esppConfigVersion.cmake
+          DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/espp)
 endfunction()
 
 # make an espp_add_python_module command that defines the `_espp` pybind11
 # extension module target (the native part of the `espp` python package)
 function(espp_add_python_module)
   pybind11_add_module(_espp ${ESPP_PYTHON_SOURCES})
-  target_compile_features(_espp PRIVATE cxx_std_20)
+  target_compile_features(_espp PRIVATE cxx_std_23)
   # disable certain compiler warnings for this module, but only if we're not on
   # Windows
   if(NOT MSVC)
@@ -133,17 +279,18 @@ function(espp_add_python_module)
   endif()
 endfunction()
 
-# make an espp_install_python_module command that can be used by other scripts,
-# where they just need to specify the folder they want to install into. This
-# installs the full `espp` python package (pure-python files + the compiled
-# `_espp` extension) into FOLDER/espp so FOLDER can be put on sys.path.
-function(espp_install_python_module FOLDER)
+# make an espp_install_python_module command that installs the full `espp` python
+# package (pure-python files + the compiled `_espp` extension) into the standard
+# install prefix as <prefix>/espp, so CMAKE_INSTALL_PREFIX can be put on sys.path
+# / PYTHONPATH to `import espp`. Relative DESTINATIONs are interpreted against
+# CMAKE_INSTALL_PREFIX.
+function(espp_install_python_module)
   espp_add_python_module()
   install(DIRECTORY ${ESPP_PYTHON_BINDINGS_DIR}/espp
-    DESTINATION ${FOLDER}/
+    DESTINATION .
     PATTERN "__pycache__" EXCLUDE
     PATTERN ".mypy_cache" EXCLUDE)
   install(TARGETS _espp
-    LIBRARY DESTINATION ${FOLDER}/espp/
-    RUNTIME DESTINATION ${FOLDER}/espp/)
+    LIBRARY DESTINATION espp/
+    RUNTIME DESTINATION espp/)
 endfunction()

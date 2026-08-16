@@ -1,0 +1,104 @@
+menu "Example Configuration"
+
+choice EXAMPLE_HARDWARE
+  prompt "Hardware"
+  default EXAMPLE_HARDWARE_TDECK
+  help
+    Select the hardware to run this example on.
+
+config EXAMPLE_HARDWARE_TDECK
+  depends on IDF_TARGET_ESP32S3
+  bool "LilyGo T-Deck / T-Deck Plus (SX1262)"
+
+config EXAMPLE_HARDWARE_CARDPUTER_ADV
+  depends on IDF_TARGET_ESP32S3
+  bool "M5Stack Cardputer-Adv + LoRa+GPS Cap (SX1262)"
+
+config EXAMPLE_HARDWARE_CUSTOM
+  bool "Custom"
+endchoice
+
+config EXAMPLE_RADIO_FREQUENCY_HZ
+  int "Radio frequency (Hz)"
+  range 150000000 960000000
+  default 906875000
+  help
+    RF center frequency in Hz. Make sure this matches your hardware variant
+    and is legal in your region! Default is the Meshtastic US LongFast
+    frequency slot (906.875 MHz). EU868 users should use 869525000.
+
+config EXAMPLE_SPI_SCLK_GPIO
+  int "SPI SCLK GPIO Num"
+  range 0 50
+  default 40 if EXAMPLE_HARDWARE_TDECK
+  default 40 if EXAMPLE_HARDWARE_CARDPUTER_ADV
+  default 12 if EXAMPLE_HARDWARE_CUSTOM
+
+config EXAMPLE_SPI_MOSI_GPIO
+  int "SPI MOSI GPIO Num"
+  range 0 50
+  default 41 if EXAMPLE_HARDWARE_TDECK
+  default 14 if EXAMPLE_HARDWARE_CARDPUTER_ADV
+  default 11 if EXAMPLE_HARDWARE_CUSTOM
+
+config EXAMPLE_SPI_MISO_GPIO
+  int "SPI MISO GPIO Num"
+  range 0 50
+  default 38 if EXAMPLE_HARDWARE_TDECK
+  default 39 if EXAMPLE_HARDWARE_CARDPUTER_ADV
+  default 13 if EXAMPLE_HARDWARE_CUSTOM
+
+config EXAMPLE_RADIO_CS_GPIO
+  int "Radio chip select (NSS) GPIO Num"
+  range 0 50
+  default 9 if EXAMPLE_HARDWARE_TDECK
+  default 5 if EXAMPLE_HARDWARE_CARDPUTER_ADV
+  default 10 if EXAMPLE_HARDWARE_CUSTOM
+
+config EXAMPLE_RADIO_DIO1_GPIO
+  int "Radio DIO1 (IRQ) GPIO Num"
+  range 0 50
+  default 45 if EXAMPLE_HARDWARE_TDECK
+  default 4 if EXAMPLE_HARDWARE_CARDPUTER_ADV
+  default 14 if EXAMPLE_HARDWARE_CUSTOM
+
+config EXAMPLE_RADIO_BUSY_GPIO
+  int "Radio BUSY GPIO Num"
+  range 0 50
+  default 13 if EXAMPLE_HARDWARE_TDECK
+  default 6 if EXAMPLE_HARDWARE_CARDPUTER_ADV
+  default 15 if EXAMPLE_HARDWARE_CUSTOM
+
+config EXAMPLE_RADIO_RESET_GPIO
+  int "Radio NRESET GPIO Num"
+  range 0 50
+  default 17 if EXAMPLE_HARDWARE_TDECK
+  default 3 if EXAMPLE_HARDWARE_CARDPUTER_ADV
+  default 16 if EXAMPLE_HARDWARE_CUSTOM
+
+config EXAMPLE_POWER_ENABLE_GPIO
+  int "Board power-enable GPIO Num (-1 if none)"
+  range -1 50
+  default 10 if EXAMPLE_HARDWARE_TDECK
+  default -1 if EXAMPLE_HARDWARE_CARDPUTER_ADV
+  default -1 if EXAMPLE_HARDWARE_CUSTOM
+  help
+    GPIO which must be driven high to power the radio (e.g. the T-Deck
+    peripheral power rail on GPIO 10). Set to -1 if not needed.
+
+config EXAMPLE_RADIO_HAS_TCXO
+  bool "Radio module has a TCXO on DIO3"
+  default y if EXAMPLE_HARDWARE_TDECK
+  default n
+  help
+    Whether the radio module uses DIO3 to power a TCXO (true for the
+    T-Deck's HPD16A module, at 1.8V).
+
+config EXAMPLE_TRANSMIT_INTERVAL_MS
+  int "Transmit interval (ms)"
+  range 1000 3600000
+  default 5000
+  help
+    How often to transmit a ping packet.
+
+endmenu

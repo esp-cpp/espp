@@ -3,6 +3,10 @@ name: Build
 on:
   pull_request:
     branches: [main]
+    # ready_for_review is included so that marking a draft PR "Ready for
+    # review" triggers a build (the draft guard below skips draft PRs);
+    # it is not in GitHub's default set (opened/synchronize/reopened).
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - 'components/**'
       - 'external/**'
@@ -10,8 +14,27 @@ on:
       - '!**/idf_component.yml'
       - '!**/README.md'
 
+# Least-privilege default: these jobs only check out the repo and build/upload
+# artifacts, so read-only access to repository contents is sufficient.
+permissions:
+  contents: read
+
+# Supersede in-progress runs: a new commit on the same PR cancels the earlier,
+# now-stale build. Keyed by the workflow (so it never cross-cancels other
+# workflows) + the PR number, which is globally unique - unlike the head branch
+# name, two fork PRs can't collide on it. For non-PR events (push, release) we
+# fall back to github.run_id, which is unique per run, so those runs each get
+# their own group and never serialize or cancel each other.
+# cancel-in-progress is gated to pull_request events only so that push-to-main
+# runs are never cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build:
+    # Skip build CI for draft PRs; still runs on push-to-main and non-draft PRs.
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
 
     runs-on: ubuntu-latest
     continue-on-error: true
@@ -57,6 +80,8 @@ jobs:
           target: esp32
         - path: 'components/bmi270/example'
           target: esp32p4
+        - path: 'components/bq27220/example'
+          target: esp32
         - path: 'components/button/example'
           target: esp32
         - path: 'components/byte90/example'
@@ -87,10 +112,16 @@ jobs:
           target: esp32
         - path: 'components/esp32-timer-cam/example'
           target: esp32
+        - path: 'components/esp32-p4-eth/example'
+          target: esp32p4
         - path: 'components/esp32-p4-function-ev-board/example'
+          target: esp32p4
+        - path: 'components/esp32-p4-nano/example'
           target: esp32p4
         - path: 'components/esp-box/example'
           target: esp32s3
+        - path: 'components/ethernet/example'
+          target: esp32
         - path: 'components/event_manager/example'
           target: esp32
         - path: 'components/expressive_eyes/example'
@@ -104,6 +135,8 @@ jobs:
         - path: 'components/ft5x06/example'
           target: esp32s3
         - path: 'components/gfps_service/example'
+          target: esp32s3
+        - path: 'components/gps/example'
           target: esp32s3
         - path: 'components/gt911/example'
           target: esp32s3
@@ -139,6 +172,8 @@ jobs:
           target: esp32
         - path: 'components/led_strip/example'
           target: esp32
+        - path: 'components/lilygo-t5-47/example'
+          target: esp32s3
         - path: 'components/logger/example'
           target: esp32
         - path: 'components/lp5817/example'
@@ -165,6 +200,8 @@ jobs:
           target: esp32s3
         - path: 'components/mcp23x17/example'
           target: esp32s3
+        - path: 'components/meshtastic/example'
+          target: esp32s3
         - path: 'components/mt6701/example'
           target: esp32s3
         - path: 'components/neopixel/example'
@@ -173,6 +210,8 @@ jobs:
           target: esp32s3
         - path: 'components/odrive_ascii/example'
           target: esp32
+        - path: 'components/pca9535/example'
+          target: esp32s3
         - path: 'components/pcf85063/example'
           target: esp32s3
         - path: 'components/pi4ioe5v/example'
@@ -219,6 +258,8 @@ jobs:
           target: esp32s3
         - path: 'components/state_machine/example'
           target: esp32
+        - path: 'components/sx126x/example'
+          target: esp32s3
         - path: 'components/t-deck/example'
           target: esp32s3
         - path: 'components/t-dongle-s3/example'
@@ -231,7 +272,11 @@ jobs:
           target: esp32
         - path: 'components/thermistor/example'
           target: esp32
+        - path: 'components/thread_pool/example'
+          target: esp32
         - path: 'components/timer/example'
+          target: esp32
+        - path: 'components/trajectory_planner/example'
           target: esp32
         - path: 'components/touch/example'
           target: esp32

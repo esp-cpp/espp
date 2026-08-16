@@ -1,4 +1,4 @@
-#ifdef _MSC_VER
+#ifdef _WIN32
 extern "C" {
 // if we don't define NOMINMAX, windows.h will define min and max as macros
 // which will conflict with std::min and std::max

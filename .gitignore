@@ -34,6 +34,7 @@
 # build folder for ESP-IDF
 build/
 
+
 # we only version sdkconfig.defaults
 sdkconfig
 sdkconfig.old
@@ -43,8 +44,23 @@ dependencies.lock
 
 # weird mac folders...
 .DS_Store
-lib/pc
+# local espp staging install prefix produced by lib/build.sh (find_package tree
+# + python package); consumed by pc/build.sh via CMAKE_PREFIX_PATH.
+/install/
 _build/
 __pycache__/
 managed_components/
 .cache
+
+# local-only agent customizations
+.github/agents/
+
+# docker interop harness build tree (bind-mounted, built in-container)
+pc/build-linux/
+python/env/
+
+# Locally generated documentation output (Doxygen/Sphinx build of doc/ -> docs/).
+docs/
+
+# Local example-build helper script (not part of the repo).
+build_examples.sh

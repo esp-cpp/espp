@@ -3,10 +3,10 @@
 import os
 import re
 
-# NOTE: cdr.hpp is intentionally NOT generated here. srcmlcpp cannot parse it, and even when coerced
-# the generated CdrReader API is unusable (output-reference reads can't return values, and the
-# non-owning std::span would dangle). It is bound by hand instead in
-# python_bindings/cdr_bindings.cpp (registered via py_init_cdr in module.cpp).
+# NOTE: cdr.hpp is intentionally NOT generated here. The cdr component's API is template-based
+# (compiler-generated serialization per struct type), which litgen cannot bind generically — and it
+# needs no python bindings: the python side of a CDR message is a plain pycdr2 dataclass with the
+# same wire format (see components/cdr/README.md).
 
 
 # ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -49,6 +49,8 @@ _IMPLICIT_CTOR_FIX = {
         ".def(py::init<const espp::Timer::Config &>())\n"
         "      .def(py::init<const espp::Timer::AdvancedConfig &>())"
     ),
+    "pyClassThreadPool": ".def(py::init<const espp::ThreadPool::Config &>())",
+    "pyClassTrajectoryPlanner": ".def(py::init<const espp::TrajectoryPlanner::Config &>())",
     "pyClassBezier_espp_Vector2f": (
         ".def(py::init<const espp::Bezier<espp::Vector2f>::Config &>())\n"
         "      .def(py::init<const espp::Bezier<espp::Vector2f>::WeightedConfig &>())"
@@ -246,6 +248,7 @@ _GIL_RELEASE_METHODS = {
     ],
     "espp::RtspServer": ["start", "stop", "send_frame"],
     "espp::RtspSession": ["send_rtp_packet", "send_rtcp_packet"],
+    "espp::ThreadPool": ["start", "stop", "submit"],
 }
 
 _GIL_GUARD = "py::call_guard<py::gil_scoped_release>()"
@@ -435,7 +438,7 @@ def autogenerate() -> None:
 
     include_dir = repository_dir + "/components/"
     header_files = [include_dir + "base_component/include/base_component.hpp",
-                    # cdr.hpp is bound by hand in python_bindings/cdr_bindings.cpp (see note above).
+                    # cdr.hpp is excluded: template-based API, python uses pycdr2 instead (see note above).
                     include_dir + "cobs/include/cobs.hpp",
                     include_dir + "cobs/include/cobs_stream.hpp",
                     include_dir + "color/include/color.hpp",
@@ -456,6 +459,20 @@ def autogenerate() -> None:
                     include_dir + "socket/include/udp_socket.hpp",
                     include_dir + "task/include/task.hpp",
                     include_dir + "timer/include/timer.hpp",
+
+                    # NOTE: depends on timer and base_component
+                    include_dir + "trajectory_planner/include/trajectory_planner.hpp",
+
+                    # NOTE: this must come after task and base_component since it depends on them
+                    include_dir + "thread_pool/include/thread_pool.hpp",
+
+                    # NOTE: socket/include/socket_reactor.hpp is intentionally NOT generated here.
+                    # srcmlcpp cannot parse SocketReactor (its Config/Entry brace-init defaults with
+                    # parenthesized/cast expressions trip srcmlcpp's brace-init fixer), and its TCP
+                    # callbacks take std::unique_ptr<TcpSocket> / TcpSocket& which litgen cannot bind
+                    # (the same reason ftp_client_session is excluded). It is instead bound by hand in
+                    # python_bindings/socket_reactor_bindings.cpp (registered via py_init_socket_reactor
+                    # in module.cpp), and is fully available in the C++ host library.
 
                     # NOTE: this must come after vector2d.hpp and range_mapper.hpp since it depends on them!
                     include_dir + "joystick/include/joystick.hpp",

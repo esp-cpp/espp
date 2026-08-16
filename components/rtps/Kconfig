@@ -1,0 +1,71 @@
+menu "RTPS"
+
+    choice RTPS_LIMITS_PROFILE
+        prompt "RTPS static limits profile"
+        default RTPS_LIMITS_PROFILE_EMBEDDED
+        help
+            Selects the compile-time capacity limits (profile header) used by the
+            rtps engine. Only the capacity caps differ between profiles.
+            The storage MODEL (static vs dynamic) is a separate knob
+            (RTPS_STORAGE_DYNAMIC below) and defaults to fully-static on ESP for
+            every profile - selecting a relaxed profile does NOT enable heap
+            storage. These caps are pure capacity limits and do NOT change any
+            bytes on the wire.
+
+        config RTPS_LIMITS_PROFILE_EMBEDDED
+            bool "embedded (tight MCU caps)"
+            help
+                Tight caps sized for an ESP32-class MCU
+                (rtps/config_esp32.hpp). This is the default and the smallest
+                footprint.
+
+        config RTPS_LIMITS_PROFILE_HOST
+            bool "host (relaxed static caps)"
+            help
+                Relaxed static caps suitable for small-to-medium DDS graphs
+                (rtps/config_desktop.hpp). Larger footprint than embedded.
+
+        config RTPS_LIMITS_PROFILE_HOST_LARGE
+            bool "host_large (generous static caps)"
+            help
+                Generous static caps for large DDS graphs
+                (rtps/config_host_large.hpp). Significantly larger footprint;
+                only appropriate on targets with plenty of RAM.
+    endchoice
+
+    config RTPS_STORAGE_DYNAMIC
+        bool "Use dynamic (heap) history/queue storage"
+        default n
+        help
+            By default the engine uses fully-static, zero-heap history and queue
+            storage on ESP targets (std::array), independent of the limits
+            profile above: when a history fills it drops the oldest sample.
+            Enable this to use heap-backed storage (std::deque) that instead
+            GROWS on demand to retain samples. Off by default so the MCU keeps
+            deterministic, zero-heap storage; enable only on targets that can
+            afford heap growth. Does not change any bytes on the wire.
+
+    config RTPS_ENABLE_FRAGMENTATION
+        bool "Enable best-effort DATA_FRAG fragmentation"
+        default n
+        help
+            Enables sending and receiving samples larger than a single RTPS DATA
+            submessage (> ~64 KB) by splitting them into best-effort DATA_FRAG
+            submessages and reassembling them on receive (interoperates with
+            FastDDS / ROS 2). Default OFF so the MCU pays no code or memory cost
+            for it in the common (small-sample) case. When ON, reassembly is
+            bounded by RTPS_MAX_SAMPLE_SIZE (256 KB on the embedded profile) and
+            the participant's max payload size rises accordingly.
+
+    config RTPS_ENABLE_RPC
+        bool "Enable RPC: services + actions (RMI/AMI)"
+        default y
+        help
+            Compiles in the request/reply (services) and goal (actions) layers of
+            the RtpsParticipant facade - both the ROS 2-interoperable
+            (add_service_*/add_action_*) and native (add_native_*) variants.
+            Disable to drop all of that code (and its std::thread/std::future use)
+            when the device only needs pub/sub, saving flash. Pure pub/sub is
+            unaffected either way. Default ON.
+
+endmenu

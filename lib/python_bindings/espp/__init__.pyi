@@ -23,7 +23,7 @@ class BaseComponent:
         """
         pass
 
-    def set_log_tag(self, tag: std.string_view) -> None:
+    def set_log_tag(self, tag: str) -> None:
         """/ Set the tag for the logger
         / \param tag The tag to use for the logger
         """
@@ -117,7 +117,6 @@ class Cobs:
 
         """
         pass
-
     @staticmethod
     @overload
     def encode_packet(data: std.span[ int], output: std.span[int]) -> int:
@@ -130,6 +129,7 @@ class Cobs:
 
         """
         pass
+
 
     @staticmethod
     def max_decoded_size(encoded_len: int) -> int:
@@ -153,7 +153,6 @@ class Cobs:
 
         """
         pass
-
     @staticmethod
     @overload
     def decode_packet(encoded_data: std.span[ int], output: std.span[int]) -> int:
@@ -166,6 +165,7 @@ class Cobs:
 
         """
         pass
+
 
     def __init__(self) -> None:
         """Auto-generated default constructor"""
@@ -199,7 +199,6 @@ class CobsStreamDecoder:
 
         """
         pass
-
     @overload
     def add_data(self, data: List[int]) -> None:
         """*
@@ -209,6 +208,7 @@ class CobsStreamDecoder:
 
         """
         pass
+
 
     def extract_packet(self) -> Optional[List[int]]:
         """*
@@ -265,7 +265,6 @@ class CobsStreamEncoder:
 
         """
         pass
-
     @overload
     def add_packet(self, data: List[int]) -> None:
         """*
@@ -275,6 +274,7 @@ class CobsStreamEncoder:
 
         """
         pass
+
 
     def get_encoded_data(self) -> List[int]:
         """*
@@ -295,7 +295,6 @@ class CobsStreamEncoder:
 
         """
         pass
-
     @overload
     def extract_data(self, output: int, max_size: int) -> int:
         """*
@@ -307,6 +306,7 @@ class CobsStreamEncoder:
 
         """
         pass
+
 
     def buffer_size(self) -> int:
         """*
@@ -346,7 +346,6 @@ class Rgb:
     @overload
     def __init__(self) -> None:
         pass
-
     @overload
     def __init__(self, r: float, g: float, b: float) -> None:
         """*
@@ -362,7 +361,6 @@ class Rgb:
 
         """
         pass
-
     @overload
     def __init__(self, rgb: Rgb) -> None:
         """*
@@ -373,7 +371,6 @@ class Rgb:
 
         """
         pass
-
     @overload
     def __init__(self, hsv: Hsv) -> None:
         """*
@@ -387,7 +384,6 @@ class Rgb:
 
         """
         pass
-
     @overload
     def __init__(self, hex: int) -> None:
         """*
@@ -397,6 +393,10 @@ class Rgb:
 
         """
         pass
+
+
+
+
 
 
 
@@ -417,10 +417,10 @@ class Rgb:
         """
         pass
 
-    def __eq__(self, rhs: Rgb) -> bool:
+    def __eq__(self, rhs: object) -> bool:
         pass
 
-    def __ne__(self, rhs: Rgb) -> bool:
+    def __ne__(self, rhs: object) -> bool:
         pass
 
     def hsv(self) -> Hsv:
@@ -451,7 +451,6 @@ class Hsv:
     @overload
     def __init__(self) -> None:
         pass
-
     @overload
     def __init__(self, h: float, s: float, v: float) -> None:
         """*
@@ -462,7 +461,6 @@ class Hsv:
 
         """
         pass
-
     @overload
     def __init__(self, hsv: Hsv) -> None:
         """*
@@ -471,7 +469,6 @@ class Hsv:
 
         """
         pass
-
     @overload
     def __init__(self, rgb: Rgb) -> None:
         """*
@@ -483,10 +480,13 @@ class Hsv:
         pass
 
 
-    def __eq__(self, rhs: Hsv) -> bool:
+
+
+
+    def __eq__(self, rhs: object) -> bool:
         pass
 
-    def __ne__(self, rhs: Hsv) -> bool:
+    def __ne__(self, rhs: object) -> bool:
         pass
 
 
@@ -590,7 +590,6 @@ class EventManager:
 
         """
         pass
-
     @overload
     def add_subscriber(
         self,
@@ -614,6 +613,7 @@ class EventManager:
 
         """
         pass
+
 
     def publish(self, topic: str, data: List[int]) -> bool:
         """*
@@ -661,12 +661,7 @@ class EventManager:
 
 class FtpServer:
     """/ \brief A class that implements a FTP server."""
-    def __init__(
-        self,
-        ip_address: std.string_view,
-        port: int,
-        root: std.filesystem.path
-        ) -> None:
+    def __init__(self, ip_address: str, port: int, root: std.filesystem.path) -> None:
         """/ \brief A class that implements a FTP server.
         / \note The IP Address is not currently used to select the right
         /       interface, but is instead passed to the FtpClientSession so that
@@ -739,22 +734,23 @@ class Logger:
         error = enum.auto()                                                     # (= 3)  #*< Error level verbosity.
         none = enum.auto()                                                      # (= 4)  #*< No verbosity - logger will not print anything.
 
+
     class Config:
         """*
            * @brief Configuration struct for the logger.
 
         """
-        tag: std.string_view                                                    #*< The TAG that will be prepended to all logs.
+        tag: str                                                                #*< The TAG that will be prepended to all logs.
         include_time: bool = bool(True)                                         #*< Include the time in the log.
         rate_limit: std.chrono.duration[float] = std.chrono.duration<float>(0)  #*< The rate limit for the logger. Optional, if <= 0 no
         rate limit. @note Only calls that have _rate_limited suffixed will be rate limited.
         level: Logger.Verbosity = Logger.Verbosity.warn                         #*< The verbosity level for the logger.
         def __init__(
             self,
-            tag: std.string_view = std.string_view(),
+            tag: str = str(),
             include_time: bool = bool(True),
             rate_limit: std.chrono.duration[float] = std.chrono.duration<float>(0),
-            level: Logger.Verbosity = Logger.Verbosity.warn
+            level: Logger.Verbosity = Logger.Verbosity.WARN
             ) -> None:
             """Auto-generated default constructor with named params"""
             pass
@@ -779,7 +775,7 @@ class Logger:
         """
         pass
 
-    def set_tag(self, tag: std.string_view) -> None:
+    def set_tag(self, tag: str) -> None:
         """*
            * @brief Change the tag for the logger.
            * @param tag The new tag.
@@ -861,8 +857,8 @@ class Bezier_espp_Vector2f:  # Python specialization for Bezier<espp::Vector2f>
      * @note See https://pomax.github.io/bezierinfo/ for information on bezier
      *       curves.
      * @note Template class which can be used individually on floating point
-     *       values directly or on containers such as Vector2<float>.
-     * @tparam T The type of the control points, e.g. float or Vector2<float>.
+     *       values directly or on containers such as Vector2d<float>.
+     * @tparam T The type of the control points, e.g. float or Vector2d<float>.
      * @note The bezier curve is defined by 4 control points, P0, P1, P2, P3.
      *      The curve is defined by the equation:
      *      \f$B(t) = (1-t)^3 * P0 + 3 * (1-t)^2 * t * P1 + 3 * (1-t) * t^2 * P2 + t^3 * P3\f$
@@ -1023,7 +1019,7 @@ def inv_lerp(a: float, b: float, v: float) -> float:
     """
     pass
 
-def piecewise_linear(points: List[Tuple[float, float]], x: float) -> float:
+def piecewise_linear(points: std.span[Tuple[float, float]], x: float) -> float:
     """*
      * @brief Compute the piecewise linear interpolation between a set of points.
      * @param points Vector of points to interpolate between. The vector should be
@@ -1057,7 +1053,7 @@ def fast_ln(x: float) -> float:
     """*
      * @brief fast natural log function, ln(x).
      * @note This speed hack comes from:
-     *   https://gist.github.com/LingDong-/7e4c4cae5cbbc44400a05ba650623
+     *   https://gist.github.com/LingDong-/7e4c4cae5cbbc44400a05fba65f06f23
      * @param x Value to take the natural log of.
      * @return ln(x)
 
@@ -1114,7 +1110,7 @@ class Gaussian:
         alpha: float = float(1.0)  #/< Max amplitude of the gaussian output, defautls to 1.0.
         beta: float = float(0.5)   #/< Beta value for the gaussian, default to be symmetric at 0.5 in range [0,1].
 
-        def __eq__(self, rhs: Gaussian.Config) -> bool:
+        def __eq__(self, rhs: object) -> bool:
             pass
         def __init__(
             self,
@@ -1629,7 +1625,7 @@ class Vector2d_int:  # Python specialization for Vector2d<int>
      * utilities.
      *
      * \section vector_ex1 Example
-     * \snippet math_example.cpp vector2 example
+     * \snippet math_example.cpp vector2d example
 
     """
     @overload
@@ -1641,7 +1637,6 @@ class Vector2d_int:  # Python specialization for Vector2d<int>
 
         """
         pass
-
     @overload
     def __init__(self, other: Vector2d) -> None:
         """*
@@ -1650,6 +1645,7 @@ class Vector2d_int:  # Python specialization for Vector2d<int>
 
         """
         pass
+
 
 
 
@@ -1677,7 +1673,6 @@ class Vector2d_int:  # Python specialization for Vector2d<int>
 
         """
         pass
-
     @overload
     def x(self, v: int) -> None:
         """*
@@ -1687,6 +1682,7 @@ class Vector2d_int:  # Python specialization for Vector2d<int>
         """
         pass
 
+
     @overload
     def y(self) -> int:
         """*
@@ -1695,7 +1691,6 @@ class Vector2d_int:  # Python specialization for Vector2d<int>
 
         """
         pass
-
     @overload
     def y(self, v: int) -> None:
         """*
@@ -1704,6 +1699,7 @@ class Vector2d_int:  # Python specialization for Vector2d<int>
 
         """
         pass
+
 
     def __lt__(self, other: Vector2d) -> bool:
         """*
@@ -1723,7 +1719,7 @@ class Vector2d_int:  # Python specialization for Vector2d<int>
 
         """
         pass
-    def __eq__(self, other: Vector2d) -> bool:
+    def __eq__(self, other: object) -> bool:
         """*
            * @brief Spaceship operator for comparing two vectors.
            * @param other The vector to compare against.
@@ -1751,7 +1747,7 @@ class Vector2d_int:  # Python specialization for Vector2d<int>
         """
         pass
 
-    def __eq__(self, other: Vector2d) -> bool:
+    def __eq__(self, other: object) -> bool:
         """*
            * @brief Equality operator for comparing two vectors.
            * @param other The vector to compare against.
@@ -1770,7 +1766,6 @@ class Vector2d_int:  # Python specialization for Vector2d<int>
         """
         pass
 
-    @overload
     def __neg__(self) -> Vector2d:
         """*
            * @brief Negate the vector.
@@ -1778,8 +1773,6 @@ class Vector2d_int:  # Python specialization for Vector2d<int>
 
         """
         pass
-
-    @overload
     def __sub__(self, rhs: Vector2d) -> Vector2d:
         """*
            * @brief Return a new vector which is the provided vector subtracted from
@@ -1789,6 +1782,7 @@ class Vector2d_int:  # Python specialization for Vector2d<int>
 
         """
         pass
+
 
     def __isub__(self, rhs: Vector2d) -> Vector2d:
         """*
@@ -1847,17 +1841,6 @@ class Vector2d_int:  # Python specialization for Vector2d<int>
 
         """
         pass
-
-    @overload
-    def __itruediv__(self, v: int) -> Vector2d:
-        """*
-           * @brief Return the vector divided by the provided value.
-           * @param v Value the vector should be divided by.
-           * @return Resultant scaled vector.
-
-        """
-        pass
-
     @overload
     def __truediv__(self, v: Vector2d) -> Vector2d:
         """*
@@ -1870,6 +1853,15 @@ class Vector2d_int:  # Python specialization for Vector2d<int>
         pass
 
     @overload
+    def __itruediv__(self, v: int) -> Vector2d:
+        """*
+           * @brief Return the vector divided by the provided value.
+           * @param v Value the vector should be divided by.
+           * @return Resultant scaled vector.
+
+        """
+        pass
+    @overload
     def __itruediv__(self, v: Vector2d) -> Vector2d:
         """*
            * @brief Return the vector divided by the provided vector values.
@@ -1878,6 +1870,8 @@ class Vector2d_int:  # Python specialization for Vector2d<int>
 
         """
         pass
+
+
 
     def dot(self, other: Vector2d) -> T:
         """*
@@ -1909,7 +1903,7 @@ class Vector2d_float:  # Python specialization for Vector2d<float>
      * utilities.
      *
      * \section vector_ex1 Example
-     * \snippet math_example.cpp vector2 example
+     * \snippet math_example.cpp vector2d example
 
     """
     @overload
@@ -1921,7 +1915,6 @@ class Vector2d_float:  # Python specialization for Vector2d<float>
 
         """
         pass
-
     @overload
     def __init__(self, other: Vector2d) -> None:
         """*
@@ -1930,6 +1923,7 @@ class Vector2d_float:  # Python specialization for Vector2d<float>
 
         """
         pass
+
 
 
 
@@ -1957,7 +1951,6 @@ class Vector2d_float:  # Python specialization for Vector2d<float>
 
         """
         pass
-
     @overload
     def x(self, v: float) -> None:
         """*
@@ -1967,6 +1960,7 @@ class Vector2d_float:  # Python specialization for Vector2d<float>
         """
         pass
 
+
     @overload
     def y(self) -> float:
         """*
@@ -1975,7 +1969,6 @@ class Vector2d_float:  # Python specialization for Vector2d<float>
 
         """
         pass
-
     @overload
     def y(self, v: float) -> None:
         """*
@@ -1984,6 +1977,7 @@ class Vector2d_float:  # Python specialization for Vector2d<float>
 
         """
         pass
+
 
     def __lt__(self, other: Vector2d) -> bool:
         """*
@@ -2003,7 +1997,7 @@ class Vector2d_float:  # Python specialization for Vector2d<float>
 
         """
         pass
-    def __eq__(self, other: Vector2d) -> bool:
+    def __eq__(self, other: object) -> bool:
         """*
            * @brief Spaceship operator for comparing two vectors.
            * @param other The vector to compare against.
@@ -2031,7 +2025,7 @@ class Vector2d_float:  # Python specialization for Vector2d<float>
         """
         pass
 
-    def __eq__(self, other: Vector2d) -> bool:
+    def __eq__(self, other: object) -> bool:
         """*
            * @brief Equality operator for comparing two vectors.
            * @param other The vector to compare against.
@@ -2050,7 +2044,6 @@ class Vector2d_float:  # Python specialization for Vector2d<float>
         """
         pass
 
-    @overload
     def __neg__(self) -> Vector2d:
         """*
            * @brief Negate the vector.
@@ -2058,8 +2051,6 @@ class Vector2d_float:  # Python specialization for Vector2d<float>
 
         """
         pass
-
-    @overload
     def __sub__(self, rhs: Vector2d) -> Vector2d:
         """*
            * @brief Return a new vector which is the provided vector subtracted from
@@ -2069,6 +2060,7 @@ class Vector2d_float:  # Python specialization for Vector2d<float>
 
         """
         pass
+
 
     def __isub__(self, rhs: Vector2d) -> Vector2d:
         """*
@@ -2127,17 +2119,6 @@ class Vector2d_float:  # Python specialization for Vector2d<float>
 
         """
         pass
-
-    @overload
-    def __itruediv__(self, v: float) -> Vector2d:
-        """*
-           * @brief Return the vector divided by the provided value.
-           * @param v Value the vector should be divided by.
-           * @return Resultant scaled vector.
-
-        """
-        pass
-
     @overload
     def __truediv__(self, v: Vector2d) -> Vector2d:
         """*
@@ -2150,6 +2131,15 @@ class Vector2d_float:  # Python specialization for Vector2d<float>
         pass
 
     @overload
+    def __itruediv__(self, v: float) -> Vector2d:
+        """*
+           * @brief Return the vector divided by the provided value.
+           * @param v Value the vector should be divided by.
+           * @return Resultant scaled vector.
+
+        """
+        pass
+    @overload
     def __itruediv__(self, v: Vector2d) -> Vector2d:
         """*
            * @brief Return the vector divided by the provided vector values.
@@ -2158,6 +2148,8 @@ class Vector2d_float:  # Python specialization for Vector2d<float>
 
         """
         pass
+
+
 
     def dot(self, other: Vector2d) -> T:
         """*
@@ -2419,12 +2411,7 @@ class Ndef:
 
     handover_version: int = 0x13                                                                 #/< Connection Handover version 1.3 # (C++ static member) # (const)
 
-    def __init__(
-        self,
-        tnf: Ndef.TNF,
-        type: std.string_view,
-        payload: std.string_view
-        ) -> None:
+    def __init__(self, tnf: Ndef.TNF, type: str, payload: str) -> None:
         """*
            * @brief Makes an NDEF record with header and payload.
            * @param tnf The TNF for this packet.
@@ -2435,7 +2422,7 @@ class Ndef:
         pass
 
     @staticmethod
-    def make_text(text: std.string_view) -> Ndef:
+    def make_text(text: str) -> Ndef:
         """*
            * @brief Static function to make an NDEF record for transmitting english
            *        text.
@@ -2446,7 +2433,7 @@ class Ndef:
         pass
 
     @staticmethod
-    def make_uri(uri: std.string_view, uic: Ndef.Uic = Ndef.Uic.none) -> Ndef:
+    def make_uri(uri: str, uic: Ndef.Uic = Ndef.Uic.none) -> Ndef:
         """*
            * @brief Static function to make an NDEF record for loading a URI.
            * @param uri URI for the record to point to.
@@ -2457,7 +2444,7 @@ class Ndef:
         pass
 
     @staticmethod
-    def make_android_launcher(uri: std.string_view) -> Ndef:
+    def make_android_launcher(uri: str) -> Ndef:
         """*
            * @brief Static function to make an NDEF record for launching an Android App.
            * @param uri URI for the android package / app to launch.
@@ -2471,18 +2458,18 @@ class Ndef:
            * @brief Configuration structure for wifi configuration ndef structure.
 
         """
-        ssid: std.string_view                                                                    #/< SSID for the network
-        key: std.string_view                                                                     #/< Security key / password for the network
+        ssid: str                                                                                #/< SSID for the network
+        key: str                                                                                 #/< Security key / password for the network
         authentication: Ndef.WifiAuthenticationType = Ndef.WifiAuthenticationType.wpa2_personal  #/< Authentication type the network
         #/< uses.
         encryption: Ndef.WifiEncryptionType = Ndef.WifiEncryptionType.aes                        #/< Encryption type the network uses.
         mac_address: int = 0xFFFFFFFFFFFF                                                        #/< Broadcast MAC address FF:FF:FF:FF:FF:FF
         def __init__(
             self,
-            ssid: std.string_view = std.string_view(),
-            key: std.string_view = std.string_view(),
-            authentication: Ndef.WifiAuthenticationType = Ndef.WifiAuthenticationType.wpa2_personal,
-            encryption: Ndef.WifiEncryptionType = Ndef.WifiEncryptionType.aes,
+            ssid: str = str(),
+            key: str = str(),
+            authentication: Ndef.WifiAuthenticationType = Ndef.WifiAuthenticationType.WPA2_PERSONAL,
+            encryption: Ndef.WifiEncryptionType = Ndef.WifiEncryptionType.AES,
             mac_address: int = 0xFFFFFFFFFFFF
             ) -> None:
             """Auto-generated default constructor with named params"""
@@ -2557,15 +2544,15 @@ class Ndef:
     def make_oob_pairing(
         mac_addr: int,
         device_class: int,
-        name: std.string_view,
-        random_value: std.string_view = "",
-        confirm_value: std.string_view = ""
+        name: str,
+        random_value: str = "",
+        confirm_value: str = ""
         ) -> Ndef:
         """*
            * @brief Static function to make an NDEF record for BT classic OOB Pairing (Android).
            * @param mac_addr 48 bit MAC Address of the BT radio
            * @note If the address is e.g. f4:12:fa:42:fe:9e then the mac_addr should be
-           *       0xf412a42e9e.
+           *       0xf412fa42fe9e.
            * @param device_class The bluetooth device class for this radio.
            * @param name Name of the BT device.
            * @param random_value The Simple pairing randomizer R for the pairing.
@@ -2580,17 +2567,17 @@ class Ndef:
     def make_le_oob_pairing(
         mac_addr: int,
         role: Ndef.BleRole,
-        name: std.string_view = "",
+        name: str = "",
         appearance: Ndef.BtAppearance = Ndef.BtAppearance.unknown,
-        random_value: std.string_view = "",
-        confirm_value: std.string_view = "",
-        tk: std.string_view = ""
+        random_value: str = "",
+        confirm_value: str = "",
+        tk: str = ""
         ) -> Ndef:
         """*
            * @brief Static function to make an NDEF record for BLE OOB Pairing (Android).
            * @param mac_addr 48 bit MAC Address of the BLE radio.
            * @note If the address is e.g. f4:12:fa:42:fe:9e then the mac_addr should be
-           *       0xf412a42e9e.
+           *       0xf412fa42fe9e.
            * @param role The BLE role of the device (central / peripheral / dual)
            * @param name Name of the BLE device. Optional.
            * @param appearance BtAppearance of the device. Optional.
@@ -2680,7 +2667,7 @@ class Pid:
         output_min: float                                                      #*< Limit the minimum output value. Can be a different magnitude from output
                                  max for asymmetric output behavior.
         output_max: float                                                      #*< Limit the maximum output value.
-        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #*< Verbosity for the adc logger.
+        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)  #*< Verbosity for the adc logger.
         def __init__(
             self,
             kp: float = float(),
@@ -2690,7 +2677,7 @@ class Pid:
             integrator_max: float = float(),
             output_min: float = float(),
             output_max: float = float(),
-            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
+            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)
             ) -> None:
             """Auto-generated default constructor with named params"""
             pass
@@ -2789,14 +2776,6 @@ class Socket:
             """
             pass
 
-        def ipv6_ptr(self) -> struct sockaddr_in6:
-            """*
-                 * @brief Gives access to IPv6 sockaddr structure (sockaddr_in6) for use
-                 *        with low level socket calls like sendto / recvfrom.
-                 * @return *sockaddr_in6 pointer to ipv6 data structure
-
-            """
-            pass
 
         def update(self) -> None:
             """*
@@ -2813,7 +2792,6 @@ class Socket:
 
             """
             pass
-
         @overload
         def from_sockaddr(self, source_address: struct sockaddr_in) -> None:
             """*
@@ -2823,14 +2801,7 @@ class Socket:
             """
             pass
 
-        @overload
-        def from_sockaddr(self, source_address: struct sockaddr_in6) -> None:
-            """*
-                 * @brief Fill this Info from the provided sockaddr struct.
-                 * @param &source_address sockaddr info filled out by recvfrom.
 
-            """
-            pass
         def __init__(self, address: str = "", port: int = int()) -> None:
             """Auto-generated default constructor with named params"""
             pass
@@ -2854,6 +2825,17 @@ class Socket:
            * @brief Is the socket valid.
            * @param socket_fd Socket file descriptor.
            * @return True if the socket file descriptor is >= 0.
+
+        """
+        pass
+
+    def native_handle(self) -> sock_type_t:
+        """*
+           * @brief Get the underlying native socket file descriptor / handle.
+           * @note Provided so an external event loop (e.g. SocketReactor) can add this
+           *       socket to a select()/poll() set. The Socket retains ownership of the
+           *       descriptor; do not close it directly.
+           * @return The socket file descriptor.
 
         """
         pass
@@ -2980,10 +2962,10 @@ class TcpSocket:
            * @brief Config struct for the TCP socket.
 
         """
-        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #*< Verbosity level for the TCP socket logger.
+        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)  #*< Verbosity level for the TCP socket logger.
         def __init__(
             self,
-            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
+            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)
             ) -> None:
             """Auto-generated default constructor with named params"""
             pass
@@ -3088,7 +3070,6 @@ class TcpSocket:
 
         """
         pass
-
     @overload
     def transmit(
         self,
@@ -3109,11 +3090,10 @@ class TcpSocket:
 
         """
         pass
-
     @overload
     def transmit(
         self,
-        data: std.string_view,
+        data: str,
         transmit_config: TcpSocket.TransmitConfig = TcpSocket.TransmitConfig.Default()
         ) -> bool:
         """*
@@ -3130,7 +3110,6 @@ class TcpSocket:
 
         """
         pass
-
     @overload
     def transmit(
         self,
@@ -3152,6 +3131,9 @@ class TcpSocket:
         """
         pass
 
+
+
+
     @overload
     def receive(self, data: List[int], max_num_bytes: int) -> bool:
         """*
@@ -3164,7 +3146,6 @@ class TcpSocket:
 
         """
         pass
-
     @overload
     def receive(self, data: int, max_num_bytes: int) -> int:
         """*
@@ -3179,6 +3160,7 @@ class TcpSocket:
 
         """
         pass
+
 
     def bind(self, port: int) -> bool:
         """*
@@ -3304,10 +3286,10 @@ class UdpSocket:
             pass
 
     class Config:
-        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)                  #*< Verbosity level for the UDP socket logger.
+        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)                  #*< Verbosity level for the UDP socket logger.
         def __init__(
             self,
-            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
+            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)
             ) -> None:
             """Auto-generated default constructor with named params"""
             pass
@@ -3338,9 +3320,8 @@ class UdpSocket:
 
         """
         pass
-
     @overload
-    def send(self, data: std.string_view, send_config: UdpSocket.SendConfig) -> bool:
+    def send(self, data: str, send_config: UdpSocket.SendConfig) -> bool:
         """*
            * @brief Send data to the endpoint specified by the send_config.
            *        Can be configured to multicast (within send_config) and can be
@@ -3359,7 +3340,6 @@ class UdpSocket:
 
         """
         pass
-
     @overload
     def send(self, data: std.span[ int], send_config: UdpSocket.SendConfig) -> bool:
         """*
@@ -3381,6 +3361,8 @@ class UdpSocket:
         """
         pass
 
+
+
     def receive(
         self,
         max_num_bytes: int,
@@ -3396,6 +3378,21 @@ class UdpSocket:
            * @param remote_info Socket::Info containing the sender's information. This
            *        will be populated with the information about the sender.
            * @return True if successfully received, False otherwise.
+
+        """
+        pass
+
+    def bind(self, receive_config: UdpSocket.ReceiveConfig) -> bool:
+        """*
+           * @brief Bind the socket as a server according to \p receive_config (bind to
+           *        the port and, if requested, join the multicast group), without
+           *        starting any receive thread.
+           * @note This is called for you by start_receiving(). Use it directly when
+           *       driving the socket from an external event loop such as
+           *       espp::SocketReactor, which reads the socket itself.
+           * @param receive_config ReceiveConfig describing the port / multicast setup.
+           *        Its callback / buffer_size fields are not used by this method.
+           * @return True if the socket was bound (and joined the group, if multicast).
 
         """
         pass
@@ -3500,12 +3497,12 @@ class Task:
         """
         callback: Task.callback_variant                                        #*< Callback function
         task_config: Task.BaseConfig                                           #*< Base configuration for the task.
-        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #*< Log verbosity for the task.
+        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)  #*< Log verbosity for the task.
         def __init__(
             self,
             callback: Task.callback_variant = Task.callback_variant(),
             task_config: Task.BaseConfig = Task.BaseConfig(),
-            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
+            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)
             ) -> None:
             """Auto-generated default constructor with named params"""
             pass
@@ -3602,7 +3599,6 @@ class Task:
 
         """
         pass
-
     @staticmethod
     @overload
     def get_id(task: Task) -> task_id_t:
@@ -3614,6 +3610,7 @@ class Task:
 
         """
         pass
+
 
     @staticmethod
     def get_current_id() -> task_id_t:
@@ -3664,6 +3661,20 @@ class Timer:
     /       long time, then the timer will not be able to keep up with the
     /       period.
     /
+    / @note Timing resolution. On ESP / FreeRTOS the timer waits on the
+    /       scheduler, which can only resolve time to a single tick
+    /       (1 / CONFIG_FREERTOS_HZ seconds; e.g. 10 ms at the 100 Hz default,
+    /       1 ms at 1000 Hz). A period or delay that is shorter than - or within
+    /       a couple of ticks of - the tick period cannot be honored accurately:
+    /       it will be rounded up to a whole number of ticks and can jitter by up
+    /       to a full tick. The constructor, set_period() and start(delay) log a
+    /       warning when the requested period/delay is at or near the tick
+    /       period. For sub-tick or highly accurate periodic work, either raise
+    /       CONFIG_FREERTOS_HZ or use the esp_timer-based HighResolutionTimer
+    /       instead. The timer schedules against an absolute wake-up time (the
+    /       k-th callback targets start + k*period), so it does not accumulate
+    /       drift even when individual iterations jitter.
+    /
     / \section timer_ex1 Timer Example 1
     / \snippet timer_example.cpp timer example
     / \section timer_ex2 Timer Watchdog Example
@@ -3684,7 +3695,7 @@ class Timer:
 
     class Config:
         """/ @brief The configuration for the timer."""
-        name: std.string_view                                #/< The name of the timer.
+        name: str                                            #/< The name of the timer.
         period: std.chrono.duration[float]                   #/< The period of the timer. If 0, the timer callback will only be called once.
         delay: std.chrono.duration[float] = std.chrono.duration<float>(
                 0)                                           #/< The delay before the first execution of the timer callback after start() is called.
@@ -3693,10 +3704,10 @@ class Timer:
         stack_size_bytes: int = int(4096)                    #/< The stack size of the task that runs the timer.
         priority: int = int(0)                               #/< Priority of the timer, 0 is lowest priority on ESP / FreeRTOS.
         core_id: int = int(-1)                               #/< Core ID of the timer, -1 means it is not pinned to any core.
-        log_level: Logger.Verbosity = Logger.Verbosity.warn  #/< The log level for the timer.
+        log_level: Logger.Verbosity = Logger.Verbosity.WARN  #/< The log level for the timer.
         def __init__(
             self,
-            name: std.string_view = std.string_view(),
+            name: str = str(),
             period: std.chrono.duration[float] = std.chrono.duration<float>(),
             delay: std.chrono.duration[float] = std.chrono.duration<float>(
                     0),
@@ -3705,7 +3716,7 @@ class Timer:
             stack_size_bytes: int = int(4096),
             priority: int = int(0),
             core_id: int = int(-1),
-            log_level: Logger.Verbosity = Logger.Verbosity.warn
+            log_level: Logger.Verbosity = Logger.Verbosity.WARN
             ) -> None:
             """Auto-generated default constructor with named params"""
             pass
@@ -3718,7 +3729,7 @@ class Timer:
         callback: Timer.callback_fn                          #/< The callback function to call when the timer expires.
         auto_start: bool = bool(True)                        #/< If True, the timer will start automatically when constructed.
         task_config: Task.BaseConfig                         #/< The task configuration for the timer.
-        log_level: Logger.Verbosity = Logger.Verbosity.warn  #/< The log level for the timer.
+        log_level: Logger.Verbosity = Logger.Verbosity.WARN  #/< The log level for the timer.
         def __init__(
             self,
             period: std.chrono.duration[float] = std.chrono.duration<float>(),
@@ -3727,7 +3738,7 @@ class Timer:
             callback: Timer.callback_fn = Timer.callback_fn(),
             auto_start: bool = bool(True),
             task_config: Task.BaseConfig = Task.BaseConfig(),
-            log_level: Logger.Verbosity = Logger.Verbosity.warn
+            log_level: Logger.Verbosity = Logger.Verbosity.WARN
             ) -> None:
             """Auto-generated default constructor with named params"""
             pass
@@ -3736,14 +3747,15 @@ class Timer:
 
 
     @overload
-    def start(self) -> None:
+    def start(self) -> bool:
         """/ @brief Start the timer.
         / @details Starts the timer. Does nothing if the timer is already running.
+        / @return True if the timer was started or is already running, False if the
+        /         timer could not be started.
         """
         pass
-
     @overload
-    def start(self, delay: std.chrono.duration[float]) -> None:
+    def start(self, delay: std.chrono.duration[float]) -> bool:
         """/ @brief Start the timer with a delay.
         / @details Starts the timer with a delay. If the timer is already running,
         /          this will cancel the timer and start it again with the new
@@ -3751,8 +3763,11 @@ class Timer:
         /          with the delay. Overwrites any previous delay that might have
         /          been set.
         / @param delay The delay before the first execution of the timer callback.
+        / @return True if the timer was started or restarted, False if the timer
+        /         could not be started.
         """
         pass
+
 
     def stop(self) -> None:
         """/ @brief Stop the timer, same as cancel().
@@ -3790,6 +3805,406 @@ class Timer:
         pass
 
 ####################    </generated_from:timer.hpp>    ####################
+
+
+####################    <generated_from:trajectory_planner.hpp>    ####################
+
+
+
+
+class TrajectoryPlanner:
+    """*
+     *  @brief Converts normalized joystick velocity commands into smooth,
+     *         dynamically feasible chassis motion commands (v, w).
+     *
+     *  The planner is drive-system independent -- it does not know about wheel
+     *  geometry or kinematics. It only enforces velocity, acceleration, and
+     *  jerk limits on chassis-level commands. The downstream kinematics layer
+     *  converts (v_ref, w_ref) into individual motor commands.
+     *
+     *  ### Algorithm
+     *  The jerk-limited mode uses a discrete optimal-control approach: at each
+     *  step the planner computes the minimum velocity-change distance needed to
+     *  decelerate the current acceleration to zero, then decides whether to
+     *  accelerate, maintain, or decelerate to land exactly on the target without
+     *  overshoot -- equivalent to a time-optimal S-curve under jerk and
+     *  acceleration constraints.
+     *
+     *  ### Profiles
+     *  Motion limits are grouped into two MotionProfile objects inside Config:
+     *  - **driving_profile** -- used whenever the target is non-zero.
+     *  - **stopping_profile** -- used when the target is (0, 0). Setting jerk to 0
+     *    gives a trapezoidal stop; higher acceleration gives faster, firmer braking.
+     *
+     *  A MotionProfile selects its mode automatically:
+     *  - **Trapezoidal**: `max_linear_jerk == 0 && max_angular_jerk == 0`
+     *  - **S-curve**: either jerk field is non-zero
+     *
+     *  ### Timing
+     *  Two independent timers run internally:
+     *  - **planning timer** -- calls `update()` at `planning_period` (default 20 ms / 50 Hz).
+     *    Recommended range: 5-200 ms on microcontrollers.
+     *  - **callback task** -- fires `output_callback` on every `update()` that produces a
+     *    new output value (CV-notified by the planning timer); no separate period needed.
+     *
+     *  This class is thread-safe: set_target(), get_target(), output(), stop(),
+     *  and reset() may be called from different threads concurrently.
+     *
+     * \section trajectory_planner_ex0 Quick-Start: Full Public API
+     * \snippet trajectory_planner_example.cpp trajectory_planner quickstart
+     * \section trajectory_planner_ex1 S-Curve Driving / Trapezoidal Stop
+     * \snippet trajectory_planner_example.cpp trajectory_planner example
+     * \section trajectory_planner_ex2 High-Speed S-Curve with Centripetal Limiting
+     * \snippet trajectory_planner_example.cpp trajectory_planner jerk example
+     * \section trajectory_planner_ex3 Constraint Validation
+     * \snippet trajectory_planner_example.cpp trajectory_planner validation
+
+    """
+    class MotionCommand:
+        """*
+           * @brief Chassis motion command produced by the planner.
+
+        """
+        linear_velocity: float = 0.0                                               #*< Linear velocity reference (m/s).
+        angular_velocity: float = 0.0                                              #*< Angular velocity reference (rad/s).
+        def __init__(
+            self,
+            linear_velocity: float = 0.0,
+            angular_velocity: float = 0.0
+            ) -> None:
+            """Auto-generated default constructor with named params"""
+            pass
+
+
+    class MotionProfile:
+        """*
+           * @brief Acceleration and jerk limits for one phase of motion.
+           *
+           * Set max_linear_jerk / max_angular_jerk to 0 for a trapezoidal (ramp)
+           * profile, or to a positive value for an S-curve profile.
+           *
+           * @note Using a trapezoidal stopping profile (jerk = 0) is recommended to
+           *       avoid S-curve overshoot past zero when the planner decelerates from
+           *       a jerk-limited driving phase.
+
+        """
+        max_linear_acceleration: float = 0.0                                       #*< Linear acceleration limit (m/s^2).
+        max_angular_acceleration: float = 0.0                                      #*< Angular acceleration limit (rad/s^2).
+        max_linear_jerk: float = 0.0                                               #*< Linear jerk limit (m/s^3). 0 = trapezoidal.
+        max_angular_jerk: float = 0.0                                              #*< Angular jerk limit (rad/s^3). 0 = trapezoidal.
+        def __init__(
+            self,
+            max_linear_acceleration: float = 0.0,
+            max_angular_acceleration: float = 0.0,
+            max_linear_jerk: float = 0.0,
+            max_angular_jerk: float = 0.0
+            ) -> None:
+            """Auto-generated default constructor with named params"""
+            pass
+
+    class Config:
+        """*
+           * @brief Configuration for the TrajectoryPlanner.
+
+        """
+        max_linear_velocity: float = 1.0                                           #*< Maximum linear velocity magnitude (m/s).
+        max_angular_velocity: float = 3.14159                                      #*< Maximum angular velocity magnitude (rad/s).
+        driving_profile: TrajectoryPlanner.MotionProfile                           #*< Accel/jerk limits used when target != (0, 0).
+        stopping_profile: TrajectoryPlanner.MotionProfile                          #*< Accel/jerk limits used when target
+                                                 == (0, 0). Set jerk to 0 here for a clean trapezoidal stop
+                                                 with no overshoot. Higher acceleration than the
+                                                 driving profile gives faster, firmer braking.
+        enforce_motion_envelope: bool = False                                      #*< When True, enforces (v/vmax)^2+(w/wmax)^2<=1 on
+                                                           output to prevent infeasible combined commands.
+        max_centripetal_acceleration: float = 0.1                                  #*< Maximum centripetal acceleration |v*w| (m/s^2).
+                                                           0 disables the limit. Both v and w are scaled
+                                                           proportionally when the limit is exceeded.
+        output_callback: TrajectoryPlanner.output_callback_t = None                #/**< Optional callback invoked after each update()
+        with the latest MotionCommand output.
+        Leave as None to disable. */
+         --- Periodic task configuration ---
+        planning_period: std.chrono.duration[float] = std.chrono.milliseconds(20)  #*< Planner
+                                                             update rate (default 50 Hz). Recommended: 5-200
+                                                             ms on microcontrollers.
+        planning_task_config: Task.BaseConfig = Task.BaseConfig(
+                .name = "TP_planning",
+                .stack_size_bytes = 4096,
+                .priority = 0,
+                .core_id = -1)                                                     #*< Underlying task config for the timer.
+        callback_task_config: Task.BaseConfig = Task.BaseConfig(
+                .name = "TP_cb",
+                .stack_size_bytes = 8192,
+                .priority = 0,
+                .core_id = -1)                                                     #*< Underlying task config for the callback timer.
+        log_level: Logger.Verbosity = Logger.Verbosity.WARN                        #*< Logger verbosity.
+        def __init__(
+            self,
+            max_linear_velocity: float = 1.0,
+            max_angular_velocity: float = 3.14159,
+            driving_profile: TrajectoryPlanner.MotionProfile = TrajectoryPlanner.MotionProfile(),
+            stopping_profile: TrajectoryPlanner.MotionProfile = TrajectoryPlanner.MotionProfile(),
+            enforce_motion_envelope: bool = False,
+            max_centripetal_acceleration: float = 0.1,
+            output_callback: TrajectoryPlanner.output_callback_t = None,
+            planning_period: std.chrono.duration[float] = std.chrono.milliseconds(20),
+            planning_task_config: Task.BaseConfig = Task.BaseConfig(.name = "TP_planning",
+                    .stack_size_bytes = 4096,
+                    .priority = 0,
+                    .core_id = -1),
+            callback_task_config: Task.BaseConfig = Task.BaseConfig(.name = "TP_cb",
+                    .stack_size_bytes = 8192,
+                    .priority = 0,
+                    .core_id = -1),
+            log_level: Logger.Verbosity = Logger.Verbosity.WARN
+            ) -> None:
+            """Auto-generated default constructor with named params"""
+            pass
+
+
+
+    def set_config(
+        self,
+        config: TrajectoryPlanner.Config,
+        reset_state: bool = True
+        ) -> bool:
+        """*
+           * @brief Update the planner configuration.
+           * @param config New configuration parameters.
+           * @param reset_state If True (default), resets velocity/acceleration state to zero.
+           * @return True if the configuration was successfully applied.
+
+        """
+        pass
+
+    def get_config(self) -> TrajectoryPlanner.Config:
+        """*
+           * @brief Get the current configuration.
+           * @return Const reference to the active Config.
+
+        """
+        pass
+
+    def set_target(self, linear: float, angular: float) -> None:
+        """*
+           * @brief Set the desired chassis velocity target using normalized joystick inputs.
+           *
+           * Both inputs are in the range [-1, +1] and are scaled internally:
+           * @code
+           *   v_target  = linear  * max_linear_velocity
+           *   w_target  = angular * max_angular_velocity
+           * @endcode
+           * Values outside [-1, +1] are clamped before scaling.
+           *
+           * @param linear  Normalized linear velocity command  [-1, +1].
+           *                +1 = full forward, -1 = full reverse.
+           * @param angular Normalized angular velocity command [-1, +1].
+           *                +1 = full left turn, -1 = full right turn.
+
+        """
+        pass
+
+    def get_target(self) -> Tuple[float, float]:
+        """*
+           * @brief Get the current normalized velocity target.
+           * @note  If enforce_motion_envelope is enabled the stored target may differ
+           *        from the value passed to set_target() (it is projected onto the unit circle).
+           * @return Pair of {linear, angular} in [-1, +1].
+
+        """
+        pass
+
+    def output(self) -> TrajectoryPlanner.MotionCommand:
+        """*
+           * @brief Get the current smoothed motion command.
+           * @return MotionCommand containing the trajectory-limited (v_ref, w_ref).
+
+        """
+        pass
+
+    def stop(self) -> None:
+        """*
+           * @brief Command the planner to decelerate to a full stop.
+           *
+           * Equivalent to set_target(0, 0). The planner ramps down respecting all
+           * configured limits rather than cutting output immediately.
+
+        """
+        pass
+
+    def reset(self) -> None:
+        """*
+           * @brief Reset velocity, acceleration state, and target to zero immediately.
+           *
+           * The next call to output() will return (0, 0). Use after an emergency stop
+           * or before re-initialising with a new configuration.
+
+        """
+        pass
+
+    def is_running(self) -> bool:
+        """*
+           * @brief Check whether the periodic update task is currently running.
+           * @return True if the task is running.
+
+        """
+        pass
+
+    def __init__(self) -> None:
+        """Auto-generated default constructor"""
+        pass
+
+
+
+####################    </generated_from:trajectory_planner.hpp>    ####################
+
+
+####################    <generated_from:thread_pool.hpp>    ####################
+
+
+
+
+class ThreadPool:
+    """*
+     * @brief A thread pool that dispatches submitted jobs to a fixed set of worker threads.
+     *
+     * Workers are implemented as espp::Task instances. Jobs are queued and
+     * consumed in FIFO order. The queue can be optionally bounded; when full,
+     * new submissions are either rejected immediately or blocked until space
+     * becomes available, depending on the configuration.
+     *
+     * \section thread_pool_ex1 Lifecycle: start / stop / is_running / worker_count
+     * \snippet thread_pool_example.cpp lifecycle example
+     * \section thread_pool_ex2 Submit Jobs
+     * \snippet thread_pool_example.cpp submit example
+     * \section thread_pool_ex3 try_submit - Non-Blocking Rejection When Full
+     * \snippet thread_pool_example.cpp try_submit example
+     * \section thread_pool_ex4 Blocking Submit When Full
+     * \snippet thread_pool_example.cpp blocking submit example
+     * \section thread_pool_ex5 Submit Rejected After stop()
+     * \snippet thread_pool_example.cpp submit after stop example
+     * \section thread_pool_ex6 Concurrent start / stop
+     * \snippet thread_pool_example.cpp concurrent lifecycle example
+     * \section thread_pool_ex7 Concurrent submit and try_submit
+     * \snippet thread_pool_example.cpp concurrent submit example
+     * \section thread_pool_ex8 Chained Pools
+     * \snippet thread_pool_example.cpp chained pools example
+     * \section thread_pool_ex9 Self-Submit
+     * \snippet thread_pool_example.cpp self-submit example
+
+    """
+
+    class Stats:
+        """/ @brief Snapshot of pool activity counters."""
+        submitted: std.int = 0                               #/< Total jobs accepted into the queue.
+        executed: std.int = 0                                #/< Total jobs successfully executed.
+        rejected: std.int = 0                                #/< Total jobs rejected (invalid job, stopped/stopping, or queue
+        #/< full) or dropped (due to stop, the enqueued jobs were dropped).
+        def __init__(
+            self,
+            submitted: std.int = 0,
+            executed: std.int = 0,
+            rejected: std.int = 0
+            ) -> None:
+            """Auto-generated default constructor with named params"""
+            pass
+
+    class Config:
+        """/ @brief Configuration parameters for constructing a ThreadPool."""
+        worker_count: std.int = 1                            #/< Number of worker threads to spawn.
+        max_queue_size: std.int = 0                          #/< Maximum pending jobs (0 = unbounded).
+        auto_start: bool = True                              #/< Start workers immediately on construction.
+        block_on_submit_when_full: bool = False              #/< If True, submit() blocks when the queue is full instead of rejecting.
+        worker_task_config: Task.BaseConfig = Task.BaseConfig(
+                ///< Base configuration applied to every worker task.
+                .name = "thread_pool_worker",
+                .stack_size_bytes = 4096,
+                .priority = 5,
+                .core_id = -1,
+            )
+        log_level: Logger.Verbosity = Logger.Verbosity.WARN  #/< Logger verbosity level.
+        def __init__(
+            self,
+            worker_count: std.int = 1,
+            max_queue_size: std.int = 0,
+            auto_start: bool = True,
+            block_on_submit_when_full: bool = False,
+            worker_task_config: Task.BaseConfig = Task.BaseConfig(///< Base configuration applied to every worker task.
+                    .name = "thread_pool_worker",
+                    .stack_size_bytes = 4096,
+                    .priority = 5,
+                    .core_id = -1,
+                ),
+            log_level: Logger.Verbosity = Logger.Verbosity.WARN
+            ) -> None:
+            """Auto-generated default constructor with named params"""
+            pass
+
+
+
+    def start(self) -> bool:
+        """/ @brief Start all worker threads.
+        / @return True if all workers were successfully started, False otherwise.
+        / @note No-op if the pool is already running and return True immediately.
+        / @note If any workers could not be started, the pool will roll back to the stopped state.
+        """
+        pass
+
+    def stop(self) -> None:
+        """/ @brief Stop all worker threads and reject further submissions.
+        / @note Blocks until every worker has exited; queued jobs may not be executed.
+        """
+        pass
+
+    def is_running(self) -> bool:
+        """/ @brief Query whether the pool is currently running.
+        / @return True if workers are active, False otherwise.
+        """
+        pass
+
+    def submit(self, job: Job) -> bool:
+        """/ @brief Submit a job, optionally blocking when the queue is full.
+        /
+        / Blocks if Config::block_on_submit_when_full is True and the queue has
+        / reached its capacity limit. Otherwise behaves identically to try_submit().
+        / @param job Callable to enqueue; moved into the queue on acceptance.
+        / @return True if the job was accepted, False if it was rejected.
+        """
+        pass
+
+    def try_submit(self, job: Job) -> bool:
+        """/ @brief Attempt to submit a job without blocking.
+        /
+        / Returns immediately with False when the queue is full.
+        / @param job Callable to enqueue; moved into the queue on acceptance.
+        / @return True if the job was accepted, False if it was rejected.
+        """
+        pass
+
+    def queue_size(self) -> std.int:
+        """/ @brief Return the number of jobs currently waiting in the queue.
+        / @return Pending job count.
+        """
+        pass
+
+    def worker_count(self) -> std.int:
+        """/ @brief Return the number of worker threads in the pool.
+        / @return Worker thread count.
+        """
+        pass
+
+    def stats(self) -> ThreadPool.Stats:
+        """/ @brief Return a snapshot of the pool's activity counters.
+        / @return Stats struct with submitted, executed, and rejected counts.
+        """
+        pass
+
+    def __init__(self) -> None:
+        """Auto-generated default constructor"""
+        pass
+
+
+
+####################    </generated_from:thread_pool.hpp>    ####################
 
 
 ####################    <generated_from:joystick.hpp>    ####################
@@ -3845,16 +4260,16 @@ class Joystick:
                                                   you want to use update(), unused if
                                                   you call update(float raw_x, float
                                                   raw_y).
-        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #*< Verbosity for the Joystick logger_.
+        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)  #*< Verbosity for the Joystick logger_.
         def __init__(
             self,
             x_calibration: FloatRangeMapper.Config = FloatRangeMapper.Config(),
             y_calibration: FloatRangeMapper.Config = FloatRangeMapper.Config(),
-            type: Joystick.Type = Joystick.Type(Joystick.Type.rectangular),
+            type: Joystick.Type = Joystick.Type(Joystick.Type.RECTANGULAR),
             center_deadzone_radius: float = float(0),
             range_deadzone: float = float(0),
             get_values: Joystick.get_values_fn = Joystick.get_values_fn(None),
-            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
+            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)
             ) -> None:
             """Auto-generated default constructor with named params"""
             pass
@@ -3985,7 +4400,6 @@ class Joystick:
 
         """
         pass
-
     @overload
     def update(self, raw_x: float, raw_y: float) -> None:
         """*
@@ -3998,6 +4412,7 @@ class Joystick:
 
         """
         pass
+
 
     def x(self) -> float:
         """*
@@ -4085,10 +4500,10 @@ class RtpDepacketizer:
 
     class Config:
         """/ Configuration for RtpDepacketizer."""
-        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #/< Log verbosity level
+        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)  #/< Log verbosity level
         def __init__(
             self,
-            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
+            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)
             ) -> None:
             """Auto-generated default constructor with named params"""
             pass
@@ -4130,11 +4545,11 @@ class RtpPacketizer:
     class Config:
         """/ Configuration for RtpPacketizer."""
         max_payload_size: int = int(1400)                                      #/< Maximum payload bytes per RTP packet
-        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #/< Log verbosity level
+        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)  #/< Log verbosity level
         def __init__(
             self,
             max_payload_size: int = int(1400),
-            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
+            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)
             ) -> None:
             """Auto-generated default constructor with named params"""
             pass
@@ -4200,10 +4615,10 @@ class GenericDepacketizer:
     """
     class Config:
         """/ Configuration for GenericDepacketizer."""
-        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #/< Log verbosity level
+        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)  #/< Log verbosity level
         def __init__(
             self,
-            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
+            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)
             ) -> None:
             """Auto-generated default constructor with named params"""
             pass
@@ -4250,7 +4665,7 @@ class GenericPacketizer:
         channels: int = int(1)                                                 #/< Number of audio channels
         fmtp: str                                                              #/< Optional format parameters for SDP fmtp line
         media_type: MediaType = MediaType(MediaType.audio)                     #/< Media type for the SDP m= line
-        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #/< Log verbosity level
+        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)  #/< Log verbosity level
         def __init__(
             self,
             max_payload_size: int = int(1400),
@@ -4259,8 +4674,8 @@ class GenericPacketizer:
             encoding_name: str = str("L16"),
             channels: int = int(1),
             fmtp: str = "",
-            media_type: MediaType = MediaType(MediaType.audio),
-            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
+            media_type: MediaType = MediaType(MediaType.AUDIO),
+            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)
             ) -> None:
             """Auto-generated default constructor with named params"""
             pass
@@ -4317,9 +4732,9 @@ class H264Depacketizer:
     """/ @brief RTP depacketizer for H.264 video per RFC 6184.
     /
     / Reassembles H.264 access units from incoming RTP packets. Supports:
-    /   - **Single NAL unit** packets (NAL type 1–23)
-    /   - **STAP-A** aggregation packets (NAL type 24)
-    /   - **FU-A** fragmentation packets (NAL type 28)
+    /   - <b>Single NAL unit</b> packets (NAL type 1-23)
+    /   - <b>STAP-A</b> aggregation packets (NAL type 24)
+    /   - <b>FU-A</b> fragmentation packets (NAL type 28)
     /
     / When the RTP marker bit is set, the accumulated NAL units are delivered
     / as one Annex B byte-stream (each NAL prefixed with 0x00 0x00 0x00 0x01)
@@ -4330,10 +4745,10 @@ class H264Depacketizer:
     """
     class Config:
         """/ Configuration for the H264Depacketizer."""
-        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #/< Log verbosity level
+        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)  #/< Log verbosity level
         def __init__(
             self,
-            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
+            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)
             ) -> None:
             """Auto-generated default constructor with named params"""
             pass
@@ -4372,8 +4787,8 @@ class H264Packetizer:
     / of RTP payload chunks suitable for transmission.
     /
     / Supports two NAL-unit packetization strategies:
-    /   - **Single NAL unit mode** — NAL fits within max_payload_size.
-    /   - **FU-A fragmentation** — NAL exceeds max_payload_size (packetization_mode >= 1).
+    /   - <b>Single NAL unit mode</b> - NAL fits within max_payload_size.
+    /   - <b>FU-A fragmentation</b> - NAL exceeds max_payload_size (packetization_mode >= 1).
     /
     / @note This class does not manage RTP headers (sequence numbers, timestamps,
     /       SSRC). The caller wraps each returned chunk into an RtpPacket.
@@ -4384,12 +4799,12 @@ class H264Packetizer:
     class Config:
         """/ Configuration for the H264Packetizer."""
         max_payload_size: int = int(1400)                                      #/< Maximum payload bytes per RTP packet
-        payload_type: int = int(96)                                            #/< Dynamic RTP payload type (typically 96–127).
+        payload_type: int = int(96)                                            #/< Dynamic RTP payload type (typically 96-127).
         profile_level_id: str                                                  #/< H.264 profile-level-id hex string, e.g. "42C01E".
         packetization_mode: int = int(1)                                       #/< 0 = single NAL only, 1 = non-interleaved (FU-A allowed).
         sps: List[int]                                                         #/< Sequence Parameter Set raw bytes (without start code).
         pps: List[int]                                                         #/< Picture Parameter Set raw bytes (without start code).
-        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #/< Log verbosity level
+        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)  #/< Log verbosity level
         def __init__(
             self,
             max_payload_size: int = int(1400),
@@ -4398,7 +4813,7 @@ class H264Packetizer:
             packetization_mode: int = int(1),
             sps: List[int] = List[int](),
             pps: List[int] = List[int](),
-            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
+            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)
             ) -> None:
             """Auto-generated default constructor with named params"""
             pass
@@ -4486,10 +4901,10 @@ class MjpegDepacketizer:
 
     class Config:
         """/ Configuration for the MJPEG depacketizer."""
-        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #/< Log verbosity level
+        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)  #/< Log verbosity level
         def __init__(
             self,
-            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
+            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)
             ) -> None:
             """Auto-generated default constructor with named params"""
             pass
@@ -4523,11 +4938,11 @@ class MjpegPacketizer:
     class Config:
         """/ Configuration for the MJPEG packetizer."""
         max_payload_size: int = int(1400)                                      #/< Maximum payload bytes per RTP packet
-        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #/< Log verbosity level
+        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)  #/< Log verbosity level
         def __init__(
             self,
             max_payload_size: int = int(1400),
-            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
+            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)
             ) -> None:
             """Auto-generated default constructor with named params"""
             pass
@@ -4579,7 +4994,6 @@ class RtpJpegPacket:
         / @param data The buffer containing the RTP packet.
         """
         pass
-
     @overload
     def __init__(
         self,
@@ -4605,7 +5019,6 @@ class RtpJpegPacket:
         / @param scan_data The scan data.
         """
         pass
-
     @overload
     def __init__(
         self,
@@ -4629,6 +5042,8 @@ class RtpJpegPacket:
         / @param scan_data The scan data.
         """
         pass
+
+
 
 
     def get_type_specific(self) -> int:
@@ -4734,7 +5149,6 @@ class JpegFrame:
         / @param packet The packet to parse.
         """
         pass
-
     @overload
     def __init__(self, data: List[int]) -> None:
         """/ Construct a JpegFrame from a vector of jpeg data.
@@ -4743,7 +5157,6 @@ class JpegFrame:
         /       header and EOI marker.
         """
         pass
-
     @overload
     def __init__(self, data: std.span[ int]) -> None:
         """/ Construct a JpegFrame from a span of jpeg data.
@@ -4752,7 +5165,6 @@ class JpegFrame:
         /       header and EOI marker.
         """
         pass
-
     @overload
     def __init__(self, data: int, size: int) -> None:
         """/ Construct a JpegFrame from buffer of jpeg data
@@ -4760,6 +5172,9 @@ class JpegFrame:
         / @param size The size of the buffer.
         """
         pass
+
+
+
 
     def get_header(self) -> JpegHeader:
         """/ Get a reference to the header.
@@ -4792,7 +5207,6 @@ class JpegFrame:
         """
         pass
 
-    @overload
     def add_scan(self, packet: RtpJpegPacket) -> None:
         """/ Append a JPEG scan to the frame.
         / This will add the JPEG data to the frame.
@@ -4845,11 +5259,11 @@ class JpegHeader:
         / @param q1_table The quantization table for the Cb and Cr channels.
         """
         pass
-
     @overload
     def __init__(self, data: std.span[ int]) -> None:
         """/ Create a JPEG header from a given JPEG header data."""
         pass
+
 
 
     def get_width(self) -> int:
@@ -4906,7 +5320,7 @@ class RtcpPacket:
         pass
 
 
-    def get_data(self) -> std.string_view:
+    def get_data(self) -> str:
         """/ @brief Get the buffer of the packet
         / @return The buffer of the packet
         """
@@ -4931,14 +5345,12 @@ class RtpPacket:
         / The packet_ vector is empty and the header fields are set to 0.
         """
         pass
-
     @overload
     def __init__(self, payload_size: int) -> None:
         """/ Construct an RtpPacket with a payload of size payload_size.
         / The packet_ vector is resized to RTP_HEADER_SIZE + payload_size.
         """
         pass
-
     @overload
     def __init__(self, data: std.span[ int]) -> None:
         """/ Construct an RtpPacket from a span of bytes.
@@ -4946,6 +5358,8 @@ class RtpPacket:
         / @param data The span of bytes to parse.
         """
         pass
+
+
 
 
     # -----------------------------------------------------------------
@@ -5186,7 +5600,7 @@ class RtspClient:
         #/ and re-enter service discovery or reconnect logic automatically.
         on_connection_lost: disconnect_callback_t = disconnect_callback_t(None)
 
-        log_level: Logger.Verbosity = Logger.Verbosity.info  #/< The verbosity of the logger
+        log_level: Logger.Verbosity = Logger.Verbosity.INFO  #/< The verbosity of the logger
         def __init__(
             self,
             server_address: str = "",
@@ -5195,7 +5609,7 @@ class RtspClient:
             on_frame: frame_callback_t = frame_callback_t(None),
             on_jpeg_frame: jpeg_frame_callback_t = jpeg_frame_callback_t(None),
             on_connection_lost: disconnect_callback_t = disconnect_callback_t(None),
-            log_level: Logger.Verbosity = Logger.Verbosity.info
+            log_level: Logger.Verbosity = Logger.Verbosity.INFO
             ) -> None:
             """Auto-generated default constructor with named params"""
             pass
@@ -5264,7 +5678,6 @@ class RtspClient:
         / \param ec The error code to set if an error occurs
         """
         pass
-
     @overload
     def setup(
         self,
@@ -5282,6 +5695,7 @@ class RtspClient:
         / \param ec The error code to set if an error occurs
         """
         pass
+
 
     def add_depacketizer(self, payload_type: int, depacketizer: RtpDepacketizer) -> None:
         """/ Register a depacketizer for a specific RTP payload type.
@@ -5355,7 +5769,7 @@ class RtspServer:
         #/< up into multiple packets if they are larger than this. It seems that 1500 works
         #/< well for sending, but is too large for the esp32 (camera-display) to receive
         #/< properly.
-        log_level: Logger.Verbosity = Logger.Verbosity.warn                                            #/< The log level for the RTSP server
+        log_level: Logger.Verbosity = Logger.Verbosity.WARN                                            #/< The log level for the RTSP server
         accept_task_stack_size_bytes: int = default_accept_task_stack_size_bytes                       #/< RTSP accept-task stack size, in bytes
         session_task_stack_size_bytes: int = default_session_task_stack_size_bytes                     #/< RTSP session-dispatch task stack size, in bytes
         control_task_stack_size_bytes: int = RtspSession.Config.default_control_task_stack_size_bytes  #/< Per-session RTSP
@@ -5367,7 +5781,7 @@ class RtspServer:
             port: int = int(),
             path: str = "",
             max_data_size: int = 1000,
-            log_level: Logger.Verbosity = Logger.Verbosity.warn,
+            log_level: Logger.Verbosity = Logger.Verbosity.WARN,
             accept_task_stack_size_bytes: int = default_accept_task_stack_size_bytes,
             session_task_stack_size_bytes: int = default_session_task_stack_size_bytes,
             control_task_stack_size_bytes: int = RtspSession.Config.default_control_task_stack_size_bytes
@@ -5450,7 +5864,6 @@ class RtspServer:
         / @param frame_data Raw encoded frame data.
         """
         pass
-
     @overload
     def send_frame(self, frame: JpegFrame) -> None:
         """/ @brief Send a JPEG frame over the RTSP connection (backward compatible).
@@ -5461,7 +5874,6 @@ class RtspServer:
         / @param frame The frame to send.
         """
         pass
-
     @overload
     def send_frame(self, frame_data: std.span[ int]) -> None:
         """/ @brief Send raw JPEG bytes over the default MJPEG track.
@@ -5471,6 +5883,8 @@ class RtspServer:
         / @param frame_data Complete JPEG bytes, including header and EOI marker.
         """
         pass
+
+
 
     def __init__(self) -> None:
         """Auto-generated default constructor"""
@@ -5516,14 +5930,14 @@ class RtspSession:
         #/ @param session_id The session ID
         #/ @param server_address The server address with port
         sdp_generator: std.function[str( str session_path, int session_id, str server_address)]
-        log_level: Logger.Verbosity = Logger.Verbosity.warn                         #/< The log level of the session
+        log_level: Logger.Verbosity = Logger.Verbosity.WARN                         #/< The log level of the session
         def __init__(
             self,
             server_address: str = "",
             rtsp_path: str = "",
             receive_timeout: std.chrono.duration[float] = std.chrono.seconds(5),
             control_task_stack_size_bytes: int = default_control_task_stack_size_bytes,
-            log_level: Logger.Verbosity = Logger.Verbosity.warn
+            log_level: Logger.Verbosity = Logger.Verbosity.WARN
             ) -> None:
             """Auto-generated default constructor with named params"""
             pass
@@ -5583,7 +5997,6 @@ class RtspSession:
         / @return True if the packet was sent successfully, False otherwise
         """
         pass
-
     @overload
     def send_rtp_packet(self, track_id: int, packet_data: std.span[ int]) -> bool:
         """/ Send a serialized RTP packet on a specific track.
@@ -5592,15 +6005,13 @@ class RtspSession:
         / @return True if the packet was sent successfully, False otherwise
         """
         pass
-
     @overload
     def send_rtp_packet(self, packet: RtpPacket) -> bool:
-        """/ Send an RTP packet to the client (backward compat — sends on default track 0)
+        """/ Send an RTP packet to the client (backward compat - sends on default track 0)
         / @param packet The RTP packet to send
         / @return True if the packet was sent successfully, False otherwise
         """
         pass
-
     @overload
     def send_rtp_packet(self, packet_data: std.span[ int]) -> bool:
         """/ Send a serialized RTP packet to the client (default track 0).
@@ -5608,6 +6019,9 @@ class RtspSession:
         / @return True if the packet was sent successfully, False otherwise
         """
         pass
+
+
+
 
     @overload
     def send_rtcp_packet(self, track_id: int, packet: RtcpPacket) -> bool:
@@ -5617,14 +6031,14 @@ class RtspSession:
         / @return True if the packet was sent successfully, False otherwise
         """
         pass
-
     @overload
     def send_rtcp_packet(self, packet: RtcpPacket) -> bool:
-        """/ Send an RTCP packet to the client (backward compat — sends on default track 0)
+        """/ Send an RTCP packet to the client (backward compat - sends on default track 0)
         / @param packet The RTCP packet to send
         / @return True if the packet was sent successfully, False otherwise
         """
         pass
+
 
     def __init__(self) -> None:
         """Auto-generated default constructor"""
@@ -5686,7 +6100,6 @@ class LowpassFilter:
 
         """
         pass
-
     @overload
     def update(self, input: float) -> float:
         """*
@@ -5697,6 +6110,7 @@ class LowpassFilter:
 
         """
         pass
+
 
     def __call__(self, input: float) -> float:
         """*

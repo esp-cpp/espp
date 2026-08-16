@@ -20,7 +20,7 @@
  *
  * In practice, the observer lumps together plant uncertainty, friction, load
  * torque changes, unmodeled dynamics, and external disturbances into an extra
- * state (`z2` or `z3`). The controller then subtracts that estimate from the
+ * state (<tt>z2</tt> or <tt>z3</tt>). The controller then subtracts that estimate from the
  * commanded control effort.
  *
  * Typical robotics usage:
@@ -31,9 +31,9 @@
  * - use the Han nonlinear variants when you want gentler small-signal behavior
  *   and stronger response on large errors than the linear forms provide.
  *
- * @note `dt` is expressed in seconds and should be reasonably consistent from
+ * @note <tt>dt</tt> is expressed in seconds and should be reasonably consistent from
  * update to update.
- * @note `b0` is the estimated plant input gain. Its sign should be correct and
+ * @note <tt>b0</tt> is the estimated plant input gain. Its sign should be correct and
  * its magnitude should be in the right ballpark, but ADRC does not require a
  * perfect plant model.
  */
@@ -93,9 +93,9 @@ inline float fst(float x1, float x2, float r, float h) {
  * smoother position and velocity command pair.
  *
  * @par Tuning
- * `tracking_bandwidth` controls how aggressively the TD chases the target.
+ * <tt>tracking_bandwidth</tt> controls how aggressively the TD chases the target.
  * Larger values follow the reference more tightly but can reintroduce abrupt
- * motion. `filter_factor` scales the internal `h0` term and can be increased to
+ * motion. <tt>filter_factor</tt> scales the internal <tt>h0</tt> term and can be increased to
  * further soften the commanded trajectory.
  *
  */
@@ -103,8 +103,8 @@ class HanTrackingDifferentiator : public BaseComponent {
 public:
   /// Configuration for the Han tracking differentiator.
   struct Config {
-    float tracking_bandwidth;  ///< Tracking aggressiveness parameter, commonly noted `r`.
-    float filter_factor{5.0f}; ///< Multiplier applied to `dt` for the Han `h0` term.
+    float tracking_bandwidth;  ///< Tracking aggressiveness parameter, commonly noted <tt>r</tt>.
+    float filter_factor{5.0f}; ///< Multiplier applied to <tt>dt</tt> for the Han <tt>h0</tt> term.
     espp::Logger::Verbosity log_level{
         espp::Logger::Verbosity::WARN}; ///< Verbosity for the internal logger.
   };
@@ -190,8 +190,8 @@ protected:
  * roughly like torque or acceleration after inner current regulation.
  *
  * The linear ESO estimates:
- * - `z1`: the controlled output, and
- * - `z2`: the lumped disturbance and modeling error.
+ * - <tt>z1</tt>: the controlled output, and
+ * - <tt>z2</tt>: the lumped disturbance and modeling error.
  *
  * The resulting control law is simple to tune with bandwidth parameters and is
  * often a good first ADRC choice when migrating from PI or PID speed control.
@@ -203,11 +203,11 @@ protected:
  * controller.
  *
  * @par Tuning
- * Start with a conservative `controller_bandwidth`, then choose
- * `observer_bandwidth` several times higher so the ESO settles faster than the
- * controller. `b0` should match the sign of the actuator path and roughly scale
+ * Start with a conservative <tt>controller_bandwidth</tt>, then choose
+ * <tt>observer_bandwidth</tt> several times higher so the ESO settles faster than the
+ * controller. <tt>b0</tt> should match the sign of the actuator path and roughly scale
  * command to output-rate change. If the controller saturates immediately,
- * reduce the bandwidth or improve the `b0` estimate before increasing gains.
+ * reduce the bandwidth or improve the <tt>b0</tt> estimate before increasing gains.
  *
  * \section adrc_ex1 Linear First-Order ADRC Example
  * \snippet adrc_example.cpp adrc linear first order example
@@ -328,9 +328,9 @@ protected:
  * like torque or angular acceleration.
  *
  * The linear ESO estimates:
- * - `z1`: position,
- * - `z2`: rate, and
- * - `z3`: the lumped disturbance and unmodeled dynamics.
+ * - <tt>z1</tt>: position,
+ * - <tt>z2</tt>: rate, and
+ * - <tt>z3</tt>: the lumped disturbance and unmodeled dynamics.
  *
  * @par Typical robotics use
  * Use this class when your feedback variable is position but your actuator
@@ -339,11 +339,11 @@ protected:
  * loop.
  *
  * @par Tuning
- * `controller_bandwidth` shapes the closed-loop stiffness and damping. The
- * observer is usually tuned faster than the controller so `z3` converges before
+ * <tt>controller_bandwidth</tt> shapes the closed-loop stiffness and damping. The
+ * observer is usually tuned faster than the controller so <tt>z3</tt> converges before
  * it dominates the motion. If a trajectory generator already provides a
- * velocity feedforward term, pass it through the four-argument `update()`
- * overload as `reference_rate`.
+ * velocity feedforward term, pass it through the four-argument <tt>update()</tt>
+ * overload as <tt>reference_rate</tt>.
  *
  * \section adrc_ex2 Linear Second-Order ADRC Example
  * \snippet adrc_example.cpp adrc linear second order example
@@ -479,7 +479,7 @@ protected:
  * @brief Han-style nonlinear first-order active disturbance rejection
  *        controller.
  *
- * This variant replaces the linear error terms with Han's nonlinear `fal()`
+ * This variant replaces the linear error terms with Han's nonlinear <tt>fal()</tt>
  * functions and can optionally prefilter the reference with a tracking
  * differentiator. The nonlinear feedback is often attractive when you want high
  * authority on large errors without making the loop excessively sharp around
@@ -491,11 +491,11 @@ protected:
  * control with friction, stiction, or battery-voltage variation.
  *
  * @par Tuning
- * `controller_gain` is the main feedback gain. `observer_bandwidth` sets the
- * speed of the nonlinear ESO. `controller_alpha`, `observer_alpha`, and
- * `fal_delta` determine how strongly the loop transitions between linear
+ * <tt>controller_gain</tt> is the main feedback gain. <tt>observer_bandwidth</tt> sets the
+ * speed of the nonlinear ESO. <tt>controller_alpha</tt>, <tt>observer_alpha</tt>, and
+ * <tt>fal_delta</tt> determine how strongly the loop transitions between linear
  * small-error behavior and nonlinear large-error behavior. Increase
- * `fal_delta` if the loop is too twitchy around the setpoint, especially with
+ * <tt>fal_delta</tt> if the loop is too twitchy around the setpoint, especially with
  * noisy sensors.
  *
  * \section adrc_ex3 Han First-Order ADRC Example
@@ -505,12 +505,12 @@ class HanAdrcFirstOrder : public BaseComponent {
 public:
   /// Configuration for the first-order nonlinear ADRC controller.
   struct Config {
-    float b0;                     ///< Estimated control gain of the plant.
-    float controller_gain;        ///< Nonlinear state error feedback gain.
-    float observer_bandwidth;     ///< Observer bandwidth used to derive nonlinear ESO gains.
-    float observer_alpha{0.5f};   ///< `fal()` exponent used by the observer disturbance state.
-    float controller_alpha{0.8f}; ///< `fal()` exponent used by the nonlinear feedback term.
-    float fal_delta{0.01f};       ///< Small-signal linear region width used by `fal()`.
+    float b0;                   ///< Estimated control gain of the plant.
+    float controller_gain;      ///< Nonlinear state error feedback gain.
+    float observer_bandwidth;   ///< Observer bandwidth used to derive nonlinear ESO gains.
+    float observer_alpha{0.5f}; ///< <tt>fal()</tt> exponent used by the observer disturbance state.
+    float controller_alpha{0.8f}; ///< <tt>fal()</tt> exponent used by the nonlinear feedback term.
+    float fal_delta{0.01f};       ///< Small-signal linear region width used by <tt>fal()</tt>.
     bool use_tracking_differentiator{true}; ///< Enable reference smoothing through the Han TD.
     HanTrackingDifferentiator::Config tracking_config{
         .tracking_bandwidth = 40.0f,
@@ -649,16 +649,16 @@ protected:
  * unmodeled friction are too large for simple PD or PID tuning to stay robust.
  *
  * @par Tuning
- * `position_gain` and `rate_gain` play roles similar to proportional and
- * derivative action in the nonlinear feedback law. `observer_bandwidth` should
+ * <tt>position_gain</tt> and <tt>rate_gain</tt> play roles similar to proportional and
+ * derivative action in the nonlinear feedback law. <tt>observer_bandwidth</tt> should
  * usually be faster than the desired closed-loop motion, but if encoder noise
  * is significant you may need to back it off and rely more on the tracking
- * differentiator to keep the reference smooth. `controller_alpha1` and
- * `controller_alpha2` change how strongly large position and rate errors are
+ * differentiator to keep the reference smooth. <tt>controller_alpha1</tt> and
+ * <tt>controller_alpha2</tt> change how strongly large position and rate errors are
  * amplified relative to small errors.
  *
- * @note When `use_tracking_differentiator` is true, the explicit
- * `reference_rate` argument passed to the four-argument `update()` overload is
+ * @note When <tt>use_tracking_differentiator</tt> is true, the explicit
+ * <tt>reference_rate</tt> argument passed to the four-argument <tt>update()</tt> overload is
  * ignored. In that mode the controller uses the tracking differentiator's
  * internally generated rate estimate instead.
  *
@@ -673,11 +673,11 @@ public:
     float position_gain;           ///< Nonlinear feedback gain for position error.
     float rate_gain;               ///< Nonlinear feedback gain for rate error.
     float observer_bandwidth;      ///< Observer bandwidth used to derive nonlinear ESO gains.
-    float observer_alpha1{0.5f};   ///< `fal()` exponent used for the ESO middle state.
-    float observer_alpha2{0.25f};  ///< `fal()` exponent used for the ESO disturbance state.
-    float controller_alpha1{0.8f}; ///< `fal()` exponent used for the position error.
-    float controller_alpha2{1.5f}; ///< `fal()` exponent used for the rate error.
-    float fal_delta{0.01f};        ///< Small-signal linear region width used by `fal()`.
+    float observer_alpha1{0.5f};   ///< <tt>fal()</tt> exponent used for the ESO middle state.
+    float observer_alpha2{0.25f};  ///< <tt>fal()</tt> exponent used for the ESO disturbance state.
+    float controller_alpha1{0.8f}; ///< <tt>fal()</tt> exponent used for the position error.
+    float controller_alpha2{1.5f}; ///< <tt>fal()</tt> exponent used for the rate error.
+    float fal_delta{0.01f};        ///< Small-signal linear region width used by <tt>fal()</tt>.
     bool use_tracking_differentiator{true}; ///< Enable reference smoothing through the Han TD.
     HanTrackingDifferentiator::Config tracking_config{
         .tracking_bandwidth = 60.0f,
@@ -737,7 +737,7 @@ public:
 
   /// Update the controller using an externally supplied reference rate when the
   /// tracking differentiator is disabled.
-  /// @note If `use_tracking_differentiator` is true, `reference_rate` is
+  /// @note If <tt>use_tracking_differentiator</tt> is true, <tt>reference_rate</tt> is
   /// ignored and the tracking differentiator's internally estimated rate is
   /// used instead.
   /// @param reference Desired position reference.

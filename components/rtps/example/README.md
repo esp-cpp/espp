@@ -1,77 +1,67 @@
 # RTPS Example
 
-This example now acts as a two-node RTPS smoke test for ESP targets on the same
-Wi-Fi network.
+This example brings up an `espp::RtpsParticipant` on an **ESP32-Ethernet-Kit** and
+demonstrates every typed API the `rtps` component offers, interoperable
+with FastDDS / ROS 2 over the standard RTPS wire protocol.
 
 It demonstrates:
 
-* Wi-Fi STA setup for host-network RTPS traffic
-* standard RTPS UDP port calculation for each participant
-* SPDP participant discovery between two boards
-* SEDP endpoint discovery for request/response topics
-* CDR little-endian serialization for `std_msgs/msg/UInt32`-style payloads
-* best-effort inter-node request/response sample exchange
+- Ethernet bring-up (DHCP **server** on `192.168.4.1/24`, so a directly-attached
+  PC gets an address) and starting a participant on the interface's IPv4 address
+- a typed `Publisher<StringMsg>` / `Subscriber<StringMsg>` pair (reliable pub/sub)
+  that pairs with the FastDDS host peer in [`pc/host_pubsub.cpp`](pc/host_pubsub.cpp)
+- a typed **service server** (`/add_two_ints`) and **action server**
+  (`/fibonacci`) the device hosts — a ROS 2 client can drive them directly with
+  `ros2 service call` / `ros2 action send_goal` (no manual CDR; reflectable
+  `AddReq`/`AddResp`, `FibGoal`/`FibSeq` structs)
+- a typed **service client** + **action client** that call a peer's
+  `/peer_add_two_ints` / `/peer_fib` (run a ROS 2 / rclpy server for those names
+  to see a full round-trip; otherwise the calls simply time out, still exercising
+  the client API)
 
-The component's long-term goal is ROS 2 interoperability over DDS/RTPS. This
-example focuses on proving cross-board discovery and user-data delivery using
-the current scaffold.
+All of the RMI/AMI code is compiled out when `RTPS_ENABLE_RPC` is disabled.
 
 ## How to use example
 
-### Configure two boards
+### Configure
 
-Build one board as the **initiator** and the other as the **responder**.
+```bash
+idf.py menuconfig
+```
 
-For both boards:
+Under **RTPS Example Configuration**:
 
-1. Set the same `RTPS domain ID`, `Topic prefix`, `WiFi SSID`, and `WiFi password`.
-2. Give each board a unique `RTPS participant ID`.
-3. Give each board a distinct `Participant node name` or keep the role-specific defaults.
-4. If you want to exercise multicast user data, enable `Use best-effort user-data multicast`
-   on both boards and keep the same request/response multicast groups on each node.
+| Option | Description |
+|---|---|
+| `RTPS_EXAMPLE_ANNOUNCE_PERIOD_MS` | Period of the outgoing publisher (default 1500 ms). |
+| `RTPS_EXAMPLE_SECOND_PARTICIPANT` | Additively bring up a second, self-testing participant that calls the device's own `/add_two_ints` + `/fibonacci` for a full on-device round-trip (default off; roughly doubles the RTPS engine RAM). |
 
-Fresh example configurations now default to:
-
-* initiator: participant ID `1`, node name `espp_rtps_initiator`
-* responder: participant ID `2`, node name `espp_rtps_responder`
-
-If you are reusing an older build directory or `sdkconfig`, rerun `idf.py menuconfig`
-or delete the stale generated config so the old shared defaults (`participant ID = 1`,
-`node name = espp_rtps_node`) do not persist on both boards.
-
-For one board only:
-
-1. Select `RTPS Example Configuration -> Example Role -> Initiator`
-
-For the other board:
-
-1. Select `RTPS Example Configuration -> Example Role -> Responder`
+Under **RTPS** you can also toggle the limits profile, dynamic
+storage, DATA_FRAG fragmentation, and the RPC (services + actions) layer.
 
 ### Build and Flash
 
-Build the project and flash it to the board, then run monitor tool to view
-serial output:
-
-```sh
+```bash
 idf.py -p PORT flash monitor
 ```
 
-(Replace PORT with the name of the serial port to use.)
+Replace `PORT` with the serial port. Connect the board's Ethernet port to a PC
+(or a switch) so the participant has a network.
 
-## Example Output
+### Talk to it
 
-The initiator waits until it discovers the responder's endpoints, then publishes
-incrementing values on `<topic-prefix>/request`. The responder logs each
-received request and echoes the same value back on `<topic-prefix>/response`.
+- **Pub/sub host peer** (FastDDS): build and run [`pc/host_pubsub.cpp`](pc/)
+  against the board's topics.
+- **ROS 2**: with `example_interfaces` installed and on the same network/domain:
+  ```bash
+  ros2 service call /add_two_ints example_interfaces/srv/AddTwoInts "{a: 7, b: 35}"
+  ros2 action send_goal -f /fibonacci example_interfaces/action/Fibonacci "{order: 5}"
+  ```
 
-Expected signs of success:
+## Expected Output
 
-* both boards report Wi-Fi connection and their local IP address
-* both boards log RTPS participant and endpoint discovery
-* the initiator logs `Published request N` followed by `Received response N`
-* the responder logs `Received request N, sending response`
-
-When multicast user data is enabled, discovery still uses the normal RTPS
-metatraffic sockets, but request samples are published to the configured request
-multicast group and response samples are published to the configured response
-multicast group. Each node only joins the group for the topic it subscribes to.
+The monitor logs Ethernet link-up + the assigned IP, then `tx`/`rx` lines for the
+publisher/subscriber and `service '/add_two_ints' + action '/fibonacci' ready`.
+Each ROS 2 call logs the handled request/goal (e.g. `service add_two_ints: 7 + 35
+= 42`, `action fibonacci(5) done`). With the second participant enabled, `[self-test]`
+lines report `PASS`/`FAIL` for the local round-trips.

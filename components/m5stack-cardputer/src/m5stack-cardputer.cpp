@@ -1,3 +1,7 @@
+#include <algorithm>
+#include <cmath>
+#include <iterator>
+
 #include "m5stack-cardputer.hpp"
 
 using namespace espp;
@@ -71,15 +75,41 @@ bool M5StackCardputer::es8311_write(uint8_t reg, uint8_t value) {
   return internal_i2c_->write(es8311_address, buffer, 2);
 }
 
-bool M5StackCardputer::initialize_es8311_speaker() {
-  logger_.info("Initializing ES8311 codec (speaker path)");
-  // Minimal DAC bring-up, clocked from BCLK (there is no MCLK pin); matches
-  // the M5Unified Cardputer ADV speaker-enable sequence.
+bool M5StackCardputer::es8311_ensure_common() {
+  // The reset / clocking / analog-power registers are shared by the DAC
+  // (speaker) and ADC (microphone) paths, and resetting the codec while the
+  // other path is running would glitch it - so write them exactly once. The
+  // clock manager enables both the DAC and ADC clocks (0xBF is the union of
+  // M5Unified's speaker-only 0xB5 and microphone-only 0xBA values), which is
+  // harmless when only one path is used.
+  if (es8311_common_initialized_) {
+    return true;
+  }
   const uint8_t init[][2] = {
       {0x00, 0x80}, // RESET: power on, CSM enabled
-      {0x01, 0xB5}, // CLOCK_MANAGER: MCLK from BCLK
+      {0x01, 0xBF}, // CLOCK_MANAGER: MCLK from BCLK, DAC + ADC clocks on
       {0x02, 0x18}, // CLOCK_MANAGER: MULT_PRE = 3
       {0x0D, 0x01}, // SYSTEM: power up analog circuits
+  };
+  es8311_common_initialized_ =
+      std::all_of(std::begin(init), std::end(init), [this](const auto &entry) {
+        if (!es8311_write(entry[0], entry[1])) {
+          logger_.error("Failed to write ES8311 register {:#04x}", entry[0]);
+          return false;
+        }
+        return true;
+      });
+  return es8311_common_initialized_;
+}
+
+bool M5StackCardputer::initialize_es8311_speaker() {
+  logger_.info("Initializing ES8311 codec (speaker / DAC path)");
+  // Minimal DAC bring-up, clocked from BCLK (there is no MCLK pin); derived
+  // from the M5Unified Cardputer ADV speaker-enable sequence.
+  if (!es8311_ensure_common()) {
+    return false;
+  }
+  const uint8_t init[][2] = {
       {0x12, 0x00}, // SYSTEM: power up DAC
       {0x13, 0x10}, // SYSTEM: enable output to HP drive
       {0x32, 0xBF}, // DAC: volume 0 dB
@@ -95,19 +125,25 @@ bool M5StackCardputer::initialize_es8311_speaker() {
 }
 
 bool M5StackCardputer::initialize_es8311_microphone() {
-  logger_.info("Initializing ES8311 codec (microphone path)");
+  logger_.info("Initializing ES8311 codec (microphone / ADC path)");
   // Minimal ADC bring-up for the analog MEMS microphone on MIC1, clocked
-  // from BCLK; matches the M5Unified Cardputer ADV microphone-enable
+  // from BCLK; derived from the M5Unified Cardputer ADV microphone-enable
   // sequence.
+  if (!es8311_ensure_common()) {
+    return false;
+  }
+  // The gain values follow the es8311 driver in the espp codec component
+  // (hardware-proven with the esp-box microphone): M5Unified's minimal
+  // sequence uses minimum PGA gain (0x14 = 0x10) and no digital mic gain,
+  // which records at a near-mute level.
+  const uint8_t adc_volume = static_cast<uint8_t>(std::lround(mic_volume_ / 100.0f * 255.0f));
   const uint8_t init[][2] = {
-      {0x00, 0x80}, // RESET: power on, CSM enabled
-      {0x01, 0xBA}, // CLOCK_MANAGER: MCLK from BCLK, ADC clocks on
-      {0x02, 0x18}, // CLOCK_MANAGER: MULT_PRE = 3
-      {0x0D, 0x01}, // SYSTEM: power up analog circuits
-      {0x0E, 0x02}, // SYSTEM: enable analog PGA / ADC modulator
-      {0x14, 0x10}, // SYSTEM: select Mic1p-Mic1n, minimum PGA gain
-      {0x17, 0xBF}, // ADC: volume 0 dB
-      {0x1C, 0x6A}, // ADC: equalizer bypass
+      {0x0E, 0x02},       // SYSTEM: enable analog PGA / ADC modulator
+      {0x14, 0x1A},       // SYSTEM: select Mic1p-Mic1n, raised analog PGA gain
+      {0x15, 0x40},       // ADC: soft-ramp / ALC configuration
+      {0x16, 0x24},       // ADC: mic digital gain scale
+      {0x17, adc_volume}, // ADC: volume (0x00 = -95.5 dB, 0xBF = 0 dB, 0xFF = +32 dB)
+      {0x1C, 0x6A},       // ADC: equalizer bypass
   };
   return std::all_of(std::begin(init), std::end(init), [this](const auto &entry) {
     if (!es8311_write(entry[0], entry[1])) {

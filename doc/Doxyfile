@@ -89,6 +89,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/bldc_haptics/example/main/bldc_haptics_example.cpp \
   $(PROJECT_PATH)/components/bm8563/example/main/bm8563_example.cpp \
   $(PROJECT_PATH)/components/bmi270/example/main/bmi270_example.cpp \
+  $(PROJECT_PATH)/components/bq27220/example/main/bq27220_example.cpp \
   $(PROJECT_PATH)/components/button/example/main/button_example.cpp \
   $(PROJECT_PATH)/components/byte90/example/main/byte90_example.cpp \
   $(PROJECT_PATH)/components/chsc6x/example/main/chsc6x_example.cpp \
@@ -103,9 +104,13 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/dns_server/example/main/dns_server_example.cpp \
   $(PROJECT_PATH)/components/drv2605/example/main/drv2605_example.cpp \
   $(PROJECT_PATH)/components/encoder/example/main/encoder_example.cpp \
-  $(PROJECT_PATH)/components/esp32-timer-cam/example/main/esp_timer_cam_example.cpp \
+  $(PROJECT_PATH)/components/esp32-ethernet-kit/example/main/esp32_ethernet_kit_example.cpp \
+  $(PROJECT_PATH)/components/esp32-p4-eth/example/main/esp32_p4_eth_example.cpp \
   $(PROJECT_PATH)/components/esp32-p4-function-ev-board/example/main/esp32_p4_function_ev_board_example.cpp \
+  $(PROJECT_PATH)/components/esp32-p4-nano/example/main/esp32_p4_nano_example.cpp \
+  $(PROJECT_PATH)/components/esp32-timer-cam/example/main/esp_timer_cam_example.cpp \
   $(PROJECT_PATH)/components/esp-box/example/main/esp_box_example.cpp \
+  $(PROJECT_PATH)/components/ethernet/example/main/ethernet_example.cpp \
   $(PROJECT_PATH)/components/event_manager/example/main/event_manager_example.cpp \
   $(PROJECT_PATH)/components/expressive_eyes/example/main/expressive_eyes_example.cpp \
   $(PROJECT_PATH)/components/file_system/example/main/file_system_example.cpp \
@@ -113,6 +118,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/ftp/example/main/ftp_example.cpp \
   $(PROJECT_PATH)/components/ft5x06/example/main/ft5x06_example.cpp \
   $(PROJECT_PATH)/components/gfps_service/example/main/gfps_service_example.cpp \
+  $(PROJECT_PATH)/components/gps/example/main/gps_example.cpp \
   $(PROJECT_PATH)/components/gt911/example/main/gt911_example.cpp \
   $(PROJECT_PATH)/components/hid-rp/example/main/hid_rp_example.cpp \
   $(PROJECT_PATH)/components/hid_service/example/main/hid_service_example.cpp \
@@ -127,6 +133,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/pi4ioe5v/example/main/pi4ioe5v_example.cpp \
   $(PROJECT_PATH)/components/led/example/main/led_example.cpp \
   $(PROJECT_PATH)/components/led_strip/example/main/led_strip_example.cpp \
+  $(PROJECT_PATH)/components/lilygo-t5-47/example/main/lilygo-t5-47_example.cpp \
   $(PROJECT_PATH)/components/logger/example/main/logger_example.cpp \
   $(PROJECT_PATH)/components/lsm6dso/example/main/lsm6dso_example.cpp \
   $(PROJECT_PATH)/components/m5stack-cardputer/example/main/m5stack_cardputer_example.cpp \
@@ -139,10 +146,12 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/motorgo-mini/example/main/motorgo_mini_example.cpp \
   $(PROJECT_PATH)/components/motorgo-plink/example/main/motorgo_plink_example.cpp \
   $(PROJECT_PATH)/components/mcp23x17/example/main/mcp23x17_example.cpp \
+  $(PROJECT_PATH)/components/meshtastic/example/main/meshtastic_example.cpp \
   $(PROJECT_PATH)/components/mt6701/example/main/mt6701_example.cpp \
   $(PROJECT_PATH)/components/neopixel/example/main/neopixel_example.cpp \
   $(PROJECT_PATH)/components/nvs/example/main/nvs_example.cpp \
   $(PROJECT_PATH)/components/odrive_ascii/example/main/odrive_ascii_example.cpp \
+  $(PROJECT_PATH)/components/pca9535/example/main/pca9535_example.cpp \
   $(PROJECT_PATH)/components/pcf85063/example/main/pcf85063_example.cpp \
   $(PROJECT_PATH)/components/pid/example/main/pid_example.cpp \
   $(PROJECT_PATH)/components/provisioning/example/main/provisioning_example.cpp \
@@ -164,15 +173,18 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/st25dv/example/main/st25dv_example.cpp \
   $(PROJECT_PATH)/components/st7123touch/example/main/st7123touch_example.cpp \
   $(PROJECT_PATH)/components/state_machine/example/main/hfsm_example.cpp \
+  $(PROJECT_PATH)/components/sx126x/example/main/sx126x_example.cpp \
   $(PROJECT_PATH)/components/tabulate/example/main/tabulate_example.cpp \
   $(PROJECT_PATH)/components/t-deck/example/main/t_deck_example.cpp \
   $(PROJECT_PATH)/components/t-dongle-s3/example/main/t_dongle_s3_example.cpp \
   $(PROJECT_PATH)/components/t_keyboard/example/main/t_keyboard_example.cpp \
   $(PROJECT_PATH)/components/task/example/main/task_example.cpp \
   $(PROJECT_PATH)/components/thermistor/example/main/thermistor_example.cpp \
+  $(PROJECT_PATH)/components/thread_pool/example/main/thread_pool_example.cpp \
   $(PROJECT_PATH)/components/timer/example/main/timer_example.cpp \
   $(PROJECT_PATH)/components/touch/example/main/touch_example.cpp \
   $(PROJECT_PATH)/components/tla2528/example/main/tla2528_example.cpp \
+  $(PROJECT_PATH)/components/trajectory_planner/example/main/trajectory_planner_example.cpp \
   $(PROJECT_PATH)/components/tt21100/example/main/tt21100_example.cpp \
   $(PROJECT_PATH)/components/vl53l/example/main/vl53l_example.cpp \
   $(PROJECT_PATH)/components/vmu-pro/example/main/vmu_pro_example.cpp \
@@ -225,6 +237,7 @@ INPUT = \
   $(PROJECT_PATH)/components/bm8563/include/bm8563.hpp \
   $(PROJECT_PATH)/components/bmi270/include/bmi270.hpp \
   $(PROJECT_PATH)/components/bmi270/include/bmi270_detail.hpp \
+  $(PROJECT_PATH)/components/bq27220/include/bq27220.hpp \
   $(PROJECT_PATH)/components/button/include/button.hpp \
   $(PROJECT_PATH)/components/byte90/include/byte90.hpp \
   $(PROJECT_PATH)/components/chsc6x/include/chsc6x.hpp \
@@ -243,6 +256,7 @@ INPUT = \
   $(PROJECT_PATH)/components/display_drivers/include/ek79007.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/ili9341.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/ili9881.hpp \
+  $(PROJECT_PATH)/components/display_drivers/include/jd9365.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/sh8601.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/spi_panel_io.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/ssd1351.hpp \
@@ -254,9 +268,13 @@ INPUT = \
   $(PROJECT_PATH)/components/drv2605/include/drv2605_menu.hpp \
   $(PROJECT_PATH)/components/encoder/include/abi_encoder.hpp \
   $(PROJECT_PATH)/components/encoder/include/encoder_types.hpp \
-  $(PROJECT_PATH)/components/esp32-timer-cam/include/esp32-timer-cam.hpp \
+  $(PROJECT_PATH)/components/esp32-ethernet-kit/include/esp32-ethernet-kit.hpp \
+  $(PROJECT_PATH)/components/esp32-p4-eth/include/esp32-p4-eth.hpp \
   $(PROJECT_PATH)/components/esp32-p4-function-ev-board/include/esp32-p4-function-ev-board.hpp \
+  $(PROJECT_PATH)/components/esp32-p4-nano/include/esp32-p4-nano.hpp \
+  $(PROJECT_PATH)/components/esp32-timer-cam/include/esp32-timer-cam.hpp \
   $(PROJECT_PATH)/components/esp-box/include/esp-box.hpp \
+  $(PROJECT_PATH)/components/ethernet/include/ethernet.hpp \
   $(PROJECT_PATH)/components/event_manager/include/event_manager.hpp \
   $(PROJECT_PATH)/components/expressive_eyes/include/expressive_eyes.hpp \
   $(PROJECT_PATH)/components/file_system/include/file_system.hpp \
@@ -275,6 +293,9 @@ INPUT = \
   $(PROJECT_PATH)/components/gfps_service/include/gfps.hpp \
   $(PROJECT_PATH)/components/gfps_service/include/gfps_characteristic_callbacks.hpp \
   $(PROJECT_PATH)/components/gfps_service/include/gfps_service.hpp \
+  $(PROJECT_PATH)/components/gps/include/gps.hpp \
+  $(PROJECT_PATH)/components/gps/include/gps_fix.hpp \
+  $(PROJECT_PATH)/components/gps/include/nmea_parser.hpp \
   $(PROJECT_PATH)/components/gt911/include/gt911.hpp \
   $(PROJECT_PATH)/components/hid-rp/include/gamepad_hat.hpp \
   $(PROJECT_PATH)/components/hid-rp/include/gamepad_imu.hpp \
@@ -308,6 +329,7 @@ INPUT = \
   $(PROJECT_PATH)/components/pi4ioe5v/include/pi4ioe5v.hpp \
   $(PROJECT_PATH)/components/led/include/led.hpp \
   $(PROJECT_PATH)/components/led_strip/include/led_strip.hpp \
+  $(PROJECT_PATH)/components/lilygo-t5-47/include/lilygo-t5-47.hpp \
   $(PROJECT_PATH)/components/logger/include/logger.hpp \
   $(PROJECT_PATH)/components/lp5817/include/lp5817.hpp \
   $(PROJECT_PATH)/components/lsm6dso/include/lsm6dso.hpp \
@@ -331,8 +353,14 @@ INPUT = \
   $(PROJECT_PATH)/components/nvs/include/nvs.hpp \
   $(PROJECT_PATH)/components/nvs/include/nvs_handle_espp.hpp \
   $(PROJECT_PATH)/components/mcp23x17/include/mcp23x17.hpp \
+  $(PROJECT_PATH)/components/meshtastic/include/meshtastic.hpp \
+  $(PROJECT_PATH)/components/meshtastic/include/meshtastic_crypto.hpp \
+  $(PROJECT_PATH)/components/meshtastic/include/meshtastic_protobuf.hpp \
+  $(PROJECT_PATH)/components/meshtastic/include/meshtastic_protocol.hpp \
+  $(PROJECT_PATH)/components/meshtastic/include/meshtastic_types.hpp \
   $(PROJECT_PATH)/components/mt6701/include/mt6701.hpp \
   $(PROJECT_PATH)/components/odrive_ascii/include/odrive_ascii.hpp \
+  $(PROJECT_PATH)/components/pca9535/include/pca9535.hpp \
   $(PROJECT_PATH)/components/pcf85063/include/pcf85063.hpp \
   $(PROJECT_PATH)/components/pid/include/pid.hpp \
   $(PROJECT_PATH)/components/ping/include/ping.hpp \
@@ -344,7 +372,11 @@ INPUT = \
   $(PROJECT_PATH)/components/remote_debug/include/remote_debug.hpp \
   $(PROJECT_PATH)/components/rmt/include/rmt.hpp \
   $(PROJECT_PATH)/components/rmt/include/rmt_encoder.hpp \
-  $(PROJECT_PATH)/components/rtps/include/rtps.hpp \
+  $(PROJECT_PATH)/components/rtps/include/rtps_participant.hpp \
+  $(PROJECT_PATH)/components/rtps/include/rtps_pubsub.hpp \
+  $(PROJECT_PATH)/components/rtps/include/rtps_service.hpp \
+  $(PROJECT_PATH)/components/rtps/include/rtps_action.hpp \
+  $(PROJECT_PATH)/components/rtps/include/rtps_message.hpp \
   $(PROJECT_PATH)/components/rtsp/include/generic_depacketizer.hpp \
   $(PROJECT_PATH)/components/rtsp/include/generic_packetizer.hpp \
   $(PROJECT_PATH)/components/rtsp/include/h264_depacketizer.hpp \
@@ -370,6 +402,7 @@ INPUT = \
   $(PROJECT_PATH)/components/socket/include/socket.hpp \
   $(PROJECT_PATH)/components/socket/include/udp_socket.hpp \
   $(PROJECT_PATH)/components/socket/include/tcp_socket.hpp \
+  $(PROJECT_PATH)/components/socket/include/socket_reactor.hpp \
   $(PROJECT_PATH)/components/spi/include/spi.hpp \
   $(PROJECT_PATH)/components/st25dv/include/st25dv.hpp \
   $(PROJECT_PATH)/components/st7123touch/include/st7123touch.hpp \
@@ -377,6 +410,7 @@ INPUT = \
   $(PROJECT_PATH)/components/state_machine/include/shallow_history_state.hpp \
   $(PROJECT_PATH)/components/state_machine/include/state_base.hpp \
   $(PROJECT_PATH)/components/state_machine/include/state_machine.hpp \
+  $(PROJECT_PATH)/components/sx126x/include/sx126x.hpp \
   $(PROJECT_PATH)/components/t-deck/include/t-deck.hpp \
   $(PROJECT_PATH)/components/t-dongle-s3/include/t-dongle-s3.hpp \
   $(PROJECT_PATH)/components/t_keyboard/include/t_keyboard.hpp \
@@ -384,10 +418,12 @@ INPUT = \
   $(PROJECT_PATH)/components/task/include/task.hpp \
   $(PROJECT_PATH)/components/task/include/run_on_core.hpp \
   $(PROJECT_PATH)/components/thermistor/include/thermistor.hpp \
+  $(PROJECT_PATH)/components/thread_pool/include/thread_pool.hpp \
   $(PROJECT_PATH)/components/timer/include/high_resolution_timer.hpp \
   $(PROJECT_PATH)/components/timer/include/timer.hpp \
   $(PROJECT_PATH)/components/touch/include/touch.hpp \
   $(PROJECT_PATH)/components/tla2528/include/tla2528.hpp \
+  $(PROJECT_PATH)/components/trajectory_planner/include/trajectory_planner.hpp \
   $(PROJECT_PATH)/components/tt21100/include/tt21100.hpp \
   $(PROJECT_PATH)/components/utils/include/bitmask_operators.hpp \
   $(PROJECT_PATH)/components/vl53l/include/vl53l.hpp \
