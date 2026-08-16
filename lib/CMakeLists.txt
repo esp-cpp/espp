@@ -155,15 +155,18 @@ else()
   # limits/fragmentation profile the archive was built with (ABI-critical; see
   # espp.cmake). These export into esppTargets.cmake as INTERFACE definitions.
   target_compile_definitions(${TARGET_NAME} PUBLIC ${ESPP_RTPS_COMPILE_DEFINITIONS})
-  # MSVC's <cmath> only defines M_PI / M_PI_2 etc. when _USE_MATH_DEFINES is set
-  # before the include. espp's PUBLIC headers (math/fast_math.hpp, several filter
-  # headers) use M_PI, so propagate the macro as a PUBLIC usage requirement for
-  # MSVC-like toolchains (the `MSVC` variable is also true for clang-cl). Without
-  # this, find_package / FetchContent consumers on Windows fail to compile those
-  # headers (the directory-level /D_USE_MATH_DEFINES above only covers espp's own
-  # build; the pc tests only pass because they define it themselves).
+  # PUBLIC MSVC usage requirements the exported target must carry so find_package /
+  # FetchContent consumers on Windows compile espp's public headers. The
+  # directory-level flags at the top only cover espp's own build (not the exported
+  # INTERFACE), which is why the consumer smoke test caught these:
+  #  - _USE_MATH_DEFINES: MSVC's <cmath> only defines M_PI / M_PI_2 when it is set
+  #    before the include, and espp headers (math/fast_math.hpp, filters) use M_PI.
+  #  - /utf-8: the vendored fmt (pulled in by logger.hpp etc.) static_asserts that
+  #    Unicode support requires compiling with /utf-8.
+  # (`MSVC` is also true for clang-cl, which needs both too.)
   if(MSVC)
     target_compile_definitions(${TARGET_NAME} PUBLIC _USE_MATH_DEFINES)
+    target_compile_options(${TARGET_NAME} PUBLIC /utf-8)
   endif()
 
   # ---------------------------------------------------------------------------
