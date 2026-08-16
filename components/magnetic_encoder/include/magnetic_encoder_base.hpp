@@ -184,18 +184,22 @@ public:
    */
   void update(std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-    // measure update timing
+    // sample the timestamp and previous count before the read; both are only
+    // committed once the read succeeds
     uint64_t now_us = esp_timer_get_time();
-    auto dt = now_us - prev_time_us_;
-    float seconds = dt / 1e6f;
-    prev_time_us_ = now_us;
-    // store the previous count
     int prev_count = count_;
     // refresh count_ (and any device-specific state) via CRTP static dispatch
     static_cast<Derived *>(this)->read(ec);
     if (ec) {
+      // leave prev_time_us_ untouched so the next successful sample measures its
+      // movement over the time since the last good read, not since this failed
+      // attempt (which would inflate the velocity / aliasing check)
       return;
     }
+    // measure update timing
+    auto dt = now_us - prev_time_us_;
+    float seconds = dt / 1e6f;
+    prev_time_us_ = now_us;
     // compute diff
     int diff = count_ - prev_count;
     // check for zero crossing
@@ -217,7 +221,8 @@ public:
     velocity_rpm_ = velocity_filter_ ? velocity_filter_(raw_velocity) : raw_velocity;
     if (dt > 0) {
       float max_velocity = 0.5f / seconds * SECONDS_PER_MINUTE;
-      if (raw_velocity >= max_velocity) {
+      // compare magnitude so the limit is caught for both rotation directions
+      if (std::abs(raw_velocity) >= max_velocity) {
         logger_.warn_rate_limited(
             "Velocity nearing measurement limit ({:.3f} RPM), consider decreasing your "
             "update period!",
@@ -327,6 +332,10 @@ protected:
       return;
     }
     accumulator_ = count_.load();
+    // seed the timestamp so the first update() (in particular a manual update()
+    // when run_task is false) measures dt from now, not from boot. start() also
+    // refreshes it for timer mode.
+    prev_time_us_ = esp_timer_get_time();
     if (!run_task) {
       logger_.info(
           "Not starting timer, run_task is false. Manually call update() to update the state.");

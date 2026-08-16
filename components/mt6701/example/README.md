@@ -5,8 +5,9 @@ MT6701 magnetic encoder chip.
 
 ## How to use example
 
-It uses the `task` component to periodically read the raw count, position, and
-velocity of the encoder, the `filters` component (specifically the
+It uses the `task` component to periodically poll and print the raw count,
+position, and velocity of the encoder (the `Mt6701` itself maintains that state
+with its own internal timer), the `filters` component (specifically the
 `espp::ButterworthFilter` class) to filter the raw values from the sensor, and
 the `format` component to print the data to the console in CSV format.
 
