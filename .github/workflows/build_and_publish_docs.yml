@@ -50,6 +50,11 @@ jobs:
           # copy the generated HTML files to the docs directory for GitHub Pages
           mkdir -p ../docs
           cp -r "${build_dir_from_doc}/html/"* ../docs/.
+          # Host the interactive single-file web consoles alongside the docs.
+          # GitHub Pages serves over https (a secure context), so the browser
+          # Web Serial / WebUSB APIs work directly from these hosted copies.
+          mkdir -p ../docs/apps
+          cp ../components/odrive_ascii/web/*.html ../docs/apps/ 2>/dev/null || true
 
       - name: Build Documentation (PDF)
         run: |

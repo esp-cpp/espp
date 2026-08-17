@@ -9,6 +9,24 @@ ODrive-compatible ASCII protocol. It parses incoming bytes into commands and
 produces response bytes for transmission by the caller. It does not perform any
 I/O itself and is transport-agnostic (UART, USB CDC, socket, etc.).
 
+Interactive Web Console
+-----------------------
+
+A single-file, dependency-free browser console for this protocol is hosted with
+these docs. Because this page is served over ``https`` (a secure context), the
+browser `Web Serial API <https://developer.mozilla.org/en-US/docs/Web/API/Web_Serial_API>`_
+works directly here — in a Chromium-based browser (Chrome / Edge / Opera /
+Brave), click **Connect** and pick your board's USB-Serial-JTAG / CDC port.
+
+`Open the Web Serial console in a new tab <../apps/odrive_console.html>`_
+(the same file also lives in ``components/odrive_ascii/web/`` for offline use).
+
+.. raw:: html
+
+   <iframe src="../apps/odrive_console.html" allow="serial"
+           title="ODrive ASCII Web Serial console"
+           style="width:100%;height:640px;border:1px solid var(--color-background-border,#ccc);border-radius:8px;margin-top:0.5em"></iframe>
+
 Features
 --------
 
