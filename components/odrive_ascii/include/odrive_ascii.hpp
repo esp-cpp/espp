@@ -55,6 +55,13 @@ public:
    */
   struct Config {
     size_t max_line_length{256}; /**< Maximum accepted ASCII line length. */
+    bool acknowledge_commands{
+        false}; /**< If true, write ('w') and high-rate setpoint commands ('p'/'v'/'c'/'t'/'es')
+                   reply with "OK\n" on success. Defaults to false to match the ODrive ASCII
+                   protocol, which is silent on these commands (so tools like odrivetool do not
+                   mis-associate unsolicited "OK" lines with a later 'r'/'f' response). Set true to
+                   get explicit success acknowledgements (e.g. for a custom client). Errors are
+                   always reported, and query commands ('r'/'f'/'help') always respond. */
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; /**< Logger verbosity. */
   };
 
@@ -322,6 +329,13 @@ private:
 
   static std::string trim(std::string_view sv);
   static std::vector<std::string_view> split_ws(std::string_view sv, size_t max_parts = SIZE_MAX);
+
+  /// @brief Build the response for a write/setpoint command result.
+  /// @param ok Whether the command callback succeeded.
+  /// @param ec Error code set by the callback (used for the message on failure).
+  /// @return "OK\n" on success (or std::nullopt if acknowledgements are disabled);
+  ///         "ERR: <msg>\n" on failure (errors are always reported).
+  std::optional<std::string> command_ack(bool ok, const std::error_code &ec) const;
 
   Config config_;
 

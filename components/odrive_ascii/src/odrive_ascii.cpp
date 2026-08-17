@@ -9,21 +9,20 @@
 namespace espp {
 
 static bool parse_int(std::string_view sv, int &out) {
-  std::string tmp(sv);
-  char *end = nullptr;
-  long val = strtol(tmp.c_str(), &end, 0);
-  if (end == tmp.c_str())
-    return false;
-  out = static_cast<int>(val);
-  return true;
+  // strict: the whole token must be a valid integer (no trailing garbage), no alloc
+  auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), out);
+  return ec == std::errc() && ptr == sv.data() + sv.size();
 }
 
 static bool parse_float(std::string_view sv, float &out) {
+  // std::from_chars for float is not available on every toolchain we target, so
+  // fall back to strtod but reject trailing garbage. Short numeric tokens use
+  // small-string optimization, so this does not heap-allocate on the hot path.
   std::string tmp(sv);
   char *end = nullptr;
   double val = strtod(tmp.c_str(), &end);
-  if (end == tmp.c_str())
-    return false;
+  if (end == tmp.c_str() || end != tmp.c_str() + tmp.size())
+    return false; // no conversion, or trailing garbage
   out = static_cast<float>(val);
   return true;
 }
@@ -33,14 +32,16 @@ std::vector<uint8_t> OdriveAscii::process_bytes(std::span<const uint8_t> data) {
   if (data.empty())
     return out;
 
-  std::string local;
-  local.assign(reinterpret_cast<const char *>(data.data()), data.size());
-
-  std::vector<std::string> responses;
+  // Under the buffer lock we only touch the buffer: append the new bytes and
+  // split out any complete lines (copied into `lines`). The actual command
+  // handling - which invokes user callbacks - happens AFTER the lock is
+  // released, so a callback can never run while buf_mutex_ is held (avoids
+  // re-entrancy deadlock and cross-transport stalls).
+  std::vector<std::string> lines;
   {
     std::scoped_lock<std::mutex> lk(buf_mutex_);
     // Append and cap to max_line_length * 4 to avoid unbounded memory growth
-    inbuf_.append(local);
+    inbuf_.append(reinterpret_cast<const char *>(data.data()), data.size());
     if (inbuf_.size() > config_.max_line_length * 4) {
       // keep only the tail in case of garbage flood
       inbuf_.erase(0, inbuf_.size() - config_.max_line_length * 4);
@@ -52,31 +53,28 @@ std::vector<uint8_t> OdriveAscii::process_bytes(std::span<const uint8_t> data) {
       size_t nl = inbuf_.find_first_of("\r\n", start);
       if (nl == std::string::npos)
         break;
-      // Extract line [start, nl)
-      std::string_view line(&inbuf_[start], nl - start);
+      // Extract line [start, nl) as an owned copy so it outlives the lock
+      lines.emplace_back(inbuf_, start, nl - start);
       // Advance start beyond any contiguous CR/LF
       size_t next = inbuf_.find_first_not_of("\r\n", nl);
       if (next == std::string::npos)
         next = inbuf_.size();
-
       start = next;
-
-      // Guard too-long line attack
-      if (line.size() > config_.max_line_length) {
-        logger_.warn("ASCII line too long: {} bytes", line.size());
-        responses.emplace_back("ERR: line too long\n");
-        continue;
-      }
-
-      auto resp = handle_line(line);
-      if (resp.has_value()) {
-        responses.push_back(std::move(resp.value()));
-      }
     }
 
     // Erase processed data
     if (start > 0) {
       inbuf_.erase(0, start);
+    }
+  }
+
+  // Handle the complete lines outside the buffer lock.
+  std::vector<std::string> responses;
+  responses.reserve(lines.size());
+  for (const auto &line : lines) {
+    auto resp = handle_line(line);
+    if (resp.has_value()) {
+      responses.push_back(std::move(resp.value()));
     }
   }
 
@@ -98,8 +96,43 @@ void OdriveAscii::clear_buffer() {
   inbuf_.clear();
 }
 
+std::optional<std::string> OdriveAscii::command_ack(bool ok, const std::error_code &ec) const {
+  if (ok)
+    return config_.acknowledge_commands ? std::optional<std::string>("OK\n") : std::nullopt;
+  // Errors are always reported, even when acknowledgements are disabled. Guard
+  // against a callback that returns false without setting ec ("ERR: Success").
+  return fmt::format("ERR: {}\n", ec ? ec.message() : std::string("command failed"));
+}
+
 std::optional<std::string> OdriveAscii::handle_line(std::string_view raw) {
+  // Guard too-long line attack (buffer may hold up to 4x max_line_length).
+  if (raw.size() > config_.max_line_length) {
+    logger_.warn("ASCII line too long: {} bytes", raw.size());
+    return std::string("ERR: line too long\n");
+  }
+
   auto line = trim(raw);
+  if (line.empty())
+    return std::nullopt;
+
+  // Strip an ODrive GCODE-style ';' comment (everything to end of line).
+  if (auto semi = line.find(';'); semi != std::string::npos)
+    line.erase(semi);
+  // Strip an optional GCODE-style '*<checksum>' suffix. The checksum is the XOR
+  // of the payload bytes. We verify leniently (warn on mismatch) but still
+  // process the payload, so checksummed clients are accepted rather than
+  // rejected as "unknown command".
+  if (auto star = line.rfind('*'); star != std::string::npos) {
+    uint8_t computed = 0;
+    for (size_t i = 0; i < star; ++i)
+      computed ^= static_cast<uint8_t>(line[i]);
+    int provided = 0;
+    std::string sum = trim(std::string_view(line).substr(star + 1));
+    if (parse_int(sum, provided) && (provided & 0xFF) != computed)
+      logger_.warn("ASCII checksum mismatch (got {}, computed {})", provided & 0xFF, computed);
+    line.erase(star); // keep only the payload
+  }
+  line = trim(line);
   if (line.empty())
     return std::nullopt;
 
@@ -120,9 +153,12 @@ std::optional<std::string> OdriveAscii::handle_line(std::string_view raw) {
     return handle_read(toks[1]);
   }
   if (cmd == "w") {
-    if (toks.size() < 3)
+    // Re-split with max 3 parts so the value keeps everything after the path
+    // (including embedded spaces) rather than being truncated at the first space.
+    auto wtoks = split_ws(line, /*max_parts=*/3);
+    if (wtoks.size() < 3)
       return std::string("ERR: w takes 2 arguments\n");
-    return handle_write(toks[1], toks[2]);
+    return handle_write(wtoks[1], wtoks[2]);
   }
   if (cmd == "p") {
     return handle_position_cmd({toks.begin(), toks.end()});
@@ -147,12 +183,18 @@ std::optional<std::string> OdriveAscii::handle_line(std::string_view raw) {
 }
 
 std::optional<std::string> OdriveAscii::handle_read(std::string_view path) {
-  std::scoped_lock<std::mutex> lk(prop_mutex_);
-  auto it = properties_.find(std::string(path));
-  if (it == properties_.end() || !it->second.read)
-    return fmt::format("ERR: unknown property '{}'\n", path);
+  // Snapshot the accessor under the lock, then invoke it without the lock held
+  // so a getter can safely re-enter the API (e.g. register another property).
+  read_fn rf;
+  {
+    std::scoped_lock<std::mutex> lk(prop_mutex_);
+    auto it = properties_.find(std::string(path));
+    if (it == properties_.end() || !it->second.read)
+      return fmt::format("ERR: unknown property '{}'\n", path);
+    rf = it->second.read;
+  }
   std::error_code ec;
-  auto val = it->second.read(ec);
+  auto val = rf(ec);
   if (ec)
     return fmt::format("ERR: {}\n", ec.message());
   // ODrive ASCII returns value followed by \n
@@ -162,13 +204,18 @@ std::optional<std::string> OdriveAscii::handle_read(std::string_view path) {
 
 std::optional<std::string> OdriveAscii::handle_write(std::string_view path,
                                                      std::string_view value) {
-  std::scoped_lock<std::mutex> lk(prop_mutex_);
-  auto it = properties_.find(std::string(path));
-  if (it == properties_.end() || !it->second.write)
-    return fmt::format("ERR: unknown property '{}'\n", path);
+  // Snapshot the accessor under the lock, then invoke it without the lock held.
+  write_fn wf;
+  {
+    std::scoped_lock<std::mutex> lk(prop_mutex_);
+    auto it = properties_.find(std::string(path));
+    if (it == properties_.end() || !it->second.write)
+      return fmt::format("ERR: unknown property '{}'\n", path);
+    wf = it->second.write;
+  }
   std::error_code ec;
-  bool ok = it->second.write(value, ec);
-  return ok ? std::string("OK\n") : fmt::format("ERR: {}\n", ec.message());
+  bool ok = wf(value, ec);
+  return command_ack(ok, ec);
 }
 
 std::optional<std::string> OdriveAscii::handle_position_cmd(std::span<std::string_view> toks) {
@@ -204,7 +251,7 @@ std::optional<std::string> OdriveAscii::handle_position_cmd(std::span<std::strin
     return fmt::format("ERR: position command callback not set\n");
   std::error_code ec;
   bool ok = cb(axis, pos, vel_ff, torque_ff, ec);
-  return ok ? std::string("OK\n") : fmt::format("ERR: {}\n", ec.message());
+  return command_ack(ok, ec);
 }
 
 std::optional<std::string> OdriveAscii::handle_velocity_cmd(std::span<std::string_view> toks) {
@@ -233,7 +280,7 @@ std::optional<std::string> OdriveAscii::handle_velocity_cmd(std::span<std::strin
     return fmt::format("ERR: velocity command callback not set\n");
   std::error_code ec;
   bool ok = cb(axis, vel, torque_ff, ec);
-  return ok ? std::string("OK\n") : fmt::format("ERR: {}\n", ec.message());
+  return command_ack(ok, ec);
 }
 
 std::optional<std::string> OdriveAscii::handle_torque_cmd(std::span<std::string_view> toks) {
@@ -255,7 +302,7 @@ std::optional<std::string> OdriveAscii::handle_torque_cmd(std::span<std::string_
     return fmt::format("ERR: torque command callback not set\n");
   std::error_code ec;
   bool ok = cb(axis, tq_nm, ec);
-  return ok ? std::string("OK\n") : fmt::format("ERR: {}\n", ec.message());
+  return command_ack(ok, ec);
 }
 
 std::optional<std::string> OdriveAscii::handle_trajectory_cmd(std::span<std::string_view> toks) {
@@ -277,7 +324,7 @@ std::optional<std::string> OdriveAscii::handle_trajectory_cmd(std::span<std::str
     return fmt::format("ERR: trajectory command callback not set\n");
   std::error_code ec;
   bool ok = cb(axis, goal, ec);
-  return ok ? std::string("OK\n") : fmt::format("ERR: {}\n", ec.message());
+  return command_ack(ok, ec);
 }
 
 std::optional<std::string> OdriveAscii::handle_feedback_cmd(std::span<std::string_view> toks) {
@@ -298,11 +345,9 @@ std::optional<std::string> OdriveAscii::handle_feedback_cmd(std::span<std::strin
   std::error_code ec;
   bool ok = cb(axis, pos, vel, ec);
   if (!ok || ec)
-    return fmt::format("ERR: {}\n", ec.message());
-  // Return "<pos> <vel>\n"
-  char buf[64];
-  int n = snprintf(buf, sizeof(buf), "%.6g %.6g\n", (double)pos, (double)vel);
-  return std::string(buf, n > 0 ? (size_t)n : 0U);
+    return fmt::format("ERR: {}\n", ec ? ec.message() : std::string("feedback failed"));
+  // Feedback is a query and always responds with "<pos> <vel>\n".
+  return fmt::format("{:.6g} {:.6g}\n", static_cast<double>(pos), static_cast<double>(vel));
 }
 
 std::optional<std::string>
@@ -325,7 +370,7 @@ OdriveAscii::handle_encoder_set_abs_cmd(std::span<std::string_view> toks) {
     return fmt::format("ERR: encoder set absolute command callback not set\n");
   std::error_code ec;
   bool ok = cb(axis, abs_pos, ec);
-  return ok ? std::string("OK\n") : fmt::format("ERR: {}\n", ec.message());
+  return command_ack(ok, ec);
 }
 
 std::string OdriveAscii::trim(std::string_view sv) {
