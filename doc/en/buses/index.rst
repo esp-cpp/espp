@@ -10,3 +10,4 @@ external chips.
    i2c
    spi
    rmt
+   twai

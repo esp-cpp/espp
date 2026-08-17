@@ -1,0 +1,21 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "TWAI (CAN 2.0) peripheral wrapper for ESP-IDF using the esp_driver_twai node API"
+url: "https://github.com/esp-cpp/espp/tree/main/components/twai"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/buses/twai.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - TWAI
+  - CAN
+  - can2.0
+dependencies:
+  idf:
+    version: '>=5.3'
+  espp/base_component: '>=1.0'
+  espp/task: '>=1.0'
