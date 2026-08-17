@@ -1,3 +1,9 @@
+# This example uses the native USB-OTG peripheral, which is only available on the
+# ESP32-S3 (also S2 / P4) -- NOT the classic ESP32. Pin the target here so a bare
+# `idf.py build` (without an explicit `set-target`) does not fall back to esp32
+# and fail to compile the USB device.
+CONFIG_IDF_TARGET="esp32s3"
+
 # Common ESP-related
 CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=4096
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
