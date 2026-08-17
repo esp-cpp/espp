@@ -360,6 +360,7 @@ INPUT = \
   $(PROJECT_PATH)/components/meshtastic/include/meshtastic_types.hpp \
   $(PROJECT_PATH)/components/mt6701/include/mt6701.hpp \
   $(PROJECT_PATH)/components/odrive_ascii/include/odrive_ascii.hpp \
+  $(PROJECT_PATH)/components/usb_device/include/usb_device.hpp \
   $(PROJECT_PATH)/components/usb_device/include/usb_cdc.hpp \
   $(PROJECT_PATH)/components/pca9535/include/pca9535.hpp \
   $(PROJECT_PATH)/components/pcf85063/include/pcf85063.hpp \

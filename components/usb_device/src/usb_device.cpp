@@ -1,0 +1,697 @@
+#include "usb_device.hpp"
+
+#include <array>
+#include <cstring>
+
+#include "tinyusb.h"
+#include "tinyusb_cdc_acm.h"
+#include "tinyusb_default_config.h"
+#include "tusb.h"
+
+namespace {
+
+// Only a single USB device exists on the chip; the BOS descriptor and the vendor
+// RX / control-request callbacks are global (no user pointer), so we route them
+// through a file-scope pointer to the active instance.
+espp::UsbDevice *s_device = nullptr;
+
+// The CDC port this component uses. A single dedicated CDC-ACM interface.
+constexpr tinyusb_cdcacm_itf_t kCdcPort = TINYUSB_CDC_ACM_0;
+
+// ESP32-S3 / -S2 USB-OTG (DWC2, full-speed) endpoint budget: besides the control
+// endpoint EP0, there are ~5 usable data IN endpoints and ~5 usable data OUT
+// endpoints. See the README endpoint-budget table for which class combinations
+// fit.
+constexpr uint8_t kMaxInEndpoints = 5;
+constexpr uint8_t kMaxOutEndpoints = 5;
+
+// The MS OS 2.0 descriptor set length used below (fixed by the registry-property
+// payload; identical to TinyUSB's webusb_serial example).
+constexpr uint16_t kMsOs20DescLen = 0xB2;
+
+} // namespace
+
+namespace espp {
+
+// Storage for the descriptors that TinyUSB references by pointer for the lifetime
+// of the driver. These must outlive tinyusb_driver_install().
+struct UsbDevice::Impl {
+  tusb_desc_device_t device_desc{};
+  std::vector<uint8_t> config_desc;
+  std::vector<uint8_t> bos_desc;        // BOS (WebUSB + MS OS 2.0), empty if unused
+  std::vector<uint8_t> ms_os_20_desc;   // MS OS 2.0 descriptor set, empty if unused
+  std::vector<uint8_t> webusb_url_desc; // WebUSB URL descriptor, empty if unused
+
+  // Owning strings + the pointer table TinyUSB reads (index 0 is the LANGID).
+  std::array<uint8_t, 2> langid{{0x09, 0x04}};
+  std::vector<std::string> owned_strings;
+  std::vector<const char *> strings;
+
+  // Allocated interface / endpoint identifiers, filled in during initialize().
+  uint8_t vendor_itf{0xFF};
+};
+
+UsbDevice *UsbDevice::instance() { return s_device; }
+
+UsbDevice::UsbDevice(const Config &config)
+    : BaseComponent("UsbDevice", config.log_level)
+    , impl_(std::make_unique<Impl>())
+    , config_(config)
+    , on_cdc_receive_(config.cdc ? config.cdc->on_receive : nullptr)
+    , on_vendor_receive_(config.vendor ? config.vendor->on_receive : nullptr) {}
+
+UsbDevice::~UsbDevice() {
+  if (initialized_) {
+    if (config_.cdc)
+      tinyusb_cdcacm_deinit(kCdcPort);
+    tinyusb_driver_uninstall();
+    if (s_device == this)
+      s_device = nullptr;
+    initialized_ = false;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// TinyUSB C callbacks (global; routed to the active instance).
+// ---------------------------------------------------------------------------
+
+// CDC RX trampoline registered with esp_tinyusb; runs in the TinyUSB task.
+static void cdc_rx_trampoline(int itf, cdcacm_event_t *event) {
+  (void)event;
+  if (itf != (int)kCdcPort)
+    return;
+  if (s_device)
+    s_device->handle_cdc_rx();
+}
+
+extern "C" {
+
+// BOS descriptor (weak in TinyUSB core). Returns our WebUSB/MS-OS BOS when the
+// vendor+WebUSB function is enabled, otherwise NULL (no BOS).
+uint8_t const *tud_descriptor_bos_cb(void) {
+  return s_device ? s_device->bos_descriptor() : nullptr;
+}
+
+#if (CFG_TUD_VENDOR > 0)
+
+// Vendor RX callback: drain the FIFO and dispatch to the user callback.
+#if CFG_TUD_API_V0_19_COMPAT
+void tud_vendor_rx_cb(uint8_t itf, uint8_t const *buffer, uint16_t bufsize) {
+#else
+void tud_vendor_rx_cb(uint8_t itf, uint8_t const *buffer, uint32_t bufsize) {
+#endif
+  (void)itf;
+  (void)buffer;
+  (void)bufsize;
+  if (s_device)
+    s_device->handle_vendor_rx();
+}
+
+// Vendor control-transfer callback: answer the WebUSB URL and MS OS 2.0
+// descriptor requests, and the WebUSB "connect" class request (0x22).
+bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
+                                tusb_control_request_t const *request) {
+  if (stage != CONTROL_STAGE_SETUP)
+    return true; // nothing to do on DATA / ACK stages
+  if (!s_device || !s_device->vendor_config().has_value())
+    return false;
+  const auto &vendor = *s_device->vendor_config();
+
+  switch (request->bmRequestType_bit.type) {
+  case TUSB_REQ_TYPE_VENDOR:
+    if (request->bRequest == vendor.webusb_vendor_code) {
+      // Return the WebUSB landing-page URL descriptor.
+      uint8_t len = 0;
+      const uint8_t *url = s_device->webusb_url_descriptor(len);
+      if (!url)
+        return false;
+      return tud_control_xfer(rhport, request, (void *)(uintptr_t)url, len);
+    }
+    if (request->bRequest == vendor.ms_os_vendor_code && request->wIndex == 7) {
+      // Return the MS OS 2.0 descriptor set.
+      uint16_t total_len = 0;
+      const uint8_t *ms = s_device->ms_os_20_descriptor(total_len);
+      if (!ms)
+        return false;
+      return tud_control_xfer(rhport, request, (void *)(uintptr_t)ms, total_len);
+    }
+    return false;
+
+  case TUSB_REQ_TYPE_CLASS:
+    if (request->bRequest == 0x22) {
+      // WebUSB simulates CDC SET_CONTROL_LINE_STATE (0x22) to signal connect.
+      if (request->wValue == 0)
+        tud_vendor_write_clear();
+      return tud_control_status(rhport, request);
+    }
+    return false;
+
+  default:
+    return false;
+  }
+}
+
+#endif // CFG_TUD_VENDOR > 0
+
+} // extern "C"
+
+// ---------------------------------------------------------------------------
+// Descriptor accessors used by the global callbacks.
+// ---------------------------------------------------------------------------
+
+const uint8_t *UsbDevice::bos_descriptor() const {
+  return impl_->bos_desc.empty() ? nullptr : impl_->bos_desc.data();
+}
+
+const uint8_t *UsbDevice::ms_os_20_descriptor(uint16_t &total_len) const {
+  if (impl_->ms_os_20_desc.empty())
+    return nullptr;
+  total_len = static_cast<uint16_t>(impl_->ms_os_20_desc.size());
+  return impl_->ms_os_20_desc.data();
+}
+
+const uint8_t *UsbDevice::webusb_url_descriptor(uint8_t &length) const {
+  if (impl_->webusb_url_desc.empty())
+    return nullptr;
+  length = static_cast<uint8_t>(impl_->webusb_url_desc.size());
+  return impl_->webusb_url_desc.data();
+}
+
+// ---------------------------------------------------------------------------
+// RX handling.
+// ---------------------------------------------------------------------------
+
+void UsbDevice::handle_cdc_rx() {
+  receive_callback_fn cb;
+  {
+    std::scoped_lock lk(cb_mutex_);
+    cb = on_cdc_receive_;
+  }
+  if (!cb || !config_.cdc)
+    return;
+  std::vector<uint8_t> buf(config_.cdc->rx_chunk_size);
+  size_t rx_size = 0;
+  do {
+    rx_size = 0;
+    esp_err_t err = tinyusb_cdcacm_read(kCdcPort, buf.data(), buf.size(), &rx_size);
+    if (err != ESP_OK) {
+      logger_.error("CDC read error: {}", esp_err_to_name(err));
+      break;
+    }
+    if (rx_size > 0)
+      cb(std::span<const uint8_t>(buf.data(), rx_size));
+  } while (rx_size == buf.size());
+}
+
+void UsbDevice::handle_vendor_rx() {
+#if (CFG_TUD_VENDOR > 0)
+  receive_callback_fn cb;
+  {
+    std::scoped_lock lk(cb_mutex_);
+    cb = on_vendor_receive_;
+  }
+  if (!cb || !config_.vendor)
+    return;
+  std::vector<uint8_t> buf(config_.vendor->rx_chunk_size);
+  while (tud_vendor_available()) {
+    uint32_t count = tud_vendor_read(buf.data(), buf.size());
+    if (count == 0)
+      break;
+    cb(std::span<const uint8_t>(buf.data(), count));
+  }
+#endif
+}
+
+// ---------------------------------------------------------------------------
+// Initialization: build descriptors from the selected functions.
+// ---------------------------------------------------------------------------
+
+bool UsbDevice::initialize(std::error_code &ec) {
+  ec.clear();
+  if (initialized_) {
+    logger_.warn("Already initialized");
+    return true;
+  }
+  if (s_device != nullptr) {
+    logger_.error("Another UsbDevice/UsbCdc instance is already active");
+    ec = std::make_error_code(std::errc::device_or_resource_busy);
+    return false;
+  }
+  if (!config_.cdc && !config_.vendor) {
+    logger_.error("No USB function enabled (enable cdc and/or vendor)");
+    ec = std::make_error_code(std::errc::invalid_argument);
+    return false;
+  }
+  if (config_.hid || config_.msc) {
+    // Reserved extension points; not implemented yet (see README endpoint table).
+    logger_.error("HID/MSC functions are not implemented yet");
+    ec = std::make_error_code(std::errc::function_not_supported);
+    return false;
+  }
+  if (config_.vendor) {
+#if (CFG_TUD_VENDOR == 0)
+    logger_.error("Vendor function requested but CFG_TUD_VENDOR==0. Set "
+                  "CONFIG_TINYUSB_VENDOR_COUNT>0 in sdkconfig.");
+    ec = std::make_error_code(std::errc::function_not_supported);
+    return false;
+#endif
+  }
+
+  // --- Sequentially allocate interface numbers, endpoint addresses, strings ---
+  uint8_t next_itf = 0;
+  uint8_t next_ep = 1; // endpoint number (1..); IN uses 0x80|n, OUT uses n
+  uint8_t in_used = 0, out_used = 0;
+  const int ep_size = (TUD_OPT_HIGH_SPEED ? 512 : 64);
+
+  // String table: 0=LANGID, 1=manufacturer, 2=product, 3=serial, then per-itf.
+  impl_->owned_strings = {config_.manufacturer, config_.product, config_.serial_number};
+  uint8_t next_str = 4;
+
+  uint8_t cdc_itf = 0, cdc_str = 0, cdc_notif = 0, cdc_out = 0, cdc_in = 0;
+  if (config_.cdc) {
+    cdc_itf = next_itf;
+    next_itf = static_cast<uint8_t>(next_itf + 2); // comm + data interfaces
+    cdc_str = next_str++;
+    impl_->owned_strings.push_back(config_.cdc->interface_name);
+    cdc_notif = static_cast<uint8_t>(0x80 | next_ep++); // interrupt IN (notification)
+    in_used++;
+    const uint8_t data_ep = next_ep++;
+    cdc_out = data_ep;                             // bulk OUT
+    cdc_in = static_cast<uint8_t>(0x80 | data_ep); // bulk IN
+    in_used++;
+    out_used++;
+  }
+
+  uint8_t vendor_itf = 0, vendor_str = 0, vendor_out = 0, vendor_in = 0;
+  if (config_.vendor) {
+    vendor_itf = next_itf++;
+    vendor_str = next_str++;
+    impl_->owned_strings.push_back(config_.vendor->interface_name);
+    const uint8_t v_ep = next_ep++;
+    vendor_out = v_ep;                             // bulk OUT
+    vendor_in = static_cast<uint8_t>(0x80 | v_ep); // bulk IN
+    in_used++;
+    out_used++;
+    impl_->vendor_itf = vendor_itf;
+  }
+
+  // --- Endpoint budget check ---
+  if (in_used > kMaxInEndpoints || out_used > kMaxOutEndpoints) {
+    logger_.error("Endpoint budget exceeded: IN={} (max {}), OUT={} (max {})", in_used,
+                  kMaxInEndpoints, out_used, kMaxOutEndpoints);
+    ec = std::make_error_code(std::errc::value_too_large);
+    return false;
+  }
+
+  // --- Build the string pointer table TinyUSB reads ---
+  impl_->strings.clear();
+  impl_->strings.push_back(reinterpret_cast<const char *>(impl_->langid.data()));
+  for (const auto &s : impl_->owned_strings)
+    impl_->strings.push_back(s.c_str());
+
+  // --- Device descriptor ---
+  const bool webusb = config_.vendor && config_.vendor->webusb;
+  impl_->device_desc = tusb_desc_device_t{};
+  impl_->device_desc.bLength = sizeof(tusb_desc_device_t);
+  impl_->device_desc.bDescriptorType = TUSB_DESC_DEVICE;
+  // BOS/WebUSB requires bcdUSB >= 2.1.
+  impl_->device_desc.bcdUSB = webusb ? 0x0210 : 0x0200;
+  impl_->device_desc.bDeviceClass = TUSB_CLASS_MISC;
+  impl_->device_desc.bDeviceSubClass = MISC_SUBCLASS_COMMON;
+  impl_->device_desc.bDeviceProtocol = MISC_PROTOCOL_IAD;
+  impl_->device_desc.bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE;
+  impl_->device_desc.idVendor = config_.vid;
+  impl_->device_desc.idProduct = config_.pid;
+  impl_->device_desc.bcdDevice = 0x0100;
+  impl_->device_desc.iManufacturer = 0x01;
+  impl_->device_desc.iProduct = 0x02;
+  impl_->device_desc.iSerialNumber = 0x03;
+  impl_->device_desc.bNumConfigurations = 0x01;
+
+  // --- Configuration descriptor ---
+  uint8_t itf_count = 0;
+  uint16_t total_len = TUD_CONFIG_DESC_LEN;
+  if (config_.cdc) {
+    itf_count = static_cast<uint8_t>(itf_count + 2);
+    total_len = static_cast<uint16_t>(total_len + TUD_CDC_DESC_LEN);
+  }
+  if (config_.vendor) {
+    itf_count = static_cast<uint8_t>(itf_count + 1);
+    total_len = static_cast<uint16_t>(total_len + TUD_VENDOR_DESC_LEN);
+  }
+
+  impl_->config_desc.clear();
+  auto append = [&](const uint8_t *p, size_t n) {
+    impl_->config_desc.insert(impl_->config_desc.end(), p, p + n);
+  };
+  {
+    const uint8_t hdr[] = {
+        // config number, interface count, string index, total length, attribute, power (mA)
+        TUD_CONFIG_DESCRIPTOR(1, itf_count, 0, total_len, TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
+    };
+    append(hdr, sizeof(hdr));
+  }
+  if (config_.cdc) {
+    const uint8_t d[] = {
+        TUD_CDC_DESCRIPTOR(cdc_itf, cdc_str, cdc_notif, 8, cdc_out, cdc_in, ep_size),
+    };
+    append(d, sizeof(d));
+  }
+  if (config_.vendor) {
+    const uint8_t d[] = {
+        TUD_VENDOR_DESCRIPTOR(vendor_itf, vendor_str, vendor_out, vendor_in, ep_size),
+    };
+    append(d, sizeof(d));
+  }
+
+  // --- WebUSB / MS OS 2.0 descriptors (only when the vendor+WebUSB is enabled) ---
+  if (webusb) {
+    const auto &v = *config_.vendor;
+
+    // WebUSB URL descriptor: bLength, bDescriptorType(3), bScheme, url...
+    impl_->webusb_url_desc.clear();
+    impl_->webusb_url_desc.push_back(static_cast<uint8_t>(3 + v.landing_page_url.size()));
+    impl_->webusb_url_desc.push_back(3); // WEBUSB URL descriptor type
+    impl_->webusb_url_desc.push_back(v.url_scheme);
+    impl_->webusb_url_desc.insert(impl_->webusb_url_desc.end(), v.landing_page_url.begin(),
+                                  v.landing_page_url.end());
+
+    // MS OS 2.0 descriptor set (identical layout to TinyUSB's webusb example, with
+    // the function-subset "first interface" byte set to our vendor interface).
+    const uint8_t ms_os_20[] = {
+        // Set header: length, type, windows version, total length
+        U16_TO_U8S_LE(0x000A),
+        U16_TO_U8S_LE(MS_OS_20_SET_HEADER_DESCRIPTOR),
+        U32_TO_U8S_LE(0x06030000),
+        U16_TO_U8S_LE(kMsOs20DescLen),
+        // Configuration subset header: length, type, config index, reserved, total length
+        U16_TO_U8S_LE(0x0008),
+        U16_TO_U8S_LE(MS_OS_20_SUBSET_HEADER_CONFIGURATION),
+        0,
+        0,
+        U16_TO_U8S_LE(kMsOs20DescLen - 0x0A),
+        // Function subset header: length, type, first interface, reserved, subset length
+        U16_TO_U8S_LE(0x0008),
+        U16_TO_U8S_LE(MS_OS_20_SUBSET_HEADER_FUNCTION),
+        vendor_itf,
+        0,
+        U16_TO_U8S_LE(kMsOs20DescLen - 0x0A - 0x08),
+        // MS OS 2.0 compatible ID: length, type, compatible ID, sub compatible ID
+        U16_TO_U8S_LE(0x0014),
+        U16_TO_U8S_LE(MS_OS_20_FEATURE_COMPATBLE_ID),
+        'W',
+        'I',
+        'N',
+        'U',
+        'S',
+        'B',
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        // MS OS 2.0 registry property: length, type
+        U16_TO_U8S_LE(kMsOs20DescLen - 0x0A - 0x08 - 0x08 - 0x14),
+        U16_TO_U8S_LE(MS_OS_20_FEATURE_REG_PROPERTY),
+        U16_TO_U8S_LE(0x0007),
+        U16_TO_U8S_LE(0x002A),
+        'D',
+        0x00,
+        'e',
+        0x00,
+        'v',
+        0x00,
+        'i',
+        0x00,
+        'c',
+        0x00,
+        'e',
+        0x00,
+        'I',
+        0x00,
+        'n',
+        0x00,
+        't',
+        0x00,
+        'e',
+        0x00,
+        'r',
+        0x00,
+        'f',
+        0x00,
+        'a',
+        0x00,
+        'c',
+        0x00,
+        'e',
+        0x00,
+        'G',
+        0x00,
+        'U',
+        0x00,
+        'I',
+        0x00,
+        'D',
+        0x00,
+        's',
+        0x00,
+        0x00,
+        0x00,
+        U16_TO_U8S_LE(0x0050),
+        // bPropertyData: "{975F44D9-0D08-43FD-8B3E-127CA8AFFF9D}"
+        '{',
+        0x00,
+        '9',
+        0x00,
+        '7',
+        0x00,
+        '5',
+        0x00,
+        'F',
+        0x00,
+        '4',
+        0x00,
+        '4',
+        0x00,
+        'D',
+        0x00,
+        '9',
+        0x00,
+        '-',
+        0x00,
+        '0',
+        0x00,
+        'D',
+        0x00,
+        '0',
+        0x00,
+        '8',
+        0x00,
+        '-',
+        0x00,
+        '4',
+        0x00,
+        '3',
+        0x00,
+        'F',
+        0x00,
+        'D',
+        0x00,
+        '-',
+        0x00,
+        '8',
+        0x00,
+        'B',
+        0x00,
+        '3',
+        0x00,
+        'E',
+        0x00,
+        '-',
+        0x00,
+        '1',
+        0x00,
+        '2',
+        0x00,
+        '7',
+        0x00,
+        'C',
+        0x00,
+        'A',
+        0x00,
+        '8',
+        0x00,
+        'A',
+        0x00,
+        'F',
+        0x00,
+        'F',
+        0x00,
+        'F',
+        0x00,
+        '9',
+        0x00,
+        'D',
+        0x00,
+        '}',
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+    };
+    static_assert(sizeof(ms_os_20) == kMsOs20DescLen, "MS OS 2.0 descriptor size mismatch");
+    impl_->ms_os_20_desc.assign(ms_os_20, ms_os_20 + sizeof(ms_os_20));
+
+    // BOS descriptor: WebUSB + MS OS 2.0 platform capabilities.
+    const uint16_t bos_total =
+        TUD_BOS_DESC_LEN + TUD_BOS_WEBUSB_DESC_LEN + TUD_BOS_MICROSOFT_OS_DESC_LEN;
+    const uint8_t bos[] = {
+        TUD_BOS_DESCRIPTOR(bos_total, 2),
+        TUD_BOS_WEBUSB_DESCRIPTOR(v.webusb_vendor_code, 1),
+        TUD_BOS_MS_OS_20_DESCRIPTOR(kMsOs20DescLen, v.ms_os_vendor_code),
+    };
+    impl_->bos_desc.assign(bos, bos + sizeof(bos));
+  }
+
+  // --- Install the TinyUSB driver with our descriptors ---
+  tinyusb_config_t tusb_cfg = TINYUSB_DEFAULT_CONFIG();
+  tusb_cfg.descriptor.device = &impl_->device_desc;
+  tusb_cfg.descriptor.string = impl_->strings.data();
+  tusb_cfg.descriptor.string_count = static_cast<int>(impl_->strings.size());
+  tusb_cfg.descriptor.full_speed_config = impl_->config_desc.data();
+#if (TUD_OPT_HIGH_SPEED)
+  tusb_cfg.descriptor.high_speed_config = impl_->config_desc.data();
+#endif
+
+  // Register before installing so the BOS / vendor callbacks can find us.
+  s_device = this;
+
+  esp_err_t err = tinyusb_driver_install(&tusb_cfg);
+  if (err != ESP_OK) {
+    logger_.error("tinyusb_driver_install failed: {}", esp_err_to_name(err));
+    s_device = nullptr;
+    ec = std::make_error_code(std::errc::io_error);
+    return false;
+  }
+
+  // --- Initialize the CDC-ACM function (vendor needs no explicit init) ---
+  if (config_.cdc) {
+    tinyusb_config_cdcacm_t acm_cfg = {};
+    acm_cfg.cdc_port = kCdcPort;
+    acm_cfg.callback_rx = &cdc_rx_trampoline;
+    acm_cfg.callback_rx_wanted_char = nullptr;
+    acm_cfg.callback_line_state_changed = nullptr;
+    acm_cfg.callback_line_coding_changed = nullptr;
+    err = tinyusb_cdcacm_init(&acm_cfg);
+    if (err != ESP_OK) {
+      logger_.error("tinyusb_cdcacm_init failed: {}", esp_err_to_name(err));
+      s_device = nullptr;
+      tinyusb_driver_uninstall();
+      ec = std::make_error_code(std::errc::io_error);
+      return false;
+    }
+  }
+
+  initialized_ = true;
+  logger_.info("Initialized native USB device (VID=0x{:04x} PID=0x{:04x}) cdc={} vendor={}{}",
+               config_.vid, config_.pid, config_.cdc.has_value(), config_.vendor.has_value(),
+               webusb ? " webusb" : "");
+  return true;
+}
+
+// ---------------------------------------------------------------------------
+// Write paths.
+// ---------------------------------------------------------------------------
+
+bool UsbDevice::write_cdc(std::span<const uint8_t> data, std::error_code &ec) {
+  ec.clear();
+  if (!initialized_ || !config_.cdc) {
+    ec = std::make_error_code(std::errc::not_connected);
+    return false;
+  }
+  size_t offset = 0;
+  while (offset < data.size()) {
+    size_t queued =
+        tinyusb_cdcacm_write_queue(kCdcPort, data.data() + offset, data.size() - offset);
+    if (queued == 0) {
+      tinyusb_cdcacm_write_flush(kCdcPort, 0);
+      queued = tinyusb_cdcacm_write_queue(kCdcPort, data.data() + offset, data.size() - offset);
+      if (queued == 0) {
+        logger_.warn_rate_limited("CDC TX buffer full, dropping {} bytes", data.size() - offset);
+        ec = std::make_error_code(std::errc::no_buffer_space);
+        break;
+      }
+    }
+    offset += queued;
+    tinyusb_cdcacm_write_flush(kCdcPort, 0);
+  }
+  return offset == data.size();
+}
+
+bool UsbDevice::write_cdc(std::span<const uint8_t> data) {
+  std::error_code ec;
+  return write_cdc(data, ec);
+}
+
+bool UsbDevice::write_vendor(std::span<const uint8_t> data, std::error_code &ec) {
+  ec.clear();
+#if (CFG_TUD_VENDOR > 0)
+  if (!initialized_ || !config_.vendor) {
+    ec = std::make_error_code(std::errc::not_connected);
+    return false;
+  }
+  size_t offset = 0;
+  while (offset < data.size()) {
+    uint32_t queued = tud_vendor_write(data.data() + offset, data.size() - offset);
+    tud_vendor_write_flush();
+    if (queued == 0) {
+      logger_.warn_rate_limited("Vendor TX buffer full, dropping {} bytes", data.size() - offset);
+      ec = std::make_error_code(std::errc::no_buffer_space);
+      break;
+    }
+    offset += queued;
+  }
+  return offset == data.size();
+#else
+  (void)data;
+  ec = std::make_error_code(std::errc::function_not_supported);
+  return false;
+#endif
+}
+
+bool UsbDevice::write_vendor(std::span<const uint8_t> data) {
+  std::error_code ec;
+  return write_vendor(data, ec);
+}
+
+void UsbDevice::set_cdc_receive_callback(const receive_callback_fn &cb) {
+  std::scoped_lock lk(cb_mutex_);
+  on_cdc_receive_ = cb;
+}
+
+void UsbDevice::set_vendor_receive_callback(const receive_callback_fn &cb) {
+  std::scoped_lock lk(cb_mutex_);
+  on_vendor_receive_ = cb;
+}
+
+bool UsbDevice::is_initialized() const { return initialized_; }
+
+bool UsbDevice::is_cdc_connected() const {
+  if (!initialized_ || !config_.cdc)
+    return false;
+  return tud_cdc_n_connected(kCdcPort);
+}
+
+bool UsbDevice::is_vendor_connected() const {
+  if (!initialized_ || !config_.vendor)
+    return false;
+  return tud_mounted();
+}
+
+} // namespace espp

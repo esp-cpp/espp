@@ -1,6 +1,6 @@
 ## IDF Component Manager Manifest File
 license: "MIT"
-description: "Native USB CDC-ACM transport (esp_tinyusb) with configurable VID/PID for ESP-IDF"
+description: "Composable native USB device (esp_tinyusb): CDC-ACM + vendor-specific/WebUSB with configurable VID/PID for ESP-IDF"
 url: "https://github.com/esp-cpp/espp/tree/main/components/usb_device"
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
@@ -14,6 +14,8 @@ tags:
   - USB
   - CDC
   - CDC-ACM
+  - Vendor
+  - WebUSB
   - TinyUSB
   - Serial
   - Transport

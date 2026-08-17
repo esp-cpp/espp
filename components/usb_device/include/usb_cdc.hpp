@@ -3,34 +3,32 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
-#include <mutex>
 #include <span>
 #include <string>
 #include <system_error>
 
 #include "base_component.hpp"
+#include "usb_device.hpp"
 
 namespace espp {
 
 /**
- * @brief Native USB CDC-ACM transport built on ESP-IDF's `esp_tinyusb` managed
- *        component and the ESP32-S3 / -S2 / -P4 USB-OTG peripheral.
+ * @brief Native USB CDC-ACM transport: a thin CDC-only preset over
+ *        `espp::UsbDevice`.
  *
  * @details `espp::UsbCdc` presents a single dedicated CDC-ACM (virtual serial
  * port) interface on the native USB peripheral with a *configurable* VID/PID and
- * manufacturer / product / serial strings. This lets a device advertise its own
- * identifiers (e.g. ODrive-like) on a link that is completely separate from the
- * ESP console (which normally rides the built-in USB-Serial-JTAG peripheral or a
- * UART). Incoming bytes are delivered to a user callback and outgoing bytes are
- * sent via write().
+ * manufacturer / product / serial strings. It is kept for back-compatibility and
+ * is implemented on top of the composable `espp::UsbDevice` (which can also add a
+ * vendor-specific / WebUSB interface, HID, MSC, ...). For anything beyond a plain
+ * serial port, prefer `espp::UsbDevice` directly.
  *
- * The class is a thin, idiomatic espp wrapper: it does not throw, reports
- * initialization failures via `std::error_code`, and marshals the TinyUSB RX
- * callback (which runs in the TinyUSB device task context) into the user's
- * receive callback.
+ * Incoming bytes are delivered to a user callback and outgoing bytes are sent via
+ * write(). The class does not throw and reports initialization failures via
+ * `std::error_code`.
  *
- * @note Only one instance per CDC port should be created. USB-OTG is only
- *       available on the ESP32-S2, ESP32-S3 and ESP32-P4 targets.
+ * @note Only one `espp::UsbCdc` / `espp::UsbDevice` instance may exist at a time.
+ *       USB-OTG is only available on the ESP32-S2, ESP32-S3 and ESP32-P4 targets.
  *
  * @note The receive callback is invoked from the TinyUSB device task. Keep it
  *       short and non-blocking; it is safe to call write() from within it.
@@ -85,7 +83,6 @@ public:
    *        the configured descriptors / VID-PID / strings.
    * @param[out] ec Set on failure.
    * @return true on success, false otherwise (ec is set).
-   * @note Safe to call once. Subsequent calls while already initialized are no-ops.
    */
   bool initialize(std::error_code &ec);
 
@@ -94,7 +91,6 @@ public:
    * @param data Bytes to send.
    * @param[out] ec Set on failure (e.g. not initialized).
    * @return true if all bytes were queued, false otherwise.
-   * @note Uses a non-blocking flush; safe to call from the receive callback.
    */
   bool write(std::span<const uint8_t> data, std::error_code &ec);
 
@@ -121,22 +117,9 @@ public:
    */
   bool is_connected() const;
 
-  /**
-   * @brief Internal: drain the CDC RX FIFO and dispatch to the receive callback.
-   * @note Invoked from the TinyUSB device task via the C callback trampoline.
-   *       Not intended to be called by application code.
-   */
-  void handle_rx();
-
 private:
-  struct Impl; // holds TinyUSB descriptors, kept alive for driver lifetime
-  std::unique_ptr<Impl> impl_;
-
   Config config_;
-  bool initialized_{false};
-
-  std::mutex cb_mutex_;
-  receive_callback_fn on_receive_;
+  std::unique_ptr<UsbDevice> device_;
 };
 
 } // namespace espp
