@@ -1,0 +1,34 @@
+name: ODrive native interop (fibre serial loopback)
+
+# Minimal token scope: the harness only checks out, builds, and fetches the
+# reference fibre client; it never writes.
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    paths:
+      - "components/odrive_native/**"
+      - "pc/tests/odrive_native_*"
+      - ".github/workflows/odrive_native_interop.yml"
+  workflow_dispatch:
+
+# Supersede in-progress runs on the same PR (or ref for manual dispatch); keyed by
+# workflow + PR number (globally unique, unlike a head branch two forks can share).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  interop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run fibre serial-loopback interop
+        run: |
+          cd components/odrive_native/interop
+          ./run.sh

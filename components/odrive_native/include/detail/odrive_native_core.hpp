@@ -448,7 +448,15 @@ private:
     }
     json_.clear();
     append_members(json_, root);
-    json_crc_ = odrive_crc16(json_);
+    // The endpoint canary (interface-definition CRC) is CRC-16 over the JSON
+    // descriptor seeded with PROTOCOL_VERSION as the init value -- NOT the
+    // 0x1337 packet-CRC init. This matches the fw-v0.5.1 firmware
+    //   json_crc_ = calc_crc16(PROTOCOL_VERSION, embedded_json, len)   (endpoints_template.j2)
+    // and the reference fibre client
+    //   json_crc16 = calc_crc16(PROTOCOL_VERSION, json_bytes)          (discovery.py)
+    // so that a real fibre client's endpoint-N trailer matches. Verified by the
+    // serial-loopback interop harness (components/odrive_native/interop).
+    json_crc_ = odrive_crc16(json_, kProtocolVersion);
     finalized_ = true;
   }
 

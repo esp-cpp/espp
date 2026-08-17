@@ -73,9 +73,15 @@ exact bytes). Top level is an **array** of the root object's members. Entries:
 - object:   `{"name":<str>,"type":"object","members":[ ... ]}`
 - function: `{"name":<str>,"id":<int>,"type":"function","inputs":[...],"outputs":[...]}`
 
-`json_crc` = `calc_crc16(json_bytes, init=0x1337)`. The server computes it over
-the bytes it emits; `odrivetool` computes it over the bytes it reads; they must
-match byte-for-byte.
+`json_crc` = `calc_crc16(json_bytes, init=PROTOCOL_VERSION=1)` — the endpoint
+canary is seeded with `PROTOCOL_VERSION`, **not** the 0x1337 packet-CRC init. This
+matches the fw-v0.5.1 firmware (`endpoints_template.j2`:
+`json_crc_ = calc_crc16(PROTOCOL_VERSION, embedded_json, len)`) and the reference
+fibre client (`discovery.py`: `calc_crc16(PROTOCOL_VERSION, json_bytes)`). The
+server computes it over the bytes it emits; `odrivetool` computes it over the
+bytes it reads; they must match byte-for-byte. (Verified by the serial-loopback
+interop harness in `interop/`; only the 0x1337 init applies to the UART *stream*
+framing CRC16 and the packet trailer of endpoint 0, which is `PROTOCOL_VERSION`.)
 
 ## `espp::OdriveNative` (transport-agnostic, mirrors `espp::OdriveAscii`)
 - `std::vector<uint8_t> process_bytes(std::span<const uint8_t>)` — one packet in,

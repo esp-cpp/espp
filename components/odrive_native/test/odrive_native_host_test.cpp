@@ -75,8 +75,11 @@ static void test_endpoint0_read() {
       [&](float, std::error_code &) { return true; });
 
   const std::string json = core.json();
-  // JSON CRC must equal crc16 over the exact JSON bytes.
-  CHECK(core.json_crc() == odrive_crc16(json));
+  // The endpoint canary (interface-definition CRC) is CRC-16 over the exact JSON
+  // bytes seeded with PROTOCOL_VERSION (1) -- matching the fw-v0.5.1 firmware and
+  // the reference fibre client (verified by the interop harness), NOT the 0x1337
+  // packet-CRC init.
+  CHECK(core.json_crc() == odrive_crc16(json, espp::detail::kProtocolVersion));
 
   // Read endpoint 0 from offset 0, want up to 512 bytes.
   std::vector<uint8_t> off0;
