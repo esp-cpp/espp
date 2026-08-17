@@ -20,6 +20,9 @@ dependencies:
   espp/odrive_ascii:
     version: '*'
     override_path: '../../../odrive_ascii'
+  espp/odrive_native:
+    version: '*'
+    override_path: '../../../odrive_native'
   espp/usb_device:
     version: '*'
     override_path: '../..'
