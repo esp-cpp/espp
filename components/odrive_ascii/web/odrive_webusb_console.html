@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ODrive ASCII WebUSB Console</title>
+  <!--
+    ODrive ASCII WebUSB Console
+    ===========================
+    A single-file, fully offline, dependency-free browser console for the
+    espp::OdriveAscii protocol (see components/odrive_ascii/).
+
+    This is the WebUSB sibling of odrive_console.html (which uses Web Serial).
+    Instead of talking to a CDC serial/COM port, it talks to the firmware's
+    dedicated USB *vendor* interface (bInterfaceClass = 0xFF) that carries the
+    raw ODrive ASCII byte stream over a bulk IN / bulk OUT endpoint pair.
+
+    We do NOT hardcode interface or endpoint numbers: after the user picks a
+    device we open it, select configuration 1, then walk the USB descriptors to
+    find the vendor (0xFF) alternate and its bulk IN/OUT endpoints at runtime.
+
+    All commands are newline-terminated ASCII, and responses are
+    newline-terminated ASCII arriving in arbitrary bulk chunks; we buffer RX and
+    split on '\n'.
+
+    No external dependencies, no CDN, no network fetches. Works from a file://
+    URL, http://localhost, or any secure (https) origin in a Chromium-based
+    browser that implements WebUSB.
+  -->
+  <style>
+    /* ---------------------------------------------------------------------
+       Theme-aware color tokens. Defaults are the light theme; the dark theme
+       overrides them under prefers-color-scheme: dark.
+       --------------------------------------------------------------------- */
+    :root {
+      --bg: #f4f6f9;
+      --panel-bg: #ffffff;
+      --panel-border: #d9dee6;
+      --text: #1c2330;
+      --text-muted: #5c6675;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-contrast: #ffffff;
+      --danger: #dc2626;
+      --ok: #16a34a;
+      --log-bg: #0f1420;
+      --log-text: #d6dbe6;
+      --tx-color: #7dd3fc;   /* cyan-ish for transmitted lines */
+      --rx-color: #86efac;   /* green-ish for received lines */
+      --err-color: #fca5a5;  /* red-ish for errors / notices */
+      --sys-color: #fcd34d;  /* yellow-ish for system messages */
+      --time-color: #64748b;
+      --input-bg: #ffffff;
+      --input-border: #c3cbd6;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+      --spark-pos: #2563eb;
+      --spark-vel: #db2777;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b0e14;
+        --panel-bg: #151a23;
+        --panel-border: #262d3a;
+        --text: #e6eaf2;
+        --text-muted: #98a2b3;
+        --accent: #3b82f6;
+        --accent-hover: #60a5fa;
+        --accent-contrast: #0b0e14;
+        --danger: #ef4444;
+        --ok: #22c55e;
+        --log-bg: #05070c;
+        --log-text: #cdd4e0;
+        --tx-color: #38bdf8;
+        --rx-color: #4ade80;
+        --err-color: #f87171;
+        --sys-color: #fbbf24;
+        --time-color: #64748b;
+        --input-bg: #0e1219;
+        --input-border: #2b3341;
+        --shadow: 0 1px 3px rgba(0,0,0,0.4);
+        --spark-pos: #60a5fa;
+        --spark-vel: #f472b6;
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+      overflow-x: hidden; /* never scroll the body horizontally */
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--panel-border);
+      background: var(--panel-bg);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    header h1 {
+      font-size: 17px;
+      margin: 0;
+      font-weight: 650;
+      letter-spacing: 0.2px;
+    }
+    header .spacer { flex: 1 1 auto; }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 5px 11px;
+      border-radius: 999px;
+      border: 1px solid var(--panel-border);
+      background: var(--bg);
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    .status-dot {
+      width: 9px; height: 9px; border-radius: 50%;
+      background: var(--text-muted);
+      flex: 0 0 auto;
+    }
+    .status-pill.connected { color: var(--ok); }
+    .status-pill.connected .status-dot { background: var(--ok); }
+    .status-pill.error { color: var(--danger); }
+    .status-pill.error .status-dot { background: var(--danger); }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+      gap: 16px;
+      padding: 16px 18px;
+      max-width: 1500px;
+      margin: 0 auto;
+    }
+    /* Stack columns on narrow viewports */
+    @media (max-width: 900px) {
+      main { grid-template-columns: minmax(0, 1fr); }
+    }
+
+    .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+    .panel {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      padding: 14px 15px;
+      box-shadow: var(--shadow);
+      min-width: 0;
+    }
+    .panel h2 {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-muted);
+      margin: 0 0 11px 0;
+      font-weight: 700;
+    }
+
+    /* Form controls -------------------------------------------------------- */
+    label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 3px; }
+    input, select, button {
+      font-family: inherit;
+      font-size: 14px;
+    }
+    input[type="text"], input[type="number"], select {
+      width: 100%;
+      padding: 7px 9px;
+      border-radius: 7px;
+      border: 1px solid var(--input-border);
+      background: var(--input-bg);
+      color: var(--text);
+      min-width: 0;
+    }
+    input:focus, select:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: -1px;
+      border-color: var(--accent);
+    }
+    input.mono, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+    button {
+      cursor: pointer;
+      border: 1px solid var(--input-border);
+      background: var(--bg);
+      color: var(--text);
+      padding: 7px 13px;
+      border-radius: 7px;
+      font-weight: 600;
+      white-space: nowrap;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    button:hover:not(:disabled) { border-color: var(--accent); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    button.primary {
+      background: var(--accent);
+      color: var(--accent-contrast);
+      border-color: var(--accent);
+    }
+    button.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+    button.danger { color: var(--danger); border-color: var(--danger); }
+    button.small { padding: 5px 10px; font-size: 13px; }
+
+    .row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+    .row > .grow { flex: 1 1 120px; min-width: 0; }
+    .field { min-width: 0; }
+    .field.axis { flex: 0 0 72px; }
+    .field.small-num { flex: 0 0 100px; }
+
+    .hint { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+    .hint code, .mono.inline { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+    /* Silent-mode notice --------------------------------------------------- */
+    .notice {
+      font-size: 12px;
+      color: var(--text-muted);
+      border-left: 3px solid var(--accent);
+      padding: 6px 10px;
+      margin-top: 10px;
+      background: color-mix(in srgb, var(--accent) 8%, transparent);
+      border-radius: 0 6px 6px 0;
+    }
+
+    /* Unsupported-browser banner ------------------------------------------ */
+    #unsupported {
+      display: none;
+      margin: 16px 18px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--danger);
+      background: color-mix(in srgb, var(--danger) 12%, transparent);
+      color: var(--text);
+    }
+    #unsupported strong { color: var(--danger); }
+
+    /* Log / scrollback ----------------------------------------------------- */
+    .log-panel { display: flex; flex-direction: column; }
+    .log-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .log-toolbar .spacer { flex: 1 1 auto; }
+    .checkbox-inline {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--text-muted);
+      margin: 0;
+      cursor: pointer;
+      user-select: none;
+    }
+    .checkbox-inline input { width: auto; margin: 0; }
+
+    #log {
+      background: var(--log-bg);
+      color: var(--log-text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      border-radius: 8px;
+      padding: 10px 12px;
+      height: 46vh;
+      min-height: 240px;
+      overflow-y: auto;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    .log-line { display: block; }
+    .log-time { color: var(--time-color); }
+    .log-tx { color: var(--tx-color); }
+    .log-rx { color: var(--rx-color); }
+    .log-err { color: var(--err-color); }
+    .log-sys { color: var(--sys-color); }
+
+    /* Feedback readout ----------------------------------------------------- */
+    .readout {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      margin: 10px 0 8px;
+    }
+    .readout .metric { min-width: 90px; }
+    .readout .metric .label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .readout .metric .value { font-size: 20px; font-weight: 700; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+    canvas#spark {
+      width: 100%;
+      height: 90px;
+      display: block;
+      background: var(--log-bg);
+      border-radius: 8px;
+      margin-top: 6px;
+    }
+    .legend { display: flex; gap: 16px; font-size: 12px; margin-top: 6px; color: var(--text-muted); }
+    .legend .swatch { display: inline-block; width: 11px; height: 11px; border-radius: 2px; vertical-align: middle; margin-right: 5px; }
+
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 520px) { .grid2 { grid-template-columns: 1fr; } }
+
+    footer {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 12px;
+      padding: 8px 18px 22px;
+    }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>ODrive ASCII &mdash; WebUSB Console</h1>
+    <div class="spacer"></div>
+    <label class="checkbox-inline" title="Show every USB device in the chooser instead of only the default ODrive VID/PID (0x1209/0x0d32).">
+      <input type="checkbox" id="anyDevice"> Any device
+    </label>
+    <button id="connectBtn" class="primary">Connect</button>
+    <span id="status" class="status-pill"><span class="status-dot"></span><span id="statusText">Disconnected</span></span>
+  </header>
+
+  <!-- Shown only when navigator.usb is unavailable -->
+  <div id="unsupported">
+    <strong>WebUSB is not available in this browser.</strong>
+    WebUSB requires a Chromium-based browser (Chrome, Edge, Opera, Brave &mdash;
+    Firefox and Safari do not implement it) served over
+    <span class="mono">https://</span>, <span class="mono">http://localhost</span>,
+    or a <span class="mono">file://</span> URL.
+  </div>
+
+  <main>
+    <!-- ============================ LEFT COLUMN ============================ -->
+    <div class="col">
+      <!-- Log / scrollback -->
+      <div class="panel log-panel">
+        <div class="log-toolbar">
+          <h2 style="margin:0;">Console Log</h2>
+          <div class="spacer"></div>
+          <label class="checkbox-inline"><input type="checkbox" id="autoscroll" checked> Autoscroll</label>
+          <label class="checkbox-inline"><input type="checkbox" id="echoLocal" checked> Echo TX</label>
+          <button id="clearLogBtn" class="small">Clear</button>
+        </div>
+        <div id="log" aria-live="polite"></div>
+      </div>
+
+      <!-- Raw command input -->
+      <div class="panel">
+        <h2>Raw Command</h2>
+        <div class="row">
+          <div class="grow">
+            <input type="text" id="cmdInput" class="mono" placeholder="e.g. r axis0.encoder.pos_estimate  (Enter to send, Up/Down for history)" autocomplete="off" spellcheck="false" disabled>
+          </div>
+          <button id="sendBtn" class="primary" disabled>Send</button>
+        </div>
+        <div class="hint">A trailing <span class="mono">\n</span> is appended automatically. Use Up/Down arrows to recall previous commands.</div>
+      </div>
+
+      <!-- Feedback polling + sparkline -->
+      <div class="panel">
+        <h2>Feedback &amp; Polling</h2>
+        <div class="row">
+          <div class="field axis">
+            <label for="fbAxis">Axis</label>
+            <input type="number" id="fbAxis" class="mono" value="0" min="0" step="1">
+          </div>
+          <div class="field small-num">
+            <label for="pollRate">Rate (Hz)</label>
+            <input type="number" id="pollRate" class="mono" value="10" min="0.2" max="100" step="0.5">
+          </div>
+          <button id="fbOnceBtn" disabled>Read f once</button>
+          <label class="checkbox-inline" style="align-self:center;">
+            <input type="checkbox" id="pollToggle" disabled> Poll continuously
+          </label>
+        </div>
+        <div class="readout">
+          <div class="metric"><div class="label">Position</div><div class="value" id="fbPos">&mdash;</div></div>
+          <div class="metric"><div class="label">Velocity</div><div class="value" id="fbVel">&mdash;</div></div>
+        </div>
+        <canvas id="spark" width="600" height="90"></canvas>
+        <div class="legend">
+          <span><span class="swatch" style="background:var(--spark-pos)"></span>pos</span>
+          <span><span class="swatch" style="background:var(--spark-vel)"></span>vel</span>
+          <span class="spacer" style="flex:1"></span>
+          <button id="clearSparkBtn" class="small">Reset plot</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================ RIGHT COLUMN =========================== -->
+    <div class="col">
+      <!-- Read property -->
+      <div class="panel">
+        <h2>Read Property &nbsp;<span class="mono" style="text-transform:none;color:var(--text-muted)">r &lt;path&gt;</span></h2>
+        <div class="row">
+          <div class="grow">
+            <label for="readPath">Path</label>
+            <input type="text" id="readPath" class="mono" list="commonPaths" placeholder="axis0.encoder.pos_estimate" autocomplete="off" spellcheck="false">
+          </div>
+          <button id="readBtn" class="primary" disabled>Read</button>
+        </div>
+        <datalist id="commonPaths">
+          <option value="axis0.encoder.pos_estimate">
+          <option value="axis0.encoder.vel_estimate">
+          <option value="axis0.controller.input_pos">
+          <option value="axis0.controller.input_vel">
+          <option value="axis0.controller.input_torque">
+          <option value="axis0.current_state">
+          <option value="axis0.requested_state">
+          <option value="axis0.motor.current_control.Iq_measured">
+          <option value="axis0.motor.current_control.Iq_setpoint">
+          <option value="vbus_voltage">
+          <option value="ibus">
+          <option value="axis1.encoder.pos_estimate">
+          <option value="axis1.encoder.vel_estimate">
+        </datalist>
+        <div class="hint">Type a path or pick a common one from the dropdown.</div>
+      </div>
+
+      <!-- Write property -->
+      <div class="panel">
+        <h2>Write Property &nbsp;<span class="mono" style="text-transform:none;color:var(--text-muted)">w &lt;path&gt; &lt;value&gt;</span></h2>
+        <div class="row">
+          <div class="grow">
+            <label for="writePath">Path</label>
+            <input type="text" id="writePath" class="mono" list="commonPaths" placeholder="axis0.controller.input_pos" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="field small-num">
+            <label for="writeVal">Value</label>
+            <input type="text" id="writeVal" class="mono" placeholder="12.34" autocomplete="off">
+          </div>
+          <button id="writeBtn" class="primary" disabled>Write</button>
+        </div>
+      </div>
+
+      <!-- Setpoint commands -->
+      <div class="panel">
+        <h2>Setpoint Commands</h2>
+
+        <!-- p: position -->
+        <label style="margin-top:2px">Position &nbsp;<span class="mono">p &lt;axis&gt; &lt;pos&gt; [vel_ff [torque_ff]]</span></label>
+        <div class="row" style="margin-bottom:12px">
+          <div class="field axis"><input type="number" id="pAxis" class="mono" value="0" min="0" step="1" title="axis"></div>
+          <div class="field grow"><input type="text" id="pPos" class="mono" placeholder="pos (turns)"></div>
+          <div class="field grow"><input type="text" id="pVelFf" class="mono" placeholder="vel_ff (opt)"></div>
+          <div class="field grow"><input type="text" id="pTqFf" class="mono" placeholder="torque_ff (opt)"></div>
+          <button id="pBtn" class="primary" disabled>Send p</button>
+        </div>
+
+        <!-- v: velocity -->
+        <label>Velocity &nbsp;<span class="mono">v &lt;axis&gt; &lt;vel&gt; [torque_ff]</span></label>
+        <div class="row" style="margin-bottom:12px">
+          <div class="field axis"><input type="number" id="vAxis" class="mono" value="0" min="0" step="1" title="axis"></div>
+          <div class="field grow"><input type="text" id="vVel" class="mono" placeholder="vel (turns/s)"></div>
+          <div class="field grow"><input type="text" id="vTqFf" class="mono" placeholder="torque_ff (opt)"></div>
+          <button id="vBtn" class="primary" disabled>Send v</button>
+        </div>
+
+        <!-- c: torque/current -->
+        <label>Torque &nbsp;<span class="mono">c &lt;axis&gt; &lt;torque_nm&gt;</span></label>
+        <div class="row" style="margin-bottom:12px">
+          <div class="field axis"><input type="number" id="cAxis" class="mono" value="0" min="0" step="1" title="axis"></div>
+          <div class="field grow"><input type="text" id="cTq" class="mono" placeholder="torque (Nm)"></div>
+          <button id="cBtn" class="primary" disabled>Send c</button>
+        </div>
+
+        <!-- t: trajectory goal -->
+        <label>Trajectory goal &nbsp;<span class="mono">t &lt;axis&gt; &lt;goal_pos_turns&gt;</span></label>
+        <div class="row" style="margin-bottom:12px">
+          <div class="field axis"><input type="number" id="tAxis" class="mono" value="0" min="0" step="1" title="axis"></div>
+          <div class="field grow"><input type="text" id="tGoal" class="mono" placeholder="goal (turns)"></div>
+          <button id="tBtn" class="primary" disabled>Send t</button>
+        </div>
+
+        <!-- es: encoder set absolute -->
+        <label>Encoder set absolute &nbsp;<span class="mono">es &lt;axis&gt; &lt;abs_pos_turns&gt;</span></label>
+        <div class="row">
+          <div class="field axis"><input type="number" id="esAxis" class="mono" value="0" min="0" step="1" title="axis"></div>
+          <div class="field grow"><input type="text" id="esPos" class="mono" placeholder="abs pos (turns)"></div>
+          <button id="esBtn" class="primary" disabled>Send es</button>
+        </div>
+
+        <div class="notice">
+          By default <span class="mono inline">espp::OdriveAscii</span> is <strong>silent</strong> on
+          writes and setpoints (<span class="mono inline">w</span>/<span class="mono inline">p</span>/<span class="mono inline">v</span>/<span class="mono inline">c</span>/<span class="mono inline">t</span>/<span class="mono inline">es</span>) &mdash;
+          expect no reply. Only <span class="mono inline">r</span>/<span class="mono inline">f</span>/<span class="mono inline">help</span> respond.
+          Firmware built with <span class="mono inline">acknowledge_commands = true</span> also replies
+          <span class="mono inline">OK</span>. This console handles either mode.
+        </div>
+      </div>
+
+      <!-- Misc -->
+      <div class="panel">
+        <h2>Misc</h2>
+        <div class="row">
+          <button id="helpBtn" disabled>Send help</button>
+        </div>
+        <div id="devInfo" class="hint"></div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    ODrive ASCII WebUSB Console &middot; espp &middot; talks to the firmware's USB vendor interface &middot; runs fully offline, no external dependencies.
+  </footer>
+
+  <script>
+  "use strict";
+  (function () {
+    // ===================================================================
+    // Element references
+    // ===================================================================
+    const $ = (id) => document.getElementById(id);
+    const els = {
+      unsupported: $("unsupported"),
+      connectBtn: $("connectBtn"),
+      anyDevice: $("anyDevice"),
+      status: $("status"),
+      statusText: $("statusText"),
+      log: $("log"),
+      autoscroll: $("autoscroll"),
+      echoLocal: $("echoLocal"),
+      clearLogBtn: $("clearLogBtn"),
+      cmdInput: $("cmdInput"),
+      sendBtn: $("sendBtn"),
+      devInfo: $("devInfo"),
+      // read/write
+      readPath: $("readPath"), readBtn: $("readBtn"),
+      writePath: $("writePath"), writeVal: $("writeVal"), writeBtn: $("writeBtn"),
+      // setpoints
+      pAxis: $("pAxis"), pPos: $("pPos"), pVelFf: $("pVelFf"), pTqFf: $("pTqFf"), pBtn: $("pBtn"),
+      vAxis: $("vAxis"), vVel: $("vVel"), vTqFf: $("vTqFf"), vBtn: $("vBtn"),
+      cAxis: $("cAxis"), cTq: $("cTq"), cBtn: $("cBtn"),
+      tAxis: $("tAxis"), tGoal: $("tGoal"), tBtn: $("tBtn"),
+      esAxis: $("esAxis"), esPos: $("esPos"), esBtn: $("esBtn"),
+      helpBtn: $("helpBtn"),
+      // feedback
+      fbAxis: $("fbAxis"), pollRate: $("pollRate"), fbOnceBtn: $("fbOnceBtn"),
+      pollToggle: $("pollToggle"), fbPos: $("fbPos"), fbVel: $("fbVel"),
+      spark: $("spark"), clearSparkBtn: $("clearSparkBtn"),
+    };
+
+    // Buttons that require an open connection to be usable.
+    const connGatedButtons = [
+      els.sendBtn, els.readBtn, els.writeBtn, els.pBtn, els.vBtn, els.cBtn,
+      els.tBtn, els.esBtn, els.helpBtn, els.fbOnceBtn,
+    ];
+    const connGatedInputs = [els.cmdInput];
+    const connGatedChecks = [els.pollToggle];
+
+    // ===================================================================
+    // WebUSB constants + state
+    // ===================================================================
+    // Default vendor / product IDs for the espp ODrive-ASCII vendor interface.
+    const DEFAULT_VID = 0x1209;
+    const DEFAULT_PID = 0x0d32;
+    // The vendor-specific USB interface class we look for at runtime.
+    const VENDOR_CLASS = 0xFF;
+
+    let device = null;               // USBDevice
+    let ifaceNumber = null;          // claimed interface number
+    let epIn = null;                 // bulk IN endpoint number
+    let epOut = null;                // bulk OUT endpoint number
+    let inPacketSize = 64;           // bulk IN max packet size (read length)
+    let outPacketSize = 64;          // bulk OUT max packet size
+    let keepReading = false;
+    let readLoopRunning = false;
+    let manualDisconnect = false;
+
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+    let rxBuffer = "";               // line-buffer for partial RX
+
+    // Feedback polling state.
+    let pollTimer = null;
+    // Every 'f' response looks like "<pos> <vel>", so we parse any 2-number RX
+    // line as feedback. A pending counter avoids surprises from other commands.
+    let expectFeedback = 0;
+
+    // ===================================================================
+    // Logging
+    // ===================================================================
+    // pause-on-scroll-up: if the user scrolls away from the bottom, stop
+    // autoscrolling until they return to (near) the bottom.
+    let userScrolledUp = false;
+    els.log.addEventListener("scroll", () => {
+      const nearBottom = els.log.scrollHeight - els.log.scrollTop - els.log.clientHeight < 24;
+      userScrolledUp = !nearBottom;
+    });
+
+    function ts() {
+      const d = new Date();
+      const p = (n, w = 2) => String(n).padStart(w, "0");
+      return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}.${p(d.getMilliseconds(), 3)}`;
+    }
+
+    // kind: 'tx' | 'rx' | 'err' | 'sys'
+    function logLine(kind, text) {
+      const line = document.createElement("span");
+      line.className = "log-line";
+      const time = document.createElement("span");
+      time.className = "log-time";
+      time.textContent = `[${ts()}] `;
+      const prefixMap = { tx: "TX → ", rx: "RX ← ", err: "!! ", sys: "-- " };
+      const body = document.createElement("span");
+      body.className = "log-" + kind;
+      body.textContent = (prefixMap[kind] || "") + text;
+      line.appendChild(time);
+      line.appendChild(body);
+      els.log.appendChild(line);
+
+      // Cap total lines to keep memory bounded.
+      const MAX_LINES = 5000;
+      while (els.log.childElementCount > MAX_LINES) {
+        els.log.removeChild(els.log.firstChild);
+      }
+
+      if (els.autoscroll.checked && !userScrolledUp) {
+        els.log.scrollTop = els.log.scrollHeight;
+      }
+    }
+
+    els.clearLogBtn.addEventListener("click", () => { els.log.textContent = ""; });
+
+    // ===================================================================
+    // Connection UI helpers
+    // ===================================================================
+    function setStatus(state, text) {
+      els.status.className = "status-pill" + (state ? " " + state : "");
+      els.statusText.textContent = text;
+    }
+
+    function setConnectedUI(connected) {
+      els.connectBtn.textContent = connected ? "Disconnect" : "Connect";
+      els.connectBtn.classList.toggle("danger", connected);
+      els.connectBtn.classList.toggle("primary", !connected);
+      els.anyDevice.disabled = connected;
+      connGatedButtons.forEach((b) => (b.disabled = !connected));
+      connGatedInputs.forEach((i) => (i.disabled = !connected));
+      connGatedChecks.forEach((c) => (c.disabled = !connected));
+      if (!connected) {
+        stopPolling();
+        els.pollToggle.checked = false;
+        els.devInfo.textContent = "";
+      }
+    }
+
+    // ===================================================================
+    // Connect / Disconnect
+    // ===================================================================
+    els.connectBtn.addEventListener("click", async () => {
+      if (device) {
+        await disconnect();
+      } else {
+        await connect();
+      }
+    });
+
+    async function connect() {
+      // 1) Ask the user to pick a device. Default filter targets the espp
+      //    ODrive vendor VID/PID; "Any device" shows every device instead.
+      try {
+        const options = els.anyDevice.checked
+          ? { filters: [] }
+          : { filters: [{ vendorId: DEFAULT_VID, productId: DEFAULT_PID }] };
+        device = await navigator.usb.requestDevice(options);
+      } catch (e) {
+        // User cancelled the chooser, or none matched.
+        logLine("sys", "Device selection cancelled.");
+        device = null;
+        return;
+      }
+
+      try {
+        await openAndClaim();
+      } catch (e) {
+        logLine("err", "Failed to open device: " + e.message);
+        setStatus("error", "Open failed");
+        await safeClose();
+        return;
+      }
+
+      manualDisconnect = false;
+      keepReading = true;
+      rxBuffer = "";
+      setConnectedUI(true);
+
+      const name = describeDevice(device);
+      setStatus("connected", "Connected");
+      els.devInfo.textContent =
+        `${name} · iface ${ifaceNumber} · IN 0x${epIn.toString(16)} (${inPacketSize}B) · OUT 0x${epOut.toString(16)} (${outPacketSize}B)`;
+      logLine("sys", `Connected to ${name}.`);
+      logLine("sys", `Vendor interface ${ifaceNumber}: bulk IN ep 0x${epIn.toString(16)}, bulk OUT ep 0x${epOut.toString(16)}.`);
+
+      // Kick off the persistent read loop (do not await; runs until close).
+      readLoop();
+    }
+
+    // Open the device, select configuration 1, and discover + claim the vendor
+    // interface with its bulk IN/OUT endpoints. Endpoint/interface numbers are
+    // discovered from the descriptors at runtime, never hardcoded.
+    async function openAndClaim() {
+      await device.open();
+
+      // Ensure a configuration is selected (configurationValue 1 by contract).
+      if (device.configuration === null) {
+        await device.selectConfiguration(1);
+      }
+      const config = device.configuration;
+      if (!config) throw new Error("device has no active USB configuration");
+
+      // Walk interfaces/alternates to find the vendor-specific (0xFF) alternate
+      // that exposes a bulk IN and a bulk OUT endpoint.
+      let found = null;
+      for (const itf of config.interfaces) {
+        for (const alt of itf.alternates) {
+          if (alt.interfaceClass !== VENDOR_CLASS) continue;
+          let inEp = null, outEp = null;
+          for (const ep of alt.endpoints) {
+            if (ep.type !== "bulk") continue;
+            if (ep.direction === "in" && inEp === null) inEp = ep;
+            else if (ep.direction === "out" && outEp === null) outEp = ep;
+          }
+          if (inEp && outEp) {
+            found = {
+              interfaceNumber: itf.interfaceNumber,
+              alternateSetting: alt.alternateSetting,
+              inEp, outEp,
+            };
+            break;
+          }
+        }
+        if (found) break;
+      }
+
+      if (!found) {
+        throw new Error(
+          "no vendor-specific (0xFF) interface with a bulk IN+OUT endpoint pair was found on this device"
+        );
+      }
+
+      await device.claimInterface(found.interfaceNumber);
+      // Select the alternate setting if it isn't the default (0).
+      if (found.alternateSetting !== 0) {
+        try { await device.selectAlternateInterface(found.interfaceNumber, found.alternateSetting); }
+        catch (_) { /* some platforms don't require/allow this; ignore */ }
+      }
+
+      ifaceNumber = found.interfaceNumber;
+      epIn = found.inEp.endpointNumber;
+      epOut = found.outEp.endpointNumber;
+      inPacketSize = found.inEp.packetSize || 64;
+      outPacketSize = found.outEp.packetSize || 64;
+    }
+
+    function describeDevice(dev) {
+      const vid = dev.vendorId.toString(16).padStart(4, "0");
+      const pid = dev.productId.toString(16).padStart(4, "0");
+      const name = dev.productName || "USB device";
+      return `${name} (${vid}:${pid})`;
+    }
+
+    async function disconnect() {
+      manualDisconnect = true;
+      keepReading = false;
+      logLine("sys", "Disconnecting...");
+      await safeClose();
+    }
+
+    // Cleanly tears down the interface + device, tolerating any state.
+    async function safeClose() {
+      stopPolling();
+      els.pollToggle.checked = false;
+      keepReading = false;
+
+      if (device) {
+        // Releasing the interface unblocks a pending transferIn on some
+        // platforms; both calls are best-effort.
+        if (ifaceNumber !== null) {
+          try { await device.releaseInterface(ifaceNumber); } catch (_) {}
+        }
+        try { await device.close(); } catch (_) {}
+      }
+      device = null;
+      ifaceNumber = null;
+      epIn = epOut = null;
+      setConnectedUI(false);
+      setStatus("", "Disconnected");
+    }
+
+    // Persistent RX read loop. Tolerant of stalls (halt), babble, partial
+    // lines, and the device going away. Never throws uncaught.
+    async function readLoop() {
+      if (readLoopRunning) return;
+      readLoopRunning = true;
+      try {
+        while (keepReading && device && device.opened) {
+          let result;
+          try {
+            // Request one packet worth of bytes; the device returns as much as
+            // it has up to this length. A short/zero-length packet is normal.
+            result = await device.transferIn(epIn, inPacketSize);
+          } catch (e) {
+            // A transfer error usually means the device was unplugged or the
+            // interface was released during disconnect.
+            if (!manualDisconnect && keepReading) {
+              logLine("err", "Read error (device unplugged?): " + e.message);
+            }
+            break;
+          }
+
+          if (result.status === "stall") {
+            // Endpoint halted; clear it and keep going.
+            logLine("sys", "IN endpoint stalled; clearing halt.");
+            try { await device.clearHalt("in", epIn); } catch (_) {}
+            continue;
+          }
+          if (result.status === "babble") {
+            // Device sent more than requested; log and continue reading.
+            logLine("err", "Babble on IN endpoint (device sent too much); continuing.");
+            continue;
+          }
+          // status === "ok"
+          if (result.data && result.data.byteLength) {
+            handleRxBytes(new Uint8Array(result.data.buffer));
+          }
+        }
+      } finally {
+        readLoopRunning = false;
+        // If the loop ended unexpectedly (not a manual disconnect), clean up UI.
+        if (!manualDisconnect && device) {
+          logLine("sys", "USB stream ended.");
+          await safeClose();
+        }
+      }
+    }
+
+    // Decode bytes, accumulate, and split into complete lines on '\n'.
+    function handleRxBytes(bytes) {
+      rxBuffer += decoder.decode(bytes, { stream: true });
+      let idx;
+      while ((idx = rxBuffer.indexOf("\n")) >= 0) {
+        let line = rxBuffer.slice(0, idx);
+        rxBuffer = rxBuffer.slice(idx + 1);
+        // Strip a trailing CR if present (tolerate CRLF).
+        if (line.endsWith("\r")) line = line.slice(0, -1);
+        onRxLine(line);
+      }
+    }
+
+    // Handle a single complete received line.
+    function onRxLine(line) {
+      logLine("rx", line);
+      maybeParseFeedback(line);
+    }
+
+    // ===================================================================
+    // TX
+    // ===================================================================
+    // Send a raw line (a single '\n' is appended). Returns a promise.
+    async function sendLine(line) {
+      if (!device || epOut === null) {
+        logLine("err", "Not connected.");
+        return;
+      }
+      const payload = line + "\n";
+      try {
+        const result = await device.transferOut(epOut, encoder.encode(payload));
+        if (result.status === "stall") {
+          logLine("sys", "OUT endpoint stalled; clearing halt.");
+          try { await device.clearHalt("out", epOut); } catch (_) {}
+          return;
+        }
+        if (els.echoLocal.checked) logLine("tx", line);
+      } catch (e) {
+        logLine("err", "Write failed: " + e.message);
+      }
+    }
+
+    // ===================================================================
+    // Raw command input + history
+    // ===================================================================
+    const history = [];
+    let historyIdx = -1; // -1 means "current (unsent) line"
+    let draft = "";
+
+    els.sendBtn.addEventListener("click", sendRawFromInput);
+    els.cmdInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        sendRawFromInput();
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        recallHistory(-1);
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        recallHistory(1);
+      }
+    });
+
+    function sendRawFromInput() {
+      const line = els.cmdInput.value;
+      if (line.trim() === "") return;
+      // push to history (dedupe consecutive)
+      if (history.length === 0 || history[history.length - 1] !== line) {
+        history.push(line);
+        if (history.length > 100) history.shift();
+      }
+      historyIdx = -1;
+      draft = "";
+      sendLine(line);
+      els.cmdInput.value = "";
+    }
+
+    function recallHistory(dir) {
+      if (history.length === 0) return;
+      if (historyIdx === -1) {
+        // Save the current draft before navigating up.
+        if (dir === -1) { draft = els.cmdInput.value; historyIdx = history.length - 1; }
+        else return; // ArrowDown at draft does nothing
+      } else {
+        historyIdx += dir;
+      }
+      if (historyIdx >= history.length) {
+        // Past the newest -> back to draft.
+        historyIdx = -1;
+        els.cmdInput.value = draft;
+        return;
+      }
+      if (historyIdx < 0) historyIdx = 0;
+      els.cmdInput.value = history[historyIdx];
+      // move cursor to end
+      const v = els.cmdInput.value;
+      requestAnimationFrame(() => els.cmdInput.setSelectionRange(v.length, v.length));
+    }
+
+    // ===================================================================
+    // Quick-control panels
+    // ===================================================================
+    // Helper: format an axis value as an integer string.
+    function axisOf(el) {
+      const n = parseInt(el.value, 10);
+      return Number.isFinite(n) ? String(n) : "0";
+    }
+    // Helper: collect non-empty optional numeric fields, in order, stopping at
+    // the first empty one (ODrive positional args must be contiguous).
+    function optionalTail(...vals) {
+      const out = [];
+      for (const v of vals) {
+        const s = (v || "").trim();
+        if (s === "") break;
+        out.push(s);
+      }
+      return out;
+    }
+
+    els.readBtn.addEventListener("click", () => {
+      const path = els.readPath.value.trim();
+      if (!path) return;
+      sendLine("r " + path);
+    });
+    els.readPath.addEventListener("keydown", (e) => { if (e.key === "Enter") els.readBtn.click(); });
+
+    els.writeBtn.addEventListener("click", () => {
+      const path = els.writePath.value.trim();
+      const val = els.writeVal.value.trim();
+      if (!path || val === "") return;
+      sendLine("w " + path + " " + val);
+    });
+    els.writeVal.addEventListener("keydown", (e) => { if (e.key === "Enter") els.writeBtn.click(); });
+
+    els.pBtn.addEventListener("click", () => {
+      const pos = els.pPos.value.trim();
+      if (pos === "") return;
+      const tail = optionalTail(els.pVelFf.value, els.pTqFf.value);
+      sendLine(["p", axisOf(els.pAxis), pos, ...tail].join(" "));
+    });
+    els.vBtn.addEventListener("click", () => {
+      const vel = els.vVel.value.trim();
+      if (vel === "") return;
+      const tail = optionalTail(els.vTqFf.value);
+      sendLine(["v", axisOf(els.vAxis), vel, ...tail].join(" "));
+    });
+    els.cBtn.addEventListener("click", () => {
+      const tq = els.cTq.value.trim();
+      if (tq === "") return;
+      sendLine(["c", axisOf(els.cAxis), tq].join(" "));
+    });
+    els.tBtn.addEventListener("click", () => {
+      const goal = els.tGoal.value.trim();
+      if (goal === "") return;
+      sendLine(["t", axisOf(els.tAxis), goal].join(" "));
+    });
+    els.esBtn.addEventListener("click", () => {
+      const abs = els.esPos.value.trim();
+      if (abs === "") return;
+      sendLine(["es", axisOf(els.esAxis), abs].join(" "));
+    });
+    els.helpBtn.addEventListener("click", () => sendLine("help"));
+
+    // ===================================================================
+    // Feedback polling + sparkline
+    // ===================================================================
+    els.fbOnceBtn.addEventListener("click", () => {
+      expectFeedback++;
+      sendLine("f " + axisOf(els.fbAxis));
+    });
+
+    els.pollToggle.addEventListener("change", () => {
+      if (els.pollToggle.checked) startPolling();
+      else stopPolling();
+    });
+    // Restart the poll timer when the rate changes while active.
+    els.pollRate.addEventListener("change", () => {
+      if (pollTimer) { startPolling(); }
+    });
+
+    function startPolling() {
+      stopPolling();
+      let hz = parseFloat(els.pollRate.value);
+      if (!Number.isFinite(hz) || hz <= 0) hz = 10;
+      hz = Math.min(hz, 100);
+      const periodMs = 1000 / hz;
+      pollTimer = setInterval(() => {
+        if (!device) { stopPolling(); return; }
+        expectFeedback++;
+        sendLine("f " + axisOf(els.fbAxis));
+      }, periodMs);
+      logLine("sys", "Polling feedback @ " + hz + " Hz.");
+    }
+
+    function stopPolling() {
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+        logLine("sys", "Polling stopped.");
+      }
+    }
+
+    // Parse an RX line as feedback "<pos> <vel>" if it looks like exactly two
+    // numbers. Updates the metrics and sparkline history.
+    const numRe = /^[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?$/;
+    function maybeParseFeedback(line) {
+      const parts = line.trim().split(/\s+/);
+      if (parts.length !== 2) return;
+      if (!numRe.test(parts[0]) || !numRe.test(parts[1])) return;
+      const pos = parseFloat(parts[0]);
+      const vel = parseFloat(parts[1]);
+      if (!Number.isFinite(pos) || !Number.isFinite(vel)) return;
+      if (expectFeedback > 0) expectFeedback--;
+      els.fbPos.textContent = pos.toFixed(4);
+      els.fbVel.textContent = vel.toFixed(4);
+      pushSample(pos, vel);
+    }
+
+    // Sparkline: ring buffer of recent (pos, vel) samples.
+    const MAX_SAMPLES = 240;
+    const samples = { pos: [], vel: [] };
+    function pushSample(pos, vel) {
+      samples.pos.push(pos);
+      samples.vel.push(vel);
+      if (samples.pos.length > MAX_SAMPLES) { samples.pos.shift(); samples.vel.shift(); }
+      drawSpark();
+    }
+    els.clearSparkBtn.addEventListener("click", () => {
+      samples.pos.length = 0; samples.vel.length = 0;
+      drawSpark();
+      els.fbPos.textContent = "—";
+      els.fbVel.textContent = "—";
+    });
+
+    function cssVar(name) {
+      return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    }
+
+    function drawSpark() {
+      const canvas = els.spark;
+      const ctx = canvas.getContext("2d");
+      // Match the backing store to the displayed size for crispness.
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      const w = Math.max(2, Math.floor(rect.width));
+      const h = Math.max(2, Math.floor(rect.height));
+      if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+      }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+
+      drawSeries(ctx, samples.pos, w, h, cssVar("--spark-pos"));
+      drawSeries(ctx, samples.vel, w, h, cssVar("--spark-vel"));
+    }
+
+    function drawSeries(ctx, data, w, h, color) {
+      if (data.length < 2) return;
+      let min = Infinity, max = -Infinity;
+      for (const v of data) { if (v < min) min = v; if (v > max) max = v; }
+      if (!Number.isFinite(min) || !Number.isFinite(max)) return;
+      let range = max - min;
+      if (range < 1e-9) range = 1; // flat line -> center it
+      const pad = 6;
+      const usableH = h - pad * 2;
+      const n = data.length;
+      ctx.beginPath();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = color;
+      for (let i = 0; i < n; i++) {
+        const x = (i / (n - 1)) * w;
+        const norm = (data[i] - min) / range;
+        const y = pad + (1 - norm) * usableH;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+
+    // Redraw sparkline on resize / theme change so colors and size stay correct.
+    window.addEventListener("resize", drawSpark);
+    if (window.matchMedia) {
+      const mq = window.matchMedia("(prefers-color-scheme: dark)");
+      if (mq.addEventListener) mq.addEventListener("change", drawSpark);
+    }
+
+    // ===================================================================
+    // Device unplug handling (fires even without an active transfer error)
+    // ===================================================================
+    if (navigator.usb && navigator.usb.addEventListener) {
+      navigator.usb.addEventListener("disconnect", (e) => {
+        if (device && e.device === device) {
+          logLine("err", "Device disconnected.");
+          keepReading = false;
+          manualDisconnect = false;
+          safeClose();
+        }
+      });
+    }
+
+    // ===================================================================
+    // Feature detection / init
+    // ===================================================================
+    function init() {
+      if (!("usb" in navigator)) {
+        els.unsupported.style.display = "block";
+        els.connectBtn.disabled = true;
+        els.anyDevice.disabled = true;
+        setStatus("error", "Unsupported");
+        logLine("err", "WebUSB API (navigator.usb) not available in this browser.");
+        logLine("err", "Use a Chromium-based browser over https://, http://localhost, or file://.");
+        return;
+      }
+      setStatus("", "Disconnected");
+      setConnectedUI(false);
+      logLine("sys", "Ready. Click Connect and pick the ODrive vendor USB device.");
+      logLine("sys", `Default filter: VID 0x${DEFAULT_VID.toString(16)} / PID 0x${DEFAULT_PID.toString(16)}. Tick "Any device" to see all.`);
+      drawSpark();
+    }
+
+    init();
+  })();
+  </script>
+</body>
+</html>
