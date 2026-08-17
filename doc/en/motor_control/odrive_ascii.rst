@@ -27,6 +27,11 @@ Brave), click **Connect** and pick your board's USB-Serial-JTAG / CDC port.
            title="ODrive ASCII Web Serial console"
            style="width:100%;height:640px;border:1px solid var(--color-background-border,#ccc);border-radius:8px;margin-top:0.5em"></iframe>
 
+A **WebUSB** variant is also hosted, for boards that expose a dedicated USB
+vendor interface (see the ``usb_device`` component). It talks to that vendor
+interface directly rather than a serial port:
+`Open the WebUSB console in a new tab <../apps/odrive_webusb_console.html>`_.
+
 Features
 --------
 
