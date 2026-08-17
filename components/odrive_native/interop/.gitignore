@@ -1,0 +1,3 @@
+# Interop runtime artifacts -- fetched/created by run_interop.sh, never committed.
+.venv-odrive/
+odrive-ref/
