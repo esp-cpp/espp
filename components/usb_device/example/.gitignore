@@ -1,0 +1,3 @@
+# Runtime artifacts for the USB hardware probe (odrive_usb_probe.py); never committed.
+odrive-ref/
+.venv-usb/

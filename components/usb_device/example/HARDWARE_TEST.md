@@ -37,11 +37,20 @@ brew install libusb                      # macOS  (Linux: apt install libusb-1.0
 python3 -m venv .venv-usb && . .venv-usb/bin/activate
 pip install pyusb appdirs
 
-# reuse the reference fibre the interop harness cloned (or clone it yourself):
-#   git clone --depth 1 -b fw-v0.5.1 https://github.com/odriverobotics/ODrive
-python odrive_usb_probe.py \
-  --fibre-path ../../odrive_native/interop/odrive-ref/Firmware/fibre/python
+# run the probe -- it fetches the reference fibre for you with --clone
+python odrive_usb_probe.py --clone
 ```
+The reference fibre is pure-python (only needs pyserial/pyusb). `--clone` shallow-
+clones ODrive `fw-v0.5.1` into `./odrive-ref` and uses `Firmware/fibre/python` from
+it. Alternatives to `--clone`:
+- if you've already run `components/odrive_native/interop/run.sh`, the probe
+  **auto-detects** the clone it made — just `python odrive_usb_probe.py`;
+- or clone it yourself and point at it:
+  ```sh
+  git clone --depth 1 -b fw-v0.5.1 https://github.com/odriverobotics/ODrive /tmp/odrive-ref
+  python odrive_usb_probe.py --fibre-path /tmp/odrive-ref/Firmware/fibre/python
+  ```
+
 Expected: it discovers the board over USB, downloads endpoint 0, enumerates
 `vbus_voltage / axis0.* / serial_number`, reads values, and writes-then-reads
 `input_pos` and `vel_limit` — `ALL PROBE ASSERTIONS PASSED`.
