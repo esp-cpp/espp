@@ -1,3 +1,25 @@
+# ODrive WebUSB browser tools
+
+This directory hosts two single-file, fully offline WebUSB tools for the espp
+ODrive firmware. Both talk to the firmware's dedicated USB **vendor** interface
+(`bInterfaceClass = 0xFF`, one bulk IN + one bulk OUT), discover the interface
+and endpoints from the descriptors at runtime, and have **no external
+dependencies, no CDN, and no network fetches** (they work from a `file://` URL).
+
+| File | Protocol on the vendor interface | Use it for |
+| --- | --- | --- |
+| [`odrive_webusb_console.html`](./odrive_webusb_console.html) | ODrive **ASCII** text stream | A terminal-style console (raw commands, `r`/`w`/`p`/`v`/`c`/`t`/`es`/`f`). |
+| [`odrive_control_panel.html`](./odrive_control_panel.html) | ODrive **native** (legacy Fibre endpoint) **binary** protocol | A driverless-browser **control panel** (property tree, live plots, inline edit) — a replacement for the ODrive Web GUI, for our boards. |
+
+Pick the file that matches the protocol your firmware exposes on the vendor
+interface. **The two are not interchangeable** — one carries newline-terminated
+ASCII, the other carries packet-based binary Fibre endpoints.
+
+The rest of this document describes the ASCII console; the native control panel
+is documented in its own section [at the end](#native-protocol-control-panel-odrive_control_panelhtml).
+
+---
+
 # ODrive ASCII WebUSB Console
 
 A single-file, fully offline browser console for the
@@ -134,3 +156,90 @@ This page is intended to also be hosted on the espp GitHub Pages docs (an
 `https://` secure context) and linked from the `odrive_ascii` documentation, so
 users can open the WebUSB console directly from the docs without downloading
 anything.
+
+---
+
+# Native-protocol control panel (`odrive_control_panel.html`)
+
+A single-file, fully offline **control panel** — the driverless-browser
+replacement for the ODrive Web GUI, but for our boards. Unlike the ASCII console
+above, it speaks the ODrive **native (legacy Fibre endpoint) binary protocol**
+over the same USB **vendor** interface: it downloads the device's object model
+from endpoint 0, renders it as a live property tree, and does typed get/set by
+endpoint id. Same runtime interface/endpoint discovery, same "no CDN / no
+dependencies / works from `file://`" guarantees.
+
+## The native protocol, in the browser
+
+The authoritative wire spec is
+[`components/odrive_native/PROTOCOL.md`](../../odrive_native/PROTOCOL.md); the
+panel implements the client side of it in plain JavaScript:
+
+- **Packets, not a stream.** Over WebUSB each `transferOut` sends exactly one
+  request packet and each `transferIn` returns exactly one response packet —
+  **there is no UART stream framing** (USB provides the reliability the stream
+  framing otherwise adds). Every request is
+  `[seq u16][endpoint u16 (| 0x8000 to expect a response)][output_len u16][payload][trailer u16]`,
+  little-endian; a response is `[seq | 0x8000 u16][data…]`.
+- **CRC-16** (poly `0x3d65`, non-reflected, MSB-first). The endpoint **trailer
+  canary** is `PROTOCOL_VERSION` (`1`) for endpoint 0, else the **`json_crc`**,
+  which is `crc16(json_bytes, init=1)` — **not** the `0x1337` stream-framing init.
+  The panel self-tests the CRC against the golden vector
+  `crc16("123456789", init=0x1337) === 0xaa01` on load (see below).
+- **Endpoint 0 = the JSON object model.** The panel reads it in ≤512-byte chunks
+  (payload = `u32 LE` offset; loop until an empty response), assembles the
+  compact JSON tree (`{"name","id","type","access"}` leaves and
+  `{"name","type":"object","members":[…]}` nodes) and computes `json_crc`.
+- **Typed get/set by id**, little-endian codecs for
+  `bool`/`int8`/`uint8`/`int16`/`uint16`/`int32`/`uint32`/`int64`/`uint64`/`float`
+  (64-bit via `BigInt`). Reads send `[seq][id|0x8000][size][][json_crc]` and
+  decode the response; writes send `[seq][id|0x8000][0][value…][json_crc]` and
+  read the value back.
+
+## Features
+
+- **Property tree**: after connecting, endpoint 0 is downloaded and rendered as a
+  collapsible tree. Filter by path, expand/collapse, and reload. Each readable
+  leaf has a **↻ read-once** button; tick **W** to watch (poll & show the live
+  value) and **P** to plot it. Click a `rw` value to **edit inline** (Enter does a
+  typed write then reads back, Esc cancels).
+- **Live time-series plot**: a real multi-signal `<canvas>` plot (no plotting
+  libraries) with a rolling time window, autoscale, y/time gridlines and labels,
+  a legend showing each signal's latest value, and pause/clear.
+- **Quick controls**: axis-scoped buttons that write `input_pos` / `input_vel` /
+  `input_torque` and set `requested_state`, plus a generic **read/write property
+  by path** panel. Paths resolve to endpoint ids from the downloaded tree, so a
+  path that doesn't exist on this firmware is skipped with a log note.
+- **Robust request/response loop**: transactions are serialized on a promise
+  chain so every `transferIn` pairs with its `transferOut`; every request sets the
+  response bit (writes return a 2-byte ack) so the link stays 1:1. Endpoint
+  stalls are cleared (`clearHalt`), and a per-transaction timeout + `clearHalt` is
+  the safety net for a silent/unplugged device — no uncaught throws. WebUSB is
+  feature-detected; the `navigator.usb` `disconnect` event is handled.
+- **Theme-aware** (light/dark via `prefers-color-scheme` and an explicit
+  `data-theme` override), responsive, no horizontal body scroll.
+
+## Self-test / verification
+
+On load the panel prints a CRC-16 self-test to the browser console **and** the
+in-page log:
+
+```
+CRC16 self-test: crc16("123456789", init=0x1337) = 0xaa01 PASS ✓ (expected 0xaa01)
+```
+
+plus a codec round-trip check. This is UI plus a wire protocol that cannot be
+fully exercised without hardware, so **end-to-end verification against a real
+board is pending** (exactly as with the original WebUSB ASCII console). The wire
+logic itself has been validated offline: the CRC matches the golden vector, and a
+mock server mirroring `espp::detail::OdriveNativeCore` confirms endpoint-0
+chunked download + `json_crc`, typed read, typed write + read-back, canary
+rejection, and read-only enforcement all round-trip correctly.
+
+## How to run
+
+Identical to the ASCII console: open `odrive_control_panel.html` directly
+(`file://`), serve it locally (`python3 -m http.server`), or use the
+docs-hosted copy. WebUSB requires a **Chromium-based browser** over `https://`,
+`http://localhost`, or `file://`. On Windows the vendor interface must bind
+**WinUSB** (handled by the firmware's MS-OS-2.0 descriptor).
