@@ -1,9 +1,13 @@
 #pragma once
 
+#include <algorithm>
+#include <cctype>
+#include <cerrno>
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
 #include <functional>
+#include <limits>
 #include <mutex>
 #include <optional>
 #include <span>
@@ -55,6 +59,13 @@ public:
    */
   struct Config {
     size_t max_line_length{256}; /**< Maximum accepted ASCII line length. */
+    bool acknowledge_commands{
+        false}; /**< If true, write ('w') and high-rate setpoint commands ('p'/'v'/'c'/'t'/'es')
+                   reply with "OK\n" on success. Defaults to false to match the ODrive ASCII
+                   protocol, which is silent on these commands (so tools like odrivetool do not
+                   mis-associate unsolicited "OK" lines with a later 'r'/'f' response). Set true to
+                   get explicit success acknowledgements (e.g. for a custom client). Errors are
+                   always reported, and query commands ('r'/'f'/'help') always respond. */
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; /**< Logger verbosity. */
   };
 
@@ -111,13 +122,15 @@ public:
     }
     if (setter) {
       wf = [setter](std::string_view sv, std::error_code &ec) {
-        // tolerate hex/decimal/float per std::strtod
+        // tolerate hex/decimal/float per std::strtod, but require the whole
+        // token to convert (reject trailing garbage like "1.5abc"), matching
+        // the strict parsing used by the p/v/c/t command handlers.
         std::string tmp(sv);
         char *end = nullptr;
         float val = static_cast<float>(strtod(tmp.c_str(), &end));
-        if (end == tmp.c_str()) {
+        if (end == tmp.c_str() || end != tmp.c_str() + tmp.size()) {
           ec = std::make_error_code(std::errc::invalid_argument);
-          return false; // no conversion
+          return false; // no/partial conversion
         }
         return setter(val, ec);
       };
@@ -145,12 +158,20 @@ public:
     }
     if (setter) {
       wf = [setter](std::string_view sv, std::error_code &ec) {
+        // Require the whole token to convert (reject trailing garbage) and
+        // reject values outside int32 range instead of silently wrapping.
         std::string tmp(sv);
         char *end = nullptr;
+        errno = 0;
         long long val = strtoll(tmp.c_str(), &end, 0);
-        if (end == tmp.c_str()) {
+        if (end == tmp.c_str() || end != tmp.c_str() + tmp.size()) {
           ec = std::make_error_code(std::errc::invalid_argument);
-          return false; // no conversion
+          return false; // no/partial conversion
+        }
+        if (errno == ERANGE || val < std::numeric_limits<int32_t>::min() ||
+            val > std::numeric_limits<int32_t>::max()) {
+          ec = std::make_error_code(std::errc::result_out_of_range);
+          return false;
         }
         return setter(static_cast<int32_t>(val), ec);
       };
@@ -179,9 +200,13 @@ public:
     }
     if (setter) {
       wf = [setter](std::string_view sv, std::error_code &ec) {
-        if (sv == "1" || sv == "true" || sv == "TRUE")
+        // case-insensitive true/false (per the doc comment), plus 0/1
+        std::string lowered(sv);
+        std::transform(lowered.begin(), lowered.end(), lowered.begin(),
+                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        if (lowered == "1" || lowered == "true")
           return setter(true, ec);
-        if (sv == "0" || sv == "false" || sv == "FALSE")
+        if (lowered == "0" || lowered == "false")
           return setter(false, ec);
         ec = std::make_error_code(std::errc::invalid_argument);
         return false;
@@ -322,6 +347,13 @@ private:
 
   static std::string trim(std::string_view sv);
   static std::vector<std::string_view> split_ws(std::string_view sv, size_t max_parts = SIZE_MAX);
+
+  /// @brief Build the response for a write/setpoint command result.
+  /// @param ok Whether the command callback succeeded.
+  /// @param ec Error code set by the callback (used for the message on failure).
+  /// @return "OK\n" on success (or std::nullopt if acknowledgements are disabled);
+  ///         "ERR: <msg>\n" on failure (errors are always reported).
+  std::optional<std::string> command_ack(bool ok, const std::error_code &ec) const;
 
   Config config_;
 

@@ -42,13 +42,20 @@ Commands
 
 - ``help``: prints brief usage
 - ``r <path>``: reads a registered property, returns ``<value>\n``
-- ``w <path> <value>``: writes a registered property, returns ``OK\n`` or ``ERR\n``
-- ``p <axis> <pos> [vel_ff [torque_ff]]``: position setpoint; returns ``OK\n`` or ``ERR\n``
+- ``w <path> <value>``: writes a registered property
+- ``p <axis> <pos> [vel_ff [torque_ff]]``: position setpoint
 - ``v <axis> <vel> [torque_ff]``: velocity setpoint
 - ``c <axis> <torque_nm>``: torque (Nm) setpoint
 - ``t <axis> <goal_pos_turns>``: trajectory goal position (turns)
 - ``f <axis>``: feedback (returns "<pos> <vel>\n")
 - ``es <axis> <abs_pos_turns>``: set encoder absolute position (turns)
+
+By default the server matches the ODrive protocol and is **silent** on writes
+and setpoint commands (``w``/``p``/``v``/``c``/``t``/``es``): only ``r``/``f``/``help``
+respond. Errors are always reported.
+Set ``Config::acknowledge_commands = true`` to additionally get an ``OK\n`` reply
+on successful writes/setpoints (useful for a custom client, but avoid it when
+talking to tools like ``odrivetool`` that expect the silent protocol).
 
 Notes
 -----
