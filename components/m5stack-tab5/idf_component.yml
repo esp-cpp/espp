@@ -32,7 +32,14 @@ dependencies:
   espp/task: ">=1.0"
   # MIPI-CSI camera pipeline: esp_video provides the V4L2 capture framework
   # (CSI + ISP) and esp_cam_sensor provides the SC202CS sensor driver.
-  espressif/esp_video: ">=2.0"
-  espressif/esp_cam_sensor: ">=2.0"
+  # The 2026-08-18 release wave is broken: esp_video 2.4.0 fails to compile
+  # against the CI IDF (ISP_LL_EVENT_ERROR_MASK undeclared) and the PREBUILT
+  # esp_ipa 2.3.0 it pairs with hits an illegal instruction in
+  # esp_ipa_pipeline_create() at runtime on the ESP32-P4. Pin the known-good
+  # pairing (esp_video 2.3.0 + esp_ipa 2.2.x + esp_cam_sensor 2.3.x) until
+  # upstream is fixed.
+  espressif/esp_video: ">=2.0,<2.4" # 2.4.0 fails to compile against the CI IDF (ISP_LL_EVENT_ERROR_MASK undeclared)
+  espressif/esp_ipa: ">=2.0,<2.3" # prebuilt 2.3.0 illegal-instructions at runtime on P4
+  espressif/esp_cam_sensor: ">=2.0,<2.4"
 targets:
   - esp32p4

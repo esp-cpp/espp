@@ -25,9 +25,8 @@ bool M5StackTab5::initialize_touch(const touch_callback_t &callback) {
   std::error_code ec;
   touch_i2c_device_ = internal_i2c_.add_device<uint8_t>(
       {
-          .device_address = controller == DisplayController::ST7123
-                                ? St7123TouchDriver::DEFAULT_ADDRESS
-                                : TouchDriver::DEFAULT_ADDRESS_2,
+          .device_address = is_st_tddi(controller) ? St7123TouchDriver::DEFAULT_ADDRESS
+                                                   : TouchDriver::DEFAULT_ADDRESS_2,
           // Keep the touch transaction timeout short. A touch read normally
           // completes in well under 1 ms; the bus default (200 ms, sized for the
           // IMU's large config write) would hold the shared internal I2C bus for
@@ -43,14 +42,16 @@ bool M5StackTab5::initialize_touch(const touch_callback_t &callback) {
     return false;
   }
 
-  if (controller == DisplayController::ST7123) {
+  if (is_st_tddi(controller)) {
     // The pin we historically called "TP_RST" (IO expander 0x43 P5) is in fact
-    // the ST7123 touch ENABLE line (esp-bsp's BSP_TOUCH_EN). The touch engine
+    // the ST71xx touch ENABLE line (esp-bsp's BSP_TOUCH_EN). The touch engine
     // needs a clean disable→enable (low→high) edge to boot its firmware and
     // start scanning; without it the chip answers I2C and reports correct
     // firmware/config registers but never produces coordinates. Pulse it here.
-    logger_.info(
-        "ST7123 variant detected — pulsing touch enable (0x43 P5) to start the touch engine");
+    // The ST7121 integrates the same touch engine/protocol as the ST7123 and
+    // uses the same driver.
+    logger_.info("{} variant detected — pulsing touch enable (0x43 P5) to start the touch engine",
+                 get_display_controller_name(controller));
     touch_reset(true); // drive 0x43 P5 low  (disable / reset touch)
     std::this_thread::sleep_for(20ms);
     touch_reset(false); // drive 0x43 P5 high (enable touch)
