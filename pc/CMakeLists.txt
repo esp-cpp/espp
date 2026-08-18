@@ -35,14 +35,6 @@ MACRO(GEN_TESTS curdir)
     endif()
     add_executable(${TEST_NAME} ${test_file})
 
-    # The odrive_native golden is header-only (host-buildable detail/ headers) and
-    # is NOT part of the espp lib build, so give its target the component include
-    # dir directly. It still links espp::espp below (harmless), matching the macro.
-    if(TEST_NAME MATCHES "^odrive_native")
-      target_include_directories(${TEST_NAME}
-        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../components/odrive_native/include)
-    endif()
-
     # Link the WHOLE archive so global-ctor / registration code is not stripped
     # from the static library -- e.g. the Windows timer-period adjustment in
     # espp.hpp, which otherwise gets dropped and caps the timer at ~64 Hz. The

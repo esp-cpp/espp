@@ -16,6 +16,10 @@ void py_init_rtps(py::module &m);
 // socket_reactor_bindings.cpp). Runs after py_init_module_espp so UdpSocket / Socket::Info /
 // Logger::Verbosity are already registered.
 void py_init_socket_reactor(py::module &m);
+// Hand-written bindings for espp::OdriveNative + the fibre stream framing helpers (std::function
+// accessors with std::error_code& and std::span wire APIs; see odrive_native_bindings.cpp). Runs
+// after py_init_module_espp so Logger::Verbosity is already registered.
+void py_init_odrive_native(py::module &m);
 
 // This builds the native python extension module `espp._espp`, which the
 // `espp` python package (python_bindings/espp/__init__.py) re-exports.
@@ -29,4 +33,5 @@ PYBIND11_MODULE(_espp, m) {
   py_init_module_espp(m);
   py_init_rtps(m);
   py_init_socket_reactor(m);
+  py_init_odrive_native(m);
 }

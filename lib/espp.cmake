@@ -101,6 +101,7 @@ set(ESPP_INCLUDES
   ${ESPP_COMPONENTS}/logger/include
   ${ESPP_COMPONENTS}/math/include
   ${ESPP_COMPONENTS}/ndef/include
+  ${ESPP_COMPONENTS}/odrive_native/include
   ${ESPP_COMPONENTS}/pid/include
   ${ESPP_COMPONENTS}/rtps/include
   ${ESPP_COMPONENTS}/rtsp/include
@@ -192,6 +193,7 @@ set(ESPP_PYTHON_BINDINGS_DIR ${CMAKE_CURRENT_LIST_DIR}/python_bindings)
 set(ESPP_PYTHON_SOURCES
   ${ESPP_PYTHON_BINDINGS_DIR}/module.cpp
   ${ESPP_PYTHON_BINDINGS_DIR}/pybind_espp.cpp
+  ${ESPP_PYTHON_BINDINGS_DIR}/odrive_native_bindings.cpp
   ${ESPP_PYTHON_BINDINGS_DIR}/rtps_bindings.cpp
   ${ESPP_PYTHON_BINDINGS_DIR}/socket_reactor_bindings.cpp
   ${ESPP_SOURCES}
