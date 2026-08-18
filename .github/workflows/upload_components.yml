@@ -31,9 +31,14 @@ jobs:
           #       esp32-p4-nano), which depend on espp/ethernet, so it is
           #       uploaded to the registry first.
           #
+          # Note: magnetic_encoder is intentionally listed ahead of as5600 and
+          #       mt6701, which depend on espp/magnetic_encoder, so it is
+          #       uploaded to the registry first.
+          #
           # Note: comments are not allowed in the "components" list, so please
           #       do not add any comments here.
           components: |
+            components/magnetic_encoder
             components/adc
             components/adrc
             components/ads1x15
@@ -154,6 +159,7 @@ jobs:
             components/touch
             components/tla2528
             components/tt21100
+            components/twai
             components/utils
             components/vl53l
             components/wifi

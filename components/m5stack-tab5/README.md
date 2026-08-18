@@ -10,8 +10,8 @@ The `espp::M5StackTab5` component provides a singleton hardware abstraction for 
 
 ### Display & Touch
 - 5″ 1280 × 720 IPS TFT screen via MIPI-DSI
-- **Automatic display controller detection** (supports ILI9881 or ST7123)
-- GT911 multi-touch controller (I²C) for smooth interaction
+- **Automatic display controller detection** (supports ILI9881, ST7123, or ST7121)
+- Multi-touch (GT911 on ILI9881 units; integrated Sitronix TDDI touch on ST7123/ST7121 units)
 - Adjustable backlight brightness control
 
 ### Audio System
@@ -62,7 +62,7 @@ The `espp::M5StackTab5` component provides a singleton hardware abstraction for 
 | Flash | 16 MB |
 | PSRAM | 32 MB |
 | Display | 5-inch IPS TFT (1280 × 720) |
-| Touch | GT911 multi-touch controller |
+| Touch | GT911 (ILI9881 units) / integrated Sitronix TDDI (ST7123/ST7121 units) |
 | Camera | SC2356 @ 2 MP (1600 × 1200) |
 | Audio | ES8388 codec + ES7210 AEC |
 | IMU | BMI270 6-axis (accelerometer + gyroscope) |
@@ -71,16 +71,21 @@ The `espp::M5StackTab5` component provides a singleton hardware abstraction for 
 
 ## Display Controller Auto-Detection
 
-The M5Stack Tab5 hardware can be manufactured with one of two different MIPI-DSI display controllers:
-- **ILI9881** (earlier hardware revisions)
-- **ST7123** (newer hardware revisions)
+The M5Stack Tab5 hardware has shipped with three different MIPI-DSI display revisions:
+- **ILI9881** panel + separate GT911 touch controller (original units)
+- **ST7123** TDDI — integrated display + touch (units manufactured after Oct 2025)
+- **ST7121** TDDI — integrated display + touch (newest units)
 
-The BSP automatically detects which display controller is present during initialization by:
-1. Attempting to initialize with the ILI9881 driver first
-2. If ILI9881 detection fails, falling back to ST7123 initialization
-3. Logging the detected controller type for debugging
+The BSP automatically detects which display controller is present during initialization:
+1. It polls the Sitronix TDDI touch interface (I²C `0x55`) for its firmware
+   version register: **1 → ST7121**, **3 → ST7123**. (The two ST parts need
+   different init sequences and DSI lane rates and cannot be told apart by
+   their DSI ID.)
+2. If instead a GT911 touch controller ACKs (I²C `0x14`), the unit is the
+   original **ILI9881** revision.
+3. The detected controller type is logged for debugging.
 
-This means your application code works seamlessly across both hardware variants without any code changes. You can optionally query the detected controller type:
+This means your application code works seamlessly across all three hardware variants without any code changes. You can optionally query the detected controller type:
 
 ```cpp
 auto& tab5 = espp::M5StackTab5::get();

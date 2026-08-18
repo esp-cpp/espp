@@ -186,6 +186,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/touch/example/main/touch_example.cpp \
   $(PROJECT_PATH)/components/tla2528/example/main/tla2528_example.cpp \
   $(PROJECT_PATH)/components/trajectory_planner/example/main/trajectory_planner_example.cpp \
+  $(PROJECT_PATH)/components/twai/example/main/twai_example.cpp \
   $(PROJECT_PATH)/components/tt21100/example/main/tt21100_example.cpp \
   $(PROJECT_PATH)/components/vl53l/example/main/vl53l_example.cpp \
   $(PROJECT_PATH)/components/wifi/example/main/wifi_example.cpp \
@@ -260,6 +261,7 @@ INPUT = \
   $(PROJECT_PATH)/components/display_drivers/include/sh8601.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/spi_panel_io.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/ssd1351.hpp \
+  $(PROJECT_PATH)/components/display_drivers/include/st7121.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/st7123.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/st7789.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/st7796.hpp \
@@ -336,6 +338,7 @@ INPUT = \
   $(PROJECT_PATH)/components/lsm6dso/include/lsm6dso_detail.hpp \
   $(PROJECT_PATH)/components/m5stack-cardputer/include/m5stack-cardputer.hpp \
   $(PROJECT_PATH)/components/m5stack-tab5/include/m5stack-tab5.hpp \
+  $(PROJECT_PATH)/components/magnetic_encoder/include/magnetic_encoder_base.hpp \
   $(PROJECT_PATH)/components/math/include/bezier.hpp \
   $(PROJECT_PATH)/components/math/include/fast_math.hpp \
   $(PROJECT_PATH)/components/math/include/gaussian.hpp \
@@ -426,6 +429,7 @@ INPUT = \
   $(PROJECT_PATH)/components/touch/include/touch.hpp \
   $(PROJECT_PATH)/components/tla2528/include/tla2528.hpp \
   $(PROJECT_PATH)/components/trajectory_planner/include/trajectory_planner.hpp \
+  $(PROJECT_PATH)/components/twai/include/twai.hpp \
   $(PROJECT_PATH)/components/tt21100/include/tt21100.hpp \
   $(PROJECT_PATH)/components/vl53l/include/vl53l.hpp \
   $(PROJECT_PATH)/components/utils/include/bitmask_operators.hpp \

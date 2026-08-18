@@ -40,6 +40,7 @@
 #include "led.hpp"
 #include "pi4ioe5v.hpp"
 #include "rx8130ce.hpp"
+#include "st7121.hpp"
 #include "st7123.hpp"
 #include "st7123touch.hpp"
 #include "touchpad_input.hpp"
@@ -50,7 +51,8 @@ namespace espp {
 /// The M5StackTab5 class provides an interface to the M5Stack Tab5 development board.
 ///
 /// The class provides access to the following features:
-/// - 5" 720p MIPI-DSI Display with GT911 multi-touch
+/// - 5" 720p MIPI-DSI Display with multi-touch (auto-detects the fitted
+///   revision: ILI9881C + GT911 touch, ST7123 TDDI, or ST7121 TDDI)
 /// - Dual audio codecs (ES8388 + ES7210 AEC)
 /// - BMI270 6-axis IMU sensor
 /// - MIPI-CSI camera (SC202CS) via the esp_video (V4L2) pipeline
@@ -81,8 +83,12 @@ public:
   /// Alias for the low-level display driver interface
   using DisplayDriver = espp::display_drivers::Controller;
 
-  /// Enum for display controller type
-  enum class DisplayController { UNKNOWN, ILI9881, ST7123 };
+  /// Enum for display controller type. The Tab5 has shipped with three display
+  /// revisions: ILI9881C + separate GT911 touch (original, pre Oct-2025),
+  /// ST7123 TDDI (integrated touch), and ST7121 TDDI (newest). The two ST
+  /// parts need different init sequences / DSI timing and are told apart by
+  /// their touch firmware version (1 = ST7121, 3 = ST7123).
+  enum class DisplayController { UNKNOWN, ILI9881, ST7123, ST7121 };
 
   DisplayController detect_display_controller();
 
@@ -104,15 +110,25 @@ public:
       return "ILI9881";
     case DisplayController::ST7123:
       return "ST7123";
+    case DisplayController::ST7121:
+      return "ST7121";
     default:
       return "Unknown";
     }
   }
 
+  /// Whether the controller is one of the Sitronix TDDI parts (ST7123/ST7121),
+  /// which integrate the touch engine (same protocol, I2C 0x55) with the
+  /// display driver.
+  static constexpr bool is_st_tddi(DisplayController controller) {
+    return controller == DisplayController::ST7123 || controller == DisplayController::ST7121;
+  }
+
   /// Alias for the GT911 touch controller used by the Tab5 (ILI9881 variant)
   using TouchDriver = espp::Gt911;
 
-  /// Alias for the ST7123 integrated touch controller (ST7123 variant)
+  /// Alias for the Sitronix integrated touch controller (ST7123 and ST7121
+  /// variants — both TDDI parts speak the same touch protocol at I2C 0x55)
   using St7123TouchDriver = espp::St7123Touch;
 
   /// Alias for the touchpad data used by the Tab5 touchpad

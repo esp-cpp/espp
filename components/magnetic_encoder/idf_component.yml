@@ -1,0 +1,19 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "Shared CRTP base class for espp magnetic angle encoders (As5600, Mt6701): periodic position/velocity update loop over a HighResolutionTimer or Timer"
+url: "https://github.com/esp-cpp/espp/tree/main/components/magnetic_encoder"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/encoder/index.html"
+tags:
+  - cpp
+  - Component
+  - Encoder
+  - Magnetic
+  - Peripheral
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/base_peripheral: '>=1.0'
+  espp/timer: '>=1.0'
