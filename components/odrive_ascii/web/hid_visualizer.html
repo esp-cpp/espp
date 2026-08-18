@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WebHID Gamepad Input Visualizer</title>
+  <!--
+    WebHID Gamepad Input Visualizer
+    ===============================
+    A single-file, fully offline, dependency-free browser tool that reads and
+    visualizes HID *input reports* straight from a USB HID device (the espp
+    usb_device HID gamepad example, or any HID gamepad) using the WebHID API.
+
+    Unlike the sibling WebUSB tools (odrive_webusb_console.html,
+    odrive_control_panel.html) which claim a raw vendor interface and speak a
+    custom protocol, this page talks to the device's *HID* interface via the
+    browser's HID stack. It NEVER hard-codes the byte layout: it walks the
+    device's report descriptor (device.collections[*].inputReports[*].items[*]),
+    builds a per-reportId field model (bit offset / size / usage / logical
+    range), and decodes each incoming `inputreport` event's DataView against it.
+
+    WebHID vs WebUSB: WebHID rides on top of the OS HID driver, so it exposes a
+    parsed report descriptor and cannot claim a device already bound by another
+    driver. For security the browser BLOCKS protected HID collections (keyboards,
+    pointers) but ALLOWS gamepads and other generic devices. `acceptAllDevices`
+    is a WebUSB-only flag; for "any HID device" you pass `{ filters: [] }`, which
+    IS valid for WebHID.
+
+    No external dependencies, no CDN, no network fetches: everything is inline
+    and works from a file:// URL, http://localhost, or any secure (https) origin
+    in a Chromium-based browser.
+  -->
+  <style>
+    :root {
+      --bg: #f4f6f9;
+      --panel-bg: #ffffff;
+      --panel-border: #d9dee6;
+      --text: #1c2330;
+      --text-muted: #5c6675;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-contrast: #ffffff;
+      --danger: #dc2626;
+      --ok: #16a34a;
+      --warn: #b45309;
+      --log-bg: #0f1420;
+      --log-text: #d6dbe6;
+      --err-color: #fca5a5;
+      --sys-color: #fcd34d;
+      --time-color: #64748b;
+      --input-bg: #ffffff;
+      --input-border: #c3cbd6;
+      --chip-bg: #eef2f8;
+      --viz-bg: #0f1420;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b0e14; --panel-bg: #151a23; --panel-border: #262d3a; --text: #e6eaf2;
+        --text-muted: #98a2b3; --accent: #3b82f6; --accent-hover: #60a5fa;
+        --accent-contrast: #0b0e14; --danger: #ef4444; --ok: #22c55e; --warn: #f59e0b;
+        --log-bg: #05070c; --log-text: #cdd4e0; --err-color: #f87171; --sys-color: #fbbf24;
+        --time-color: #64748b; --input-bg: #0e1219; --input-border: #2b3341;
+        --chip-bg: #1b2230; --viz-bg: #05070c; --shadow: 0 1px 3px rgba(0,0,0,0.4);
+      }
+    }
+    /* Explicit theme overrides (viewer toggle stamps data-theme on :root). */
+    :root[data-theme="dark"] {
+      --bg: #0b0e14; --panel-bg: #151a23; --panel-border: #262d3a; --text: #e6eaf2;
+      --text-muted: #98a2b3; --accent: #3b82f6; --accent-hover: #60a5fa;
+      --accent-contrast: #0b0e14; --danger: #ef4444; --ok: #22c55e; --warn: #f59e0b;
+      --log-bg: #05070c; --log-text: #cdd4e0; --err-color: #f87171; --sys-color: #fbbf24;
+      --input-bg: #0e1219; --input-border: #2b3341; --chip-bg: #1b2230; --viz-bg: #05070c;
+    }
+    :root[data-theme="light"] {
+      --bg: #f4f6f9; --panel-bg: #ffffff; --panel-border: #d9dee6; --text: #1c2330;
+      --text-muted: #5c6675; --accent: #2563eb; --accent-hover: #1d4ed8;
+      --accent-contrast: #ffffff; --danger: #dc2626; --ok: #16a34a; --warn: #b45309;
+      --log-bg: #0f1420; --log-text: #d6dbe6; --err-color: #fca5a5; --sys-color: #fcd34d;
+      --input-bg: #ffffff; --input-border: #c3cbd6; --chip-bg: #eef2f8; --viz-bg: #0f1420;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 14px; line-height: 1.45; overflow-x: hidden;
+    }
+
+    header {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 12px;
+      padding: 12px 18px; border-bottom: 1px solid var(--panel-border);
+      background: var(--panel-bg); position: sticky; top: 0; z-index: 20;
+    }
+    header h1 { font-size: 16px; margin: 0; font-weight: 650; letter-spacing: 0.2px; }
+    header .spacer { flex: 1 1 auto; }
+
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-size: 13px; font-weight: 600; padding: 5px 11px; border-radius: 999px;
+      border: 1px solid var(--panel-border); background: var(--bg);
+      color: var(--text-muted); white-space: nowrap;
+    }
+    .status-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--text-muted); flex: 0 0 auto; }
+    .status-pill.connected { color: var(--ok); }
+    .status-pill.connected .status-dot { background: var(--ok); }
+    .status-pill.busy { color: var(--warn); }
+    .status-pill.busy .status-dot { background: var(--warn); }
+    .status-pill.error { color: var(--danger); }
+    .status-pill.error .status-dot { background: var(--danger); }
+
+    main {
+      display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+      gap: 16px; padding: 16px 18px; max-width: 1600px; margin: 0 auto;
+    }
+    @media (max-width: 980px) { main { grid-template-columns: minmax(0, 1fr); } }
+    .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+    .panel {
+      background: var(--panel-bg); border: 1px solid var(--panel-border);
+      border-radius: 10px; padding: 14px 15px; box-shadow: var(--shadow); min-width: 0;
+    }
+    .panel h2 {
+      font-size: 13px; text-transform: uppercase; letter-spacing: 0.6px;
+      color: var(--text-muted); margin: 0 0 12px 0; font-weight: 700;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .panel h2 .spacer { flex: 1 1 auto; }
+    .panel h2 .rate { text-transform: none; font-weight: 600; color: var(--text-muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+
+    button {
+      cursor: pointer; border: 1px solid var(--input-border); background: var(--bg);
+      color: var(--text); padding: 7px 13px; border-radius: 7px; font-weight: 600;
+      white-space: nowrap; transition: background 0.12s, border-color 0.12s; font-size: 14px;
+    }
+    button:hover:not(:disabled) { border-color: var(--accent); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    button.primary { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); }
+    button.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+    button.danger { color: var(--danger); border-color: var(--danger); }
+    button.small { padding: 4px 9px; font-size: 12px; }
+
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .hint { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+    .placeholder { color: var(--text-muted); font-size: 13px; padding: 6px 2px; }
+
+    #unsupported {
+      display: none; margin: 16px 18px; padding: 14px 16px; border-radius: 10px;
+      border: 1px solid var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent);
+      color: var(--text);
+    }
+    #unsupported strong { color: var(--danger); }
+    .mono.tag { background: var(--chip-bg); border-radius: 5px; padding: 1px 5px; }
+
+    /* ---- Buttons grid ---- */
+    .btn-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+    .btn-ind {
+      min-width: 40px; height: 40px; padding: 0 8px; border-radius: 8px;
+      border: 1px solid var(--input-border); background: var(--input-bg);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: var(--text-muted);
+      transition: background 0.05s, color 0.05s, border-color 0.05s;
+    }
+    .btn-ind.on {
+      background: var(--accent); color: var(--accent-contrast); border-color: var(--accent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
+    }
+
+    /* ---- Sticks ---- */
+    .sticks-row { display: flex; gap: 20px; flex-wrap: wrap; }
+    .stick-wrap { text-align: center; }
+    .stick-wrap .cap { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; font-weight: 600; }
+    .stick {
+      position: relative; width: 150px; height: 150px; border-radius: 12px;
+      border: 1px solid var(--panel-border); background: var(--viz-bg); overflow: hidden;
+    }
+    .stick .cross-h, .stick .cross-v { position: absolute; background: color-mix(in srgb, var(--text-muted) 40%, transparent); }
+    .stick .cross-h { left: 0; right: 0; top: 50%; height: 1px; }
+    .stick .cross-v { top: 0; bottom: 0; left: 50%; width: 1px; }
+    .stick .dot {
+      position: absolute; width: 18px; height: 18px; border-radius: 50%;
+      background: var(--accent); border: 2px solid var(--accent-contrast);
+      transform: translate(-50%, -50%); left: 50%; top: 50%;
+      box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 60%, transparent);
+      transition: left 0.04s linear, top 0.04s linear;
+    }
+    .stick-vals { font-size: 11px; color: var(--text-muted); margin-top: 5px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+    /* ---- Bars ---- */
+    .bars { display: flex; flex-direction: column; gap: 8px; }
+    .bar-row { display: flex; align-items: center; gap: 10px; }
+    .bar-label { flex: 0 0 130px; font-size: 12px; color: var(--text-muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bar-track { flex: 1 1 auto; height: 15px; border-radius: 8px; background: var(--chip-bg);
+      overflow: hidden; position: relative; border: 1px solid var(--panel-border); min-width: 0; }
+    .bar-fill { height: 100%; width: 0%; background: var(--accent); transition: width 0.04s linear; }
+    .bar-val { flex: 0 0 78px; text-align: right; font-size: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+    /* ---- D-pad (hat) ---- */
+    .dpad { display: inline-grid; grid-template-columns: repeat(3, 36px); grid-template-rows: repeat(3, 36px); gap: 5px; }
+    .dpad .cell { border: 1px solid var(--input-border); border-radius: 7px; background: var(--input-bg);
+      display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 15px; }
+    .dpad .cell.blank { border: none; background: transparent; }
+    .dpad .cell.on { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); }
+    .dpad-wrap .cap { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; font-weight: 600; }
+
+    /* ---- Raw report ---- */
+    .raw-hex { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12.5px; word-break: break-all; color: var(--text); background: var(--viz-bg);
+      border-radius: 8px; padding: 9px 11px; min-height: 20px; }
+    .rawbytes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .rawbyte { text-align: center; }
+    .rawbyte .rb-track { width: 40px; height: 46px; border-radius: 6px; background: var(--chip-bg);
+      border: 1px solid var(--panel-border); position: relative; overflow: hidden; display: flex; align-items: flex-end; }
+    .rawbyte .rb-fill { width: 100%; background: var(--accent); height: 0%; }
+    .rawbyte .rb-lbl { font-size: 10px; color: var(--text-muted); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; margin-top: 3px; }
+    .rawbyte .rb-val { font-size: 11px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+    /* ---- Model table ---- */
+    .model-scroll { overflow-x: auto; }
+    table.model { width: 100%; border-collapse: collapse; font-size: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    table.model th, table.model td { text-align: left; padding: 3px 8px; border-bottom: 1px solid var(--panel-border); white-space: nowrap; }
+    table.model th { color: var(--text-muted); text-transform: uppercase; font-size: 10.5px; letter-spacing: 0.4px; }
+
+    /* ---- Log ---- */
+    #log {
+      background: var(--log-bg); color: var(--log-text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12.5px; line-height: 1.5; border-radius: 8px; padding: 10px 12px;
+      height: 26vh; min-height: 140px; overflow-y: auto; overflow-x: auto; white-space: pre-wrap;
+    }
+    .log-line { display: block; }
+    .log-time { color: var(--time-color); }
+    .log-err { color: var(--err-color); }
+    .log-sys { color: var(--sys-color); }
+
+    .devinfo { font-size: 13px; }
+    .devinfo .row { display: flex; gap: 8px; }
+    .devinfo .k { color: var(--text-muted); flex: 0 0 96px; }
+    .devinfo .v { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; word-break: break-word; }
+
+    footer { text-align: center; color: var(--text-muted); font-size: 12px; padding: 8px 18px 22px; }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>WebHID &mdash; Gamepad Input Visualizer</h1>
+    <div class="spacer"></div>
+    <button id="connectBtn" class="primary">Connect gamepad</button>
+    <button id="anyBtn" title="Show every non-protected HID device in the chooser (keyboards/pointers are always blocked by the browser).">Any HID device</button>
+    <span id="status" class="status-pill"><span class="status-dot"></span><span id="statusText">Disconnected</span></span>
+  </header>
+
+  <div id="unsupported">
+    <strong>WebHID is not available in this browser.</strong>
+    WebHID (<span class="mono">navigator.hid</span>) requires a Chromium-based browser
+    (Chrome, Edge, Opera, Brave &mdash; Firefox and Safari do not implement it) served over
+    <span class="mono">https://</span>, <span class="mono">http://localhost</span>, or a
+    <span class="mono">file://</span> URL.
+  </div>
+
+  <main>
+    <!-- ============================ LEFT COLUMN ============================ -->
+    <div class="col">
+      <div class="panel">
+        <h2>Buttons</h2>
+        <div id="buttons"><div class="placeholder">Connect a HID device to see its buttons.</div></div>
+      </div>
+
+      <div class="panel">
+        <h2>Sticks &amp; Hat</h2>
+        <div id="sticks"><div class="placeholder">Generic-Desktop X/Y &amp; Rx/Ry axes render as 2D sticks; hat switches render as a d-pad.</div></div>
+      </div>
+
+      <div class="panel">
+        <h2>Axes</h2>
+        <div id="axes"><div class="placeholder">Z / Rz / sliders and any other axes render as bars (normalized by their logical min/max).</div></div>
+      </div>
+
+      <div class="panel">
+        <h2>Raw Input Report <span class="spacer"></span><span id="rateInfo" class="rate"></span></h2>
+        <div id="rawhex" class="raw-hex">&mdash;</div>
+        <div id="rawbytes" class="rawbytes"></div>
+      </div>
+    </div>
+
+    <!-- ============================ RIGHT COLUMN =========================== -->
+    <div class="col">
+      <div class="panel">
+        <h2>Device</h2>
+        <div id="devInfo" class="devinfo"><div class="placeholder">Not connected.</div></div>
+      </div>
+
+      <div class="panel">
+        <h2>Report Descriptor Model</h2>
+        <div id="model" class="model-scroll"><div class="placeholder">The parsed input-report field model appears here after connecting.</div></div>
+        <div class="hint">Decoded live from <span class="mono">device.collections[*].inputReports[*].items[*]</span> &mdash; the byte layout is never hard-coded.</div>
+      </div>
+
+      <div class="panel">
+        <h2>Log <span class="spacer"></span><button id="clearLogBtn" class="small">Clear</button></h2>
+        <div id="log" aria-live="polite"></div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    WebHID Gamepad Input Visualizer &middot; espp &middot; descriptor-driven HID input decoding &middot; fully offline, no dependencies.
+    Sibling to <span class="mono">odrive_control_panel.html</span> (WebUSB).
+  </footer>
+
+  <script>
+  "use strict";
+  (function () {
+    // ===================================================================
+    // Constants + element references
+    // ===================================================================
+    const DEFAULT_VID = 0x1209; // pid.codes open-source VID used by espp examples
+
+    // HID usage pages / Generic-Desktop usages we recognize.
+    const PAGE_GENERIC_DESKTOP = 0x01;
+    const PAGE_SIMULATION = 0x02;
+    const PAGE_BUTTON = 0x09;
+    const PAGE_CONSUMER = 0x0c;
+    const GD_NAMES = {
+      0x30: "X", 0x31: "Y", 0x32: "Z", 0x33: "Rx", 0x34: "Ry", 0x35: "Rz",
+      0x36: "Slider", 0x37: "Dial", 0x38: "Wheel", 0x39: "Hat",
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const els = {
+      connectBtn: $("connectBtn"), anyBtn: $("anyBtn"),
+      status: $("status"), statusText: $("statusText"), unsupported: $("unsupported"),
+      buttons: $("buttons"), sticks: $("sticks"), axes: $("axes"),
+      rawhex: $("rawhex"), rawbytes: $("rawbytes"), rateInfo: $("rateInfo"),
+      devInfo: $("devInfo"), model: $("model"), log: $("log"), clearLogBtn: $("clearLogBtn"),
+    };
+
+    // ===================================================================
+    // Runtime state
+    // ===================================================================
+    let device = null;
+    let reportModel = null;   // { byId: Map(reportId -> {reportId, fields[]}), fields: [all], rawOnly: bool }
+    let viz = null;           // built DOM refs for the current model
+    const values = new Map(); // fieldKey -> latest decoded numeric value
+    let lastRaw = null;       // last report bytes (Uint8Array) for raw view
+    let lastReportId = 0;
+    let rptCount = 0, rptRate = 0;
+    let dirty = false;
+
+    const onInputReportBound = (e) => onInputReport(e);
+
+    // ===================================================================
+    // Logging + status helpers
+    // ===================================================================
+    function ts() {
+      const d = new Date(); const p = (n, w = 2) => String(n).padStart(w, "0");
+      return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}.${p(d.getMilliseconds(), 3)}`;
+    }
+    function logLine(kind, text) {
+      const line = document.createElement("span"); line.className = "log-line";
+      const time = document.createElement("span"); time.className = "log-time"; time.textContent = `[${ts()}] `;
+      const prefix = { err: "!! ", sys: "-- " }[kind] || "";
+      const body = document.createElement("span"); body.className = "log-" + kind; body.textContent = prefix + text;
+      line.appendChild(time); line.appendChild(body); els.log.appendChild(line);
+      while (els.log.childElementCount > 3000) els.log.removeChild(els.log.firstChild);
+      els.log.scrollTop = els.log.scrollHeight;
+    }
+    els.clearLogBtn.addEventListener("click", () => { els.log.textContent = ""; });
+
+    function setStatus(state, text) {
+      els.status.className = "status-pill" + (state ? " " + state : "");
+      els.statusText.textContent = text;
+    }
+    function hex(bytes) { return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join(" "); }
+
+    // ===================================================================
+    // Bit-level decode (shared by runtime + self-test)
+    // ===================================================================
+    // HID packs fields little-endian, LSB first: bit 0 is the low bit of byte 0.
+    // Returns the UNSIGNED integer value of [bitOffset, bitOffset+bitLength).
+    function readBits(view, bitOffset, bitLength) {
+      let value = 0;
+      for (let i = 0; i < bitLength; i++) {
+        const bit = bitOffset + i;
+        const byteIndex = bit >> 3;
+        if (byteIndex >= view.byteLength) break; // out of range -> treated as 0
+        const bitIndex = bit & 7;
+        const b = (view.getUint8(byteIndex) >> bitIndex) & 1;
+        if (b) value += Math.pow(2, i); // Math.pow avoids <<31 sign pitfalls (>32-bit safe-ish)
+      }
+      return value;
+    }
+    // Decode one field: read its bits, then sign-extend when the field is signed
+    // (declared with a negative logicalMinimum).
+    function decodeField(view, f) {
+      let v = readBits(view, f.bitOffset, f.size);
+      if (f.signed && f.size > 0) {
+        const half = Math.pow(2, f.size - 1);
+        if (v >= half) v -= Math.pow(2, f.size);
+      }
+      return v;
+    }
+
+    function usageName(page, usage) {
+      if (page === PAGE_BUTTON) return "Button " + usage;
+      if (page === PAGE_GENERIC_DESKTOP) return GD_NAMES[usage] || ("GD 0x" + usage.toString(16));
+      if (page === PAGE_SIMULATION) return "Sim 0x" + usage.toString(16);
+      if (page === PAGE_CONSUMER) return "Consumer 0x" + usage.toString(16);
+      return "0x" + page.toString(16) + ":0x" + usage.toString(16);
+    }
+
+    // Which usage does field index k of an item map to?  Prefer an explicit
+    // usages[] array, else a usageMinimum..usageMaximum range. Values are the
+    // 32-bit combined form (page << 16 | usageId).
+    function usageForIndex(item, k) {
+      const usages = item.usages || [];
+      if (usages.length) return usages[Math.min(k, usages.length - 1)];
+      const umin = item.usageMinimum, umax = item.usageMaximum;
+      if (umin != null) {
+        let uv = umin + k;
+        if (umax != null && uv > umax) uv = umax;
+        return uv;
+      }
+      return 0; // padding / unknown
+    }
+
+    // ===================================================================
+    // Build the per-reportId field model from the parsed report descriptor.
+    // ===================================================================
+    function buildModel(dev) {
+      const byId = new Map();
+      const allFields = [];
+      const collections = dev.collections || [];
+
+      // Recursively collect inputReports from a collection and its children.
+      function gatherReports(col, out) {
+        if (!col) return;
+        for (const r of (col.inputReports || [])) out.push(r);
+        for (const c of (col.children || [])) gatherReports(c, out);
+      }
+      const reports = [];
+      for (const col of collections) gatherReports(col, reports);
+
+      for (const report of reports) {
+        const reportId = report.reportId || 0;
+        const fields = [];
+        let bit = 0; // bit offset within the report payload (report ID excluded from event.data)
+        for (const item of (report.items || [])) {
+          const size = item.reportSize || 0;
+          const count = item.reportCount || 0;
+          const signed = (item.logicalMinimum || 0) < 0;
+          for (let k = 0; k < count; k++) {
+            const uv = usageForIndex(item, k);
+            const page = (uv >>> 16) & 0xffff;
+            const usage = uv & 0xffff;
+            const bitOffset = bit + k * size;
+            fields.push({
+              key: reportId + ":" + bitOffset,
+              reportId, bitOffset, size, signed,
+              logicalMin: (item.logicalMinimum != null ? item.logicalMinimum : 0),
+              logicalMax: (item.logicalMaximum != null ? item.logicalMaximum : (Math.pow(2, size) - 1)),
+              isConst: !!item.isConstant,
+              page, usage, name: usageName(page, usage),
+            });
+          }
+          bit += size * count;
+        }
+        const entry = { reportId, fields, totalBits: bit };
+        byId.set(reportId, entry);
+        for (const f of fields) allFields.push(f);
+      }
+
+      const usable = allFields.filter((f) => !f.isConst && f.size > 0 && !(f.page === 0 && f.usage === 0));
+      const rawOnly = usable.length === 0;
+      return { byId, fields: allFields, usable, rawOnly };
+    }
+
+    // ===================================================================
+    // Categorize usable fields into visualization groups.
+    // ===================================================================
+    function categorize(model) {
+      const buttons = [];
+      const hats = [];
+      const bars = [];
+      const axisByRid = new Map(); // reportId -> Map(usage -> field) for GD axes
+
+      for (const f of model.usable) {
+        if (f.page === PAGE_BUTTON) { buttons.push(f); continue; }
+        if (f.page === PAGE_GENERIC_DESKTOP && f.usage === 0x39) { hats.push(f); continue; }
+        if (f.page === PAGE_GENERIC_DESKTOP && GD_NAMES[f.usage]) {
+          if (!axisByRid.has(f.reportId)) axisByRid.set(f.reportId, new Map());
+          axisByRid.get(f.reportId).set(f.usage, f);
+          continue;
+        }
+        bars.push(f); // unrecognized usages -> generic labeled bars
+      }
+
+      // Pair GD axes into 2D sticks; the rest become bars.
+      const sticks = [];
+      const pairs = [[0x30, 0x31, "Left Stick"], [0x33, 0x34, "Right Stick"]];
+      for (const [ux, uy, label] of pairs) {
+        for (const [rid, m] of axisByRid) {
+          const fx = m.get(ux), fy = m.get(uy);
+          if (fx && fy) {
+            sticks.push({ label, fx, fy });
+            m.delete(ux); m.delete(uy);
+          }
+        }
+      }
+      // Leftover GD axes (Z, Rz, sliders, unpaired X/Y, ...) -> bars, sorted by usage.
+      for (const [, m] of axisByRid) {
+        for (const f of m.values()) bars.push(f);
+      }
+      buttons.sort((a, b) => a.usage - b.usage);
+      bars.sort((a, b) => (a.reportId - b.reportId) || (a.bitOffset - b.bitOffset));
+      return { buttons, sticks, hats, bars };
+    }
+
+    // ===================================================================
+    // Build visualization DOM (once per model) and keep element refs.
+    // ===================================================================
+    function buildViz(model) {
+      const v = { buttons: [], sticks: [], hats: [], bars: [], rawOnly: model.rawOnly, rawCells: [], rawLen: -1 };
+
+      if (model.rawOnly) {
+        els.buttons.innerHTML = '<div class="placeholder">This device exposes no decodable input-report fields; showing a raw per-byte view under &ldquo;Raw Input Report&rdquo;.</div>';
+        els.sticks.innerHTML = '<div class="placeholder">&mdash;</div>';
+        els.axes.innerHTML = '<div class="placeholder">&mdash;</div>';
+        viz = v;
+        return;
+      }
+
+      const cats = categorize(model);
+
+      // Buttons
+      els.buttons.innerHTML = "";
+      if (cats.buttons.length) {
+        const grid = document.createElement("div"); grid.className = "btn-grid";
+        for (const f of cats.buttons) {
+          const el = document.createElement("div"); el.className = "btn-ind"; el.textContent = String(f.usage);
+          el.title = f.name;
+          grid.appendChild(el);
+          v.buttons.push({ key: f.key, el });
+        }
+        els.buttons.appendChild(grid);
+      } else {
+        els.buttons.innerHTML = '<div class="placeholder">No button-page (0x09) usages in this report.</div>';
+      }
+
+      // Sticks + hats
+      els.sticks.innerHTML = "";
+      const stickRow = document.createElement("div"); stickRow.className = "sticks-row";
+      for (const s of cats.sticks) {
+        const wrap = document.createElement("div"); wrap.className = "stick-wrap";
+        const cap = document.createElement("div"); cap.className = "cap"; cap.textContent = s.label;
+        const box = document.createElement("div"); box.className = "stick";
+        const ch = document.createElement("div"); ch.className = "cross-h";
+        const cv = document.createElement("div"); cv.className = "cross-v";
+        const dot = document.createElement("div"); dot.className = "dot";
+        box.appendChild(ch); box.appendChild(cv); box.appendChild(dot);
+        const vals = document.createElement("div"); vals.className = "stick-vals"; vals.textContent = "x — y —";
+        wrap.appendChild(cap); wrap.appendChild(box); wrap.appendChild(vals);
+        stickRow.appendChild(wrap);
+        v.sticks.push({ fx: s.fx, fy: s.fy, dot, vals });
+      }
+      for (const f of cats.hats) {
+        const wrap = document.createElement("div"); wrap.className = "dpad-wrap";
+        const cap = document.createElement("div"); cap.className = "cap"; cap.textContent = f.name + " (Hat)";
+        const pad = document.createElement("div"); pad.className = "dpad";
+        // 3x3 grid: up, left, center, right, down are the live cells.
+        const cells = {};
+        const layout = [
+          ["blank", "up", "blank"],
+          ["left", "center", "right"],
+          ["blank", "down", "blank"],
+        ];
+        const glyph = { up: "▲", down: "▼", left: "◀", right: "▶", center: "•" };
+        for (const rowArr of layout) {
+          for (const name of rowArr) {
+            const cell = document.createElement("div");
+            cell.className = "cell" + (name === "blank" ? " blank" : "");
+            if (name !== "blank") { cell.textContent = glyph[name]; cells[name] = cell; }
+            pad.appendChild(cell);
+          }
+        }
+        wrap.appendChild(cap); wrap.appendChild(pad);
+        stickRow.appendChild(wrap);
+        v.hats.push({ key: f.key, field: f, cells });
+      }
+      if (v.sticks.length || v.hats.length) els.sticks.appendChild(stickRow);
+      else els.sticks.innerHTML = '<div class="placeholder">No X/Y stick axes or hat switch in this report.</div>';
+
+      // Bars
+      els.axes.innerHTML = "";
+      if (cats.bars.length) {
+        const bars = document.createElement("div"); bars.className = "bars";
+        for (const f of cats.bars) {
+          const row = document.createElement("div"); row.className = "bar-row";
+          const label = document.createElement("div"); label.className = "bar-label";
+          label.textContent = f.name; label.title = f.name + " (rid " + f.reportId + ", bit " + f.bitOffset + ", " + f.size + "b)";
+          const track = document.createElement("div"); track.className = "bar-track";
+          const fill = document.createElement("div"); fill.className = "bar-fill";
+          track.appendChild(fill);
+          const val = document.createElement("div"); val.className = "bar-val"; val.textContent = "—";
+          row.appendChild(label); row.appendChild(track); row.appendChild(val);
+          bars.appendChild(row);
+          v.bars.push({ field: f, fill, val });
+        }
+        els.axes.appendChild(bars);
+      } else {
+        els.axes.innerHTML = '<div class="placeholder">No additional axes in this report.</div>';
+      }
+
+      viz = v;
+    }
+
+    // Render the parsed model as a table (right column).
+    function renderModelTable(model) {
+      if (!model.fields.length) { els.model.innerHTML = '<div class="placeholder">Device reported no input-report items.</div>'; return; }
+      const rows = [];
+      rows.push('<table class="model"><thead><tr><th>rid</th><th>bit</th><th>size</th><th>usage</th><th>logical</th><th></th></tr></thead><tbody>');
+      for (const f of model.fields) {
+        const tag = f.isConst ? "const/pad" : (f.signed ? "signed" : "");
+        rows.push(`<tr><td>${f.reportId}</td><td>${f.bitOffset}</td><td>${f.size}</td><td>${f.name}</td><td>${f.logicalMin}..${f.logicalMax}</td><td>${tag}</td></tr>`);
+      }
+      rows.push("</tbody></table>");
+      els.model.innerHTML = rows.join("");
+    }
+
+    // ===================================================================
+    // Input report handling
+    // ===================================================================
+    function onInputReport(e) {
+      try {
+        lastReportId = e.reportId;
+        const view = e.data; // DataView, report ID excluded
+        lastRaw = new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
+        rptCount++;
+        if (reportModel && !reportModel.rawOnly) {
+          const report = reportModel.byId.get(e.reportId) || reportModel.byId.get(0);
+          if (report) {
+            for (const f of report.fields) {
+              if (f.isConst) continue;
+              values.set(f.key, decodeField(view, f));
+            }
+          }
+        }
+        dirty = true;
+      } catch (err) {
+        // Never let a decode error escape and kill the stream.
+        logLine("err", "Input report decode error: " + (err && err.message ? err.message : err));
+      }
+    }
+
+    function norm(v, min, max) {
+      if (max <= min) return 0.5;
+      let n = (v - min) / (max - min);
+      if (n < 0) n = 0; else if (n > 1) n = 1;
+      return n;
+    }
+
+    // Map a hat value to up/down/left/right booleans (8- or 4-position hats).
+    const HAT_DIRS = {
+      0: { up: 1 }, 1: { up: 1, right: 1 }, 2: { right: 1 }, 3: { down: 1, right: 1 },
+      4: { down: 1 }, 5: { down: 1, left: 1 }, 6: { left: 1 }, 7: { up: 1, left: 1 },
+    };
+    function hatDirs(v, f) {
+      const positions = f.logicalMax - f.logicalMin + 1;
+      if (v < f.logicalMin || v > f.logicalMax) return {}; // null / centered
+      const idx = v - f.logicalMin;
+      if (positions >= 8) return HAT_DIRS[idx] || {};
+      if (positions === 4) return HAT_DIRS[(idx * 2) % 8] || {};
+      return {};
+    }
+
+    // rAF render loop: reads latest `values` and updates DOM. Decoupled from the
+    // (possibly very high-rate) input report events so we never thrash layout.
+    function renderLoop() {
+      requestAnimationFrame(renderLoop);
+      if (!dirty || !viz) return;
+      dirty = false;
+
+      // Raw report (always).
+      if (lastRaw) {
+        els.rawhex.textContent = (lastReportId ? ("id " + lastReportId + " · ") : "") + (lastRaw.length ? hex(lastRaw) : "(empty)");
+        renderRawBytes(lastRaw);
+      }
+      if (viz.rawOnly) return;
+
+      for (const b of viz.buttons) {
+        b.el.classList.toggle("on", (values.get(b.key) || 0) !== 0);
+      }
+      for (const s of viz.sticks) {
+        const vx = values.get(s.fx.key), vy = values.get(s.fy.key);
+        const nx = vx == null ? 0.5 : norm(vx, s.fx.logicalMin, s.fx.logicalMax);
+        const ny = vy == null ? 0.5 : norm(vy, s.fy.logicalMin, s.fy.logicalMax);
+        s.dot.style.left = (nx * 100).toFixed(1) + "%";
+        s.dot.style.top = (ny * 100).toFixed(1) + "%";
+        s.vals.textContent = "x " + (vx == null ? "—" : vx) + "  y " + (vy == null ? "—" : vy);
+      }
+      for (const h of viz.hats) {
+        const v = values.get(h.key);
+        const dirs = v == null ? {} : hatDirs(v, h.field);
+        for (const name of ["up", "down", "left", "right"]) {
+          if (h.cells[name]) h.cells[name].classList.toggle("on", !!dirs[name]);
+        }
+        if (h.cells.center) h.cells.center.classList.toggle("on", !dirs.up && !dirs.down && !dirs.left && !dirs.right);
+      }
+      for (const bar of viz.bars) {
+        const v = values.get(bar.field.key);
+        const n = v == null ? 0 : norm(v, bar.field.logicalMin, bar.field.logicalMax);
+        bar.fill.style.width = (n * 100).toFixed(1) + "%";
+        bar.val.textContent = v == null ? "—" : String(v);
+      }
+    }
+
+    function renderRawBytes(bytes) {
+      if (!viz) return;
+      if (viz.rawLen !== bytes.length) {
+        // Rebuild the per-byte cells when the report length changes.
+        els.rawbytes.innerHTML = "";
+        viz.rawCells = [];
+        for (let i = 0; i < bytes.length; i++) {
+          const cell = document.createElement("div"); cell.className = "rawbyte";
+          const track = document.createElement("div"); track.className = "rb-track";
+          const fill = document.createElement("div"); fill.className = "rb-fill";
+          track.appendChild(fill);
+          const val = document.createElement("div"); val.className = "rb-val"; val.textContent = "00";
+          const lbl = document.createElement("div"); lbl.className = "rb-lbl"; lbl.textContent = "[" + i + "]";
+          cell.appendChild(track); cell.appendChild(val); cell.appendChild(lbl);
+          els.rawbytes.appendChild(cell);
+          viz.rawCells.push({ fill, val });
+        }
+        viz.rawLen = bytes.length;
+      }
+      for (let i = 0; i < bytes.length; i++) {
+        const c = viz.rawCells[i]; if (!c) continue;
+        c.fill.style.height = ((bytes[i] / 255) * 100).toFixed(0) + "%";
+        c.val.textContent = bytes[i].toString(16).padStart(2, "0");
+      }
+    }
+
+    // ===================================================================
+    // Connect / disconnect
+    // ===================================================================
+    async function pickAndConnect(anyDevice) {
+      if (device) { await disconnect(); return; }
+      let devices;
+      try {
+        // WebHID note: `acceptAllDevices` is a WebUSB-only flag and is NOT valid
+        // here. For "any HID device" pass `{ filters: [] }`, which IS valid for
+        // WebHID. The default path filters on the espp/pid.codes vendor id.
+        const options = anyDevice
+          ? { filters: [] }
+          : { filters: [{ vendorId: DEFAULT_VID }] };
+        devices = await navigator.hid.requestDevice(options);
+      } catch (e) {
+        logLine("err", "Device request failed: " + (e && e.message ? e.message : e));
+        return;
+      }
+      if (!devices || !devices.length) { logLine("sys", "Device selection cancelled."); return; }
+
+      device = devices[0];
+      setStatus("busy", "Opening…");
+      try {
+        if (!device.opened) await device.open();
+      } catch (e) {
+        logLine("err", "Failed to open device: " + (e && e.message ? e.message : e));
+        setStatus("error", "Open failed");
+        device = null;
+        return;
+      }
+
+      // Build the descriptor-driven field model, then the visualization.
+      try {
+        reportModel = buildModel(device);
+      } catch (e) {
+        logLine("err", "Failed to parse report descriptor: " + (e && e.message ? e.message : e));
+        reportModel = { byId: new Map(), fields: [], usable: [], rawOnly: true };
+      }
+      values.clear();
+      buildViz(reportModel);
+      renderModelTable(reportModel);
+      showDeviceInfo(device, reportModel);
+
+      device.addEventListener("inputreport", onInputReportBound);
+      setStatus("connected", "Connected");
+      setConnectedUI(true);
+      logLine("sys", `Connected to "${device.productName || "HID device"}".`);
+      const usable = reportModel.usable.length;
+      logLine("sys", reportModel.rawOnly
+        ? "No decodable input-report fields found; using raw per-byte view."
+        : `Parsed ${reportModel.fields.length} field(s) across ${reportModel.byId.size} input report(s); ${usable} renderable.`);
+    }
+
+    function showDeviceInfo(dev, model) {
+      const rows = [
+        ["Product", dev.productName || "(unknown)"],
+        ["Vendor", "0x" + (dev.vendorId || 0).toString(16).padStart(4, "0")],
+        ["Product ID", "0x" + (dev.productId || 0).toString(16).padStart(4, "0")],
+        ["Collections", String((dev.collections || []).length)],
+        ["Input reports", String(model.byId.size)],
+      ];
+      els.devInfo.innerHTML = rows.map((r) =>
+        `<div class="row"><span class="k">${r[0]}</span><span class="v">${r[1]}</span></div>`).join("");
+    }
+
+    async function disconnect() {
+      if (device) {
+        try { device.removeEventListener("inputreport", onInputReportBound); } catch (_) {}
+        try { if (device.opened) await device.close(); } catch (_) {}
+      }
+      teardown("Disconnected.");
+    }
+
+    function teardown(msg) {
+      device = null; reportModel = null; viz = null; lastRaw = null; values.clear();
+      setConnectedUI(false);
+      setStatus("", "Disconnected");
+      els.rawhex.textContent = "—"; els.rawbytes.innerHTML = "";
+      els.rateInfo.textContent = "";
+      els.buttons.innerHTML = '<div class="placeholder">Connect a HID device to see its buttons.</div>';
+      els.sticks.innerHTML = '<div class="placeholder">Generic-Desktop X/Y &amp; Rx/Ry axes render as 2D sticks; hat switches render as a d-pad.</div>';
+      els.axes.innerHTML = '<div class="placeholder">Z / Rz / sliders and any other axes render as bars.</div>';
+      els.devInfo.innerHTML = '<div class="placeholder">Not connected.</div>';
+      els.model.innerHTML = '<div class="placeholder">The parsed input-report field model appears here after connecting.</div>';
+      if (msg) logLine("sys", msg);
+    }
+
+    function setConnectedUI(connected) {
+      els.connectBtn.textContent = connected ? "Disconnect" : "Connect gamepad";
+      els.connectBtn.classList.toggle("danger", connected);
+      els.connectBtn.classList.toggle("primary", !connected);
+      els.anyBtn.disabled = connected;
+    }
+
+    els.connectBtn.addEventListener("click", () => { pickAndConnect(false); });
+    els.anyBtn.addEventListener("click", () => { pickAndConnect(true); });
+
+    // ===================================================================
+    // Self-test: exercise the bit-decode logic against a synthetic report and a
+    // hand-built item model, and assert the expected values. Logged to console.
+    // ===================================================================
+    function selfTest() {
+      // Synthetic 4-byte report:
+      //  byte0 = 0b00000101  -> buttons 1 and 3 pressed (bits 0 and 2)
+      //  byte1 = 0xFB        -> signed int8 axis = -5
+      //  byte2 = 200         -> unsigned uint8 axis = 200
+      //  byte3 = 0x3A        -> low nibble hat = 10, high nibble = 3 (cross-byte read)
+      const buf = new Uint8Array([0b00000101, 0xfb, 200, 0x3a]);
+      const view = new DataView(buf.buffer);
+      const F = (bitOffset, size, signed, min, max) => ({ bitOffset, size, signed, logicalMin: min, logicalMax: max });
+
+      const checks = [
+        ["button1", decodeField(view, F(0, 1, false, 0, 1)), 1],
+        ["button2", decodeField(view, F(1, 1, false, 0, 1)), 0],
+        ["button3", decodeField(view, F(2, 1, false, 0, 1)), 1],
+        ["int8=-5", decodeField(view, F(8, 8, true, -128, 127)), -5],
+        ["uint8=200", decodeField(view, F(16, 8, false, 0, 255)), 200],
+        ["nibbleLo", decodeField(view, F(24, 4, false, 0, 15)), 10],  // cross-nibble low
+        ["nibbleHi", decodeField(view, F(28, 4, false, 0, 15)), 3],   // cross-nibble high
+      ];
+      let allPass = true;
+      for (const [name, got, want] of checks) {
+        if (got !== want) { allPass = false; console.error(`[webhid] self-test ${name}: got ${got}, expected ${want}`); }
+      }
+
+      // Normalization sanity: value at logical mid -> 0.5, min -> 0, max -> 1.
+      const nOk = norm(0, -128, 127) > 0.49 && norm(0, -128, 127) < 0.51 &&
+                  norm(-128, -128, 127) === 0 && norm(127, -128, 127) === 1;
+      if (!nOk) { allPass = false; console.error("[webhid] self-test: axis normalization failed"); }
+
+      // Hat mapping sanity: value 2 (East) -> right only.
+      const d = hatDirs(2, { logicalMin: 0, logicalMax: 7 });
+      if (!(d.right && !d.up && !d.down && !d.left)) { allPass = false; console.error("[webhid] self-test: hat East mapping failed"); }
+
+      const msg = "[webhid] bit-decode self-test: " + (allPass ? "PASS ✓ (7 fields + norm + hat)" : "FAIL ✗");
+      (allPass ? console.log : console.error)(msg);
+      logLine(allPass ? "sys" : "err", msg.replace("[webhid] ", ""));
+      return allPass;
+    }
+
+    // ===================================================================
+    // Feature detection / init
+    // ===================================================================
+    function init() {
+      selfTest();
+      requestAnimationFrame(renderLoop);
+
+      if (!("hid" in navigator)) {
+        els.unsupported.style.display = "block";
+        els.connectBtn.disabled = true; els.anyBtn.disabled = true;
+        setStatus("error", "Unsupported");
+        logLine("err", "WebHID (navigator.hid) not available. Use a Chromium browser over https://, http://localhost, or file://.");
+        return;
+      }
+
+      // Handle physical unplug while connected.
+      navigator.hid.addEventListener("disconnect", (e) => {
+        if (device && e.device === device) {
+          logLine("err", "Device disconnected.");
+          try { device.removeEventListener("inputreport", onInputReportBound); } catch (_) {}
+          teardown(null);
+        }
+      });
+
+      setStatus("", "Disconnected");
+      setConnectedUI(false);
+      logLine("sys", "Ready. Click Connect and pick a HID gamepad.");
+      logLine("sys", `Default filter: VID 0x${DEFAULT_VID.toString(16)}. Use "Any HID device" to see all (keyboards/pointers are blocked by the browser).`);
+
+      // Reports/sec readout.
+      setInterval(() => {
+        rptRate = rptCount; rptCount = 0;
+        els.rateInfo.textContent = device ? (rptRate + " reports/s") : "";
+      }, 1000);
+    }
+
+    init();
+  })();
+  </script>
+</body>
+</html>

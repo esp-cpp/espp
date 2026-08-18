@@ -154,6 +154,7 @@ jobs:
             components/touch
             components/tla2528
             components/tt21100
+            components/twai
             components/usb_device
             components/utils
             components/vl53l
