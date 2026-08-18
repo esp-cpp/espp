@@ -185,12 +185,26 @@ static void test_no_response() {
   CHECK(resp.empty());
 }
 
+static void test_unknown_endpoint_ignored() {
+  std::printf("test_unknown_endpoint_ignored\n");
+  OdriveNativeCore core;
+  core.register_float_property("vbus_voltage", [&]() { return 24.0f; });
+  const uint16_t crc = core.json_crc();
+  // An unknown endpoint id, WITH the expect-response bit and a valid canary,
+  // must still be ignored (empty response) per PROTOCOL.md -- not ACKed.
+  auto req = make_packet(0x0031, /*endpoint*/ 999, /*expect*/ true, /*output_len*/ 4,
+                         std::span<const uint8_t>{}, crc);
+  auto resp = core.process_bytes(req);
+  CHECK(resp.empty());
+}
+
 int main() {
   test_crc_golden();
   test_endpoint0_read();
   test_float_write_then_read();
   test_canary_rejection();
   test_no_response();
+  test_unknown_endpoint_ignored();
   if (g_failures == 0) {
     std::printf("\nALL TESTS PASSED\n");
     return 0;
