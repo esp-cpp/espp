@@ -1,0 +1,24 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "ODrive legacy native (Fibre endpoint) binary protocol server component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/odrive_native"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/motor_control/odrive_native.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - ODrive
+  - Fibre
+  - Motor
+  - BLDC
+  - Binary
+  - Protocol
+  - USB
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/base_component: '>=1.0'

@@ -123,6 +123,7 @@ jobs:
             components/neopixel
             components/nvs
             components/odrive_ascii
+            components/odrive_native
             components/pcf85063
             components/pi4ioe5v
             components/pid

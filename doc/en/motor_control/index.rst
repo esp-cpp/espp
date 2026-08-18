@@ -11,4 +11,5 @@ Motor-control algorithms and controller interfaces. See also the
    pid
    adrc
    odrive_ascii
+   odrive_native
    trajectory_planner

@@ -11,7 +11,7 @@ license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "William Emfinger", email = "waemfinger@gmail.com" }]
 requires-python = ">=3.10"
-keywords = ["espp", "esp-cpp", "embedded", "rtsp", "rtps", "cdr", "cobs", "sockets"]
+keywords = ["espp", "esp-cpp", "embedded", "rtsp", "rtps", "cdr", "cobs", "sockets", "odrive"]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
@@ -30,13 +30,25 @@ Documentation = "https://esp-cpp.github.io/espp/"
 Repository = "https://github.com/esp-cpp/espp"
 Issues = "https://github.com/esp-cpp/espp/issues"
 
+[project.optional-dependencies]
+# espp_odrive's serial transport imports pyserial lazily; everything else in
+# the shipped packages is stdlib-only. `pip install espp[serial]` enables the
+# espp_odrive serial/UART transports.
+serial = ["pyserial"]
+
 [tool.scikit-build]
 # The CMake project for the host (PC) build lives in lib/; the repo root is the
 # project root so the sdist can include the components/ sources it references.
 cmake.source-dir = "lib"
 # Pure-python part of the package (espp/__init__.py, __init__.pyi, py.typed);
-# the compiled espp._espp extension is installed into it by CMake.
-wheel.packages = ["lib/python_bindings/espp"]
+# the compiled espp._espp extension is installed into it by CMake. The wheel
+# ALSO ships `espp_odrive`, the pure-python ODrive legacy-native protocol
+# client whose single source of truth lives in the odrive_native component --
+# stdlib-only except a lazily-imported pyserial (see the `serial` extra).
+wheel.packages = [
+  "lib/python_bindings/espp",
+  "components/odrive_native/python/espp_odrive",
+]
 wheel.exclude = ["**/.mypy_cache", "**/__pycache__"]
 # Persistent CMake build dir (gitignored) so repeated local builds - notably
 # re-running `pip install -e .` after a C++ change - are incremental.
@@ -46,7 +58,9 @@ sdist.exclude = [
   "doc/",
   "docs/",
   "pc/",
-  "python/",
+  # anchored to the repo root: components/odrive_native/python/ (the shipped
+  # espp_odrive package) must stay IN the sdist
+  "/python/",
   # local build helpers / outputs (install/, build/, _build/ already gitignored)
   "*.sh",
   "*.ps1",
