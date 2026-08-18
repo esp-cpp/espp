@@ -27,7 +27,7 @@
   - `f <axis>` feedback: returns `"<pos> <vel>\n"`
   - `es <axis> <abs_pos_turns>` set encoder absolute position (turns)
 - **No hardware dependencies**: integrates via `std::function` callbacks
-- **Thread-safe**: internal locking for buffer, registry, and callbacks (user callbacks are invoked with no internal lock held)
+- **Thread-safe**: internal locking protects the buffer, the property/command registry, and internal state; user callbacks are invoked with no internal lock held
 - **GCODE-tolerant**: accepts an optional trailing `*<checksum>` (verified leniently) and `;` line comments
 - **Configurable acknowledgements**: `Config::acknowledge_commands` (default `false`, matching the ODrive protocol which is silent on `w`/`p`/`v`/`c`/`t`/`es`) — this avoids unsolicited `OK` lines desyncing tools like `odrivetool`. Set it `true` to reply `OK\n` on success (e.g. for a custom client). Errors are always reported; `r`/`f`/`help` always respond.
 

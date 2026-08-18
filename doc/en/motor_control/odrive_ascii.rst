@@ -52,10 +52,10 @@ Commands
 
 By default the server matches the ODrive protocol and is **silent** on writes
 and setpoint commands (``w``/``p``/``v``/``c``/``t``/``es``): only ``r``/``f``/``help``
-respond. Errors are always reported. Construct with ``Config::acknowledge_commands
-= true`` to additionally get an ``OK\n`` reply on successful writes/setpoints
-(useful for a custom client, but avoid it when talking to tools like ``odrivetool``
-that expect the silent protocol).
+respond. Errors are always reported.
+Set ``Config::acknowledge_commands = true`` to additionally get an ``OK\n`` reply
+on successful writes/setpoints (useful for a custom client, but avoid it when
+talking to tools like ``odrivetool`` that expect the silent protocol).
 
 Notes
 -----

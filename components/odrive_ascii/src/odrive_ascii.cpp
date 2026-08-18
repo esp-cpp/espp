@@ -119,18 +119,22 @@ std::optional<std::string> OdriveAscii::handle_line(std::string_view raw) {
   if (auto semi = line.find(';'); semi != std::string::npos)
     line.erase(semi);
   // Strip an optional GCODE-style '*<checksum>' suffix. The checksum is the XOR
-  // of the payload bytes. We verify leniently (warn on mismatch) but still
-  // process the payload, so checksummed clients are accepted rather than
-  // rejected as "unknown command".
+  // of the payload bytes. Only treat a trailing '*' as a checksum delimiter when
+  // the suffix actually parses as an integer -- otherwise a '*' that is part of a
+  // path or value must be left in the line intact. We verify leniently (warn on
+  // mismatch) but still process the payload, so checksummed clients are accepted.
   if (auto star = line.rfind('*'); star != std::string::npos) {
-    uint8_t computed = 0;
-    for (size_t i = 0; i < star; ++i)
-      computed ^= static_cast<uint8_t>(line[i]);
     int provided = 0;
     std::string sum = trim(std::string_view(line).substr(star + 1));
-    if (parse_int(sum, provided) && (provided & 0xFF) != computed)
-      logger_.warn("ASCII checksum mismatch (got {}, computed {})", provided & 0xFF, computed);
-    line.erase(star); // keep only the payload
+    if (parse_int(sum, provided)) {
+      uint8_t computed = 0;
+      for (size_t i = 0; i < star; ++i)
+        computed ^= static_cast<uint8_t>(line[i]);
+      if ((provided & 0xFF) != computed)
+        logger_.warn("ASCII checksum mismatch (got {}, computed {})", provided & 0xFF, computed);
+      line.erase(star); // valid checksum -> strip "*<checksum>", keep the payload
+    }
+    // else: '*' is part of the payload; leave the line intact.
   }
   line = trim(line);
   if (line.empty())
