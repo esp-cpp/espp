@@ -310,7 +310,11 @@ public:
         data.assign(value.begin(), value.begin() + n);
       }
     }
-    // unknown endpoint -> data stays empty
+    // Unknown endpoint: ignore entirely per PROTOCOL.md -- return no response
+    // even if the client set the expect-response bit. (endpoint 0 is always a
+    // valid target; known write-only endpoints still get an empty-data ACK.)
+    if (endpoint_id != 0 && !have_endpoint)
+      return {};
 
     if (!expect_response)
       return {};
