@@ -158,6 +158,7 @@ jobs:
             components/touch
             components/tla2528
             components/tt21100
+            components/twai
             components/utils
             components/vl53l
             components/wifi
