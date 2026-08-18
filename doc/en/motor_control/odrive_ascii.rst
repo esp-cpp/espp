@@ -13,7 +13,7 @@ Interactive Web Console
 -----------------------
 
 A single-file, dependency-free browser console for this protocol is hosted with
-these docs. Because this page is served over ``https`` (a secure context), the
+these docs. Because this page is served over HTTPS (a secure context), the
 browser `Web Serial API <https://developer.mozilla.org/en-US/docs/Web/API/Web_Serial_API>`_
 works directly here — in a Chromium-based browser (Chrome / Edge / Opera /
 Brave), click **Connect** and pick your board's USB-Serial-JTAG / CDC port.

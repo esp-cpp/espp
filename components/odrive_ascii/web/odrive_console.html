@@ -324,7 +324,10 @@
     <strong>Web Serial is not available in this browser.</strong>
     Web Serial requires a Chromium-based browser (Chrome, Edge, Opera, Brave)
     served over <span class="mono">https://</span> or <span class="mono">http://localhost</span>.
-    Opening this file directly with <span class="mono">file://</span> will not work.
+    Opening this file directly with <span class="mono">file://</span> may not work
+    depending on the browser and its policy; if <strong>Connect</strong> is
+    unavailable, serve this page over <span class="mono">https://</span> or
+    <span class="mono">http://localhost</span> instead.
   </div>
 
   <main>
@@ -347,7 +350,7 @@
         <h2>Raw Command</h2>
         <div class="row">
           <div class="grow">
-            <input type="text" id="cmdInput" class="mono" placeholder="e.g. r axis0.encoder.pos_estimate  (Enter to send, Up/Down for history)" autocomplete="off" spellcheck="false" disabled>
+            <input type="text" id="cmdInput" class="mono" aria-label="Raw command to send" placeholder="e.g. r axis0.encoder.pos_estimate  (Enter to send, Up/Down for history)" autocomplete="off" spellcheck="false" disabled>
           </div>
           <button id="sendBtn" class="primary" disabled>Send</button>
         </div>
@@ -375,7 +378,7 @@
           <div class="metric"><div class="label">Position</div><div class="value" id="fbPos">&mdash;</div></div>
           <div class="metric"><div class="label">Velocity</div><div class="value" id="fbVel">&mdash;</div></div>
         </div>
-        <canvas id="spark" width="600" height="90"></canvas>
+        <canvas id="spark" width="600" height="90" role="img" aria-label="Live sparkline plot of recent position and velocity feedback samples"></canvas>
         <div class="legend">
           <span><span class="swatch" style="background:var(--spark-pos)"></span>pos</span>
           <span><span class="swatch" style="background:var(--spark-vel)"></span>vel</span>
@@ -438,43 +441,43 @@
         <!-- p: position -->
         <label style="margin-top:2px">Position &nbsp;<span class="mono">p &lt;axis&gt; &lt;pos&gt; [vel_ff [torque_ff]]</span></label>
         <div class="row" style="margin-bottom:12px">
-          <div class="field axis"><input type="number" id="pAxis" class="mono" value="0" min="0" step="1" title="axis"></div>
-          <div class="field grow"><input type="text" id="pPos" class="mono" placeholder="pos (turns)"></div>
-          <div class="field grow"><input type="text" id="pVelFf" class="mono" placeholder="vel_ff (opt)"></div>
-          <div class="field grow"><input type="text" id="pTqFf" class="mono" placeholder="torque_ff (opt)"></div>
+          <div class="field axis"><input type="number" id="pAxis" class="mono" value="0" min="0" step="1" title="axis" aria-label="Position command: axis"></div>
+          <div class="field grow"><input type="text" id="pPos" class="mono" placeholder="pos (turns)" aria-label="Position command: position (turns)"></div>
+          <div class="field grow"><input type="text" id="pVelFf" class="mono" placeholder="vel_ff (opt)" aria-label="Position command: velocity feed-forward (optional)"></div>
+          <div class="field grow"><input type="text" id="pTqFf" class="mono" placeholder="torque_ff (opt)" aria-label="Position command: torque feed-forward (optional)"></div>
           <button id="pBtn" class="primary" disabled>Send p</button>
         </div>
 
         <!-- v: velocity -->
         <label>Velocity &nbsp;<span class="mono">v &lt;axis&gt; &lt;vel&gt; [torque_ff]</span></label>
         <div class="row" style="margin-bottom:12px">
-          <div class="field axis"><input type="number" id="vAxis" class="mono" value="0" min="0" step="1" title="axis"></div>
-          <div class="field grow"><input type="text" id="vVel" class="mono" placeholder="vel (turns/s)"></div>
-          <div class="field grow"><input type="text" id="vTqFf" class="mono" placeholder="torque_ff (opt)"></div>
+          <div class="field axis"><input type="number" id="vAxis" class="mono" value="0" min="0" step="1" title="axis" aria-label="Velocity command: axis"></div>
+          <div class="field grow"><input type="text" id="vVel" class="mono" placeholder="vel (turns/s)" aria-label="Velocity command: velocity (turns/s)"></div>
+          <div class="field grow"><input type="text" id="vTqFf" class="mono" placeholder="torque_ff (opt)" aria-label="Velocity command: torque feed-forward (optional)"></div>
           <button id="vBtn" class="primary" disabled>Send v</button>
         </div>
 
         <!-- c: torque/current -->
         <label>Torque &nbsp;<span class="mono">c &lt;axis&gt; &lt;torque_nm&gt;</span></label>
         <div class="row" style="margin-bottom:12px">
-          <div class="field axis"><input type="number" id="cAxis" class="mono" value="0" min="0" step="1" title="axis"></div>
-          <div class="field grow"><input type="text" id="cTq" class="mono" placeholder="torque (Nm)"></div>
+          <div class="field axis"><input type="number" id="cAxis" class="mono" value="0" min="0" step="1" title="axis" aria-label="Torque command: axis"></div>
+          <div class="field grow"><input type="text" id="cTq" class="mono" placeholder="torque (Nm)" aria-label="Torque command: torque (Nm)"></div>
           <button id="cBtn" class="primary" disabled>Send c</button>
         </div>
 
         <!-- t: trajectory goal -->
         <label>Trajectory goal &nbsp;<span class="mono">t &lt;axis&gt; &lt;goal_pos_turns&gt;</span></label>
         <div class="row" style="margin-bottom:12px">
-          <div class="field axis"><input type="number" id="tAxis" class="mono" value="0" min="0" step="1" title="axis"></div>
-          <div class="field grow"><input type="text" id="tGoal" class="mono" placeholder="goal (turns)"></div>
+          <div class="field axis"><input type="number" id="tAxis" class="mono" value="0" min="0" step="1" title="axis" aria-label="Trajectory goal command: axis"></div>
+          <div class="field grow"><input type="text" id="tGoal" class="mono" placeholder="goal (turns)" aria-label="Trajectory goal command: goal position (turns)"></div>
           <button id="tBtn" class="primary" disabled>Send t</button>
         </div>
 
         <!-- es: encoder set absolute -->
         <label>Encoder set absolute &nbsp;<span class="mono">es &lt;axis&gt; &lt;abs_pos_turns&gt;</span></label>
         <div class="row">
-          <div class="field axis"><input type="number" id="esAxis" class="mono" value="0" min="0" step="1" title="axis"></div>
-          <div class="field grow"><input type="text" id="esPos" class="mono" placeholder="abs pos (turns)"></div>
+          <div class="field axis"><input type="number" id="esAxis" class="mono" value="0" min="0" step="1" title="axis" aria-label="Encoder set absolute command: axis"></div>
+          <div class="field grow"><input type="text" id="esPos" class="mono" placeholder="abs pos (turns)" aria-label="Encoder set absolute command: absolute position (turns)"></div>
           <button id="esBtn" class="primary" disabled>Send es</button>
         </div>
       </div>
@@ -953,13 +956,18 @@
     // numbers. Updates the metrics and sparkline history.
     const numRe = /^[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?$/;
     function maybeParseFeedback(line) {
+      // Only interpret a line as feedback when we actually asked for it (a
+      // pending 'f' request or active polling). Otherwise an unrelated numeric
+      // response — e.g. a bare `r <path>` scalar, or any coincidental two-number
+      // line — would be mis-classified as "<pos> <vel>" and corrupt the plot.
+      if (expectFeedback <= 0) return;
       const parts = line.trim().split(/\s+/);
       if (parts.length !== 2) return;
       if (!numRe.test(parts[0]) || !numRe.test(parts[1])) return;
       const pos = parseFloat(parts[0]);
       const vel = parseFloat(parts[1]);
       if (!Number.isFinite(pos) || !Number.isFinite(vel)) return;
-      if (expectFeedback > 0) expectFeedback--;
+      expectFeedback--;
       els.fbPos.textContent = pos.toFixed(4);
       els.fbVel.textContent = vel.toFixed(4);
       pushSample(pos, vel);
@@ -1038,12 +1046,14 @@
     // Device unplug handling (fires even without an active read error)
     // ===================================================================
     if (navigator.serial && navigator.serial.addEventListener) {
-      navigator.serial.addEventListener("disconnect", (e) => {
-        if (port && e.target === port) {
+      navigator.serial.addEventListener("disconnect", async (e) => {
+        // The disconnected SerialPort is exposed as e.port (not e.target).
+        if (port && e.port === port) {
           logLine("err", "Device disconnected.");
           keepReading = false;
           manualDisconnect = false;
-          safeClose();
+          // Await teardown so reader/writer/port are released deterministically.
+          await safeClose();
         }
       });
     }

@@ -54,7 +54,17 @@ jobs:
           # GitHub Pages serves over https (a secure context), so the browser
           # Web Serial / WebUSB APIs work directly from these hosted copies.
           mkdir -p ../docs/apps
-          cp ../components/odrive_ascii/web/*.html ../docs/apps/ 2>/dev/null || true
+          # Copy any hosted consoles. nullglob makes a "no matches" case a no-op
+          # (the glob expands to nothing) while a genuine copy error still fails
+          # the job, instead of being swallowed by `|| true`.
+          shopt -s nullglob
+          consoles=(../components/odrive_ascii/web/*.html)
+          if [ ${#consoles[@]} -gt 0 ]; then
+            cp "${consoles[@]}" ../docs/apps/
+          else
+            echo "No hosted web consoles found to copy." >&2
+          fi
+          shopt -u nullglob
 
       - name: Build Documentation (PDF)
         run: |
