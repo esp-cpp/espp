@@ -509,33 +509,54 @@
     //      decode(Uint8Array)->number|bigint|boolean. ----
     const TYPES = {
       bool:   { size: 1, dec: (dv) => dv.getUint8(0) !== 0, enc: (v) => { const b = new Uint8Array(1); b[0] = boolFrom(v) ? 1 : 0; return b; }, num: (x) => (x ? 1 : 0) },
-      int8:   { size: 1, dec: (dv) => dv.getInt8(0),  enc: (v) => i(1, (dv, n) => dv.setInt8(0, n), v),  num: (x) => x },
-      uint8:  { size: 1, dec: (dv) => dv.getUint8(0), enc: (v) => i(1, (dv, n) => dv.setUint8(0, n), v), num: (x) => x },
-      int16:  { size: 2, dec: (dv) => dv.getInt16(0, true),  enc: (v) => i(2, (dv, n) => dv.setInt16(0, n, true), v),  num: (x) => x },
-      uint16: { size: 2, dec: (dv) => dv.getUint16(0, true), enc: (v) => i(2, (dv, n) => dv.setUint16(0, n, true), v), num: (x) => x },
-      int32:  { size: 4, dec: (dv) => dv.getInt32(0, true),  enc: (v) => i(4, (dv, n) => dv.setInt32(0, n, true), v),  num: (x) => x },
-      uint32: { size: 4, dec: (dv) => dv.getUint32(0, true), enc: (v) => i(4, (dv, n) => dv.setUint32(0, n, true), v), num: (x) => x },
-      int64:  { size: 8, dec: (dv) => dv.getBigInt64(0, true),  enc: (v) => big(8, (dv, n) => dv.setBigInt64(0, n, true), v),  num: (x) => Number(x) },
-      uint64: { size: 8, dec: (dv) => dv.getBigUint64(0, true), enc: (v) => big(8, (dv, n) => dv.setBigUint64(0, n, true), v), num: (x) => Number(x) },
-      float:  { size: 4, dec: (dv) => dv.getFloat32(0, true), enc: (v) => { const b = new Uint8Array(4); new DataView(b.buffer).setFloat32(0, parseFloat(v), true); return b; }, num: (x) => x },
+      int8:   { size: 1, dec: (dv) => dv.getInt8(0),  enc: (v) => i(1, (dv, n) => dv.setInt8(0, n), v, -128, 127),  num: (x) => x },
+      uint8:  { size: 1, dec: (dv) => dv.getUint8(0), enc: (v) => i(1, (dv, n) => dv.setUint8(0, n), v, 0, 255), num: (x) => x },
+      int16:  { size: 2, dec: (dv) => dv.getInt16(0, true),  enc: (v) => i(2, (dv, n) => dv.setInt16(0, n, true), v, -32768, 32767),  num: (x) => x },
+      uint16: { size: 2, dec: (dv) => dv.getUint16(0, true), enc: (v) => i(2, (dv, n) => dv.setUint16(0, n, true), v, 0, 65535), num: (x) => x },
+      int32:  { size: 4, dec: (dv) => dv.getInt32(0, true),  enc: (v) => i(4, (dv, n) => dv.setInt32(0, n, true), v, -2147483648, 2147483647),  num: (x) => x },
+      uint32: { size: 4, dec: (dv) => dv.getUint32(0, true), enc: (v) => i(4, (dv, n) => dv.setUint32(0, n, true), v, 0, 4294967295), num: (x) => x },
+      int64:  { size: 8, dec: (dv) => dv.getBigInt64(0, true),  enc: (v) => big(8, (dv, n) => dv.setBigInt64(0, n, true), v, -(2n ** 63n), 2n ** 63n - 1n),  num: (x) => Number(x) },
+      uint64: { size: 8, dec: (dv) => dv.getBigUint64(0, true), enc: (v) => big(8, (dv, n) => dv.setBigUint64(0, n, true), v, 0n, 2n ** 64n - 1n), num: (x) => Number(x) },
+      float:  { size: 4, dec: (dv) => dv.getFloat32(0, true), enc: (v) => f32(v), num: (x) => x },
       endpoint_ref: { size: 4, dec: (dv) => `#${dv.getUint16(0, true)}:0x${dv.getUint16(2, true).toString(16)}`, enc: null, num: null },
     };
     function boolFrom(v) { return /^(1|true|on|yes|y)$/i.test(String(v).trim()); }
-    function i(size, set, v) {
+    // These values command motors, so encoding is STRICT: the whole string must
+    // parse and fit the target type -- no partial parses ("1abc"), no NaN, no
+    // truncation ("1.9" as an int) and no wrap (uint8 300). writeEndpoint
+    // surfaces the thrown message to the user instead of transmitting garbage.
+    function i(size, set, v, min, max) {
+      const s = String(v).trim();
+      if (!/^[+-]?\d+$/.test(s)) throw new Error("'" + v + "' is not a valid integer");
+      const n = Number(s);
+      if (!Number.isSafeInteger(n) || n < min || n > max)
+        throw new Error("'" + v + "' is out of range [" + min + ", " + max + "]");
       const b = new Uint8Array(size);
-      let n = Math.trunc(Number(v));
-      if (!Number.isFinite(n)) n = 0;
       set(new DataView(b.buffer), n);
       return b;
     }
-    function big(size, set, v) {
-      const b = new Uint8Array(size);
+    function big(size, set, v, min, max) {
+      const s = String(v).trim();
       let n;
-      // Throw on a non-integer string (e.g. "1.5") instead of silently
-      // writing 0 to the device; writeEndpoint surfaces the message.
-      try { n = BigInt(String(v).trim()); }
+      try { n = BigInt(s); }
       catch (_) { throw new Error("'" + v + "' is not a valid integer"); }
+      if (n < min || n > max)
+        throw new Error("'" + v + "' is out of range [" + min + ", " + max + "]");
+      const b = new Uint8Array(size);
       set(new DataView(b.buffer), n);
+      return b;
+    }
+    function f32(v) {
+      const s = String(v).trim();
+      if (!/^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(s))
+        throw new Error("'" + v + "' is not a valid number");
+      const n = parseFloat(s);
+      // Math.fround tells us what the wire's float32 will hold; a finite
+      // double that rounds to +/-Infinity in float32 would overflow.
+      if (!Number.isFinite(n) || !Number.isFinite(Math.fround(n)))
+        throw new Error("'" + v + "' overflows float32");
+      const b = new Uint8Array(4);
+      new DataView(b.buffer).setFloat32(0, n, true);
       return b;
     }
     function typeInfo(t) { return TYPES[t] || null; }
@@ -702,7 +723,10 @@
       if (!found) throw new Error("no vendor-specific (0xFF) interface with a bulk IN+OUT endpoint pair was found");
       await device.claimInterface(found.interfaceNumber);
       if (found.alternateSetting !== 0) {
-        try { await device.selectAlternateInterface(found.interfaceNumber, found.alternateSetting); } catch (_) {}
+        // The chosen endpoints belong to this alternate; if selecting it fails
+        // they are not active, so let the rejection propagate and fail the
+        // connect (instead of reporting Connected with dead endpoints).
+        await device.selectAlternateInterface(found.interfaceNumber, found.alternateSetting);
       }
       ifaceNumber = found.interfaceNumber;
       epIn = found.inEp.endpointNumber; epOut = found.outEp.endpointNumber;
@@ -762,14 +786,22 @@
 
     async function readPacket(readLen, timeoutMs) {
       let timer = null;
+      // WebUSB transfers are NOT cancelable: on timeout the transferIn below
+      // stays pending and would consume a LATER response, permanently
+      // desyncing the link. On timeout we silence the abandoned promise and
+      // tag the error so transact() runs recoverLink(), whose device.reset()
+      // aborts the pending transfer for real.
+      const xfer = device.transferIn(epIn, readLen);
       const timeout = new Promise((_, reject) => {
-        timer = setTimeout(async () => {
-          try { await device.clearHalt("in", epIn); } catch (_) {}
-          reject(new Error("response timeout (" + timeoutMs + "ms)"));
+        timer = setTimeout(() => {
+          xfer.catch(() => {}); // rejects when recoverLink() resets the device
+          const e = new Error("response timeout (" + timeoutMs + "ms)");
+          e.needsRecovery = true;
+          reject(e);
         }, timeoutMs);
       });
       try {
-        const result = await Promise.race([device.transferIn(epIn, readLen), timeout]);
+        const result = await Promise.race([xfer, timeout]);
         if (result.status === "stall") {
           try { await device.clearHalt("in", epIn); } catch (_) {}
           throw new Error("IN endpoint stalled");
@@ -783,18 +815,25 @@
       } finally { if (timer) clearTimeout(timer); }
     }
 
-    // Best-effort resync after a desync (e.g. sequence mismatch): drain one
-    // stray IN packet if the device has one queued, then clear the IN halt so
-    // the next transaction starts from a clean endpoint. Never throws.
-    async function resyncIn() {
-      if (!device || epIn === null) return;
+    // Recover a desynced link (response timeout / sequence mismatch). WebUSB
+    // transfers cannot be canceled, so draining or clearing halts cannot
+    // reliably resynchronize -- an abandoned transferIn keeps competing for
+    // the next response. Instead reset the device: that aborts every pending
+    // transfer (their promises reject) and returns the endpoints to a clean
+    // state, with the browser restoring the configuration and interface
+    // claims. If even the reset fails, close the connection so the UI
+    // reflects reality instead of silently misbehaving.
+    async function recoverLink(reason) {
+      if (!device) return;
+      logLine("err", "Recovering link (" + reason + "): resetting device...");
       try {
-        const drain = new Promise((resolve) =>
-          device.transferIn(epIn, inPacketSize).then(resolve, resolve));
-        const timeout = new Promise((resolve) => setTimeout(resolve, 50));
-        await Promise.race([drain, timeout]);
-      } catch (_) {}
-      try { await device.clearHalt("in", epIn); } catch (_) {}
+        await device.reset();
+        logLine("sys", "Device reset complete; link resynchronized.");
+      } catch (e) {
+        logLine("err", "Device reset failed (" + e.message + "); disconnecting.");
+        manualDisconnect = false;
+        await safeClose();
+      }
     }
 
     // Send one request packet and await its one response packet. Returns the
@@ -827,13 +866,18 @@
             // resync the link by draining any straggler packet + clearing the
             // IN halt. Transactions are serialized, so this runs to completion
             // before the next one starts.
-            logLine("err", `Sequence mismatch: sent ${req.seq}, got ${respSeq & 0x7fff} (link desynced); resyncing.`);
-            await resyncIn();
+            logLine("err", `Sequence mismatch: sent ${req.seq}, got ${respSeq & 0x7fff} (link desynced).`);
+            await recoverLink("sequence mismatch");
             return null;
           }
           return resp.subarray(2);
         } catch (e) {
-          if (!manualDisconnect) logLine("err", "Transaction failed: " + e.message);
+          if (!manualDisconnect) {
+            logLine("err", "Transaction failed: " + e.message);
+            // A timed-out read leaves an uncancelable transferIn pending;
+            // reset the device before the next transaction runs.
+            if (e && e.needsRecovery) await recoverLink(e.message);
+          }
           return null;
         }
       });
