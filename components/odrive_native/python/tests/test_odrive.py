@@ -102,9 +102,9 @@ def test_end_to_end():
         log("CONNECTED. json_crc = 0x%04x, descriptor = %d bytes"
             % (dev.json_crc, len(dev._json_bytes)))
 
-        # Enumerate the tree.
+        # Enumerate the tree (dump() logs it; the return value is not needed).
         log("endpoint tree:")
-        tree = dev.dump()
+        dev.dump()
 
         # Read values.
         vbus = dev.vbus_voltage
