@@ -292,8 +292,13 @@ protected:
     // set) so the espp::Timer branch can read the period. auto_start is false so
     // that the timer does not fire until start() is called.
     if constexpr (UseHighResTimer) {
+      // Use the same bool-returning lambda as the espp::Timer branch below: a
+      // bool-returning callable converts to std::function<void()> (the current
+      // HighResolutionTimer callback type, which discards the result) AND to
+      // std::function<bool()>, so this stays valid even if the HRT callback
+      // signature is ever aligned with espp::Timer's.
       timer_ = std::make_unique<espp::HighResolutionTimer>(espp::HighResolutionTimer::Config{
-          .name = std::string(name), .callback = [this]() { update_task(); }});
+          .name = std::string(name), .callback = [this]() { return update_task(); }});
     } else {
       timer_ = std::make_unique<espp::Timer>(
           espp::Timer::Config{.name = name,
