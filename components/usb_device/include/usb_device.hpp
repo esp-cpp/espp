@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -95,11 +96,12 @@ public:
      *        the URL must be given *without* a scheme (the scheme is prepended by
      *        the host from `url_scheme`). When `url_scheme` is 255 the URL must
      *        instead *include* its own scheme (e.g. "http://..."). Defaults to
-     *        the espp docs-hosted ODrive WebUSB console (scheme-less, https).
+     *        the espp docs-hosted board console + ESP flasher (scheme-less,
+     *        https), a general-purpose Web Serial monitor and esptool-js flasher.
      * @note The descriptor length (3 + URL bytes) must fit a uint8_t, so the URL
      *       is limited to 252 bytes; `initialize()` rejects a longer URL.
      */
-    std::string landing_page_url{"esp-cpp.github.io/espp/apps/odrive_webusb_console.html"};
+    std::string landing_page_url{"esp-cpp.github.io/espp/apps/board_console.html"};
     uint8_t url_scheme{1};         /**< 0 = http, 1 = https, 255 = URL includes its own scheme. */
     uint8_t webusb_vendor_code{1}; /**< bRequest used for the WebUSB URL control request. */
     uint8_t ms_os_vendor_code{
@@ -246,8 +248,12 @@ public:
   /// @brief Internal: drain the CDC RX FIFO and dispatch to the CDC callback.
   void handle_cdc_rx();
 
-  /// @brief Internal: drain the vendor RX FIFO and dispatch to the vendor callback.
-  void handle_vendor_rx();
+  /// @brief Internal: dispatch received vendor bytes to the vendor callback.
+  /// @param buffer When non-null (TinyUSB zero-copy RX variant, RX_BUFSIZE==0),
+  ///        the just-received bytes to dispatch directly. When null (the FIFO
+  ///        variant), the FIFO is drained via `tud_vendor_read()` instead.
+  /// @param bufsize Number of bytes at @p buffer (0 when @p buffer is null).
+  void handle_vendor_rx(const uint8_t *buffer = nullptr, size_t bufsize = 0);
 
   /// @brief Internal: pointer to the BOS descriptor bytes (nullptr if none).
   const uint8_t *bos_descriptor() const;
@@ -274,7 +280,7 @@ private:
   std::unique_ptr<Impl> impl_;
 
   Config config_;
-  bool initialized_{false};
+  std::atomic<bool> initialized_{false}; // read from the TinyUSB task via the write paths
 
   std::mutex cb_mutex_;
   receive_callback_fn on_cdc_receive_;

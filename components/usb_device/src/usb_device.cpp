@@ -1,6 +1,7 @@
 #include "usb_device.hpp"
 
 #include <array>
+#include <atomic>
 #include <cstring>
 
 #include "tinyusb.h"
@@ -12,8 +13,13 @@ namespace {
 
 // Only a single USB device exists on the chip; the BOS descriptor and the vendor
 // RX / control-request callbacks are global (no user pointer), so we route them
-// through a file-scope pointer to the active instance.
-espp::UsbDevice *s_device = nullptr;
+// through a file-scope pointer to the active instance. It is atomic because the
+// TinyUSB task reads it concurrently with initialize()/~UsbDevice() writes on
+// the caller's thread; each callback loads it ONCE into a local. Teardown
+// safety additionally relies on clearing it BEFORE tinyusb_driver_uninstall()
+// (which quiesces the TinyUSB task) so no callback can begin using a
+// destructing instance.
+std::atomic<espp::UsbDevice *> s_device{nullptr};
 
 // The CDC port this component uses. A single dedicated CDC-ACM interface.
 constexpr tinyusb_cdcacm_itf_t kCdcPort = TINYUSB_CDC_ACM_0;
@@ -85,8 +91,10 @@ static void cdc_rx_trampoline(int itf, cdcacm_event_t *event) {
   (void)event;
   if (itf != (int)kCdcPort)
     return;
-  if (s_device)
-    s_device->handle_cdc_rx();
+  // load once: the pointer must not be re-read between check and use
+  auto *dev = s_device.load();
+  if (dev)
+    dev->handle_cdc_rx();
 }
 
 extern "C" {
@@ -94,7 +102,8 @@ extern "C" {
 // BOS descriptor (weak in TinyUSB core). Returns our WebUSB/MS-OS BOS when the
 // vendor+WebUSB function is enabled, otherwise NULL (no BOS).
 uint8_t const *tud_descriptor_bos_cb(void) {
-  return s_device ? s_device->bos_descriptor() : nullptr;
+  auto *dev = s_device.load();
+  return dev ? dev->bos_descriptor() : nullptr;
 }
 
 #if (CFG_TUD_VENDOR > 0)
@@ -106,10 +115,11 @@ void tud_vendor_rx_cb(uint8_t itf, uint8_t const *buffer, uint16_t bufsize) {
 void tud_vendor_rx_cb(uint8_t itf, uint8_t const *buffer, uint32_t bufsize) {
 #endif
   (void)itf;
-  (void)buffer;
-  (void)bufsize;
-  if (s_device)
-    s_device->handle_vendor_rx();
+  // The FIFO variant calls this with buffer==NULL, bufsize==0 (drain via
+  // tud_vendor_read); the zero-copy variant passes the received bytes directly.
+  auto *dev = s_device.load();
+  if (dev)
+    dev->handle_vendor_rx(buffer, static_cast<size_t>(bufsize));
 }
 
 // Vendor control-transfer callback: answer the WebUSB URL and MS OS 2.0
@@ -118,16 +128,20 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
                                 tusb_control_request_t const *request) {
   if (stage != CONTROL_STAGE_SETUP)
     return true; // nothing to do on DATA / ACK stages
-  if (!s_device || !s_device->vendor_config().has_value())
+  auto *dev = s_device.load();
+  if (!dev || !dev->vendor_config().has_value())
     return false;
-  const auto &vendor = *s_device->vendor_config();
+  const auto &vendor = *dev->vendor_config();
 
   switch (request->bmRequestType_bit.type) {
   case TUSB_REQ_TYPE_VENDOR:
-    if (request->bRequest == vendor.webusb_vendor_code) {
+    // wIndex 2 == WEBUSB_REQUEST_GET_URL; qualifying on it keeps this branch
+    // from shadowing the MS-OS request if the two vendor codes are configured
+    // to the same value.
+    if (request->bRequest == vendor.webusb_vendor_code && request->wIndex == 2) {
       // Return the WebUSB landing-page URL descriptor.
       uint8_t len = 0;
-      const uint8_t *url = s_device->webusb_url_descriptor(len);
+      const uint8_t *url = dev->webusb_url_descriptor(len);
       if (!url)
         return false;
       return tud_control_xfer(rhport, request, (void *)(uintptr_t)url, len);
@@ -135,7 +149,7 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
     if (request->bRequest == vendor.ms_os_vendor_code && request->wIndex == 7) {
       // Return the MS OS 2.0 descriptor set.
       uint16_t total_len = 0;
-      const uint8_t *ms = s_device->ms_os_20_descriptor(total_len);
+      const uint8_t *ms = dev->ms_os_20_descriptor(total_len);
       if (!ms)
         return false;
       return tud_control_xfer(rhport, request, (void *)(uintptr_t)ms, total_len);
@@ -163,7 +177,8 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
 // HID: return the application-supplied report descriptor for the given instance.
 uint8_t const *tud_hid_descriptor_report_cb(uint8_t instance) {
   (void)instance;
-  return s_device ? s_device->hid_report_descriptor() : nullptr;
+  auto *dev = s_device.load();
+  return dev ? dev->hid_report_descriptor() : nullptr;
 }
 
 // HID GET_REPORT control request: this device is input-only, so nothing to do.
@@ -227,8 +242,10 @@ void UsbDevice::handle_cdc_rx() {
     std::scoped_lock lk(cb_mutex_);
     cb = on_cdc_receive_;
   }
-  if (!cb || !config_.cdc)
+  if (!config_.cdc)
     return;
+  // NOTE: even with no callback attached we still drain (and discard) the FIFO
+  // below; leaving bytes in it would back-pressure/stall the host.
   std::vector<uint8_t> &buf = cdc_rx_buf_;
   size_t rx_size = 0;
   do {
@@ -238,26 +255,38 @@ void UsbDevice::handle_cdc_rx() {
       logger_.error("CDC read error: {}", esp_err_to_name(err));
       break;
     }
-    if (rx_size > 0)
+    if (rx_size > 0 && cb)
       cb(std::span<const uint8_t>(buf.data(), rx_size));
   } while (rx_size == buf.size());
 }
 
-void UsbDevice::handle_vendor_rx() {
+void UsbDevice::handle_vendor_rx(const uint8_t *buffer, size_t bufsize) {
 #if (CFG_TUD_VENDOR > 0)
   receive_callback_fn cb;
   {
     std::scoped_lock lk(cb_mutex_);
     cb = on_vendor_receive_;
   }
-  if (!cb || !config_.vendor)
+  if (!config_.vendor)
     return;
+  // TinyUSB zero-copy RX variant (CFG_TUD_VENDOR_RX_BUFSIZE==0): the received
+  // bytes are delivered directly via the callback buffer and are NOT in a FIFO,
+  // so dispatch them here. Otherwise (FIFO variant, the esp_tinyusb default)
+  // buffer is null and we drain the FIFO via tud_vendor_read(). With no
+  // callback attached, bytes are still consumed (discarded) so the FIFO cannot
+  // fill up and stall the host.
+  if (buffer != nullptr && bufsize > 0) {
+    if (cb)
+      cb(std::span<const uint8_t>(buffer, bufsize));
+    return;
+  }
   std::vector<uint8_t> &buf = vendor_rx_buf_;
   while (tud_vendor_available()) {
     uint32_t count = tud_vendor_read(buf.data(), buf.size());
     if (count == 0)
       break;
-    cb(std::span<const uint8_t>(buf.data(), count));
+    if (cb)
+      cb(std::span<const uint8_t>(buf.data(), count));
   }
 #endif
 }
@@ -303,6 +332,20 @@ bool UsbDevice::initialize(std::error_code &ec) {
     ec = std::make_error_code(std::errc::function_not_supported);
     return false;
 #endif
+  }
+
+  // A zero-length RX scratch buffer would make the RX drain loops spin without
+  // making progress (e.g. handle_cdc_rx()'s `while (rx_size == buf.size())`
+  // becomes `while (0 == 0)`), so require a positive chunk size.
+  if (config_.cdc && config_.cdc->rx_chunk_size == 0) {
+    logger_.error("CDC rx_chunk_size must be > 0");
+    ec = std::make_error_code(std::errc::invalid_argument);
+    return false;
+  }
+  if (config_.vendor && config_.vendor->rx_chunk_size == 0) {
+    logger_.error("Vendor rx_chunk_size must be > 0");
+    ec = std::make_error_code(std::errc::invalid_argument);
+    return false;
   }
 
   // --- Sequentially allocate interface numbers, endpoint addresses, strings ---
@@ -797,9 +840,15 @@ bool UsbDevice::write_hid_report(uint8_t report_id, std::span<const uint8_t> rep
     ec = std::make_error_code(std::errc::not_connected);
     return false;
   }
-  if (!tud_hid_ready()) {
-    // Not mounted yet, or a previous report is still in flight.
+  if (!tud_mounted()) {
+    // Device not mounted (host not connected / not configured).
     ec = std::make_error_code(std::errc::not_connected);
+    return false;
+  }
+  if (!tud_hid_ready()) {
+    // Mounted but a previous report is still in flight -- transient
+    // backpressure, distinct from a disconnect so callers can retry.
+    ec = std::make_error_code(std::errc::resource_unavailable_try_again);
     return false;
   }
   if (!tud_hid_report(report_id, report.data(), static_cast<uint16_t>(report.size()))) {
