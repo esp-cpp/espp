@@ -664,7 +664,13 @@
         const offEl = row.querySelector(".offset-in");
         const file = fileEl.files && fileEl.files[0];
         if (!file) continue;
-        const addr = parseInt(offEl.value.trim(), 16);
+        // Flashing is destructive: validate the WHOLE offset string as hex
+        // (optionally 0x-prefixed) rather than parseInt alone, which accepts a
+        // valid prefix and ignores trailing garbage ("0x10000oops" -> 0x10000).
+        const offStr = offEl.value.trim();
+        if (!/^(0[xX])?[0-9a-fA-F]+$/.test(offStr))
+          throw new Error(`Invalid offset "${offEl.value}" for ${file.name} (expected hex, e.g. 0x10000)`);
+        const addr = parseInt(offStr, 16);
         if (!Number.isFinite(addr) || addr < 0) throw new Error(`Invalid offset "${offEl.value}" for ${file.name}`);
         const data = await readFileAsBinaryString(file);
         out.push({ data, address: addr, name: file.name, row });
