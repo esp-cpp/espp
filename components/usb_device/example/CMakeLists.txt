@@ -4,11 +4,12 @@ cmake_minimum_required(VERSION 3.20)
 
 # NOTE: the IDF component manager is intentionally left ENABLED here (unlike most
 # espp examples) so that it can fetch the managed `espressif/esp_tinyusb`
-# component from the ESP registry. To avoid the component manager scanning every
-# espp component manifest (some board components declare target-specific
-# constraints that would fail on esp32s3), EXTRA_COMPONENT_DIRS is narrowed to
-# just the components this example uses, and the espp dependencies are pinned to
-# their in-repo copies via override_path in main/idf_component.yml.
+# dependency declared by the usb_device component's idf_component.yml. To avoid
+# the component manager scanning every espp component manifest (some board
+# components declare target-specific constraints that would fail on esp32s3),
+# EXTRA_COMPONENT_DIRS is narrowed to just the components this example uses; the
+# in-repo espp components there satisfy the `espp/*` dependencies locally (no
+# example manifest / override_path needed).
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
 # add only the component directories that we want to use
