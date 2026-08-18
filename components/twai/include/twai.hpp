@@ -107,6 +107,11 @@ public:
       if (len > MAX_DATA_LEN) {
         len = MAX_DATA_LEN;
       }
+      // never copy more than the driver says it filled (a header/buffer
+      // mismatch would otherwise read uninitialized tail bytes)
+      if (len > frame.buffer_len) {
+        len = frame.buffer_len;
+      }
       msg.dlc = static_cast<uint8_t>(len);
       if (frame.buffer && !frame.header.rtr) {
         memcpy(msg.data.data(), frame.buffer, len);
@@ -140,8 +145,8 @@ public:
 
   /// \brief Configuration for the TWAI node.
   struct Config {
-    int tx_gpio;                    ///< GPIO number for TWAI TX.
-    int rx_gpio;                    ///< GPIO number for TWAI RX.
+    int tx_gpio{-1};                ///< GPIO number for TWAI TX. Must be set (validated).
+    int rx_gpio{-1};                ///< GPIO number for TWAI RX. Must be set (validated).
     uint32_t baudrate{500000};      ///< Bus baud rate / bit rate in bits/second (e.g. 500000).
     Mode mode{Mode::NORMAL};        ///< Operating mode of the node.
     size_t tx_queue_depth{5};       ///< Depth of the hardware transmit queue.
@@ -187,10 +192,16 @@ public:
   /// \return True on success, false on failure.
   bool initialize(std::error_code &ec) {
     ec.clear();
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::unique_lock<std::recursive_mutex> lock(mutex_);
     if (node_) {
       logger_.warn("Already initialized");
       return true;
+    }
+    if (config_.tx_gpio < 0 || config_.rx_gpio < 0) {
+      logger_.error("tx_gpio and rx_gpio must be set (tx={}, rx={})", config_.tx_gpio,
+                    config_.rx_gpio);
+      ec = std::make_error_code(std::errc::invalid_argument);
+      return false;
     }
 
     // build the node configuration
@@ -287,7 +298,11 @@ public:
         ec = std::make_error_code(std::errc::io_error);
         // tear down every partially-created resource (task, queue, node) so a
         // failed initialize() leaves no dangling handles and does not report
-        // "Already initialized" on a subsequent call.
+        // "Already initialized" on a subsequent call. Release the lock first:
+        // teardown() joins the receive task (like the destructor, which also
+        // calls it unlocked), and joining while holding the mutex could
+        // deadlock if the task were in a user callback taking a locking method.
+        lock.unlock();
         teardown();
         return false;
       }
@@ -349,25 +364,33 @@ public:
   bool transmit(const Message &message, std::error_code &ec,
                 int timeout_ms = DEFAULT_TX_TIMEOUT_MS) {
     ec.clear();
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
-    if (!node_) {
-      ec = std::make_error_code(std::errc::operation_not_permitted);
-      return false;
-    }
-    if (!enabled_) {
-      logger_.error("Cannot transmit: node not enabled");
-      ec = std::make_error_code(std::errc::operation_not_permitted);
-      return false;
-    }
-    // classic CAN 2.0 carries at most MAX_DATA_LEN (8) data bytes; reject anything larger
-    if (message.dlc > MAX_DATA_LEN) {
-      logger_.error("Cannot transmit: DLC {} exceeds classic CAN max ({})", message.dlc,
-                    MAX_DATA_LEN);
-      ec = std::make_error_code(std::errc::invalid_argument);
-      return false;
+    // Snapshot the handle under the lock, then call the (potentially blocking,
+    // up to timeout_ms) driver transmit with the lock RELEASED so a congested
+    // TX queue cannot stall is_enabled()/get_status()/stop()/the destructor.
+    // The driver's transmit path is internally thread-safe.
+    twai_node_handle_t node = nullptr;
+    {
+      std::lock_guard<std::recursive_mutex> lock(mutex_);
+      if (!node_) {
+        ec = std::make_error_code(std::errc::operation_not_permitted);
+        return false;
+      }
+      if (!enabled_) {
+        logger_.error("Cannot transmit: node not enabled");
+        ec = std::make_error_code(std::errc::operation_not_permitted);
+        return false;
+      }
+      // classic CAN 2.0 carries at most MAX_DATA_LEN (8) data bytes; reject anything larger
+      if (message.dlc > MAX_DATA_LEN) {
+        logger_.error("Cannot transmit: DLC {} exceeds classic CAN max ({})", message.dlc,
+                      MAX_DATA_LEN);
+        ec = std::make_error_code(std::errc::invalid_argument);
+        return false;
+      }
+      node = node_;
     }
     twai_frame_t frame = message.to_twai_frame();
-    esp_err_t err = twai_node_transmit(node_, &frame, timeout_ms);
+    esp_err_t err = twai_node_transmit(node, &frame, timeout_ms);
     if (err != ESP_OK) {
       logger_.error("Failed to transmit frame: {}", esp_err_to_name(err));
       if (err == ESP_ERR_TIMEOUT) {
