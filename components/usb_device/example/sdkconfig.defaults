@@ -13,3 +13,8 @@ CONFIG_TINYUSB_CDC_COUNT=1
 # CONFIG_TINYUSB_VENDOR_COUNT; setting it > 0 compiles in the vendor class driver
 # so espp::UsbDevice's vendor function (bInterfaceClass 0xFF + WebUSB) works.
 CONFIG_TINYUSB_VENDOR_COUNT=1
+
+# Enable the TinyUSB HID class driver. esp_tinyusb gates CFG_TUD_HID behind
+# CONFIG_TINYUSB_HID_COUNT; setting it > 0 compiles in the HID class driver so
+# espp::UsbDevice's HID function (gamepad report descriptor from hid-rp) works.
+CONFIG_TINYUSB_HID_COUNT=1

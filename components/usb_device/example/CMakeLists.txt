@@ -15,6 +15,7 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 set(EXTRA_COMPONENT_DIRS
   "../../../components/base_component"
   "../../../components/format"
+  "../../../components/hid-rp"
   "../../../components/logger"
   "../../../components/odrive_ascii"
   "../../../components/usb_device"
@@ -22,7 +23,7 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py base_component format logger odrive_ascii usb_device esp_tinyusb"
+  "main esptool_py base_component format hid-rp logger odrive_ascii usb_device esp_tinyusb"
   CACHE STRING
   "List of components to include"
   )
