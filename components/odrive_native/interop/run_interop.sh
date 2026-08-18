@@ -115,12 +115,41 @@ if [ -z "$PTY" ]; then
   result "real_fibre_interop" 1
 else
   echo "device PTY slave = $PTY"
+  # The reference fibre client enumerates candidate ports with a plain
+  # os.listdir('/dev') (top-level entries only) + pyserial's comports(). On
+  # macOS a PTY slave is a top-level node (/dev/ttysNNN) and is found; on
+  # Linux it is nested (/dev/pts/N), which that enumeration can never see, so
+  # discovery would always time out. Alias the slave to a top-level /dev
+  # symlink so the UNMODIFIED reference client can discover it -- this works
+  # around only the client's port-scan quirk, not anything on the wire.
+  CLIENT_PORT="$PTY"
+  PTY_LINK=""
+  case "$PTY" in
+    /dev/pts/*)
+      PTY_LINK="/dev/fibre-interop-$$"
+      SUDO=""
+      [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1 && SUDO="sudo"
+      if $SUDO ln -sf "$PTY" "$PTY_LINK" 2>/dev/null; then
+        CLIENT_PORT="$PTY_LINK"
+        echo "aliased $PTY -> $PTY_LINK (Linux: fibre's port scan only sees top-level /dev entries)"
+      else
+        echo "WARNING: could not create $PTY_LINK; the reference client cannot"
+        echo "         discover nested /dev/pts/* slaves and will likely time out"
+        PTY_LINK=""
+      fi
+      ;;
+  esac
   echo "--- device JSON descriptor ---"; sed -n 's/^\[device\] //p' "$DEV_ERR" | head -1
-  "$PYBIN" "$INTEROP_DIR/odrive_fibre_client.py" "$PTY" \
+  "$PYBIN" "$INTEROP_DIR/odrive_fibre_client.py" "$CLIENT_PORT" \
     --fibre-path "$FIBRE_PY" --timeout 20
   client_rc=$?
   kill "$DEVPID" 2>/dev/null
   wait "$DEVPID" 2>/dev/null
+  if [ -n "$PTY_LINK" ]; then
+    SUDO=""
+    [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1 && SUDO="sudo"
+    $SUDO rm -f "$PTY_LINK" 2>/dev/null || true
+  fi
   result "real_fibre_interop" $client_rc
 fi
 

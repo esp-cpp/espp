@@ -23,6 +23,7 @@
 // the interop device shim and golden tests build with a plain `c++ -std=c++20`.
 
 #include <cstdint>
+#include <numeric>
 #include <span>
 #include <vector>
 
@@ -47,10 +48,7 @@ inline uint8_t odrive_crc8_byte(uint8_t rem, uint8_t val) {
 
 /// CRC8 over a buffer using the fibre stream init value (0x42).
 inline uint8_t odrive_crc8(std::span<const uint8_t> data, uint8_t init = 0x42) {
-  uint8_t r = init;
-  for (uint8_t b : data)
-    r = odrive_crc8_byte(r, b);
-  return r;
+  return std::accumulate(data.begin(), data.end(), init, odrive_crc8_byte);
 }
 
 /**
@@ -105,6 +103,9 @@ public:
         ++pos_;
 
       // Need at least the 3-byte header [sync,len,crc8].
+      // (Not always true: the resync loop above can also exit with pos_ at a
+      // sync byte 1-2 bytes before the end of the buffer.)
+      // cppcheck-suppress knownConditionTrueFalse
       if (buf_.size() - pos_ < 3)
         break;
 
