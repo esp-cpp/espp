@@ -259,6 +259,7 @@ INPUT = \
   $(PROJECT_PATH)/components/display_drivers/include/sh8601.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/spi_panel_io.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/ssd1351.hpp \
+  $(PROJECT_PATH)/components/display_drivers/include/st7121.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/st7123.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/st7789.hpp \
   $(PROJECT_PATH)/components/display_drivers/include/st7796.hpp \

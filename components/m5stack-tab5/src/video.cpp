@@ -24,15 +24,51 @@ namespace espp {
 M5StackTab5::DisplayController M5StackTab5::detect_display_controller() {
   auto &i2c = internal_i2c();
 
-  // Probe for the GT911 touch controller, if it exists we have an ILI9881 display
-  bool exists = i2c.probe_device(0x14);
-  if (exists) {
-    return M5StackTab5::DisplayController::ILI9881;
+  // The Tab5 has shipped with three display revisions:
+  //   - ILI9881C panel + separate GT911 touch controller (original),
+  //   - ST7123 TDDI (integrated display+touch, post Oct-2025),
+  //   - ST7121 TDDI (newest).
+  // The two Sitronix TDDI parts answer on the same touch I2C address (0x55)
+  // and cannot be told apart by their DSI ID, but they need DIFFERENT init
+  // sequences and DSI lane rates — mis-identifying one as the other yields a
+  // black screen. Distinguish them by the touch firmware-version register
+  // (2-byte register address 0x0000): 1 = ST7121, 3 = ST7123 (same method
+  // M5GFX uses). The ST touch engine can take ~50 ms after reset before it
+  // responds, so poll rather than probing once; a GT911 ACK at any point
+  // identifies the ILI9881 variant immediately.
+  static constexpr uint8_t kStTouchAddress = 0x55;
+  static constexpr uint8_t kGt911Address = 0x14; // TouchDriver::DEFAULT_ADDRESS_2
+  bool st_acked = false;
+  int last_logged_fw = -1;
+  for (int attempt = 0; attempt < 60; ++attempt) {
+    const uint8_t fw_reg[2] = {0x00, 0x00};
+    uint8_t fw_version = 0;
+    if (i2c.write_read(kStTouchAddress, fw_reg, sizeof(fw_reg), &fw_version, 1)) {
+      st_acked = true;
+      if (fw_version != last_logged_fw) {
+        last_logged_fw = fw_version;
+        logger_.info("ST touch firmware version: {:#04x}", fw_version);
+      }
+      if (fw_version == 1) {
+        return M5StackTab5::DisplayController::ST7121;
+      }
+      if (fw_version == 3) {
+        return M5StackTab5::DisplayController::ST7123;
+      }
+      // Unknown FW value — the touch engine may still be booting; keep polling.
+    } else if (i2c.probe_device(kGt911Address)) {
+      // GT911 present -> original ILI9881 revision.
+      return M5StackTab5::DisplayController::ILI9881;
+    }
+    std::this_thread::sleep_for(10ms);
   }
 
-  // Probe for the ST7123 display controller
-  exists = i2c.probe_device(0x55);
-  if (exists) {
+  if (st_acked) {
+    // An ST TDDI is present but reported an unrecognized firmware version.
+    // Fall back to the ST7123 (the more common part) rather than failing.
+    logger_.warn("ST touch controller present but firmware version {:#04x} is unknown; "
+                 "assuming ST7123",
+                 last_logged_fw);
     return M5StackTab5::DisplayController::ST7123;
   }
 
@@ -103,7 +139,20 @@ bool M5StackTab5::initialize_lcd() {
     bus_config.bus_id = 0;
     bus_config.num_data_lanes = 2;
     bus_config.phy_clk_src = MIPI_DSI_PHY_CLK_SRC_DEFAULT;
-    bus_config.lane_bit_rate_mbps = (detected_controller == DisplayController::ILI9881) ? 730 : 965;
+    // Per-controller DSI lane rate. The ST7121 runs a slower lane clock than
+    // the ST7123 (M5GFX reference: 900 vs 1040 Mbps); driving it at the
+    // ST7123 rate is one of the reasons a mis-detected ST7121 shows nothing.
+    switch (detected_controller) {
+    case DisplayController::ILI9881:
+      bus_config.lane_bit_rate_mbps = 730;
+      break;
+    case DisplayController::ST7121:
+      bus_config.lane_bit_rate_mbps = 900;
+      break;
+    default: // ST7123 (and the ST fallback)
+      bus_config.lane_bit_rate_mbps = 965;
+      break;
+    }
     ret = esp_lcd_new_dsi_bus(&bus_config, &lcd_handles_.mipi_dsi_bus);
     if (ret != ESP_OK) {
       logger_.error("New DSI bus init failed: {}", esp_err_to_name(ret));
@@ -187,6 +236,31 @@ bool M5StackTab5::initialize_lcd() {
 #if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(6, 0, 0)
     dpi_cfg.flags.use_dma2d = true;
 #endif
+  } else if (detected_controller == DisplayController::ST7121 && lcd_handles_.panel == nullptr) {
+    dpi_cfg.virtual_channel = 0;
+    dpi_cfg.dpi_clk_src = MIPI_DSI_DPI_CLK_SRC_DEFAULT;
+    // Like the ST7123, the ST7121 is a TDDI part whose touch engine is timed
+    // against the pixel clock; use the M5GFX reference 70 MHz and porch set
+    // (they differ from the ST7123's: VBP 24 / VPW 20 / VFP 200).
+    dpi_cfg.dpi_clock_freq_mhz = 70;
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
+    dpi_cfg.in_color_format = LCD_COLOR_FMT_RGB565;
+    dpi_cfg.out_color_format = LCD_COLOR_FMT_RGB565;
+#else
+    dpi_cfg.pixel_format = LCD_COLOR_PIXEL_FORMAT_RGB565;
+#endif
+    dpi_cfg.num_fbs = 1;
+    dpi_cfg.video_timing.h_size = display_width_;
+    dpi_cfg.video_timing.v_size = display_height_;
+    dpi_cfg.video_timing.hsync_back_porch = 40;
+    dpi_cfg.video_timing.hsync_pulse_width = 2;
+    dpi_cfg.video_timing.hsync_front_porch = 40;
+    dpi_cfg.video_timing.vsync_back_porch = 24;
+    dpi_cfg.video_timing.vsync_pulse_width = 20;
+    dpi_cfg.video_timing.vsync_front_porch = 200;
+#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(6, 0, 0)
+    dpi_cfg.flags.use_dma2d = true;
+#endif
   }
 
   if (lcd_handles_.panel == nullptr) {
@@ -233,6 +307,14 @@ bool M5StackTab5::initialize_lcd() {
       logger_.info("Successfully initialized ST7123 display controller");
       display_driver_ = std::move(display_driver);
       display_controller_ = DisplayController::ST7123;
+    }
+  } else if (detected_controller == DisplayController::ST7121) {
+    logger_.info("Initializing as ST7121");
+    auto display_driver = std::make_shared<espp::St7121>(display_config);
+    if (display_driver->initialize()) {
+      logger_.info("Successfully initialized ST7121 display controller");
+      display_driver_ = std::move(display_driver);
+      display_controller_ = DisplayController::ST7121;
     }
   } else {
     logger_.error("Failed to detect display controller");
