@@ -43,7 +43,11 @@ M5StackTab5::DisplayController M5StackTab5::detect_display_controller() {
   for (int attempt = 0; attempt < 60; ++attempt) {
     const uint8_t fw_reg[2] = {0x00, 0x00};
     uint8_t fw_version = 0;
-    if (i2c.write_read(kStTouchAddress, fw_reg, sizeof(fw_reg), &fw_version, 1)) {
+    // Quiet ACK probe first: while the ST touch engine is still booting it can
+    // ACK-then-NACK a register read, which would log a scary (but harmless)
+    // WriteRead error from the bus layer on every early attempt.
+    if (i2c.probe_device(kStTouchAddress) &&
+        i2c.write_read(kStTouchAddress, fw_reg, sizeof(fw_reg), &fw_version, 1)) {
       st_acked = true;
       if (fw_version != last_logged_fw) {
         last_logged_fw = fw_version;
