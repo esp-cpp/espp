@@ -50,10 +50,14 @@ public:
    * @param config Configuration parameters.
    */
   explicit OdriveNative(const Config &config)
-      : BaseComponent("ODriveNative", config.log_level) {}
+      : BaseComponent("ODriveNative", config.log_level) {
+    // The wire protocol has no error channel; route the core's dropped-request /
+    // failed-write reports through the component logger so they are observable.
+    set_error_callback([this](const std::string &msg) { logger_.warn("{}", msg); });
+  }
 
   OdriveNative()
-      : BaseComponent("ODriveNative", espp::Logger::Verbosity::WARN) {}
+      : OdriveNative(Config{}) {}
 };
 
 } // namespace espp

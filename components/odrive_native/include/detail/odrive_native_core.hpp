@@ -135,8 +135,21 @@ public:
   template <typename T> using getter_fn = std::function<T()>;
   /// Write accessor: apply a typed value, set ec on error, return true on ok.
   template <typename T> using setter_fn = std::function<bool(T, std::error_code &)>;
+  /// Callback invoked with a human-readable message when a request is dropped
+  /// or a write fails. The wire protocol has no error channel, so without this
+  /// hook such failures are invisible to the device application. (Kept as a
+  /// plain std::function so this core stays ESP-free; espp::OdriveNative wires
+  /// it to its logger.)
+  using error_callback_fn = std::function<void(const std::string &)>;
 
   OdriveNativeCore() = default;
+
+  /// Set the (optional) error callback. May be invoked from whatever context
+  /// calls process_bytes(); keep it short and non-blocking.
+  void set_error_callback(const error_callback_fn &cb) {
+    std::scoped_lock lk(mutex_);
+    on_error_ = cb;
+  }
 
   void register_float_property(const std::string &path, const getter_fn<float> &getter,
                                const setter_fn<float> &setter = nullptr) {
@@ -183,6 +196,13 @@ public:
     if (!getter && !setter)
       return;
     std::scoped_lock lk(mutex_);
+    // ids >= 0x8000 collide with the expect-response bit and are unreachable
+    // (the dispatcher masks the endpoint field with 0x7fff)
+    if (next_id_ >= 0x8000) {
+      if (on_error_)
+        on_error_("endpoint id space exhausted (max 32767); '" + path + "' not registered");
+      return;
+    }
     Endpoint ep;
     ep.id = next_id_++;
     ep.path = path;
@@ -252,12 +272,15 @@ public:
     bool have_endpoint = false;
     bool writable = false;
     size_t ep_size = 0;
+    std::string ep_path;
     std::function<void(std::vector<uint8_t> &)> serialize;
     std::function<bool(std::span<const uint8_t>)> deserialize;
+    error_callback_fn on_error;
     {
       std::scoped_lock lk(mutex_);
       finalize_locked();
       json_crc_snapshot = json_crc_;
+      on_error = on_error_;
       if (endpoint_id == 0) {
         json_snapshot = json_;
       } else {
@@ -266,6 +289,7 @@ public:
             have_endpoint = true;
             writable = ep.writable;
             ep_size = ep.size;
+            ep_path = ep.path;
             serialize = ep.serialize;
             deserialize = ep.deserialize;
             break;
@@ -275,10 +299,16 @@ public:
     }
 
     // Canary check: PROTOCOL_VERSION for endpoint 0, else json_crc. A mismatch
-    // means client and server disagree on the object model — ignore silently.
+    // means client and server disagree on the object model — ignore (per the
+    // spec the request gets no response; report through the error hook so the
+    // device application can see the client is desynced).
     const uint16_t expected_canary = (endpoint_id == 0) ? kProtocolVersion : json_crc_snapshot;
-    if (trailer != expected_canary)
+    if (trailer != expected_canary) {
+      if (on_error)
+        on_error("canary mismatch on endpoint " + std::to_string(endpoint_id) +
+                 " (client/server JSON descriptors disagree); request ignored");
       return {};
+    }
 
     std::vector<uint8_t> data;
 
@@ -297,7 +327,11 @@ public:
       // Property endpoint: write first (if payload present and writable), then
       // read the current value into the response (if output_len > 0).
       if (!payload.empty() && writable && deserialize) {
-        deserialize(payload);
+        // The wire protocol carries no write status, so surface a failed /
+        // rejected write (bad payload size or setter refused) via the hook.
+        if (!deserialize(payload) && on_error)
+          on_error("write to endpoint " + std::to_string(endpoint_id) + " (" + ep_path +
+                   ") failed; value not applied");
       }
       if (output_len > 0 && serialize) {
         std::vector<uint8_t> value;
@@ -345,6 +379,13 @@ private:
     if (!getter && !setter)
       return;
     std::scoped_lock lk(mutex_);
+    // ids >= 0x8000 collide with the expect-response bit and are unreachable
+    // (the dispatcher masks the endpoint field with 0x7fff)
+    if (next_id_ >= 0x8000) {
+      if (on_error_)
+        on_error_("endpoint id space exhausted (max 32767); '" + path + "' not registered");
+      return;
+    }
     Endpoint ep;
     ep.id = next_id_++;
     ep.path = path;
@@ -473,6 +514,7 @@ private:
 
   std::mutex mutex_;
   std::vector<Endpoint> endpoints_;
+  error_callback_fn on_error_{nullptr};
   uint16_t next_id_{1}; // 0 reserved for JSON blob
   bool finalized_{false};
   std::string json_;
