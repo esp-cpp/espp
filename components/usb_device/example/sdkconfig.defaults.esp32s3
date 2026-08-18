@@ -1,0 +1,7 @@
+# USB-OTG is available on the ESP32-S3 (also S2 / P4).
+CONFIG_IDF_TARGET="esp32s3"
+
+# Keep the log console on the built-in USB-Serial-JTAG peripheral so it stays
+# completely separate from the native USB-OTG CDC interface created by
+# espp::UsbCdc. (On an ESP32-S3 devkit these are two distinct USB connectors.)
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y

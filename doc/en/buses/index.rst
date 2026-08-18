@@ -11,3 +11,4 @@ external chips.
    spi
    rmt
    twai
+   usb_cdc

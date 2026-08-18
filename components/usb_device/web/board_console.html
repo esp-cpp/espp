@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>espp Board Console &amp; ESP Flasher</title>
+  <!--
+    espp Board Console + ESP Flasher (Web Serial)
+    =============================================
+    A single-file, general-purpose browser tool for any espp / ESP board:
+
+      * Serial monitor  - connect to a board's USB-Serial-JTAG or UART port with
+        the Web Serial API, watch its output, send commands, reset it, and drop
+        it into the ROM bootloader.
+      * ESP flasher     - flash user-provided .bin files to the connected chip
+        with Espressif's official esptool-js library. Add one row per binary
+        (file + hex flash offset), or a single merged image at 0x0.
+
+    This HTML is our own code and makes NO third-party network requests: the
+    only external resource is the SAME-ORIGIN, vendored esptool-js bundle,
+    imported below as `./esptool-bundle.js`.
+
+    esptool-js (https://github.com/espressif/esptool-js) is (c) Espressif
+    Systems and licensed under Apache-2.0. It is vendored verbatim as
+    esptool-bundle.js next to this file (see README.md for the pinned version
+    and attribution).
+
+    Works from a hosted https:// origin, http://localhost, or a file:// URL in
+    a Chromium-based browser (Chrome / Edge / Opera / Brave). Web Serial is not
+    implemented by Firefox or Safari.
+  -->
+  <style>
+    :root {
+      --bg: #f4f6f9; --panel-bg: #ffffff; --panel-border: #d9dee6; --text: #1c2330;
+      --text-muted: #5c6675; --accent: #2563eb; --accent-hover: #1d4ed8;
+      --accent-contrast: #ffffff; --danger: #dc2626; --ok: #16a34a; --warn: #b45309;
+      --log-bg: #0f1420; --log-text: #d6dbe6; --tx-color: #7dd3fc; --rx-color: #d6dbe6;
+      --err-color: #fca5a5; --sys-color: #fcd34d; --time-color: #64748b;
+      --input-bg: #ffffff; --input-border: #c3cbd6; --chip-bg: #eef2f8;
+      --track-bg: #e5e9f0; --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b0e14; --panel-bg: #151a23; --panel-border: #262d3a; --text: #e6eaf2;
+        --text-muted: #98a2b3; --accent: #3b82f6; --accent-hover: #60a5fa;
+        --accent-contrast: #0b0e14; --danger: #ef4444; --ok: #22c55e; --warn: #f59e0b;
+        --log-bg: #05070c; --log-text: #cdd4e0; --tx-color: #38bdf8; --rx-color: #cdd4e0;
+        --err-color: #f87171; --sys-color: #fbbf24; --time-color: #64748b;
+        --input-bg: #0e1219; --input-border: #2b3341; --chip-bg: #1b2230;
+        --track-bg: #232b39; --shadow: 0 1px 3px rgba(0,0,0,0.4);
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #0b0e14; --panel-bg: #151a23; --panel-border: #262d3a; --text: #e6eaf2;
+      --text-muted: #98a2b3; --accent: #3b82f6; --accent-hover: #60a5fa;
+      --accent-contrast: #0b0e14; --danger: #ef4444; --ok: #22c55e; --warn: #f59e0b;
+      --log-bg: #05070c; --log-text: #cdd4e0; --tx-color: #38bdf8; --rx-color: #cdd4e0;
+      --err-color: #f87171; --sys-color: #fbbf24; --input-bg: #0e1219;
+      --input-border: #2b3341; --chip-bg: #1b2230; --track-bg: #232b39;
+    }
+    :root[data-theme="light"] {
+      --bg: #f4f6f9; --panel-bg: #ffffff; --panel-border: #d9dee6; --text: #1c2330;
+      --text-muted: #5c6675; --accent: #2563eb; --accent-hover: #1d4ed8;
+      --accent-contrast: #ffffff; --danger: #dc2626; --ok: #16a34a; --warn: #b45309;
+      --log-bg: #0f1420; --log-text: #d6dbe6; --tx-color: #7dd3fc; --rx-color: #d6dbe6;
+      --err-color: #fca5a5; --sys-color: #fcd34d; --input-bg: #ffffff;
+      --input-border: #c3cbd6; --chip-bg: #eef2f8; --track-bg: #e5e9f0;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 14px; line-height: 1.45; overflow-x: hidden;
+    }
+
+    header {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+      padding: 12px 18px; border-bottom: 1px solid var(--panel-border);
+      background: var(--panel-bg); position: sticky; top: 0; z-index: 20;
+    }
+    header h1 { font-size: 16px; margin: 0; font-weight: 650; letter-spacing: 0.2px; }
+    header .spacer { flex: 1 1 auto; }
+    header .baud-field { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+    header .baud-field select { width: auto; }
+
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600;
+      padding: 5px 11px; border-radius: 999px; border: 1px solid var(--panel-border);
+      background: var(--bg); color: var(--text-muted); white-space: nowrap;
+    }
+    .status-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--text-muted); flex: 0 0 auto; }
+    .status-pill.connected { color: var(--ok); } .status-pill.connected .status-dot { background: var(--ok); }
+    .status-pill.busy { color: var(--warn); } .status-pill.busy .status-dot { background: var(--warn); }
+    .status-pill.error { color: var(--danger); } .status-pill.error .status-dot { background: var(--danger); }
+
+    main {
+      display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+      gap: 16px; padding: 16px 18px; max-width: 1600px; margin: 0 auto;
+    }
+    @media (max-width: 960px) { main { grid-template-columns: minmax(0, 1fr); } }
+    .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+    .panel {
+      background: var(--panel-bg); border: 1px solid var(--panel-border);
+      border-radius: 10px; padding: 14px 15px; box-shadow: var(--shadow); min-width: 0;
+    }
+    .panel h2 {
+      font-size: 13px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted);
+      margin: 0 0 11px 0; font-weight: 700; display: flex; align-items: center; gap: 8px;
+    }
+    .panel h2 .spacer { flex: 1 1 auto; }
+
+    label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 3px; }
+    input, select, button { font-family: inherit; font-size: 14px; }
+    input[type="text"], input[type="number"], select {
+      width: 100%; padding: 7px 9px; border-radius: 7px; border: 1px solid var(--input-border);
+      background: var(--input-bg); color: var(--text); min-width: 0;
+    }
+    input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: var(--accent); }
+    input.mono, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    input[type="file"] { font-size: 12px; color: var(--text-muted); }
+    input[type="file"]::file-selector-button {
+      font-family: inherit; font-weight: 600; margin-right: 8px; padding: 5px 10px;
+      border-radius: 6px; border: 1px solid var(--input-border); background: var(--bg); color: var(--text); cursor: pointer;
+    }
+
+    button {
+      cursor: pointer; border: 1px solid var(--input-border); background: var(--bg); color: var(--text);
+      padding: 7px 13px; border-radius: 7px; font-weight: 600; white-space: nowrap;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    button:hover:not(:disabled) { border-color: var(--accent); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    button.primary { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); }
+    button.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+    button.danger { color: var(--danger); border-color: var(--danger); }
+    button.small { padding: 4px 9px; font-size: 12px; font-weight: 600; }
+    button.tiny { padding: 3px 8px; font-size: 12px; border-radius: 5px; }
+    button.icon { padding: 6px 9px; }
+
+    .row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+    .row > .grow { flex: 1 1 120px; min-width: 0; }
+    .field { min-width: 0; }
+    .hint { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+    .hint code, .mono.inline { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+    .checkbox-inline {
+      display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted);
+      margin: 0; cursor: pointer; user-select: none;
+    }
+    .checkbox-inline input { width: auto; margin: 0; }
+
+    #unsupported {
+      display: none; margin: 16px 18px; padding: 14px 16px; border-radius: 10px;
+      border: 1px solid var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--text);
+    }
+    #unsupported strong { color: var(--danger); }
+
+    .notice {
+      font-size: 12px; color: var(--text-muted); border-left: 3px solid var(--accent);
+      padding: 6px 10px; margin-top: 10px;
+      background: color-mix(in srgb, var(--accent) 8%, transparent); border-radius: 0 6px 6px 0;
+    }
+    .notice.warn { border-left-color: var(--warn); background: color-mix(in srgb, var(--warn) 10%, transparent); }
+
+    /* ---- Console / monitor ---- */
+    .console-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+    .console-toolbar .spacer { flex: 1 1 auto; }
+    #monitor {
+      background: var(--log-bg); color: var(--log-text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12.5px; line-height: 1.5; border-radius: 8px; padding: 10px 12px;
+      height: 44vh; min-height: 220px; overflow-y: auto; overflow-x: auto; white-space: pre-wrap; word-break: break-word;
+    }
+    #monitor .tx { color: var(--tx-color); }
+    #monitor .rx { color: var(--rx-color); }
+    #monitor .sys { color: var(--sys-color); }
+    #monitor .err { color: var(--err-color); }
+    .tx-row { display: flex; gap: 8px; align-items: flex-end; margin-top: 10px; flex-wrap: wrap; }
+    .tx-row .grow { flex: 1 1 200px; min-width: 0; }
+    .tx-row .ending { flex: 0 0 110px; }
+
+    /* ---- Flash panel ---- */
+    .chip-info {
+      display: none; margin-bottom: 12px; padding: 9px 11px; border-radius: 8px;
+      background: var(--chip-bg); font-size: 12.5px;
+    }
+    .chip-info.show { display: block; }
+    .chip-info .kv { display: inline-flex; gap: 5px; margin-right: 16px; }
+    .chip-info .kv b { color: var(--text-muted); font-weight: 600; }
+    .chip-info .kv span { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+    #fileRows { display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; }
+    .file-row {
+      display: grid; grid-template-columns: 92px minmax(0,1fr) 34px; gap: 8px; align-items: center;
+      padding: 8px; border: 1px solid var(--panel-border); border-radius: 8px; background: var(--bg);
+    }
+    .file-row .offset { }
+    .file-row .file { min-width: 0; }
+    .file-row .file input[type="file"] { width: 100%; }
+    .file-row .rm { justify-self: end; }
+    .file-row .progress-wrap { grid-column: 1 / -1; height: 7px; border-radius: 999px; background: var(--track-bg); overflow: hidden; }
+    .file-row .progress-bar { height: 100%; width: 0%; background: var(--accent); transition: width 0.15s; }
+    .file-row .progress-bar.done { background: var(--ok); }
+
+    .flash-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
+    .flash-actions .spacer { flex: 1 1 auto; }
+    .flash-opts { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin: 10px 0; }
+    .flash-opts .baud-field { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+    .flash-opts .baud-field select { width: auto; }
+
+    #flashLog {
+      background: var(--log-bg); color: var(--log-text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px; line-height: 1.5; border-radius: 8px; padding: 10px 12px; margin-top: 12px;
+      height: 22vh; min-height: 130px; overflow-y: auto; overflow-x: auto; white-space: pre-wrap; word-break: break-word;
+    }
+    #flashLog .sys { color: var(--log-text); }
+    #flashLog .err { color: var(--err-color); }
+    #flashLog .ok { color: var(--rx-color); }
+    #flashLog .time { color: var(--time-color); }
+
+    footer { text-align: center; color: var(--text-muted); font-size: 12px; padding: 8px 18px 24px; }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>espp Board Console &amp; ESP Flasher</h1>
+    <div class="spacer"></div>
+    <label class="baud-field">Baud
+      <select id="baud">
+        <option>9600</option><option>57600</option><option selected>115200</option>
+        <option>230400</option><option>460800</option><option>921600</option>
+      </select>
+    </label>
+    <button id="themeBtn" class="icon" title="Toggle light / dark">&#9788;</button>
+    <button id="connectBtn" class="primary">Connect</button>
+    <span id="status" class="status-pill"><span class="status-dot"></span><span id="statusText">Disconnected</span></span>
+  </header>
+
+  <div id="unsupported">
+    <strong>Web Serial is not available in this browser.</strong>
+    This tool needs a Chromium-based browser (Chrome, Edge, Opera, Brave &mdash;
+    Firefox and Safari do not implement the Web Serial API) served over
+    <span class="mono">https://</span>, <span class="mono">http://localhost</span>,
+    or a <span class="mono">file://</span> URL.
+  </div>
+
+  <main>
+    <!-- ============================ LEFT: CONSOLE ============================ -->
+    <div class="col">
+      <div class="panel">
+        <h2>Serial Monitor <span class="spacer"></span>
+          <span id="portInfo" class="mono" style="text-transform:none;font-weight:600;color:var(--text-muted)"></span>
+        </h2>
+        <div class="console-toolbar">
+          <button id="resetBtn" class="small" disabled title="Pulse RTS to reset the board (RTS = EN/reset).">Reset board</button>
+          <button id="bootBtn" class="small" disabled title="Classic RTS/DTR sequence to drop the board into the ROM serial bootloader.">Enter bootloader</button>
+          <span class="spacer"></span>
+          <label class="checkbox-inline"><input type="checkbox" id="autoscroll" checked> Autoscroll</label>
+          <button id="pauseBtn" class="small" disabled>Pause</button>
+          <button id="clearBtn" class="small">Clear</button>
+          <button id="saveBtn" class="small">Save log</button>
+        </div>
+        <div id="monitor"><span class="sys">-- Connect to a board's USB-Serial-JTAG or UART port to begin.</span>
+</div>
+        <div class="tx-row">
+          <div class="grow">
+            <input type="text" id="txInput" class="mono" placeholder="Type a command and press Enter (&uarr;/&darr; for history)" autocomplete="off" spellcheck="false" disabled>
+          </div>
+          <div class="ending">
+            <label>Line ending</label>
+            <select id="lineEnding">
+              <option value="lf" selected>LF (\n)</option>
+              <option value="crlf">CRLF (\r\n)</option>
+              <option value="cr">CR (\r)</option>
+              <option value="none">None</option>
+            </select>
+          </div>
+          <button id="sendBtn" disabled>Send</button>
+        </div>
+        <div class="hint">
+          Connect to the board's <strong>USB-Serial-JTAG</strong> or <strong>UART</strong> port &mdash;
+          <em>not</em> a firmware-created USB CDC port. The flasher resets the chip into its ROM bootloader.
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================ RIGHT: FLASHER =========================== -->
+    <div class="col">
+      <div class="panel">
+        <h2>ESP Flasher <span class="spacer"></span>
+          <span class="mono" style="text-transform:none;font-weight:600;color:var(--text-muted)">esptool-js</span>
+        </h2>
+
+        <div id="chipInfo" class="chip-info">
+          <span class="kv"><b>Chip</b><span id="ciChip">&mdash;</span></span>
+          <span class="kv"><b>MAC</b><span id="ciMac">&mdash;</span></span>
+          <span class="kv"><b>Flash</b><span id="ciFlash">&mdash;</span></span>
+        </div>
+
+        <div id="fileRows"><!-- rows injected --></div>
+        <div class="row" style="margin-bottom:10px">
+          <button id="addRowBtn" class="small">+ Add binary</button>
+          <span class="hint" style="margin:0">Offsets are hex. Merged image &rarr; one row at <span class="mono">0x0</span>.</span>
+        </div>
+
+        <div class="flash-opts">
+          <label class="checkbox-inline"><input type="checkbox" id="eraseAll"> Erase entire flash first</label>
+          <label class="baud-field">Flash baud
+            <select id="flashBaud">
+              <option>115200</option><option>230400</option><option selected>460800</option><option>921600</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="flash-actions">
+          <button id="flashBtn" class="primary">Flash</button>
+          <span class="spacer"></span>
+          <span id="flashStatus" class="hint" style="margin:0"></span>
+        </div>
+
+        <div class="notice">
+          The flasher takes over the serial port: if the monitor is connected it is
+          briefly closed, esptool-js resets the chip into the ROM bootloader, writes
+          your binaries, then hard-resets and the monitor reconnects.
+        </div>
+        <div class="notice warn" style="margin-top:8px">
+          Typical offsets &mdash; second-stage bootloader <span class="mono">0x0</span>
+          (ESP32/-S2 use <span class="mono">0x1000</span>, ESP32-S3/-C3 use <span class="mono">0x0</span>),
+          partition table <span class="mono">0x8000</span>, application <span class="mono">0x10000</span>.
+        </div>
+
+        <div id="flashLog"></div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    espp Board Console &amp; ESP Flasher &mdash; Web Serial monitor + esptool-js flasher.
+    Flashing powered by <a href="https://github.com/espressif/esptool-js" target="_blank" rel="noopener">esptool-js</a> (Apache-2.0, &copy; Espressif), vendored same-origin.
+  </footer>
+
+  <script type="module">
+    import { ESPLoader, Transport } from './esptool-bundle.js';
+
+    const $ = (id) => document.getElementById(id);
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+    // -------------------------------------------------------------------
+    // Feature detection
+    // -------------------------------------------------------------------
+    const serialSupported = ('serial' in navigator);
+    if (!serialSupported) {
+      $("unsupported").style.display = "block";
+      $("connectBtn").disabled = true;
+      $("flashBtn").disabled = true;
+    }
+
+    // -------------------------------------------------------------------
+    // Theme toggle (stamps data-theme on :root, persists to localStorage)
+    // -------------------------------------------------------------------
+    (function initTheme() {
+      const saved = localStorage.getItem("espp-board-console-theme");
+      if (saved === "dark" || saved === "light") document.documentElement.setAttribute("data-theme", saved);
+      $("themeBtn").addEventListener("click", () => {
+        const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const cur = document.documentElement.getAttribute("data-theme") || (prefersDark ? "dark" : "light");
+        const next = cur === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        localStorage.setItem("espp-board-console-theme", next);
+      });
+    })();
+
+    // -------------------------------------------------------------------
+    // State
+    // -------------------------------------------------------------------
+    let port = null;              // SerialPort chosen via requestPort()
+    let consoleConnected = false; // console owns the (open) port
+    let keepReading = false;
+    let reader = null;
+    let writer = null;
+    let readLoopDone = Promise.resolve();
+    let flashing = false;
+    let paused = false;
+    let pausedBuffer = "";
+    const history = [];
+    let historyIdx = -1;
+
+    // -------------------------------------------------------------------
+    // Monitor / log helpers
+    // -------------------------------------------------------------------
+    const monitor = $("monitor");
+    function ts() {
+      const d = new Date(), p = (n, w = 2) => String(n).padStart(w, "0");
+      return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}.${p(d.getMilliseconds(), 3)}`;
+    }
+    function monAppend(kind, text) {
+      if (paused && kind === "rx") { pausedBuffer += text; return; }
+      const span = document.createElement("span");
+      span.className = kind;
+      span.textContent = text;
+      monitor.appendChild(span);
+      // Trim very long backlogs to keep the DOM light.
+      const MAX_NODES = 6000;
+      while (monitor.childElementCount > MAX_NODES) monitor.removeChild(monitor.firstChild);
+      if ($("autoscroll").checked && !paused) monitor.scrollTop = monitor.scrollHeight;
+    }
+    const monSys = (t) => monAppend("sys", "-- " + t + "\n");
+    const monErr = (t) => monAppend("err", "!! " + t + "\n");
+
+    $("clearBtn").addEventListener("click", () => { monitor.textContent = ""; pausedBuffer = ""; });
+    $("saveBtn").addEventListener("click", () => {
+      const blob = new Blob([monitor.textContent], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const d = new Date();
+      const stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}-${String(d.getHours()).padStart(2, "0")}${String(d.getMinutes()).padStart(2, "0")}${String(d.getSeconds()).padStart(2, "0")}`;
+      a.href = url; a.download = `board-console-${stamp}.log`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+    $("pauseBtn").addEventListener("click", () => {
+      paused = !paused;
+      $("pauseBtn").textContent = paused ? "Resume" : "Pause";
+      $("pauseBtn").classList.toggle("primary", paused);
+      if (!paused && pausedBuffer) { const b = pausedBuffer; pausedBuffer = ""; monAppend("rx", b); }
+    });
+
+    // -------------------------------------------------------------------
+    // Status / UI gating
+    // -------------------------------------------------------------------
+    function setStatus(state, text) {
+      $("status").className = "status-pill" + (state ? " " + state : "");
+      $("statusText").textContent = text;
+    }
+    function setConsoleUI(connected) {
+      $("connectBtn").textContent = connected ? "Disconnect" : "Connect";
+      $("connectBtn").classList.toggle("danger", connected);
+      $("connectBtn").classList.toggle("primary", !connected);
+      $("baud").disabled = connected;
+      for (const id of ["resetBtn", "bootBtn", "pauseBtn", "txInput", "sendBtn"]) $(id).disabled = !connected;
+      if (!connected) {
+        $("portInfo").textContent = "";
+        paused = false; $("pauseBtn").textContent = "Pause"; $("pauseBtn").classList.remove("primary");
+      }
+    }
+
+    function describePort(p) {
+      try {
+        const info = p.getInfo();
+        if (info && info.usbVendorId != null && info.usbProductId != null) {
+          return `USB ${info.usbVendorId.toString(16).padStart(4, "0")}:${info.usbProductId.toString(16).padStart(4, "0")}`;
+        }
+      } catch (e) { /* ignore */ }
+      return "serial port";
+    }
+
+    // -------------------------------------------------------------------
+    // Connect / disconnect
+    // -------------------------------------------------------------------
+    $("connectBtn").addEventListener("click", async () => {
+      if (flashing) return;
+      if (consoleConnected) { await disconnect(); }
+      else { await connect(); }
+    });
+
+    async function connect() {
+      if (!port) {
+        try {
+          port = await navigator.serial.requestPort();
+        } catch (e) {
+          if (e && e.name === "NotFoundError") monSys("Port selection cancelled.");
+          else monErr("Port selection failed: " + (e && e.message ? e.message : e));
+          return;
+        }
+      }
+      await openConsole();
+    }
+
+    async function openConsole() {
+      const baudRate = parseInt($("baud").value, 10) || 115200;
+      try {
+        await port.open({ baudRate });
+      } catch (e) {
+        monErr("Failed to open port: " + e.message);
+        return;
+      }
+      consoleConnected = true;
+      keepReading = true;
+      try { writer = port.writable.getWriter(); } catch (e) { writer = null; }
+      readLoopDone = readLoop();
+      setConsoleUI(true);
+      setStatus("connected", "Connected @ " + baudRate);
+      $("portInfo").textContent = describePort(port);
+      monSys(`Connected to ${describePort(port)} @ ${baudRate} baud.`);
+    }
+
+    async function disconnect() {
+      monSys("Disconnecting...");
+      await closeConsole();
+      port = null;
+      setConsoleUI(false);
+      setStatus("", "Disconnected");
+    }
+
+    // Tear down the console's ownership of the port (reader/writer/close) but
+    // keep the SerialPort object so the flasher (or a reconnect) can reuse it.
+    async function closeConsole() {
+      keepReading = false;
+      try { if (reader) await reader.cancel(); } catch (e) { /* ignore */ }
+      try { await readLoopDone; } catch (e) { /* ignore */ }
+      try { if (writer) { writer.releaseLock(); } } catch (e) { /* ignore */ }
+      writer = null;
+      try { if (port) await port.close(); } catch (e) { /* ignore */ }
+      consoleConnected = false;
+    }
+
+    async function readLoop() {
+      const decoder = new TextDecoder("utf-8", { fatal: false });
+      while (port && port.readable && keepReading) {
+        reader = port.readable.getReader();
+        try {
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            if (value && value.length) monAppend("rx", decoder.decode(value, { stream: true }));
+          }
+        } catch (e) {
+          if (keepReading) monErr("Read error: " + e.message);
+        } finally {
+          try { reader.releaseLock(); } catch (e) { /* ignore */ }
+        }
+      }
+      reader = null;
+    }
+
+    // -------------------------------------------------------------------
+    // TX
+    // -------------------------------------------------------------------
+    const ENDINGS = { none: "", cr: "\r", lf: "\n", crlf: "\r\n" };
+    async function sendLine(text) {
+      if (!consoleConnected || !writer) { monErr("Not connected."); return; }
+      const ending = ENDINGS[$("lineEnding").value] ?? "\n";
+      try {
+        await writer.write(new TextEncoder().encode(text + ending));
+        monAppend("tx", "> " + text + "\n");
+      } catch (e) {
+        monErr("Send failed: " + e.message);
+      }
+    }
+    $("sendBtn").addEventListener("click", () => {
+      const t = $("txInput").value;
+      if (t.length) { history.push(t); if (history.length > 200) history.shift(); }
+      historyIdx = -1;
+      sendLine(t);
+      $("txInput").value = "";
+    });
+    $("txInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); $("sendBtn").click(); }
+      else if (e.key === "ArrowUp") {
+        if (!history.length) return; e.preventDefault();
+        historyIdx = historyIdx < 0 ? history.length - 1 : Math.max(0, historyIdx - 1);
+        $("txInput").value = history[historyIdx];
+      } else if (e.key === "ArrowDown") {
+        if (historyIdx < 0) return; e.preventDefault();
+        historyIdx++;
+        if (historyIdx >= history.length) { historyIdx = -1; $("txInput").value = ""; }
+        else $("txInput").value = history[historyIdx];
+      }
+    });
+
+    // -------------------------------------------------------------------
+    // Reset / bootloader (via Web Serial control signals)
+    //   DTR = dataTerminalReady -> GPIO0 (boot),  RTS = requestToSend -> EN (reset)
+    // -------------------------------------------------------------------
+    $("resetBtn").addEventListener("click", async () => {
+      if (!consoleConnected) return;
+      try {
+        await port.setSignals({ dataTerminalReady: false, requestToSend: true });
+        await sleep(100);
+        await port.setSignals({ requestToSend: false });
+        monSys("Board reset (RTS pulse).");
+      } catch (e) { monErr("Reset failed: " + e.message); }
+    });
+    $("bootBtn").addEventListener("click", async () => {
+      if (!consoleConnected) return;
+      try {
+        await port.setSignals({ dataTerminalReady: false, requestToSend: true });   // EN low (reset)
+        await sleep(100);
+        await port.setSignals({ dataTerminalReady: true, requestToSend: false });    // IO0 low, EN high (boot ROM)
+        await sleep(50);
+        await port.setSignals({ dataTerminalReady: false });                          // release IO0
+        monSys("Entered ROM bootloader (classic RTS/DTR sequence).");
+      } catch (e) { monErr("Enter-bootloader failed: " + e.message); }
+    });
+
+    // -------------------------------------------------------------------
+    // Flash panel
+    // -------------------------------------------------------------------
+    const DEFAULT_OFFSETS = ["0x0", "0x8000", "0x10000"];
+    let rowSeq = 0;
+    function addFileRow(offset) {
+      const id = "row-" + (rowSeq++);
+      const row = document.createElement("div");
+      row.className = "file-row"; row.id = id;
+      row.innerHTML = `
+        <div class="offset"><input type="text" class="mono offset-in" value="${offset || "0x0"}" placeholder="0x0" spellcheck="false"></div>
+        <div class="file"><input type="file" class="file-in" accept=".bin,application/octet-stream"></div>
+        <button class="tiny danger rm" title="Remove">&times;</button>
+        <div class="progress-wrap"><div class="progress-bar"></div></div>`;
+      row.querySelector(".rm").addEventListener("click", () => {
+        if ($("fileRows").childElementCount > 1) row.remove();
+        else { row.querySelector(".file-in").value = ""; setRowProgress(row, 0); }
+      });
+      $("fileRows").appendChild(row);
+      return row;
+    }
+    function setRowProgress(row, pct, done) {
+      const bar = row.querySelector(".progress-bar");
+      bar.style.width = Math.max(0, Math.min(100, pct)) + "%";
+      bar.classList.toggle("done", !!done);
+    }
+    $("addRowBtn").addEventListener("click", () => {
+      const n = $("fileRows").childElementCount;
+      addFileRow(DEFAULT_OFFSETS[n] || "0x0");
+    });
+    // Seed with one row (merged-image friendly default of 0x0).
+    addFileRow("0x0");
+
+    function flog(kind, text) {
+      const el = $("flashLog");
+      const line = document.createElement("span");
+      line.style.display = "block";
+      const t = document.createElement("span"); t.className = "time"; t.textContent = `[${ts()}] `;
+      const b = document.createElement("span"); b.className = kind; b.textContent = text;
+      line.appendChild(t); line.appendChild(b); el.appendChild(line);
+      el.scrollTop = el.scrollHeight;
+    }
+    // esptool-js terminal interface.
+    const espTerminal = {
+      clean() { $("flashLog").textContent = ""; },
+      writeLine(data) { flog("sys", String(data)); },
+      write(data) { flog("sys", String(data)); },
+    };
+
+    function readFileAsBinaryString(file) {
+      return new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result);
+        r.onerror = () => reject(r.error || new Error("file read failed"));
+        r.readAsBinaryString(file);
+      });
+    }
+
+    async function buildFileArray() {
+      const rows = Array.from($("fileRows").children);
+      const out = [];
+      for (const row of rows) {
+        const fileEl = row.querySelector(".file-in");
+        const offEl = row.querySelector(".offset-in");
+        const file = fileEl.files && fileEl.files[0];
+        if (!file) continue;
+        // Flashing is destructive: validate the WHOLE offset string as hex
+        // (optionally 0x-prefixed) rather than parseInt alone, which accepts a
+        // valid prefix and ignores trailing garbage ("0x10000oops" -> 0x10000).
+        const offStr = offEl.value.trim();
+        if (!/^(0[xX])?[0-9a-fA-F]+$/.test(offStr))
+          throw new Error(`Invalid offset "${offEl.value}" for ${file.name} (expected hex, e.g. 0x10000)`);
+        const addr = parseInt(offStr, 16);
+        if (!Number.isFinite(addr) || addr < 0 || addr > 0xFFFFFFFF)
+          throw new Error(`Offset "${offEl.value}" for ${file.name} is outside the 32-bit flash address range`);
+        const data = await readFileAsBinaryString(file);
+        out.push({ data, address: addr, name: file.name, row });
+        setRowProgress(row, 0);
+      }
+      if (!out.length) throw new Error("Add at least one .bin file to flash.");
+      // Warn (do not block) on overlapping regions.
+      const sorted = [...out].sort((a, b) => a.address - b.address);
+      for (let i = 1; i < sorted.length; i++) {
+        if (sorted[i - 1].address + sorted[i - 1].data.length > sorted[i].address) {
+          flog("err", `Warning: ${sorted[i - 1].name} and ${sorted[i].name} overlap in flash.`);
+        }
+      }
+      return out;
+    }
+
+    function setFlashBusy(busy) {
+      flashing = busy;
+      $("flashBtn").disabled = busy;
+      $("connectBtn").disabled = busy;
+      $("addRowBtn").disabled = busy;
+      $("flashStatus").textContent = busy ? "Flashing..." : "";
+      setStatus(busy ? "busy" : (consoleConnected ? "connected" : ""), busy ? "Flashing..." : (consoleConnected ? "Connected" : "Disconnected"));
+    }
+
+    $("flashBtn").addEventListener("click", doFlash);
+
+    async function doFlash() {
+      if (flashing) return;
+      let fileArray;
+      try {
+        fileArray = await buildFileArray();
+      } catch (e) {
+        flog("err", e.message); return;
+      }
+
+      const wasConnected = consoleConnected;
+      const consoleBaud = parseInt($("baud").value, 10) || 115200;
+      const flashBaud = parseInt($("flashBaud").value, 10) || 460800;
+
+      // Acquire a port if none is chosen yet.
+      if (!port) {
+        try { port = await navigator.serial.requestPort(); }
+        catch (e) {
+          if (e && e.name === "NotFoundError") flog("err", "Port selection cancelled.");
+          else flog("err", "Port selection failed: " + (e && e.message ? e.message : e));
+          return;
+        }
+      }
+
+      setFlashBusy(true);
+      $("chipInfo").classList.remove("show");
+      $("flashLog").textContent = "";
+
+      let transport = null;
+      try {
+        // Hand the raw port to esptool-js: release our console ownership first.
+        if (consoleConnected) { flog("sys", "Closing serial monitor to flash..."); await closeConsole(); }
+
+        transport = new Transport(port, false);
+        const loader = new ESPLoader({
+          transport,
+          baudrate: flashBaud,
+          romBaudrate: 115200,
+          terminal: espTerminal,
+        });
+
+        flog("sys", "Connecting to the ROM bootloader (resetting the board)...");
+        const chipDesc = await loader.main();           // reset->sync->detect chip
+        $("ciChip").textContent = chipDesc || "unknown";
+
+        try { $("ciMac").textContent = await loader.chip.readMac(loader); }
+        catch (e) { $("ciMac").textContent = "n/a"; }
+        try { const fs = await loader.getFlashSize(); $("ciFlash").textContent = fs ? fs + " KB" : "keep"; }
+        catch (e) { $("ciFlash").textContent = "keep"; }
+        $("chipInfo").classList.add("show");
+        flog("ok", "Detected " + (chipDesc || "chip") + ".");
+
+        const eraseAll = $("eraseAll").checked;
+        if (eraseAll) flog("sys", "Erase-all requested; the whole flash will be erased first.");
+
+        await loader.writeFlash({
+          fileArray: fileArray.map((f) => ({ data: f.data, address: f.address })),
+          flashSize: "keep",
+          flashMode: "keep",
+          flashFreq: "keep",
+          eraseAll,
+          compress: true,
+          reportProgress: (fileIndex, written, total) => {
+            const f = fileArray[fileIndex];
+            if (!f) return;
+            const pct = total ? (written / total) * 100 : 0;
+            setRowProgress(f.row, pct, written >= total && total > 0);
+            $("flashStatus").textContent = `Writing ${f.name}: ${Math.round(pct)}%`;
+          },
+        });
+
+        flog("ok", "Flash write complete. Hard-resetting the board...");
+        // Hard reset: assert EN (RTS) then release so the new firmware runs.
+        try {
+          await transport.setDTR(false);
+          await transport.setRTS(true);
+          await sleep(100);
+          await transport.setRTS(false);
+        } catch (e) { /* best effort */ }
+
+        flog("ok", "Done.");
+        $("flashStatus").textContent = "Flash complete.";
+      } catch (e) {
+        const msg = (e && e.message) ? e.message : String(e);
+        flog("err", "Flash failed: " + msg);
+        if (/sync|connect|packet|timeout|bootloader/i.test(msg)) {
+          flog("err", "Tip: make sure you selected the board's USB-Serial-JTAG / UART port (not a firmware CDC port), that no other program holds it, and that the board can enter its ROM bootloader.");
+        }
+        $("flashStatus").textContent = "Flash failed.";
+      } finally {
+        // Release esptool's ownership of the port.
+        try { if (transport) await transport.disconnect(); } catch (e) { /* ignore */ }
+        setFlashBusy(false);
+        // Restore the monitor if it was connected before flashing.
+        if (wasConnected && port) {
+          $("baud").value = String(consoleBaud);
+          await openConsole();
+        } else {
+          setStatus(consoleConnected ? "connected" : "", consoleConnected ? "Connected" : "Disconnected");
+        }
+      }
+    }
+
+    // -------------------------------------------------------------------
+    // Handle the OS unplugging the device.
+    // -------------------------------------------------------------------
+    if (serialSupported) {
+      navigator.serial.addEventListener("disconnect", (e) => {
+        if (port && e.target === port && !flashing) {
+          monErr("Serial device was disconnected.");
+          keepReading = false; writer = null; consoleConnected = false; port = null;
+          setConsoleUI(false); setStatus("error", "Device unplugged");
+        }
+      });
+    }
+  </script>
+</body>
+</html>
