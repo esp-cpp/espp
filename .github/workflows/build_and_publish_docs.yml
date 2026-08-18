@@ -53,22 +53,24 @@ jobs:
           # Host the interactive single-file web apps (Web Serial / WebUSB /
           # WebHID tools) alongside the docs. GitHub Pages serves over https
           # (a secure context), so the browser APIs work directly from these
-          # hosted copies.
+          # hosted copies. ANY component's web/ directory is hosted
+          # automatically -- drop an .html (plus optional same-origin .js
+          # assets) into components/<name>/web/ and it ships.
           mkdir -p ../docs/apps
           # nullglob makes a "no matches" case a no-op (the glob expands to
           # nothing) while a genuine copy error still fails the job, instead
           # of being swallowed by `|| true`.
           shopt -s nullglob
-          consoles=(../components/odrive_ascii/web/*.html)
-          if [ ${#consoles[@]} -gt 0 ]; then
-            cp "${consoles[@]}" ../docs/apps/
+          apps=(../components/*/web/*.html ../components/*/web/*.js)
+          if [ ${#apps[@]} -gt 0 ]; then
+            cp "${apps[@]}" ../docs/apps/
           else
-            echo "No hosted web consoles found to copy." >&2
+            echo "No hosted web apps found to copy." >&2
           fi
-          for f in ../components/usb_device/web/*.html ../components/usb_device/web/*.js; do
-            cp "$f" ../docs/apps/.
-          done
           shopt -u nullglob
+          # Generate the landing page (docs/apps/index.html) listing every
+          # hosted app by its <title> + <meta name="description">.
+          python3 generate_apps_index.py ../docs/apps
 
       - name: Build Documentation (PDF)
         run: |
