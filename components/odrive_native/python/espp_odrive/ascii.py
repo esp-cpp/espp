@@ -56,6 +56,8 @@ class OdriveAscii:
         try:
             self._serial.close()
         except Exception:
+            # Best-effort close: the port may already be gone (device
+            # unplugged) or never fully opened; nothing useful to do on error.
             pass
 
     def __enter__(self):

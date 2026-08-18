@@ -89,15 +89,16 @@ class Transport(ABC):
 
     @abstractmethod
     def send_packet(self, packet: bytes) -> None:
-        ...
+        raise NotImplementedError
 
     @abstractmethod
     def read_packet(self, timeout: float):
         """Return one received packet, or ``None`` if none arrived in ``timeout``."""
-        ...
+        raise NotImplementedError
 
     def close(self) -> None:
-        ...
+        # Default no-op; subclasses with a real resource override this.
+        return
 
     def __enter__(self):
         return self
@@ -142,4 +143,6 @@ class SerialStreamTransport(Transport):
         try:
             self._serial.close()
         except Exception:
+            # Best-effort close: the port may already be gone (device
+            # unplugged) or never fully opened; nothing useful to do on error.
             pass

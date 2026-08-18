@@ -105,7 +105,6 @@ def test_end_to_end():
         # Enumerate the tree.
         log("endpoint tree:")
         tree = dev.dump()
-        props = set(re.findall(r"^\s*(.*?) = ", tree, re.M))  # leaf names only (indented)
 
         # Read values.
         vbus = dev.vbus_voltage

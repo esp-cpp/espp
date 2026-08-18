@@ -168,7 +168,10 @@ class RemoteObject:
             child = children[name]
             if isinstance(child, RemoteProperty):
                 if not child.can_read:
-                    raise OdriveError("property %s is write-only" % name)
+                    # __getattr__ must raise AttributeError (never a custom
+                    # exception): a write-only property has no readable value,
+                    # and hasattr()/getattr() default handling relies on this.
+                    raise AttributeError("property %s is write-only" % name)
                 return child.get_value()
             return child
         raise AttributeError(name)
