@@ -7,13 +7,15 @@ abstractions for building applications from reusable components.
 
 New here? Start with :doc:`getting_started`. The APIs below are grouped by
 capability; all supported development boards are collected under
-:doc:`dev_boards/index`.
+:doc:`dev_boards/index`. Browser tools for interacting with your hardware are
+collected under :doc:`web_apps`.
 
 .. toctree::
    :maxdepth: 1
    :caption: Introduction
 
    getting_started
+   web_apps
 
 .. toctree::
    :maxdepth: 1
