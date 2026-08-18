@@ -38,7 +38,8 @@ M5StackTab5::DisplayController M5StackTab5::detect_display_controller() {
   // identifies the ILI9881 variant immediately.
   static constexpr uint8_t kStTouchAddress = 0x55;
   static constexpr uint8_t kGt911Address = 0x14; // TouchDriver::DEFAULT_ADDRESS_2
-  bool st_acked = false;
+  bool st_acked = false;   // an ST device ACKed its address (even if reads failed)
+  bool st_fw_read = false; // a firmware-version byte was successfully read
   int last_logged_fw = -1;
   for (int attempt = 0; attempt < 60; ++attempt) {
     const uint8_t fw_reg[2] = {0x00, 0x00};
@@ -46,20 +47,22 @@ M5StackTab5::DisplayController M5StackTab5::detect_display_controller() {
     // Quiet ACK probe first: while the ST touch engine is still booting it can
     // ACK-then-NACK a register read, which would log a scary (but harmless)
     // WriteRead error from the bus layer on every early attempt.
-    if (i2c.probe_device(kStTouchAddress) &&
-        i2c.write_read(kStTouchAddress, fw_reg, sizeof(fw_reg), &fw_version, 1)) {
+    if (i2c.probe_device(kStTouchAddress)) {
       st_acked = true;
-      if (fw_version != last_logged_fw) {
-        last_logged_fw = fw_version;
-        logger_.info("ST touch firmware version: {:#04x}", fw_version);
+      if (i2c.write_read(kStTouchAddress, fw_reg, sizeof(fw_reg), &fw_version, 1)) {
+        st_fw_read = true;
+        if (fw_version != last_logged_fw) {
+          last_logged_fw = fw_version;
+          logger_.info("ST touch firmware version: {:#04x}", fw_version);
+        }
+        if (fw_version == 1) {
+          return M5StackTab5::DisplayController::ST7121;
+        }
+        if (fw_version == 3) {
+          return M5StackTab5::DisplayController::ST7123;
+        }
+        // Unknown FW value — the touch engine may still be booting; keep polling.
       }
-      if (fw_version == 1) {
-        return M5StackTab5::DisplayController::ST7121;
-      }
-      if (fw_version == 3) {
-        return M5StackTab5::DisplayController::ST7123;
-      }
-      // Unknown FW value — the touch engine may still be booting; keep polling.
     } else if (i2c.probe_device(kGt911Address)) {
       // GT911 present -> original ILI9881 revision.
       return M5StackTab5::DisplayController::ILI9881;
@@ -68,11 +71,18 @@ M5StackTab5::DisplayController M5StackTab5::detect_display_controller() {
   }
 
   if (st_acked) {
-    // An ST TDDI is present but reported an unrecognized firmware version.
-    // Fall back to the ST7123 (the more common part) rather than failing.
-    logger_.warn("ST touch controller present but firmware version {:#04x} is unknown; "
-                 "assuming ST7123",
-                 last_logged_fw);
+    // An ST TDDI is present but we could not identify it: either the firmware
+    // version register read an unrecognized value, or the reads kept failing
+    // for the whole poll window. Fall back to the ST7123 (the more common
+    // part) rather than failing outright.
+    if (st_fw_read) {
+      logger_.warn("ST touch controller present but firmware version {:#04x} is unknown; "
+                   "assuming ST7123",
+                   last_logged_fw);
+    } else {
+      logger_.warn("ST touch controller ACKs but its firmware version could not be read; "
+                   "assuming ST7123");
+    }
     return M5StackTab5::DisplayController::ST7123;
   }
 
@@ -144,7 +154,9 @@ bool M5StackTab5::initialize_lcd() {
     bus_config.num_data_lanes = 2;
     bus_config.phy_clk_src = MIPI_DSI_PHY_CLK_SRC_DEFAULT;
     // Per-controller DSI lane rate. The ST7121 runs a slower lane clock than
-    // the ST7123 (M5GFX reference: 900 vs 1040 Mbps); driving it at the
+    // the ST7123: M5GFX's reference values are 900 vs 1040 Mbps, and this BSP
+    // deliberately derates the ST7123 to 965 Mbps (margin for esp-lcd's PHY)
+    // while using the M5GFX 900 Mbps for the ST7121. Driving an ST7121 at the
     // ST7123 rate is one of the reasons a mis-detected ST7121 shows nothing.
     switch (detected_controller) {
     case DisplayController::ILI9881:

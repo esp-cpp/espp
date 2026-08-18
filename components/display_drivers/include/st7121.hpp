@@ -60,7 +60,9 @@ public:
   bool initialize() override {
     display_drivers::init_pins(config_.reset_pin, config_.data_command_pin, config_.reset_value);
 
-    auto madctl = make_madctl(DisplayRotation::LANDSCAPE);
+    // Honor the controller's current rotation state (defaults to LANDSCAPE,
+    // but a set_rotation() issued before initialize() is respected).
+    auto madctl = make_madctl(rotation_);
 
     uint8_t colmod = 0x55;
     switch (config_.bits_per_pixel) {
@@ -91,6 +93,10 @@ public:
         {0xBF, {0xA7, 0xA7}, 0},
         {0xA5, {0xF0, 0x03}, 0},
         {0xD7, {0x10, 0x2C, 0x14, 0x2A, 0x80, 0x80}, 0},
+        // NOTE: the 0x71 0x23 bytes here are NOT the vendor page-unlock key
+        // (that is the 0x60 command above, which uses 0x71 0x21 on this part);
+        // they are the 0x90 command's own payload, verbatim from the M5GFX
+        // reference for the ST7121.
         {0x90, {0x71, 0x23, 0x5A, 0x20, 0x24, 0x11, 0x21}, 0},
         {0xA3,
          {0x80, 0x01, 0x8C, 0xFF, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46, 0x00, 0x00,
