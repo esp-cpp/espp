@@ -1,13 +1,17 @@
 # ST7123 Touch Component
 
 Driver for the touch controller integrated into the **Sitronix ST7123** TDDI
-(Touch and Display Driver Integration) chip.
+(Touch and Display Driver Integration) chip. The newer **ST7121** TDDI
+integrates the same touch engine at the same address and speaks the same
+protocol, so this driver serves both parts (the firmware-version register
+distinguishes them: 1 = ST7121, 3 = ST7123).
 
 ## Overview
 
 The ST7123 combines a MIPI-DSI display driver and a capacitive multi-touch
 controller in a single IC. This component exposes the touch side only; the
-display initialization sequence is handled by the `display_drivers` component.
+display initialization sequence is handled by the `display_drivers` component
+(`espp::St7123` / `espp::St7121` respectively).
 
 Touch data is retrieved over I2C at the chip's address (default **0x55**) using
 the following register map:
