@@ -106,10 +106,10 @@ void tud_vendor_rx_cb(uint8_t itf, uint8_t const *buffer, uint16_t bufsize) {
 void tud_vendor_rx_cb(uint8_t itf, uint8_t const *buffer, uint32_t bufsize) {
 #endif
   (void)itf;
-  (void)buffer;
-  (void)bufsize;
+  // The FIFO variant calls this with buffer==NULL, bufsize==0 (drain via
+  // tud_vendor_read); the zero-copy variant passes the received bytes directly.
   if (s_device)
-    s_device->handle_vendor_rx();
+    s_device->handle_vendor_rx(buffer, static_cast<size_t>(bufsize));
 }
 
 // Vendor control-transfer callback: answer the WebUSB URL and MS OS 2.0
@@ -243,7 +243,7 @@ void UsbDevice::handle_cdc_rx() {
   } while (rx_size == buf.size());
 }
 
-void UsbDevice::handle_vendor_rx() {
+void UsbDevice::handle_vendor_rx(const uint8_t *buffer, size_t bufsize) {
 #if (CFG_TUD_VENDOR > 0)
   receive_callback_fn cb;
   {
@@ -252,6 +252,14 @@ void UsbDevice::handle_vendor_rx() {
   }
   if (!cb || !config_.vendor)
     return;
+  // TinyUSB zero-copy RX variant (CFG_TUD_VENDOR_RX_BUFSIZE==0): the received
+  // bytes are delivered directly via the callback buffer and are NOT in a FIFO,
+  // so dispatch them here. Otherwise (FIFO variant, the esp_tinyusb default)
+  // buffer is null and we drain the FIFO via tud_vendor_read().
+  if (buffer != nullptr && bufsize > 0) {
+    cb(std::span<const uint8_t>(buffer, bufsize));
+    return;
+  }
   std::vector<uint8_t> &buf = vendor_rx_buf_;
   while (tud_vendor_available()) {
     uint32_t count = tud_vendor_read(buf.data(), buf.size());
@@ -303,6 +311,20 @@ bool UsbDevice::initialize(std::error_code &ec) {
     ec = std::make_error_code(std::errc::function_not_supported);
     return false;
 #endif
+  }
+
+  // A zero-length RX scratch buffer would make the RX drain loops spin without
+  // making progress (e.g. handle_cdc_rx()'s `while (rx_size == buf.size())`
+  // becomes `while (0 == 0)`), so require a positive chunk size.
+  if (config_.cdc && config_.cdc->rx_chunk_size == 0) {
+    logger_.error("CDC rx_chunk_size must be > 0");
+    ec = std::make_error_code(std::errc::invalid_argument);
+    return false;
+  }
+  if (config_.vendor && config_.vendor->rx_chunk_size == 0) {
+    logger_.error("Vendor rx_chunk_size must be > 0");
+    ec = std::make_error_code(std::errc::invalid_argument);
+    return false;
   }
 
   // --- Sequentially allocate interface numbers, endpoint addresses, strings ---

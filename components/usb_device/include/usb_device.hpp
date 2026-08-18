@@ -247,8 +247,12 @@ public:
   /// @brief Internal: drain the CDC RX FIFO and dispatch to the CDC callback.
   void handle_cdc_rx();
 
-  /// @brief Internal: drain the vendor RX FIFO and dispatch to the vendor callback.
-  void handle_vendor_rx();
+  /// @brief Internal: dispatch received vendor bytes to the vendor callback.
+  /// @param buffer When non-null (TinyUSB zero-copy RX variant, RX_BUFSIZE==0),
+  ///        the just-received bytes to dispatch directly. When null (the FIFO
+  ///        variant), the FIFO is drained via `tud_vendor_read()` instead.
+  /// @param bufsize Number of bytes at @p buffer (0 when @p buffer is null).
+  void handle_vendor_rx(const uint8_t *buffer = nullptr, size_t bufsize = 0);
 
   /// @brief Internal: pointer to the BOS descriptor bytes (nullptr if none).
   const uint8_t *bos_descriptor() const;
