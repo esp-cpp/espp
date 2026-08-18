@@ -23,14 +23,16 @@ namespace espp {
  * **CDC-ACM** (virtual serial port) function and/or a **vendor-specific**
  * function (bInterfaceClass 0xFF, one bulk IN + one bulk OUT) that optionally
  * advertises **WebUSB** + **MS OS 2.0** descriptors so a browser can talk to it
- * driverlessly. Interface numbers, endpoint addresses and string indices are
- * allocated *sequentially* as functions are enabled, and the device checks the
- * result against the USB-OTG endpoint budget (reporting an error via
- * `std::error_code` if it is exceeded).
+ * driverlessly, and/or a **HID** function (one interrupt IN, optionally one
+ * interrupt OUT) carrying an application-supplied report descriptor (e.g. a
+ * gamepad built with the espp `hid-rp` component). Interface numbers, endpoint
+ * addresses and string indices are allocated *sequentially* as functions are
+ * enabled, and the device checks the result against the USB-OTG endpoint budget
+ * (reporting an error via `std::error_code` if it is exceeded).
  *
- * The design leaves room for **HID** and **MSC** functions to be added later
- * without changing the descriptor-building model (see `HidFunction` /
- * `MscFunction` below and the endpoint-budget table in the README).
+ * The design also leaves room for an **MSC** function to be added later without
+ * changing the descriptor-building model (see `MscFunction` below and the
+ * endpoint-budget table in the README).
  *
  * The VID/PID and manufacturer / product / serial strings are configurable so a
  * device can advertise its own identifiers (e.g. ODrive-like) on a link that is
@@ -89,9 +91,13 @@ public:
     size_t rx_chunk_size{64}; /**< Buffer size used to drain the vendor RX FIFO per read. */
     bool webusb{true}; /**< Advertise WebUSB + MS OS 2.0 descriptors for driverless access. */
     /**
-     * @brief WebUSB landing-page URL, *without* a scheme (the scheme is encoded
-     *        separately via `url_scheme`). Defaults to the espp docs-hosted
-     *        ODrive WebUSB console.
+     * @brief WebUSB landing-page URL. When `url_scheme` is 0 (http) or 1 (https)
+     *        the URL must be given *without* a scheme (the scheme is prepended by
+     *        the host from `url_scheme`). When `url_scheme` is 255 the URL must
+     *        instead *include* its own scheme (e.g. "http://..."). Defaults to
+     *        the espp docs-hosted ODrive WebUSB console (scheme-less, https).
+     * @note The descriptor length (3 + URL bytes) must fit a uint8_t, so the URL
+     *       is limited to 252 bytes; `initialize()` rejects a longer URL.
      */
     std::string landing_page_url{"esp-cpp.github.io/espp/apps/odrive_webusb_console.html"};
     uint8_t url_scheme{1};         /**< 0 = http, 1 = https, 255 = URL includes its own scheme. */
@@ -101,18 +107,26 @@ public:
   };
 
   /**
-   * @brief (Future) HID function extension point. Not implemented yet.
+   * @brief HID (Human Interface Device) function.
    *
    * A HID function consumes 1 interrupt IN endpoint (and optionally 1 interrupt
-   * OUT). When implemented it will carry a HID report descriptor plus report
-   * get/set callbacks. Enabling it today makes initialize() fail with
-   * `std::errc::function_not_supported` so the API slot is reserved without
-   * silently doing nothing.
+   * OUT if `has_out_endpoint` is set). It advertises the application-supplied
+   * `report_descriptor` bytes (the TinyUSB HID class driver returns them from
+   * `tud_hid_descriptor_report_cb`), and input reports are sent with
+   * `UsbDevice::write_hid_report()`. The descriptor bytes are typically built
+   * with the espp `hid-rp` component (e.g. `espp::GamepadInputReport`); the
+   * component itself stays descriptor-bytes based and does not depend on hid-rp.
+   *
+   * Requires the TinyUSB HID class driver to be compiled in
+   * (`CONFIG_TINYUSB_HID_COUNT` > 0, which defines `CFG_TUD_HID`); otherwise
+   * enabling this function makes `initialize()` fail with
+   * `std::errc::function_not_supported`.
    */
   struct HidFunction {
-    std::string interface_name{"espp HID"};
+    std::string interface_name{"espp HID"};   /**< HID interface string descriptor. */
     std::vector<uint8_t> report_descriptor{}; /**< HID report descriptor bytes. */
     bool has_out_endpoint{false};             /**< Whether to allocate an interrupt OUT endpoint. */
+    uint8_t poll_interval_ms{10};             /**< Interrupt IN polling interval (bInterval), ms. */
   };
 
   /**
@@ -139,7 +153,7 @@ public:
 
     std::optional<CdcFunction> cdc{};       /**< Enable a CDC-ACM function. */
     std::optional<VendorFunction> vendor{}; /**< Enable a vendor-specific / WebUSB function. */
-    std::optional<HidFunction> hid{};       /**< (Future) enable a HID function. */
+    std::optional<HidFunction> hid{};       /**< Enable a HID function. */
     std::optional<MscFunction> msc{};       /**< (Future) enable an MSC function. */
 
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; /**< Logger verbosity. */
@@ -191,6 +205,24 @@ public:
   /// @brief Convenience overload of write_vendor() that ignores errors.
   bool write_vendor(std::span<const uint8_t> data);
 
+  /**
+   * @brief Send a HID input report on the HID function's interrupt IN endpoint.
+   * @param report_id HID report id (0 if the report descriptor has no report id;
+   *        otherwise the id baked into the descriptor, e.g. 1 for the gamepad).
+   * @param report Report payload bytes (without the report-id prefix).
+   * @param[out] ec Set on failure (HID not enabled / not initialized, host not
+   *        ready, or the HID class driver is not compiled in).
+   * @return true if the report was queued for transmission, false otherwise.
+   */
+  bool write_hid_report(uint8_t report_id, std::span<const uint8_t> report, std::error_code &ec);
+
+  /// @brief Convenience overload of write_hid_report() that ignores errors.
+  bool write_hid_report(uint8_t report_id, std::span<const uint8_t> report);
+
+  /// @brief Whether the HID function is enabled, mounted and ready to accept a
+  ///        new input report (no report in flight).
+  bool is_hid_ready() const;
+
   /// @brief Set or replace the CDC receive callback (nullptr to detach).
   void set_cdc_receive_callback(const receive_callback_fn &cb);
 
@@ -226,6 +258,11 @@ public:
   /// @brief Internal: pointer to the WebUSB URL descriptor bytes (nullptr if none).
   const uint8_t *webusb_url_descriptor(uint8_t &length) const;
 
+  /// @brief Internal: pointer to the stored HID report descriptor bytes (nullptr
+  ///        if the HID function is not enabled). Returned to the TinyUSB HID
+  ///        class driver from `tud_hid_descriptor_report_cb`.
+  const uint8_t *hid_report_descriptor() const;
+
   /// @brief Internal: config for the vendor control-request handler.
   const std::optional<VendorFunction> &vendor_config() const { return config_.vendor; }
 
@@ -242,6 +279,11 @@ private:
   std::mutex cb_mutex_;
   receive_callback_fn on_cdc_receive_;
   receive_callback_fn on_vendor_receive_;
+
+  // Preallocated RX scratch buffers (sized in initialize()) so the TinyUSB-task
+  // RX handlers stay allocation-free (no heap churn on the hot path).
+  std::vector<uint8_t> cdc_rx_buf_;
+  std::vector<uint8_t> vendor_rx_buf_;
 };
 
 } // namespace espp

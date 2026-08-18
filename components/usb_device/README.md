@@ -14,6 +14,9 @@ Today it can enable, in any combination (subject to the endpoint budget):
   OUT) carrying a raw byte stream, optionally advertising **WebUSB** + **MS OS
   2.0** descriptors so a browser can talk to it driverlessly (and Windows binds
   WinUSB with no driver).
+- A **HID** function (one interrupt IN, optionally one interrupt OUT) carrying an
+  application-supplied report descriptor (e.g. a gamepad built with the espp
+  `hid-rp` component), with input reports sent via `write_hid_report()`.
 
 Interface numbers, endpoint addresses and string indices are allocated
 *sequentially* as functions are enabled, and the result is checked against the
@@ -41,8 +44,11 @@ for back-compatibility.
 
 ## Features
 
-- **Composable**: enable a CDC function and/or a vendor/WebUSB function (composite).
+- **Composable**: enable a CDC function and/or a vendor/WebUSB function and/or a
+  HID function (composite).
 - **Vendor-specific interface** (class 0xFF): raw bulk IN + bulk OUT byte stream.
+- **HID interface**: application-supplied report descriptor (built with `hid-rp`
+  in the example) on an interrupt IN endpoint; `write_hid_report()` sends reports.
 - **WebUSB**: BOS + WebUSB URL + MS OS 2.0 descriptors for driverless browser
   access, with a configurable landing-page URL.
 - **Sequential allocation** of interfaces / endpoints / strings with an
@@ -90,8 +96,11 @@ Key methods:
   functions, check the endpoint budget, install the TinyUSB driver.
 - `bool write_cdc(...)` / `bool write_vendor(...)` — queue + non-blocking flush on
   the respective interface.
+- `bool write_hid_report(uint8_t report_id, std::span<const uint8_t> report, ...)` —
+  send a HID input report on the HID interrupt IN endpoint.
 - `void set_cdc_receive_callback(...)` / `void set_vendor_receive_callback(...)`.
-- `bool is_cdc_connected() const` / `bool is_vendor_connected() const`.
+- `bool is_cdc_connected() const` / `bool is_vendor_connected() const` /
+  `bool is_hid_ready() const`.
 
 CDC-only preset (`espp::UsbCdc`, unchanged API): `initialize()`, `write()`,
 `set_receive_callback()`, `is_connected()`.
@@ -115,6 +124,24 @@ weak-callback overrides (`tud_descriptor_bos_cb`, `tud_vendor_control_xfer_cb`,
 `tud_vendor_rx_cb`). If the vendor function is requested but `CFG_TUD_VENDOR == 0`,
 `initialize()` fails with `std::errc::function_not_supported`.
 
+## Enabling the HID class
+
+Like the vendor class, the HID class is gated in `esp_tinyusb` behind a Kconfig
+option. To use the HID function, set in your project's `sdkconfig.defaults`:
+
+```
+CONFIG_TINYUSB_HID_COUNT=1   # compiles in the TinyUSB HID class driver (CFG_TUD_HID)
+```
+
+`espp::UsbDevice` provides the required TinyUSB HID weak-callback overrides
+(`tud_hid_descriptor_report_cb` returns the stored report descriptor;
+`tud_hid_get_report_cb` returns 0 and `tud_hid_set_report_cb` is a no-op since the
+gamepad is input-only). Supply the report-descriptor bytes yourself (the example
+builds them with the espp `hid-rp` component), assign them to
+`HidFunction::report_descriptor`, and send input reports with
+`write_hid_report(report_id, report)`. If the HID function is requested but
+`CFG_TUD_HID == 0`, `initialize()` fails with `std::errc::function_not_supported`.
+
 ## Endpoint budget (ESP32-S3 USB-OTG)
 
 The ESP32-S3 / -S2 USB-OTG core is full-speed and, besides EP0, provides roughly
@@ -125,7 +152,7 @@ consumes:
 |-------------------|---------------------------------------------|--------------------------------|
 | CDC-ACM           | 2 (1 interrupt-IN notif + 1 bulk-IN)        | 1 (bulk-OUT)                   |
 | Vendor / WebUSB   | 1 (bulk-IN)                                  | 1 (bulk-OUT)                   |
-| HID (future)      | 1 (interrupt-IN)                            | 0 or 1 (optional interrupt-OUT) |
+| HID               | 1 (interrupt-IN)                            | 0 or 1 (optional interrupt-OUT) |
 | MSC (future)      | 1 (bulk-IN)                                  | 1 (bulk-OUT)                   |
 
 This is why the device is **selectable** ("not all at once"). Combinations that
@@ -134,15 +161,17 @@ CDC+Vendor+MSC. Enabling CDC+Vendor+HID+MSC reaches 5 IN endpoints — at the ha
 limit, not recommended. `initialize()` returns `std::errc::value_too_large` if the
 IN or OUT budget is exceeded.
 
-## Extending with HID / MSC
+## Extending with MSC
 
-`espp::UsbDevice::Config` reserves `std::optional` slots for `HidFunction` and
-`MscFunction` as documented extension points. They are not implemented yet;
-enabling one today makes `initialize()` fail with
-`std::errc::function_not_supported`. When implemented they slot into the same
-sequential allocator: HID appends one interface (report descriptor + report
-get/set callbacks) claiming an interrupt-IN endpoint; MSC appends one interface
-(SCSI + storage read/write/capacity callbacks) claiming a bulk IN + bulk OUT.
+The **HID** function is implemented (see "Enabling the HID class" above).
+`espp::UsbDevice::Config` still reserves a `std::optional` slot for an
+`MscFunction` as a documented extension point; it is not implemented yet, and
+enabling it today makes `initialize()` fail with
+`std::errc::function_not_supported`. When implemented it slots into the same
+sequential allocator: MSC appends one interface (SCSI + storage
+read/write/capacity callbacks) claiming a bulk IN + bulk OUT endpoint, exactly
+as HID appends one interface claiming an interrupt-IN endpoint (plus an optional
+interrupt-OUT).
 
 ## Example
 

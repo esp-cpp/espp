@@ -41,6 +41,7 @@ struct UsbDevice::Impl {
   std::vector<uint8_t> bos_desc;        // BOS (WebUSB + MS OS 2.0), empty if unused
   std::vector<uint8_t> ms_os_20_desc;   // MS OS 2.0 descriptor set, empty if unused
   std::vector<uint8_t> webusb_url_desc; // WebUSB URL descriptor, empty if unused
+  std::vector<uint8_t> hid_report_desc; // HID report descriptor bytes, empty if unused
 
   // Owning strings + the pointer table TinyUSB reads (index 0 is the LANGID).
   std::array<uint8_t, 2> langid{{0x09, 0x04}};
@@ -49,6 +50,7 @@ struct UsbDevice::Impl {
 
   // Allocated interface / endpoint identifiers, filled in during initialize().
   uint8_t vendor_itf{0xFF};
+  uint8_t hid_itf{0xFF};
 };
 
 UsbDevice *UsbDevice::instance() { return s_device; }
@@ -62,11 +64,14 @@ UsbDevice::UsbDevice(const Config &config)
 
 UsbDevice::~UsbDevice() {
   if (initialized_) {
+    // Detach the global callback routing BEFORE tearing down the driver so a
+    // TinyUSB callback that fires during deinit cannot dereference this
+    // destructing instance (use-after-free).
+    if (s_device == this)
+      s_device = nullptr;
     if (config_.cdc)
       tinyusb_cdcacm_deinit(kCdcPort);
     tinyusb_driver_uninstall();
-    if (s_device == this)
-      s_device = nullptr;
     initialized_ = false;
   }
 }
@@ -153,6 +158,37 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
 
 #endif // CFG_TUD_VENDOR > 0
 
+#if (CFG_TUD_HID > 0)
+
+// HID: return the application-supplied report descriptor for the given instance.
+uint8_t const *tud_hid_descriptor_report_cb(uint8_t instance) {
+  (void)instance;
+  return s_device ? s_device->hid_report_descriptor() : nullptr;
+}
+
+// HID GET_REPORT control request: this device is input-only, so nothing to do.
+uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t report_type,
+                               uint8_t *buffer, uint16_t reqlen) {
+  (void)instance;
+  (void)report_id;
+  (void)report_type;
+  (void)buffer;
+  (void)reqlen;
+  return 0;
+}
+
+// HID SET_REPORT control request (and OUT endpoint data): unused / ignored.
+void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t report_type,
+                           uint8_t const *buffer, uint16_t bufsize) {
+  (void)instance;
+  (void)report_id;
+  (void)report_type;
+  (void)buffer;
+  (void)bufsize;
+}
+
+#endif // CFG_TUD_HID > 0
+
 } // extern "C"
 
 // ---------------------------------------------------------------------------
@@ -177,6 +213,10 @@ const uint8_t *UsbDevice::webusb_url_descriptor(uint8_t &length) const {
   return impl_->webusb_url_desc.data();
 }
 
+const uint8_t *UsbDevice::hid_report_descriptor() const {
+  return impl_->hid_report_desc.empty() ? nullptr : impl_->hid_report_desc.data();
+}
+
 // ---------------------------------------------------------------------------
 // RX handling.
 // ---------------------------------------------------------------------------
@@ -189,7 +229,7 @@ void UsbDevice::handle_cdc_rx() {
   }
   if (!cb || !config_.cdc)
     return;
-  std::vector<uint8_t> buf(config_.cdc->rx_chunk_size);
+  std::vector<uint8_t> &buf = cdc_rx_buf_;
   size_t rx_size = 0;
   do {
     rx_size = 0;
@@ -212,7 +252,7 @@ void UsbDevice::handle_vendor_rx() {
   }
   if (!cb || !config_.vendor)
     return;
-  std::vector<uint8_t> buf(config_.vendor->rx_chunk_size);
+  std::vector<uint8_t> &buf = vendor_rx_buf_;
   while (tud_vendor_available()) {
     uint32_t count = tud_vendor_read(buf.data(), buf.size());
     if (count == 0)
@@ -237,14 +277,14 @@ bool UsbDevice::initialize(std::error_code &ec) {
     ec = std::make_error_code(std::errc::device_or_resource_busy);
     return false;
   }
-  if (!config_.cdc && !config_.vendor) {
-    logger_.error("No USB function enabled (enable cdc and/or vendor)");
+  if (!config_.cdc && !config_.vendor && !config_.hid) {
+    logger_.error("No USB function enabled (enable cdc, vendor and/or hid)");
     ec = std::make_error_code(std::errc::invalid_argument);
     return false;
   }
-  if (config_.hid || config_.msc) {
-    // Reserved extension points; not implemented yet (see README endpoint table).
-    logger_.error("HID/MSC functions are not implemented yet");
+  if (config_.msc) {
+    // Reserved extension point; not implemented yet (see README endpoint table).
+    logger_.error("MSC function is not implemented yet");
     ec = std::make_error_code(std::errc::function_not_supported);
     return false;
   }
@@ -256,12 +296,27 @@ bool UsbDevice::initialize(std::error_code &ec) {
     return false;
 #endif
   }
+  if (config_.hid) {
+#if (CFG_TUD_HID == 0)
+    logger_.error("HID function requested but CFG_TUD_HID==0. Set "
+                  "CONFIG_TINYUSB_HID_COUNT>0 in sdkconfig.");
+    ec = std::make_error_code(std::errc::function_not_supported);
+    return false;
+#endif
+  }
 
   // --- Sequentially allocate interface numbers, endpoint addresses, strings ---
   uint8_t next_itf = 0;
   uint8_t next_ep = 1; // endpoint number (1..); IN uses 0x80|n, OUT uses n
   uint8_t in_used = 0, out_used = 0;
   const int ep_size = (TUD_OPT_HIGH_SPEED ? 512 : 64);
+
+  // Preallocate the RX scratch buffers now so the TinyUSB-task RX handlers never
+  // allocate on the hot path.
+  if (config_.cdc)
+    cdc_rx_buf_.assign(config_.cdc->rx_chunk_size, 0);
+  if (config_.vendor)
+    vendor_rx_buf_.assign(config_.vendor->rx_chunk_size, 0);
 
   // String table: 0=LANGID, 1=manufacturer, 2=product, 3=serial, then per-itf.
   impl_->owned_strings = {config_.manufacturer, config_.product, config_.serial_number};
@@ -295,6 +350,23 @@ bool UsbDevice::initialize(std::error_code &ec) {
     impl_->vendor_itf = vendor_itf;
   }
 
+  uint8_t hid_itf = 0, hid_str = 0, hid_in = 0, hid_out = 0;
+  if (config_.hid) {
+    hid_itf = next_itf++;
+    hid_str = next_str++;
+    impl_->owned_strings.push_back(config_.hid->interface_name);
+    const uint8_t h_ep = next_ep++;
+    hid_in = static_cast<uint8_t>(0x80 | h_ep); // interrupt IN
+    in_used++;
+    if (config_.hid->has_out_endpoint) {
+      hid_out = h_ep; // interrupt OUT (shares the endpoint number with IN)
+      out_used++;
+    }
+    impl_->hid_itf = hid_itf;
+    // Keep our own copy of the report descriptor alive for the driver lifetime.
+    impl_->hid_report_desc = config_.hid->report_descriptor;
+  }
+
   // --- Endpoint budget check ---
   if (in_used > kMaxInEndpoints || out_used > kMaxOutEndpoints) {
     logger_.error("Endpoint budget exceeded: IN={} (max {}), OUT={} (max {})", in_used,
@@ -316,9 +388,19 @@ bool UsbDevice::initialize(std::error_code &ec) {
   impl_->device_desc.bDescriptorType = TUSB_DESC_DEVICE;
   // BOS/WebUSB requires bcdUSB >= 2.1.
   impl_->device_desc.bcdUSB = webusb ? 0x0210 : 0x0200;
-  impl_->device_desc.bDeviceClass = TUSB_CLASS_MISC;
-  impl_->device_desc.bDeviceSubClass = MISC_SUBCLASS_COMMON;
-  impl_->device_desc.bDeviceProtocol = MISC_PROTOCOL_IAD;
+  // Advertise the IAD-based composite class (0xEF/0x02/0x01) only when CDC is
+  // enabled, since CDC is the function that emits an Interface Association
+  // Descriptor. For a vendor-only and/or HID-only device there is no IAD, so use
+  // 0x00/0x00/0x00 and let the interface descriptors declare the class(es).
+  if (config_.cdc) {
+    impl_->device_desc.bDeviceClass = TUSB_CLASS_MISC;
+    impl_->device_desc.bDeviceSubClass = MISC_SUBCLASS_COMMON;
+    impl_->device_desc.bDeviceProtocol = MISC_PROTOCOL_IAD;
+  } else {
+    impl_->device_desc.bDeviceClass = 0x00;
+    impl_->device_desc.bDeviceSubClass = 0x00;
+    impl_->device_desc.bDeviceProtocol = 0x00;
+  }
   impl_->device_desc.bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE;
   impl_->device_desc.idVendor = config_.vid;
   impl_->device_desc.idProduct = config_.pid;
@@ -338,6 +420,11 @@ bool UsbDevice::initialize(std::error_code &ec) {
   if (config_.vendor) {
     itf_count = static_cast<uint8_t>(itf_count + 1);
     total_len = static_cast<uint16_t>(total_len + TUD_VENDOR_DESC_LEN);
+  }
+  if (config_.hid) {
+    itf_count = static_cast<uint8_t>(itf_count + 1);
+    total_len = static_cast<uint16_t>(
+        total_len + (config_.hid->has_out_endpoint ? TUD_HID_INOUT_DESC_LEN : TUD_HID_DESC_LEN));
   }
 
   impl_->config_desc.clear();
@@ -363,10 +450,41 @@ bool UsbDevice::initialize(std::error_code &ec) {
     };
     append(d, sizeof(d));
   }
+  if (config_.hid) {
+    const uint16_t report_len = static_cast<uint16_t>(impl_->hid_report_desc.size());
+    const uint8_t poll = config_.hid->poll_interval_ms;
+    // Interrupt endpoints are full-speed (<=64 byte packets) even on high-speed
+    // parts; a 64-byte endpoint buffer comfortably fits the gamepad report.
+    constexpr uint8_t kHidEpSize = 64;
+    if (config_.hid->has_out_endpoint) {
+      const uint8_t d[] = {
+          TUD_HID_INOUT_DESCRIPTOR(hid_itf, hid_str, HID_ITF_PROTOCOL_NONE, report_len, hid_out,
+                                   hid_in, kHidEpSize, poll),
+      };
+      append(d, sizeof(d));
+    } else {
+      const uint8_t d[] = {
+          TUD_HID_DESCRIPTOR(hid_itf, hid_str, HID_ITF_PROTOCOL_NONE, report_len, hid_in,
+                             kHidEpSize, poll),
+      };
+      append(d, sizeof(d));
+    }
+  }
 
   // --- WebUSB / MS OS 2.0 descriptors (only when the vendor+WebUSB is enabled) ---
   if (webusb) {
     const auto &v = *config_.vendor;
+
+    // The WebUSB URL descriptor encodes its total length in a single byte
+    // (bLength = 3 header bytes + URL bytes). Reject a URL that would overflow
+    // that byte and produce an invalid descriptor (which can break enumeration).
+    if (v.landing_page_url.size() > (0xFF - 3)) {
+      logger_.error("WebUSB landing_page_url too long ({} bytes); max {} so bLength (3+url) fits a "
+                    "uint8_t",
+                    v.landing_page_url.size(), 0xFF - 3);
+      ec = std::make_error_code(std::errc::invalid_argument);
+      return false;
+    }
 
     // WebUSB URL descriptor: bLength, bDescriptorType(3), bScheme, url...
     impl_->webusb_url_desc.clear();
@@ -599,9 +717,10 @@ bool UsbDevice::initialize(std::error_code &ec) {
   }
 
   initialized_ = true;
-  logger_.info("Initialized native USB device (VID=0x{:04x} PID=0x{:04x}) cdc={} vendor={}{}",
-               config_.vid, config_.pid, config_.cdc.has_value(), config_.vendor.has_value(),
-               webusb ? " webusb" : "");
+  logger_.info(
+      "Initialized native USB device (VID=0x{:04x} PID=0x{:04x}) cdc={} vendor={} hid={}{}",
+      config_.vid, config_.pid, config_.cdc.has_value(), config_.vendor.has_value(),
+      config_.hid.has_value(), webusb ? " webusb" : "");
   return true;
 }
 
@@ -670,6 +789,38 @@ bool UsbDevice::write_vendor(std::span<const uint8_t> data) {
   return write_vendor(data, ec);
 }
 
+bool UsbDevice::write_hid_report(uint8_t report_id, std::span<const uint8_t> report,
+                                 std::error_code &ec) {
+  ec.clear();
+#if (CFG_TUD_HID > 0)
+  if (!initialized_ || !config_.hid) {
+    ec = std::make_error_code(std::errc::not_connected);
+    return false;
+  }
+  if (!tud_hid_ready()) {
+    // Not mounted yet, or a previous report is still in flight.
+    ec = std::make_error_code(std::errc::not_connected);
+    return false;
+  }
+  if (!tud_hid_report(report_id, report.data(), static_cast<uint16_t>(report.size()))) {
+    logger_.warn_rate_limited("HID report send failed (report_id={})", report_id);
+    ec = std::make_error_code(std::errc::io_error);
+    return false;
+  }
+  return true;
+#else
+  (void)report_id;
+  (void)report;
+  ec = std::make_error_code(std::errc::function_not_supported);
+  return false;
+#endif
+}
+
+bool UsbDevice::write_hid_report(uint8_t report_id, std::span<const uint8_t> report) {
+  std::error_code ec;
+  return write_hid_report(report_id, report, ec);
+}
+
 void UsbDevice::set_cdc_receive_callback(const receive_callback_fn &cb) {
   std::scoped_lock lk(cb_mutex_);
   on_cdc_receive_ = cb;
@@ -692,6 +843,16 @@ bool UsbDevice::is_vendor_connected() const {
   if (!initialized_ || !config_.vendor)
     return false;
   return tud_mounted();
+}
+
+bool UsbDevice::is_hid_ready() const {
+#if (CFG_TUD_HID > 0)
+  if (!initialized_ || !config_.hid)
+    return false;
+  return tud_hid_ready();
+#else
+  return false;
+#endif
 }
 
 } // namespace espp

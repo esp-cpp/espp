@@ -16,12 +16,15 @@ Today it can enable, in any combination (subject to the endpoint budget):
   OUT) that carries a raw byte stream and optionally advertises **WebUSB** + **MS
   OS 2.0** descriptors so a browser can talk to it driverlessly (and Windows binds
   WinUSB with no driver).
+- A **HID** function (one interrupt IN, optionally one interrupt OUT) carrying an
+  application-supplied report descriptor (for example a gamepad built with the
+  espp ``hid-rp`` component), with input reports sent via ``write_hid_report()``.
 
 Interface numbers, endpoint addresses and string indices are allocated
 *sequentially* as functions are enabled, and the result is checked against the
 USB-OTG endpoint budget (an error is reported via ``std::error_code`` if it is
-exceeded). The model is designed so **HID** and **MSC** functions can be added
-later without changing the descriptor-building approach.
+exceeded). The model is designed so an **MSC** function can be added later
+without changing the descriptor-building approach.
 
 Because it uses the native USB-OTG peripheral rather than the built-in
 USB-Serial-JTAG that carries the ESP console, a device can advertise its own USB
@@ -34,8 +37,11 @@ the logging console.
 Features
 --------
 
-- Composable: enable a CDC function and/or a vendor/WebUSB function (composite)
+- Composable: enable a CDC function and/or a vendor/WebUSB function and/or a HID
+  function (composite)
 - Vendor-specific interface (class 0xFF) with a bulk IN + bulk OUT raw byte stream
+- HID interface with an application-supplied report descriptor (built with
+  ``hid-rp`` in the example) and ``write_hid_report()``
 - WebUSB: BOS descriptor + WebUSB URL descriptor + MS OS 2.0 descriptor for
   driverless browser access, with a configurable landing-page URL
 - Sequential interface / endpoint / string allocation with an endpoint-budget check
@@ -104,6 +110,25 @@ with ``std::errc::function_not_supported``. No custom ``tusb_config`` is require
 the BOS descriptor and the WebUSB / MS-OS-2.0 vendor control requests are provided
 by ``espp::UsbDevice`` via the standard TinyUSB weak-callback overrides.
 
+Enabling the HID class
+----------------------
+
+Like the vendor class, the HID class is gated in ``esp_tinyusb`` behind a Kconfig
+option. To use the HID function you must set, in your project's
+``sdkconfig.defaults``::
+
+  CONFIG_TINYUSB_HID_COUNT=1   # compiles in the TinyUSB HID class driver (CFG_TUD_HID)
+
+``espp::UsbDevice`` provides the required TinyUSB HID weak-callback overrides:
+``tud_hid_descriptor_report_cb`` returns the stored report descriptor, while
+``tud_hid_get_report_cb`` returns 0 and ``tud_hid_set_report_cb`` is a no-op since
+the gamepad is input-only. Supply the report-descriptor bytes yourself (the
+example builds them with the espp ``hid-rp`` component), assign them to
+``HidFunction::report_descriptor``, and send input reports with
+``write_hid_report(report_id, report)``. If the HID function is requested but
+``CFG_TUD_HID == 0``, ``initialize()`` fails with
+``std::errc::function_not_supported``.
+
 Endpoint budget (ESP32-S3 USB-OTG)
 ----------------------------------
 
@@ -123,7 +148,7 @@ OUT endpoints**. Each function consumes:
    * - Vendor / WebUSB
      - 1 (bulk-IN)
      - 1 (bulk-OUT)
-   * - HID (future)
+   * - HID
      - 1 (interrupt-IN)
      - 0 or 1 (optional interrupt-OUT)
    * - MSC (future)
@@ -142,17 +167,19 @@ hard limit and is not recommended. ``espp::UsbDevice`` computes the totals as
 functions are enabled and returns ``std::errc::value_too_large`` if the IN or OUT
 budget is exceeded.
 
-Extending with HID / MSC
-------------------------
+Extending with MSC
+------------------
 
-``espp::UsbDevice::Config`` reserves ``std::optional`` slots for ``HidFunction``
-and ``MscFunction`` as documented extension points. They are not implemented yet;
-enabling one today makes ``initialize()`` fail with
-``std::errc::function_not_supported``. When implemented they slot into the same
-sequential interface / endpoint / string allocator: a HID function appends one
-HID interface (report descriptor + report get/set callbacks) claiming an
-interrupt-IN endpoint, and an MSC function appends one MSC interface (SCSI +
-storage read/write/capacity callbacks) claiming a bulk IN + bulk OUT endpoint.
+The **HID** function is implemented (see "Enabling the HID class" above): it
+appends one HID interface (application-supplied report descriptor) claiming an
+interrupt-IN endpoint, plus an optional interrupt-OUT endpoint.
+``espp::UsbDevice::Config`` still reserves a ``std::optional`` slot for an
+``MscFunction`` as a documented extension point; it is not implemented yet, and
+enabling it today makes ``initialize()`` fail with
+``std::errc::function_not_supported``. When implemented it slots into the same
+sequential interface / endpoint / string allocator: an MSC function appends one
+MSC interface (SCSI + storage read/write/capacity callbacks) claiming a bulk IN +
+bulk OUT endpoint.
 
 Notes
 -----
