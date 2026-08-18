@@ -1,0 +1,2040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Basicmicro MCP Console</title>
+<meta name="description" content="Test and configure Basicmicro MCP/RoboClaw motor controllers over a USB-UART (packet serial) or USB-CAN (slcan + CANopen/DS402) adapter: device info, motion control, encoders, and an SDO object browser.">
+  <!--
+    Basicmicro MCP Console
+    ======================
+    A single-file, fully offline, dependency-free browser console for
+    Basicmicro MCP236 / MCP266 (RoboClaw-family) motor controllers, reachable
+    through EITHER kind of USB converter:
+
+    Transport A - USB<->UART (packet serial):
+      Web Serial carries the Basicmicro packet-serial protocol directly.
+      Packet = [address 0x80-0x87][command][data...][CRC16]. CRC16-CCITT
+      (poly 0x1021, init 0x0000, non-reflected) over address+command+data,
+      transmitted big-endian (high byte first). Write commands are ACKed with
+      a single 0xFF byte (silence = failure). Read commands send only
+      [address][command]; the reply is data followed by a CRC16 computed over
+      sent-address + sent-command + reply-data. The controller clears its
+      packet buffer after >10 ms of bus silence, which this console exploits
+      as a >=15 ms quiet period for resynchronization after any error.
+
+    Transport B - USB<->CAN adapter (slcan) carrying CANopen/DS402:
+      Web Serial carries the LAWICEL slcan ASCII protocol (CR-terminated
+      commands: Sn bitrate, O open, C close, t/T/r/R frames; CR = ok,
+      BEL 0x07 = error) to a CANable-style adapter or an espp slcan bridge.
+      On top of slcan this console implements a client-side CANopen stack:
+      NMT (id 0x000), expedited SDO upload/download (0x600+node ->
+      0x580+node, with abort-code decoding), a heartbeat monitor
+      (0x700+node), and the CiA 402 (DS402) drive profile: controlword
+      0x6040 / statusword 0x6041 state machine, modes of operation 0x6060,
+      target/actual velocity 0x60FF/0x606C, target/actual position
+      0x607A/0x6064, identity 0x1018, device type 0x1000, error register
+      0x1001.
+
+    No external dependencies, no CDN, no network fetches. Works from
+    http://localhost or any secure (https) origin in a Chromium-based browser.
+  -->
+  <style>
+    :root {
+      --bg: #f4f6f9;
+      --panel-bg: #ffffff;
+      --panel-border: #d9dee6;
+      --text: #1c2330;
+      --text-muted: #5c6675;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-contrast: #ffffff;
+      --danger: #dc2626;
+      --danger-contrast: #ffffff;
+      --ok: #16a34a;
+      --warn: #b45309;
+      --log-bg: #0f1420;
+      --log-text: #d6dbe6;
+      --tx-color: #7dd3fc;
+      --rx-color: #86efac;
+      --err-color: #fca5a5;
+      --sys-color: #fcd34d;
+      --time-color: #64748b;
+      --input-bg: #ffffff;
+      --input-border: #c3cbd6;
+      --chip-bg: #eef2f8;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b0e14;
+        --panel-bg: #151a23;
+        --panel-border: #262d3a;
+        --text: #e6eaf2;
+        --text-muted: #98a2b3;
+        --accent: #3b82f6;
+        --accent-hover: #60a5fa;
+        --accent-contrast: #0b0e14;
+        --danger: #ef4444;
+        --danger-contrast: #0b0e14;
+        --ok: #22c55e;
+        --warn: #f59e0b;
+        --log-bg: #05070c;
+        --log-text: #cdd4e0;
+        --tx-color: #38bdf8;
+        --rx-color: #4ade80;
+        --err-color: #f87171;
+        --sys-color: #fbbf24;
+        --time-color: #64748b;
+        --input-bg: #0e1219;
+        --input-border: #2b3341;
+        --chip-bg: #1b2230;
+        --shadow: 0 1px 3px rgba(0,0,0,0.4);
+      }
+    }
+    /* Explicit theme overrides (viewer toggle stamps data-theme on :root). */
+    :root[data-theme="dark"] {
+      --bg: #0b0e14; --panel-bg: #151a23; --panel-border: #262d3a; --text: #e6eaf2;
+      --text-muted: #98a2b3; --accent: #3b82f6; --accent-hover: #60a5fa;
+      --accent-contrast: #0b0e14; --danger: #ef4444; --danger-contrast: #0b0e14;
+      --ok: #22c55e; --warn: #f59e0b; --log-bg: #05070c; --log-text: #cdd4e0;
+      --tx-color: #38bdf8; --rx-color: #4ade80; --err-color: #f87171;
+      --sys-color: #fbbf24; --input-bg: #0e1219; --input-border: #2b3341; --chip-bg: #1b2230;
+    }
+    :root[data-theme="light"] {
+      --bg: #f4f6f9; --panel-bg: #ffffff; --panel-border: #d9dee6; --text: #1c2330;
+      --text-muted: #5c6675; --accent: #2563eb; --accent-hover: #1d4ed8;
+      --accent-contrast: #ffffff; --danger: #dc2626; --danger-contrast: #ffffff;
+      --ok: #16a34a; --warn: #b45309; --log-bg: #0f1420; --log-text: #d6dbe6;
+      --tx-color: #7dd3fc; --rx-color: #86efac; --err-color: #fca5a5;
+      --sys-color: #fcd34d; --input-bg: #ffffff; --input-border: #c3cbd6; --chip-bg: #eef2f8;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+      overflow-x: hidden;
+    }
+
+    header {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 12px;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--panel-border);
+      background: var(--panel-bg);
+      position: sticky; top: 0; z-index: 20;
+    }
+    header h1 { font-size: 16px; margin: 0; font-weight: 650; letter-spacing: 0.2px; }
+    header .spacer { flex: 1 1 auto; }
+
+    /* Big always-visible STOP control (lives in the sticky header). */
+    button.stop {
+      background: var(--danger); color: var(--danger-contrast); border-color: var(--danger);
+      font-weight: 800; font-size: 15px; letter-spacing: 1px; padding: 9px 26px;
+    }
+    button.stop:hover:not(:disabled) { border-color: var(--danger); filter: brightness(1.1); }
+
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-size: 13px; font-weight: 600; padding: 5px 11px; border-radius: 999px;
+      border: 1px solid var(--panel-border); background: var(--bg);
+      color: var(--text-muted); white-space: nowrap;
+    }
+    .status-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--text-muted); flex: 0 0 auto; }
+    .status-pill.connected { color: var(--ok); }
+    .status-pill.connected .status-dot { background: var(--ok); }
+    .status-pill.error { color: var(--danger); }
+    .status-pill.error .status-dot { background: var(--danger); }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 16px; padding: 16px 18px; max-width: 1600px; margin: 0 auto;
+    }
+    @media (max-width: 960px) { main { grid-template-columns: minmax(0, 1fr); } }
+    .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    .panel.full { grid-column: 1 / -1; }
+
+    .panel {
+      background: var(--panel-bg); border: 1px solid var(--panel-border);
+      border-radius: 10px; padding: 14px 15px; box-shadow: var(--shadow); min-width: 0;
+    }
+    .panel h2 {
+      font-size: 13px; text-transform: uppercase; letter-spacing: 0.6px;
+      color: var(--text-muted); margin: 0 0 11px 0; font-weight: 700;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .panel h2 .spacer { flex: 1 1 auto; }
+    .panel h3 {
+      font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--text-muted); margin: 14px 0 8px 0; font-weight: 700;
+    }
+
+    /* Transport-dependent visibility. */
+    body.mode-uart .can-only { display: none !important; }
+    body.mode-can .uart-only { display: none !important; }
+
+    label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 3px; }
+    input, select, button { font-family: inherit; font-size: 14px; }
+    input[type="text"], input[type="number"], select {
+      width: 100%; padding: 7px 9px; border-radius: 7px;
+      border: 1px solid var(--input-border); background: var(--input-bg);
+      color: var(--text); min-width: 0;
+    }
+    input:focus, select:focus, input[type="range"]:focus {
+      outline: 2px solid var(--accent); outline-offset: -1px; border-color: var(--accent);
+    }
+    input.mono, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    input[aria-invalid="true"] { border-color: var(--danger); outline-color: var(--danger); }
+
+    button {
+      cursor: pointer; border: 1px solid var(--input-border); background: var(--bg);
+      color: var(--text); padding: 7px 13px; border-radius: 7px; font-weight: 600;
+      white-space: nowrap; transition: background 0.12s, border-color 0.12s;
+    }
+    button:hover:not(:disabled) { border-color: var(--accent); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    button.primary { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); }
+    button.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+    button.danger { color: var(--danger); border-color: var(--danger); }
+    button.small { padding: 4px 9px; font-size: 12px; font-weight: 600; }
+    button.tiny { padding: 2px 7px; font-size: 12px; border-radius: 5px; }
+
+    .row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+    .row > .grow { flex: 1 1 120px; min-width: 0; }
+    .field { min-width: 0; }
+    .field.num { flex: 0 0 130px; }
+    .field.small-num { flex: 0 0 96px; }
+
+    .hint { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+    .form-error { font-size: 12px; color: var(--danger); margin-top: 6px; min-height: 1.2em; }
+
+    .checkbox-inline {
+      display: inline-flex; align-items: center; gap: 6px; font-size: 13px;
+      color: var(--text-muted); margin: 0; cursor: pointer; user-select: none;
+    }
+    .checkbox-inline input { width: auto; margin: 0; }
+
+    #unsupported {
+      display: none; margin: 16px 18px; padding: 14px 16px; border-radius: 10px;
+      border: 1px solid var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent);
+      color: var(--text);
+    }
+    #unsupported strong { color: var(--danger); }
+
+    /* ---- Info grid ---- */
+    .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 13px; }
+    .kv dt { color: var(--text-muted); }
+    .kv dd { margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-wrap: anywhere; }
+    dl { margin: 0; }
+
+    /* ---- State badges ---- */
+    .badges { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+    .state-badge {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-size: 13px; font-weight: 700; padding: 5px 12px; border-radius: 999px;
+      border: 1px solid var(--panel-border); background: var(--chip-bg); color: var(--text-muted);
+      white-space: nowrap;
+    }
+    .state-badge .lbl { font-weight: 600; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .state-badge.ok { color: var(--ok); border-color: var(--ok); }
+    .state-badge.warn { color: var(--warn); border-color: var(--warn); }
+    .state-badge.err { color: var(--danger); border-color: var(--danger); }
+
+    /* ---- Duty sliders ---- */
+    .slider-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+    .slider-row .name { flex: 0 0 62px; font-weight: 650; font-size: 13px; }
+    .slider-row input[type="range"] { flex: 1 1 160px; min-width: 120px; accent-color: var(--accent); }
+    .slider-row output {
+      flex: 0 0 84px; text-align: right;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px;
+    }
+
+    /* ---- SDO table ---- */
+    .table-wrap { overflow-x: auto; border: 1px solid var(--panel-border); border-radius: 8px; max-height: 44vh; overflow-y: auto; }
+    table.sdo { border-collapse: collapse; width: 100%; font-size: 13px; }
+    table.sdo th, table.sdo td {
+      padding: 4px 9px; text-align: left; white-space: nowrap;
+      border-bottom: 1px solid var(--panel-border);
+    }
+    table.sdo th {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--text-muted); background: var(--chip-bg); position: sticky; top: 0; z-index: 1;
+    }
+    table.sdo tbody tr { cursor: pointer; }
+    table.sdo tbody tr:hover { background: var(--chip-bg); }
+    table.sdo tbody tr:last-child td { border-bottom: none; }
+
+    /* ---- Log ---- */
+    .log-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+    .log-toolbar .spacer { flex: 1 1 auto; }
+    #log {
+      background: var(--log-bg); color: var(--log-text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12.5px; line-height: 1.5; border-radius: 8px; padding: 10px 12px;
+      height: 32vh; min-height: 200px; overflow-y: auto; overflow-x: auto; white-space: pre;
+    }
+    .log-line { display: block; }
+    .log-time { color: var(--time-color); }
+    .log-tx { color: var(--tx-color); }
+    .log-rx { color: var(--rx-color); }
+    .log-err { color: var(--err-color); }
+    .log-sys { color: var(--sys-color); }
+
+    footer { text-align: center; color: var(--text-muted); font-size: 12px; padding: 8px 18px 22px; }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body class="mode-uart">
+  <header>
+    <h1>Basicmicro MCP Console</h1>
+    <div class="spacer"></div>
+    <button id="stopBtn" class="stop" disabled
+            title="UART: duty 0 to both motors (cmd 34). CAN: DS402 quick-stop controlword (0x0002)."
+            aria-label="Emergency stop: halt both motors">STOP</button>
+    <button id="connectBtn" class="primary">Connect</button>
+    <span id="status" class="status-pill"><span class="status-dot"></span><span id="statusText">Disconnected</span></span>
+  </header>
+
+  <!-- Shown only when navigator.serial is unavailable -->
+  <div id="unsupported">
+    <strong>Web Serial is not available in this browser.</strong>
+    Web Serial requires a Chromium-based browser (Chrome, Edge, Opera, Brave)
+    served over <span class="mono">https://</span> or <span class="mono">http://localhost</span>.
+  </div>
+
+  <main>
+    <!-- ============================ TRANSPORT ============================== -->
+    <div class="panel full">
+      <h2>Transport</h2>
+      <div class="row">
+        <div class="field" style="flex:0 0 260px">
+          <label for="transportSel">Converter type</label>
+          <select id="transportSel">
+            <option value="uart" selected>USB &harr; UART (packet serial)</option>
+            <option value="can">USB &harr; CAN adapter (slcan + CANopen/DS402)</option>
+          </select>
+        </div>
+        <!-- UART settings -->
+        <div class="field num uart-only">
+          <label for="uartBaud">Baud rate</label>
+          <select id="uartBaud">
+            <option>9600</option>
+            <option selected>38400</option>
+            <option>57600</option>
+            <option>115200</option>
+            <option>230400</option>
+            <option>460800</option>
+          </select>
+        </div>
+        <div class="field num uart-only">
+          <label for="uartAddr">Packet-serial address</label>
+          <select id="uartAddr" class="mono">
+            <option value="128" selected>0x80</option>
+            <option value="129">0x81</option>
+            <option value="130">0x82</option>
+            <option value="131">0x83</option>
+            <option value="132">0x84</option>
+            <option value="133">0x85</option>
+            <option value="134">0x86</option>
+            <option value="135">0x87</option>
+          </select>
+        </div>
+        <!-- CAN settings -->
+        <div class="field num can-only">
+          <label for="canSerBaud">Serial baud</label>
+          <select id="canSerBaud">
+            <option selected>115200</option>
+            <option>230400</option>
+            <option>460800</option>
+            <option>921600</option>
+            <option>1000000</option>
+          </select>
+        </div>
+        <div class="field can-only" style="flex:0 0 160px">
+          <label for="canBitrate">CAN bitrate</label>
+          <select id="canBitrate">
+            <option value="0">10 kbit/s (S0)</option>
+            <option value="1">20 kbit/s (S1)</option>
+            <option value="2">50 kbit/s (S2)</option>
+            <option value="3">100 kbit/s (S3)</option>
+            <option value="4">125 kbit/s (S4)</option>
+            <option value="5" selected>250 kbit/s (S5)</option>
+            <option value="6">500 kbit/s (S6)</option>
+            <option value="7">800 kbit/s (S7)</option>
+            <option value="8">1 Mbit/s (S8)</option>
+          </select>
+        </div>
+        <div class="field small-num can-only">
+          <label for="canNode">Node ID (1-127)</label>
+          <input type="text" id="canNode" class="mono" value="1" inputmode="numeric" autocomplete="off">
+        </div>
+        <div class="grow hint" style="margin:0; align-self:center" id="transportHint">
+          Packet serial: the console talks the Basicmicro binary protocol directly over the USB-UART converter.
+        </div>
+      </div>
+      <div id="transportError" class="form-error" role="alert"></div>
+    </div>
+
+    <!-- ============================ LEFT COLUMN ============================ -->
+    <div class="col">
+      <!-- Device info -->
+      <div class="panel">
+        <h2>Device Info
+          <span class="spacer"></span>
+          <button id="readInfoBtn" class="small" disabled>Read all</button>
+        </h2>
+        <div class="uart-only">
+          <dl class="kv">
+            <dt>Firmware</dt><dd id="infoFw">&mdash;</dd>
+            <dt>Main battery</dt><dd id="infoVbatt">&mdash;</dd>
+            <dt>Temperature</dt><dd id="infoTemp">&mdash;</dd>
+            <dt>Motor currents</dt><dd id="infoCurr">&mdash;</dd>
+            <dt>Status</dt><dd id="infoStatus">&mdash;</dd>
+          </dl>
+          <div class="hint">GETVERSION (21) &middot; GETMBATT (24) &middot; GETTEMP (82) &middot; GETCURRENTS (49) &middot; GETSTATUS (90). Status bit meanings can vary slightly across firmware revisions.</div>
+        </div>
+        <div class="can-only">
+          <dl class="kv">
+            <dt>Device type (0x1000)</dt><dd id="infoDevType">&mdash;</dd>
+            <dt>Error register (0x1001)</dt><dd id="infoErrReg">&mdash;</dd>
+            <dt>Vendor ID (0x1018:1)</dt><dd id="infoVendor">&mdash;</dd>
+            <dt>Product code (0x1018:2)</dt><dd id="infoProduct">&mdash;</dd>
+            <dt>Revision (0x1018:3)</dt><dd id="infoRevision">&mdash;</dd>
+            <dt>Serial number (0x1018:4)</dt><dd id="infoSerial">&mdash;</dd>
+          </dl>
+          <div class="hint">Read over expedited SDO from the configured node.</div>
+        </div>
+      </div>
+
+      <!-- CANopen status / NMT (CAN only) -->
+      <div class="panel can-only">
+        <h2>CANopen Status &amp; NMT</h2>
+        <div class="badges" aria-live="polite">
+          <span class="state-badge" id="hbBadge"><span class="lbl">NMT</span><span id="hbText">no heartbeat</span></span>
+          <span class="state-badge" id="swBadge"><span class="lbl">CiA 402</span><span id="swText">unknown</span></span>
+          <span class="mono hint" id="swRaw" style="align-self:center;margin:0"></span>
+        </div>
+        <div class="row">
+          <button id="nmtStartBtn" disabled title="NMT start remote node (cs 0x01)">Start</button>
+          <button id="nmtStopBtn" disabled title="NMT stop remote node (cs 0x02)">Stop</button>
+          <button id="nmtPreopBtn" disabled title="NMT enter pre-operational (cs 0x80)">Pre-Op</button>
+          <button id="nmtResetBtn" class="danger" disabled title="NMT reset node (cs 0x81)">Reset node</button>
+          <button id="swReadBtn" disabled title="Read statusword 0x6041 once">Read statusword</button>
+        </div>
+        <div class="hint">Heartbeat monitor listens on 0x700+node. If the drive is not producing heartbeats, enable them via object 0x1017.</div>
+      </div>
+
+      <!-- Motion: UART -->
+      <div class="panel uart-only">
+        <h2>Motion &mdash; Packet Serial</h2>
+
+        <h3 style="margin-top:0">Signed duty (&plusmn;32767) &middot; cmds 32 / 33</h3>
+        <div class="slider-row">
+          <span class="name" id="dutyName1">M1 duty</span>
+          <input type="range" id="dutySlider1" min="-32767" max="32767" step="1" value="0" disabled
+                 aria-labelledby="dutyName1" aria-describedby="dutyHint">
+          <output id="dutyVal1" for="dutySlider1">0</output>
+          <button id="dutyZero1" class="tiny" disabled aria-label="Set motor 1 duty to zero">0</button>
+        </div>
+        <div class="slider-row">
+          <span class="name" id="dutyName2">M2 duty</span>
+          <input type="range" id="dutySlider2" min="-32767" max="32767" step="1" value="0" disabled
+                 aria-labelledby="dutyName2" aria-describedby="dutyHint">
+          <output id="dutyVal2" for="dutySlider2">0</output>
+          <button id="dutyZero2" class="tiny" disabled aria-label="Set motor 2 duty to zero">0</button>
+        </div>
+        <div class="hint" id="dutyHint">Sliders spring back to zero when released. Keyboard users: arrow keys nudge, the <span class="mono">0</span> button stops that motor.</div>
+
+        <h3>Signed speed (qpps) &middot; cmds 35 / 36 / 37</h3>
+        <div class="row" style="margin-bottom:6px">
+          <div class="field num">
+            <label for="speedM1">M1 speed (qpps)</label>
+            <input type="text" id="speedM1" class="mono" placeholder="e.g. 12000" inputmode="numeric" autocomplete="off" disabled>
+          </div>
+          <button id="speedBtn1" disabled>Set M1</button>
+          <div class="field num">
+            <label for="speedM2">M2 speed (qpps)</label>
+            <input type="text" id="speedM2" class="mono" placeholder="e.g. -12000" inputmode="numeric" autocomplete="off" disabled>
+          </div>
+          <button id="speedBtn2" disabled>Set M2</button>
+          <button id="speedBothBtn" class="primary" disabled title="MIXEDSPEED (37): one packet sets both motors">Set both</button>
+        </div>
+        <div id="speedError" class="form-error" role="alert"></div>
+
+        <h3>Encoders &middot; cmds 16 / 17 / 20</h3>
+        <dl class="kv" style="margin-bottom:8px">
+          <dt>Encoder 1</dt><dd id="enc1Val">&mdash;</dd>
+          <dt>Encoder 2</dt><dd id="enc2Val">&mdash;</dd>
+        </dl>
+        <div class="row">
+          <button id="encReadBtn" disabled>Read once</button>
+          <label class="checkbox-inline" style="align-self:center">
+            <input type="checkbox" id="encPollToggle" disabled> Poll (5 Hz)
+          </label>
+          <span style="flex:1 1 auto"></span>
+          <button id="encResetBtn" class="danger" disabled title="RESETENC (20): zero both encoder counters">Reset encoders</button>
+        </div>
+      </div>
+
+      <!-- Motion: CAN / DS402 -->
+      <div class="panel can-only">
+        <h2>Motion &mdash; DS402</h2>
+        <div class="row" style="margin-bottom:10px">
+          <div class="field" style="flex:0 0 200px">
+            <label for="modeSel">Mode of operation (0x6060)</label>
+            <select id="modeSel" disabled>
+              <option value="3" selected>3 &middot; Profile velocity</option>
+              <option value="1">1 &middot; Profile position</option>
+            </select>
+          </div>
+          <button id="modeBtn" disabled>Set mode</button>
+          <span class="hint" style="margin:0;align-self:center">Mode display (0x6061): <span class="mono" id="modeDisplay">&mdash;</span></span>
+        </div>
+        <div class="row" style="margin-bottom:12px">
+          <button id="enableSeqBtn" class="primary" disabled
+                  title="Controlword sequence Shutdown (0x0006) → Switch On (0x0007) → Enable Operation (0x000F), verifying the statusword after each step.">
+            Enable operation
+          </button>
+          <button id="faultResetBtn" disabled title="Fault reset: controlword 0x0080 rising edge, then 0x0000.">Fault reset</button>
+          <button id="quickStopBtn" class="danger" disabled title="Quick stop: controlword 0x0002.">Quick stop</button>
+          <button id="disableBtn" disabled title="Shutdown: controlword 0x0006 (removes Operation Enabled).">Shutdown</button>
+        </div>
+
+        <h3>Velocity</h3>
+        <div class="row" style="margin-bottom:6px">
+          <div class="field num">
+            <label for="velTarget">Target velocity 0x60FF (i32)</label>
+            <input type="text" id="velTarget" class="mono" placeholder="e.g. 1000" inputmode="numeric" autocomplete="off" disabled>
+          </div>
+          <button id="velSendBtn" class="primary" disabled>Send</button>
+          <div class="field num">
+            <span class="hint" style="margin:0 0 3px">Actual (0x606C)</span>
+            <span class="mono" id="velActual" style="font-size:16px;font-weight:700">&mdash;</span>
+          </div>
+          <label class="checkbox-inline" style="align-self:center">
+            <input type="checkbox" id="canPollToggle" disabled> Poll status (2.5 Hz)
+          </label>
+        </div>
+
+        <h3>Position</h3>
+        <div class="row" style="margin-bottom:6px">
+          <div class="field num">
+            <label for="posTarget">Target position 0x607A (i32)</label>
+            <input type="text" id="posTarget" class="mono" placeholder="e.g. 40000" inputmode="numeric" autocomplete="off" disabled>
+          </div>
+          <button id="posSendBtn" disabled>Send</button>
+          <button id="posGoBtn" disabled title="Profile position: pulse the controlword new-setpoint bit (0x003F → 0x000F) to start the move.">Start move</button>
+          <div class="field num">
+            <span class="hint" style="margin:0 0 3px">Actual (0x6064)</span>
+            <span class="mono" id="posActual" style="font-size:16px;font-weight:700">&mdash;</span>
+          </div>
+        </div>
+        <div id="canMotionError" class="form-error" role="alert"></div>
+        <div class="hint">Values are transmitted only after strict validation (full-string integer parse + type range check).</div>
+      </div>
+    </div>
+
+    <!-- ============================ RIGHT COLUMN =========================== -->
+    <div class="col">
+      <!-- SDO browser (CAN only) -->
+      <div class="panel can-only">
+        <h2>SDO Object Browser</h2>
+        <div class="row" style="margin-bottom:8px">
+          <div class="field small-num">
+            <label for="sdoIndex">Index (hex)</label>
+            <input type="text" id="sdoIndex" class="mono" placeholder="0x6041" autocomplete="off" spellcheck="false" disabled>
+          </div>
+          <div class="field small-num">
+            <label for="sdoSub">Subindex</label>
+            <input type="text" id="sdoSub" class="mono" value="0" inputmode="numeric" autocomplete="off" disabled>
+          </div>
+          <div class="field small-num">
+            <label for="sdoType">Type</label>
+            <select id="sdoType" disabled>
+              <option value="u8">u8</option>
+              <option value="i8">i8</option>
+              <option value="u16">u16</option>
+              <option value="i16">i16</option>
+              <option value="u32" selected>u32</option>
+              <option value="i32">i32</option>
+            </select>
+          </div>
+          <div class="field num">
+            <label for="sdoValue">Value (dec or 0x hex)</label>
+            <input type="text" id="sdoValue" class="mono" placeholder="write value" autocomplete="off" disabled>
+          </div>
+          <button id="sdoReadBtn" class="primary" disabled>Read</button>
+          <button id="sdoWriteBtn" disabled>Write</button>
+        </div>
+        <div id="sdoResult" class="mono hint" style="margin:0 0 6px"></div>
+        <div id="sdoError" class="form-error" role="alert" style="margin:0 0 8px"></div>
+        <div class="table-wrap">
+          <table class="sdo" aria-label="Standard CANopen and DS402 objects">
+            <thead>
+              <tr>
+                <th scope="col">Object</th>
+                <th scope="col">Index</th>
+                <th scope="col">Sub</th>
+                <th scope="col">Type</th>
+                <th scope="col">Value</th>
+                <th scope="col" aria-label="Actions"></th>
+              </tr>
+            </thead>
+            <tbody id="sdoTableBody"></tbody>
+          </table>
+        </div>
+        <div class="hint">Click a row to load it into the form. <span class="mono">&#8635;</span> reads the object. Expedited transfers only (&le; 4 bytes).</div>
+      </div>
+
+      <!-- Traffic log -->
+      <div class="panel">
+        <h2>Raw Traffic
+          <span class="spacer"></span>
+          <span id="logStats" class="mono" style="text-transform:none;font-weight:600;color:var(--text-muted)"></span>
+        </h2>
+        <div class="log-toolbar">
+          <label class="checkbox-inline"><input type="checkbox" id="logPause"> Pause</label>
+          <label class="checkbox-inline"><input type="checkbox" id="autoscroll" checked> Autoscroll</label>
+          <span class="spacer"></span>
+          <button id="exportLogBtn" class="small">Export</button>
+          <button id="clearLogBtn" class="small">Clear</button>
+        </div>
+        <div id="log" aria-live="polite" aria-label="Raw traffic log"></div>
+        <div class="hint">UART mode: hex packet bytes. CAN mode: raw slcan lines. Pause stops the display; capture (for Export) continues.</div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    Basicmicro MCP Console &middot; espp &middot; packet serial &amp; slcan/CANopen &middot; runs fully offline, no external dependencies.
+  </footer>
+
+  <script>
+  "use strict";
+  (function () {
+    // ===================================================================
+    // Element references
+    // ===================================================================
+    const $ = (id) => document.getElementById(id);
+    const els = {
+      unsupported: $("unsupported"),
+      connectBtn: $("connectBtn"), stopBtn: $("stopBtn"),
+      status: $("status"), statusText: $("statusText"),
+      transportSel: $("transportSel"), transportHint: $("transportHint"), transportError: $("transportError"),
+      uartBaud: $("uartBaud"), uartAddr: $("uartAddr"),
+      canSerBaud: $("canSerBaud"), canBitrate: $("canBitrate"), canNode: $("canNode"),
+      // device info
+      readInfoBtn: $("readInfoBtn"),
+      infoFw: $("infoFw"), infoVbatt: $("infoVbatt"), infoTemp: $("infoTemp"),
+      infoCurr: $("infoCurr"), infoStatus: $("infoStatus"),
+      infoDevType: $("infoDevType"), infoErrReg: $("infoErrReg"),
+      infoVendor: $("infoVendor"), infoProduct: $("infoProduct"),
+      infoRevision: $("infoRevision"), infoSerial: $("infoSerial"),
+      // NMT / status
+      hbBadge: $("hbBadge"), hbText: $("hbText"),
+      swBadge: $("swBadge"), swText: $("swText"), swRaw: $("swRaw"),
+      nmtStartBtn: $("nmtStartBtn"), nmtStopBtn: $("nmtStopBtn"),
+      nmtPreopBtn: $("nmtPreopBtn"), nmtResetBtn: $("nmtResetBtn"), swReadBtn: $("swReadBtn"),
+      // motion uart
+      dutySlider1: $("dutySlider1"), dutyVal1: $("dutyVal1"), dutyZero1: $("dutyZero1"),
+      dutySlider2: $("dutySlider2"), dutyVal2: $("dutyVal2"), dutyZero2: $("dutyZero2"),
+      speedM1: $("speedM1"), speedBtn1: $("speedBtn1"),
+      speedM2: $("speedM2"), speedBtn2: $("speedBtn2"),
+      speedBothBtn: $("speedBothBtn"), speedError: $("speedError"),
+      enc1Val: $("enc1Val"), enc2Val: $("enc2Val"),
+      encReadBtn: $("encReadBtn"), encPollToggle: $("encPollToggle"), encResetBtn: $("encResetBtn"),
+      // motion can
+      modeSel: $("modeSel"), modeBtn: $("modeBtn"), modeDisplay: $("modeDisplay"),
+      enableSeqBtn: $("enableSeqBtn"), faultResetBtn: $("faultResetBtn"),
+      quickStopBtn: $("quickStopBtn"), disableBtn: $("disableBtn"),
+      velTarget: $("velTarget"), velSendBtn: $("velSendBtn"), velActual: $("velActual"),
+      canPollToggle: $("canPollToggle"),
+      posTarget: $("posTarget"), posSendBtn: $("posSendBtn"), posGoBtn: $("posGoBtn"),
+      posActual: $("posActual"), canMotionError: $("canMotionError"),
+      // sdo
+      sdoIndex: $("sdoIndex"), sdoSub: $("sdoSub"), sdoType: $("sdoType"), sdoValue: $("sdoValue"),
+      sdoReadBtn: $("sdoReadBtn"), sdoWriteBtn: $("sdoWriteBtn"),
+      sdoResult: $("sdoResult"), sdoError: $("sdoError"), sdoTableBody: $("sdoTableBody"),
+      // log
+      log: $("log"), logStats: $("logStats"), logPause: $("logPause"),
+      autoscroll: $("autoscroll"), exportLogBtn: $("exportLogBtn"), clearLogBtn: $("clearLogBtn"),
+    };
+
+    const uartGated = [
+      els.readInfoBtn, els.stopBtn,
+      els.dutySlider1, els.dutyZero1, els.dutySlider2, els.dutyZero2,
+      els.speedM1, els.speedBtn1, els.speedM2, els.speedBtn2, els.speedBothBtn,
+      els.encReadBtn, els.encPollToggle, els.encResetBtn,
+    ];
+    const canGated = [
+      els.readInfoBtn, els.stopBtn,
+      els.nmtStartBtn, els.nmtStopBtn, els.nmtPreopBtn, els.nmtResetBtn, els.swReadBtn,
+      els.modeSel, els.modeBtn, els.enableSeqBtn, els.faultResetBtn, els.quickStopBtn, els.disableBtn,
+      els.velTarget, els.velSendBtn, els.canPollToggle,
+      els.posTarget, els.posSendBtn, els.posGoBtn,
+      els.sdoIndex, els.sdoSub, els.sdoType, els.sdoValue, els.sdoReadBtn, els.sdoWriteBtn,
+    ];
+
+    // ===================================================================
+    // Small utilities + STRICT parsers. Every value that reaches the wire is
+    // either fully validated (full-string parse + range check) or rejected --
+    // motor commands must never transmit garbage.
+    // ===================================================================
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    function hexArr(bytes) {
+      return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join(" ");
+    }
+    function hexU(v, digits) { return "0x" + (v >>> 0).toString(16).toUpperCase().padStart(digits || 0, "0"); }
+
+    // Strict decimal (optionally-signed) integer with range check.
+    function parseIntStrict(str, min, max, what) {
+      const s = String(str).trim();
+      if (!/^[+-]?\d+$/.test(s)) throw new Error(what + " must be a plain integer" + (s === "" ? " (empty)" : " ('" + s + "')"));
+      const n = parseInt(s, 10);
+      if (!Number.isSafeInteger(n)) throw new Error(what + " is out of range");
+      if (n < min || n > max) throw new Error(what + " must be between " + min + " and " + max);
+      return n;
+    }
+    // Strict integer accepting decimal or 0x-prefixed hex, with range check.
+    function parseIntOrHexStrict(str, min, max, what) {
+      const s = String(str).trim();
+      if (/^0[xX][0-9a-fA-F]{1,8}$/.test(s)) {
+        const n = parseInt(s, 16);
+        if (n < min || n > max) throw new Error(what + " must be between " + min + " and " + max);
+        return n;
+      }
+      return parseIntStrict(s, min, max, what);
+    }
+    // Strict 16-bit hex object index ("6041" or "0x6041").
+    function parseIndexStrict(str) {
+      let s = String(str).trim().toLowerCase();
+      if (s.startsWith("0x")) s = s.slice(2);
+      if (!/^[0-9a-f]{1,4}$/.test(s)) throw new Error("index must be 1-4 hex digits" + (s === "" ? " (empty)" : ""));
+      return parseInt(s, 16);
+    }
+
+    // Big-endian encoders (Basicmicro packet serial is big-endian).
+    function beI16(v) { return [(v >> 8) & 0xff, v & 0xff]; }
+    function beI32(v) { return [(v >>> 24) & 0xff, (v >>> 16) & 0xff, (v >>> 8) & 0xff, v & 0xff]; }
+    function rdBeU16(d, o) { return ((d[o] << 8) | d[o + 1]) >>> 0; }
+    function rdBeI16(d, o) { const v = rdBeU16(d, o); return v & 0x8000 ? v - 0x10000 : v; }
+    function rdBeU32(d, o) { return (((d[o] << 24) >>> 0) + (d[o + 1] << 16) + (d[o + 2] << 8) + d[o + 3]) >>> 0; }
+
+    // ===================================================================
+    // Logging: DOM view (capped) + capture array (larger cap) for export.
+    // ===================================================================
+    const logEntries = [];
+    const LOG_ENTRY_CAP = 50000;
+    const LOG_DOM_CAP = 3000;
+    let droppedEntries = 0;
+    let txCount = 0, rxCount = 0;
+
+    let userScrolledUp = false;
+    els.log.addEventListener("scroll", () => {
+      const nearBottom = els.log.scrollHeight - els.log.scrollTop - els.log.clientHeight < 24;
+      userScrolledUp = !nearBottom;
+    });
+    function ts() {
+      const d = new Date();
+      const p = (n, w = 2) => String(n).padStart(w, "0");
+      return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}.${p(d.getMilliseconds(), 3)}`;
+    }
+    const LOG_PREFIX = { tx: "TX → ", rx: "RX ← ", err: "!! ", sys: "-- " };
+    function appendLogDom(e) {
+      const line = document.createElement("span");
+      line.className = "log-line";
+      const tEl = document.createElement("span");
+      tEl.className = "log-time"; tEl.textContent = `[${e.time}] `;
+      const body = document.createElement("span");
+      body.className = "log-" + e.kind; body.textContent = (LOG_PREFIX[e.kind] || "") + e.text;
+      line.appendChild(tEl); line.appendChild(body);
+      els.log.appendChild(line);
+      while (els.log.childElementCount > LOG_DOM_CAP) els.log.removeChild(els.log.firstChild);
+      if (els.autoscroll.checked && !userScrolledUp) els.log.scrollTop = els.log.scrollHeight;
+    }
+    function logLine(kind, text) {
+      const e = { time: ts(), kind, text };
+      if (kind === "tx") txCount++;
+      if (kind === "rx") rxCount++;
+      logEntries.push(e);
+      if (logEntries.length > LOG_ENTRY_CAP) { logEntries.shift(); droppedEntries++; }
+      els.logStats.textContent = `tx ${txCount} · rx ${rxCount}`;
+      if (!els.logPause.checked) appendLogDom(e);
+    }
+    els.clearLogBtn.addEventListener("click", () => {
+      els.log.textContent = "";
+      logEntries.length = 0; droppedEntries = 0; txCount = 0; rxCount = 0;
+      els.logStats.textContent = "";
+    });
+    els.logPause.addEventListener("change", () => {
+      if (!els.logPause.checked) {
+        els.log.textContent = "";
+        for (const e of logEntries.slice(-LOG_DOM_CAP)) appendLogDom(e);
+        els.log.scrollTop = els.log.scrollHeight;
+      }
+    });
+    els.exportLogBtn.addEventListener("click", () => {
+      const lines = [];
+      if (droppedEntries > 0) lines.push(`# ${droppedEntries} earlier entries dropped (capture cap ${LOG_ENTRY_CAP})`);
+      for (const e of logEntries) lines.push(`[${e.time}] ${LOG_PREFIX[e.kind] || ""}${e.text}`);
+      const blob = new Blob([lines.join("\n") + "\n"], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const d = new Date();
+      const p = (n) => String(n).padStart(2, "0");
+      a.href = url;
+      a.download = `mcp_log_${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.txt`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+
+    // ===================================================================
+    // CRC16-CCITT (XModem): poly 0x1021, init 0x0000, non-reflected.
+    // ===================================================================
+    function crc16(bytes) {
+      let c = 0;
+      for (let i = 0; i < bytes.length; i++) {
+        c ^= (bytes[i] & 0xff) << 8;
+        for (let b = 0; b < 8; b++) {
+          c = (c & 0x8000) ? (((c << 1) ^ 0x1021) & 0xffff) : ((c << 1) & 0xffff);
+        }
+      }
+      return c & 0xffff;
+    }
+
+    // ===================================================================
+    // Serial core (shared by both transports)
+    // ===================================================================
+    let port = null;
+    let writer = null;
+    let reader = null;
+    let readLoopRunning = false;
+    let keepReading = false;
+    let manualDisconnect = false;
+    let mode = "uart";              // active transport while connected
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+
+    function setStatus(state, text) {
+      els.status.className = "status-pill" + (state ? " " + state : "");
+      els.statusText.textContent = text;
+    }
+    function setConnectedUI(connected) {
+      els.connectBtn.textContent = connected ? "Disconnect" : "Connect";
+      els.connectBtn.classList.toggle("danger", connected);
+      els.connectBtn.classList.toggle("primary", !connected);
+      const settings = [els.transportSel, els.uartBaud, els.uartAddr, els.canSerBaud, els.canBitrate, els.canNode];
+      settings.forEach((el) => { el.disabled = connected; });
+      const gated = mode === "uart" ? uartGated : canGated;
+      // Disable everything first, then enable the active transport's controls.
+      uartGated.concat(canGated).forEach((el) => { el.disabled = true; });
+      if (connected) gated.forEach((el) => { el.disabled = false; });
+      if (!connected) {
+        stopEncPoll(); els.encPollToggle.checked = false;
+        stopCanPoll(); els.canPollToggle.checked = false;
+        resetBadges();
+      }
+    }
+
+    els.transportSel.addEventListener("change", () => {
+      document.body.className = "mode-" + els.transportSel.value;
+      els.transportHint.textContent = els.transportSel.value === "uart"
+        ? "Packet serial: the console talks the Basicmicro binary protocol directly over the USB-UART converter."
+        : "slcan: the console drives a LAWICEL-protocol USB-CAN adapter and speaks CANopen/DS402 to the drive.";
+    });
+
+    els.connectBtn.addEventListener("click", async () => {
+      if (port) await disconnect(); else await connect();
+    });
+
+    async function connect() {
+      els.transportError.textContent = "";
+      mode = els.transportSel.value;
+      // Validate transport settings BEFORE touching hardware.
+      if (mode === "can") {
+        try {
+          canNodeId = parseIntStrict(els.canNode.value, 1, 127, "node ID");
+          els.canNode.setAttribute("aria-invalid", "false");
+        } catch (e) {
+          els.transportError.textContent = e.message;
+          els.canNode.setAttribute("aria-invalid", "true");
+          return;
+        }
+      } else {
+        uartAddr = parseInt(els.uartAddr.value, 10);
+        if (!(uartAddr >= 0x80 && uartAddr <= 0x87)) { // defensive; select constrains it
+          els.transportError.textContent = "address must be 0x80-0x87";
+          return;
+        }
+      }
+      try {
+        port = await navigator.serial.requestPort();
+      } catch (e) {
+        logLine("sys", "Port selection cancelled.");
+        port = null;
+        return;
+      }
+      const baudRate = parseInt(mode === "uart" ? els.uartBaud.value : els.canSerBaud.value, 10) || 115200;
+      try {
+        await port.open({ baudRate });
+      } catch (e) {
+        logLine("err", "Failed to open port: " + e.message);
+        setStatus("error", "Open failed");
+        port = null;
+        return;
+      }
+      try {
+        writer = port.writable.getWriter();
+      } catch (e) {
+        logLine("err", "Failed to acquire writer: " + e.message);
+        await safeClose();
+        return;
+      }
+      manualDisconnect = false;
+      keepReading = true;
+      uartRxSink = null; uartNeedResync = false;
+      slcanBuffer = ""; channelOpen = false;
+      readLoop();
+
+      if (mode === "uart") {
+        setConnectedUI(true);
+        setStatus("connected", "UART @ " + baudRate + " · addr " + hexU(uartAddr, 2));
+        logLine("sys", "Connected (packet serial) @ " + baudRate + " baud, address " + hexU(uartAddr, 2) + ".");
+        await readDeviceInfo();
+      } else {
+        const s = els.canBitrate.value;
+        const kbit = els.canBitrate.options[els.canBitrate.selectedIndex].text;
+        logLine("sys", "Serial open @ " + baudRate + ". Configuring slcan adapter: C, S" + s + ", O ...");
+        await slcanCmd("C", { quiet: true });
+        await slcanCmd("S" + s);
+        const okO = await slcanCmd("O");
+        channelOpen = okO !== false;
+        setConnectedUI(true);
+        if (channelOpen) {
+          setStatus("connected", kbit + " · node " + canNodeId);
+          logLine("sys", "CAN channel open at " + kbit + ", talking to node " + canNodeId + ".");
+          await readDeviceInfo();
+          try { await readStatusword(); } catch (_) { /* drive may be silent until NMT start */ }
+        } else {
+          setStatus("error", "Adapter refused O");
+          logLine("err", "Adapter rejected the open command; check the bitrate or power-cycle the adapter.");
+        }
+      }
+    }
+
+    async function disconnect() {
+      manualDisconnect = true;
+      keepReading = false;
+      logLine("sys", "Disconnecting...");
+      if (mode === "can" && writer && channelOpen) {
+        await slcanCmd("C", { quiet: true });
+      }
+      await safeClose();
+    }
+
+    async function safeClose() {
+      stopEncPoll(); els.encPollToggle.checked = false;
+      stopCanPoll(); els.canPollToggle.checked = false;
+      channelOpen = false;
+      if (sdoWaiter) { clearTimeout(sdoWaiter.timer); sdoWaiter.reject(new Error("port closed")); sdoWaiter = null; }
+      failPendingCmds("port closed");
+      uartRxSink = null;
+      if (reader) {
+        try { await reader.cancel(); } catch (_) {}
+        try { reader.releaseLock(); } catch (_) {}
+        reader = null;
+      }
+      if (writer) {
+        try { await writer.close(); } catch (_) {}
+        try { writer.releaseLock(); } catch (_) {}
+        writer = null;
+      }
+      if (port) {
+        try { await port.close(); } catch (_) {}
+      }
+      port = null;
+      setConnectedUI(false);
+      setStatus("", "Disconnected");
+    }
+
+    async function readLoop() {
+      if (readLoopRunning) return;
+      readLoopRunning = true;
+      try {
+        while (keepReading && port && port.readable) {
+          reader = port.readable.getReader();
+          try {
+            while (true) {
+              const { value, done } = await reader.read();
+              if (done) break;
+              if (value && value.length) {
+                if (mode === "uart") handleUartRx(value);
+                else handleSlcanRx(value);
+              }
+            }
+          } catch (e) {
+            if (!manualDisconnect) logLine("err", "Read error (device unplugged?): " + e.message);
+          } finally {
+            try { reader.releaseLock(); } catch (_) {}
+            reader = null;
+          }
+          if (!keepReading) break;
+        }
+      } finally {
+        readLoopRunning = false;
+        if (!manualDisconnect && port) {
+          logLine("sys", "Serial stream ended.");
+          await safeClose();
+        }
+      }
+    }
+
+    // Unplug handling: the disconnected SerialPort arrives as e.port.
+    if (navigator.serial && navigator.serial.addEventListener) {
+      navigator.serial.addEventListener("disconnect", async (e) => {
+        if (port && e.port === port) {
+          logLine("err", "Device disconnected.");
+          keepReading = false;
+          manualDisconnect = false;
+          await safeClose();
+        }
+      });
+    }
+
+    // ===================================================================
+    // Transaction serialization: EVERYTHING that touches the wire (packet
+    // serial transactions, slcan SDO transactions) is funneled through one
+    // promise chain so requests and replies always pair up.
+    // ===================================================================
+    let txnChain = Promise.resolve();
+    function enqueue(fn) {
+      const run = txnChain.then(fn, fn);
+      txnChain = run.then(() => {}, () => {});
+      return run;
+    }
+
+    // ===================================================================
+    // TRANSPORT A: Basicmicro packet serial over USB-UART
+    // ===================================================================
+    const CMD = {
+      GETENC1: 16, GETENC2: 17, RESETENC: 20, GETVERSION: 21, GETMBATT: 24,
+      M1DUTY: 32, M2DUTY: 33, MIXEDDUTY: 34,
+      M1SPEED: 35, M2SPEED: 36, MIXEDSPEED: 37,
+      GETCURRENTS: 49, GETTEMP: 82, GETSTATUS: 90,
+    };
+    const RESYNC_QUIET_MS = 20;     // >= 15 ms: lets the controller flush its packet buffer
+    let uartAddr = 0x80;
+    let uartRxSink = null;          // active transaction's byte sink
+    let uartNeedResync = false;
+
+    function handleUartRx(bytes) {
+      if (uartRxSink) uartRxSink(bytes);
+      else logLine("rx", hexArr(bytes) + "   (unsolicited)");
+    }
+
+    // One packet-serial transaction.
+    //   expect: {kind:'ack'} | {kind:'len', n} | {kind:'cstr'}
+    // Write commands carry data + CRC and expect the single 0xFF ACK byte.
+    // Read commands send [address][command] only; the reply is data + CRC16
+    // over sent-address + sent-command + reply-data.
+    function uartTransact(cmd, dataBytes, expect, opts) {
+      opts = opts || {};
+      const timeoutMs = opts.timeoutMs || 300;
+      const label = opts.label || ("cmd " + cmd);
+      return enqueue(async () => {
+        if (!writer || mode !== "uart") throw new Error(label + ": not connected");
+        if (uartNeedResync) { await sleep(RESYNC_QUIET_MS); uartNeedResync = false; }
+        const isWrite = expect.kind === "ack";
+        let pkt;
+        if (isWrite) {
+          const body = [uartAddr, cmd].concat(Array.from(dataBytes || []));
+          const crc = crc16(body);
+          pkt = Uint8Array.from(body.concat([(crc >> 8) & 0xff, crc & 0xff]));
+        } else {
+          pkt = Uint8Array.from([uartAddr, cmd]);
+        }
+        const acc = [];
+        let settle = null;
+        const done = new Promise((resolve, reject) => { settle = { resolve, reject }; });
+        const complete = () => {
+          if (expect.kind === "ack") return acc.length >= 1;
+          if (expect.kind === "len") return acc.length >= expect.n + 2;
+          if (expect.kind === "cstr") { const z = acc.indexOf(0); return z >= 0 && acc.length >= z + 3; }
+          return false;
+        };
+        uartRxSink = (bytes) => {
+          for (const b of bytes) acc.push(b);
+          if (complete()) settle.resolve();
+        };
+        const timer = setTimeout(() => {
+          settle.reject(new Error("timeout after " + timeoutMs + " ms (" + acc.length + " byte(s) received)"));
+        }, timeoutMs);
+        try {
+          logLine("tx", hexArr(pkt) + "   " + label);
+          await writer.write(pkt);
+          await done;
+        } catch (e) {
+          uartNeedResync = true;   // let the controller flush its packet buffer
+          if (acc.length) logLine("rx", hexArr(acc) + "   (incomplete)");
+          throw new Error(label + ": " + e.message);
+        } finally {
+          clearTimeout(timer);
+          uartRxSink = null;
+        }
+        logLine("rx", hexArr(acc));
+        if (expect.kind === "ack") {
+          if (acc[0] !== 0xff) {
+            uartNeedResync = true;
+            throw new Error(label + ": bad ACK 0x" + acc[0].toString(16).padStart(2, "0"));
+          }
+          if (acc.length > 1) logLine("err", label + ": " + (acc.length - 1) + " unexpected byte(s) after ACK");
+          return null;
+        }
+        // Read reply: split data / CRC and verify.
+        let data;
+        if (expect.kind === "cstr") {
+          const z = acc.indexOf(0);
+          data = acc.slice(0, z + 1);   // CRC covers the NUL terminator too
+        } else {
+          data = acc.slice(0, expect.n);
+        }
+        const rxCrc = ((acc[data.length] << 8) | acc[data.length + 1]) & 0xffff;
+        const calc = crc16([uartAddr, cmd].concat(data));
+        if (rxCrc !== calc) {
+          uartNeedResync = true;
+          throw new Error(label + ": CRC mismatch (got " + hexU(rxCrc, 4) + ", expected " + hexU(calc, 4) + ")");
+        }
+        if (acc.length > data.length + 2) {
+          logLine("err", label + ": " + (acc.length - data.length - 2) + " unexpected trailing byte(s)");
+        }
+        return data;
+      });
+    }
+
+    // ---- Status (cmd 90) bit decoding. MCP-series returns a 32-bit word;
+    //      bit meanings can vary slightly between firmware revisions. ----
+    const STATUS_BITS = [
+      [0x000001, "E-Stop"],
+      [0x000002, "temperature error"],
+      [0x000004, "temperature 2 error"],
+      [0x000008, "main voltage high error"],
+      [0x000010, "logic voltage high error"],
+      [0x000020, "logic voltage low error"],
+      [0x000040, "M1 driver fault"],
+      [0x000080, "M2 driver fault"],
+      [0x000100, "M1 speed error"],
+      [0x000200, "M2 speed error"],
+      [0x000400, "M1 position error"],
+      [0x000800, "M2 position error"],
+      [0x001000, "M1 current error"],
+      [0x002000, "M2 current error"],
+      [0x010000, "M1 over-current warning"],
+      [0x020000, "M2 over-current warning"],
+      [0x040000, "main voltage high warning"],
+      [0x080000, "main voltage low warning"],
+      [0x100000, "temperature warning"],
+      [0x200000, "temperature 2 warning"],
+      [0x400000, "S4 signal triggered"],
+      [0x800000, "S5 signal triggered"],
+      [0x01000000, "speed error limit warning"],
+      [0x02000000, "position error limit warning"],
+    ];
+    function decodeStatusBits(v) {
+      const hits = STATUS_BITS.filter(([bit]) => (v & bit) !== 0).map(([, name]) => name);
+      return hits.length ? hits.join(", ") : "normal";
+    }
+
+    async function uartReadInfo() {
+      try {
+        const d = await uartTransact(CMD.GETVERSION, null, { kind: "cstr" }, { label: "GETVERSION (21)" });
+        const s = String.fromCharCode.apply(null, d.slice(0, -1)).replace(/[\r\n]+$/, "");
+        els.infoFw.textContent = s || "(empty)";
+      } catch (e) { els.infoFw.textContent = "—"; logLine("err", e.message); }
+      try {
+        const d = await uartTransact(CMD.GETMBATT, null, { kind: "len", n: 2 }, { label: "GETMBATT (24)" });
+        els.infoVbatt.textContent = (rdBeU16(d, 0) / 10).toFixed(1) + " V";
+      } catch (e) { els.infoVbatt.textContent = "—"; logLine("err", e.message); }
+      try {
+        const d = await uartTransact(CMD.GETTEMP, null, { kind: "len", n: 2 }, { label: "GETTEMP (82)" });
+        els.infoTemp.textContent = (rdBeU16(d, 0) / 10).toFixed(1) + " °C";
+      } catch (e) { els.infoTemp.textContent = "—"; logLine("err", e.message); }
+      try {
+        const d = await uartTransact(CMD.GETCURRENTS, null, { kind: "len", n: 4 }, { label: "GETCURRENTS (49)" });
+        const m1 = rdBeI16(d, 0) / 100, m2 = rdBeI16(d, 2) / 100;
+        els.infoCurr.textContent = "M1 " + m1.toFixed(2) + " A · M2 " + m2.toFixed(2) + " A";
+      } catch (e) { els.infoCurr.textContent = "—"; logLine("err", e.message); }
+      try {
+        let v;
+        try {
+          const d = await uartTransact(CMD.GETSTATUS, null, { kind: "len", n: 4 }, { label: "GETSTATUS (90)" });
+          v = rdBeU32(d, 0);
+        } catch (e) {
+          // Some firmware returns a 16-bit status word; retry once at 2 bytes.
+          logLine("sys", "GETSTATUS: retrying as a 16-bit reply (older firmware).");
+          const d = await uartTransact(CMD.GETSTATUS, null, { kind: "len", n: 2 }, { label: "GETSTATUS (90, 16-bit)" });
+          v = rdBeU16(d, 0);
+        }
+        els.infoStatus.textContent = hexU(v, 8) + " — " + decodeStatusBits(v);
+      } catch (e) { els.infoStatus.textContent = "—"; logLine("err", e.message); }
+    }
+
+    // ---- Duty sliders (spring to zero) ----
+    // Values from range inputs are still strictly validated before encoding:
+    // a duty is transmitted only if it parses as an integer in ±32767.
+    const dutyState = {
+      1: { pending: null, inflight: false },
+      2: { pending: null, inflight: false },
+    };
+    function requestDuty(motor, rawValue) {
+      let v;
+      try {
+        v = parseIntStrict(rawValue, -32767, 32767, "duty");
+      } catch (e) {
+        logLine("err", "M" + motor + " duty rejected: " + e.message);
+        return;
+      }
+      const st = dutyState[motor];
+      st.pending = v;
+      if (st.inflight) return;
+      st.inflight = true;
+      (async () => {
+        try {
+          while (st.pending !== null && port && mode === "uart") {
+            const val = st.pending;
+            st.pending = null;
+            const cmd = motor === 1 ? CMD.M1DUTY : CMD.M2DUTY;
+            try {
+              await uartTransact(cmd, beI16(val), { kind: "ack" }, { label: "M" + motor + "DUTY " + val });
+            } catch (e) {
+              logLine("err", e.message);
+              break;
+            }
+            await sleep(30);   // pace the stream of slider updates
+          }
+        } finally {
+          st.inflight = false;
+        }
+      })();
+    }
+    function wireDutySlider(motor, slider, valOut, zeroBtn) {
+      const show = (v) => { valOut.value = String(v); };
+      slider.addEventListener("input", () => {
+        show(slider.value);
+        requestDuty(motor, slider.value);
+      });
+      const spring = () => {
+        if (slider.value !== "0") {
+          slider.value = "0";
+          show(0);
+          requestDuty(motor, 0);
+        }
+      };
+      slider.addEventListener("pointerup", spring);
+      slider.addEventListener("touchend", spring);
+      zeroBtn.addEventListener("click", () => { slider.value = "0"; show(0); requestDuty(motor, 0); });
+    }
+    wireDutySlider(1, els.dutySlider1, els.dutyVal1, els.dutyZero1);
+    wireDutySlider(2, els.dutySlider2, els.dutyVal2, els.dutyZero2);
+
+    // ---- Signed speed ----
+    const I32_MIN = -2147483648, I32_MAX = 2147483647;
+    function readSpeedField(el, what) {
+      const v = parseIntStrict(el.value, I32_MIN, I32_MAX, what);
+      el.setAttribute("aria-invalid", "false");
+      return v;
+    }
+    async function sendSpeed(which) {
+      els.speedError.textContent = "";
+      try {
+        if (which === 1) {
+          const v = readSpeedField(els.speedM1, "M1 speed");
+          await uartTransact(CMD.M1SPEED, beI32(v), { kind: "ack" }, { label: "M1SPEED " + v });
+        } else if (which === 2) {
+          const v = readSpeedField(els.speedM2, "M2 speed");
+          await uartTransact(CMD.M2SPEED, beI32(v), { kind: "ack" }, { label: "M2SPEED " + v });
+        } else {
+          const v1 = readSpeedField(els.speedM1, "M1 speed");
+          const v2 = readSpeedField(els.speedM2, "M2 speed");
+          await uartTransact(CMD.MIXEDSPEED, beI32(v1).concat(beI32(v2)), { kind: "ack" }, { label: "MIXEDSPEED " + v1 + " / " + v2 });
+        }
+      } catch (e) {
+        els.speedError.textContent = e.message;
+        if (/must be/.test(e.message)) {
+          (which === 2 ? els.speedM2 : els.speedM1).setAttribute("aria-invalid", "true");
+        } else {
+          logLine("err", e.message);
+        }
+      }
+    }
+    els.speedBtn1.addEventListener("click", () => sendSpeed(1));
+    els.speedBtn2.addEventListener("click", () => sendSpeed(2));
+    els.speedBothBtn.addEventListener("click", () => sendSpeed(3));
+    for (const el of [els.speedM1, els.speedM2]) {
+      el.addEventListener("input", () => { els.speedError.textContent = ""; el.setAttribute("aria-invalid", "false"); });
+    }
+
+    // ---- Encoders ----
+    function fmtEncoder(d) {
+      const count = rdBeU32(d, 0);
+      const status = d[4];
+      const bits = [];
+      if (status & 0x01) bits.push("underflow");
+      if (status & 0x02) bits.push("reverse");
+      if (status & 0x04) bits.push("overflow");
+      const signed = count > 0x7fffffff ? count - 0x100000000 : count;
+      return count + " (i32 " + signed + ")" + (bits.length ? " · " + bits.join(", ") : "");
+    }
+    async function readEncoders() {
+      try {
+        const d1 = await uartTransact(CMD.GETENC1, null, { kind: "len", n: 5 }, { label: "GETENC1 (16)" });
+        els.enc1Val.textContent = fmtEncoder(d1);
+      } catch (e) { logLine("err", e.message); }
+      try {
+        const d2 = await uartTransact(CMD.GETENC2, null, { kind: "len", n: 5 }, { label: "GETENC2 (17)" });
+        els.enc2Val.textContent = fmtEncoder(d2);
+      } catch (e) { logLine("err", e.message); }
+    }
+    els.encReadBtn.addEventListener("click", readEncoders);
+    els.encResetBtn.addEventListener("click", async () => {
+      try {
+        await uartTransact(CMD.RESETENC, [], { kind: "ack" }, { label: "RESETENC (20)" });
+        logLine("sys", "Encoders reset.");
+        await readEncoders();
+      } catch (e) { logLine("err", e.message); }
+    });
+
+    let encPollTimer = null, encPollBusy = false;
+    els.encPollToggle.addEventListener("change", () => {
+      if (els.encPollToggle.checked) startEncPoll(); else stopEncPoll();
+    });
+    function startEncPoll() {
+      stopEncPoll();
+      encPollTimer = setInterval(async () => {
+        if (encPollBusy || !port || mode !== "uart") return;
+        encPollBusy = true;
+        try { await readEncoders(); } finally { encPollBusy = false; }
+      }, 200);
+      logLine("sys", "Encoder polling started (5 Hz).");
+    }
+    function stopEncPoll() {
+      if (encPollTimer) { clearInterval(encPollTimer); encPollTimer = null; logLine("sys", "Encoder polling stopped."); }
+    }
+
+    // ===================================================================
+    // TRANSPORT B: slcan link layer
+    // ===================================================================
+    let channelOpen = false;
+    let slcanBuffer = "";
+    let canNodeId = 1;
+    const pendingCmds = [];   // slcan control-command ack FIFO
+
+    function handleSlcanRx(bytes) {
+      const text = decoder.decode(bytes, { stream: true });
+      for (const ch of text) {
+        if (ch === "\r") {
+          const tok = slcanBuffer; slcanBuffer = "";
+          onSlcanToken(tok, false);
+        } else if (ch === "\x07") {
+          const tok = slcanBuffer; slcanBuffer = "";
+          onSlcanToken(tok, true);
+        } else if (ch !== "\n") {
+          slcanBuffer += ch;
+          if (slcanBuffer.length > 128) {
+            logLine("err", "slcan RX overflow, dropping: " + slcanBuffer.slice(0, 32) + "…");
+            slcanBuffer = "";
+          }
+        }
+      }
+    }
+
+    function onSlcanToken(tok, isBel) {
+      if (isBel) { resolveCmd(false, tok); return; }
+      const c = tok[0];
+      if ((c === "t" || c === "T" || c === "r" || c === "R") && tok.length >= 5) {
+        const f = parseSlcanFrame(tok);
+        if (f) { onRxFrame(f, tok); return; }
+        logLine("err", "Malformed frame token: " + tok);
+        return;
+      }
+      resolveCmd(true, tok);
+    }
+
+    function parseSlcanFrame(tok) {
+      const kind = tok[0];
+      const ext = kind === "T" || kind === "R";
+      const rtr = kind === "r" || kind === "R";
+      const idLen = ext ? 8 : 3;
+      if (tok.length < 1 + idLen + 1) return null;
+      const idStr = tok.slice(1, 1 + idLen);
+      const dlcCh = tok[1 + idLen];
+      if (!/^[0-9a-fA-F]+$/.test(idStr) || !/^[0-8]$/.test(dlcCh)) return null;
+      const id = parseInt(idStr, 16);
+      const dlc = parseInt(dlcCh, 10);
+      let data = new Uint8Array(0);
+      if (!rtr) {
+        const dataStr = tok.slice(1 + idLen + 1, 1 + idLen + 1 + dlc * 2);
+        if (dataStr.length !== dlc * 2 || !/^[0-9a-fA-F]*$/.test(dataStr)) return null;
+        data = new Uint8Array(dlc);
+        for (let i = 0; i < dlc; i++) data[i] = parseInt(dataStr.substr(i * 2, 2), 16);
+      }
+      return { id, ext, rtr, dlc, data };
+    }
+
+    function resolveCmd(ok, payload) {
+      const p = pendingCmds.shift();
+      if (!p) {
+        if (payload !== "" || !ok) {
+          logLine(ok ? "rx" : "err", payload === "" ? "(BEL) adapter error" : payload + (ok ? "" : "  (BEL)"));
+        }
+        return;
+      }
+      clearTimeout(p.timer);
+      if (ok) {
+        if (payload !== "" && payload !== "z" && payload !== "Z") logLine("rx", payload);
+      } else if (!p.quiet) {
+        logLine("err", "Adapter rejected command '" + p.cmd + "' (BEL)");
+      }
+      p.resolve(ok);
+    }
+    function failPendingCmds(why) {
+      while (pendingCmds.length) {
+        const p = pendingCmds.shift();
+        clearTimeout(p.timer);
+        p.resolve(false);
+        if (!p.quiet) logLine("err", "Command '" + p.cmd + "' aborted: " + why);
+      }
+    }
+    // Send an slcan control command; true = ok, false = BEL, null = silent.
+    function slcanCmd(cmd, opts) {
+      opts = opts || {};
+      return new Promise((resolve) => {
+        if (!writer) { resolve(false); return; }
+        const entry = { cmd, resolve, quiet: !!opts.quiet, timer: null };
+        entry.timer = setTimeout(() => {
+          const idx = pendingCmds.indexOf(entry);
+          if (idx >= 0) pendingCmds.splice(idx, 1);
+          resolve(null);
+        }, opts.timeoutMs || 300);
+        pendingCmds.push(entry);
+        writer.write(encoder.encode(cmd + "\r")).then(() => {
+          logLine("tx", cmd);
+        }, (e) => {
+          const idx = pendingCmds.indexOf(entry);
+          if (idx >= 0) pendingCmds.splice(idx, 1);
+          clearTimeout(entry.timer);
+          logLine("err", "Write failed: " + e.message);
+          resolve(false);
+        });
+      });
+    }
+
+    // Transmit one standard-ID data frame (all CANopen traffic here is std-ID).
+    async function sendCanFrame(id, bytes, label) {
+      if (!writer || !channelOpen) throw new Error((label || "frame") + ": CAN channel not open");
+      const line = "t" + id.toString(16).toUpperCase().padStart(3, "0") + String(bytes.length) +
+        Array.from(bytes, (b) => b.toString(16).toUpperCase().padStart(2, "0")).join("");
+      await writer.write(encoder.encode(line + "\r"));
+      logLine("tx", line + (label ? "   " + label : ""));
+    }
+
+    // ===================================================================
+    // CANopen: heartbeat monitor, NMT, expedited SDO client
+    // ===================================================================
+    let hbLastState = null, hbLastSeen = null;
+    const NMT_STATES = { 0x00: ["boot-up", "warn"], 0x04: ["stopped", "err"], 0x05: ["operational", "ok"], 0x7f: ["pre-operational", "warn"] };
+    function handleHeartbeat(stateByte) {
+      const s = stateByte & 0x7f;
+      hbLastState = s;
+      hbLastSeen = performance.now();
+      renderHeartbeat();
+    }
+    function renderHeartbeat() {
+      if (hbLastState === null) {
+        els.hbBadge.className = "state-badge";
+        els.hbText.textContent = "no heartbeat";
+        return;
+      }
+      const [name, cls] = NMT_STATES[hbLastState] || ["state 0x" + hbLastState.toString(16), "warn"];
+      const age = (performance.now() - hbLastSeen) / 1000;
+      const stale = age > 3;
+      els.hbBadge.className = "state-badge " + (stale ? "warn" : cls);
+      els.hbText.textContent = name + (stale ? " · stale " + age.toFixed(0) + "s" : "");
+    }
+    setInterval(renderHeartbeat, 1000);
+
+    function resetBadges() {
+      hbLastState = null; hbLastSeen = null;
+      renderHeartbeat();
+      els.swBadge.className = "state-badge";
+      els.swText.textContent = "unknown";
+      els.swRaw.textContent = "";
+      els.velActual.textContent = "—"; els.posActual.textContent = "—";
+      els.modeDisplay.textContent = "—";
+    }
+
+    async function nmtSend(cs, label) {
+      try {
+        await sendCanFrame(0x000, [cs, canNodeId], "NMT " + label + " node " + canNodeId);
+        logLine("sys", "NMT " + label + " sent to node " + canNodeId + ".");
+      } catch (e) { logLine("err", e.message); }
+    }
+    els.nmtStartBtn.addEventListener("click", () => nmtSend(0x01, "start"));
+    els.nmtStopBtn.addEventListener("click", () => nmtSend(0x02, "stop"));
+    els.nmtPreopBtn.addEventListener("click", () => nmtSend(0x80, "pre-operational"));
+    els.nmtResetBtn.addEventListener("click", () => nmtSend(0x81, "reset"));
+
+    // ---- SDO ----
+    const SDO_ABORTS = {
+      0x05030000: "toggle bit not alternated",
+      0x05040000: "SDO protocol timed out",
+      0x05040001: "client/server command specifier not valid",
+      0x05040005: "out of memory",
+      0x06010000: "unsupported access to an object",
+      0x06010001: "attempt to read a write-only object",
+      0x06010002: "attempt to write a read-only object",
+      0x06020000: "object does not exist in the object dictionary",
+      0x06040041: "object cannot be mapped to the PDO",
+      0x06040042: "mapped objects exceed PDO length",
+      0x06040043: "general parameter incompatibility",
+      0x06040047: "general internal incompatibility",
+      0x06060000: "access failed due to a hardware error",
+      0x06070010: "data type / length of service parameter does not match",
+      0x06070012: "data type mismatch, length too high",
+      0x06070013: "data type mismatch, length too low",
+      0x06090011: "subindex does not exist",
+      0x06090030: "value range of parameter exceeded",
+      0x06090031: "value written too high",
+      0x06090032: "value written too low",
+      0x08000000: "general error",
+      0x08000020: "data cannot be transferred or stored",
+      0x08000021: "data cannot be transferred (local control)",
+      0x08000022: "data cannot be transferred (device state)",
+      0x08000023: "object dictionary not present",
+    };
+    function abortMessage(code) {
+      const known = SDO_ABORTS[code >>> 0];
+      return "SDO abort " + hexU(code, 8) + (known ? " (" + known + ")" : "");
+    }
+
+    let sdoWaiter = null;   // { resolve, reject, timer, index, sub }
+    function onRxFrame(f, tok) {
+      // CANopen dispatch first, then the raw traffic log.
+      if (!f.rtr && f.id === 0x700 + canNodeId && f.dlc >= 1) handleHeartbeat(f.data[0]);
+      if (!f.rtr && f.id === 0x580 + canNodeId && f.dlc === 8 && sdoWaiter) {
+        const idx = f.data[1] | (f.data[2] << 8);
+        const sub = f.data[3];
+        if (idx === sdoWaiter.index && sub === sdoWaiter.sub) {
+          const w = sdoWaiter; sdoWaiter = null;
+          clearTimeout(w.timer);
+          w.resolve(f);
+        }
+      }
+      logLine("rx", tok);
+    }
+
+    // Send an SDO request and await the matching 0x580+node response frame.
+    function sdoTransact(reqBytes, index, sub, label, timeoutMs) {
+      timeoutMs = timeoutMs || 500;
+      return enqueue(() => new Promise((resolve, reject) => {
+        if (!writer || !channelOpen) { reject(new Error(label + ": CAN channel not open")); return; }
+        if (sdoWaiter) { reject(new Error(label + ": SDO client busy")); return; }
+        sdoWaiter = {
+          resolve, reject, index, sub,
+          timer: setTimeout(() => {
+            sdoWaiter = null;
+            reject(new Error(label + ": SDO timeout (" + timeoutMs + " ms) — is the node on the bus and started?"));
+          }, timeoutMs),
+        };
+        sendCanFrame(0x600 + canNodeId, reqBytes, label).catch((e) => {
+          if (sdoWaiter) { clearTimeout(sdoWaiter.timer); sdoWaiter = null; }
+          reject(e);
+        });
+      }));
+    }
+
+    // Expedited SDO upload (read). Returns { bytes: number[], size }.
+    async function sdoUpload(index, sub, expectedSize) {
+      const label = "SDO read " + hexU(index, 4) + ":" + sub;
+      const req = [0x40, index & 0xff, (index >> 8) & 0xff, sub & 0xff, 0, 0, 0, 0];
+      const f = await sdoTransact(req, index, sub, label);
+      const cs = f.data[0];
+      if (cs === 0x80) {
+        const code = (f.data[4] | (f.data[5] << 8) | (f.data[6] << 16) | (f.data[7] << 24)) >>> 0;
+        throw new Error(label + ": " + abortMessage(code));
+      }
+      if ((cs & 0xe0) !== 0x40) throw new Error(label + ": unexpected command specifier 0x" + cs.toString(16));
+      if ((cs & 0x02) === 0) throw new Error(label + ": segmented transfer (value > 4 bytes) not supported by this console");
+      const size = (cs & 0x01) ? 4 - ((cs >> 2) & 0x03) : (expectedSize || 4);
+      const bytes = [];
+      for (let i = 0; i < size; i++) bytes.push(f.data[4 + i]);
+      return { bytes, size };
+    }
+
+    // Expedited SDO download (write) of 1/2/4 little-endian bytes.
+    async function sdoDownload(index, sub, bytes) {
+      const label = "SDO write " + hexU(index, 4) + ":" + sub;
+      const csMap = { 1: 0x2f, 2: 0x2b, 3: 0x27, 4: 0x23 };
+      const cs = csMap[bytes.length];
+      if (!cs) throw new Error(label + ": unsupported data size " + bytes.length);
+      const req = [cs, index & 0xff, (index >> 8) & 0xff, sub & 0xff, 0, 0, 0, 0];
+      for (let i = 0; i < bytes.length; i++) req[4 + i] = bytes[i] & 0xff;
+      const f = await sdoTransact(req, index, sub, label);
+      const rcs = f.data[0];
+      if (rcs === 0x80) {
+        const code = (f.data[4] | (f.data[5] << 8) | (f.data[6] << 16) | (f.data[7] << 24)) >>> 0;
+        throw new Error(label + ": " + abortMessage(code));
+      }
+      if (rcs !== 0x60) throw new Error(label + ": unexpected command specifier 0x" + rcs.toString(16));
+    }
+
+    // ---- Typed value codecs over SDO (strict; little-endian on the wire) ----
+    const SDO_TYPES = {
+      u8:  { size: 1, min: 0, max: 255, signed: false },
+      i8:  { size: 1, min: -128, max: 127, signed: true },
+      u16: { size: 2, min: 0, max: 65535, signed: false },
+      i16: { size: 2, min: -32768, max: 32767, signed: true },
+      u32: { size: 4, min: 0, max: 4294967295, signed: false },
+      i32: { size: 4, min: I32_MIN, max: I32_MAX, signed: true },
+    };
+    function encodeTyped(type, str, what) {
+      const t = SDO_TYPES[type];
+      if (!t) throw new Error("unknown type '" + type + "'");
+      const n = parseIntOrHexStrict(str, t.min, t.max, what || (type + " value"));
+      const u = n < 0 ? (n >>> 0) : n;   // two's complement for negatives
+      const out = [];
+      for (let i = 0; i < t.size; i++) out.push(Math.floor(u / Math.pow(256, i)) % 256);
+      return { bytes: out, value: n };
+    }
+    function decodeTyped(type, bytes) {
+      const t = SDO_TYPES[type];
+      if (!t) throw new Error("unknown type '" + type + "'");
+      let u = 0;
+      const n = Math.min(bytes.length, t.size);
+      for (let i = n - 1; i >= 0; i--) u = u * 256 + (bytes[i] & 0xff);
+      if (t.signed && n > 0 && (bytes[n - 1] & 0x80)) u -= Math.pow(256, n);
+      return u;
+    }
+    async function sdoReadTyped(index, sub, type) {
+      const t = SDO_TYPES[type];
+      const r = await sdoUpload(index, sub, t.size);
+      return decodeTyped(type, r.bytes);
+    }
+    async function sdoWriteTyped(index, sub, type, valueStr, what) {
+      const e = encodeTyped(type, valueStr, what);
+      await sdoDownload(index, sub, e.bytes);
+      return e.value;
+    }
+
+    // ===================================================================
+    // DS402 (CiA 402) drive profile
+    // ===================================================================
+    function cia402State(sw) {
+      if ((sw & 0x4f) === 0x00) return ["Not ready to switch on", "warn"];
+      if ((sw & 0x4f) === 0x40) return ["Switch on disabled", "warn"];
+      if ((sw & 0x6f) === 0x21) return ["Ready to switch on", "warn"];
+      if ((sw & 0x6f) === 0x23) return ["Switched on", "ok"];
+      if ((sw & 0x6f) === 0x27) return ["Operation enabled", "ok"];
+      if ((sw & 0x6f) === 0x07) return ["Quick stop active", "err"];
+      if ((sw & 0x4f) === 0x0f) return ["Fault reaction active", "err"];
+      if ((sw & 0x4f) === 0x08) return ["Fault", "err"];
+      return ["Unknown (" + hexU(sw, 4) + ")", "warn"];
+    }
+    function updateSwBadge(sw) {
+      const [name, cls] = cia402State(sw);
+      els.swBadge.className = "state-badge " + cls;
+      els.swText.textContent = name;
+      const extra = [];
+      if (sw & 0x0010) extra.push("voltage");
+      if (sw & 0x0080) extra.push("warning");
+      if (sw & 0x0400) extra.push("target-reached");
+      if (sw & 0x0800) extra.push("internal-limit");
+      els.swRaw.textContent = hexU(sw, 4) + (extra.length ? " · " + extra.join(" ") : "");
+    }
+    async function readStatusword() {
+      const sw = await sdoReadTyped(0x6041, 0, "u16");
+      updateSwBadge(sw);
+      return sw;
+    }
+    async function writeControlword(v) {
+      await sdoWriteTyped(0x6040, 0, "u16", String(v), "controlword");
+    }
+    els.swReadBtn.addEventListener("click", async () => {
+      try { await readStatusword(); } catch (e) { logLine("err", e.message); }
+    });
+
+    async function cwStep(cw, pred, targetName) {
+      await writeControlword(cw);
+      for (let i = 0; i < 15; i++) {
+        const sw = await readStatusword();
+        if ((sw & 0x4f) === 0x08) throw new Error("drive faulted while waiting for '" + targetName + "'");
+        if (pred(sw)) return sw;
+        await sleep(50);
+      }
+      throw new Error("timed out waiting for '" + targetName + "' (controlword " + hexU(cw, 4) + ")");
+    }
+
+    els.enableSeqBtn.addEventListener("click", async () => {
+      els.canMotionError.textContent = "";
+      els.enableSeqBtn.disabled = true;
+      try {
+        logLine("sys", "Enable sequence: Shutdown (0x0006) → Switch On (0x0007) → Enable Operation (0x000F)...");
+        await cwStep(0x0006, (sw) => [0x21, 0x23, 0x27].includes(sw & 0x6f), "Ready to switch on");
+        await cwStep(0x0007, (sw) => [0x23, 0x27].includes(sw & 0x6f), "Switched on");
+        await cwStep(0x000f, (sw) => (sw & 0x6f) === 0x27, "Operation enabled");
+        logLine("sys", "Drive is in Operation Enabled.");
+      } catch (e) {
+        els.canMotionError.textContent = e.message;
+        logLine("err", "Enable sequence failed: " + e.message);
+      } finally {
+        els.enableSeqBtn.disabled = !port;
+      }
+    });
+
+    els.faultResetBtn.addEventListener("click", async () => {
+      try {
+        logLine("sys", "Fault reset: controlword 0x0080 rising edge.");
+        await writeControlword(0x0080);
+        await sleep(50);
+        await writeControlword(0x0000);
+        await readStatusword();
+      } catch (e) { logLine("err", "Fault reset failed: " + e.message); }
+    });
+    els.quickStopBtn.addEventListener("click", async () => {
+      try {
+        await writeControlword(0x0002);
+        logLine("sys", "Quick stop (controlword 0x0002) sent.");
+        await readStatusword();
+      } catch (e) { logLine("err", "Quick stop failed: " + e.message); }
+    });
+    els.disableBtn.addEventListener("click", async () => {
+      try {
+        await writeControlword(0x0006);
+        logLine("sys", "Shutdown (controlword 0x0006) sent.");
+        await readStatusword();
+      } catch (e) { logLine("err", "Shutdown failed: " + e.message); }
+    });
+
+    els.modeBtn.addEventListener("click", async () => {
+      els.canMotionError.textContent = "";
+      try {
+        const m = parseIntStrict(els.modeSel.value, -128, 127, "mode");
+        await sdoWriteTyped(0x6060, 0, "i8", String(m), "mode of operation");
+        logLine("sys", "Mode of operation set to " + m + ".");
+        const disp = await sdoReadTyped(0x6061, 0, "i8");
+        els.modeDisplay.textContent = String(disp);
+      } catch (e) {
+        els.canMotionError.textContent = e.message;
+        logLine("err", e.message);
+      }
+    });
+
+    els.velSendBtn.addEventListener("click", async () => {
+      els.canMotionError.textContent = "";
+      try {
+        const v = await sdoWriteTyped(0x60FF, 0, "i32", els.velTarget.value, "target velocity");
+        els.velTarget.setAttribute("aria-invalid", "false");
+        logLine("sys", "Target velocity 0x60FF = " + v + ".");
+      } catch (e) {
+        els.canMotionError.textContent = e.message;
+        if (/must be/.test(e.message)) els.velTarget.setAttribute("aria-invalid", "true");
+        else logLine("err", e.message);
+      }
+    });
+    els.posSendBtn.addEventListener("click", async () => {
+      els.canMotionError.textContent = "";
+      try {
+        const v = await sdoWriteTyped(0x607A, 0, "i32", els.posTarget.value, "target position");
+        els.posTarget.setAttribute("aria-invalid", "false");
+        logLine("sys", "Target position 0x607A = " + v + ".");
+      } catch (e) {
+        els.canMotionError.textContent = e.message;
+        if (/must be/.test(e.message)) els.posTarget.setAttribute("aria-invalid", "true");
+        else logLine("err", e.message);
+      }
+    });
+    els.posGoBtn.addEventListener("click", async () => {
+      els.canMotionError.textContent = "";
+      try {
+        // New-setpoint pulse with change-immediately (bits 4+5 on 0x000F base).
+        await writeControlword(0x003f);
+        await sleep(50);
+        await writeControlword(0x000f);
+        logLine("sys", "Profile-position move started (new-setpoint pulse).");
+      } catch (e) {
+        els.canMotionError.textContent = e.message;
+        logLine("err", e.message);
+      }
+    });
+    for (const el of [els.velTarget, els.posTarget]) {
+      el.addEventListener("input", () => { els.canMotionError.textContent = ""; el.setAttribute("aria-invalid", "false"); });
+    }
+    els.velTarget.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); els.velSendBtn.click(); } });
+    els.posTarget.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); els.posSendBtn.click(); } });
+
+    // ---- CAN status poll ----
+    let canPollTimer = null, canPollBusy = false, canPollErrLogged = false;
+    els.canPollToggle.addEventListener("change", () => {
+      if (els.canPollToggle.checked) startCanPoll(); else stopCanPoll();
+    });
+    function startCanPoll() {
+      stopCanPoll();
+      canPollTimer = setInterval(async () => {
+        if (canPollBusy || !channelOpen) return;
+        canPollBusy = true;
+        try {
+          await readStatusword();
+          const v = await sdoReadTyped(0x606C, 0, "i32");
+          els.velActual.textContent = String(v);
+          const p = await sdoReadTyped(0x6064, 0, "i32");
+          els.posActual.textContent = String(p);
+          canPollErrLogged = false;
+        } catch (e) {
+          if (!canPollErrLogged) { logLine("err", "poll: " + e.message); canPollErrLogged = true; }
+        } finally {
+          canPollBusy = false;
+        }
+      }, 400);
+      logLine("sys", "Status polling started (2.5 Hz: statusword, velocity, position).");
+    }
+    function stopCanPoll() {
+      if (canPollTimer) { clearInterval(canPollTimer); canPollTimer = null; logLine("sys", "Status polling stopped."); }
+    }
+
+    // ---- CAN device info ----
+    async function canReadInfo() {
+      const items = [
+        [0x1000, 0, "u32", els.infoDevType, (v) => {
+          const profile = v & 0xffff;
+          return hexU(v, 8) + (profile === 0x0192 ? " (CiA 402 drive)" : profile ? " (profile " + profile + ")" : "");
+        }],
+        [0x1001, 0, "u8", els.infoErrReg, (v) => {
+          const bits = [];
+          if (v & 0x01) bits.push("generic");
+          if (v & 0x02) bits.push("current");
+          if (v & 0x04) bits.push("voltage");
+          if (v & 0x08) bits.push("temperature");
+          if (v & 0x10) bits.push("communication");
+          if (v & 0x20) bits.push("device profile");
+          if (v & 0x80) bits.push("manufacturer");
+          return hexU(v, 2) + (bits.length ? " — " + bits.join(", ") : " — no errors");
+        }],
+        [0x1018, 1, "u32", els.infoVendor, (v) => hexU(v, 8)],
+        [0x1018, 2, "u32", els.infoProduct, (v) => hexU(v, 8)],
+        [0x1018, 3, "u32", els.infoRevision, (v) => ((v >>> 16) & 0xffff) + "." + (v & 0xffff)],
+        [0x1018, 4, "u32", els.infoSerial, (v) => hexU(v, 8)],
+      ];
+      for (const [index, sub, type, el, fmt] of items) {
+        try {
+          const v = await sdoReadTyped(index, sub, type);
+          el.textContent = fmt(v >>> 0);
+        } catch (e) {
+          el.textContent = "—";
+          logLine("err", e.message);
+        }
+      }
+    }
+
+    async function readDeviceInfo() {
+      if (mode === "uart") await uartReadInfo();
+      else await canReadInfo();
+    }
+    els.readInfoBtn.addEventListener("click", readDeviceInfo);
+
+    // ===================================================================
+    // SDO object browser
+    // ===================================================================
+    const SDO_PRESETS = [
+      ["Device type", 0x1000, 0, "u32"],
+      ["Error register", 0x1001, 0, "u8"],
+      ["Producer heartbeat time (ms)", 0x1017, 0, "u16"],
+      ["Identity: vendor ID", 0x1018, 1, "u32"],
+      ["Identity: product code", 0x1018, 2, "u32"],
+      ["Identity: revision", 0x1018, 3, "u32"],
+      ["Identity: serial number", 0x1018, 4, "u32"],
+      ["Controlword", 0x6040, 0, "u16"],
+      ["Statusword", 0x6041, 0, "u16"],
+      ["Modes of operation", 0x6060, 0, "i8"],
+      ["Modes of operation display", 0x6061, 0, "i8"],
+      ["Velocity actual value", 0x606C, 0, "i32"],
+      ["Target velocity", 0x60FF, 0, "i32"],
+      ["Position actual value", 0x6064, 0, "i32"],
+      ["Target position", 0x607A, 0, "i32"],
+    ];
+
+    function buildSdoTable() {
+      for (const [name, index, sub, type] of SDO_PRESETS) {
+        const tr = document.createElement("tr");
+        const tdName = document.createElement("td");
+        tdName.textContent = name;
+        const tdIdx = document.createElement("td");
+        tdIdx.className = "mono"; tdIdx.textContent = hexU(index, 4);
+        const tdSub = document.createElement("td");
+        tdSub.className = "mono"; tdSub.textContent = String(sub);
+        const tdType = document.createElement("td");
+        tdType.className = "mono"; tdType.textContent = type;
+        const tdVal = document.createElement("td");
+        tdVal.className = "mono"; tdVal.textContent = "—";
+        const tdAct = document.createElement("td");
+        const readBtn = document.createElement("button");
+        readBtn.className = "tiny";
+        readBtn.textContent = "↻";
+        readBtn.disabled = true;
+        readBtn.setAttribute("aria-label", "Read " + name);
+        readBtn.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          try {
+            const v = await sdoReadTyped(index, sub, type);
+            tdVal.textContent = v + " (" + hexU(v < 0 ? (v >>> 0) : v, SDO_TYPES[type].size * 2) + ")";
+            if (index === 0x6041) updateSwBadge(v);
+          } catch (err) {
+            tdVal.textContent = "err";
+            tdVal.title = err.message;
+            logLine("err", err.message);
+          }
+        });
+        canGated.push(readBtn);
+        tdAct.appendChild(readBtn);
+        tr.appendChild(tdName); tr.appendChild(tdIdx); tr.appendChild(tdSub);
+        tr.appendChild(tdType); tr.appendChild(tdVal); tr.appendChild(tdAct);
+        tr.addEventListener("click", () => {
+          els.sdoIndex.value = hexU(index, 4);
+          els.sdoSub.value = String(sub);
+          els.sdoType.value = type;
+          els.sdoError.textContent = "";
+        });
+        els.sdoTableBody.appendChild(tr);
+      }
+    }
+    buildSdoTable();
+
+    function readSdoForm() {
+      const index = parseIndexStrict(els.sdoIndex.value);
+      const sub = parseIntStrict(els.sdoSub.value, 0, 255, "subindex");
+      const type = els.sdoType.value;
+      if (!SDO_TYPES[type]) throw new Error("unknown type");
+      els.sdoIndex.setAttribute("aria-invalid", "false");
+      els.sdoSub.setAttribute("aria-invalid", "false");
+      return { index, sub, type };
+    }
+    els.sdoReadBtn.addEventListener("click", async () => {
+      els.sdoError.textContent = "";
+      let form;
+      try { form = readSdoForm(); }
+      catch (e) { els.sdoError.textContent = e.message; return; }
+      els.sdoResult.textContent = "reading…";
+      try {
+        const v = await sdoReadTyped(form.index, form.sub, form.type);
+        els.sdoResult.textContent = hexU(form.index, 4) + ":" + form.sub + " (" + form.type + ") = " +
+          v + " (" + hexU(v < 0 ? (v >>> 0) : v, SDO_TYPES[form.type].size * 2) + ")";
+        if (form.index === 0x6041 && form.sub === 0) updateSwBadge(v);
+      } catch (e) {
+        els.sdoResult.textContent = "";
+        els.sdoError.textContent = e.message;
+        logLine("err", e.message);
+      }
+    });
+    els.sdoWriteBtn.addEventListener("click", async () => {
+      els.sdoError.textContent = "";
+      let form;
+      try { form = readSdoForm(); }
+      catch (e) { els.sdoError.textContent = e.message; return; }
+      let value;
+      try {
+        value = encodeTyped(form.type, els.sdoValue.value, "value").value;
+        els.sdoValue.setAttribute("aria-invalid", "false");
+      } catch (e) {
+        els.sdoError.textContent = e.message;
+        els.sdoValue.setAttribute("aria-invalid", "true");
+        return;
+      }
+      els.sdoResult.textContent = "writing…";
+      try {
+        await sdoWriteTyped(form.index, form.sub, form.type, els.sdoValue.value, "value");
+        els.sdoResult.textContent = "wrote " + hexU(form.index, 4) + ":" + form.sub + " = " + value;
+        logLine("sys", "SDO wrote " + hexU(form.index, 4) + ":" + form.sub + " = " + value);
+      } catch (e) {
+        els.sdoResult.textContent = "";
+        els.sdoError.textContent = e.message;
+        logLine("err", e.message);
+      }
+    });
+    for (const el of [els.sdoIndex, els.sdoSub, els.sdoValue]) {
+      el.addEventListener("input", () => { els.sdoError.textContent = ""; el.setAttribute("aria-invalid", "false"); });
+    }
+
+    // ===================================================================
+    // STOP: always-visible halt for both transports
+    // ===================================================================
+    els.stopBtn.addEventListener("click", async () => {
+      if (!port) return;
+      if (mode === "uart") {
+        try {
+          await uartTransact(CMD.MIXEDDUTY, [0, 0, 0, 0], { kind: "ack" }, { label: "MIXEDDUTY 0/0 (STOP)" });
+          logLine("sys", "STOP: duty 0 sent to both motors (cmd 34).");
+          els.dutySlider1.value = "0"; els.dutyVal1.value = "0";
+          els.dutySlider2.value = "0"; els.dutyVal2.value = "0";
+        } catch (e) {
+          logLine("err", "STOP failed: " + e.message);
+        }
+      } else {
+        try {
+          await writeControlword(0x0002);
+          logLine("sys", "STOP: DS402 quick-stop controlword (0x0002) sent.");
+          await readStatusword();
+        } catch (e) {
+          logLine("err", "STOP failed: " + e.message);
+        }
+      }
+    });
+
+    // ===================================================================
+    // Self-test: CRC-16 golden vector + SDO codec round-trip (log on load).
+    // ===================================================================
+    function selfTest() {
+      const g = crc16(Array.from("123456789", (c) => c.charCodeAt(0)));
+      const crcPass = g === 0x31c3;
+      const msg = `CRC16-CCITT self-test: crc("123456789") = ${hexU(g, 4)} ${crcPass ? "PASS ✓ (expected 0x31C3)" : "FAIL ✗ (expected 0x31C3)"}`;
+      (crcPass ? console.log : console.error)("[mcp-console] " + msg);
+      logLine(crcPass ? "sys" : "err", msg);
+      try {
+        const e1 = encodeTyped("i32", "-2", "t");    // FE FF FF FF little-endian
+        const d1 = decodeTyped("i32", e1.bytes);
+        const e2 = encodeTyped("u16", "0x1234", "t");
+        const d2 = decodeTyped("u16", e2.bytes);
+        const ok = d1 === -2 && e1.bytes[0] === 0xfe && e1.bytes[3] === 0xff && d2 === 0x1234 && e2.bytes[0] === 0x34;
+        console.log("[mcp-console] SDO codec self-test:", ok ? "PASS ✓" : "FAIL ✗", { d1, d2 });
+        if (!ok) logLine("err", "SDO codec self-test FAILED");
+      } catch (e) { console.error("[mcp-console] codec self-test threw:", e); }
+      return crcPass;
+    }
+
+    // ===================================================================
+    // Feature detection / init
+    // ===================================================================
+    function init() {
+      selfTest();
+      if (!("serial" in navigator)) {
+        els.unsupported.style.display = "block";
+        els.connectBtn.disabled = true;
+        [els.transportSel, els.uartBaud, els.uartAddr, els.canSerBaud, els.canBitrate, els.canNode]
+          .forEach((el) => { el.disabled = true; });
+        setStatus("error", "Unsupported");
+        logLine("err", "Web Serial API not available in this browser.");
+        return;
+      }
+      document.body.className = "mode-" + els.transportSel.value;
+      setStatus("", "Disconnected");
+      setConnectedUI(false);
+      logLine("sys", "Ready. Pick the converter type, then click Connect and choose its serial port.");
+      logLine("sys", "UART mode speaks Basicmicro packet serial; CAN mode drives an slcan adapter with CANopen/DS402.");
+    }
+    init();
+  })();
+  </script>
+</body>
+</html>

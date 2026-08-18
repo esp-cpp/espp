@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CAN Bus Console (slcan)</title>
+<meta name="description" content="Generic CAN bus console for slcan (LAWICEL) USB-CAN adapters over Web Serial: send standard/extended/RTR frames, periodic transmits, live per-ID monitoring, and log export.">
+  <!--
+    CAN Bus Console (slcan)
+    =======================
+    A single-file, fully offline, dependency-free browser console for any
+    USB-CAN adapter that speaks the LAWICEL slcan ASCII protocol over a serial
+    (CDC) port: CANable (slcan firmware), USBtin, Lawicel CANUSB, or an espp
+    slcan bridge (see components/twai/).
+
+    It uses the Web Serial API (navigator.serial). slcan commands are
+    CR-terminated ASCII:
+      Sn        set bitrate  (S0=10k S1=20k S2=50k S3=100k S4=125k S5=250k
+                              S6=500k S7=800k S8=1M)
+      O / C     open / close the CAN channel
+      tiiiLDD.. transmit standard data frame (iii = 11-bit id hex, L = dlc)
+      Tiiiiiiiil... transmit extended (29-bit) data frame
+      riiiL / Riiiiiiiil transmit RTR frame
+    Received frames arrive in the same t/T/r/R format. Command responses are
+    CR (ok) or BEL 0x07 (error).
+
+    No external dependencies, no CDN, no network fetches. Works from
+    http://localhost or any secure (https) origin in a Chromium-based browser.
+  -->
+  <style>
+    :root {
+      --bg: #f4f6f9;
+      --panel-bg: #ffffff;
+      --panel-border: #d9dee6;
+      --text: #1c2330;
+      --text-muted: #5c6675;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-contrast: #ffffff;
+      --danger: #dc2626;
+      --ok: #16a34a;
+      --warn: #b45309;
+      --log-bg: #0f1420;
+      --log-text: #d6dbe6;
+      --tx-color: #7dd3fc;
+      --rx-color: #86efac;
+      --err-color: #fca5a5;
+      --sys-color: #fcd34d;
+      --time-color: #64748b;
+      --input-bg: #ffffff;
+      --input-border: #c3cbd6;
+      --chip-bg: #eef2f8;
+      --chg-bg: #fde68a;
+      --chg-text: #7c2d12;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b0e14;
+        --panel-bg: #151a23;
+        --panel-border: #262d3a;
+        --text: #e6eaf2;
+        --text-muted: #98a2b3;
+        --accent: #3b82f6;
+        --accent-hover: #60a5fa;
+        --accent-contrast: #0b0e14;
+        --danger: #ef4444;
+        --ok: #22c55e;
+        --warn: #f59e0b;
+        --log-bg: #05070c;
+        --log-text: #cdd4e0;
+        --tx-color: #38bdf8;
+        --rx-color: #4ade80;
+        --err-color: #f87171;
+        --sys-color: #fbbf24;
+        --time-color: #64748b;
+        --input-bg: #0e1219;
+        --input-border: #2b3341;
+        --chip-bg: #1b2230;
+        --chg-bg: #78350f;
+        --chg-text: #fde68a;
+        --shadow: 0 1px 3px rgba(0,0,0,0.4);
+      }
+    }
+    /* Explicit theme overrides (viewer toggle stamps data-theme on :root). */
+    :root[data-theme="dark"] {
+      --bg: #0b0e14; --panel-bg: #151a23; --panel-border: #262d3a; --text: #e6eaf2;
+      --text-muted: #98a2b3; --accent: #3b82f6; --accent-hover: #60a5fa;
+      --accent-contrast: #0b0e14; --danger: #ef4444; --ok: #22c55e; --warn: #f59e0b;
+      --log-bg: #05070c; --log-text: #cdd4e0; --tx-color: #38bdf8; --rx-color: #4ade80;
+      --err-color: #f87171; --sys-color: #fbbf24; --input-bg: #0e1219;
+      --input-border: #2b3341; --chip-bg: #1b2230; --chg-bg: #78350f; --chg-text: #fde68a;
+    }
+    :root[data-theme="light"] {
+      --bg: #f4f6f9; --panel-bg: #ffffff; --panel-border: #d9dee6; --text: #1c2330;
+      --text-muted: #5c6675; --accent: #2563eb; --accent-hover: #1d4ed8;
+      --accent-contrast: #ffffff; --danger: #dc2626; --ok: #16a34a; --warn: #b45309;
+      --log-bg: #0f1420; --log-text: #d6dbe6; --tx-color: #7dd3fc; --rx-color: #86efac;
+      --err-color: #fca5a5; --sys-color: #fcd34d; --input-bg: #ffffff;
+      --input-border: #c3cbd6; --chip-bg: #eef2f8; --chg-bg: #fde68a; --chg-text: #7c2d12;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+      overflow-x: hidden;
+    }
+
+    header {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 12px;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--panel-border);
+      background: var(--panel-bg);
+      position: sticky; top: 0; z-index: 20;
+    }
+    header h1 { font-size: 16px; margin: 0; font-weight: 650; letter-spacing: 0.2px; }
+    header .spacer { flex: 1 1 auto; }
+    header label { margin: 0; align-self: center; }
+
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-size: 13px; font-weight: 600; padding: 5px 11px; border-radius: 999px;
+      border: 1px solid var(--panel-border); background: var(--bg);
+      color: var(--text-muted); white-space: nowrap;
+    }
+    .status-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--text-muted); flex: 0 0 auto; }
+    .status-pill.connected { color: var(--ok); }
+    .status-pill.connected .status-dot { background: var(--ok); }
+    .status-pill.error { color: var(--danger); }
+    .status-pill.error .status-dot { background: var(--danger); }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+      gap: 16px; padding: 16px 18px; max-width: 1600px; margin: 0 auto;
+    }
+    @media (max-width: 960px) { main { grid-template-columns: minmax(0, 1fr); } }
+    .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+    .panel {
+      background: var(--panel-bg); border: 1px solid var(--panel-border);
+      border-radius: 10px; padding: 14px 15px; box-shadow: var(--shadow); min-width: 0;
+    }
+    .panel h2 {
+      font-size: 13px; text-transform: uppercase; letter-spacing: 0.6px;
+      color: var(--text-muted); margin: 0 0 11px 0; font-weight: 700;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .panel h2 .spacer { flex: 1 1 auto; }
+
+    label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 3px; }
+    input, select, button { font-family: inherit; font-size: 14px; }
+    input[type="text"], input[type="number"], select {
+      width: 100%; padding: 7px 9px; border-radius: 7px;
+      border: 1px solid var(--input-border); background: var(--input-bg);
+      color: var(--text); min-width: 0;
+    }
+    input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: var(--accent); }
+    input.mono, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    input[aria-invalid="true"] { border-color: var(--danger); outline-color: var(--danger); }
+
+    button {
+      cursor: pointer; border: 1px solid var(--input-border); background: var(--bg);
+      color: var(--text); padding: 7px 13px; border-radius: 7px; font-weight: 600;
+      white-space: nowrap; transition: background 0.12s, border-color 0.12s;
+    }
+    button:hover:not(:disabled) { border-color: var(--accent); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    button.primary { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); }
+    button.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+    button.danger { color: var(--danger); border-color: var(--danger); }
+    button.small { padding: 4px 9px; font-size: 12px; font-weight: 600; }
+
+    .row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+    .row > .grow { flex: 1 1 120px; min-width: 0; }
+    .field { min-width: 0; }
+    .field.id { flex: 0 0 120px; }
+    .field.dlc { flex: 0 0 92px; }
+    .field.ms { flex: 0 0 100px; }
+
+    .hint { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+    .form-error { font-size: 12px; color: var(--danger); margin-top: 6px; min-height: 1.2em; }
+
+    .checkbox-inline {
+      display: inline-flex; align-items: center; gap: 6px; font-size: 13px;
+      color: var(--text-muted); margin: 0; cursor: pointer; user-select: none;
+    }
+    .checkbox-inline input { width: auto; margin: 0; }
+
+    #unsupported {
+      display: none; margin: 16px 18px; padding: 14px 16px; border-radius: 10px;
+      border: 1px solid var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent);
+      color: var(--text);
+    }
+    #unsupported strong { color: var(--danger); }
+
+    /* ---- Log ---- */
+    .log-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+    .log-toolbar .spacer { flex: 1 1 auto; }
+    #log {
+      background: var(--log-bg); color: var(--log-text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12.5px; line-height: 1.5; border-radius: 8px; padding: 10px 12px;
+      height: 38vh; min-height: 220px; overflow-y: auto; overflow-x: auto; white-space: pre;
+    }
+    .log-line { display: block; }
+    .log-time { color: var(--time-color); }
+    .log-tx { color: var(--tx-color); }
+    .log-rx { color: var(--rx-color); }
+    .log-err { color: var(--err-color); }
+    .log-sys { color: var(--sys-color); }
+
+    /* ---- Per-ID table ---- */
+    .table-wrap { overflow-x: auto; border: 1px solid var(--panel-border); border-radius: 8px; }
+    table.idtable { border-collapse: collapse; width: 100%; font-size: 13px; }
+    table.idtable th, table.idtable td {
+      padding: 5px 9px; text-align: left; white-space: nowrap;
+      border-bottom: 1px solid var(--panel-border);
+    }
+    table.idtable th {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--text-muted); background: var(--chip-bg);
+      position: sticky; top: 0;
+    }
+    table.idtable tbody tr:last-child td { border-bottom: none; }
+    table.idtable td.num { text-align: right; }
+    .idtable .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .byte { display: inline-block; padding: 0 2px; border-radius: 3px; }
+    .byte.chg { background: var(--chg-bg); color: var(--chg-text); font-weight: 700; }
+    .flag {
+      font-size: 10.5px; font-weight: 700; padding: 1px 6px; border-radius: 999px;
+      background: var(--chip-bg); color: var(--text-muted);
+    }
+    .table-empty { color: var(--text-muted); padding: 14px; text-align: center; font-size: 13px; }
+
+    /* ---- Periodic slots ---- */
+    #slots { display: flex; flex-direction: column; gap: 6px; }
+    .slot {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      border: 1px solid var(--panel-border); border-radius: 8px; padding: 6px 10px;
+      font-size: 13px;
+    }
+    .slot .frame { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .slot .meta { color: var(--text-muted); font-size: 12px; }
+    .slot .spacer { flex: 1 1 auto; }
+    .slots-empty { color: var(--text-muted); font-size: 13px; }
+
+    footer { text-align: center; color: var(--text-muted); font-size: 12px; padding: 8px 18px 22px; }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>CAN Bus Console &mdash; slcan / Web Serial</h1>
+    <div class="spacer"></div>
+    <label for="serBaud">Serial baud</label>
+    <select id="serBaud" style="width:auto;" title="Serial (CDC) baud rate; ignored by most USB adapters but used by real UART bridges">
+      <option>115200</option>
+      <option>230400</option>
+      <option>460800</option>
+      <option>921600</option>
+      <option>1000000</option>
+      <option>2000000</option>
+    </select>
+    <label for="bitrate">CAN bitrate</label>
+    <select id="bitrate" style="width:auto;" title="CAN bus bitrate (slcan Sn command, sent before opening the channel)">
+      <option value="0">10 kbit/s (S0)</option>
+      <option value="1">20 kbit/s (S1)</option>
+      <option value="2">50 kbit/s (S2)</option>
+      <option value="3">100 kbit/s (S3)</option>
+      <option value="4">125 kbit/s (S4)</option>
+      <option value="5">250 kbit/s (S5)</option>
+      <option value="6" selected>500 kbit/s (S6)</option>
+      <option value="7">800 kbit/s (S7)</option>
+      <option value="8">1 Mbit/s (S8)</option>
+    </select>
+    <button id="connectBtn" class="primary">Connect</button>
+    <span id="status" class="status-pill"><span class="status-dot"></span><span id="statusText">Disconnected</span></span>
+  </header>
+
+  <!-- Shown only when navigator.serial is unavailable -->
+  <div id="unsupported">
+    <strong>Web Serial is not available in this browser.</strong>
+    Web Serial requires a Chromium-based browser (Chrome, Edge, Opera, Brave)
+    served over <span class="mono">https://</span> or <span class="mono">http://localhost</span>.
+  </div>
+
+  <main>
+    <!-- ============================ LEFT COLUMN ============================ -->
+    <div class="col">
+      <!-- Chronological log -->
+      <div class="panel">
+        <h2>Traffic Log
+          <span class="spacer"></span>
+          <span id="logStats" class="mono" style="text-transform:none;font-weight:600;color:var(--text-muted)"></span>
+        </h2>
+        <div class="log-toolbar">
+          <label class="checkbox-inline"><input type="checkbox" id="logPause"> Pause</label>
+          <label class="checkbox-inline"><input type="checkbox" id="autoscroll" checked> Autoscroll</label>
+          <span class="spacer"></span>
+          <button id="exportLogBtn" class="small">Export</button>
+          <button id="clearLogBtn" class="small">Clear</button>
+        </div>
+        <div id="log" aria-live="polite" aria-label="Chronological CAN traffic log"></div>
+      </div>
+
+      <!-- Per-ID latest table -->
+      <div class="panel">
+        <h2>Per-ID Latest
+          <span class="spacer"></span>
+          <button id="clearTableBtn" class="small">Clear</button>
+        </h2>
+        <div class="table-wrap">
+          <table class="idtable" aria-label="Latest frame per CAN identifier">
+            <thead>
+              <tr>
+                <th scope="col">ID</th>
+                <th scope="col">Type</th>
+                <th scope="col">DLC</th>
+                <th scope="col">Data</th>
+                <th scope="col">Count</th>
+                <th scope="col">Period</th>
+              </tr>
+            </thead>
+            <tbody id="idTableBody"></tbody>
+          </table>
+          <div id="idTableEmpty" class="table-empty">No frames received yet.</div>
+        </div>
+        <div class="hint">Bytes that changed since the previous frame with the same ID are highlighted. Period is a smoothed inter-frame interval.</div>
+      </div>
+    </div>
+
+    <!-- ============================ RIGHT COLUMN =========================== -->
+    <div class="col">
+      <!-- TX composer -->
+      <div class="panel">
+        <h2>Transmit Frame</h2>
+        <div class="row" style="margin-bottom:10px">
+          <div class="field" style="flex:0 0 130px">
+            <label for="txType">Frame type</label>
+            <select id="txType">
+              <option value="std">Standard (11-bit)</option>
+              <option value="ext">Extended (29-bit)</option>
+            </select>
+          </div>
+          <div class="field id">
+            <label for="txId">ID (hex)</label>
+            <input type="text" id="txId" class="mono" placeholder="123" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="field dlc">
+            <label for="txDlc">DLC</label>
+            <select id="txDlc">
+              <option value="auto" selected>auto</option>
+              <option>0</option><option>1</option><option>2</option><option>3</option>
+              <option>4</option><option>5</option><option>6</option><option>7</option><option>8</option>
+            </select>
+          </div>
+          <label class="checkbox-inline" style="align-self:center; padding-bottom:7px">
+            <input type="checkbox" id="txRtr"> RTR
+          </label>
+        </div>
+        <div class="row">
+          <div class="grow">
+            <label for="txData">Data (hex bytes, e.g. <span class="mono">01 A2 FF</span>)</label>
+            <input type="text" id="txData" class="mono" placeholder="00 11 22 33" autocomplete="off" spellcheck="false">
+          </div>
+          <button id="txSendBtn" class="primary" disabled>Send</button>
+        </div>
+        <div id="txError" class="form-error" role="alert"></div>
+        <div class="row" style="margin-top:4px">
+          <div class="field ms">
+            <label for="txInterval">Interval (ms)</label>
+            <input type="text" id="txInterval" class="mono" value="100" inputmode="numeric" autocomplete="off">
+          </div>
+          <button id="txPeriodicBtn" disabled>Start periodic</button>
+          <div class="hint" style="margin:0;align-self:center">Adds a repeating transmit slot below (5&ndash;60000 ms).</div>
+        </div>
+      </div>
+
+      <!-- Periodic slots -->
+      <div class="panel">
+        <h2>Periodic Transmits
+          <span class="spacer"></span>
+          <button id="stopAllSlotsBtn" class="small danger" disabled>Stop all</button>
+        </h2>
+        <div id="slots"><span class="slots-empty">No periodic transmits running.</span></div>
+      </div>
+
+      <!-- ID filter -->
+      <div class="panel">
+        <h2>ID Filter</h2>
+        <div class="row">
+          <div class="field" style="flex:0 0 110px">
+            <label for="filterMode">Mode</label>
+            <select id="filterMode">
+              <option value="off" selected>Off</option>
+              <option value="include">Include</option>
+              <option value="exclude">Exclude</option>
+            </select>
+          </div>
+          <div class="grow">
+            <label for="filterList">IDs / ranges (hex, e.g. <span class="mono">123, 1A0-1FF, 18DAF110</span>)</label>
+            <input type="text" id="filterList" class="mono" placeholder="123, 1A0-1FF" autocomplete="off" spellcheck="false">
+          </div>
+          <button id="filterApplyBtn">Apply</button>
+        </div>
+        <div id="filterError" class="form-error" role="alert"></div>
+        <div class="hint">Filters received frames in the log and the per-ID table. Transmitted frames are always echoed.</div>
+      </div>
+
+      <!-- Adapter commands -->
+      <div class="panel">
+        <h2>Adapter</h2>
+        <div class="row">
+          <button id="cmdVersionBtn" disabled title="slcan V command">Version (V)</button>
+          <button id="cmdSerialBtn" disabled title="slcan N command">Serial (N)</button>
+          <button id="cmdFlagsBtn" disabled title="slcan F command">Status flags (F)</button>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <div class="grow">
+            <label for="rawCmd">Raw slcan command (CR appended)</label>
+            <input type="text" id="rawCmd" class="mono" placeholder="e.g. Z1" autocomplete="off" spellcheck="false" disabled>
+          </div>
+          <button id="rawCmdBtn" disabled>Send</button>
+        </div>
+        <div class="hint">Responses appear in the traffic log. <span class="mono">BEL</span> (0x07) from the adapter is reported as an error.</div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    CAN Bus Console (slcan) &middot; espp &middot; runs fully offline, no external dependencies.
+  </footer>
+
+  <script>
+  "use strict";
+  (function () {
+    // ===================================================================
+    // Element references
+    // ===================================================================
+    const $ = (id) => document.getElementById(id);
+    const els = {
+      unsupported: $("unsupported"),
+      connectBtn: $("connectBtn"), serBaud: $("serBaud"), bitrate: $("bitrate"),
+      status: $("status"), statusText: $("statusText"),
+      // log
+      log: $("log"), logStats: $("logStats"), logPause: $("logPause"),
+      autoscroll: $("autoscroll"), exportLogBtn: $("exportLogBtn"), clearLogBtn: $("clearLogBtn"),
+      // table
+      idTableBody: $("idTableBody"), idTableEmpty: $("idTableEmpty"), clearTableBtn: $("clearTableBtn"),
+      // tx
+      txType: $("txType"), txId: $("txId"), txDlc: $("txDlc"), txRtr: $("txRtr"),
+      txData: $("txData"), txSendBtn: $("txSendBtn"), txError: $("txError"),
+      txInterval: $("txInterval"), txPeriodicBtn: $("txPeriodicBtn"),
+      // slots
+      slots: $("slots"), stopAllSlotsBtn: $("stopAllSlotsBtn"),
+      // filter
+      filterMode: $("filterMode"), filterList: $("filterList"),
+      filterApplyBtn: $("filterApplyBtn"), filterError: $("filterError"),
+      // adapter
+      cmdVersionBtn: $("cmdVersionBtn"), cmdSerialBtn: $("cmdSerialBtn"),
+      cmdFlagsBtn: $("cmdFlagsBtn"), rawCmd: $("rawCmd"), rawCmdBtn: $("rawCmdBtn"),
+    };
+
+    const connGated = [
+      els.txSendBtn, els.txPeriodicBtn,
+      els.cmdVersionBtn, els.cmdSerialBtn, els.cmdFlagsBtn, els.rawCmd, els.rawCmdBtn,
+    ];
+
+    // ===================================================================
+    // Strict parsers. Full-string matches only: a value is either entirely
+    // valid or it is rejected -- nothing partially-parsed is ever transmitted.
+    // ===================================================================
+    const STD_ID_MAX = 0x7FF;
+    const EXT_ID_MAX = 0x1FFFFFFF;
+
+    // Parse a CAN identifier written in hex ("123", "0x123" also accepted).
+    function parseIdStrict(str, ext) {
+      let s = String(str).trim().toLowerCase();
+      if (s.startsWith("0x")) s = s.slice(2);
+      if (!/^[0-9a-f]{1,8}$/.test(s)) {
+        throw new Error("ID must be 1-8 hex digits" + (s === "" ? " (empty)" : ""));
+      }
+      const id = parseInt(s, 16);
+      const max = ext ? EXT_ID_MAX : STD_ID_MAX;
+      if (id > max) {
+        throw new Error("ID 0x" + id.toString(16).toUpperCase() + " exceeds " +
+          (ext ? "29-bit" : "11-bit") + " max 0x" + max.toString(16).toUpperCase());
+      }
+      return id;
+    }
+
+    // Parse a data-byte string: hex pairs, optional spaces/commas between bytes.
+    function parseDataStrict(str) {
+      const s = String(str).trim();
+      if (s === "") return new Uint8Array(0);
+      const compact = s.replace(/[\s,]+/g, "");
+      if (!/^[0-9a-fA-F]*$/.test(compact)) throw new Error("data must be hex bytes");
+      if (compact.length % 2 !== 0) throw new Error("data has an odd number of hex digits");
+      const n = compact.length / 2;
+      if (n > 8) throw new Error("data is " + n + " bytes; classic CAN allows at most 8");
+      const out = new Uint8Array(n);
+      for (let i = 0; i < n; i++) out[i] = parseInt(compact.substr(i * 2, 2), 16);
+      return out;
+    }
+
+    // Parse a strictly-decimal integer with range check.
+    function parseIntStrict(str, min, max, what) {
+      const s = String(str).trim();
+      if (!/^[+-]?\d+$/.test(s)) throw new Error(what + " must be an integer");
+      const n = parseInt(s, 10);
+      if (n < min || n > max) throw new Error(what + " must be between " + min + " and " + max);
+      return n;
+    }
+
+    function hexBytes(bytes) {
+      return Array.from(bytes, (b) => b.toString(16).padStart(2, "0").toUpperCase()).join(" ");
+    }
+    function fmtId(id, ext) {
+      return "0x" + id.toString(16).toUpperCase().padStart(ext ? 8 : 3, "0");
+    }
+
+    // ===================================================================
+    // Serial state
+    // ===================================================================
+    let port = null;
+    let writer = null;
+    let reader = null;
+    let readLoopRunning = false;
+    let keepReading = false;
+    let manualDisconnect = false;
+    let channelOpen = false;
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+    let rxBuffer = "";
+
+    // ===================================================================
+    // Logging: DOM view (capped) + full array (capped larger) for export.
+    // ===================================================================
+    const logEntries = [];          // { time: "HH:MM:SS.mmm", kind, text }
+    const LOG_ENTRY_CAP = 50000;
+    const LOG_DOM_CAP = 3000;
+    let droppedEntries = 0;
+    let rxCount = 0, txCount = 0;
+
+    let userScrolledUp = false;
+    els.log.addEventListener("scroll", () => {
+      const nearBottom = els.log.scrollHeight - els.log.scrollTop - els.log.clientHeight < 24;
+      userScrolledUp = !nearBottom;
+    });
+
+    function ts() {
+      const d = new Date();
+      const p = (n, w = 2) => String(n).padStart(w, "0");
+      return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}.${p(d.getMilliseconds(), 3)}`;
+    }
+
+    // kind: 'tx' | 'rx' | 'err' | 'sys'
+    function logLine(kind, text) {
+      const time = ts();
+      logEntries.push({ time, kind, text });
+      if (logEntries.length > LOG_ENTRY_CAP) { logEntries.shift(); droppedEntries++; }
+      updateLogStats();
+      if (els.logPause.checked) return;   // paused: capture continues, display doesn't
+      const line = document.createElement("span");
+      line.className = "log-line";
+      const tEl = document.createElement("span");
+      tEl.className = "log-time";
+      tEl.textContent = `[${time}] `;
+      const prefixMap = { tx: "TX → ", rx: "RX ← ", err: "!! ", sys: "-- " };
+      const body = document.createElement("span");
+      body.className = "log-" + kind;
+      body.textContent = (prefixMap[kind] || "") + text;
+      line.appendChild(tEl);
+      line.appendChild(body);
+      els.log.appendChild(line);
+      while (els.log.childElementCount > LOG_DOM_CAP) els.log.removeChild(els.log.firstChild);
+      if (els.autoscroll.checked && !userScrolledUp) els.log.scrollTop = els.log.scrollHeight;
+    }
+
+    function updateLogStats() {
+      els.logStats.textContent = `rx ${rxCount} · tx ${txCount}`;
+    }
+
+    els.clearLogBtn.addEventListener("click", () => {
+      els.log.textContent = "";
+      logEntries.length = 0;
+      droppedEntries = 0;
+      rxCount = 0; txCount = 0;
+      updateLogStats();
+    });
+
+    els.logPause.addEventListener("change", () => {
+      if (!els.logPause.checked) {
+        // Resumed: repaint the tail of the captured entries.
+        els.log.textContent = "";
+        const tail = logEntries.slice(-LOG_DOM_CAP);
+        for (const e of tail) {
+          const line = document.createElement("span");
+          line.className = "log-line";
+          const tEl = document.createElement("span");
+          tEl.className = "log-time"; tEl.textContent = `[${e.time}] `;
+          const prefixMap = { tx: "TX → ", rx: "RX ← ", err: "!! ", sys: "-- " };
+          const body = document.createElement("span");
+          body.className = "log-" + e.kind;
+          body.textContent = (prefixMap[e.kind] || "") + e.text;
+          line.appendChild(tEl); line.appendChild(body);
+          els.log.appendChild(line);
+        }
+        els.log.scrollTop = els.log.scrollHeight;
+      }
+    });
+
+    els.exportLogBtn.addEventListener("click", () => {
+      const prefixMap = { tx: "TX ", rx: "RX ", err: "!! ", sys: "-- " };
+      const lines = [];
+      if (droppedEntries > 0) lines.push(`# ${droppedEntries} earlier entries dropped (capture cap ${LOG_ENTRY_CAP})`);
+      for (const e of logEntries) lines.push(`[${e.time}] ${prefixMap[e.kind] || ""}${e.text}`);
+      const blob = new Blob([lines.join("\n") + "\n"], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const d = new Date();
+      const p = (n) => String(n).padStart(2, "0");
+      a.href = url;
+      a.download = `can_log_${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+
+    // ===================================================================
+    // Connection UI helpers
+    // ===================================================================
+    function setStatus(state, text) {
+      els.status.className = "status-pill" + (state ? " " + state : "");
+      els.statusText.textContent = text;
+    }
+    function setConnectedUI(connected) {
+      els.connectBtn.textContent = connected ? "Disconnect" : "Connect";
+      els.connectBtn.classList.toggle("danger", connected);
+      els.connectBtn.classList.toggle("primary", !connected);
+      els.serBaud.disabled = connected;
+      els.bitrate.disabled = connected;
+      connGated.forEach((el) => { el.disabled = !connected; });
+      if (!connected) stopAllSlots();
+    }
+
+    // ===================================================================
+    // Connect / Disconnect
+    // ===================================================================
+    els.connectBtn.addEventListener("click", async () => {
+      if (port) await disconnect(); else await connect();
+    });
+
+    async function connect() {
+      try {
+        port = await navigator.serial.requestPort();
+      } catch (e) {
+        logLine("sys", "Port selection cancelled.");
+        port = null;
+        return;
+      }
+      const baudRate = parseInt(els.serBaud.value, 10) || 115200;
+      try {
+        await port.open({ baudRate });
+      } catch (e) {
+        logLine("err", "Failed to open port: " + e.message);
+        setStatus("error", "Open failed");
+        port = null;
+        return;
+      }
+      try {
+        writer = port.writable.getWriter();
+      } catch (e) {
+        logLine("err", "Failed to acquire writer: " + e.message);
+        await safeClose();
+        return;
+      }
+
+      manualDisconnect = false;
+      keepReading = true;
+      rxBuffer = "";
+      readLoop();
+
+      // slcan bring-up: close (in case it was left open), set bitrate, open.
+      const s = els.bitrate.value;
+      const kbit = els.bitrate.options[els.bitrate.selectedIndex].text;
+      logLine("sys", "Serial open @ " + baudRate + ". Configuring adapter: C, S" + s + ", O ...");
+      await sendCmd("C", { quiet: true });   // a BEL here just means "was not open"
+      const okS = await sendCmd("S" + s);
+      const okO = await sendCmd("O");
+      channelOpen = okO !== false;
+      setConnectedUI(true);
+      if (channelOpen) {
+        setStatus("connected", "Open · " + kbit);
+        logLine("sys", "CAN channel open at " + kbit + ".");
+      } else {
+        setStatus("error", "Adapter refused O");
+        logLine("err", "Adapter rejected the open command" + (okS === false ? " (bitrate was rejected too)" : "") +
+          "; check the bitrate or power-cycle the adapter.");
+      }
+    }
+
+    async function disconnect() {
+      manualDisconnect = true;
+      keepReading = false;
+      logLine("sys", "Disconnecting...");
+      if (writer && channelOpen) {
+        await sendCmd("C", { quiet: true });
+      }
+      await safeClose();
+    }
+
+    async function safeClose() {
+      stopAllSlots();
+      channelOpen = false;
+      failPendingCmds("port closed");
+      if (reader) {
+        try { await reader.cancel(); } catch (_) {}
+        try { reader.releaseLock(); } catch (_) {}
+        reader = null;
+      }
+      if (writer) {
+        try { await writer.close(); } catch (_) {}
+        try { writer.releaseLock(); } catch (_) {}
+        writer = null;
+      }
+      if (port) {
+        try { await port.close(); } catch (_) {}
+      }
+      port = null;
+      setConnectedUI(false);
+      setStatus("", "Disconnected");
+    }
+
+    async function readLoop() {
+      if (readLoopRunning) return;
+      readLoopRunning = true;
+      try {
+        while (keepReading && port && port.readable) {
+          reader = port.readable.getReader();
+          try {
+            while (true) {
+              const { value, done } = await reader.read();
+              if (done) break;
+              if (value && value.length) handleRxBytes(value);
+            }
+          } catch (e) {
+            if (!manualDisconnect) logLine("err", "Read error (device unplugged?): " + e.message);
+          } finally {
+            try { reader.releaseLock(); } catch (_) {}
+            reader = null;
+          }
+          if (!keepReading) break;
+        }
+      } finally {
+        readLoopRunning = false;
+        if (!manualDisconnect && port) {
+          logLine("sys", "Serial stream ended.");
+          await safeClose();
+        }
+      }
+    }
+
+    // ===================================================================
+    // slcan RX parsing.
+    // The stream is CR-terminated tokens; BEL (0x07) is a standalone error
+    // response. Tokens starting with t/T/r/R are frames; everything else is a
+    // command response (version string, flags, empty-ok, 'z'/'Z' tx-ack).
+    // ===================================================================
+    function handleRxBytes(bytes) {
+      const text = decoder.decode(bytes, { stream: true });
+      for (const ch of text) {
+        if (ch === "\r") {
+          const tok = rxBuffer;
+          rxBuffer = "";
+          onToken(tok, false);
+        } else if (ch === "\x07") {
+          const tok = rxBuffer;
+          rxBuffer = "";
+          onToken(tok, true);
+        } else if (ch === "\n") {
+          // tolerate stray LF
+        } else {
+          rxBuffer += ch;
+          if (rxBuffer.length > 128) { // garbage guard
+            logLine("err", "RX overflow, dropping: " + rxBuffer.slice(0, 32) + "…");
+            rxBuffer = "";
+          }
+        }
+      }
+    }
+
+    function onToken(tok, isBel) {
+      if (isBel) {
+        resolveCmd(false, tok);
+        return;
+      }
+      const c = tok[0];
+      if ((c === "t" || c === "T" || c === "r" || c === "R") && tok.length >= 5) {
+        const f = parseFrame(tok);
+        if (f) { onRxFrame(f, tok); return; }
+        logLine("err", "Malformed frame token: " + tok);
+        return;
+      }
+      // Non-frame: a command response.
+      resolveCmd(true, tok);
+    }
+
+    function parseFrame(tok) {
+      const kind = tok[0];
+      const ext = kind === "T" || kind === "R";
+      const rtr = kind === "r" || kind === "R";
+      const idLen = ext ? 8 : 3;
+      if (tok.length < 1 + idLen + 1) return null;
+      const idStr = tok.slice(1, 1 + idLen);
+      const dlcCh = tok[1 + idLen];
+      if (!/^[0-9a-fA-F]+$/.test(idStr) || !/^[0-8]$/.test(dlcCh)) return null;
+      const id = parseInt(idStr, 16);
+      const dlc = parseInt(dlcCh, 10);
+      let data = new Uint8Array(0);
+      if (!rtr) {
+        const dataStr = tok.slice(1 + idLen + 1, 1 + idLen + 1 + dlc * 2);
+        if (dataStr.length !== dlc * 2 || !/^[0-9a-fA-F]*$/.test(dataStr)) return null;
+        data = new Uint8Array(dlc);
+        for (let i = 0; i < dlc; i++) data[i] = parseInt(dataStr.substr(i * 2, 2), 16);
+        // Anything after the data (e.g. a 4-hex-digit timestamp when the
+        // adapter has Z1 enabled) is tolerated and ignored.
+      }
+      return { id, ext, rtr, dlc, data, t: performance.now() };
+    }
+
+    function describeFrame(f) {
+      const flags = (f.ext ? "EXT" : "STD") + (f.rtr ? " RTR" : "");
+      return fmtId(f.id, f.ext) + " [" + f.dlc + "] " + (f.rtr ? "(remote request)" : hexBytes(f.data)) +
+        " · " + flags;
+    }
+
+    function onRxFrame(f, tok) {
+      rxCount++;
+      if (!passFilter(f.id)) { updateLogStats(); return; }
+      logLine("rx", tok + "   " + describeFrame(f));
+      updateIdTable(f);
+    }
+
+    // ===================================================================
+    // slcan command TX with ack await (serialized FIFO). Adapters answer each
+    // command in order with CR (ok, possibly with payload) or BEL (error);
+    // 'z'/'Z' are transmit acks when autopoll is on.
+    // ===================================================================
+    const pendingCmds = [];   // { cmd, resolve, timer, quiet }
+
+    function resolveCmd(ok, payload) {
+      const p = pendingCmds.shift();
+      if (!p) {
+        // Unsolicited non-frame token (e.g. stray tx-ack): just show it.
+        if (payload !== "" || !ok) {
+          logLine(ok ? "rx" : "err", payload === "" ? "(BEL) adapter error" : payload + (ok ? "" : "  (BEL)"));
+        }
+        return;
+      }
+      clearTimeout(p.timer);
+      if (ok) {
+        if (payload !== "" && payload !== "z" && payload !== "Z") logLine("rx", payload);
+      } else if (!p.quiet) {
+        logLine("err", "Adapter rejected command '" + p.cmd + "' (BEL)");
+      }
+      p.resolve(ok);
+    }
+
+    function failPendingCmds(why) {
+      while (pendingCmds.length) {
+        const p = pendingCmds.shift();
+        clearTimeout(p.timer);
+        p.resolve(false);
+        if (!p.quiet) logLine("err", "Command '" + p.cmd + "' aborted: " + why);
+      }
+    }
+
+    // Send an slcan control command; resolves true (ok), false (BEL), or
+    // null (timeout, adapter silent -- common for adapters that do not ack).
+    function sendCmd(cmd, opts) {
+      opts = opts || {};
+      return new Promise((resolve) => {
+        if (!writer) { resolve(false); return; }
+        const entry = { cmd, resolve, quiet: !!opts.quiet, timer: null };
+        entry.timer = setTimeout(() => {
+          const idx = pendingCmds.indexOf(entry);
+          if (idx >= 0) pendingCmds.splice(idx, 1);
+          resolve(null); // silence: not conclusively an error
+        }, opts.timeoutMs || 300);
+        pendingCmds.push(entry);
+        writer.write(encoder.encode(cmd + "\r")).then(() => {
+          logLine("tx", cmd);
+        }, (e) => {
+          const idx = pendingCmds.indexOf(entry);
+          if (idx >= 0) pendingCmds.splice(idx, 1);
+          clearTimeout(entry.timer);
+          logLine("err", "Write failed: " + e.message);
+          resolve(false);
+        });
+      });
+    }
+
+    // Fire a frame (no ack tracking: frame acks 'z'/'Z' are swallowed above).
+    async function sendFrameLine(line, desc) {
+      if (!writer || !channelOpen) {
+        logLine("err", "Not connected / channel not open.");
+        return false;
+      }
+      try {
+        await writer.write(encoder.encode(line + "\r"));
+        txCount++;
+        logLine("tx", line + "   " + desc);
+        return true;
+      } catch (e) {
+        logLine("err", "Write failed: " + e.message);
+        return false;
+      }
+    }
+
+    // ===================================================================
+    // TX composer
+    // ===================================================================
+    // Build + strictly validate an slcan frame line from the composer fields.
+    // Throws with a human-readable message on ANY invalid input.
+    function buildTxFrame() {
+      const ext = els.txType.value === "ext";
+      const rtr = els.txRtr.checked;
+      const id = parseIdStrict(els.txId.value, ext);
+      const data = parseDataStrict(els.txData.value);
+      let dlc;
+      if (els.txDlc.value === "auto") {
+        dlc = data.length;
+      } else {
+        dlc = parseIntStrict(els.txDlc.value, 0, 8, "DLC");
+      }
+      if (rtr) {
+        if (data.length !== 0) throw new Error("an RTR frame carries no data; clear the data field (DLC still sets the requested length)");
+      } else if (data.length !== dlc) {
+        throw new Error("DLC is " + dlc + " but data has " + data.length + " byte(s); set DLC to auto or match them");
+      }
+      const idStr = id.toString(16).toUpperCase().padStart(ext ? 8 : 3, "0");
+      let line = (rtr ? (ext ? "R" : "r") : (ext ? "T" : "t")) + idStr + String(dlc);
+      if (!rtr) line += Array.from(data, (b) => b.toString(16).toUpperCase().padStart(2, "0")).join("");
+      const f = { id, ext, rtr, dlc, data };
+      return { line, desc: describeFrame(f), frame: f };
+    }
+
+    function showTxError(msg) {
+      els.txError.textContent = msg || "";
+      els.txId.setAttribute("aria-invalid", msg ? "true" : "false");
+    }
+
+    els.txSendBtn.addEventListener("click", async () => {
+      let built;
+      try {
+        built = buildTxFrame();
+      } catch (e) {
+        showTxError(e.message);
+        return;
+      }
+      showTxError("");
+      await sendFrameLine(built.line, built.desc);
+    });
+    for (const el of [els.txId, els.txData]) {
+      el.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); els.txSendBtn.click(); } });
+      el.addEventListener("input", () => showTxError(""));
+    }
+
+    // ===================================================================
+    // Periodic transmit slots
+    // ===================================================================
+    const slots = [];   // { line, desc, ms, timer, count, el, countEl }
+
+    function renderSlotsEmpty() {
+      if (slots.length === 0) {
+        els.slots.innerHTML = '<span class="slots-empty">No periodic transmits running.</span>';
+        els.stopAllSlotsBtn.disabled = true;
+      } else {
+        const empty = els.slots.querySelector(".slots-empty");
+        if (empty) empty.remove();
+        els.stopAllSlotsBtn.disabled = false;
+      }
+    }
+
+    els.txPeriodicBtn.addEventListener("click", () => {
+      let built, ms;
+      try {
+        built = buildTxFrame();
+        ms = parseIntStrict(els.txInterval.value, 5, 60000, "interval");
+      } catch (e) {
+        showTxError(e.message);
+        return;
+      }
+      showTxError("");
+      addSlot(built.line, built.desc, ms);
+    });
+
+    function addSlot(line, desc, ms) {
+      const slot = { line, desc, ms, count: 0, timer: null, el: null, countEl: null };
+      const el = document.createElement("div");
+      el.className = "slot";
+      const frameEl = document.createElement("span");
+      frameEl.className = "frame";
+      frameEl.textContent = line;
+      const metaEl = document.createElement("span");
+      metaEl.className = "meta";
+      metaEl.textContent = "every " + ms + " ms";
+      const countEl = document.createElement("span");
+      countEl.className = "meta mono";
+      countEl.textContent = "sent 0";
+      const spacer = document.createElement("span");
+      spacer.className = "spacer";
+      const stopBtn = document.createElement("button");
+      stopBtn.className = "small danger";
+      stopBtn.textContent = "Stop";
+      stopBtn.setAttribute("aria-label", "Stop periodic transmit of " + line);
+      stopBtn.addEventListener("click", () => removeSlot(slot));
+      el.appendChild(frameEl); el.appendChild(metaEl); el.appendChild(countEl);
+      el.appendChild(spacer); el.appendChild(stopBtn);
+      slot.el = el; slot.countEl = countEl;
+      slots.push(slot);
+      els.slots.appendChild(el);
+      renderSlotsEmpty();
+      slot.timer = setInterval(async () => {
+        if (!writer || !channelOpen) { removeSlot(slot); return; }
+        const ok = await sendFrameLine(slot.line, slot.desc);
+        if (ok) { slot.count++; slot.countEl.textContent = "sent " + slot.count; }
+      }, ms);
+      logLine("sys", "Periodic transmit started: " + line + " every " + ms + " ms.");
+    }
+
+    function removeSlot(slot) {
+      const idx = slots.indexOf(slot);
+      if (idx < 0) return;
+      clearInterval(slot.timer);
+      slots.splice(idx, 1);
+      slot.el.remove();
+      renderSlotsEmpty();
+      logLine("sys", "Periodic transmit stopped: " + slot.line + " (sent " + slot.count + ").");
+    }
+
+    function stopAllSlots() {
+      while (slots.length) removeSlot(slots[0]);
+    }
+    els.stopAllSlotsBtn.addEventListener("click", stopAllSlots);
+
+    // ===================================================================
+    // ID filter
+    // ===================================================================
+    let filter = { mode: "off", ranges: [] };
+
+    function parseFilterRanges(str) {
+      const out = [];
+      const parts = String(str).split(/[\s,]+/).filter(Boolean);
+      for (const p of parts) {
+        const m = p.match(/^(?:0[xX])?([0-9a-fA-F]{1,8})(?:-(?:0[xX])?([0-9a-fA-F]{1,8}))?$/);
+        if (!m) throw new Error("'" + p + "' is not a hex ID or ID range");
+        const lo = parseInt(m[1], 16);
+        const hi = m[2] !== undefined ? parseInt(m[2], 16) : lo;
+        if (lo > EXT_ID_MAX || hi > EXT_ID_MAX) throw new Error("'" + p + "' exceeds the 29-bit ID range");
+        if (hi < lo) throw new Error("range '" + p + "' is reversed");
+        out.push([lo, hi]);
+      }
+      return out;
+    }
+
+    function passFilter(id) {
+      if (filter.mode === "off") return true;
+      let hit = false;
+      for (const [lo, hi] of filter.ranges) {
+        if (id >= lo && id <= hi) { hit = true; break; }
+      }
+      return filter.mode === "include" ? hit : !hit;
+    }
+
+    els.filterApplyBtn.addEventListener("click", () => {
+      const mode = els.filterMode.value;
+      let ranges = [];
+      if (mode !== "off") {
+        try {
+          ranges = parseFilterRanges(els.filterList.value);
+        } catch (e) {
+          els.filterError.textContent = e.message;
+          els.filterList.setAttribute("aria-invalid", "true");
+          return;
+        }
+        if (ranges.length === 0 && mode === "include") {
+          els.filterError.textContent = "include mode with an empty list would hide everything; add IDs or switch mode";
+          return;
+        }
+      }
+      els.filterError.textContent = "";
+      els.filterList.setAttribute("aria-invalid", "false");
+      filter = { mode, ranges };
+      logLine("sys", "Filter: " + (mode === "off" ? "off" :
+        mode + " " + ranges.map(([lo, hi]) => lo === hi ? lo.toString(16).toUpperCase() :
+          lo.toString(16).toUpperCase() + "-" + hi.toString(16).toUpperCase()).join(", ")));
+    });
+    els.filterList.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); els.filterApplyBtn.click(); } });
+    els.filterList.addEventListener("input", () => { els.filterError.textContent = ""; });
+
+    // ===================================================================
+    // Per-ID latest table
+    // ===================================================================
+    const idRows = new Map();   // key -> { f, count, emaDt, lastT, tr, byteEls, dlcEl, countEl, periodEl }
+
+    function idKey(f) {
+      return (f.ext ? "E" : "S") + (f.rtr ? "R" : "") + ":" + f.id;
+    }
+
+    function fmtPeriod(ms) {
+      if (!Number.isFinite(ms) || ms <= 0) return "—";
+      if (ms < 1000) return ms.toFixed(1) + " ms";
+      return (ms / 1000).toFixed(2) + " s";
+    }
+
+    function updateIdTable(f) {
+      const key = idKey(f);
+      let row = idRows.get(key);
+      if (!row) {
+        row = createIdRow(f, key);
+        idRows.set(key, row);
+      }
+      // period estimate: EMA of inter-frame delta
+      if (row.lastT !== null) {
+        const dt = f.t - row.lastT;
+        row.emaDt = row.emaDt === null ? dt : row.emaDt * 0.8 + dt * 0.2;
+      }
+      row.lastT = f.t;
+      row.count++;
+
+      // data cell + delta highlighting
+      if (!f.rtr) {
+        if (row.byteEls.length !== f.dlc) rebuildBytes(row, f);
+        else {
+          for (let i = 0; i < f.dlc; i++) {
+            const el = row.byteEls[i];
+            const nv = f.data[i];
+            const changed = row.f.data.length === f.dlc && row.f.data[i] !== nv;
+            el.textContent = nv.toString(16).padStart(2, "0").toUpperCase();
+            el.classList.toggle("chg", changed);
+          }
+        }
+      }
+      row.dlcEl.textContent = String(f.dlc);
+      row.countEl.textContent = String(row.count);
+      row.periodEl.textContent = fmtPeriod(row.emaDt);
+      row.f = f;
+    }
+
+    function rebuildBytes(row, f) {
+      row.dataEl.textContent = "";
+      row.byteEls = [];
+      if (f.rtr) {
+        row.dataEl.textContent = "(remote request)";
+        return;
+      }
+      for (let i = 0; i < f.dlc; i++) {
+        const s = document.createElement("span");
+        s.className = "byte";
+        s.textContent = f.data[i].toString(16).padStart(2, "0").toUpperCase();
+        row.dataEl.appendChild(s);
+        if (i < f.dlc - 1) row.dataEl.appendChild(document.createTextNode(" "));
+        row.byteEls.push(s);
+      }
+      if (f.dlc === 0) row.dataEl.textContent = "(no data)";
+    }
+
+    function createIdRow(f, key) {
+      els.idTableEmpty.style.display = "none";
+      const tr = document.createElement("tr");
+      const idTd = document.createElement("td");
+      idTd.className = "mono";
+      idTd.textContent = fmtId(f.id, f.ext);
+      const typeTd = document.createElement("td");
+      const flag = document.createElement("span");
+      flag.className = "flag";
+      flag.textContent = (f.ext ? "EXT" : "STD") + (f.rtr ? "·RTR" : "");
+      typeTd.appendChild(flag);
+      const dlcTd = document.createElement("td");
+      dlcTd.className = "num mono";
+      const dataTd = document.createElement("td");
+      dataTd.className = "mono";
+      const countTd = document.createElement("td");
+      countTd.className = "num mono";
+      const periodTd = document.createElement("td");
+      periodTd.className = "num mono";
+      tr.appendChild(idTd); tr.appendChild(typeTd); tr.appendChild(dlcTd);
+      tr.appendChild(dataTd); tr.appendChild(countTd); tr.appendChild(periodTd);
+
+      const row = {
+        f: { id: f.id, ext: f.ext, rtr: f.rtr, dlc: -1, data: new Uint8Array(0) },
+        count: 0, emaDt: null, lastT: null,
+        tr, byteEls: [], dataEl: dataTd, dlcEl: dlcTd, countEl: countTd, periodEl: periodTd,
+        sortKey: (f.ext ? 0x100000000 : 0) + f.id,
+      };
+      rebuildBytes(row, f);
+
+      // sorted insert: standard IDs first, then extended, ascending numerically.
+      // idRows is in creation order, so find the DOM successor = the existing
+      // row with the smallest sortKey greater than ours.
+      let successor = null;
+      for (const other of idRows.values()) {
+        if (other.sortKey > row.sortKey && (successor === null || other.sortKey < successor.sortKey)) {
+          successor = other;
+        }
+      }
+      if (successor) els.idTableBody.insertBefore(tr, successor.tr);
+      else els.idTableBody.appendChild(tr);
+      return row;
+    }
+
+    els.clearTableBtn.addEventListener("click", () => {
+      idRows.clear();
+      els.idTableBody.textContent = "";
+      els.idTableEmpty.style.display = "";
+    });
+
+    // ===================================================================
+    // Adapter commands
+    // ===================================================================
+    els.cmdVersionBtn.addEventListener("click", () => sendCmd("V"));
+    els.cmdSerialBtn.addEventListener("click", () => sendCmd("N"));
+    els.cmdFlagsBtn.addEventListener("click", () => sendCmd("F"));
+    els.rawCmdBtn.addEventListener("click", () => {
+      const cmd = els.rawCmd.value.trim();
+      if (cmd === "") return;
+      // Guard against accidentally re-configuring the channel state out from
+      // under the console; O/C/S are driven by Connect/Disconnect.
+      if (/^[OCcs]/i.test(cmd) && /^([OC]|S\d*)$/i.test(cmd)) {
+        logLine("err", "Open/close/bitrate are managed by the Connect button; command '" + cmd + "' not sent.");
+        return;
+      }
+      sendCmd(cmd);
+      els.rawCmd.value = "";
+    });
+    els.rawCmd.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); els.rawCmdBtn.click(); } });
+
+    // ===================================================================
+    // Device unplug handling
+    // ===================================================================
+    if (navigator.serial && navigator.serial.addEventListener) {
+      navigator.serial.addEventListener("disconnect", async (e) => {
+        // The disconnected SerialPort is exposed as e.port (not e.target).
+        if (port && e.port === port) {
+          logLine("err", "Device disconnected.");
+          keepReading = false;
+          manualDisconnect = false;
+          await safeClose();
+        }
+      });
+    }
+
+    // ===================================================================
+    // Feature detection / init
+    // ===================================================================
+    function init() {
+      if (!("serial" in navigator)) {
+        els.unsupported.style.display = "block";
+        els.connectBtn.disabled = true;
+        els.serBaud.disabled = true;
+        els.bitrate.disabled = true;
+        setStatus("error", "Unsupported");
+        logLine("err", "Web Serial API not available in this browser.");
+        return;
+      }
+      setStatus("", "Disconnected");
+      setConnectedUI(false);
+      updateLogStats();
+      logLine("sys", "Ready. Pick a CAN bitrate, click Connect, and choose the slcan adapter's serial port.");
+      logLine("sys", "On connect the console sends C (close), S<n> (bitrate), O (open).");
+    }
+    init();
+  })();
+  </script>
+</body>
+</html>
