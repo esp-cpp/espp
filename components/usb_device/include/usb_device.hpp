@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -279,7 +280,7 @@ private:
   std::unique_ptr<Impl> impl_;
 
   Config config_;
-  bool initialized_{false};
+  std::atomic<bool> initialized_{false}; // read from the TinyUSB task via the write paths
 
   std::mutex cb_mutex_;
   receive_callback_fn on_cdc_receive_;
