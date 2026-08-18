@@ -15,6 +15,11 @@ Pick the file that matches the protocol your firmware exposes on the vendor
 interface. **The two are not interchangeable** — one carries newline-terminated
 ASCII, the other carries packet-based binary Fibre endpoints.
 
+> A third, unrelated tool lives alongside these:
+> [`hid_visualizer.html`](./hid_visualizer.html) uses **WebHID** (not WebUSB) to
+> read and visualize HID input reports from a USB HID gamepad. See
+> [`README_hid.md`](./README_hid.md).
+
 The rest of this document describes the ASCII console; the native control panel
 is documented in its own section [at the end](#native-protocol-control-panel-odrive_control_panelhtml).
 
