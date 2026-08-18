@@ -26,11 +26,16 @@
 
 // The espp::OdriveNative wrapper is only testable when the full espp package
 // (base_component + logger + fmt headers AND the compiled Logger) is on the
-// include/link path — i.e. the pc build. The minimal interop-harness build
-// sees only the odrive_native component headers.
-#if defined(__has_include)
-#if __has_include("base_component.hpp")
+// include/link path — i.e. the pc build, whose harness defines
+// ODRIVE_GOLDEN_HAS_ESPP_LIB=1 (see ../CMakeLists.txt) because it links the
+// whole espp::espp archive. When the build system says nothing (e.g. a bare
+// compile of this file), fall back to header detection; the macro is ALWAYS
+// defined to 0 or 1 so `#if` is -Wundef-clean.
+#if !defined(ODRIVE_GOLDEN_HAS_ESPP_LIB)
+#if defined(__has_include) && __has_include("base_component.hpp")
 #define ODRIVE_GOLDEN_HAS_ESPP_LIB 1
+#else
+#define ODRIVE_GOLDEN_HAS_ESPP_LIB 0
 #endif
 #endif
 #if ODRIVE_GOLDEN_HAS_ESPP_LIB
