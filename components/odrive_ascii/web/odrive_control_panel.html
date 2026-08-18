@@ -531,7 +531,10 @@
     function big(size, set, v) {
       const b = new Uint8Array(size);
       let n;
-      try { n = BigInt(String(v).trim()); } catch (_) { n = 0n; }
+      // Throw on a non-integer string (e.g. "1.5") instead of silently
+      // writing 0 to the device; writeEndpoint surfaces the message.
+      try { n = BigInt(String(v).trim()); }
+      catch (_) { throw new Error("'" + v + "' is not a valid integer"); }
       set(new DataView(b.buffer), n);
       return b;
     }
@@ -544,7 +547,7 @@
     // ---- Packet builder ----
     // [seq u16][endpoint u16 (|0x8000 => expect response)][output_len u16][payload][trailer u16]
     let seqCounter = 0;
-    function nextSeq() { seqCounter = (seqCounter + 1) & 0x7fff; return seqCounter || 1; }
+    function nextSeq() { seqCounter = ((seqCounter + 1) & 0x7fff) || 1; return seqCounter; }
     function buildPacket(endpointId, expectResponse, outputLen, payload, trailer) {
       const pl = payload || new Uint8Array(0);
       const buf = new Uint8Array(6 + pl.length + 2);
@@ -584,6 +587,7 @@
     const PALETTE = ["#3b82f6", "#ef4444", "#22c55e", "#f59e0b", "#a855f7", "#06b6d4", "#ec4899", "#84cc16"];
     let plotPaused = false;
     let drawScheduled = false;
+    let heldYRange = null; // fixed Y range captured when Autoscale is unchecked
 
     // ===================================================================
     // Logging
@@ -1240,8 +1244,15 @@
           if (s.v < yMin) yMin = s.v; if (s.v > yMax) yMax = s.v;
         }
       }
-      if (!els.plotAutoscale.checked && plotted.size) {
-        // Fixed-ish: still need a range; fall back to autoscale bounds but symmetric padding only.
+      // Autoscale off: hold the Y range that was in effect when it was
+      // unchecked (captured lazily from the first frame with valid bounds), so
+      // the axis stops chasing the data. Re-checking releases the hold.
+      if (!els.plotAutoscale.checked) {
+        if (!heldYRange && anySample && Number.isFinite(yMin) && Number.isFinite(yMax))
+          heldYRange = { yMin, yMax };
+        if (heldYRange) { yMin = heldYRange.yMin; yMax = heldYRange.yMax; anySample = true; }
+      } else {
+        heldYRange = null;
       }
       if (!anySample || !Number.isFinite(yMin) || !Number.isFinite(yMax)) { yMin = 0; yMax = 1; }
       if (yMax - yMin < 1e-9) { yMin -= 1; yMax += 1; }

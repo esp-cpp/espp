@@ -1065,13 +1065,18 @@
     // numbers. Updates the metrics and sparkline history.
     const numRe = /^[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?$/;
     function maybeParseFeedback(line) {
+      // Only interpret a line as feedback when we actually asked for it (a
+      // pending 'f' request or active polling). Otherwise an unrelated numeric
+      // response — e.g. a bare `r <path>` scalar, or any coincidental two-number
+      // line — would be mis-classified as "<pos> <vel>" and corrupt the plot.
+      if (expectFeedback <= 0) return;
       const parts = line.trim().split(/\s+/);
       if (parts.length !== 2) return;
       if (!numRe.test(parts[0]) || !numRe.test(parts[1])) return;
       const pos = parseFloat(parts[0]);
       const vel = parseFloat(parts[1]);
       if (!Number.isFinite(pos) || !Number.isFinite(vel)) return;
-      if (expectFeedback > 0) expectFeedback--;
+      expectFeedback--;
       els.fbPos.textContent = pos.toFixed(4);
       els.fbVel.textContent = vel.toFixed(4);
       pushSample(pos, vel);
@@ -1150,12 +1155,12 @@
     // Device unplug handling (fires even without an active transfer error)
     // ===================================================================
     if (navigator.usb && navigator.usb.addEventListener) {
-      navigator.usb.addEventListener("disconnect", (e) => {
+      navigator.usb.addEventListener("disconnect", async (e) => {
         if (device && e.device === device) {
           logLine("err", "Device disconnected.");
           keepReading = false;
           manualDisconnect = false;
-          safeClose();
+          await safeClose();
         }
       });
     }
