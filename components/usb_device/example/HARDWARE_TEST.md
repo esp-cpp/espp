@@ -71,9 +71,19 @@ default — ODrive semantics; only `r`/`f` respond.)
 
 ## 4. Verify WebUSB (browser)
 
-Open `components/odrive_ascii/web/odrive_webusb_console.html` in Chromium and Connect;
-it claims the vendor interface directly (no driver). The firmware's WebUSB landing-page
+Open `components/odrive_ascii/web/odrive_control_panel.html` (native-protocol control
+panel) in Chromium and Connect; it claims the vendor interface directly (no driver) and
+shows the endpoint tree with live reads/plots. The firmware's WebUSB landing-page
 descriptor also points a browser at the hosted console.
+
+## 5. Verify the HID gamepad (WebHID)
+
+The device also enumerates as a **HID gamepad**: the firmware animates both analog
+sticks and toggles two buttons at ~10 Hz. Your OS will see a gamepad. To visualize the
+input reports directly in the browser, open `components/odrive_ascii/web/hid_visualizer.html`
+in Chromium and Connect (pick the espp gamepad) — you should see the sticks circling and
+buttons blinking. WebHID reads the HID interface directly (no driver); it works on the
+same composite device without disturbing the CDC/vendor interfaces.
 
 ## What "good" looks like
 - The USB probe prints the full endpoint tree and `ALL PROBE ASSERTIONS PASSED`.
