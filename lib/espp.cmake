@@ -101,6 +101,7 @@ set(ESPP_INCLUDES
   ${ESPP_COMPONENTS}/logger/include
   ${ESPP_COMPONENTS}/math/include
   ${ESPP_COMPONENTS}/ndef/include
+  ${ESPP_COMPONENTS}/odrive_native/include
   ${ESPP_COMPONENTS}/pid/include
   ${ESPP_COMPONENTS}/rtps/include
   ${ESPP_COMPONENTS}/rtsp/include
@@ -192,6 +193,7 @@ set(ESPP_PYTHON_BINDINGS_DIR ${CMAKE_CURRENT_LIST_DIR}/python_bindings)
 set(ESPP_PYTHON_SOURCES
   ${ESPP_PYTHON_BINDINGS_DIR}/module.cpp
   ${ESPP_PYTHON_BINDINGS_DIR}/pybind_espp.cpp
+  ${ESPP_PYTHON_BINDINGS_DIR}/odrive_native_bindings.cpp
   ${ESPP_PYTHON_BINDINGS_DIR}/rtps_bindings.cpp
   ${ESPP_PYTHON_BINDINGS_DIR}/socket_reactor_bindings.cpp
   ${ESPP_SOURCES}
@@ -290,6 +292,13 @@ function(espp_install_python_module)
     DESTINATION .
     PATTERN "__pycache__" EXCLUDE
     PATTERN ".mypy_cache" EXCLUDE)
+  # Also stage espp_odrive (the pure-python ODrive client that lives in the
+  # odrive_native component) next to the espp package, mirroring the wheel's
+  # `wheel.packages` in pyproject.toml -- so PYTHONPATH=<prefix> gives both
+  # `import espp` and `import espp_odrive` (and espp.odrive works).
+  install(DIRECTORY ${ESPP_COMPONENTS}/odrive_native/python/espp_odrive
+    DESTINATION .
+    PATTERN "__pycache__" EXCLUDE)
   install(TARGETS _espp
     LIBRARY DESTINATION espp/
     RUNTIME DESTINATION espp/)

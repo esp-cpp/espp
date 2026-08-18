@@ -4,18 +4,21 @@
 // round-trip, all verified against the fw-v0.5.1 reference (and proven end-to-end
 // by the serial-loopback interop harness in components/odrive_native/interop).
 //
-// Built by the pc harness (see ../CMakeLists.txt, which adds the odrive_native
-// include dir for odrive_native_* targets). Exits 0 when every golden matches.
+// Built by the pc harness against the installed espp package: odrive_native is
+// part of the x-platform espp lib, so its headers come from the espp::espp
+// target like every other test here. Exits 0 when every golden matches.
 
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <span>
 #include <string>
+#include <system_error>
 #include <vector>
 
 #include "detail/odrive_native_core.hpp"
 #include "detail/odrive_native_stream.hpp"
+#include "odrive_native.hpp"
 
 using espp::detail::kProtocolVersion;
 using espp::detail::odrive_crc16;
@@ -127,11 +130,61 @@ static void golden_packet_roundtrip() {
     CHECK(rp[0] == resp);
 }
 
+// The espp::OdriveNative wrapper (BaseComponent + the core) is what the lib
+// exposes; exercise it through the same read/write path to prove the
+// x-platform packaging end-to-end (not just the detail/ headers).
+static void lib_wrapper_roundtrip() {
+  std::printf("lib_wrapper_roundtrip\n");
+  espp::OdriveNative dev(espp::OdriveNative::Config{.log_level = espp::Logger::Verbosity::WARN});
+  float pos = 1.5f;
+  dev.register_float_property(
+      "axis0.controller.input_pos", [&]() { return pos; },
+      [&](float v, std::error_code &ec) {
+        ec.clear();
+        pos = v;
+        return true;
+      });
+  const uint16_t crc = dev.json_crc();
+  CHECK(crc != 0);
+
+  // write 42.0f to endpoint 1 (expect a 2-byte ack), then read it back
+  const float wrote = 42.0f;
+  std::vector<uint8_t> req;
+  auto put_u16 = [&](uint16_t x) {
+    req.push_back(uint8_t(x & 0xff));
+    req.push_back(uint8_t((x >> 8) & 0xff));
+  };
+  put_u16(0x0001);     // seq
+  put_u16(0x8000 | 1); // endpoint 1, expect response
+  put_u16(0);          // output_len
+  uint8_t fb[4];
+  std::memcpy(fb, &wrote, 4);
+  req.insert(req.end(), fb, fb + 4);
+  put_u16(crc); // trailer canary
+  auto ack = dev.process_bytes(req);
+  CHECK(ack.size() == 2);
+  CHECK(pos == wrote);
+
+  req.clear();
+  put_u16(0x0002);
+  put_u16(0x8000 | 1);
+  put_u16(4);
+  put_u16(crc);
+  auto resp = dev.process_bytes(req);
+  CHECK(resp.size() == 2 + 4);
+  if (resp.size() == 6) {
+    float rb = 0;
+    std::memcpy(&rb, resp.data() + 2, 4);
+    CHECK(rb == wrote);
+  }
+}
+
 int main() {
   golden_crc8();
   golden_crc16();
   golden_frame();
   golden_packet_roundtrip();
+  lib_wrapper_roundtrip();
   if (g_failures == 0) {
     std::printf("\nODRIVE_NATIVE GOLDEN: ALL PASSED\n");
     return 0;

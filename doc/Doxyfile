@@ -151,7 +151,6 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/neopixel/example/main/neopixel_example.cpp \
   $(PROJECT_PATH)/components/nvs/example/main/nvs_example.cpp \
   $(PROJECT_PATH)/components/odrive_ascii/example/main/odrive_ascii_example.cpp \
-  $(PROJECT_PATH)/components/usb_device/example/main/usb_cdc_example.cpp \
   $(PROJECT_PATH)/components/odrive_native/example/main/odrive_native_example.cpp \
   $(PROJECT_PATH)/components/pca9535/example/main/pca9535_example.cpp \
   $(PROJECT_PATH)/components/pcf85063/example/main/pcf85063_example.cpp \
@@ -189,6 +188,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/trajectory_planner/example/main/trajectory_planner_example.cpp \
   $(PROJECT_PATH)/components/twai/example/main/twai_example.cpp \
   $(PROJECT_PATH)/components/tt21100/example/main/tt21100_example.cpp \
+  $(PROJECT_PATH)/components/usb_device/example/main/usb_cdc_example.cpp \
   $(PROJECT_PATH)/components/vl53l/example/main/vl53l_example.cpp \
   $(PROJECT_PATH)/components/wifi/example/main/wifi_example.cpp \
   $(PROJECT_PATH)/components/wrover-kit/example/main/wrover_kit_example.cpp \
@@ -364,8 +364,6 @@ INPUT = \
   $(PROJECT_PATH)/components/meshtastic/include/meshtastic_types.hpp \
   $(PROJECT_PATH)/components/mt6701/include/mt6701.hpp \
   $(PROJECT_PATH)/components/odrive_ascii/include/odrive_ascii.hpp \
-  $(PROJECT_PATH)/components/usb_device/include/usb_device.hpp \
-  $(PROJECT_PATH)/components/usb_device/include/usb_cdc.hpp \
   $(PROJECT_PATH)/components/odrive_native/include/odrive_native.hpp \
   $(PROJECT_PATH)/components/odrive_native/include/detail/odrive_native_core.hpp \
   $(PROJECT_PATH)/components/pca9535/include/pca9535.hpp \
@@ -434,6 +432,8 @@ INPUT = \
   $(PROJECT_PATH)/components/trajectory_planner/include/trajectory_planner.hpp \
   $(PROJECT_PATH)/components/twai/include/twai.hpp \
   $(PROJECT_PATH)/components/tt21100/include/tt21100.hpp \
+  $(PROJECT_PATH)/components/usb_device/include/usb_device.hpp \
+  $(PROJECT_PATH)/components/usb_device/include/usb_cdc.hpp \
   $(PROJECT_PATH)/components/vl53l/include/vl53l.hpp \
   $(PROJECT_PATH)/components/utils/include/bitmask_operators.hpp \
   $(PROJECT_PATH)/components/wifi/include/wifi.hpp \

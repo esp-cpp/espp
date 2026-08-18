@@ -50,13 +50,14 @@ jobs:
           # copy the generated HTML files to the docs directory for GitHub Pages
           mkdir -p ../docs
           cp -r "${build_dir_from_doc}/html/"* ../docs/.
-          # Host the interactive single-file web consoles alongside the docs.
-          # GitHub Pages serves over https (a secure context), so the browser
-          # Web Serial / WebUSB APIs work directly from these hosted copies.
+          # Host the interactive single-file web apps (Web Serial / WebUSB /
+          # WebHID tools) alongside the docs. GitHub Pages serves over https
+          # (a secure context), so the browser APIs work directly from these
+          # hosted copies.
           mkdir -p ../docs/apps
-          # Copy any hosted consoles. nullglob makes a "no matches" case a no-op
-          # (the glob expands to nothing) while a genuine copy error still fails
-          # the job, instead of being swallowed by `|| true`.
+          # nullglob makes a "no matches" case a no-op (the glob expands to
+          # nothing) while a genuine copy error still fails the job, instead
+          # of being swallowed by `|| true`.
           shopt -s nullglob
           consoles=(../components/odrive_ascii/web/*.html)
           if [ ${#consoles[@]} -gt 0 ]; then
