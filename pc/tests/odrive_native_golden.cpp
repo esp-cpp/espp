@@ -4,9 +4,14 @@
 // round-trip, all verified against the fw-v0.5.1 reference (and proven end-to-end
 // by the serial-loopback interop harness in components/odrive_native/interop).
 //
-// Built by the pc harness against the installed espp package: odrive_native is
-// part of the x-platform espp lib, so its headers come from the espp::espp
-// target like every other test here. Exits 0 when every golden matches.
+// Built two ways:
+//   - by the pc harness against the installed espp package (full espp::espp
+//     target, so the espp::OdriveNative wrapper section below also runs);
+//   - by the interop harness (components/odrive_native/interop/run_interop.sh)
+//     with ONLY `c++ -std=c++20 -I components/odrive_native/include` — no espp
+//     lib, so the wrapper section (which needs base_component/logger/fmt and
+//     the compiled Logger) is compiled out via the __has_include guard.
+// Exits 0 when every golden matches.
 
 #include <cstdint>
 #include <cstdio>
@@ -18,7 +23,19 @@
 
 #include "detail/odrive_native_core.hpp"
 #include "detail/odrive_native_stream.hpp"
+
+// The espp::OdriveNative wrapper is only testable when the full espp package
+// (base_component + logger + fmt headers AND the compiled Logger) is on the
+// include/link path — i.e. the pc build. The minimal interop-harness build
+// sees only the odrive_native component headers.
+#if defined(__has_include)
+#if __has_include("base_component.hpp")
+#define ODRIVE_GOLDEN_HAS_ESPP_LIB 1
+#endif
+#endif
+#if ODRIVE_GOLDEN_HAS_ESPP_LIB
 #include "odrive_native.hpp"
+#endif
 
 using espp::detail::kProtocolVersion;
 using espp::detail::odrive_crc16;
@@ -132,7 +149,9 @@ static void golden_packet_roundtrip() {
 
 // The espp::OdriveNative wrapper (BaseComponent + the core) is what the lib
 // exposes; exercise it through the same read/write path to prove the
-// x-platform packaging end-to-end (not just the detail/ headers).
+// x-platform packaging end-to-end (not just the detail/ headers). Only built
+// when the full espp package is available (see the guard at the top).
+#if ODRIVE_GOLDEN_HAS_ESPP_LIB
 static void lib_wrapper_roundtrip() {
   std::printf("lib_wrapper_roundtrip\n");
   espp::OdriveNative dev(espp::OdriveNative::Config{.log_level = espp::Logger::Verbosity::WARN});
@@ -178,13 +197,18 @@ static void lib_wrapper_roundtrip() {
     CHECK(rb == wrote);
   }
 }
+#endif // ODRIVE_GOLDEN_HAS_ESPP_LIB
 
 int main() {
   golden_crc8();
   golden_crc16();
   golden_frame();
   golden_packet_roundtrip();
+#if ODRIVE_GOLDEN_HAS_ESPP_LIB
   lib_wrapper_roundtrip();
+#else
+  std::printf("lib_wrapper_roundtrip skipped (minimal build without the espp lib)\n");
+#endif
   if (g_failures == 0) {
     std::printf("\nODRIVE_NATIVE GOLDEN: ALL PASSED\n");
     return 0;
