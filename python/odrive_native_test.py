@@ -21,9 +21,9 @@ import espp
 # The pure-python ODrive client codec (espp_odrive) ships alongside the espp
 # package in the wheel / installed prefix; fall back to its source-of-truth
 # location in the odrive_native component for source-tree runs.
-try:
-    import espp_odrive  # noqa: F401
-except ImportError:
+import importlib.util
+
+if importlib.util.find_spec("espp_odrive") is None:
     sys.path.insert(
         0,
         os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "components",
