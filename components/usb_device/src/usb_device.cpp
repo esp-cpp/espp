@@ -522,6 +522,9 @@ bool UsbDevice::initialize(std::error_code &ec) {
       // endpoint buffer comfortably fits the gamepad report.
       constexpr uint8_t kHidEpSize = 64;
       if (config_.hid->has_out_endpoint) {
+        // NOTE: TinyUSB's parameter order here is (..., _epout, _epin, ...) --
+        // OUT before IN (see TUD_HID_INOUT_DESCRIPTOR in usbd.h). hid_out is
+        // the plain endpoint number and hid_in carries the 0x80 direction bit.
         const uint8_t d[] = {
             TUD_HID_INOUT_DESCRIPTOR(hid_itf, hid_str, HID_ITF_PROTOCOL_NONE, report_len, hid_out,
                                      hid_in, kHidEpSize, hid_binterval),
