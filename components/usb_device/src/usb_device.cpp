@@ -334,6 +334,16 @@ bool UsbDevice::initialize(std::error_code &ec) {
     ec = std::make_error_code(std::errc::function_not_supported);
     return false;
 #endif
+    if (config_.hid->report_descriptor.empty()) {
+      // A default-constructed HidFunction has no report descriptor; proceeding
+      // would emit a HID interface with wDescriptorLength == 0 (and a null
+      // report callback) -- an invalid HID interface that "succeeds" here and
+      // then confuses the host. Reject it as an invalid configuration.
+      logger_.error("HID function enabled but report_descriptor is empty; supply the HID "
+                    "report descriptor bytes (e.g. built with the hid-rp component).");
+      ec = std::make_error_code(std::errc::invalid_argument);
+      return false;
+    }
   }
 
   // A zero-length RX scratch buffer would make the RX drain loops spin without

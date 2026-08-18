@@ -671,7 +671,8 @@
         if (!/^(0[xX])?[0-9a-fA-F]+$/.test(offStr))
           throw new Error(`Invalid offset "${offEl.value}" for ${file.name} (expected hex, e.g. 0x10000)`);
         const addr = parseInt(offStr, 16);
-        if (!Number.isFinite(addr) || addr < 0) throw new Error(`Invalid offset "${offEl.value}" for ${file.name}`);
+        if (!Number.isFinite(addr) || addr < 0 || addr > 0xFFFFFFFF)
+          throw new Error(`Offset "${offEl.value}" for ${file.name} is outside the 32-bit flash address range`);
         const data = await readFileAsBinaryString(file);
         out.push({ data, address: addr, name: file.name, row });
         setRowProgress(row, 0);
