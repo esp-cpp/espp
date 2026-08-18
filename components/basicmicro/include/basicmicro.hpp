@@ -84,10 +84,30 @@ public:
   /**
    * @brief Create a Basicmicro driver.
    * @param config Configuration parameters.
+   * @note The documented contracts are enforced here: a timeout below the
+   *       protocol's 10 ms packet-clear window is clamped up to 10 ms, and an
+   *       address outside 0x80-0x87 is clamped into the valid range (both with
+   *       a warning) rather than silently violating the wire protocol.
    */
   explicit Basicmicro(const Config &config)
       : BaseComponent("Basicmicro", config.log_level)
-      , config_(config) {}
+      , config_(config) {
+    if (config_.timeout < std::chrono::milliseconds(detail::kBasicmicroPacketTimeoutMs)) {
+      logger_.warn("timeout {} ms is below the protocol's {} ms packet-clear window; clamping",
+                   config_.timeout.count(), detail::kBasicmicroPacketTimeoutMs);
+      config_.timeout = std::chrono::milliseconds(detail::kBasicmicroPacketTimeoutMs);
+    }
+    if (config_.address < detail::kBasicmicroMinAddress ||
+        config_.address > detail::kBasicmicroMaxAddress) {
+      const uint8_t clamped =
+          std::clamp(config_.address, detail::kBasicmicroMinAddress, detail::kBasicmicroMaxAddress);
+      logger_.warn("address {:#04x} is outside the valid packet-serial range [{:#04x}, {:#04x}]; "
+                   "clamping to {:#04x}",
+                   config_.address, detail::kBasicmicroMinAddress, detail::kBasicmicroMaxAddress,
+                   clamped);
+      config_.address = clamped;
+    }
+  }
 
   // ------------------------- duty-cycle drive ------------------------------
 

@@ -29,6 +29,7 @@
 //    as the error-recovery mechanism — by the time a reply times out, the
 //    controller's packet buffer has already been cleared automatically.
 
+#include <cstddef>
 #include <cstdint>
 #include <numeric>
 #include <span>

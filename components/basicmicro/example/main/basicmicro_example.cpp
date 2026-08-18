@@ -8,18 +8,20 @@
 
 using namespace std::chrono_literals;
 
+// UART wiring for the MCP: it defaults to packet serial mode at 38400 baud; S1
+// (controller RX) goes to our TX pin and S2 (controller TX) goes to our RX pin.
+// File-scope so the captureless transport lambdas below can reference them
+// without any capture-semantics ambiguity.
+static constexpr uart_port_t uart_port = UART_NUM_1;
+static constexpr int uart_tx_pin = 17; // -> MCP S1
+static constexpr int uart_rx_pin = 16; // <- MCP S2
+static constexpr int uart_baud = 38400;
+
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = "Basicmicro Example", .level = espp::Logger::Verbosity::INFO});
   logger.info("Starting basicmicro example");
 
   //! [basicmicro example]
-  // Wire the driver to the ESP-IDF UART driver. The MCP defaults to packet
-  // serial mode at 38400 baud; S1 (controller RX) goes to our TX pin and S2
-  // (controller TX) goes to our RX pin.
-  static constexpr uart_port_t uart_port = UART_NUM_1;
-  static constexpr int uart_tx_pin = 17; // -> MCP S1
-  static constexpr int uart_rx_pin = 16; // <- MCP S2
-  static constexpr int uart_baud = 38400;
 
   uart_config_t uart_config = {};
   uart_config.baud_rate = uart_baud;
