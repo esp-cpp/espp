@@ -809,8 +809,22 @@
         ["Collections", String((dev.collections || []).length)],
         ["Input reports", String(model.byId.size)],
       ];
-      els.devInfo.innerHTML = rows.map((r) =>
-        `<div class="row"><span class="k">${r[0]}</span><span class="v">${r[1]}</span></div>`).join("");
+      // Build with DOM nodes + textContent: productName comes from the device
+      // descriptor and is attacker-controlled, so it must never be
+      // interpolated into innerHTML (a malicious device name could inject
+      // active markup into the page).
+      els.devInfo.replaceChildren(...rows.map((r) => {
+        const row = document.createElement("div");
+        row.className = "row";
+        const k = document.createElement("span");
+        k.className = "k";
+        k.textContent = r[0];
+        const v = document.createElement("span");
+        v.className = "v";
+        v.textContent = r[1];
+        row.append(k, v);
+        return row;
+      }));
     }
 
     async function disconnect() {

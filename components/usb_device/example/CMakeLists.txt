@@ -19,12 +19,13 @@ set(EXTRA_COMPONENT_DIRS
   "../../../components/hid-rp"
   "../../../components/logger"
   "../../../components/odrive_ascii"
+  "../../../components/odrive_native"
   "../../../components/usb_device"
 )
 
 set(
   COMPONENTS
-  "main esptool_py base_component format hid-rp logger odrive_ascii usb_device esp_tinyusb"
+  "main esptool_py base_component format hid-rp logger odrive_ascii odrive_native usb_device esp_tinyusb"
   CACHE STRING
   "List of components to include"
   )

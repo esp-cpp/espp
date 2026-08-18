@@ -762,10 +762,12 @@
       }
 
       await device.claimInterface(found.interfaceNumber);
-      // Select the alternate setting if it isn't the default (0).
+      // Select the alternate setting if it isn't the default (0). The chosen
+      // endpoints belong to this alternate; if selecting it fails they are not
+      // active, so let the rejection propagate to the connect failure handler
+      // (instead of reporting Connected while every transfer fails).
       if (found.alternateSetting !== 0) {
-        try { await device.selectAlternateInterface(found.interfaceNumber, found.alternateSetting); }
-        catch (_) { /* some platforms don't require/allow this; ignore */ }
+        await device.selectAlternateInterface(found.interfaceNumber, found.alternateSetting);
       }
 
       ifaceNumber = found.interfaceNumber;
