@@ -17,6 +17,7 @@
 #include "freertos/queue.h"
 
 #include "base_component.hpp"
+#include "format.hpp"
 #include "task.hpp"
 
 namespace espp {
@@ -75,14 +76,18 @@ public:
     ///       does for the duration of a synchronous transmit call).
     /// \return A \c twai_frame_t describing this message.
     twai_frame_t to_twai_frame() const {
+      // classic CAN carries at most MAX_DATA_LEN (8) data bytes; clamp defensively
+      // so buffer_len never exceeds the backing data array. transmit() rejects an
+      // out-of-range DLC up front, so this is only a safety net.
+      const uint8_t len = dlc > MAX_DATA_LEN ? static_cast<uint8_t>(MAX_DATA_LEN) : dlc;
       twai_frame_t frame = {};
       frame.header.id = id;
       frame.header.ide = extended ? 1 : 0;
       frame.header.rtr = rtr ? 1 : 0;
       frame.header.fdf = 0; // classic CAN, not FD
-      frame.header.dlc = dlc;
+      frame.header.dlc = len;
       frame.buffer = const_cast<uint8_t *>(data.data());
-      frame.buffer_len = dlc;
+      frame.buffer_len = len;
       return frame;
     }
 
@@ -94,11 +99,15 @@ public:
       msg.id = frame.header.id;
       msg.extended = frame.header.ide;
       msg.rtr = frame.header.rtr;
-      msg.dlc = static_cast<uint8_t>(frame.header.dlc);
-      size_t len = twaifd_dlc2len(frame.header.dlc);
+      // This wrapper is classic CAN only. A CAN-FD frame (fdf set) or a decoded
+      // length above MAX_DATA_LEN (8) would let a Message claim a DLC larger than
+      // the bytes actually copied, so normalize the length to what we can hold and
+      // set msg.dlc to that copied length.
+      size_t len = frame.header.fdf ? MAX_DATA_LEN : twaifd_dlc2len(frame.header.dlc);
       if (len > MAX_DATA_LEN) {
         len = MAX_DATA_LEN;
       }
+      msg.dlc = static_cast<uint8_t>(len);
       if (frame.buffer && !frame.header.rtr) {
         memcpy(msg.data.data(), frame.buffer, len);
       }
@@ -163,26 +172,7 @@ public:
   ~Twai() {
     std::error_code ec;
     stop(ec); // disable the node if it is enabled (ignore errors)
-    // stop and delete the receive task
-    if (task_) {
-      if (queue_) {
-        EventData stop_event{};
-        stop_event.type = EventType::STOP;
-        xQueueSend(queue_, &stop_event, 0);
-      }
-      task_->stop();
-      task_.reset();
-    }
-    // delete the node
-    if (node_) {
-      twai_node_delete(node_);
-      node_ = nullptr;
-    }
-    // delete the queue
-    if (queue_) {
-      vQueueDelete(queue_);
-      queue_ = nullptr;
-    }
+    teardown();
   }
 
   Twai(const Twai &) = delete;
@@ -295,6 +285,10 @@ public:
       if (err != ESP_OK) {
         logger_.error("Failed to enable TWAI node: {}", esp_err_to_name(err));
         ec = std::make_error_code(std::errc::io_error);
+        // tear down every partially-created resource (task, queue, node) so a
+        // failed initialize() leaves no dangling handles and does not report
+        // "Already initialized" on a subsequent call.
+        teardown();
         return false;
       }
       enabled_ = true;
@@ -363,6 +357,13 @@ public:
     if (!enabled_) {
       logger_.error("Cannot transmit: node not enabled");
       ec = std::make_error_code(std::errc::operation_not_permitted);
+      return false;
+    }
+    // classic CAN 2.0 carries at most MAX_DATA_LEN (8) data bytes; reject anything larger
+    if (message.dlc > MAX_DATA_LEN) {
+      logger_.error("Cannot transmit: DLC {} exceeds classic CAN max ({})", message.dlc,
+                    MAX_DATA_LEN);
+      ec = std::make_error_code(std::errc::invalid_argument);
       return false;
     }
     twai_frame_t frame = message.to_twai_frame();
@@ -461,6 +462,35 @@ protected:
     twai_error_state_t old_state; ///< Valid for EventType::STATE_CHANGE
     twai_error_state_t new_state; ///< Valid for EventType::STATE_CHANGE
   };
+
+  /// \brief Tear down every internal resource (receive task, event queue, node)
+  ///        and clear the handles. Safe to call with any subset created, so it is
+  ///        used both by the destructor and by initialize()'s failure paths.
+  /// \note Does not disable the node; callers that may have enabled it should
+  ///       call stop() first.
+  void teardown() {
+    // stop and delete the receive task
+    if (task_) {
+      if (queue_) {
+        EventData stop_event{};
+        stop_event.type = EventType::STOP;
+        xQueueSend(queue_, &stop_event, 0);
+      }
+      task_->stop();
+      task_.reset();
+    }
+    // delete the node
+    if (node_) {
+      twai_node_delete(node_);
+      node_ = nullptr;
+    }
+    // delete the queue
+    if (queue_) {
+      vQueueDelete(queue_);
+      queue_ = nullptr;
+    }
+    enabled_ = false;
+  }
 
   // ---- ISR callbacks (run in ISR context; only marshal to the queue) ----
 
