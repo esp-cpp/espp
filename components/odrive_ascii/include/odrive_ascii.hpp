@@ -1,9 +1,13 @@
 #pragma once
 
+#include <algorithm>
+#include <cctype>
+#include <cerrno>
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
 #include <functional>
+#include <limits>
 #include <mutex>
 #include <optional>
 #include <span>
@@ -118,13 +122,15 @@ public:
     }
     if (setter) {
       wf = [setter](std::string_view sv, std::error_code &ec) {
-        // tolerate hex/decimal/float per std::strtod
+        // tolerate hex/decimal/float per std::strtod, but require the whole
+        // token to convert (reject trailing garbage like "1.5abc"), matching
+        // the strict parsing used by the p/v/c/t command handlers.
         std::string tmp(sv);
         char *end = nullptr;
         float val = static_cast<float>(strtod(tmp.c_str(), &end));
-        if (end == tmp.c_str()) {
+        if (end == tmp.c_str() || end != tmp.c_str() + tmp.size()) {
           ec = std::make_error_code(std::errc::invalid_argument);
-          return false; // no conversion
+          return false; // no/partial conversion
         }
         return setter(val, ec);
       };
@@ -152,12 +158,20 @@ public:
     }
     if (setter) {
       wf = [setter](std::string_view sv, std::error_code &ec) {
+        // Require the whole token to convert (reject trailing garbage) and
+        // reject values outside int32 range instead of silently wrapping.
         std::string tmp(sv);
         char *end = nullptr;
+        errno = 0;
         long long val = strtoll(tmp.c_str(), &end, 0);
-        if (end == tmp.c_str()) {
+        if (end == tmp.c_str() || end != tmp.c_str() + tmp.size()) {
           ec = std::make_error_code(std::errc::invalid_argument);
-          return false; // no conversion
+          return false; // no/partial conversion
+        }
+        if (errno == ERANGE || val < std::numeric_limits<int32_t>::min() ||
+            val > std::numeric_limits<int32_t>::max()) {
+          ec = std::make_error_code(std::errc::result_out_of_range);
+          return false;
         }
         return setter(static_cast<int32_t>(val), ec);
       };
@@ -186,9 +200,13 @@ public:
     }
     if (setter) {
       wf = [setter](std::string_view sv, std::error_code &ec) {
-        if (sv == "1" || sv == "true" || sv == "TRUE")
+        // case-insensitive true/false (per the doc comment), plus 0/1
+        std::string lowered(sv);
+        std::transform(lowered.begin(), lowered.end(), lowered.begin(),
+                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        if (lowered == "1" || lowered == "true")
           return setter(true, ec);
-        if (sv == "0" || sv == "false" || sv == "FALSE")
+        if (lowered == "0" || lowered == "false")
           return setter(false, ec);
         ec = std::make_error_code(std::errc::invalid_argument);
         return false;
