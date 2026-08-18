@@ -104,8 +104,7 @@ static void test_deframe_roundtrip() {
   stream.insert(stream.end(), f1.begin(), f1.end());
   for (uint8_t b : stream) {
     auto r = d2.push(std::span<const uint8_t>(&b, 1));
-    for (auto &pk : r)
-      got.push_back(pk);
+    got.insert(got.end(), r.begin(), r.end());
   }
   CHECK(got.size() == 1);
   if (got.size() == 1)

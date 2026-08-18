@@ -178,6 +178,10 @@ public:
   /// Register a bool property. Wire size is 1 byte, serialized as 0/1.
   void register_bool_property(const std::string &path, const getter_fn<bool> &getter,
                               const setter_fn<bool> &setter = nullptr) {
+    // An endpoint with neither accessor cannot be read or written; registering
+    // it would misrepresent its access as "r" in the schema. Reject it.
+    if (!getter && !setter)
+      return;
     std::scoped_lock lk(mutex_);
     Endpoint ep;
     ep.id = next_id_++;
@@ -332,6 +336,10 @@ private:
   template <typename T>
   void register_typed(const std::string &path, const char *type_name, const getter_fn<T> &getter,
                       const setter_fn<T> &setter) {
+    // An endpoint with neither accessor cannot be read or written; registering
+    // it would misrepresent its access as "r" in the schema. Reject it.
+    if (!getter && !setter)
+      return;
     std::scoped_lock lk(mutex_);
     Endpoint ep;
     ep.id = next_id_++;
