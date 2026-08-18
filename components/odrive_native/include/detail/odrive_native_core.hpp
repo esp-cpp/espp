@@ -16,6 +16,7 @@
 #include <cstring>
 #include <functional>
 #include <mutex>
+#include <numeric>
 #include <span>
 #include <string>
 #include <string_view>
@@ -38,10 +39,7 @@ inline uint16_t odrive_crc16_byte(uint16_t rem, uint8_t val) {
 
 /// CRC-16 over a buffer using the ODrive init value (0x1337).
 inline uint16_t odrive_crc16(std::span<const uint8_t> data, uint16_t init = 0x1337) {
-  uint16_t r = init;
-  for (uint8_t b : data)
-    r = odrive_crc16_byte(r, b);
-  return r;
+  return std::accumulate(data.begin(), data.end(), init, odrive_crc16_byte);
 }
 
 /// CRC-16 convenience overload for a string_view.
@@ -284,16 +282,15 @@ public:
       if (endpoint_id == 0) {
         json_snapshot = json_;
       } else {
-        for (const auto &ep : endpoints_) {
-          if (ep.id == endpoint_id) {
-            have_endpoint = true;
-            writable = ep.writable;
-            ep_size = ep.size;
-            ep_path = ep.path;
-            serialize = ep.serialize;
-            deserialize = ep.deserialize;
-            break;
-          }
+        auto it = std::find_if(endpoints_.begin(), endpoints_.end(),
+                               [endpoint_id](const Endpoint &ep) { return ep.id == endpoint_id; });
+        if (it != endpoints_.end()) {
+          have_endpoint = true;
+          writable = it->writable;
+          ep_size = it->size;
+          ep_path = it->path;
+          serialize = it->serialize;
+          deserialize = it->deserialize;
         }
       }
     }
@@ -422,11 +419,9 @@ private:
   };
 
   static JsonNode *find_child(JsonNode &parent, std::string_view name) {
-    for (auto &c : parent.children) {
-      if (c.name == name)
-        return &c;
-    }
-    return nullptr;
+    auto it = std::find_if(parent.children.begin(), parent.children.end(),
+                           [name](const JsonNode &c) { return c.name == name; });
+    return it != parent.children.end() ? &*it : nullptr;
   }
 
   static void append_entry(std::string &out, const JsonNode &node) {
