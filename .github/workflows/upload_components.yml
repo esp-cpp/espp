@@ -61,6 +61,7 @@ jobs:
             components/bmi270
             components/button
             components/byte90
+            components/canopen
             components/chsc6x
             components/cdr
             components/cli

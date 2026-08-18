@@ -11,4 +11,5 @@ external chips.
    spi
    rmt
    twai
+   canopen
    usb_cdc
