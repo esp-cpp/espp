@@ -809,7 +809,13 @@
           }
           const resp = await readPacket(readLen, timeoutMs);
           if (els.logPackets.checked) logLine("rx", hex(resp));
-          if (resp.length < 2) return new Uint8Array(0); // no/empty response
+          if (resp.length < 2) {
+            // A valid response always echoes the 2-byte seq header; anything
+            // shorter means the device did not reply. Fail the transaction so
+            // callers (e.g. writeEndpoint) don't mistake a missing ack for success.
+            logLine("err", "No/short response from device");
+            return null;
+          }
           const respSeq = resp[0] | (resp[1] << 8);
           if ((respSeq & 0x7fff) !== (req.seq & 0x7fff)) {
             // The response does not belong to this request. Applying it would
