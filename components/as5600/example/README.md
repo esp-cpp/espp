@@ -9,8 +9,9 @@ ESP32-S3. If you wish to use a different chip / board, changes those and rebuild
 This example shows the use of the `As5600` component to communicate with an
 AS5600 I2C magnetic encoder chip. 
 
-It uses the `task` component to periodically read the raw count, position, and
-velocity of the encoder, the `filters` component (specifically the
+It uses the `task` component to periodically poll and print the raw count,
+position, and velocity of the encoder (the `As5600` itself maintains that state
+with its own internal timer), the `filters` component (specifically the
 `espp::ButterworthFilter` class) to filter the raw values from the sensor, and
 the `format` component to print the data to the console in CSV format.
 

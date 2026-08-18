@@ -33,7 +33,8 @@ dependencies:
   espp/interrupt: ">=1.0"
   # MIPI-CSI camera pipeline: esp_video provides the V4L2 capture framework
   # (CSI + ISP) and esp_cam_sensor provides the OV5647 sensor driver.
-  espressif/esp_video: ">=2.0"
-  espressif/esp_cam_sensor: ">=2.0"
+  espressif/esp_video: ">=2.0,<2.4" # 2.4.0 fails to compile against the CI IDF (ISP_LL_EVENT_ERROR_MASK undeclared)
+  espressif/esp_ipa: ">=2.0,<2.3" # prebuilt 2.3.0 illegal-instructions at runtime on P4
+  espressif/esp_cam_sensor: ">=2.0,<2.4"
 targets:
   - esp32p4

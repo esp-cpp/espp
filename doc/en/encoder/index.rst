@@ -6,6 +6,7 @@ Encoder APIs
 
     abi_encoder
     encoder_types
+    magnetic_encoder
     as5600
     mt6701
 
