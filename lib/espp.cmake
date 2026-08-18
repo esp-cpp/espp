@@ -292,6 +292,13 @@ function(espp_install_python_module)
     DESTINATION .
     PATTERN "__pycache__" EXCLUDE
     PATTERN ".mypy_cache" EXCLUDE)
+  # Also stage espp_odrive (the pure-python ODrive client that lives in the
+  # odrive_native component) next to the espp package, mirroring the wheel's
+  # `wheel.packages` in pyproject.toml -- so PYTHONPATH=<prefix> gives both
+  # `import espp` and `import espp_odrive` (and espp.odrive works).
+  install(DIRECTORY ${ESPP_COMPONENTS}/odrive_native/python/espp_odrive
+    DESTINATION .
+    PATTERN "__pycache__" EXCLUDE)
   install(TARGETS _espp
     LIBRARY DESTINATION espp/
     RUNTIME DESTINATION espp/)

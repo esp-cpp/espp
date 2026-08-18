@@ -6,8 +6,17 @@ re-implementation of the documented wire format in
 [`../PROTOCOL.md`](../PROTOCOL.md).
 
 It depends only on the Python **standard library** plus **`pyserial`** (for the
-serial backend). There is **no dependency on the `odrive`/`fibre` pip package** —
-that is the whole point: you fully own this code.
+serial backend, imported lazily). There is **no dependency on the
+`odrive`/`fibre` pip package** — that is the whole point: you fully own this
+code.
+
+> **Shipped with the espp Python package**: this directory is the single source
+> of truth, and the [espp wheel](https://pypi.org/project/espp/) ships it as the
+> top-level `espp_odrive` package (also reachable as `espp.odrive`) — so
+> `pip install espp[serial]` gives you both the bound C++ protocol **server**
+> (`espp.OdriveNative`) and this **client**, with no path tricks. See
+> `python/odrive_native_test.py` at the repo root, which loops the two against
+> each other in-process.
 
 ## Install / requirements
 
