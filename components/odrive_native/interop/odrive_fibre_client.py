@@ -14,7 +14,6 @@ Usage:
     odrive_fibre_client.py <serial_port> [--fibre-path DIR] [--timeout SECONDS]
 """
 import argparse
-import struct
 import sys
 import time
 

@@ -10,6 +10,8 @@
 //
 // See PROTOCOL.md for the authoritative wire specification.
 
+#include <algorithm>
+#include <bit>
 #include <cstdint>
 #include <cstring>
 #include <functional>
@@ -18,6 +20,7 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <type_traits>
 #include <vector>
 
 namespace espp {
@@ -52,18 +55,11 @@ static constexpr uint16_t kProtocolVersion = 1;
 
 /// Endianness helpers. Both ESP32 and the host dev machines are little-endian,
 /// and the wire format is little-endian, so a raw byte copy is correct. The
-/// static_assert guards against ever building on a big-endian target.
-static_assert(
-    []() {
-// portable little-endian check evaluated at compile time via union punning
-// is not constexpr-friendly; instead rely on __BYTE_ORDER__ when available.
-#if defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__)
-      return __BYTE_ORDER__ != __ORDER_BIG_ENDIAN__;
-#else
-      return true;
-#endif
-    }(),
-    "OdriveNative wire core assumes a little-endian target");
+/// static_assert guards against ever building on a big-endian target. C++20's
+/// std::endian gives a definitive compile-time answer on every conforming
+/// toolchain (no reliance on the compiler-specific __BYTE_ORDER__ macro).
+static_assert(std::endian::native == std::endian::little,
+              "OdriveNative wire core assumes a little-endian target");
 
 inline uint16_t read_u16_le(std::span<const uint8_t> s, size_t off) {
   return static_cast<uint16_t>(s[off]) | (static_cast<uint16_t>(s[off + 1]) << 8);
@@ -306,10 +302,13 @@ public:
       if (output_len > 0 && serialize) {
         std::vector<uint8_t> value;
         serialize(value);
-        const size_t n = std::min<size_t>(output_len, value.size());
+        // Cap the response to the smaller of what the client asked for
+        // (output_len), what the getter produced (value.size()), and the
+        // endpoint's declared wire width (ep_size). ep_size guards against a
+        // getter that (mis)serializes more than the endpoint's type advertises.
+        const size_t n = std::min({static_cast<size_t>(output_len), value.size(), ep_size});
         data.assign(value.begin(), value.begin() + n);
       }
-      (void)ep_size;
     }
     // Unknown endpoint: ignore entirely per PROTOCOL.md -- return no response
     // even if the client set the expect-response bit. (endpoint 0 is always a

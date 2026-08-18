@@ -95,52 +95,61 @@ public:
   std::vector<std::vector<uint8_t>> push(std::span<const uint8_t> data) {
     buf_.insert(buf_.end(), data.begin(), data.end());
     std::vector<std::vector<uint8_t>> out;
+    // `pos_` is a read cursor into buf_. Resync/consume advance the cursor
+    // instead of erasing from the front of the vector, which would be O(n) per
+    // byte dropped (and quadratic under noisy input / repeated resync). We
+    // compact the vector once at the end, so a full push() is O(buffer size).
     for (;;) {
-      // Resync: drop everything before the first sync byte.
-      size_t sync = 0;
-      while (sync < buf_.size() && buf_[sync] != kStreamSync)
-        ++sync;
-      if (sync > 0)
-        buf_.erase(buf_.begin(), buf_.begin() + sync);
+      // Resync: advance past everything before the first sync byte.
+      while (pos_ < buf_.size() && buf_[pos_] != kStreamSync)
+        ++pos_;
 
       // Need at least the 3-byte header [sync,len,crc8].
-      if (buf_.size() < 3)
+      if (buf_.size() - pos_ < 3)
         break;
 
-      const uint8_t len = buf_[1];
-      const uint8_t hcrc = buf_[2];
-      const uint8_t header[2] = {buf_[0], len};
+      const uint8_t len = buf_[pos_ + 1];
+      const uint8_t hcrc = buf_[pos_ + 2];
+      const uint8_t header[2] = {buf_[pos_], len};
       if (len >= 128 || odrive_crc8(std::span<const uint8_t>(header, 2)) != hcrc) {
-        // Bad header: drop the sync byte and hunt for the next one.
-        buf_.erase(buf_.begin());
+        // Bad header: skip the sync byte and hunt for the next one.
+        ++pos_;
         continue;
       }
 
       // Need the full frame: header(3) + packet(len) + crc16(2).
       const size_t frame_len = 3 + static_cast<size_t>(len) + 2;
-      if (buf_.size() < frame_len)
+      if (buf_.size() - pos_ < frame_len)
         break; // wait for more bytes
 
-      std::span<const uint8_t> packet(buf_.data() + 3, len);
-      const uint16_t got = static_cast<uint16_t>((static_cast<uint16_t>(buf_[3 + len]) << 8) |
-                                                 buf_[3 + len + 1]); // big-endian
+      std::span<const uint8_t> packet(buf_.data() + pos_ + 3, len);
+      const uint16_t got =
+          static_cast<uint16_t>((static_cast<uint16_t>(buf_[pos_ + 3 + len]) << 8) |
+                                buf_[pos_ + 3 + len + 1]); // big-endian
       if (odrive_crc16(packet) != got) {
-        // Bad trailer CRC: drop the sync byte and resync.
-        buf_.erase(buf_.begin());
+        // Bad trailer CRC: skip the sync byte and resync.
+        ++pos_;
         continue;
       }
 
       out.emplace_back(packet.begin(), packet.end());
-      buf_.erase(buf_.begin(), buf_.begin() + frame_len);
+      pos_ += frame_len;
+    }
+    // Compact: drop the consumed prefix in a single erase, then reset the
+    // cursor. This is the only front-erase per push() (amortized O(1) per byte).
+    if (pos_ > 0) {
+      buf_.erase(buf_.begin(), buf_.begin() + pos_);
+      pos_ = 0;
     }
     return out;
   }
 
   /// Bytes currently buffered awaiting a complete frame (for diagnostics/tests).
-  size_t buffered() const { return buf_.size(); }
+  size_t buffered() const { return buf_.size() - pos_; }
 
 private:
   std::vector<uint8_t> buf_;
+  size_t pos_ = 0; // read cursor into buf_ (bytes before it are consumed)
 };
 
 } // namespace detail
