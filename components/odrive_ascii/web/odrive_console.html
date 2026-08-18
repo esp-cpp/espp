@@ -1001,9 +1001,13 @@
       const dpr = window.devicePixelRatio || 1;
       const w = Math.max(2, Math.floor(rect.width));
       const h = Math.max(2, Math.floor(rect.height));
-      if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
-        canvas.width = w * dpr;
-        canvas.height = h * dpr;
+      // round: canvas.width is an integer, so comparing against a fractional
+      // w*dpr (dpr 1.25/1.5) would mismatch every frame and needlessly
+      // reallocate + clear the backing store on each sample
+      const bw = Math.round(w * dpr), bh = Math.round(h * dpr);
+      if (canvas.width !== bw || canvas.height !== bh) {
+        canvas.width = bw;
+        canvas.height = bh;
       }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, w, h);
