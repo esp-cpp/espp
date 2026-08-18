@@ -18,6 +18,13 @@ set(CMAKE_CXX_STANDARD 23)
 # needed here.
 find_package(espp REQUIRED)
 
+# Every test here links the WHOLE espp::espp archive (below), so the full espp
+# package — headers AND compiled objects like Logger — is guaranteed available.
+# Declare that to the tests explicitly: pc/tests/odrive_native_golden.cpp keys
+# its espp::OdriveNative wrapper section off this (the minimal interop-harness
+# build of the same file gets no define and falls back to header detection).
+add_compile_definitions(ODRIVE_GOLDEN_HAS_ESPP_LIB=1)
+
 MACRO(GEN_TESTS curdir)
   # get test files
   FILE(GLOB tests RELATIVE ${curdir} ${curdir}/tests/*.cpp)
