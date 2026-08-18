@@ -74,9 +74,11 @@ UsbDevice::~UsbDevice() {
   if (initialized_) {
     // Detach the global callback routing BEFORE tearing down the driver so a
     // TinyUSB callback that fires during deinit cannot dereference this
-    // destructing instance (use-after-free).
-    if (s_device == this)
-      s_device = nullptr;
+    // destructing instance (use-after-free). Atomic compare_exchange so the
+    // clear only happens if we still own the slot (mirrors the claim in
+    // initialize()).
+    UsbDevice *expected = this;
+    s_device.compare_exchange_strong(expected, nullptr);
     if (config_.cdc)
       tinyusb_cdcacm_deinit(kCdcPort);
     tinyusb_driver_uninstall();
@@ -303,6 +305,9 @@ bool UsbDevice::initialize(std::error_code &ec) {
     logger_.warn("Already initialized");
     return true;
   }
+  // Fast-fail when another instance is already active. This check alone is
+  // check-then-act racy; the AUTHORITATIVE claim is the compare_exchange just
+  // before tinyusb_driver_install() below.
   if (s_device != nullptr) {
     logger_.error("Another UsbDevice/UsbCdc instance is already active");
     ec = std::make_error_code(std::errc::device_or_resource_busy);
@@ -779,7 +784,16 @@ bool UsbDevice::initialize(std::error_code &ec) {
 #endif
 
   // Register before installing so the BOS / vendor callbacks can find us.
-  s_device = this;
+  // Claim the singleton slot ATOMICALLY: the null check at the top of
+  // initialize() is only a fast-fail, so two threads (or two instances) that
+  // both passed it must be arbitrated here — exactly one compare_exchange
+  // wins and installs the driver; the loser backs out with "busy".
+  UsbDevice *expected = nullptr;
+  if (!s_device.compare_exchange_strong(expected, this)) {
+    logger_.error("Another UsbDevice/UsbCdc instance is already active");
+    ec = std::make_error_code(std::errc::device_or_resource_busy);
+    return false;
+  }
 
   esp_err_t err = tinyusb_driver_install(&tusb_cfg);
   if (err != ESP_OK) {
