@@ -13,9 +13,11 @@ measure
 * Accumulated degrees (since the component was created)
 * Speed (rotations per minute / RPM)
 
-It does so by spawning a task which periodically reads the magnetic encoder,
+It does so by spawning a timer which periodically reads the magnetic encoder,
 updates the accumulator, and computes the velocity. The component can be
-configured to optionally filter the velocity.
+configured to optionally filter the velocity. The timer can be either a
+`espp::HighResolutionTimer` (default) or an `espp::Timer`, selected via KConfig /
+menuconfig.
 
 The periodicity / update rate of the encoder can be configured at time of
 creation.
