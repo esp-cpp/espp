@@ -43,11 +43,13 @@ namespace espp {
 // of the driver. These must outlive tinyusb_driver_install().
 struct UsbDevice::Impl {
   tusb_desc_device_t device_desc{};
-  std::vector<uint8_t> config_desc;
-  std::vector<uint8_t> bos_desc;        // BOS (WebUSB + MS OS 2.0), empty if unused
-  std::vector<uint8_t> ms_os_20_desc;   // MS OS 2.0 descriptor set, empty if unused
-  std::vector<uint8_t> webusb_url_desc; // WebUSB URL descriptor, empty if unused
-  std::vector<uint8_t> hid_report_desc; // HID report descriptor bytes, empty if unused
+  std::vector<uint8_t> config_desc;    // full-speed configuration (64-byte bulk)
+  std::vector<uint8_t> hs_config_desc; // high-speed configuration (512-byte bulk), HS builds only
+  tusb_desc_device_qualifier_t qualifier_desc{}; // device qualifier, HS builds only
+  std::vector<uint8_t> bos_desc;                 // BOS (WebUSB + MS OS 2.0), empty if unused
+  std::vector<uint8_t> ms_os_20_desc;            // MS OS 2.0 descriptor set, empty if unused
+  std::vector<uint8_t> webusb_url_desc;          // WebUSB URL descriptor, empty if unused
+  std::vector<uint8_t> hid_report_desc;          // HID report descriptor bytes, empty if unused
 
   // Owning strings + the pointer table TinyUSB reads (index 0 is the LANGID).
   std::array<uint8_t, 2> langid{{0x09, 0x04}};
@@ -332,6 +334,16 @@ bool UsbDevice::initialize(std::error_code &ec) {
     ec = std::make_error_code(std::errc::function_not_supported);
     return false;
 #endif
+    if (config_.hid->report_descriptor.empty()) {
+      // A default-constructed HidFunction has no report descriptor; proceeding
+      // would emit a HID interface with wDescriptorLength == 0 (and a null
+      // report callback) -- an invalid HID interface that "succeeds" here and
+      // then confuses the host. Reject it as an invalid configuration.
+      logger_.error("HID function enabled but report_descriptor is empty; supply the HID "
+                    "report descriptor bytes (e.g. built with the hid-rp component).");
+      ec = std::make_error_code(std::errc::invalid_argument);
+      return false;
+    }
   }
 
   // A zero-length RX scratch buffer would make the RX drain loops spin without
@@ -352,7 +364,6 @@ bool UsbDevice::initialize(std::error_code &ec) {
   uint8_t next_itf = 0;
   uint8_t next_ep = 1; // endpoint number (1..); IN uses 0x80|n, OUT uses n
   uint8_t in_used = 0, out_used = 0;
-  const int ep_size = (TUD_OPT_HIGH_SPEED ? 512 : 64);
 
   // Preallocate the RX scratch buffers now so the TinyUSB-task RX handlers never
   // allocate on the hot path.
@@ -470,49 +481,84 @@ bool UsbDevice::initialize(std::error_code &ec) {
         total_len + (config_.hid->has_out_endpoint ? TUD_HID_INOUT_DESC_LEN : TUD_HID_DESC_LEN));
   }
 
-  impl_->config_desc.clear();
-  auto append = [&](const uint8_t *p, size_t n) {
-    impl_->config_desc.insert(impl_->config_desc.end(), p, p + n);
-  };
-  {
-    const uint8_t hdr[] = {
-        // config number, interface count, string index, total length, attribute, power (mA)
-        TUD_CONFIG_DESCRIPTOR(1, itf_count, 0, total_len, TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
-    };
-    append(hdr, sizeof(hdr));
-  }
-  if (config_.cdc) {
-    const uint8_t d[] = {
-        TUD_CDC_DESCRIPTOR(cdc_itf, cdc_str, cdc_notif, 8, cdc_out, cdc_in, ep_size),
-    };
-    append(d, sizeof(d));
-  }
-  if (config_.vendor) {
-    const uint8_t d[] = {
-        TUD_VENDOR_DESCRIPTOR(vendor_itf, vendor_str, vendor_out, vendor_in, ep_size),
-    };
-    append(d, sizeof(d));
-  }
-  if (config_.hid) {
-    const uint16_t report_len = static_cast<uint16_t>(impl_->hid_report_desc.size());
-    const uint8_t poll = config_.hid->poll_interval_ms;
-    // Interrupt endpoints are full-speed (<=64 byte packets) even on high-speed
-    // parts; a 64-byte endpoint buffer comfortably fits the gamepad report.
-    constexpr uint8_t kHidEpSize = 64;
-    if (config_.hid->has_out_endpoint) {
-      const uint8_t d[] = {
-          TUD_HID_INOUT_DESCRIPTOR(hid_itf, hid_str, HID_ITF_PROTOCOL_NONE, report_len, hid_out,
-                                   hid_in, kHidEpSize, poll),
+  // Build one configuration descriptor for a given bus speed. Bulk endpoints
+  // are 64 bytes at full speed and 512 at high speed; the HID interrupt
+  // bInterval is in 1-ms frames at FS but exponent-encoded (2^(n-1) x 125 us
+  // microframes) at HS. On HS-capable parts (e.g. ESP32-P4) BOTH descriptors
+  // are installed so the device is valid whichever speed the host negotiates.
+  auto build_config_desc = [&](std::vector<uint8_t> &desc, int bulk_ep_size,
+                               uint8_t hid_binterval) {
+    desc.clear();
+    auto append = [&](const uint8_t *p, size_t n) { desc.insert(desc.end(), p, p + n); };
+    {
+      const uint8_t hdr[] = {
+          // config number, interface count, string index, total length, attribute, power (mA)
+          TUD_CONFIG_DESCRIPTOR(1, itf_count, 0, total_len, TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP,
+                                100),
       };
-      append(d, sizeof(d));
-    } else {
+      append(hdr, sizeof(hdr));
+    }
+    if (config_.cdc) {
       const uint8_t d[] = {
-          TUD_HID_DESCRIPTOR(hid_itf, hid_str, HID_ITF_PROTOCOL_NONE, report_len, hid_in,
-                             kHidEpSize, poll),
+          TUD_CDC_DESCRIPTOR(cdc_itf, cdc_str, cdc_notif, 8, cdc_out, cdc_in, bulk_ep_size),
       };
       append(d, sizeof(d));
     }
+    if (config_.vendor) {
+      const uint8_t d[] = {
+          TUD_VENDOR_DESCRIPTOR(vendor_itf, vendor_str, vendor_out, vendor_in, bulk_ep_size),
+      };
+      append(d, sizeof(d));
+    }
+    if (config_.hid) {
+      const uint16_t report_len = static_cast<uint16_t>(impl_->hid_report_desc.size());
+      // Interrupt endpoints are <=64 byte packets at either speed; a 64-byte
+      // endpoint buffer comfortably fits the gamepad report.
+      constexpr uint8_t kHidEpSize = 64;
+      if (config_.hid->has_out_endpoint) {
+        const uint8_t d[] = {
+            TUD_HID_INOUT_DESCRIPTOR(hid_itf, hid_str, HID_ITF_PROTOCOL_NONE, report_len, hid_out,
+                                     hid_in, kHidEpSize, hid_binterval),
+        };
+        append(d, sizeof(d));
+      } else {
+        const uint8_t d[] = {
+            TUD_HID_DESCRIPTOR(hid_itf, hid_str, HID_ITF_PROTOCOL_NONE, report_len, hid_in,
+                               kHidEpSize, hid_binterval),
+        };
+        append(d, sizeof(d));
+      }
+    }
+  };
+
+  const uint8_t hid_poll_ms = config_.hid ? config_.hid->poll_interval_ms : 0;
+  // Full-speed configuration: 64-byte bulk endpoints, bInterval in ms frames.
+  build_config_desc(impl_->config_desc, 64, hid_poll_ms);
+#if (TUD_OPT_HIGH_SPEED)
+  // High-speed configuration: 512-byte bulk endpoints; HID bInterval is the
+  // exponent n in 2^(n-1) x 125 us microframes. Choose the largest n whose
+  // period does not exceed the requested ms (i.e. poll at least as often).
+  uint8_t hs_hid_binterval = 1;
+  {
+    const uint32_t microframes = static_cast<uint32_t>(hid_poll_ms) * 8; // 125 us units
+    while (hs_hid_binterval < 16 && (1u << hs_hid_binterval) <= microframes)
+      ++hs_hid_binterval; // exits with 2^(n-1) <= microframes < 2^n
   }
+  build_config_desc(impl_->hs_config_desc, 512, hs_hid_binterval);
+  // Device qualifier: required for a high-speed-capable device so the host can
+  // query the other-speed characteristics.
+  impl_->qualifier_desc = {
+      .bLength = sizeof(tusb_desc_device_qualifier_t),
+      .bDescriptorType = TUSB_DESC_DEVICE_QUALIFIER,
+      .bcdUSB = impl_->device_desc.bcdUSB,
+      .bDeviceClass = impl_->device_desc.bDeviceClass,
+      .bDeviceSubClass = impl_->device_desc.bDeviceSubClass,
+      .bDeviceProtocol = impl_->device_desc.bDeviceProtocol,
+      .bMaxPacketSize0 = impl_->device_desc.bMaxPacketSize0,
+      .bNumConfigurations = 1,
+      .bReserved = 0,
+  };
+#endif
 
   // --- WebUSB / MS OS 2.0 descriptors (only when the vendor+WebUSB is enabled) ---
   if (webusb) {
@@ -727,7 +773,8 @@ bool UsbDevice::initialize(std::error_code &ec) {
   tusb_cfg.descriptor.string_count = static_cast<int>(impl_->strings.size());
   tusb_cfg.descriptor.full_speed_config = impl_->config_desc.data();
 #if (TUD_OPT_HIGH_SPEED)
-  tusb_cfg.descriptor.high_speed_config = impl_->config_desc.data();
+  tusb_cfg.descriptor.high_speed_config = impl_->hs_config_desc.data();
+  tusb_cfg.descriptor.qualifier = &impl_->qualifier_desc;
 #endif
 
   // Register before installing so the BOS / vendor callbacks can find us.
