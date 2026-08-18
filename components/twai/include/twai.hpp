@@ -541,7 +541,12 @@ protected:
 
   bool task_callback(std::mutex &, std::condition_variable &, bool &) {
     EventData event;
-    if (xQueueReceive(queue_, &event, portMAX_DELAY)) {
+    // Use a bounded receive timeout so this callback periodically returns to the
+    // espp::Task loop, which re-checks its running flag. That lets Task::stop()
+    // exit even if the STOP event below could not be enqueued (e.g. the RX queue
+    // was full) -- the STOP event is a fast-wake optimization, not the sole stop
+    // mechanism, so teardown() can never deadlock waiting on the task.
+    if (xQueueReceive(queue_, &event, pdMS_TO_TICKS(100))) {
       switch (event.type) {
       case EventType::STOP:
         return true; // stop the task
