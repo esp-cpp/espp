@@ -95,11 +95,12 @@ public:
      *        the URL must be given *without* a scheme (the scheme is prepended by
      *        the host from `url_scheme`). When `url_scheme` is 255 the URL must
      *        instead *include* its own scheme (e.g. "http://..."). Defaults to
-     *        the espp docs-hosted ODrive WebUSB console (scheme-less, https).
+     *        the espp docs-hosted board console + ESP flasher (scheme-less,
+     *        https), a general-purpose Web Serial monitor and esptool-js flasher.
      * @note The descriptor length (3 + URL bytes) must fit a uint8_t, so the URL
      *       is limited to 252 bytes; `initialize()` rejects a longer URL.
      */
-    std::string landing_page_url{"esp-cpp.github.io/espp/apps/odrive_webusb_console.html"};
+    std::string landing_page_url{"esp-cpp.github.io/espp/apps/board_console.html"};
     uint8_t url_scheme{1};         /**< 0 = http, 1 = https, 255 = URL includes its own scheme. */
     uint8_t webusb_vendor_code{1}; /**< bRequest used for the WebUSB URL control request. */
     uint8_t ms_os_vendor_code{
