@@ -50,9 +50,21 @@ jobs:
           # copy the generated HTML files to the docs directory for GitHub Pages
           mkdir -p ../docs
           cp -r "${build_dir_from_doc}/html/"* ../docs/.
-          # copy hosted browser apps (WebUSB / Web Serial tools) into docs/apps/
+          # Host the interactive single-file web apps (Web Serial / WebUSB /
+          # WebHID tools) alongside the docs. GitHub Pages serves over https
+          # (a secure context), so the browser APIs work directly from these
+          # hosted copies.
           mkdir -p ../docs/apps
+          # nullglob makes a "no matches" case a no-op (the glob expands to
+          # nothing) while a genuine copy error still fails the job, instead
+          # of being swallowed by `|| true`.
           shopt -s nullglob
+          consoles=(../components/odrive_ascii/web/*.html)
+          if [ ${#consoles[@]} -gt 0 ]; then
+            cp "${consoles[@]}" ../docs/apps/
+          else
+            echo "No hosted web consoles found to copy." >&2
+          fi
           for f in ../components/usb_device/web/*.html ../components/usb_device/web/*.js; do
             cp "$f" ../docs/apps/.
           done

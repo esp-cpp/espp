@@ -82,6 +82,9 @@ extern "C" void app_main(void) {
 
   OdriveAscii::Config cfg;
   cfg.log_level = Logger::Verbosity::INFO;
+  // By default the server matches the ODrive protocol and is SILENT on writes
+  // and setpoint commands (w/p/v/c/t/es); only r/f/help respond. Set
+  // cfg.acknowledge_commands = true if you want an explicit "OK" on success.
   OdriveAscii proto(cfg);
 
   // Register some read/write properties matching ODrive-style paths
@@ -153,7 +156,8 @@ extern "C" void app_main(void) {
 
   // ------------------------ Basic scripted self-test ------------------------
   {
-    const char *script = "r axis0.encoder.pos_estimate\r\n"
+    const char *script = "; comment-only lines and inline comments are ignored\n"
+                         "r axis0.encoder.pos_estimate ; read the position estimate\r\n"
                          "w axis0.controller.input_pos 12.34\n"
                          "r axis0.encoder.pos_estimate\n"
                          "p 0 1.0 0.5 0.1\r\n"
