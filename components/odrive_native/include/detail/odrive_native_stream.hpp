@@ -62,6 +62,11 @@ inline uint8_t odrive_crc8(std::span<const uint8_t> data, uint8_t init = 0x42) {
  */
 inline std::vector<uint8_t> stream_frame(std::span<const uint8_t> packet) {
   std::vector<uint8_t> out;
+  // The stream framing carries the packet length in a single byte that must be
+  // < 128. A larger packet cannot be represented (len would wrap/truncate and
+  // produce a malformed frame), so refuse it and return an empty vector.
+  if (packet.size() > kStreamMaxPacket)
+    return out;
   const uint8_t len = static_cast<uint8_t>(packet.size());
   out.reserve(packet.size() + 5);
   out.push_back(kStreamSync);
