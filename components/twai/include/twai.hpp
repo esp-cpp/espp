@@ -481,6 +481,16 @@ protected:
     }
     // delete the node
     if (node_) {
+      // twai_node_delete() requires the node to be disabled first. If a prior
+      // stop() failed (or was never called) and the node is still enabled,
+      // deleting it would fail and leak the driver resource -- so make a
+      // best-effort disable here before deleting.
+      if (enabled_) {
+        esp_err_t err = twai_node_disable(node_);
+        if (err != ESP_OK)
+          logger_.warn("Could not disable TWAI node before delete: {}", esp_err_to_name(err));
+        enabled_ = false;
+      }
       twai_node_delete(node_);
       node_ = nullptr;
     }
