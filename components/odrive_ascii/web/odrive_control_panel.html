@@ -645,12 +645,20 @@
 
     async function connect() {
       try {
+        // `{ filters: [] }` is not a valid "any device" request in Chromium's
+        // WebUSB; use the explicit `acceptAllDevices` flag for that path.
         const options = els.anyDevice.checked
-          ? { filters: [] }
+          ? { acceptAllDevices: true }
           : { filters: [{ vendorId: DEFAULT_VID, productId: DEFAULT_PID }] };
         device = await navigator.usb.requestDevice(options);
       } catch (e) {
-        logLine("sys", "Device selection cancelled."); device = null; return;
+        // Only NotFoundError is a user cancel / no-match; anything else is real.
+        if (e && e.name === "NotFoundError") {
+          logLine("sys", "Device selection cancelled.");
+        } else {
+          logLine("err", "Device selection failed: " + (e && e.message ? e.message : e));
+        }
+        device = null; return;
       }
       try {
         await openAndClaim();
@@ -763,8 +771,26 @@
           throw new Error("IN endpoint stalled");
         }
         if (result.status === "babble") throw new Error("IN endpoint babble (device sent too much)");
-        return new Uint8Array(result.data ? result.data.buffer : new ArrayBuffer(0));
+        // result.data is a DataView; honor its byteOffset/byteLength so we do
+        // not read trailing junk from the underlying ArrayBuffer.
+        return result.data
+          ? new Uint8Array(result.data.buffer, result.data.byteOffset, result.data.byteLength)
+          : new Uint8Array(0);
       } finally { if (timer) clearTimeout(timer); }
+    }
+
+    // Best-effort resync after a desync (e.g. sequence mismatch): drain one
+    // stray IN packet if the device has one queued, then clear the IN halt so
+    // the next transaction starts from a clean endpoint. Never throws.
+    async function resyncIn() {
+      if (!device || epIn === null) return;
+      try {
+        const drain = new Promise((resolve) =>
+          device.transferIn(epIn, inPacketSize).then(resolve, resolve));
+        const timeout = new Promise((resolve) => setTimeout(resolve, 50));
+        await Promise.race([drain, timeout]);
+      } catch (_) {}
+      try { await device.clearHalt("in", epIn); } catch (_) {}
     }
 
     // Send one request packet and await its one response packet. Returns the
@@ -786,7 +812,14 @@
           if (resp.length < 2) return new Uint8Array(0); // no/empty response
           const respSeq = resp[0] | (resp[1] << 8);
           if ((respSeq & 0x7fff) !== (req.seq & 0x7fff)) {
-            logLine("err", `Sequence mismatch: sent ${req.seq}, got ${respSeq & 0x7fff} (link may be desynced).`);
+            // The response does not belong to this request. Applying it would
+            // corrupt the read/write, so fail the transaction and try to
+            // resync the link by draining any straggler packet + clearing the
+            // IN halt. Transactions are serialized, so this runs to completion
+            // before the next one starts.
+            logLine("err", `Sequence mismatch: sent ${req.seq}, got ${respSeq & 0x7fff} (link desynced); resyncing.`);
+            await resyncIn();
+            return null;
           }
           return resp.subarray(2);
         } catch (e) {
@@ -1112,21 +1145,29 @@
     }
     async function pollCycle() {
       if (!polling) return;
-      const ids = pollSet();
+      // Guard against a second cycle starting while this async one is still in
+      // flight (readEndpoint awaits, so cycles could otherwise interleave).
+      if (pollBusy) return;
+      pollBusy = true;
       const t0 = performance.now();
-      for (const id of ids) {
-        if (!polling || !device) break;
-        const ep = endpointsById.get(id);
-        if (!ep) continue;
-        const r = await readEndpoint(ep);
-        if (!polling) break;
-        if (!r || r.error) continue;
-        if (watched.has(id)) updateLeafValue(id, ep, r.value);
-        if (plotted.has(id) && !plotPaused) {
-          const ti = typeInfo(ep.type);
-          const num = ti && ti.num ? ti.num(r.value) : Number(r.value);
-          if (Number.isFinite(num)) pushSample(id, num);
+      try {
+        const ids = pollSet();
+        for (const id of ids) {
+          if (!polling || !device) break;
+          const ep = endpointsById.get(id);
+          if (!ep) continue;
+          const r = await readEndpoint(ep);
+          if (!polling) break;
+          if (!r || r.error) continue;
+          if (watched.has(id)) updateLeafValue(id, ep, r.value);
+          if (plotted.has(id) && !plotPaused) {
+            const ti = typeInfo(ep.type);
+            const num = ti && ti.num ? ti.num(r.value) : Number(r.value);
+            if (Number.isFinite(num)) pushSample(id, num);
+          }
         }
+      } finally {
+        pollBusy = false;
       }
       if (!polling) return;
       const elapsed = performance.now() - t0;

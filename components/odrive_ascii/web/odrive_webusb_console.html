@@ -673,13 +673,21 @@
       // 1) Ask the user to pick a device. Default filter targets the espp
       //    ODrive vendor VID/PID; "Any device" shows every device instead.
       try {
+        // Note: `{ filters: [] }` is NOT a valid "show all devices" request in
+        // Chromium's WebUSB (it requires at least one filter or the explicit
+        // `acceptAllDevices` flag). Use `acceptAllDevices: true` for that path.
         const options = els.anyDevice.checked
-          ? { filters: [] }
+          ? { acceptAllDevices: true }
           : { filters: [{ vendorId: DEFAULT_VID, productId: DEFAULT_PID }] };
         device = await navigator.usb.requestDevice(options);
       } catch (e) {
-        // User cancelled the chooser, or none matched.
-        logLine("sys", "Device selection cancelled.");
+        // Only a NotFoundError means the user dismissed the chooser (or nothing
+        // matched). Anything else is a real error worth surfacing.
+        if (e && e.name === "NotFoundError") {
+          logLine("sys", "Device selection cancelled.");
+        } else {
+          logLine("err", "Device selection failed: " + (e && e.message ? e.message : e));
+        }
         device = null;
         return;
       }
@@ -835,7 +843,10 @@
           }
           // status === "ok"
           if (result.data && result.data.byteLength) {
-            handleRxBytes(new Uint8Array(result.data.buffer));
+            // result.data is a DataView; honor its byteOffset/byteLength so we
+            // don't read trailing junk from the underlying ArrayBuffer.
+            handleRxBytes(new Uint8Array(
+              result.data.buffer, result.data.byteOffset, result.data.byteLength));
           }
         }
       } finally {

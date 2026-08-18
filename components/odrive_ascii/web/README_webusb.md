@@ -228,13 +228,16 @@ in-page log:
 CRC16 self-test: crc16("123456789", init=0x1337) = 0xaa01 PASS ✓ (expected 0xaa01)
 ```
 
-plus a codec round-trip check. This is UI plus a wire protocol that cannot be
-fully exercised without hardware, so **end-to-end verification against a real
-board is pending** (exactly as with the original WebUSB ASCII console). The wire
-logic itself has been validated offline: the CRC matches the golden vector, and a
-mock server mirroring `espp::detail::OdriveNativeCore` confirms endpoint-0
-chunked download + `json_crc`, typed read, typed write + read-back, canary
-rejection, and read-only enforcement all round-trip correctly.
+plus a codec round-trip check. The wire logic is additionally validated offline:
+the CRC matches the golden vector, and a mock server mirroring
+`espp::detail::OdriveNativeCore` confirms endpoint-0 chunked download +
+`json_crc`, typed read, typed write + read-back, canary rejection, and read-only
+enforcement all round-trip correctly.
+
+The control panel has also been **hardware-validated end-to-end**: it was
+connected to a real board over WebUSB, downloaded and parsed the endpoint-0 JSON
+descriptor, and performed live typed reads/writes and polled plotting against the
+device.
 
 ## How to run
 
