@@ -333,7 +333,7 @@ bool UsbDevice::initialize(std::error_code &ec) {
                   "CONFIG_TINYUSB_HID_COUNT>0 in sdkconfig.");
     ec = std::make_error_code(std::errc::function_not_supported);
     return false;
-#endif
+#else
     if (config_.hid->report_descriptor.empty()) {
       // A default-constructed HidFunction has no report descriptor; proceeding
       // would emit a HID interface with wDescriptorLength == 0 (and a null
@@ -344,6 +344,7 @@ bool UsbDevice::initialize(std::error_code &ec) {
       ec = std::make_error_code(std::errc::invalid_argument);
       return false;
     }
+#endif
   }
 
   // A zero-length RX scratch buffer would make the RX drain loops spin without
