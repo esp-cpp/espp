@@ -8,7 +8,9 @@
 using namespace std::chrono_literals;
 
 extern "C" void app_main(void) {
-  espp::Logger logger({.tag = "CANopen Example", .level = espp::Logger::Verbosity::INFO});
+  // static: captured by the (static) client's heartbeat callback, which must
+  // outlive any early return from app_main()
+  static espp::Logger logger({.tag = "CANopen Example", .level = espp::Logger::Verbosity::INFO});
   logger.info("Starting CANopen (CiA 301) client example!");
 
   //! [canopen example]
@@ -59,8 +61,10 @@ extern "C" void app_main(void) {
   // mirrors espp::Twai::Message field-for-field, so conversion is trivial.
   static espp::CanopenClient client({
       .node_id = node_id,
+      // captureless: twai has static storage duration and is referenced
+      // directly (capturing a static is ill-formed under -Werror)
       .send =
-          [&twai](const espp::CanopenClient::CanFrame &frame) {
+          [](const espp::CanopenClient::CanFrame &frame) {
             espp::Twai::Message msg{
                 .id = frame.id,
                 .extended = frame.extended,
@@ -73,9 +77,10 @@ extern "C" void app_main(void) {
           },
       .sdo_timeout = 100ms,
       .on_heartbeat =
-          [&logger](uint8_t hb_node, espp::CanopenClient::NmtState state) {
-            logger.info("Heartbeat from node {}: NMT state {}", hb_node, static_cast<int>(state));
-          },
+          // captureless: logger has static storage duration (see above)
+      [](uint8_t hb_node, espp::CanopenClient::NmtState state) {
+        logger.info("Heartbeat from node {}: NMT state {}", hb_node, static_cast<int>(state));
+      },
       .log_level = espp::Logger::Verbosity::INFO,
   });
   client_ptr = &client;
