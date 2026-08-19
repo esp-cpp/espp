@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <functional>
 #include <string>
 #include <system_error>
 #include <thread>
@@ -308,8 +309,31 @@ public:
       }
       std::this_thread::sleep_for(poll_period_);
     }
-    // ...and release the new-set-point bit again.
-    return set_controlword(controlword, ec);
+    // ...release the new-set-point bit again...
+    if (!set_controlword(controlword, ec)) {
+      return false;
+    }
+    // ...and confirm the drive clears set-point-acknowledge before returning,
+    // so the next setpoint's rising edge is unambiguous (some drives hold the
+    // acknowledge bit until bit 4 is released; starting a new handshake with
+    // it still high can be silently ignored).
+    const auto ack_deadline = std::chrono::steady_clock::now() + state_timeout_;
+    while (true) {
+      const auto statusword = get_statusword(ec);
+      if (ec) {
+        return false;
+      }
+      if ((statusword & detail::ds402::SW_BIT_SETPOINT_ACKNOWLEDGE) == 0) {
+        return true;
+      }
+      if (std::chrono::steady_clock::now() >= ack_deadline) {
+        logger_.error("set_target_position: set-point acknowledge did not clear within {} ms",
+                      state_timeout_.count());
+        ec = std::make_error_code(std::errc::timed_out);
+        return false;
+      }
+      std::this_thread::sleep_for(poll_period_);
+    }
   }
 
   /// \brief Check whether the drive reports target reached (statusword bit 10).

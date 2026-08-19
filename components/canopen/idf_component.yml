@@ -2,7 +2,7 @@
 license: "MIT"
 description: "Lightweight CANopen (CiA 301) client / master with a DS402 (CiA 402) drive-profile helper"
 url: "https://github.com/esp-cpp/espp/tree/main/components/canopen"
-repository: "git://github.com/esp-cpp/espp.git"
+repository: "https://github.com/esp-cpp/espp.git"
 maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/buses/canopen.html"

@@ -164,6 +164,9 @@ inline std::optional<NmtState> parse_heartbeat(const CanFrame &frame, uint8_t &n
 /// \return The frame to transmit.
 inline CanFrame make_sdo_expedited_download(uint8_t node_id, uint16_t index, uint8_t subindex,
                                             std::span<const uint8_t> data) {
+  // PRECONDITION: data.size() must be 1, 2 or 4 — the only valid CiA 301
+  // expedited-transfer sizes. CanopenClient::sdo_download() enforces this and
+  // fails with invalid_argument before calling here.
   CanFrame f;
   f.id = COB_SDO_RX_BASE + node_id;
   f.dlc = 8;
@@ -250,7 +253,10 @@ struct SdoResponse {
 ///         is unrecognized or the frame is malformed.
 inline SdoResponse parse_sdo_response(const CanFrame &frame) {
   SdoResponse r;
-  if (frame.dlc < 1) {
+  // CiA 301 specifies SDO frames as exactly 8 bytes; the field decoding below
+  // (index / subindex / abort code / data) assumes the full layout, so treat
+  // anything shorter as malformed rather than reading missing bytes.
+  if (frame.dlc != 8) {
     return r;
   }
   const uint8_t cmd = frame.data[0];

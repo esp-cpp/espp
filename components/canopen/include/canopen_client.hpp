@@ -94,14 +94,39 @@ public:
   void process_frame(const CanFrame &frame) {
     // SDO response from our server node?
     if (frame.id == detail::canopen::COB_SDO_TX_BASE + node_id_) {
+      using Type = detail::canopen::SdoResponse::Type;
+      const auto parsed = detail::canopen::parse_sdo_response(frame);
+      bool delivered = false;
       {
         std::lock_guard<std::mutex> lock(response_mutex_);
         if (awaiting_response_) {
-          response_ = detail::canopen::parse_sdo_response(frame);
-          awaiting_response_ = false;
+          // Only deliver a response that belongs to the in-flight request: a
+          // late response from a previously timed-out transaction (or any
+          // unrelated server traffic) must not complete the wrong one.
+          // Upload-segment responses carry no index/subindex, so they match by
+          // expected phase; every other response type echoes the object
+          // address and must match it. Malformed frames (Unknown) never match.
+          const bool is_segment = parsed.type == Type::UploadSegment;
+          bool matches = false;
+          if (expected_segment_) {
+            matches = is_segment;
+          } else {
+            matches = !is_segment && parsed.type != Type::Unknown &&
+                      parsed.index == expected_index_ && parsed.subindex == expected_subindex_;
+          }
+          if (matches) {
+            response_ = parsed;
+            awaiting_response_ = false;
+            delivered = true;
+          }
         }
       }
-      response_cv_.notify_all();
+      if (delivered) {
+        response_cv_.notify_all();
+      } else {
+        logger_.warn("Ignoring stale/unexpected SDO response (type {}, 0x{:04X}:{:02X})",
+                     static_cast<int>(parsed.type), parsed.index, parsed.subindex);
+      }
       return;
     }
     // heartbeat / boot-up from any node?
@@ -225,6 +250,14 @@ public:
   /// \return True on success.
   bool sdo_download(uint16_t index, uint8_t subindex, std::span<const uint8_t> data,
                     std::error_code &ec) {
+    // Expedited transfers are only defined for 1, 2 or 4 bytes (CiA 301);
+    // anything else would silently encode a wrong size on the wire.
+    if (data.size() != 1 && data.size() != 2 && data.size() != 4) {
+      logger_.error("SDO download 0x{:04X}:{:02X}: invalid expedited size {} (must be 1, 2 or 4)",
+                    index, subindex, data.size());
+      ec = std::make_error_code(std::errc::invalid_argument);
+      return false;
+    }
     std::lock_guard<std::mutex> lock(sdo_mutex_);
     detail::canopen::SdoResponse response;
     if (!sdo_transact(detail::canopen::make_sdo_expedited_download(node_id_, index, subindex, data),
@@ -292,7 +325,7 @@ public:
     while (!assembler.done()) {
       if (!sdo_transact(
               detail::canopen::make_sdo_upload_segment_request(node_id_, assembler.next_toggle()),
-              response, index, subindex, ec)) {
+              response, index, subindex, ec, /*expect_segment=*/true)) {
         return {};
       }
       if (response.type != Type::UploadSegment || !assembler.consume(response)) {
@@ -401,10 +434,17 @@ protected:
   /// sdo_mutex_ held. On an abort response, logs the decoded abort reason and
   /// fails with protocol_error.
   bool sdo_transact(const CanFrame &request, detail::canopen::SdoResponse &response, uint16_t index,
-                    uint8_t subindex, std::error_code &ec) {
+                    uint8_t subindex, std::error_code &ec, bool expect_segment = false) {
     {
       std::lock_guard<std::mutex> lock(response_mutex_);
       awaiting_response_ = true;
+      // Record what the in-flight request is for, so process_frame() can
+      // reject stale/unrelated responses instead of completing the wrong
+      // transaction (segment responses carry no index/subindex and are
+      // matched by phase instead).
+      expected_index_ = index;
+      expected_subindex_ = subindex;
+      expected_segment_ = expect_segment;
     }
     if (!send_frame(request, ec)) {
       std::lock_guard<std::mutex> lock(response_mutex_);
@@ -444,6 +484,15 @@ protected:
     if (len == 0) {
       return 0;
     }
+    // The typed accessors promise the exact width they were asked for; a
+    // shorter response (e.g. read_u32 on a u16 object) would otherwise decode
+    // to a silently-wrong value. Treat any size mismatch as a protocol error.
+    if (len != num_bytes) {
+      logger_.error("SDO upload 0x{:04X}:{:02X}: object is {} bytes, expected {}", index, subindex,
+                    len, num_bytes);
+      ec = std::make_error_code(std::errc::protocol_error);
+      return 0;
+    }
     return detail::canopen::get_le(data.data(), len);
   }
 
@@ -459,6 +508,9 @@ protected:
   mutable std::mutex response_mutex_;
   std::condition_variable response_cv_;
   bool awaiting_response_{false};
+  uint16_t expected_index_{0};   // object address of the in-flight SDO request
+  uint8_t expected_subindex_{0}; // (used to reject stale/unrelated responses)
+  bool expected_segment_{false}; // in-flight request awaits an upload segment
   detail::canopen::SdoResponse response_{};
   uint32_t last_abort_code_{0};
 

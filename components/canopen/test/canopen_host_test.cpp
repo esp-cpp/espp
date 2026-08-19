@@ -283,6 +283,21 @@ static void test_ds402_decode() {
   CHECK(std::strcmp(ds::state_to_string(ds::State::Fault), "Fault") == 0);
 }
 
+// SDO frames are specified as exactly 8 bytes (CiA 301); anything shorter must
+// parse as Unknown instead of decoding missing bytes as protocol fields.
+static void test_sdo_malformed_dlc() {
+  std::printf("test_sdo_malformed_dlc\n");
+  CanFrame f;
+  f.id = 0x583;
+  f.data = {0x4B, 0x41, 0x60, 0x00, 0x37, 0x06, 0x00, 0x00};
+  f.dlc = 7; // one byte short
+  CHECK(co::parse_sdo_response(f).type == co::SdoResponse::Type::Unknown);
+  f.dlc = 0;
+  CHECK(co::parse_sdo_response(f).type == co::SdoResponse::Type::Unknown);
+  f.dlc = 8; // and the full-length frame still parses
+  CHECK(co::parse_sdo_response(f).type == co::SdoResponse::Type::ExpeditedUpload);
+}
+
 int main() {
   test_nmt();
   test_sync_and_pdo();
@@ -290,6 +305,7 @@ int main() {
   test_sdo_expedited_download();
   test_sdo_expedited_upload();
   test_sdo_abort();
+  test_sdo_malformed_dlc();
   test_sdo_segmented_upload();
   test_le_helpers();
   test_ds402_decode();
