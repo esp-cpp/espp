@@ -29,7 +29,11 @@ extern "C" void app_main(void) {
   // task performing the (blocking) SDO transactions below -- which is exactly
   // what CanopenClient::process_frame() requires. The CanFrame struct mirrors
   // espp::Twai::Message field-for-field, so conversion is trivial.
-  espp::Twai twai({
+  // NOTE: twai and client are function-local STATICS: the Twai receive task
+  // and the client's send lambda (which captures &twai) reference them, and
+  // app_main() has early-return error paths -- static storage guarantees they
+  // outlive every callback regardless of how app_main() exits.
+  static espp::Twai twai({
       .tx_gpio = 5, // GPIO5 (change to match your board / transceiver)
       .rx_gpio = 4, // GPIO4 (change to match your board / transceiver)
       .baudrate = 250000,
@@ -53,7 +57,7 @@ extern "C" void app_main(void) {
   // The CANopen client is transport-agnostic: give it a send function which
   // transmits an espp::detail::CanFrame (here: over TWAI). The CanFrame struct
   // mirrors espp::Twai::Message field-for-field, so conversion is trivial.
-  espp::CanopenClient client({
+  static espp::CanopenClient client({
       .node_id = node_id,
       .send =
           [&twai](const espp::CanopenClient::CanFrame &frame) {

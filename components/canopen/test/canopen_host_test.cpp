@@ -296,6 +296,14 @@ static void test_sdo_malformed_dlc() {
   CHECK(co::parse_sdo_response(f).type == co::SdoResponse::Type::Unknown);
   f.dlc = 8; // and the full-length frame still parses
   CHECK(co::parse_sdo_response(f).type == co::SdoResponse::Type::ExpeditedUpload);
+  // extended-id / RTR frames that merely collide with the COB-ID are not SDO
+  f.extended = true;
+  CHECK(co::parse_sdo_response(f).type == co::SdoResponse::Type::Unknown);
+  f.extended = false;
+  f.rtr = true;
+  CHECK(co::parse_sdo_response(f).type == co::SdoResponse::Type::Unknown);
+  f.rtr = false;
+  CHECK(co::parse_sdo_response(f).type == co::SdoResponse::Type::ExpeditedUpload);
 }
 
 int main() {

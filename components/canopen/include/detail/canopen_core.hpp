@@ -253,10 +253,11 @@ struct SdoResponse {
 ///         is unrecognized or the frame is malformed.
 inline SdoResponse parse_sdo_response(const CanFrame &frame) {
   SdoResponse r;
-  // CiA 301 specifies SDO frames as exactly 8 bytes; the field decoding below
-  // (index / subindex / abort code / data) assumes the full layout, so treat
-  // anything shorter as malformed rather than reading missing bytes.
-  if (frame.dlc != 8) {
+  // CiA 301 SDO frames are standard-id (11-bit) data frames of exactly 8
+  // bytes; the field decoding below assumes that full layout. Reject RTR /
+  // extended-id frames (which merely happen to collide with the COB-ID) and
+  // short frames as malformed instead of decoding them as protocol data.
+  if (frame.dlc != 8 || frame.extended || frame.rtr) {
     return r;
   }
   const uint8_t cmd = frame.data[0];
