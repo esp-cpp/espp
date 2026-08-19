@@ -315,15 +315,31 @@ inline SdoResponse parse_sdo_response(const CanFrame &frame) {
 ///          (make_sdo_upload_segment_request with next_toggle()).
 class SdoSegmentedUpload {
 public:
+  /// Default cap on the total transfer size. total_size in the initiate
+  /// response is remote-supplied (up to 4 GiB), and an un-sized transfer could
+  /// otherwise grow indefinitely -- either would exhaust memory on an embedded
+  /// target. Segmented uploads here serve small objects (device name / version
+  /// strings), so the default is deliberately tight; pass a larger cap to
+  /// start() when a bigger object is genuinely expected.
+  static constexpr size_t kDefaultMaxSize = 1024;
+
   /// \brief Start a transfer from a parsed SegmentedUploadInit response.
   /// \param init The parsed initiate response.
-  void start(const SdoResponse &init) {
+  /// \param max_size Maximum accepted total size (reservation AND growth cap).
+  /// \return False if the remote-indicated size exceeds \p max_size (the
+  ///         transfer must then be aborted by the caller), true otherwise.
+  [[nodiscard]] bool start(const SdoResponse &init, size_t max_size = kDefaultMaxSize) {
     data_.clear();
     toggle_ = false;
     done_ = false;
+    max_size_ = max_size;
     if (init.size_indicated) {
+      if (init.total_size > max_size_) {
+        return false;
+      }
       data_.reserve(init.total_size);
     }
+    return true;
   }
 
   /// \brief The toggle bit to use for the next segment request.
@@ -331,9 +347,16 @@ public:
 
   /// \brief Consume a parsed UploadSegment response.
   /// \param segment The parsed segment response.
-  /// \return False on toggle-bit mismatch (protocol error), true otherwise.
+  /// \return False on toggle-bit mismatch or if the accumulated data would
+  ///         exceed the start() size cap (protocol error either way), true
+  ///         otherwise.
   bool consume(const SdoResponse &segment) {
     if (segment.toggle != toggle_) {
+      return false;
+    }
+    // Enforce the cap while appending too: an un-sized (or lying) transfer
+    // must not grow past it.
+    if (data_.size() + segment.len > max_size_) {
       return false;
     }
     data_.append(reinterpret_cast<const char *>(segment.data.data()), segment.len);
@@ -350,6 +373,7 @@ public:
 
 private:
   std::string data_{};
+  size_t max_size_{kDefaultMaxSize};
   bool toggle_{false};
   bool done_{false};
 };

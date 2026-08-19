@@ -205,7 +205,7 @@ static void test_sdo_segmented_upload() {
   CHECK(r.size_indicated && r.total_size == 10);
 
   co::SdoSegmentedUpload assembler;
-  assembler.start(r);
+  CHECK(assembler.start(r));
   CHECK(!assembler.done());
   CHECK(assembler.next_toggle() == false);
 
@@ -247,7 +247,7 @@ static void test_sdo_segmented_upload() {
   // toggle-bit violation: replaying segment 1 (toggle 0) when 0 is expected
   // again must be rejected once the assembler expects toggle 0 but gets 1
   co::SdoSegmentedUpload bad;
-  bad.start(co::parse_sdo_response(init));
+  CHECK(bad.start(co::parse_sdo_response(init)));
   auto seg_toggle1 = co::parse_sdo_response(seg2); // toggle 1 first -> mismatch
   CHECK(!bad.consume(seg_toggle1));
   CHECK(!bad.done());
@@ -306,6 +306,38 @@ static void test_sdo_malformed_dlc() {
   CHECK(co::parse_sdo_response(f).type == co::SdoResponse::Type::ExpeditedUpload);
 }
 
+// The initiate response's total_size is remote-supplied: the assembler must
+// refuse an oversized reservation up front and stop an un-sized (or lying)
+// transfer from growing past the cap while appending.
+static void test_sdo_segmented_size_cap() {
+  std::printf("test_sdo_segmented_size_cap\n");
+  co::SdoResponse init;
+  init.type = co::SdoResponse::Type::SegmentedUploadInit;
+  init.size_indicated = true;
+  init.total_size = 0xFFFFFFFFu; // 4 GiB claim
+  co::SdoSegmentedUpload a;
+  CHECK(!a.start(init)); // refused up front (default 1 KiB cap)
+  init.total_size = 2048;
+  CHECK(!a.start(init));      // still over the default cap
+  CHECK(a.start(init, 4096)); // fine under an explicit larger cap
+
+  // un-sized transfer: growth is capped while appending
+  co::SdoResponse init2;
+  init2.type = co::SdoResponse::Type::SegmentedUploadInit;
+  init2.size_indicated = false;
+  co::SdoSegmentedUpload b;
+  CHECK(b.start(init2, 10)); // 10-byte cap
+  co::SdoResponse seg;
+  seg.type = co::SdoResponse::Type::UploadSegment;
+  seg.len = 7;
+  seg.last = false;
+  seg.toggle = false;
+  std::fill(seg.data.begin(), seg.data.end(), 0x41);
+  CHECK(b.consume(seg)); // 7 <= 10
+  seg.toggle = true;
+  CHECK(!b.consume(seg)); // 14 > 10 -> refused
+}
+
 int main() {
   test_nmt();
   test_sync_and_pdo();
@@ -314,6 +346,7 @@ int main() {
   test_sdo_expedited_upload();
   test_sdo_abort();
   test_sdo_malformed_dlc();
+  test_sdo_segmented_size_cap();
   test_sdo_segmented_upload();
   test_le_helpers();
   test_ds402_decode();

@@ -321,7 +321,18 @@ public:
       return {};
     }
     detail::canopen::SdoSegmentedUpload assembler;
-    assembler.start(response);
+    if (!assembler.start(response)) {
+      // The remote-indicated total size exceeds the assembler's cap
+      // (remote-supplied, so never trusted for an unbounded reservation).
+      logger_.error("SDO segmented upload 0x{:04X}:{:02X}: indicated size {} exceeds the {} byte "
+                    "cap; aborting transfer",
+                    index, subindex, response.total_size,
+                    detail::canopen::SdoSegmentedUpload::kDefaultMaxSize);
+      send_frame_quietly(
+          detail::canopen::make_sdo_abort(node_id_, index, subindex, 0x05040005)); // out of memory
+      ec = std::make_error_code(std::errc::message_size);
+      return {};
+    }
     while (!assembler.done()) {
       if (!sdo_transact(
               detail::canopen::make_sdo_upload_segment_request(node_id_, assembler.next_toggle()),
