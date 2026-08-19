@@ -396,7 +396,7 @@ public:
    */
   bool read_buffer_lengths(uint8_t &buffer_m1, uint8_t &buffer_m2, std::error_code &ec) {
     std::scoped_lock lk(mutex_);
-    uint8_t data[2];
+    uint8_t data[2] = {};
     if (!read_command(Command::ReadBufferLengths, data, ec))
       return false;
     buffer_m1 = data[0];
@@ -445,7 +445,7 @@ public:
    */
   bool read_encoders(uint32_t &count_m1, uint32_t &count_m2, std::error_code &ec) {
     std::scoped_lock lk(mutex_);
-    uint8_t data[8];
+    uint8_t data[8] = {};
     if (!read_command(Command::ReadEncoderCounters, data, ec))
       return false;
     count_m1 = detail::read_u32_be(data, 0);
@@ -497,7 +497,7 @@ public:
    */
   bool read_ispeeds(int32_t &qpps_m1, int32_t &qpps_m2, std::error_code &ec) {
     std::scoped_lock lk(mutex_);
-    uint8_t data[8];
+    uint8_t data[8] = {};
     if (!read_command(Command::ReadISpeedCounters, data, ec))
       return false;
     qpps_m1 = detail::read_i32_be(data, 0);
@@ -515,7 +515,7 @@ public:
    */
   bool read_encoder_modes(uint8_t &mode_m1, uint8_t &mode_m2, std::error_code &ec) {
     std::scoped_lock lk(mutex_);
-    uint8_t data[2];
+    uint8_t data[2] = {};
     if (!read_command(Command::ReadEncoderModes, data, ec))
       return false;
     mode_m1 = data[0];
@@ -602,6 +602,8 @@ public:
    */
   bool read_firmware_version(std::string &version, std::error_code &ec) {
     std::scoped_lock lk(mutex_);
+    if (!transport_ok(ec))
+      return false;
     const auto request = detail::build_read_request(
         config_.address, static_cast<uint8_t>(Command::ReadFirmwareVersion));
     if (!config_.write(request)) {
@@ -627,7 +629,7 @@ public:
       ec = std::make_error_code(std::errc::protocol_error);
       return false;
     }
-    uint8_t crc[2];
+    uint8_t crc[2] = {};
     if (!read_exact(crc, ec))
       return false;
     reply.insert(reply.end(), std::begin(crc), std::end(crc));
@@ -675,7 +677,7 @@ public:
    */
   bool read_currents(float &amps_m1, float &amps_m2, std::error_code &ec) {
     std::scoped_lock lk(mutex_);
-    uint8_t data[4];
+    uint8_t data[4] = {};
     if (!read_command(Command::ReadMotorCurrents, data, ec))
       return false;
     amps_m1 = static_cast<float>(detail::read_i16_be(data, 0)) / 100.0f;
@@ -693,7 +695,7 @@ public:
    */
   bool read_motor_pwms(float &percent_m1, float &percent_m2, std::error_code &ec) {
     std::scoped_lock lk(mutex_);
-    uint8_t data[4];
+    uint8_t data[4] = {};
     if (!read_command(Command::ReadMotorPWMs, data, ec))
       return false;
     percent_m1 = static_cast<float>(detail::read_i16_be(data, 0)) / 327.67f;
@@ -737,7 +739,7 @@ public:
    */
   bool read_status(uint16_t &status, std::error_code &ec) {
     std::scoped_lock lk(mutex_);
-    uint8_t data[2];
+    uint8_t data[2] = {};
     if (!read_command(Command::ReadStatus, data, ec))
       return false;
     status = detail::read_u16_be(data, 0);
@@ -755,6 +757,8 @@ public:
    * @return True on success.
    */
   bool write_settings_to_eeprom(std::error_code &ec) {
+    if (!transport_ok(ec))
+      return false;
     std::scoped_lock lk(mutex_);
     const auto request = detail::build_read_request(
         config_.address, static_cast<uint8_t>(Command::WriteSettingsToEeprom));
@@ -777,6 +781,19 @@ public:
   }
 
 protected:
+  /// Validate that both transport functions were configured. Calling an empty
+  /// std::function throws std::bad_function_call, which would violate this
+  /// component's no-exceptions contract -- so every transaction entry point
+  /// checks here first and fails with invalid_argument instead.
+  bool transport_ok(std::error_code &ec) {
+    if (!config_.write || !config_.read) {
+      logger_.error("Config::write and Config::read must both be set");
+      ec = std::make_error_code(std::errc::invalid_argument);
+      return false;
+    }
+    return true;
+  }
+
   /// Read exactly buf.size() bytes, looping on the user read function until
   /// the configured timeout elapses. Sets ec and returns false on timeout.
   bool read_exact(std::span<uint8_t> buf, std::error_code &ec) {
@@ -819,6 +836,8 @@ protected:
   /// Run one write-command transaction: [addr, cmd, payload, CRC] -> 0xFF.
   /// The caller must hold mutex_.
   bool write_command(Command cmd, std::span<const uint8_t> payload, std::error_code &ec) {
+    if (!transport_ok(ec))
+      return false;
     const auto packet =
         detail::build_write_packet(config_.address, static_cast<uint8_t>(cmd), payload);
     logger_.debug("write command {} ({} byte packet)", static_cast<int>(cmd), packet.size());
@@ -833,6 +852,8 @@ protected:
   /// data (excluding CRC) is written into @p data, whose size determines how
   /// many data bytes are expected. The caller must hold mutex_.
   bool read_command(Command cmd, std::span<uint8_t> data, std::error_code &ec) {
+    if (!transport_ok(ec))
+      return false;
     const auto request = detail::build_read_request(config_.address, static_cast<uint8_t>(cmd));
     if (!config_.write(request)) {
       ec = std::make_error_code(std::errc::io_error);
@@ -854,7 +875,7 @@ protected:
 
   /// Shared implementation for commands 16/17 (count + status byte).
   bool read_encoder(Command cmd, uint32_t &count, uint8_t &status, std::error_code &ec) {
-    uint8_t data[5];
+    uint8_t data[5] = {};
     if (!read_command(cmd, data, ec))
       return false;
     count = detail::read_u32_be(data, 0);
@@ -864,7 +885,7 @@ protected:
 
   /// Shared implementation for commands 18/19/30/31 (speed + direction byte).
   bool read_speed(Command cmd, int32_t &qpps, uint8_t &direction, std::error_code &ec) {
-    uint8_t data[5];
+    uint8_t data[5] = {};
     if (!read_command(cmd, data, ec))
       return false;
     qpps = detail::read_i32_be(data, 0);
@@ -874,7 +895,7 @@ protected:
 
   /// Shared implementation for the 2-byte tenths-of-a-unit reads (24/25/82/83).
   bool read_tenths(Command cmd, float &value, std::error_code &ec) {
-    uint8_t data[2];
+    uint8_t data[2] = {};
     if (!read_command(cmd, data, ec))
       return false;
     value = static_cast<float>(detail::read_u16_be(data, 0)) / 10.0f;
@@ -895,7 +916,7 @@ protected:
   /// Shared implementation for commands 55/56. Wire order is P, I, D, QPPS.
   bool read_velocity_pid(Command cmd, float &p, float &i, float &d, uint32_t &qpps,
                          std::error_code &ec) {
-    uint8_t data[16];
+    uint8_t data[16] = {};
     if (!read_command(cmd, data, ec))
       return false;
     p = static_cast<float>(detail::read_u32_be(data, 0)) / detail::kBasicmicroPidScale;
