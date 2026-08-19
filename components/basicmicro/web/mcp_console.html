@@ -913,16 +913,28 @@
         await slcanCmd("C", { quiet: true });
         await slcanCmd("S" + s);
         const okO = await slcanCmd("O");
-        channelOpen = okO !== false;
+        // okO: true = CR ack, false = BEL refusal, null = timeout (silent
+        // adapter). Only an explicit BEL keeps the channel closed; a silent
+        // adapter is treated as tentatively open (some bridges never ack) but
+        // the unknown state is surfaced instead of being reported as confirmed.
         setConnectedUI(true);
-        if (channelOpen) {
-          setStatus("connected", kbit + " · node " + canNodeId);
-          logLine("sys", "CAN channel open at " + kbit + ", talking to node " + canNodeId + ".");
-          await readDeviceInfo();
-          try { await readStatusword(); } catch (_) { /* drive may be silent until NMT start */ }
-        } else {
+        if (okO === false) {
+          channelOpen = false;
           setStatus("error", "Adapter refused O");
           logLine("err", "Adapter rejected the open command; check the bitrate or power-cycle the adapter.");
+        } else {
+          channelOpen = true;
+          if (okO === true) {
+            setStatus("connected", kbit + " · node " + canNodeId);
+            logLine("sys", "CAN channel open at " + kbit + ", talking to node " + canNodeId + ".");
+          } else {
+            setStatus("connected", kbit + " (no ack) · node " + canNodeId);
+            logLine("err", "Adapter did not acknowledge the open command — state unknown. Proceeding " +
+              "since some adapters never ack; if SDO reads time out, verify the bitrate, wiring, and " +
+              "that the adapter really speaks slcan.");
+          }
+          await readDeviceInfo();
+          try { await readStatusword(); } catch (_) { /* drive may be silent until NMT start */ }
         }
       }
     }
@@ -1386,6 +1398,10 @@
     }
 
     function resolveCmd(ok, payload) {
+      // 'z'/'Z' transmit acks (autopoll) are UNSOLICITED tokens, not command
+      // responses: never let them consume the pending-command FIFO, or every
+      // later command/response pairing desynchronizes.
+      if (ok && (payload === "z" || payload === "Z")) return;
       const p = pendingCmds.shift();
       if (!p) {
         if (payload !== "" || !ok) {
@@ -1395,7 +1411,7 @@
       }
       clearTimeout(p.timer);
       if (ok) {
-        if (payload !== "" && payload !== "z" && payload !== "Z") logLine("rx", payload);
+        if (payload !== "") logLine("rx", payload);
       } else if (!p.quiet) {
         logLine("err", "Adapter rejected command '" + p.cmd + "' (BEL)");
       }

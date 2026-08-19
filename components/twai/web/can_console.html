@@ -695,15 +695,26 @@
       await sendCmd("C", { quiet: true });   // a BEL here just means "was not open"
       const okS = await sendCmd("S" + s);
       const okO = await sendCmd("O");
-      channelOpen = okO !== false;
+      // okO: true = CR ack, false = BEL refusal, null = timeout (silent
+      // adapter). Only an explicit BEL keeps the channel closed; a silent
+      // adapter is treated as tentatively open (some bridges never ack) but
+      // the unknown state is surfaced instead of being reported as confirmed.
       setConnectedUI(true);
-      if (channelOpen) {
+      if (okO === true) {
+        channelOpen = true;
         setStatus("connected", "Open · " + kbit);
         logLine("sys", "CAN channel open at " + kbit + ".");
-      } else {
+      } else if (okO === false) {
+        channelOpen = false;
         setStatus("error", "Adapter refused O");
         logLine("err", "Adapter rejected the open command" + (okS === false ? " (bitrate was rejected too)" : "") +
           "; check the bitrate or power-cycle the adapter.");
+      } else {
+        channelOpen = true;
+        setStatus("connected", "Open (no ack) · " + kbit);
+        logLine("err", "Adapter did not acknowledge the open command — state unknown. Proceeding " +
+          "since some adapters never ack; if no frames flow, verify the bitrate, wiring, and that " +
+          "the adapter really speaks slcan.");
       }
     }
 
@@ -857,9 +868,14 @@
     const pendingCmds = [];   // { cmd, resolve, timer, quiet }
 
     function resolveCmd(ok, payload) {
+      // 'z'/'Z' transmit acks (autopoll) are UNSOLICITED tokens, not command
+      // responses: they can arrive while a control command is awaiting its
+      // CR/BEL, and consuming a FIFO entry for them would desynchronize every
+      // subsequent command/response pairing. Never let them shift the queue.
+      if (ok && (payload === "z" || payload === "Z")) return;
       const p = pendingCmds.shift();
       if (!p) {
-        // Unsolicited non-frame token (e.g. stray tx-ack): just show it.
+        // Unsolicited non-frame token: just show it.
         if (payload !== "" || !ok) {
           logLine(ok ? "rx" : "err", payload === "" ? "(BEL) adapter error" : payload + (ok ? "" : "  (BEL)"));
         }
@@ -867,7 +883,7 @@
       }
       clearTimeout(p.timer);
       if (ok) {
-        if (payload !== "" && payload !== "z" && payload !== "Z") logLine("rx", payload);
+        if (payload !== "") logLine("rx", payload);
       } else if (!p.quiet) {
         logLine("err", "Adapter rejected command '" + p.cmd + "' (BEL)");
       }
@@ -1029,18 +1045,27 @@
       slots.push(slot);
       els.slots.appendChild(el);
       renderSlotsEmpty();
-      slot.timer = setInterval(async () => {
+      // Self-scheduling loop (not setInterval): the next tick is armed only
+      // after the previous send fully completes, so a slow/stalled
+      // sendFrameLine can never overlap itself with concurrent writer.write()
+      // calls or out-of-order count updates.
+      slot.stopped = false;
+      const tick = async () => {
+        if (slot.stopped) return;
         if (!writer || !channelOpen) { removeSlot(slot); return; }
         const ok = await sendFrameLine(slot.line, slot.desc);
         if (ok) { slot.count++; slot.countEl.textContent = "sent " + slot.count; }
-      }, ms);
+        if (!slot.stopped) slot.timer = setTimeout(tick, ms);
+      };
+      slot.timer = setTimeout(tick, ms);
       logLine("sys", "Periodic transmit started: " + line + " every " + ms + " ms.");
     }
 
     function removeSlot(slot) {
       const idx = slots.indexOf(slot);
       if (idx < 0) return;
-      clearInterval(slot.timer);
+      slot.stopped = true;
+      clearTimeout(slot.timer);
       slots.splice(idx, 1);
       slot.el.remove();
       renderSlotsEmpty();
