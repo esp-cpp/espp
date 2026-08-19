@@ -730,15 +730,31 @@ public:
 
   /**
    * @brief Read the unit status bit mask (command 90). See Basicmicro::Status
-   *        for the bit definitions.
+   *        for the bit definitions (the manual documents the low 16 bits).
    * @param status The status bit mask (0 = normal).
    * @param ec Set on failure.
-   * @note The manual's status table defines 16-bit masks (up to 0x2000) but
-   *       does not explicitly state the field width; this reads 2 bytes.
+   * @note The manual leaves the field width unstated, but current MCP firmware
+   *       returns a 32-bit status (Basicmicro's official Arduino library reads
+   *       it with Read4). This reads 4 bytes first; if that transaction fails
+   *       (older firmware replying 16-bit makes the reply end mid-read), the
+   *       device's 10 ms packet-clear gap has already elapsed via the timeout,
+   *       so a single 16-bit retry is performed for legacy-firmware units.
    * @return True on success.
    */
-  bool read_status(uint16_t &status, std::error_code &ec) {
+  bool read_status(uint32_t &status, std::error_code &ec) {
     std::scoped_lock lk(mutex_);
+    {
+      uint8_t data[4] = {};
+      std::error_code ec32;
+      if (read_command(Command::ReadStatus, data, ec32)) {
+        status = detail::read_u32_be(data, 0);
+        return true;
+      }
+    }
+    // Legacy retry: the failed 32-bit attempt consumed the full receive
+    // timeout (>= the 10 ms packet-clear window), so the controller's packet
+    // buffer is clean and any short reply was fully drained from the host.
+    logger_.warn("32-bit status read failed; retrying as 16-bit (legacy firmware)");
     uint8_t data[2] = {};
     if (!read_command(Command::ReadStatus, data, ec))
       return false;

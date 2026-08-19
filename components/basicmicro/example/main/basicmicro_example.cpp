@@ -69,9 +69,9 @@ extern "C" void app_main(void) {
   if (mcp.read_main_battery_voltage(volts, ec))
     logger.info("Main battery: {:.1f} V", volts);
 
-  uint16_t status{0};
+  uint32_t status{0};
   if (mcp.read_status(status, ec))
-    logger.info("Status: 0x{:04X}{}", status, status == 0 ? " (normal)" : "");
+    logger.info("Status: 0x{:08X}{}", status, status == 0 ? " (normal)" : "");
 
   // start from a known encoder state
   if (mcp.reset_encoders(ec))

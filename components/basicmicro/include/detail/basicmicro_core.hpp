@@ -127,8 +127,10 @@ enum class BasicmicroCommand : uint8_t {
 };
 
 /// @brief Unit status bit masks returned by BasicmicroCommand::ReadStatus
-///        (manual command 90).
-enum class BasicmicroStatus : uint16_t {
+///        (manual command 90). Current MCP firmware returns a 32-bit status
+///        word (read via Read4 in the official library); the manual documents
+///        the masks below, which occupy the low 16 bits.
+enum class BasicmicroStatus : uint32_t {
   Normal = 0x0000,
   M1OverCurrentWarning = 0x0001,
   M2OverCurrentWarning = 0x0002,
