@@ -93,6 +93,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/bq27220/example/main/bq27220_example.cpp \
   $(PROJECT_PATH)/components/button/example/main/button_example.cpp \
   $(PROJECT_PATH)/components/byte90/example/main/byte90_example.cpp \
+  $(PROJECT_PATH)/components/canopen/example/main/canopen_example.cpp \
   $(PROJECT_PATH)/components/chsc6x/example/main/chsc6x_example.cpp \
   $(PROJECT_PATH)/components/cdr/example/main/cdr_example.cpp \
   $(PROJECT_PATH)/components/cli/example/main/cli_example.cpp \
@@ -245,6 +246,9 @@ INPUT = \
   $(PROJECT_PATH)/components/bq27220/include/bq27220.hpp \
   $(PROJECT_PATH)/components/button/include/button.hpp \
   $(PROJECT_PATH)/components/byte90/include/byte90.hpp \
+  $(PROJECT_PATH)/components/canopen/include/canopen_client.hpp \
+  $(PROJECT_PATH)/components/canopen/include/detail/canopen_core.hpp \
+  $(PROJECT_PATH)/components/canopen/include/ds402.hpp \
   $(PROJECT_PATH)/components/chsc6x/include/chsc6x.hpp \
   $(PROJECT_PATH)/components/cdr/include/cdr.hpp \
   $(PROJECT_PATH)/components/cli/include/cli.hpp \

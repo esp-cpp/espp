@@ -1,0 +1,26 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "Lightweight CANopen (CiA 301) client / master with a DS402 (CiA 402) drive-profile helper"
+url: "https://github.com/esp-cpp/espp/tree/main/components/canopen"
+repository: "https://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/buses/canopen.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - CANopen
+  - CAN
+  - DS402
+  - CiA301
+  - CiA402
+  - NMT
+  - SDO
+  - PDO
+  - Motor
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/base_component: '>=1.0'
