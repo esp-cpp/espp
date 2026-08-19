@@ -759,7 +759,13 @@
           try {
             while (true) {
               const { value, done } = await reader.read();
-              if (done) break;
+              if (done) {
+                // Terminal: the stream ended (port closed / unplugged). Stop
+                // the OUTER loop too -- otherwise we would re-acquire a reader
+                // on the dead stream in a tight loop and never reach cleanup.
+                keepReading = false;
+                break;
+              }
               if (value && value.length) handleRxBytes(value);
             }
           } catch (e) {
