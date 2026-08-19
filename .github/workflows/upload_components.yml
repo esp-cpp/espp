@@ -49,6 +49,7 @@ jobs:
             components/aw9523
             components/base_component
             components/base_peripheral
+            components/basicmicro
             components/bdc_driver
             components/binary-log
             components/bldc_current_sense

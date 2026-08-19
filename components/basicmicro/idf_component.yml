@@ -1,0 +1,25 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "Driver for Basicmicro MCP236 / MCP266 (and RoboClaw-family) brushed DC motor controllers using the packet serial protocol over UART"
+url: "https://github.com/esp-cpp/espp/tree/main/components/basicmicro"
+repository: "https://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/motor_control/basicmicro.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - Basicmicro
+  - RoboClaw
+  - MCP236
+  - MCP266
+  - Motor
+  - Encoder
+  - UART
+  - Serial
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/base_component: '>=1.0'
