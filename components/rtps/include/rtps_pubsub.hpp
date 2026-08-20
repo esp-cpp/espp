@@ -35,6 +35,9 @@ namespace espp {
 /// \note For ROS 2 interop use ROS 2 naming: topic "rt/<name>" and type
 ///       "<pkg>::msg::dds_::<Type>_" (e.g. "rt/chatter" +
 ///       "std_msgs::msg::dds_::String_").
+///
+/// \section rtps_publisher_ex1 Publisher Example
+/// \snippet rtps_example.cpp rtps pubsub example
 template <RtpsMessage T> class Publisher {
 public:
   /// Configuration for a typed publisher.
@@ -114,6 +117,9 @@ private:
 ///                                         .type_name = "sensor_msgs::msg::dds_::Imu_",
 ///                                         .on_message = [](const Imu &m) { use(m); }});
 /// @endcode
+///
+/// \section rtps_subscriber_ex1 Subscriber Example
+/// \snippet rtps_example.cpp rtps pubsub example
 template <RtpsMessage T> class Subscriber {
 public:
   /// Called for each successfully deserialized sample.

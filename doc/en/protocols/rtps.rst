@@ -216,7 +216,7 @@ menuconfig under ``RTPS`` on ESP32; ``include/rtps/config.hpp`` defaults on host
      - Options / default
      - Effect
    * - ``RTPS_LIMITS_PROFILE``
-     - ``embedded`` (default) / ``host`` / ``host_large``
+     - ``embedded`` (ESP32 default) / ``host`` (host default) / ``host_large``
      - Compile-time endpoint/history capacity caps. Wire-neutral.
    * - ``RTPS_STORAGE_DYNAMIC``
      - off on ESP32 / on host

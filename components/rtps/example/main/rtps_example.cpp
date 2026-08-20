@@ -21,12 +21,14 @@
 
 using namespace std::chrono_literals;
 
+//! [rtps message example]
 // std_msgs/msg/String as a plain reflectable struct. The typed Publisher<T> /
 // Subscriber<T> serialize any such struct to the DDS wire format (ROS 2 / classic
 // CDR) with no manual (de)serialization in application code.
 struct StringMsg {
   std::string data;
 };
+//! [rtps message example]
 
 // Reflectable request/reply + goal/result structs for the typed service + action
 // servers below. Their fields map straight to CDR, matching example_interfaces
@@ -83,6 +85,7 @@ extern "C" void app_main(void) {
   // Automatic locals: they RAII-clean up in reverse order on any early return
   // (subscriber/publisher stop referencing the participant before it is
   // destroyed), and the trailing while(true) keeps them alive in normal use.
+  //! [rtps participant example]
   espp::RtpsParticipant participant({
       .interface_address = interface_address,
       .on_publisher_matched = [&]() { logger.info("publisher matched a remote reader"); },
@@ -93,7 +96,9 @@ extern "C" void app_main(void) {
     logger.error("Failed to start the RTPS participant");
     return;
   }
+  //! [rtps participant example]
 
+  //! [rtps pubsub example]
   // Typed reliable publisher: publish StringMsg structs directly (HEARTBEAT/
   // ACKNACK-acknowledged, retransmitted to matched readers). No manual CDR.
   using Reliability = espp::RtpsParticipant::Reliability;
@@ -113,6 +118,7 @@ extern "C" void app_main(void) {
     logger.error("Failed to create the typed publisher/subscriber");
     return;
   }
+  //! [rtps pubsub example]
 
   // Publish a counter periodically via the typed publisher.
   uint32_t counter = 0;
@@ -137,6 +143,7 @@ extern "C" void app_main(void) {
   // /add_two_ints example_interfaces/srv/AddTwoInts "{a: 7, b: 35}"` and get 42.
   // No manual CDR - the reflectable AddReq/AddResp structs are (de)serialized for
   // us. (Compiled out when CONFIG_RTPS_ENABLE_RPC is disabled.)
+  //! [rtps service server example]
   espp::ServiceServer<AddReq, AddResp> add_service(
       participant, {
                        .service = "/add_two_ints",
@@ -147,7 +154,9 @@ extern "C" void app_main(void) {
                              return AddResp{r.a + r.b};
                            },
                    });
+  //! [rtps service server example]
 
+  //! [rtps action server example]
   // Typed action (AMI) server: a ROS 2 client can `ros2 action send_goal
   // /fibonacci example_interfaces/action/Fibonacci "{order: 5}"` and receive
   // feedback + the [0,1,1,2,3,5] result. execute() runs on its own thread.
@@ -169,6 +178,7 @@ extern "C" void app_main(void) {
                              logger.info("action fibonacci({}) done", order);
                            },
                    });
+  //! [rtps action server example]
   if (!add_service.is_valid() || !fib_action.is_valid()) {
     logger.error("Failed to create the typed service/action servers");
     return;
@@ -181,6 +191,7 @@ extern "C" void app_main(void) {
   // full round-trip; until then the calls simply time out (logged), which still
   // exercises the client API on-target. (Calling this device's OWN services is
   // not possible - a participant filters out its own messages.)
+  //! [rtps rpc client example]
   espp::ServiceClient<AddReq, AddResp> add_client(
       participant,
       {.service = "/peer_add_two_ints", .type_name = "example_interfaces::srv::dds_::AddTwoInts"});
@@ -222,6 +233,7 @@ extern "C" void app_main(void) {
     logger.error("Failed to create the typed service/action clients");
     return;
   }
+  //! [rtps rpc client example]
   logger.info("client for '/peer_add_two_ints' + '/peer_fib' running");
 
 #if CONFIG_RTPS_EXAMPLE_SECOND_PARTICIPANT

@@ -17,6 +17,9 @@ namespace espp {
 /// Any reflectable struct the `cdr` component can serialize and deserialize
 /// qualifies - no base class, macros, or member functions required. This mirrors
 /// the ROS 2 / DDS message model: a plain data struct whose fields map to CDR.
+///
+/// \section rtps_message_ex1 RtpsMessage Example
+/// \snippet rtps_example.cpp rtps message example
 template <typename T>
 concept RtpsMessage = requires(const T &value, std::span<const std::byte> bytes) {
   { cdr::serialized_size<cdr::xcdr1>(value) } -> std::convertible_to<std::size_t>;
