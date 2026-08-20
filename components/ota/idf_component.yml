@@ -1,0 +1,26 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "Transport-agnostic OTA firmware update engine (esp_ota_ops wrapper with rollback helpers) plus a framed stream protocol for OTA over USB / WebUSB"
+url: "https://github.com/esp-cpp/espp/tree/main/components/ota"
+repository: "https://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/ota/ota.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - OTA
+  - Firmware
+  - Update
+  - Rollback
+  - WebUSB
+  - USB
+  - HTTP
+  - WiFi
+  - Ethernet
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/base_component: '>=1.0'

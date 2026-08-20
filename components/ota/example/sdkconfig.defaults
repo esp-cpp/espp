@@ -1,0 +1,45 @@
+# This example uses the native USB-OTG peripheral (for the USB vendor / WebUSB
+# OTA transport), which is only available on the ESP32-S3 (also S2 / P4) -- NOT
+# the classic ESP32. Pin the target here so a bare `idf.py build` (without an
+# explicit `set-target`) does not fall back to esp32 and fail to compile the
+# USB device.
+CONFIG_IDF_TARGET="esp32s3"
+
+# Common ESP-related
+CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=4096
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+
+# Keep the log console on the built-in USB-Serial-JTAG peripheral so it stays
+# completely separate from the native USB-OTG (vendor / WebUSB) interface
+# created by espp::UsbDevice. (On an ESP32-S3 devkit these are two distinct USB
+# connectors.)
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+
+# Enable the TinyUSB vendor-specific class (THE key enablement for the vendor /
+# WebUSB OTA interface). esp_tinyusb gates CFG_TUD_VENDOR behind
+# CONFIG_TINYUSB_VENDOR_COUNT; setting it > 0 compiles in the vendor class
+# driver so espp::UsbDevice's vendor function (bInterfaceClass 0xFF + WebUSB)
+# works.
+CONFIG_TINYUSB_VENDOR_COUNT=1
+
+# The example itself only USES the vendor function, but the usb_device
+# component's sources reference the TinyUSB CDC + HID class driver APIs, which
+# esp_tinyusb gates behind these options -- keep them enabled (minimal counts)
+# so the component compiles; no CDC / HID interface is instantiated here.
+CONFIG_TINYUSB_CDC_ENABLED=y
+CONFIG_TINYUSB_CDC_COUNT=1
+CONFIG_TINYUSB_HID_COUNT=1
+
+# OTA needs two app slots; use a custom factory-less partition table (otadata +
+# ota_0 + ota_1) on a 4MB flash so each slot can hold this wifi+usb app.
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_OFFSET=0x8000
+CONFIG_PARTITION_TABLE_MD5=y
+
+# Enable app rollback: a freshly-installed OTA image boots PENDING_VERIFY and
+# must mark itself valid (the example calls espp::Ota::mark_app_valid() after
+# its self-check) or the bootloader rolls back on the next reset.
+CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
