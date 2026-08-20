@@ -3,6 +3,7 @@
 #include <condition_variable>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <deque>
 #include <mutex>
 #include <span>
@@ -47,7 +48,9 @@ static constexpr char kUploadPage[] = R"HTML(<!DOCTYPE html>
 </style></head><body>
 <h2>espp OTA firmware upload</h2>
 <p>Pick the new firmware image (e.g. <code>build/ota_example.bin</code>) and upload; the device validates, activates and reboots into it.</p>
-<input type="file" id="f" accept=".bin"> <button id="b">Upload</button>
+<input type="file" id="f" accept=".bin"> <button id="b">Upload</button><br>
+<label for="t">OTA token (only if configured on the device):</label>
+<input type="password" id="t" autocomplete="off" placeholder="leave empty if none">
 <progress id="p" value="0" max="1" hidden></progress>
 <p id="msg"></p>
 <script>
@@ -59,6 +62,8 @@ b.addEventListener("click",()=>{
   if(file.size===0){msg.textContent="File is empty.";return;}
   const xhr=new XMLHttpRequest();
   xhr.open("POST","/ota");
+  const tok=document.getElementById("t").value;
+  if(tok)xhr.setRequestHeader("Authorization","Bearer "+tok);
   xhr.upload.onprogress=(e)=>{if(e.lengthComputable){p.hidden=false;p.value=e.loaded/e.total;}};
   xhr.onload=()=>{msg.textContent=xhr.status===200?"Success: "+xhr.responseText+"\ndevice is restarting...":"Error "+xhr.status+": "+xhr.responseText;};
   xhr.onerror=()=>{msg.textContent="Upload failed (connection error).";};
@@ -106,6 +111,26 @@ static esp_err_t ota_post_fail(httpd_req_t *req, espp::Ota *ota, const std::erro
 static esp_err_t ota_post_handler(httpd_req_t *req) {
   auto *ota = static_cast<espp::Ota *>(req->user_ctx);
   std::error_code ec;
+  // Optional bearer-token gate (CONFIG_EXAMPLE_OTA_HTTP_TOKEN). This is
+  // transport-level gating for the demo only -- real deployments should
+  // enable secure boot / signed images so the bootloader rejects unauthorized
+  // firmware regardless of how it arrives.
+  if constexpr (sizeof(CONFIG_EXAMPLE_OTA_HTTP_TOKEN) > 1) {
+    static constexpr char kExpected[] = "Bearer " CONFIG_EXAMPLE_OTA_HTTP_TOKEN;
+    char auth[128] = {};
+    const bool ok =
+        httpd_req_get_hdr_value_str(req, "Authorization", auth, sizeof(auth)) == ESP_OK &&
+        strcmp(auth, kExpected) == 0;
+    if (!ok) {
+      httpd_resp_set_status(req, "401 Unauthorized");
+      httpd_resp_set_type(req, "application/json");
+      httpd_resp_send(req,
+                      "{\"status\":\"error\",\"message\":\"missing or invalid "
+                      "Authorization: Bearer token\"}",
+                      HTTPD_RESP_USE_STRLEN);
+      return ESP_OK;
+    }
+  }
   if (req->content_len == 0) {
     ec = std::make_error_code(std::errc::invalid_argument);
     return ota_post_fail(req, ota, ec, "empty request body");
@@ -220,6 +245,14 @@ extern "C" void app_main(void) {
 
   proto::StreamParser parser;
   bool restart_pending = false;
+  // The OTA engine serializes sessions across ALL transports, but that alone
+  // is not enough here: without ownership tracking a USB DATA/FINISH/ABORT
+  // could append to / activate / cancel a session that HTTP started. Set only
+  // after a successful USB BEGIN; cleared on every terminal path (FINISH and
+  // ABORT end the session in all outcomes, and a failed write() aborts it).
+  // If the host unplugs mid-session the flag stays set, so a reconnecting
+  // host's ABORT is still honored (BEGIN would correctly fail busy first).
+  bool usb_owns_session = false;
   auto handle_usb_frame = [&](const proto::Frame &frame) {
     std::error_code ec;
     auto reply_error = [&](const std::error_code &err, const std::string &context) {
@@ -233,20 +266,36 @@ extern "C" void app_main(void) {
         reply_error(std::make_error_code(std::errc::invalid_argument), "malformed BEGIN");
         break;
       }
-      if (ota.begin(*image_size, ec))
+      if (ota.begin(*image_size, ec)) {
+        usb_owns_session = true;
         usb.write_vendor(proto::make_ok(0));
-      else
+      } else {
+        // busy = another transport's session; ownership stays false
         reply_error(ec, "begin failed");
+      }
       break;
     }
     case proto::MessageType::Data:
-      if (ota.write(frame.payload, ec))
+      if (!usb_owns_session) {
+        reply_error(std::make_error_code(std::errc::operation_not_permitted),
+                    "no USB-owned update session (send BEGIN first)");
+        break;
+      }
+      if (ota.write(frame.payload, ec)) {
         usb.write_vendor(proto::make_ok(static_cast<uint32_t>(ota.bytes_written())));
-      else
+      } else {
+        usb_owns_session = false; // write() aborted the session on failure
         reply_error(ec, "write failed");
+      }
       break;
     case proto::MessageType::Finish: {
+      if (!usb_owns_session) {
+        reply_error(std::make_error_code(std::errc::operation_not_permitted),
+                    "no USB-owned update session (send BEGIN first)");
+        break;
+      }
       const auto written = static_cast<uint32_t>(ota.bytes_written());
+      usb_owns_session = false; // finish() ends the session in all outcomes
       if (ota.finish(ec)) {
         usb.write_vendor(proto::make_ok(written));
         restart_pending = true; // reply first; the worker restarts shortly
@@ -256,7 +305,13 @@ extern "C" void app_main(void) {
       break;
     }
     case proto::MessageType::Abort: {
+      if (!usb_owns_session) {
+        reply_error(std::make_error_code(std::errc::operation_not_permitted),
+                    "no USB-owned update session to abort");
+        break;
+      }
       const auto written = static_cast<uint32_t>(ota.bytes_written());
+      usb_owns_session = false; // session over either way
       if (ota.abort(ec))
         usb.write_vendor(proto::make_ok(written));
       else
@@ -330,6 +385,12 @@ extern "C" void app_main(void) {
     httpd_register_uri_handler(http_server, &get_uri);
     httpd_register_uri_handler(http_server, &post_uri);
     logger.info("HTTP OTA server ready: GET /ota (upload page), POST /ota (raw image)");
+    if constexpr (sizeof(CONFIG_EXAMPLE_OTA_HTTP_TOKEN) <= 1) {
+      logger.warn("POST /ota is UNAUTHENTICATED (demo default): any peer that can reach this "
+                  "device can install structurally-valid firmware. Set EXAMPLE_OTA_HTTP_TOKEN in "
+                  "menuconfig to require a bearer token, and enable secure boot / signed images "
+                  "for real deployments.");
+    }
   } else {
     logger.error("Failed to start HTTP server");
   }

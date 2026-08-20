@@ -14,6 +14,19 @@ menu "OTA Example Configuration"
         help
             WiFi password (WPA or WPA2) for the example to use.
 
+    config EXAMPLE_OTA_HTTP_TOKEN
+        string "HTTP OTA bearer token (empty = UNAUTHENTICATED demo)"
+        default ""
+        help
+            When non-empty, POST /ota requires the request header
+            "Authorization: Bearer <token>" and rejects everything else with
+            401. When empty (the default for a frictionless demo) the endpoint
+            accepts firmware from ANY peer that can reach the device -- a loud
+            warning is logged at startup. A shared token is transport-level
+            gating only; for real deployments enable secure boot / signed
+            images so the bootloader rejects unauthorized firmware regardless
+            of how it arrives.
+
     config ESP_MAXIMUM_RETRY
         int "Maximum retry"
         default 5

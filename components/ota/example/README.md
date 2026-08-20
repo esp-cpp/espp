@@ -15,7 +15,17 @@ firmware over **three transports feeding the exact same engine**:
 
    ```bash
    curl --data-binary @build/ota_example.bin http://<ip>/ota
+   # with EXAMPLE_OTA_HTTP_TOKEN configured:
+   curl -H "Authorization: Bearer <token>" --data-binary @build/ota_example.bin http://<ip>/ota
    ```
+
+   > **Security**: by default (empty `EXAMPLE_OTA_HTTP_TOKEN`) this endpoint is
+   > **unauthenticated** — any peer that can reach the device can install a
+   > structurally-valid image; a warning is logged at startup. Set
+   > `EXAMPLE_OTA_HTTP_TOKEN` in menuconfig to require a bearer token (the
+   > upload page has a matching field). A shared token is demo-grade gating
+   > only: for real deployments enable **secure boot / signed images** so the
+   > bootloader rejects unauthorized firmware regardless of transport.
 
 3. **Browser HTTP upload** — `GET /ota` serves a tiny self-contained upload
    page (file picker + progress bar), so any browser on the LAN can update the
