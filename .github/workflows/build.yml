@@ -13,6 +13,17 @@ on:
       - '.github/workflows/build.yml'
       - '!**/idf_component.yml'
       - '!**/README.md'
+      # Non-build content inside components never affects the ESP example
+      # builds: hosted web apps (docs pipeline), interop harnesses (their own
+      # workflows), host-side python packages, host-only unit tests, and
+      # markdown docs. Skip the full build matrix when a change touches only
+      # these. (paths negations: last match wins, so these come after the
+      # components/** include.)
+      - '!components/*/web/**'
+      - '!components/*/interop/**'
+      - '!components/*/python/**'
+      - '!components/*/test/**'
+      - '!components/**/*.md'
 
 # Least-privilege default: these jobs only check out the repo and build/upload
 # artifacts, so read-only access to repository contents is sufficient.
