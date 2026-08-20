@@ -75,11 +75,15 @@ static esp_err_t ota_get_handler(httpd_req_t *req) {
 }
 
 // Reply with a JSON error, mapping the espp::Ota std::error_code to a
-// reasonable HTTP status. Always aborts any in-progress session (idempotent).
+// reasonable HTTP status. Deliberately does NOT abort: every failure path
+// that reaches here either never owned a session (empty body; begin() failed
+// -- note busy means ANOTHER transport's session is live and must not be
+// killed) or the engine already tore it down itself (write()/finish() abort/
+// end their session on failure). The socket-error path below, which DOES own
+// a live session, aborts explicitly.
 static esp_err_t ota_post_fail(httpd_req_t *req, espp::Ota *ota, const std::error_code &ec,
                                const char *context) {
-  std::error_code abort_ec;
-  ota->abort(abort_ec);
+  (void)ota;
   const char *status = "500 Internal Server Error";
   if (ec == std::errc::device_or_resource_busy)
     status = "409 Conflict"; // another update session is active

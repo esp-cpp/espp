@@ -18,8 +18,8 @@ rollback support (``CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE``): an app booted
 pending-verify must call ``mark_app_valid()`` after its own health checks or
 the bootloader rolls back to the previous image on the next reset.
 
-For OTA over a raw byte stream (such as the :doc:`usb_device
-<../buses/usb_cdc>` vendor / WebUSB interface), the header
+For OTA over a raw byte stream (such as the
+:doc:`usb_device <../buses/usb_cdc>` vendor / WebUSB interface), the header
 ``detail/ota_stream_protocol.hpp`` provides a host-testable framed protocol —
 CRC-32-verified little-endian frames (``BEGIN`` / ``DATA`` / ``FINISH`` /
 ``ABORT`` and ``OK`` / ``ERROR`` / ``PROGRESS`` replies) with an incremental,
