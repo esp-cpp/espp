@@ -230,11 +230,30 @@ extern "C" void app_main(void) {
   std::mutex usb_rx_mutex;
   std::condition_variable usb_rx_cv;
   std::deque<std::vector<uint8_t>> usb_rx_queue;
+  size_t usb_rx_queued_bytes = 0;
+  bool usb_rx_overflow = false;
+  // The protocol is one-frame-in-flight (the host waits for OK/ERROR before
+  // the next DATA), so a well-behaved host queues at most ~one frame while the
+  // worker is busy. Cap the queue anyway: the worker can legitimately block
+  // for seconds inside esp_ota_begin()/end() (flash erase / SHA validation),
+  // and a misbehaving host that pipelines OUT transfers must not be able to
+  // exhaust device RAM. 8 max-size frames of headroom is far more than the
+  // protocol ever needs.
+  static constexpr size_t kMaxQueuedRxBytes = 8 * espp::detail::ota_stream::kMaxFrameSize;
   usb.set_vendor_receive_callback([&](std::span<const uint8_t> data) {
     // TinyUSB task context: just queue the bytes and wake the worker.
     {
       std::lock_guard<std::mutex> lock(usb_rx_mutex);
-      usb_rx_queue.emplace_back(data.begin(), data.end());
+      if (usb_rx_queued_bytes + data.size() > kMaxQueuedRxBytes) {
+        // Overflow: drop everything (partial frames are useless once bytes
+        // are missing) and let the worker abort + resynchronize + reply.
+        usb_rx_queue.clear();
+        usb_rx_queued_bytes = 0;
+        usb_rx_overflow = true;
+      } else {
+        usb_rx_queue.emplace_back(data.begin(), data.end());
+        usb_rx_queued_bytes += data.size();
+      }
     }
     usb_rx_cv.notify_one();
   });
@@ -324,26 +343,48 @@ extern "C" void app_main(void) {
     }
   };
 
-  espp::Task usb_task({.callback = [&](std::mutex &, std::condition_variable &) -> bool {
-                         std::vector<std::vector<uint8_t>> chunks;
-                         {
-                           std::unique_lock<std::mutex> lock(usb_rx_mutex);
-                           usb_rx_cv.wait_for(lock, 100ms, [&] { return !usb_rx_queue.empty(); });
-                           chunks.assign(std::make_move_iterator(usb_rx_queue.begin()),
-                                         std::make_move_iterator(usb_rx_queue.end()));
-                           usb_rx_queue.clear();
-                         }
-                         for (const auto &chunk : chunks)
-                           for (const auto &frame : parser.feed(chunk))
-                             handle_usb_frame(frame);
-                         if (restart_pending) {
-                           // give the final OK reply time to reach the host
-                           std::this_thread::sleep_for(750ms);
-                           ota.restart();
-                         }
-                         return false; // don't stop the task
-                       },
-                       .task_config = {.name = "ota_usb", .stack_size_bytes = 8192}});
+  espp::Task usb_task(
+      {.callback = [&](std::mutex &, std::condition_variable &) -> bool {
+         std::vector<std::vector<uint8_t>> chunks;
+         bool overflowed = false;
+         {
+           std::unique_lock<std::mutex> lock(usb_rx_mutex);
+           usb_rx_cv.wait_for(lock, 100ms,
+                              [&] { return !usb_rx_queue.empty() || usb_rx_overflow; });
+           chunks.assign(std::make_move_iterator(usb_rx_queue.begin()),
+                         std::make_move_iterator(usb_rx_queue.end()));
+           usb_rx_queue.clear();
+           usb_rx_queued_bytes = 0;
+           overflowed = usb_rx_overflow;
+           usb_rx_overflow = false;
+         }
+         if (overflowed) {
+           // Bytes were dropped: any in-flight frame/image is
+           // unusable. Abort a USB-owned session, resync the
+           // parser, and tell the host to start over.
+           if (usb_owns_session) {
+             std::error_code abort_ec;
+             ota.abort(abort_ec);
+             usb_owns_session = false;
+           }
+           parser.reset();
+           usb.write_vendor(proto::make_error(
+               static_cast<uint32_t>(std::make_error_code(std::errc::no_buffer_space).value()),
+               "RX overflow: frames dropped; transfer aborted -- wait for OK "
+               "replies between frames and restart the update"));
+           return false; // dropped chunks are gone; skip parse
+         }
+         for (const auto &chunk : chunks)
+           for (const auto &frame : parser.feed(chunk))
+             handle_usb_frame(frame);
+         if (restart_pending) {
+           // give the final OK reply time to reach the host
+           std::this_thread::sleep_for(750ms);
+           ota.restart();
+         }
+         return false; // don't stop the task
+       },
+       .task_config = {.name = "ota_usb", .stack_size_bytes = 8192}});
   usb_task.start();
 
   // --- Transports 2 & 3: WiFi (or Ethernet) + HTTP push -----------------------
