@@ -92,8 +92,8 @@ static esp_err_t ota_post_fail(httpd_req_t *req, espp::Ota *ota, const std::erro
   const char *status = "500 Internal Server Error";
   if (ec == std::errc::device_or_resource_busy)
     status = "409 Conflict"; // another update session is active
-  else if (ec == std::errc::no_space_on_device)
-    status = "413 Payload Too Large"; // image larger than the update partition
+  else if (ec == std::errc::no_space_on_device || ec == std::errc::file_too_large)
+    status = "413 Payload Too Large"; // image larger than the partition / declared size
   else if (ec == std::errc::illegal_byte_sequence || ec == std::errc::file_exists ||
            ec == std::errc::invalid_argument)
     status = "400 Bad Request"; // not a valid / acceptable image

@@ -169,8 +169,9 @@ public:
    * @param data Image bytes (any chunk size; empty is a no-op).
    * @param[out] ec Set on failure: no active session (operation_not_permitted),
    *        bad image magic (illegal_byte_sequence), same-version rejection
-   *        (file_exists, when Config::reject_same_version is set), or a flash
-   *        write failure (io_error).
+   *        (file_exists, when Config::reject_same_version is set), the chunk
+   *        crossing a declared image size (file_too_large -- only that range
+   *        was erased by begin()), or a flash write failure (io_error).
    * @return true if the bytes were written, false otherwise (ec is set).
    */
   bool write(std::span<const uint8_t> data, std::error_code &ec) {
@@ -183,6 +184,17 @@ public:
     }
     if (data.empty())
       return true;
+    // For a known-size session, esp_ota_begin(image_size) only erased that
+    // range -- esp_ota_write() itself guards just the partition boundary, so
+    // a chunk crossing the declared size would land in flash that was never
+    // erased for this update. Reject and abort before writing anything.
+    if (image_size_ != 0 && bytes_written_ + data.size() > image_size_) {
+      logger_.error("write: {} + {} bytes would exceed the declared image size {}; aborting",
+                    bytes_written_, data.size(), image_size_);
+      abort_session_locked();
+      ec = std::make_error_code(std::errc::file_too_large);
+      return false;
+    }
     // Validate the very first image byte: every ESP app image starts with the
     // image header magic 0xE9.
     if (bytes_written_ == 0 && header_.empty() && data[0] != ESP_IMAGE_HEADER_MAGIC) {
