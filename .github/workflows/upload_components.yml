@@ -126,6 +126,7 @@ jobs:
             components/nvs
             components/odrive_ascii
             components/odrive_native
+            components/ota
             components/pcf85063
             components/pi4ioe5v
             components/pid

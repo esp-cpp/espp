@@ -1,0 +1,9 @@
+# ESP-IDF Partition Table -- factory-less OTA layout (4MB flash): otadata picks
+# which of the two equal app slots boots; `idf.py flash` writes ota_0 and each
+# OTA update alternates to the other slot.
+# Name,   Type, SubType, Offset,   Size, Flags
+nvs,      data, nvs,     0x9000,   0x4000,
+otadata,  data, ota,     0xd000,   0x2000,
+phy_init, data, phy,     0xf000,   0x1000,
+ota_0,    app,  ota_0,   0x10000,  1920K,
+ota_1,    app,  ota_1,   ,         1920K,

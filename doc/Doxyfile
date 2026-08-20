@@ -154,6 +154,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/nvs/example/main/nvs_example.cpp \
   $(PROJECT_PATH)/components/odrive_ascii/example/main/odrive_ascii_example.cpp \
   $(PROJECT_PATH)/components/odrive_native/example/main/odrive_native_example.cpp \
+  $(PROJECT_PATH)/components/ota/example/main/ota_example.cpp \
   $(PROJECT_PATH)/components/pca9535/example/main/pca9535_example.cpp \
   $(PROJECT_PATH)/components/pcf85063/example/main/pcf85063_example.cpp \
   $(PROJECT_PATH)/components/pid/example/main/pid_example.cpp \
@@ -373,6 +374,8 @@ INPUT = \
   $(PROJECT_PATH)/components/odrive_ascii/include/odrive_ascii.hpp \
   $(PROJECT_PATH)/components/odrive_native/include/odrive_native.hpp \
   $(PROJECT_PATH)/components/odrive_native/include/detail/odrive_native_core.hpp \
+  $(PROJECT_PATH)/components/ota/include/ota.hpp \
+  $(PROJECT_PATH)/components/ota/include/detail/ota_stream_protocol.hpp \
   $(PROJECT_PATH)/components/pca9535/include/pca9535.hpp \
   $(PROJECT_PATH)/components/pcf85063/include/pcf85063.hpp \
   $(PROJECT_PATH)/components/pid/include/pid.hpp \

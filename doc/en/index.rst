@@ -82,6 +82,7 @@ collected under :doc:`web_apps`.
    ble/index
    ftp/index
    nfc/index
+   ota/index
    wireless/index
    protocols/index
 

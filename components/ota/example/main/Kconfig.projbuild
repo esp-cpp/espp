@@ -1,0 +1,37 @@
+menu "OTA Example Configuration"
+
+    config ESP_WIFI_SSID
+        string "WiFi SSID"
+        default "myssid"
+        help
+            SSID (network name) for the example to connect to. The HTTP OTA
+            transport (POST /ota) is served on the IP obtained from this
+            network; the USB / WebUSB transport works regardless.
+
+    config ESP_WIFI_PASSWORD
+        string "WiFi Password"
+        default "mypassword"
+        help
+            WiFi password (WPA or WPA2) for the example to use.
+
+    config EXAMPLE_OTA_HTTP_TOKEN
+        string "HTTP OTA bearer token (empty = UNAUTHENTICATED demo)"
+        default ""
+        help
+            When non-empty, POST /ota requires the request header
+            "Authorization: Bearer <token>" and rejects everything else with
+            401. When empty (the default for a frictionless demo) the endpoint
+            accepts firmware from ANY peer that can reach the device -- a loud
+            warning is logged at startup. A shared token is transport-level
+            gating only; for real deployments enable secure boot / signed
+            images so the bootloader rejects unauthorized firmware regardless
+            of how it arrives.
+
+    config ESP_MAXIMUM_RETRY
+        int "Maximum retry"
+        default 5
+        help
+            Set the Maximum retry to avoid station reconnecting to the AP
+            unlimited when the AP is really inexistent.
+
+endmenu
