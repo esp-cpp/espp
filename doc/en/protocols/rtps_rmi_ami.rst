@@ -168,12 +168,13 @@ leaner. Correlation is a **20-byte in-band header** prepended to the payload —
 ``client_prefix(12) + request_id(4) + op(1) + flags(1) + reserved(2)`` — so it
 needs *no inline-QoS engine support* and rides plain reliable pub/sub on
 ``es_rq/`` / ``es_rr/`` topics (a distinct prefix, so it never aliases the ROS
-``rq/`` / ``rr/`` topics). A native action collapses ROS's five endpoints (~10
-RTPS writer/reader pairs) to a goal service, a small cancel service, and **one**
-feedback topic (~4 endpoints): there is no separate ``get_result`` or ``status``
-— the terminal result rides the feedback stream as a SUCCEEDED / ABORTED /
-CANCELED message, and goals are identified by a ``uint32`` handle instead of a
-16-byte UUID.
+``rq/`` / ``rr/`` topics). A native action collapses ROS 2's **three services +
+two topics** (8 topics on the wire, 8 RTPS endpoints per side) down to **two
+services + one topic** — a goal service, a small cancel service, and one
+feedback topic (5 topics, 5 endpoints per side): there is no separate
+``get_result`` or ``status`` — the terminal result rides the feedback stream as
+a SUCCEEDED / ABORTED / CANCELED message, and goals are identified by a
+``uint32`` handle instead of a 16-byte UUID.
 
 .. code-block:: cpp
 

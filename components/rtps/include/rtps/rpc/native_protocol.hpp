@@ -126,8 +126,9 @@ inline std::string native_reply_topic(std::string_view service) {
 // send_goal native request/reply (-> {accepted, goal_handle}), a small cancel
 // native request/reply (-> {accepted}), and ONE feedback topic. No UUIDs (a
 // uint32 goal_handle), no separate get_result / status - the terminal result
-// rides the feedback stream as a SUCCEEDED/ABORTED/CANCELED message. ~4
-// endpoints/pair vs ROS's ~10. See RMI_AMI_DESIGN.md 4.3.
+// rides the feedback stream as a SUCCEEDED/ABORTED/CANCELED message. Two
+// services + one topic = 5 topics / 5 RTPS endpoints per side, vs the ROS 2
+// action's three services + two topics = 8. See RMI_AMI_DESIGN.md 4.3.
 // ---------------------------------------------------------------------------
 
 // Reuse the ROS GoalStatus values for conceptual parity (see action_types.hpp,
