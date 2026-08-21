@@ -2697,14 +2697,20 @@ void py_init_module_espp(py::module &m) {
       .def("is_running", &espp::ThreadPool::is_running,
            "/ @brief Query whether the pool is currently running.\n/ @return True if workers are "
            "active, False otherwise.")
-      .def("submit", &espp::ThreadPool::submit, py::arg("job"),
+      .def("submit",
+           static_cast<bool (espp::ThreadPool::*)(espp::ThreadPool::Job &&)>(
+               &espp::ThreadPool::submit),
+           py::arg("job"),
            "/ @brief Submit a job, optionally blocking when the queue is full.\n/\n/ Blocks if "
            "Config::block_on_submit_when_full is True and the queue has\n/ reached its capacity "
            "limit. Otherwise behaves identically to try_submit().\n/ @param job Callable to "
            "enqueue; moved into the queue on acceptance.\n/ @return True if the job was accepted, "
            "False if it was rejected.",
            py::call_guard<py::gil_scoped_release>())
-      .def("try_submit", &espp::ThreadPool::try_submit, py::arg("job"),
+      .def("try_submit",
+           static_cast<bool (espp::ThreadPool::*)(espp::ThreadPool::Job &&)>(
+               &espp::ThreadPool::try_submit),
+           py::arg("job"),
            "/ @brief Attempt to submit a job without blocking.\n/\n/ Returns immediately with "
            "False when the queue is full.\n/ @param job Callable to enqueue; moved into the queue "
            "on acceptance.\n/ @return True if the job was accepted, False if it was rejected.")

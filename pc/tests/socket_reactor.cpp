@@ -199,6 +199,103 @@ int main() {
   }
 
   // -------------------------------------------------------------------------
+  // 5. Priority bands: Critical socket stays responsive under a Low-band flood
+  // -------------------------------------------------------------------------
+  logger.info("--- priority bands + dscp ---");
+  {
+    constexpr size_t low_port = 6140;
+    constexpr size_t crit_port = 6141;
+    constexpr int num_critical_msgs = 10;
+    std::atomic<int> flood_processed{0};
+    std::atomic<int> crit_received{0};
+    std::atomic<bool> stop_flood{false};
+
+    // sockets declared before the reactor so the reactor is destroyed first
+    espp::UdpSocket low_server({.log_level = WARN});
+    espp::UdpSocket crit_server({.log_level = WARN});
+    {
+      // Single pool worker so dispatch order is observable: when both sockets
+      // are readable in one select() round, the Critical one must be handled
+      // first.
+      espp::SocketReactor reactor({.pool_config = {.worker_count = 1,
+                                                   .worker_task_config = {.name = "reactor pool",
+                                                                          .stack_size_bytes = 4096,
+                                                                          .priority = 5}},
+                                   .log_level = WARN});
+
+      auto low_id = reactor.add_udp_receiver(
+          low_server,
+          {.port = low_port,
+           .buffer_size = kBufferSize,
+           .on_receive_callback = [&](const ByteVector &,
+                                      const espp::Socket::Info &) -> std::optional<ByteVector> {
+             // simulate per-packet work so the flood keeps the pool busy
+             std::this_thread::sleep_for(5ms);
+             ++flood_processed;
+             return std::nullopt;
+           },
+           .band = espp::QosBand::Low,
+           .dscp = 8}); // CS1 "low-priority data"
+      auto crit_id = reactor.add_udp_receiver(
+          crit_server,
+          {.port = crit_port,
+           .buffer_size = kBufferSize,
+           .on_receive_callback = [&](const ByteVector &,
+                                      const espp::Socket::Info &) -> std::optional<ByteVector> {
+             ++crit_received;
+             return std::nullopt;
+           },
+           .band = espp::QosBand::Critical,
+           .dscp = 46}); // EF "expedited forwarding"
+      check(low_id != espp::SocketReactor::INVALID_ID, "Low-band receiver registered (with dscp)");
+      check(crit_id != espp::SocketReactor::INVALID_ID,
+            "Critical-band receiver registered (with dscp)");
+
+      // Flood the Low-band socket from a background thread for the duration.
+      std::thread flood([&]() {
+        espp::UdpSocket client({.log_level = WARN});
+        auto payload = make_payload(100, 0x55);
+        while (!stop_flood.load()) {
+          client.send(payload, {.ip_address = kLoopback, .port = low_port});
+          std::this_thread::sleep_for(1ms);
+        }
+      });
+
+      check(wait_until([&] { return flood_processed.load() >= 5; }, 5s),
+            "flood is being processed");
+      const int flood_before = flood_processed.load();
+
+      // Sparse Critical messages; each must be dispatched with bounded delay
+      // even though the (single-worker) pool is saturated by the flood.
+      espp::UdpSocket crit_client({.log_level = WARN});
+      int delivered = 0;
+      std::chrono::milliseconds worst_latency{0};
+      for (int i = 0; i < num_critical_msgs; ++i) {
+        const int before = crit_received.load();
+        const auto t0 = std::chrono::steady_clock::now();
+        crit_client.send(make_payload(32, static_cast<uint8_t>(i)),
+                         {.ip_address = kLoopback, .port = crit_port});
+        if (wait_until([&] { return crit_received.load() > before; }, 2s, 1ms)) {
+          ++delivered;
+          auto latency = std::chrono::duration_cast<std::chrono::milliseconds>(
+              std::chrono::steady_clock::now() - t0);
+          worst_latency = std::max(worst_latency, latency);
+        }
+      }
+      logger.info("  {} critical messages delivered, worst latency {}ms (flood processed: {})",
+                  delivered, worst_latency.count(), flood_processed.load());
+      check(delivered == num_critical_msgs,
+            "all Critical messages dispatched promptly during the flood");
+      check(flood_processed.load() >= flood_before + 5,
+            "Low-band flood kept making progress alongside Critical traffic");
+
+      stop_flood = true;
+      flood.join();
+      reactor.stop();
+    }
+  }
+
+  // -------------------------------------------------------------------------
   // Summary
   // -------------------------------------------------------------------------
   logger.info("");

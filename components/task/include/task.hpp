@@ -158,7 +158,18 @@ public:
   struct BaseConfig {
     std::string name;              /**< Name of the task */
     size_t stack_size_bytes{4096}; /**< Stack Size (B) allocated to the task. */
-    size_t priority{0}; /**< Priority of the task, 0 is lowest priority on ESP / FreeRTOS.  */
+    size_t priority{0}; /**< Priority of the task; 0 is the lowest, and espp uses the FreeRTOS
+                           convention that ~25 is the highest useful "real-time" priority.
+                           Platform semantics: on ESP this is the FreeRTOS task priority (clamped
+                           to configMAX_PRIORITIES - 1). On Linux and macOS, priority 0 leaves the
+                           thread on the default scheduler (SCHED_OTHER), while priority >= 1 is
+                           mapped linearly onto the SCHED_FIFO real-time priority range - giving
+                           true preemptive priority scheduling when permitted (on Linux this
+                           requires CAP_SYS_NICE or an RLIMIT_RTPRIO allowance, and delivers hard
+                           preemption on PREEMPT_RT kernels; without permission the task falls
+                           back gracefully to default scheduling with a one-time warning). On
+                           Windows the priority is mapped best-effort onto SetThreadPriority()
+                           classes (NORMAL / ABOVE_NORMAL / HIGHEST / TIME_CRITICAL). */
     int core_id{-1};    /**< Core ID of the task, -1 means it is not pinned to any core.  */
   };
 
@@ -276,16 +287,30 @@ public:
    * @brief Set the priority of the task.
    * @details The new priority is always stored in the task's configuration, so
    *          it will be used the next time the task is started. If the task is
-   *          currently running (ESP only), the change is also applied to the
-   *          live task immediately via vTaskPrioritySet().
-   * @param priority New FreeRTOS priority (0 is lowest priority on ESP /
-   *          FreeRTOS). It is clamped to [0, configMAX_PRIORITIES - 1] on ESP.
+   *          currently running, the change is also applied to the live task
+   *          immediately: via vTaskPrioritySet() on ESP, via
+   *          pthread_setschedparam() (SCHED_FIFO for priority >= 1, default
+   *          scheduling for priority 0) on Linux/macOS, and via
+   *          SetThreadPriority() on Windows. See BaseConfig::priority for the
+   *          per-platform semantics (including the unprivileged-Linux graceful
+   *          fallback).
+   * @param priority New priority (0 is lowest; see BaseConfig::priority). It is
+   *          clamped to [0, configMAX_PRIORITIES - 1] on ESP.
    * @return true if the change was applied to the currently-running task; false
    *          if the task is not running (the new value still takes effect the
-   *          next time the task is started) or the platform does not support
-   *          changing a live task's priority.
+   *          next time the task is started) or the platform / privileges did
+   *          not allow changing the live task's scheduling.
    */
   bool set_priority(size_t priority);
+
+  /**
+   * @brief Get the priority stored in the task's configuration.
+   * @details This is the value set at construction or via set_priority(); it
+   *          is the priority the task will be started with (and, if the task
+   *          is running, the priority that was last requested for it).
+   * @return The configured priority (0 is lowest; see BaseConfig::priority).
+   */
+  size_t get_configured_priority() const { return config_.priority; }
 
   /**
    * @brief Set the core affinity (core ID) of the task.
@@ -533,6 +558,19 @@ protected:
    * @brief Notify the task to stop and join the thread.
    */
   void notify_and_join();
+
+#if !defined(ESP_PLATFORM)
+  /**
+   * @brief Apply \p priority to the (running) \p thread using the host OS
+   *        scheduling API (best-effort; see BaseConfig::priority).
+   * @param thread The thread to apply the priority to; must be joinable.
+   * @param priority The espp priority to apply (0 = default scheduling).
+   * @return true if the OS accepted the scheduling change, false otherwise
+   *         (e.g. insufficient privileges - the thread keeps running with
+   *         default scheduling).
+   */
+  bool apply_thread_priority(std::thread &thread, size_t priority);
+#endif
 
   callback_variant callback_; ///< Variant of the callback function for the task.
   BaseConfig config_;         ///< Configuration for the task.
