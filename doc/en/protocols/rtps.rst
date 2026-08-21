@@ -174,8 +174,10 @@ Native protocol
 For espp ↔ espp links that do not need ROS 2 interop, a lean **native** protocol
 trades interop for simplicity: services correlate with a 20-byte in-band header
 (no inline QoS, no ``rq``/``rr`` mangling) on ``es_rq`` / ``es_rr`` topics, and a
-native action is just a goal service + a cancel service + one feedback topic
-(~4 endpoints vs the ROS action's ~10). Same client ergonomics. See
+native action is just two services + one topic (a goal service, a cancel
+service, and one feedback topic that also carries the terminal result: 5 topics
+/ 5 RTPS endpoints per side, vs the ROS 2 action's three services + two topics
+= 8). Same client ergonomics. See
 :doc:`rtps_rmi_ami` for the byte layout.
 
 Ports and Channels
@@ -216,7 +218,7 @@ menuconfig under ``RTPS`` on ESP32; ``include/rtps/config.hpp`` defaults on host
      - Options / default
      - Effect
    * - ``RTPS_LIMITS_PROFILE``
-     - ``embedded`` (default) / ``host`` / ``host_large``
+     - ``embedded`` (ESP32 default) / ``host`` (host default) / ``host_large``
      - Compile-time endpoint/history capacity caps. Wire-neutral.
    * - ``RTPS_STORAGE_DYNAMIC``
      - off on ESP32 / on host

@@ -59,6 +59,12 @@ namespace espp {
 /// periods are compile-time constants, endpoint counts are bounded by the
 /// engine's pools, and a second RtpsParticipant in the same process will
 /// collide on unicast ports (scheduled fix in Phase 2).
+///
+/// \section rtps_participant_ex1 RtpsParticipant Example
+/// \snippet rtps_example.cpp rtps participant example
+///
+/// \section rtps_full_ex1 Full Example (network bring-up + typed pub/sub + RPC)
+/// \snippet rtps_example.cpp rtps example
 class RtpsParticipant : public BaseComponent {
 public:
   /// Callback for samples received on a reader. The span holds the

@@ -94,7 +94,7 @@ flowchart LR
         P2["Service (RMI)"] --> W2["2 topics (rq/rr) + related_sample_identity"]
         P3["Action (AMI)"] --> W3["3 services + 2 topics (feedback/status)"]
         P4["Native service"] --> W4["2 es_rq/es_rr topics + 20-byte in-band header"]
-        P5["Native action"] --> W5["goal svc + cancel svc + 1 feedback topic (~4 endpoints)"]
+        P5["Native action"] --> W5["goal svc + cancel svc + 1 feedback topic (5 endpoints/side vs ROS 2's 8)"]
     end
 ```
 

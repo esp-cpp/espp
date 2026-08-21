@@ -31,6 +31,10 @@ enum class GoalStatus : int8_t {
 /// @tparam Goal     Reflectable goal message type.
 /// @tparam Result   Reflectable result message type.
 /// @tparam Feedback Reflectable feedback message type.
+///
+/// \section rtps_goal_handle_ex1 ActionGoalHandle Example
+/// The handle is the `h` passed to the ActionServer execute callback:
+/// \snippet rtps_example.cpp rtps action server example
 template <RtpsMessage Goal, RtpsMessage Result, RtpsMessage Feedback> class ActionGoalHandle {
 public:
   /// \return The typed goal being executed.
@@ -98,6 +102,9 @@ public:
 /// @tparam Goal     Reflectable goal message type.
 /// @tparam Result   Reflectable result message type.
 /// @tparam Feedback Reflectable feedback message type.
+///
+/// \section rtps_action_server_ex1 ActionServer Example
+/// \snippet rtps_example.cpp rtps action server example
 template <RtpsMessage Goal, RtpsMessage Result, RtpsMessage Feedback> class ActionServer {
 public:
   /// The typed goal handle passed to the execute callback.
@@ -196,6 +203,9 @@ private:
 /// @tparam Goal     Reflectable goal message type.
 /// @tparam Result   Reflectable result message type.
 /// @tparam Feedback Reflectable feedback message type.
+///
+/// \section rtps_action_client_ex1 ActionClient Example
+/// \snippet rtps_example.cpp rtps rpc client example
 template <RtpsMessage Goal, RtpsMessage Result, RtpsMessage Feedback> class ActionClient {
 public:
   /// Callback delivering one typed feedback message (on an engine worker thread).

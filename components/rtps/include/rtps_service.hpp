@@ -33,6 +33,9 @@ namespace espp {
 ///
 /// @tparam Request  Reflectable request message type (the service Request).
 /// @tparam Response Reflectable response message type (the service Response).
+///
+/// \section rtps_service_server_ex1 ServiceServer Example
+/// \snippet rtps_example.cpp rtps service server example
 template <RtpsMessage Request, RtpsMessage Response> class ServiceServer {
 public:
   /// Handler: given a typed request, return the typed response. Runs on an
@@ -88,6 +91,9 @@ private:
 ///
 /// @tparam Request  Reflectable request message type (the service Request).
 /// @tparam Response Reflectable response message type (the service Response).
+///
+/// \section rtps_service_client_ex1 ServiceClient Example
+/// \snippet rtps_example.cpp rtps rpc client example
 template <RtpsMessage Request, RtpsMessage Response> class ServiceClient {
 public:
   /// Callback delivering the typed response for a call_async() request. Runs on
