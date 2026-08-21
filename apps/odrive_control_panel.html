@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ODrive Native WebUSB Control Panel</title>
+<meta name="description" content="WebUSB control panel for the ODrive native (Fibre) binary protocol: endpoint tree browser, live multi-signal plots, and quick controls.">
+  <!--
+    ODrive Native (Fibre endpoint) WebUSB Control Panel
+    ===================================================
+    A single-file, fully offline, dependency-free browser control panel for the
+    espp ODrive *native* (legacy Fibre endpoint) BINARY protocol, spoken over
+    WebUSB. This is the driverless-browser replacement for the ODrive Web GUI,
+    but for OUR boards.
+
+    Unlike odrive_webusb_console.html (which carries the ODrive *ASCII* text
+    stream over the same vendor interface), this panel speaks the packet-based
+    native protocol: it downloads the device's JSON object tree from endpoint 0,
+    renders it as a live, editable property tree, and does typed get/set by
+    endpoint id with little-endian codecs.
+
+    Transport: the firmware's dedicated USB *vendor* interface
+    (bInterfaceClass = 0xFF) with one bulk IN + one bulk OUT endpoint. Over
+    WebUSB each transferOut carries exactly ONE request packet and each
+    transferIn returns exactly ONE response packet -- there is NO UART stream
+    framing (USB provides the reliability the stream framing otherwise adds).
+
+    Wire spec: components/odrive_native/PROTOCOL.md. No external dependencies,
+    no CDN, no network fetches: everything is inline and works from a file://
+    URL, http://localhost, or any secure (https) origin in a Chromium browser.
+  -->
+  <style>
+    :root {
+      --bg: #f4f6f9;
+      --panel-bg: #ffffff;
+      --panel-border: #d9dee6;
+      --text: #1c2330;
+      --text-muted: #5c6675;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-contrast: #ffffff;
+      --danger: #dc2626;
+      --ok: #16a34a;
+      --warn: #b45309;
+      --log-bg: #0f1420;
+      --log-text: #d6dbe6;
+      --tx-color: #7dd3fc;
+      --rx-color: #86efac;
+      --err-color: #fca5a5;
+      --sys-color: #fcd34d;
+      --time-color: #64748b;
+      --input-bg: #ffffff;
+      --input-border: #c3cbd6;
+      --chip-bg: #eef2f8;
+      --plot-bg: #0f1420;
+      --plot-grid: #ffffff14;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b0e14;
+        --panel-bg: #151a23;
+        --panel-border: #262d3a;
+        --text: #e6eaf2;
+        --text-muted: #98a2b3;
+        --accent: #3b82f6;
+        --accent-hover: #60a5fa;
+        --accent-contrast: #0b0e14;
+        --danger: #ef4444;
+        --ok: #22c55e;
+        --warn: #f59e0b;
+        --log-bg: #05070c;
+        --log-text: #cdd4e0;
+        --tx-color: #38bdf8;
+        --rx-color: #4ade80;
+        --err-color: #f87171;
+        --sys-color: #fbbf24;
+        --time-color: #64748b;
+        --input-bg: #0e1219;
+        --input-border: #2b3341;
+        --chip-bg: #1b2230;
+        --plot-bg: #05070c;
+        --plot-grid: #ffffff12;
+        --shadow: 0 1px 3px rgba(0,0,0,0.4);
+      }
+    }
+    /* Explicit theme overrides (viewer toggle stamps data-theme on :root). */
+    :root[data-theme="dark"] {
+      --bg: #0b0e14; --panel-bg: #151a23; --panel-border: #262d3a; --text: #e6eaf2;
+      --text-muted: #98a2b3; --accent: #3b82f6; --accent-hover: #60a5fa;
+      --accent-contrast: #0b0e14; --danger: #ef4444; --ok: #22c55e; --warn: #f59e0b;
+      --log-bg: #05070c; --log-text: #cdd4e0; --tx-color: #38bdf8; --rx-color: #4ade80;
+      --err-color: #f87171; --sys-color: #fbbf24; --input-bg: #0e1219;
+      --input-border: #2b3341; --chip-bg: #1b2230; --plot-bg: #05070c; --plot-grid: #ffffff12;
+    }
+    :root[data-theme="light"] {
+      --bg: #f4f6f9; --panel-bg: #ffffff; --panel-border: #d9dee6; --text: #1c2330;
+      --text-muted: #5c6675; --accent: #2563eb; --accent-hover: #1d4ed8;
+      --accent-contrast: #ffffff; --danger: #dc2626; --ok: #16a34a; --warn: #b45309;
+      --log-bg: #0f1420; --log-text: #d6dbe6; --tx-color: #7dd3fc; --rx-color: #86efac;
+      --err-color: #fca5a5; --sys-color: #fcd34d; --input-bg: #ffffff;
+      --input-border: #c3cbd6; --chip-bg: #eef2f8; --plot-bg: #0f1420; --plot-grid: #ffffff14;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+      overflow-x: hidden;
+    }
+
+    header {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 12px;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--panel-border);
+      background: var(--panel-bg);
+      position: sticky; top: 0; z-index: 20;
+    }
+    header h1 { font-size: 16px; margin: 0; font-weight: 650; letter-spacing: 0.2px; }
+    header .spacer { flex: 1 1 auto; }
+
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-size: 13px; font-weight: 600; padding: 5px 11px; border-radius: 999px;
+      border: 1px solid var(--panel-border); background: var(--bg);
+      color: var(--text-muted); white-space: nowrap;
+    }
+    .status-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--text-muted); flex: 0 0 auto; }
+    .status-pill.connected { color: var(--ok); }
+    .status-pill.connected .status-dot { background: var(--ok); }
+    .status-pill.busy { color: var(--warn); }
+    .status-pill.busy .status-dot { background: var(--warn); }
+    .status-pill.error { color: var(--danger); }
+    .status-pill.error .status-dot { background: var(--danger); }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+      gap: 16px; padding: 16px 18px; max-width: 1600px; margin: 0 auto;
+    }
+    @media (max-width: 960px) { main { grid-template-columns: minmax(0, 1fr); } }
+    .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+    .panel {
+      background: var(--panel-bg); border: 1px solid var(--panel-border);
+      border-radius: 10px; padding: 14px 15px; box-shadow: var(--shadow); min-width: 0;
+    }
+    .panel h2 {
+      font-size: 13px; text-transform: uppercase; letter-spacing: 0.6px;
+      color: var(--text-muted); margin: 0 0 11px 0; font-weight: 700;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .panel h2 .spacer { flex: 1 1 auto; }
+
+    label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 3px; }
+    input, select, button { font-family: inherit; font-size: 14px; }
+    input[type="text"], input[type="number"], select {
+      width: 100%; padding: 7px 9px; border-radius: 7px;
+      border: 1px solid var(--input-border); background: var(--input-bg);
+      color: var(--text); min-width: 0;
+    }
+    input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: var(--accent); }
+    input.mono, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+    button {
+      cursor: pointer; border: 1px solid var(--input-border); background: var(--bg);
+      color: var(--text); padding: 7px 13px; border-radius: 7px; font-weight: 600;
+      white-space: nowrap; transition: background 0.12s, border-color 0.12s;
+    }
+    button:hover:not(:disabled) { border-color: var(--accent); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    button.primary { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); }
+    button.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+    button.danger { color: var(--danger); border-color: var(--danger); }
+    button.small { padding: 4px 9px; font-size: 12px; font-weight: 600; }
+    button.tiny { padding: 2px 6px; font-size: 12px; border-radius: 5px; }
+
+    .row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+    .row > .grow { flex: 1 1 120px; min-width: 0; }
+    .field { min-width: 0; }
+    .field.axis { flex: 0 0 66px; }
+    .field.small-num { flex: 0 0 110px; }
+
+    .hint { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+    .hint code, .mono.inline { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+    .checkbox-inline {
+      display: inline-flex; align-items: center; gap: 6px; font-size: 13px;
+      color: var(--text-muted); margin: 0; cursor: pointer; user-select: none;
+    }
+    .checkbox-inline input { width: auto; margin: 0; }
+
+    #unsupported {
+      display: none; margin: 16px 18px; padding: 14px 16px; border-radius: 10px;
+      border: 1px solid var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent);
+      color: var(--text);
+    }
+    #unsupported strong { color: var(--danger); }
+
+    .notice {
+      font-size: 12px; color: var(--text-muted); border-left: 3px solid var(--accent);
+      padding: 6px 10px; margin-top: 10px;
+      background: color-mix(in srgb, var(--accent) 8%, transparent); border-radius: 0 6px 6px 0;
+    }
+
+    /* ---- Property tree ---- */
+    .tree-toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+    .tree-toolbar .grow { flex: 1 1 140px; min-width: 0; }
+    #tree {
+      max-height: 52vh; overflow-y: auto; overflow-x: auto;
+      border: 1px solid var(--panel-border); border-radius: 8px; padding: 6px 4px;
+      font-size: 13px;
+    }
+    .tree-empty { color: var(--text-muted); padding: 14px; text-align: center; }
+    details.node { margin: 0; }
+    details.node > summary {
+      cursor: pointer; list-style: none; padding: 3px 6px; border-radius: 6px;
+      font-weight: 650; color: var(--text); white-space: nowrap;
+    }
+    details.node > summary::-webkit-details-marker { display: none; }
+    details.node > summary::before { content: "▸"; display: inline-block; width: 1em; color: var(--text-muted); transition: transform 0.1s; }
+    details.node[open] > summary::before { content: "▾"; }
+    details.node > summary:hover { background: var(--chip-bg); }
+    .node-children { margin-left: 14px; border-left: 1px dashed var(--panel-border); padding-left: 6px; }
+
+    .leaf {
+      display: flex; align-items: center; gap: 7px; padding: 2px 6px; border-radius: 6px;
+      white-space: nowrap;
+    }
+    .leaf:hover { background: var(--chip-bg); }
+    .leaf.hidden, .node.hidden { display: none; }
+    .leaf-name { font-weight: 600; }
+    .badge {
+      font-size: 10.5px; font-weight: 700; padding: 1px 6px; border-radius: 999px;
+      background: var(--chip-bg); color: var(--text-muted); text-transform: none; letter-spacing: 0.2px;
+    }
+    .badge.rw { color: var(--ok); }
+    .badge.w { color: var(--warn); }
+    .leaf-value {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: var(--text); min-width: 60px; text-align: right; padding: 1px 4px; border-radius: 5px;
+    }
+    .leaf-value.editable { cursor: text; border: 1px dashed transparent; }
+    .leaf-value.editable:hover { border-color: var(--accent); }
+    .leaf-value.stale { color: var(--text-muted); }
+    .leaf input.edit {
+      width: 110px; padding: 2px 5px; font-size: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    .leaf .spacer { flex: 1 1 auto; }
+    .leaf .swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; flex: 0 0 auto; }
+
+    /* ---- Plot ---- */
+    .plot-toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+    .plot-toolbar .spacer { flex: 1 1 auto; }
+    canvas#plot {
+      width: 100%; height: 300px; display: block; background: var(--plot-bg);
+      border-radius: 8px; border: 1px solid var(--panel-border);
+    }
+    .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; margin-top: 8px; color: var(--text-muted); }
+    .legend .item { display: inline-flex; align-items: center; gap: 6px; }
+    .legend .swatch { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+    .legend .lval { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--text); }
+    .legend .empty { color: var(--text-muted); }
+
+    /* ---- Log ---- */
+    .log-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+    .log-toolbar .spacer { flex: 1 1 auto; }
+    #log {
+      background: var(--log-bg); color: var(--log-text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12.5px; line-height: 1.5; border-radius: 8px; padding: 10px 12px;
+      height: 30vh; min-height: 160px; overflow-y: auto; overflow-x: auto; white-space: pre;
+    }
+    .log-line { display: block; }
+    .log-time { color: var(--time-color); }
+    .log-tx { color: var(--tx-color); }
+    .log-rx { color: var(--rx-color); }
+    .log-err { color: var(--err-color); }
+    .log-sys { color: var(--sys-color); }
+
+    footer { text-align: center; color: var(--text-muted); font-size: 12px; padding: 8px 18px 22px; }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>ODrive Native &mdash; WebUSB Control Panel</h1>
+    <div class="spacer"></div>
+    <label class="checkbox-inline" title="Show every USB device in the chooser instead of only the default ODrive VID/PID (0x1209/0x0d32).">
+      <input type="checkbox" id="anyDevice"> Any device
+    </label>
+    <button id="connectBtn" class="primary">Connect</button>
+    <span id="status" class="status-pill"><span class="status-dot"></span><span id="statusText">Disconnected</span></span>
+  </header>
+
+  <div id="unsupported">
+    <strong>WebUSB is not available in this browser.</strong>
+    WebUSB requires a Chromium-based browser (Chrome, Edge, Opera, Brave &mdash;
+    Firefox and Safari do not implement it) served over
+    <span class="mono">https://</span>, <span class="mono">http://localhost</span>,
+    or a <span class="mono">file://</span> URL.
+  </div>
+
+  <main>
+    <!-- ============================ LEFT COLUMN ============================ -->
+    <div class="col">
+      <div class="panel">
+        <h2>Property Tree
+          <span class="spacer"></span>
+          <span id="treeInfo" class="mono" style="text-transform:none;font-weight:600;color:var(--text-muted)"></span>
+        </h2>
+        <div class="tree-toolbar">
+          <div class="grow">
+            <input type="text" id="treeFilter" class="mono" placeholder="filter by path (e.g. axis0.encoder)" autocomplete="off" spellcheck="false" disabled>
+          </div>
+          <button id="expandBtn" class="small" disabled>Expand all</button>
+          <button id="collapseBtn" class="small" disabled>Collapse</button>
+          <button id="refreshTreeBtn" class="small" disabled>Reload tree</button>
+        </div>
+        <div class="tree-toolbar">
+          <label class="checkbox-inline"><input type="checkbox" id="pollToggle" disabled> Live poll</label>
+          <label class="checkbox-inline" style="gap:6px">rate
+            <input type="number" id="pollRate" class="mono" value="10" min="0.2" max="100" step="0.5" style="width:70px" disabled> Hz
+          </label>
+          <span class="spacer" style="flex:1"></span>
+          <span id="pollInfo" class="hint" style="margin:0"></span>
+        </div>
+        <div id="tree"><div class="tree-empty">Connect to download the device object tree.</div></div>
+        <div class="hint">
+          Tick <strong>W</strong> to watch (poll &amp; show live value) and <strong>P</strong> to plot a numeric leaf.
+          Click a <span class="badge rw">rw</span> value to edit it (Enter writes, Esc cancels).
+          <span class="mono">↻</span> reads once.
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Console Log
+          <span class="spacer"></span>
+        </h2>
+        <div class="log-toolbar">
+          <label class="checkbox-inline"><input type="checkbox" id="autoscroll" checked> Autoscroll</label>
+          <label class="checkbox-inline"><input type="checkbox" id="logPackets"> Log raw packets (hex)</label>
+          <span class="spacer"></span>
+          <button id="clearLogBtn" class="small">Clear</button>
+        </div>
+        <div id="log" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <!-- ============================ RIGHT COLUMN =========================== -->
+    <div class="col">
+      <div class="panel">
+        <h2>Live Plot</h2>
+        <div class="plot-toolbar">
+          <label class="checkbox-inline" style="gap:6px">window
+            <input type="number" id="plotWindow" class="mono" value="10" min="1" max="120" step="1" style="width:64px"> s
+          </label>
+          <label class="checkbox-inline"><input type="checkbox" id="plotAutoscale" checked> Autoscale</label>
+          <span class="spacer"></span>
+          <button id="plotPauseBtn" class="small">Pause</button>
+          <button id="plotClearBtn" class="small">Clear</button>
+        </div>
+        <canvas id="plot" width="700" height="300"></canvas>
+        <div id="legend" class="legend"><span class="empty">No signals selected. Tick <strong>&nbsp;P&nbsp;</strong> on numeric leaves in the property tree.</span></div>
+      </div>
+
+      <div class="panel">
+        <h2>Quick Controls</h2>
+        <label>Axis</label>
+        <div class="row" style="margin-bottom:12px">
+          <div class="field small-num"><input type="number" id="qcAxis" class="mono" value="0" min="0" step="1" title="axis index"></div>
+          <div class="hint" style="margin:0;align-self:center">Targets <span class="mono inline">axis&lt;n&gt;.controller.*</span></div>
+        </div>
+
+        <label>Input position &nbsp;<span class="mono" style="text-transform:none;color:var(--text-muted)">controller.input_pos</span></label>
+        <div class="row" style="margin-bottom:10px">
+          <div class="field grow"><input type="text" id="qcPos" class="mono" placeholder="pos (turns)"></div>
+          <button id="qcPosBtn" class="primary" disabled>Set pos</button>
+        </div>
+
+        <label>Input velocity &nbsp;<span class="mono" style="text-transform:none;color:var(--text-muted)">controller.input_vel</span></label>
+        <div class="row" style="margin-bottom:10px">
+          <div class="field grow"><input type="text" id="qcVel" class="mono" placeholder="vel (turns/s)"></div>
+          <button id="qcVelBtn" class="primary" disabled>Set vel</button>
+        </div>
+
+        <label>Input torque &nbsp;<span class="mono" style="text-transform:none;color:var(--text-muted)">controller.input_torque</span></label>
+        <div class="row" style="margin-bottom:10px">
+          <div class="field grow"><input type="text" id="qcTq" class="mono" placeholder="torque (Nm)"></div>
+          <button id="qcTqBtn" class="primary" disabled>Set torque</button>
+        </div>
+
+        <label>Requested state &nbsp;<span class="mono" style="text-transform:none;color:var(--text-muted)">axis&lt;n&gt;.requested_state</span></label>
+        <div class="row">
+          <div class="field grow">
+            <select id="qcState" disabled>
+              <option value="1">1 · IDLE</option>
+              <option value="8">8 · CLOSED_LOOP_CONTROL</option>
+              <option value="3">3 · FULL_CALIBRATION_SEQUENCE</option>
+              <option value="4">4 · MOTOR_CALIBRATION</option>
+              <option value="7">7 · ENCODER_OFFSET_CALIBRATION</option>
+              <option value="2">2 · STARTUP_SEQUENCE</option>
+            </select>
+          </div>
+          <button id="qcStateBtn" class="primary" disabled>Set state</button>
+        </div>
+        <div class="notice">
+          Quick controls resolve a dotted path to an endpoint id from the downloaded
+          tree, then do a typed write. If a path is missing on this firmware the
+          action is skipped with a log note.
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Read / Write by Path</h2>
+        <div class="row" style="margin-bottom:10px">
+          <div class="grow">
+            <label for="rwPath">Path</label>
+            <input type="text" id="rwPath" class="mono" list="pathList" placeholder="axis0.encoder.pos_estimate" autocomplete="off" spellcheck="false" disabled>
+          </div>
+          <button id="rwReadBtn" class="primary" disabled>Read</button>
+        </div>
+        <div class="row">
+          <div class="field small-num">
+            <label for="rwVal">Value</label>
+            <input type="text" id="rwVal" class="mono" placeholder="12.34" autocomplete="off" disabled>
+          </div>
+          <button id="rwWriteBtn" disabled>Write</button>
+          <div class="grow" style="align-self:center">
+            <div id="rwResult" class="mono hint" style="margin:0"></div>
+          </div>
+        </div>
+        <datalist id="pathList"></datalist>
+        <div class="hint">Autocompletes from the downloaded tree. Reads decode by the endpoint's declared type; writes encode by it (with a read-back).</div>
+      </div>
+
+      <div class="panel">
+        <h2>Device</h2>
+        <div id="devInfo" class="hint" style="margin:0">Not connected.</div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    ODrive Native WebUSB Control Panel &middot; espp &middot; speaks the legacy Fibre-endpoint
+    <strong>binary</strong> protocol over the USB vendor interface &middot; fully offline, no dependencies.
+  </footer>
+
+  <script>
+  "use strict";
+  (function () {
+    // ===================================================================
+    // Element references
+    // ===================================================================
+    const $ = (id) => document.getElementById(id);
+    const els = {
+      unsupported: $("unsupported"),
+      connectBtn: $("connectBtn"), anyDevice: $("anyDevice"),
+      status: $("status"), statusText: $("statusText"),
+      // tree
+      tree: $("tree"), treeInfo: $("treeInfo"), treeFilter: $("treeFilter"),
+      expandBtn: $("expandBtn"), collapseBtn: $("collapseBtn"), refreshTreeBtn: $("refreshTreeBtn"),
+      pollToggle: $("pollToggle"), pollRate: $("pollRate"), pollInfo: $("pollInfo"),
+      // log
+      log: $("log"), autoscroll: $("autoscroll"), logPackets: $("logPackets"), clearLogBtn: $("clearLogBtn"),
+      // plot
+      plot: $("plot"), legend: $("legend"),
+      plotWindow: $("plotWindow"), plotAutoscale: $("plotAutoscale"),
+      plotPauseBtn: $("plotPauseBtn"), plotClearBtn: $("plotClearBtn"),
+      // quick controls
+      qcAxis: $("qcAxis"),
+      qcPos: $("qcPos"), qcPosBtn: $("qcPosBtn"),
+      qcVel: $("qcVel"), qcVelBtn: $("qcVelBtn"),
+      qcTq: $("qcTq"), qcTqBtn: $("qcTqBtn"),
+      qcState: $("qcState"), qcStateBtn: $("qcStateBtn"),
+      // read/write
+      rwPath: $("rwPath"), rwVal: $("rwVal"), rwReadBtn: $("rwReadBtn"),
+      rwWriteBtn: $("rwWriteBtn"), rwResult: $("rwResult"), pathList: $("pathList"),
+      devInfo: $("devInfo"),
+    };
+
+    // ===================================================================
+    // 1) ODrive native (Fibre endpoint) protocol codec
+    // ===================================================================
+    const PROTOCOL_VERSION = 1;   // endpoint-0 trailer canary + json_crc init
+    const CRC16_POLY = 0x3d65;    // non-reflected, MSB-first
+
+    // CRC-16, non-reflected/MSB-first: rem ^= byte<<8; then 8x shift-xor.
+    function crc16(bytes, init) {
+      let rem = init & 0xFFFF;
+      for (let i = 0; i < bytes.length; i++) {
+        rem = (rem ^ ((bytes[i] & 0xFF) << 8)) & 0xFFFF;
+        for (let b = 0; b < 8; b++) {
+          rem = (rem & 0x8000) ? (((rem << 1) ^ CRC16_POLY) & 0xFFFF) : ((rem << 1) & 0xFFFF);
+        }
+      }
+      return rem & 0xFFFF;
+    }
+    function crc16Str(s, init) {
+      const enc = new TextEncoder().encode(s);
+      return crc16(enc, init);
+    }
+
+    // ---- Type codecs (little-endian). size in bytes; encode(str)->Uint8Array;
+    //      decode(Uint8Array)->number|bigint|boolean. ----
+    const TYPES = {
+      bool:   { size: 1, dec: (dv) => dv.getUint8(0) !== 0, enc: (v) => { const b = new Uint8Array(1); b[0] = boolFrom(v) ? 1 : 0; return b; }, num: (x) => (x ? 1 : 0) },
+      int8:   { size: 1, dec: (dv) => dv.getInt8(0),  enc: (v) => i(1, (dv, n) => dv.setInt8(0, n), v, -128, 127),  num: (x) => x },
+      uint8:  { size: 1, dec: (dv) => dv.getUint8(0), enc: (v) => i(1, (dv, n) => dv.setUint8(0, n), v, 0, 255), num: (x) => x },
+      int16:  { size: 2, dec: (dv) => dv.getInt16(0, true),  enc: (v) => i(2, (dv, n) => dv.setInt16(0, n, true), v, -32768, 32767),  num: (x) => x },
+      uint16: { size: 2, dec: (dv) => dv.getUint16(0, true), enc: (v) => i(2, (dv, n) => dv.setUint16(0, n, true), v, 0, 65535), num: (x) => x },
+      int32:  { size: 4, dec: (dv) => dv.getInt32(0, true),  enc: (v) => i(4, (dv, n) => dv.setInt32(0, n, true), v, -2147483648, 2147483647),  num: (x) => x },
+      uint32: { size: 4, dec: (dv) => dv.getUint32(0, true), enc: (v) => i(4, (dv, n) => dv.setUint32(0, n, true), v, 0, 4294967295), num: (x) => x },
+      int64:  { size: 8, dec: (dv) => dv.getBigInt64(0, true),  enc: (v) => big(8, (dv, n) => dv.setBigInt64(0, n, true), v, -(2n ** 63n), 2n ** 63n - 1n),  num: (x) => Number(x) },
+      uint64: { size: 8, dec: (dv) => dv.getBigUint64(0, true), enc: (v) => big(8, (dv, n) => dv.setBigUint64(0, n, true), v, 0n, 2n ** 64n - 1n), num: (x) => Number(x) },
+      float:  { size: 4, dec: (dv) => dv.getFloat32(0, true), enc: (v) => f32(v), num: (x) => x },
+      endpoint_ref: { size: 4, dec: (dv) => `#${dv.getUint16(0, true)}:0x${dv.getUint16(2, true).toString(16)}`, enc: null, num: null },
+    };
+    function boolFrom(v) { return /^(1|true|on|yes|y)$/i.test(String(v).trim()); }
+    // These values command motors, so encoding is STRICT: the whole string must
+    // parse and fit the target type -- no partial parses ("1abc"), no NaN, no
+    // truncation ("1.9" as an int) and no wrap (uint8 300). writeEndpoint
+    // surfaces the thrown message to the user instead of transmitting garbage.
+    function i(size, set, v, min, max) {
+      const s = String(v).trim();
+      if (!/^[+-]?\d+$/.test(s)) throw new Error("'" + v + "' is not a valid integer");
+      const n = Number(s);
+      if (!Number.isSafeInteger(n) || n < min || n > max)
+        throw new Error("'" + v + "' is out of range [" + min + ", " + max + "]");
+      const b = new Uint8Array(size);
+      set(new DataView(b.buffer), n);
+      return b;
+    }
+    function big(size, set, v, min, max) {
+      const s = String(v).trim();
+      let n;
+      try { n = BigInt(s); }
+      catch (_) { throw new Error("'" + v + "' is not a valid integer"); }
+      if (n < min || n > max)
+        throw new Error("'" + v + "' is out of range [" + min + ", " + max + "]");
+      const b = new Uint8Array(size);
+      set(new DataView(b.buffer), n);
+      return b;
+    }
+    function f32(v) {
+      const s = String(v).trim();
+      if (!/^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(s))
+        throw new Error("'" + v + "' is not a valid number");
+      const n = parseFloat(s);
+      // Math.fround tells us what the wire's float32 will hold; a finite
+      // double that rounds to +/-Infinity in float32 would overflow.
+      if (!Number.isFinite(n) || !Number.isFinite(Math.fround(n)))
+        throw new Error("'" + v + "' overflows float32");
+      const b = new Uint8Array(4);
+      new DataView(b.buffer).setFloat32(0, n, true);
+      return b;
+    }
+    function typeInfo(t) { return TYPES[t] || null; }
+    function isPlottable(ep) {
+      const ti = typeInfo(ep.type);
+      return !!ti && ti.num !== null && ep.readable;
+    }
+
+    // ---- Packet builder ----
+    // [seq u16][endpoint u16 (|0x8000 => expect response)][output_len u16][payload][trailer u16]
+    let seqCounter = 0;
+    function nextSeq() { seqCounter = ((seqCounter + 1) & 0x7fff) || 1; return seqCounter; }
+    function buildPacket(endpointId, expectResponse, outputLen, payload, trailer) {
+      const pl = payload || new Uint8Array(0);
+      const buf = new Uint8Array(6 + pl.length + 2);
+      const dv = new DataView(buf.buffer);
+      const seq = nextSeq();
+      dv.setUint16(0, seq, true);
+      dv.setUint16(2, (endpointId & 0x7fff) | (expectResponse ? 0x8000 : 0), true);
+      dv.setUint16(4, outputLen & 0xFFFF, true);
+      buf.set(pl, 6);
+      dv.setUint16(6 + pl.length, trailer & 0xFFFF, true);
+      return { seq, bytes: buf };
+    }
+
+    // ===================================================================
+    // WebUSB constants + connection state
+    // ===================================================================
+    const DEFAULT_VID = 0x1209;
+    const DEFAULT_PID = 0x0d32;
+    const VENDOR_CLASS = 0xFF;
+    const TXN_TIMEOUT_MS = 1500;   // per request/response transaction
+
+    let device = null;
+    let ifaceNumber = null;
+    let epIn = null, epOut = null;
+    let inPacketSize = 64, outPacketSize = 64;
+    let manualDisconnect = false;
+
+    // Object model, populated after downloading endpoint 0.
+    let jsonCrc = 0;                // crc16(json, init=PROTOCOL_VERSION)
+    const endpointsById = new Map();   // id -> ep
+    const endpointsByPath = new Map(); // dotted path -> ep
+
+    // Poll / plot state.
+    let polling = false, pollHandle = null, pollBusy = false;
+    const watched = new Set();      // endpoint ids shown live in tree
+    const plotted = new Map();      // endpoint id -> { color, samples:[{t,v}], last }
+    const PALETTE = ["#3b82f6", "#ef4444", "#22c55e", "#f59e0b", "#a855f7", "#06b6d4", "#ec4899", "#84cc16"];
+    let plotPaused = false;
+    let drawScheduled = false;
+    let heldYRange = null; // fixed Y range captured when Autoscale is unchecked
+
+    // ===================================================================
+    // Logging
+    // ===================================================================
+    let userScrolledUp = false;
+    els.log.addEventListener("scroll", () => {
+      const nearBottom = els.log.scrollHeight - els.log.scrollTop - els.log.clientHeight < 24;
+      userScrolledUp = !nearBottom;
+    });
+    function ts() {
+      const d = new Date(); const p = (n, w = 2) => String(n).padStart(w, "0");
+      return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}.${p(d.getMilliseconds(), 3)}`;
+    }
+    function logLine(kind, text) {
+      const line = document.createElement("span"); line.className = "log-line";
+      const time = document.createElement("span"); time.className = "log-time"; time.textContent = `[${ts()}] `;
+      const prefix = { tx: "TX → ", rx: "RX ← ", err: "!! ", sys: "-- " }[kind] || "";
+      const body = document.createElement("span"); body.className = "log-" + kind; body.textContent = prefix + text;
+      line.appendChild(time); line.appendChild(body); els.log.appendChild(line);
+      const MAX = 4000;
+      while (els.log.childElementCount > MAX) els.log.removeChild(els.log.firstChild);
+      if (els.autoscroll.checked && !userScrolledUp) els.log.scrollTop = els.log.scrollHeight;
+    }
+    function hex(bytes) { return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join(" "); }
+    els.clearLogBtn.addEventListener("click", () => { els.log.textContent = ""; });
+
+    // ===================================================================
+    // Status helpers
+    // ===================================================================
+    function setStatus(state, text) {
+      els.status.className = "status-pill" + (state ? " " + state : "");
+      els.statusText.textContent = text;
+    }
+    const connGated = () => [
+      els.treeFilter, els.expandBtn, els.collapseBtn, els.refreshTreeBtn,
+      els.pollToggle, els.pollRate,
+      els.qcPosBtn, els.qcVelBtn, els.qcTqBtn, els.qcStateBtn, els.qcState,
+      els.rwPath, els.rwVal, els.rwReadBtn, els.rwWriteBtn,
+    ];
+    function setConnectedUI(connected) {
+      els.connectBtn.textContent = connected ? "Disconnect" : "Connect";
+      els.connectBtn.classList.toggle("danger", connected);
+      els.connectBtn.classList.toggle("primary", !connected);
+      els.anyDevice.disabled = connected;
+      connGated().forEach((el) => { el.disabled = !connected; });
+      if (!connected) {
+        stopPolling(); els.pollToggle.checked = false;
+        els.devInfo.textContent = "Not connected.";
+        els.treeInfo.textContent = "";
+      }
+    }
+
+    // ===================================================================
+    // Connect / Disconnect
+    // ===================================================================
+    els.connectBtn.addEventListener("click", async () => {
+      if (device) await disconnect(); else await connect();
+    });
+
+    async function connect() {
+      try {
+        // `{ filters: [] }` is not a valid "any device" request in Chromium's
+        // WebUSB; use the explicit `acceptAllDevices` flag for that path.
+        const options = els.anyDevice.checked
+          ? { acceptAllDevices: true }
+          : { filters: [{ vendorId: DEFAULT_VID, productId: DEFAULT_PID }] };
+        device = await navigator.usb.requestDevice(options);
+      } catch (e) {
+        // Only NotFoundError is a user cancel / no-match; anything else is real.
+        if (e && e.name === "NotFoundError") {
+          logLine("sys", "Device selection cancelled.");
+        } else {
+          logLine("err", "Device selection failed: " + (e && e.message ? e.message : e));
+        }
+        device = null; return;
+      }
+      try {
+        await openAndClaim();
+      } catch (e) {
+        logLine("err", "Failed to open device: " + e.message);
+        setStatus("error", "Open failed"); await safeClose(); return;
+      }
+      manualDisconnect = false;
+      setConnectedUI(true);
+      const name = describeDevice(device);
+      setStatus("connected", "Connected");
+      els.devInfo.textContent =
+        `${name} · iface ${ifaceNumber} · IN 0x${epIn.toString(16)} (${inPacketSize}B) · OUT 0x${epOut.toString(16)} (${outPacketSize}B)`;
+      logLine("sys", `Connected to ${name}. Vendor iface ${ifaceNumber}, bulk IN 0x${epIn.toString(16)} / OUT 0x${epOut.toString(16)}.`);
+      await loadTree();
+    }
+
+    async function openAndClaim() {
+      await device.open();
+      if (device.configuration === null) await device.selectConfiguration(1);
+      const config = device.configuration;
+      if (!config) throw new Error("device has no active USB configuration");
+      let found = null;
+      for (const itf of config.interfaces) {
+        for (const alt of itf.alternates) {
+          if (alt.interfaceClass !== VENDOR_CLASS) continue;
+          let inEp = null, outEp = null;
+          for (const ep of alt.endpoints) {
+            if (ep.type !== "bulk") continue;
+            if (ep.direction === "in" && inEp === null) inEp = ep;
+            else if (ep.direction === "out" && outEp === null) outEp = ep;
+          }
+          if (inEp && outEp) { found = { interfaceNumber: itf.interfaceNumber, alternateSetting: alt.alternateSetting, inEp, outEp }; break; }
+        }
+        if (found) break;
+      }
+      if (!found) throw new Error("no vendor-specific (0xFF) interface with a bulk IN+OUT endpoint pair was found");
+      await device.claimInterface(found.interfaceNumber);
+      if (found.alternateSetting !== 0) {
+        // The chosen endpoints belong to this alternate; if selecting it fails
+        // they are not active, so let the rejection propagate and fail the
+        // connect (instead of reporting Connected with dead endpoints).
+        await device.selectAlternateInterface(found.interfaceNumber, found.alternateSetting);
+      }
+      ifaceNumber = found.interfaceNumber;
+      epIn = found.inEp.endpointNumber; epOut = found.outEp.endpointNumber;
+      inPacketSize = found.inEp.packetSize || 64; outPacketSize = found.outEp.packetSize || 64;
+    }
+
+    function describeDevice(dev) {
+      const vid = dev.vendorId.toString(16).padStart(4, "0");
+      const pid = dev.productId.toString(16).padStart(4, "0");
+      return `${dev.productName || "USB device"} (${vid}:${pid})`;
+    }
+
+    async function disconnect() {
+      manualDisconnect = true;
+      logLine("sys", "Disconnecting...");
+      await safeClose();
+    }
+
+    async function safeClose() {
+      stopPolling(); els.pollToggle.checked = false;
+      if (device) {
+        if (ifaceNumber !== null) { try { await device.releaseInterface(ifaceNumber); } catch (_) {} }
+        try { await device.close(); } catch (_) {}
+      }
+      device = null; ifaceNumber = null; epIn = epOut = null;
+      endpointsById.clear(); endpointsByPath.clear(); jsonCrc = 0;
+      watched.clear(); plotted.clear();
+      renderTree(null);
+      els.pathList.innerHTML = "";
+      updateLegend();
+      setConnectedUI(false);
+      setStatus("", "Disconnected");
+    }
+
+    if (navigator.usb && navigator.usb.addEventListener) {
+      navigator.usb.addEventListener("disconnect", (e) => {
+        if (device && e.device === device) {
+          logLine("err", "Device disconnected.");
+          manualDisconnect = false; safeClose();
+        }
+      });
+    }
+
+    // ===================================================================
+    // 4) Robust WebUSB request/response transaction loop
+    // ===================================================================
+    // Every request sets the response bit (0x8000), so exactly ONE response
+    // packet comes back per request -- writes get a 2-byte ack. Transactions are
+    // serialized on a promise chain so a transferIn always pairs with its
+    // transferOut. A timeout + clearHalt is the safety net for a silent device.
+    let txnChain = Promise.resolve();
+    function enqueue(fn) {
+      const run = txnChain.then(fn, fn);
+      txnChain = run.then(() => {}, () => {});
+      return run;
+    }
+
+    async function readPacket(readLen, timeoutMs) {
+      let timer = null;
+      // WebUSB transfers are NOT cancelable: on timeout the transferIn below
+      // stays pending and would consume a LATER response, permanently
+      // desyncing the link. On timeout we silence the abandoned promise and
+      // tag the error so transact() runs recoverLink(), whose device.reset()
+      // aborts the pending transfer for real.
+      const xfer = device.transferIn(epIn, readLen);
+      const timeout = new Promise((_, reject) => {
+        timer = setTimeout(() => {
+          xfer.catch(() => {}); // rejects when recoverLink() resets the device
+          const e = new Error("response timeout (" + timeoutMs + "ms)");
+          e.needsRecovery = true;
+          reject(e);
+        }, timeoutMs);
+      });
+      try {
+        const result = await Promise.race([xfer, timeout]);
+        if (result.status === "stall") {
+          try { await device.clearHalt("in", epIn); } catch (_) {}
+          throw new Error("IN endpoint stalled");
+        }
+        if (result.status === "babble") throw new Error("IN endpoint babble (device sent too much)");
+        // result.data is a DataView; honor its byteOffset/byteLength so we do
+        // not read trailing junk from the underlying ArrayBuffer.
+        return result.data
+          ? new Uint8Array(result.data.buffer, result.data.byteOffset, result.data.byteLength)
+          : new Uint8Array(0);
+      } finally { if (timer) clearTimeout(timer); }
+    }
+
+    // Recover a desynced link (response timeout / sequence mismatch). WebUSB
+    // transfers cannot be canceled, so draining or clearing halts cannot
+    // reliably resynchronize -- an abandoned transferIn keeps competing for
+    // the next response. Instead reset the device: that aborts every pending
+    // transfer (their promises reject) and returns the endpoints to a clean
+    // state, with the browser restoring the configuration and interface
+    // claims. If even the reset fails, close the connection so the UI
+    // reflects reality instead of silently misbehaving.
+    async function recoverLink(reason) {
+      if (!device) return;
+      logLine("err", "Recovering link (" + reason + "): resetting device...");
+      try {
+        await device.reset();
+        logLine("sys", "Device reset complete; link resynchronized.");
+      } catch (e) {
+        logLine("err", "Device reset failed (" + e.message + "); disconnecting.");
+        manualDisconnect = false;
+        await safeClose();
+      }
+    }
+
+    // Send one request packet and await its one response packet. Returns the
+    // response payload (bytes AFTER the 2-byte seq header), or null on error.
+    async function transact(req, readLen, opts) {
+      opts = opts || {};
+      const timeoutMs = opts.timeoutMs || TXN_TIMEOUT_MS;
+      return enqueue(async () => {
+        if (!device || epOut === null) return null;
+        try {
+          if (els.logPackets.checked) logLine("tx", hex(req.bytes));
+          const out = await device.transferOut(epOut, req.bytes);
+          if (out.status === "stall") {
+            try { await device.clearHalt("out", epOut); } catch (_) {}
+            throw new Error("OUT endpoint stalled");
+          }
+          const resp = await readPacket(readLen, timeoutMs);
+          if (els.logPackets.checked) logLine("rx", hex(resp));
+          if (resp.length < 2) {
+            // A valid response always echoes the 2-byte seq header; anything
+            // shorter means the device did not reply. Fail the transaction so
+            // callers (e.g. writeEndpoint) don't mistake a missing ack for success.
+            logLine("err", "No/short response from device");
+            return null;
+          }
+          const respSeq = resp[0] | (resp[1] << 8);
+          if ((respSeq & 0x7fff) !== (req.seq & 0x7fff)) {
+            // The response does not belong to this request. Applying it would
+            // corrupt the read/write, so fail the transaction and try to
+            // resync the link by draining any straggler packet + clearing the
+            // IN halt. Transactions are serialized, so this runs to completion
+            // before the next one starts.
+            logLine("err", `Sequence mismatch: sent ${req.seq}, got ${respSeq & 0x7fff} (link desynced).`);
+            await recoverLink("sequence mismatch");
+            return null;
+          }
+          return resp.subarray(2);
+        } catch (e) {
+          if (!manualDisconnect) {
+            logLine("err", "Transaction failed: " + e.message);
+            // A timed-out read leaves an uncancelable transferIn pending;
+            // reset the device before the next transaction runs.
+            if (e && e.needsRecovery) await recoverLink(e.message);
+          }
+          return null;
+        }
+      });
+    }
+
+    // ---- Endpoint-0 JSON download (chunked) ----
+    async function downloadJson() {
+      let offset = 0; const chunks = []; let total = 0;
+      for (let guard = 0; guard < 512; guard++) {
+        const payload = new Uint8Array(4);
+        new DataView(payload.buffer).setUint32(0, offset, true);
+        const req = buildPacket(0, true, 512, payload, PROTOCOL_VERSION);
+        const data = await transact(req, 640, { timeoutMs: 2500 });
+        if (data === null) throw new Error("no response while reading endpoint 0 (JSON descriptor)");
+        if (data.length === 0) break; // offset >= len terminates the loop
+        chunks.push(data); offset += data.length; total += data.length;
+        if (total > 262144) throw new Error("JSON descriptor exceeded 256 KiB; aborting");
+      }
+      const all = new Uint8Array(total);
+      let p = 0; for (const c of chunks) { all.set(c, p); p += c.length; }
+      const json = new TextDecoder().decode(all);
+      const crc = crc16(all, PROTOCOL_VERSION);
+      return { json, crc };
+    }
+
+    async function loadTree() {
+      setStatus("busy", "Reading tree…");
+      endpointsById.clear(); endpointsByPath.clear();
+      watched.clear(); plotted.clear(); updateLegend();
+      let parsed;
+      try {
+        const { json, crc } = await downloadJson();
+        jsonCrc = crc;
+        let tree;
+        try { tree = JSON.parse(json); }
+        catch (e) { throw new Error("could not parse JSON descriptor: " + e.message); }
+        if (!Array.isArray(tree)) throw new Error("JSON descriptor root is not an array");
+        parsed = tree;
+        logLine("sys", `Downloaded object tree: ${json.length} bytes, json_crc=0x${crc.toString(16).padStart(4, "0")}, ${endpointCount(tree)} endpoints.`);
+      } catch (e) {
+        logLine("err", "Tree download failed: " + e.message);
+        setStatus("connected", "Connected");
+        renderTree(null);
+        return;
+      }
+      indexTree(parsed, "");
+      renderTree(parsed);
+      populatePathList();
+      els.treeInfo.textContent = `json_crc 0x${jsonCrc.toString(16).padStart(4, "0")} · ${endpointsById.size} endpoints`;
+      setStatus("connected", "Connected");
+    }
+
+    function endpointCount(nodes) {
+      let n = 0;
+      for (const e of nodes) { if (e && e.type === "object" && Array.isArray(e.members)) n += endpointCount(e.members); else if (e && typeof e.id === "number") n++; }
+      return n;
+    }
+
+    // Build id/path maps from the parsed tree.
+    function indexTree(nodes, prefix) {
+      for (const e of nodes) {
+        if (!e || typeof e.name !== "string") continue;
+        const path = prefix ? prefix + "." + e.name : e.name;
+        if (e.type === "object" && Array.isArray(e.members)) {
+          indexTree(e.members, path);
+        } else if (typeof e.id === "number") {
+          const access = e.access || "r";
+          const ti = typeInfo(e.type);
+          const ep = {
+            id: e.id, path, name: e.name, type: e.type,
+            access, readable: access.includes("r"), writable: access.includes("w"),
+            size: ti ? ti.size : 0, isFunction: e.type === "function",
+          };
+          endpointsById.set(e.id, ep);
+          endpointsByPath.set(path, ep);
+        }
+      }
+    }
+
+    // ===================================================================
+    // Typed read / write over the native protocol
+    // ===================================================================
+    async function readEndpoint(ep) {
+      const ti = typeInfo(ep.type);
+      if (!ti || !ep.readable) return null;
+      const req = buildPacket(ep.id, true, ti.size, new Uint8Array(0), jsonCrc);
+      const data = await transact(req, Math.max(64, ti.size + 4));
+      if (data === null) return null;
+      if (data.length < ti.size) { return { error: `short read (${data.length}/${ti.size} bytes) — json_crc canary mismatch?` }; }
+      const dv = new DataView(data.buffer, data.byteOffset, ti.size);
+      try { return { value: ti.dec(dv) }; } catch (e) { return { error: "decode failed: " + e.message }; }
+    }
+
+    async function writeEndpoint(ep, valueStr) {
+      const ti = typeInfo(ep.type);
+      if (!ti || !ti.enc) return { error: "type '" + ep.type + "' is not writable from this UI" };
+      if (!ep.writable) return { error: "endpoint is not writable (access=" + ep.access + ")" };
+      let payload;
+      try { payload = ti.enc(valueStr); } catch (e) { return { error: "encode failed: " + e.message }; }
+      const req = buildPacket(ep.id, true, 0, payload, jsonCrc);
+      const data = await transact(req, 64); // 2-byte ack expected
+      if (data === null) return { error: "no ack from device" };
+      return { ok: true };
+    }
+
+    function fmtValue(ep, v) {
+      if (typeof v === "bigint") return v.toString();
+      if (typeof v === "boolean") return v ? "true" : "false";
+      if (typeof v === "number") {
+        if (ep && ep.type === "float") {
+          if (v === 0) return "0";
+          const a = Math.abs(v);
+          return (a >= 1e-3 && a < 1e6) ? v.toFixed(4) : v.toExponential(4);
+        }
+        return String(v);
+      }
+      return String(v);
+    }
+
+    // ===================================================================
+    // 1) Property-tree rendering
+    // ===================================================================
+    function renderTree(nodes) {
+      els.tree.innerHTML = "";
+      if (!nodes || nodes.length === 0) {
+        const d = document.createElement("div"); d.className = "tree-empty";
+        d.textContent = device ? "No endpoints in the device tree." : "Connect to download the device object tree.";
+        els.tree.appendChild(d); return;
+      }
+      els.tree.appendChild(buildNodes(nodes, ""));
+      applyFilter();
+    }
+
+    function buildNodes(nodes, prefix) {
+      const frag = document.createDocumentFragment();
+      for (const e of nodes) {
+        if (!e || typeof e.name !== "string") continue;
+        const path = prefix ? prefix + "." + e.name : e.name;
+        if (e.type === "object" && Array.isArray(e.members)) {
+          const det = document.createElement("details"); det.className = "node"; det.dataset.path = path.toLowerCase();
+          const sum = document.createElement("summary"); sum.textContent = e.name; det.appendChild(sum);
+          const kids = document.createElement("div"); kids.className = "node-children";
+          kids.appendChild(buildNodes(e.members, path)); det.appendChild(kids);
+          frag.appendChild(det);
+        } else if (typeof e.id === "number") {
+          frag.appendChild(buildLeaf(endpointsById.get(e.id) || {
+            id: e.id, path, name: e.name, type: e.type, access: e.access || "r",
+            readable: (e.access || "r").includes("r"), writable: (e.access || "r").includes("w"),
+          }));
+        }
+      }
+      return frag;
+    }
+
+    function buildLeaf(ep) {
+      const row = document.createElement("div");
+      row.className = "leaf"; row.dataset.path = ep.path.toLowerCase(); row.dataset.id = ep.id;
+
+      const name = document.createElement("span"); name.className = "leaf-name"; name.textContent = ep.name;
+      name.title = ep.path + "  (id " + ep.id + ")";
+      const tBadge = document.createElement("span"); tBadge.className = "badge"; tBadge.textContent = ep.type;
+      const aBadge = document.createElement("span"); aBadge.className = "badge " + (ep.access || "r"); aBadge.textContent = ep.access || "r";
+
+      const swatch = document.createElement("span"); swatch.className = "swatch"; swatch.style.background = "transparent";
+
+      const val = document.createElement("span");
+      val.className = "leaf-value stale" + (ep.writable && typeInfo(ep.type) && typeInfo(ep.type).enc ? " editable" : "");
+      val.textContent = "—";
+      row.__valueEl = val;
+
+      const spacer = document.createElement("span"); spacer.className = "spacer";
+
+      row.appendChild(name); row.appendChild(tBadge); row.appendChild(aBadge);
+      row.appendChild(swatch); row.appendChild(val); row.appendChild(spacer);
+
+      if (ep.readable && typeInfo(ep.type)) {
+        // ↻ read once
+        const readBtn = document.createElement("button"); readBtn.className = "tiny"; readBtn.textContent = "↻"; readBtn.title = "Read once";
+        readBtn.addEventListener("click", async () => { const r = await readEndpoint(ep); applyReadResult(row, ep, r); });
+        row.appendChild(readBtn);
+
+        // W watch
+        const wLabel = document.createElement("label"); wLabel.className = "checkbox-inline"; wLabel.title = "Watch (poll & show live value)";
+        const wCb = document.createElement("input"); wCb.type = "checkbox";
+        wCb.addEventListener("change", () => { if (wCb.checked) watched.add(ep.id); else watched.delete(ep.id); updatePollInfo(); });
+        wLabel.appendChild(wCb); wLabel.appendChild(document.createTextNode("W")); row.appendChild(wLabel);
+
+        // P plot
+        if (isPlottable(ep)) {
+          const pLabel = document.createElement("label"); pLabel.className = "checkbox-inline"; pLabel.title = "Plot on the live chart";
+          const pCb = document.createElement("input"); pCb.type = "checkbox";
+          pCb.addEventListener("change", () => {
+            if (pCb.checked) {
+              const color = PALETTE[plotted.size % PALETTE.length];
+              plotted.set(ep.id, { color, samples: [], last: null, path: ep.path });
+              swatch.style.background = color;
+            } else {
+              plotted.delete(ep.id); swatch.style.background = "transparent";
+              // recolor remaining so the palette stays contiguous
+              let idx = 0; for (const s of plotted.values()) { s.color = PALETTE[idx++ % PALETTE.length]; }
+              syncSwatches();
+            }
+            updateLegend(); scheduleDraw();
+          });
+          pLabel.appendChild(pCb); pLabel.appendChild(document.createTextNode("P")); row.appendChild(pLabel);
+          row.__plotCb = pCb;
+        }
+      }
+
+      // Inline edit for writable leaves.
+      if (ep.writable && typeInfo(ep.type) && typeInfo(ep.type).enc) {
+        val.addEventListener("click", () => beginEdit(row, ep));
+      }
+      return row;
+    }
+
+    function syncSwatches() {
+      for (const row of els.tree.querySelectorAll(".leaf")) {
+        const id = Number(row.dataset.id);
+        const sw = row.querySelector(".swatch");
+        if (!sw) continue;
+        sw.style.background = plotted.has(id) ? plotted.get(id).color : "transparent";
+      }
+    }
+
+    function applyReadResult(row, ep, r) {
+      const val = row.__valueEl;
+      if (!r) return;
+      if (r.error) { val.textContent = "err"; val.title = r.error; val.classList.add("stale"); logLine("err", ep.path + ": " + r.error); return; }
+      val.textContent = fmtValue(ep, r.value); val.title = ep.path; val.classList.remove("stale");
+    }
+
+    function beginEdit(row, ep) {
+      const val = row.__valueEl;
+      if (row.querySelector("input.edit")) return; // already editing
+      const input = document.createElement("input");
+      input.className = "edit mono"; input.type = "text";
+      input.value = (val.textContent && val.textContent !== "—" && val.textContent !== "err") ? val.textContent : "";
+      val.style.display = "none"; val.after(input); input.focus(); input.select();
+      const cancel = () => { input.remove(); val.style.display = ""; };
+      input.addEventListener("keydown", async (e) => {
+        if (e.key === "Escape") { e.preventDefault(); cancel(); }
+        else if (e.key === "Enter") {
+          e.preventDefault();
+          const v = input.value.trim(); cancel();
+          if (v === "") return;
+          const w = await writeEndpoint(ep, v);
+          if (w.error) { logLine("err", "Write " + ep.path + " = " + v + " → " + w.error); return; }
+          logLine("sys", "Wrote " + ep.path + " = " + v);
+          if (ep.readable) { const r = await readEndpoint(ep); applyReadResult(row, ep, r); }
+        }
+      });
+      input.addEventListener("blur", cancel);
+    }
+
+    // Update a live value cell by endpoint id (used by the poll loop).
+    function updateLeafValue(id, ep, value) {
+      const row = els.tree.querySelector('.leaf[data-id="' + id + '"]');
+      if (!row || !row.__valueEl) return;
+      if (row.querySelector("input.edit")) return; // don't clobber an active edit
+      const val = row.__valueEl;
+      val.textContent = fmtValue(ep, value); val.classList.remove("stale"); val.title = ep.path;
+    }
+
+    // ---- Tree filter / expand / collapse ----
+    function applyFilter() {
+      const q = (els.treeFilter.value || "").trim().toLowerCase();
+      // Leaves
+      for (const leaf of els.tree.querySelectorAll(".leaf")) {
+        leaf.classList.toggle("hidden", q !== "" && !leaf.dataset.path.includes(q));
+      }
+      // Objects: visible if any descendant leaf is visible
+      for (const node of els.tree.querySelectorAll("details.node")) {
+        const anyVisible = node.querySelector(".leaf:not(.hidden)") !== null;
+        node.classList.toggle("hidden", q !== "" && !anyVisible);
+        if (q !== "" && anyVisible) node.open = true;
+      }
+    }
+    els.treeFilter.addEventListener("input", applyFilter);
+    els.expandBtn.addEventListener("click", () => { for (const n of els.tree.querySelectorAll("details.node")) n.open = true; });
+    els.collapseBtn.addEventListener("click", () => { for (const n of els.tree.querySelectorAll("details.node")) n.open = false; });
+    els.refreshTreeBtn.addEventListener("click", () => { if (device) loadTree(); });
+
+    function populatePathList() {
+      els.pathList.innerHTML = "";
+      const paths = Array.from(endpointsByPath.keys()).sort();
+      for (const p of paths) { const o = document.createElement("option"); o.value = p; els.pathList.appendChild(o); }
+    }
+
+    // ===================================================================
+    // Poll loop
+    // ===================================================================
+    els.pollToggle.addEventListener("change", () => { if (els.pollToggle.checked) startPolling(); else stopPolling(); });
+    els.pollRate.addEventListener("change", () => { if (polling) { /* next cycle uses new rate */ updatePollInfo(); } });
+
+    function periodMs() {
+      let hz = parseFloat(els.pollRate.value);
+      if (!Number.isFinite(hz) || hz <= 0) hz = 10;
+      hz = Math.min(hz, 100);
+      return 1000 / hz;
+    }
+    function pollSet() { const s = new Set(watched); for (const id of plotted.keys()) s.add(id); return s; }
+    function updatePollInfo() {
+      els.pollInfo.textContent = polling
+        ? `polling ${pollSet().size} signal(s)`
+        : `${pollSet().size} signal(s) selected`;
+    }
+
+    function startPolling() {
+      if (polling) return;
+      polling = true; updatePollInfo();
+      logLine("sys", "Live poll started.");
+      pollCycle();
+    }
+    function stopPolling() {
+      polling = false;
+      if (pollHandle) { clearTimeout(pollHandle); pollHandle = null; }
+      updatePollInfo();
+    }
+    async function pollCycle() {
+      if (!polling) return;
+      // Guard against a second cycle starting while this async one is still in
+      // flight (readEndpoint awaits, so cycles could otherwise interleave).
+      if (pollBusy) return;
+      pollBusy = true;
+      const t0 = performance.now();
+      try {
+        const ids = pollSet();
+        for (const id of ids) {
+          if (!polling || !device) break;
+          const ep = endpointsById.get(id);
+          if (!ep) continue;
+          const r = await readEndpoint(ep);
+          if (!polling) break;
+          if (!r || r.error) continue;
+          if (watched.has(id)) updateLeafValue(id, ep, r.value);
+          if (plotted.has(id) && !plotPaused) {
+            const ti = typeInfo(ep.type);
+            const num = ti && ti.num ? ti.num(r.value) : Number(r.value);
+            if (Number.isFinite(num)) pushSample(id, num);
+          }
+        }
+      } finally {
+        pollBusy = false;
+      }
+      if (!polling) return;
+      const elapsed = performance.now() - t0;
+      const wait = Math.max(0, periodMs() - elapsed);
+      pollHandle = setTimeout(pollCycle, wait);
+    }
+
+    // ===================================================================
+    // 2) Live time-series plot
+    // ===================================================================
+    function windowSec() { let s = parseFloat(els.plotWindow.value); if (!Number.isFinite(s) || s <= 0) s = 10; return Math.min(s, 600); }
+    const MAX_SAMPLES = 6000;
+    function pushSample(id, v) {
+      const sig = plotted.get(id); if (!sig) return;
+      const now = performance.now() / 1000;
+      sig.samples.push({ t: now, v }); sig.last = v;
+      const cutoff = now - windowSec() - 1;
+      while (sig.samples.length && sig.samples[0].t < cutoff) sig.samples.shift();
+      if (sig.samples.length > MAX_SAMPLES) sig.samples.splice(0, sig.samples.length - MAX_SAMPLES);
+      scheduleDraw();
+    }
+
+    els.plotPauseBtn.addEventListener("click", () => {
+      plotPaused = !plotPaused;
+      els.plotPauseBtn.textContent = plotPaused ? "Resume" : "Pause";
+      els.plotPauseBtn.classList.toggle("primary", plotPaused);
+    });
+    els.plotClearBtn.addEventListener("click", () => { for (const s of plotted.values()) { s.samples.length = 0; s.last = null; } drawPlot(); updateLegend(); });
+    els.plotWindow.addEventListener("change", scheduleDraw);
+    els.plotAutoscale.addEventListener("change", scheduleDraw);
+
+    function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+    function scheduleDraw() {
+      if (drawScheduled) return; drawScheduled = true;
+      requestAnimationFrame(() => { drawScheduled = false; drawPlot(); });
+    }
+
+    function drawPlot() {
+      const canvas = els.plot, ctx = canvas.getContext("2d");
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      const w = Math.max(2, Math.floor(rect.width)), h = Math.max(2, Math.floor(rect.height));
+      if (canvas.width !== w * dpr || canvas.height !== h * dpr) { canvas.width = w * dpr; canvas.height = h * dpr; }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+
+      const padL = 52, padR = 10, padT = 10, padB = 20;
+      const plotW = w - padL - padR, plotH = h - padT - padB;
+      const grid = cssVar("--plot-grid") || "#ffffff14";
+      const muted = cssVar("--text-muted") || "#888";
+
+      // Time window: [now - win, now]
+      const now = performance.now() / 1000;
+      const win = windowSec();
+      const tMin = now - win, tMax = now;
+
+      // Y range across all plotted signals within the window.
+      let yMin = Infinity, yMax = -Infinity, anySample = false;
+      for (const sig of plotted.values()) {
+        for (const s of sig.samples) {
+          if (s.t < tMin) continue;
+          anySample = true;
+          if (s.v < yMin) yMin = s.v; if (s.v > yMax) yMax = s.v;
+        }
+      }
+      // Autoscale off: hold the Y range that was in effect when it was
+      // unchecked (captured lazily from the first frame with valid bounds), so
+      // the axis stops chasing the data. Re-checking releases the hold.
+      if (!els.plotAutoscale.checked) {
+        if (!heldYRange && anySample && Number.isFinite(yMin) && Number.isFinite(yMax))
+          heldYRange = { yMin, yMax };
+        if (heldYRange) { yMin = heldYRange.yMin; yMax = heldYRange.yMax; anySample = true; }
+      } else {
+        heldYRange = null;
+      }
+      if (!anySample || !Number.isFinite(yMin) || !Number.isFinite(yMax)) { yMin = 0; yMax = 1; }
+      if (yMax - yMin < 1e-9) { yMin -= 1; yMax += 1; }
+      const yPad = (yMax - yMin) * 0.08; yMin -= yPad; yMax += yPad;
+
+      const xOf = (t) => padL + ((t - tMin) / (tMax - tMin)) * plotW;
+      const yOf = (v) => padT + (1 - (v - yMin) / (yMax - yMin)) * plotH;
+
+      // Grid + axes
+      ctx.lineWidth = 1; ctx.strokeStyle = grid; ctx.fillStyle = muted;
+      ctx.font = "11px ui-monospace, Menlo, Consolas, monospace";
+      ctx.textBaseline = "middle";
+      const yTicks = 4;
+      for (let k = 0; k <= yTicks; k++) {
+        const v = yMin + (k / yTicks) * (yMax - yMin);
+        const y = yOf(v);
+        ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(w - padR, y); ctx.stroke();
+        ctx.textAlign = "right"; ctx.fillText(fmtTick(v), padL - 6, y);
+      }
+      ctx.textBaseline = "alphabetic"; ctx.textAlign = "center";
+      for (let k = 0; k <= 4; k++) {
+        const t = tMin + (k / 4) * win; const x = xOf(t);
+        ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, h - padB); ctx.strokeStyle = grid; ctx.stroke();
+        const rel = -(tMax - t);
+        ctx.fillText(rel === 0 ? "0s" : rel.toFixed(1) + "s", x, h - 6);
+      }
+
+      // Signals
+      ctx.save();
+      ctx.beginPath(); ctx.rect(padL, padT, plotW, plotH); ctx.clip();
+      ctx.lineWidth = 1.6;
+      for (const sig of plotted.values()) {
+        if (sig.samples.length < 1) continue;
+        ctx.strokeStyle = sig.color; ctx.beginPath();
+        let started = false;
+        for (const s of sig.samples) {
+          if (s.t < tMin) continue;
+          const x = xOf(s.t), y = yOf(s.v);
+          if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+    function fmtTick(v) {
+      const a = Math.abs(v);
+      if (a !== 0 && (a < 1e-3 || a >= 1e5)) return v.toExponential(1);
+      return (Math.round(v * 1000) / 1000).toString();
+    }
+
+    function updateLegend() {
+      els.legend.innerHTML = "";
+      if (plotted.size === 0) {
+        const s = document.createElement("span"); s.className = "empty";
+        s.innerHTML = "No signals selected. Tick <strong>&nbsp;P&nbsp;</strong> on numeric leaves in the property tree.";
+        els.legend.appendChild(s); return;
+      }
+      for (const [id, sig] of plotted) {
+        const ep = endpointsById.get(id);
+        const item = document.createElement("span"); item.className = "item";
+        const sw = document.createElement("span"); sw.className = "swatch"; sw.style.background = sig.color;
+        const nm = document.createElement("span"); nm.textContent = ep ? ep.path : ("#" + id);
+        const lv = document.createElement("span"); lv.className = "lval";
+        lv.textContent = sig.last === null ? "—" : fmtValue(ep, sig.last);
+        item.appendChild(sw); item.appendChild(nm); item.appendChild(document.createTextNode(" ")); item.appendChild(lv);
+        els.legend.appendChild(item);
+      }
+    }
+    // Refresh legend latest-values periodically without a full redraw dependency.
+    setInterval(() => { if (plotted.size) updateLegend(); }, 250);
+
+    window.addEventListener("resize", scheduleDraw);
+    if (window.matchMedia) {
+      const mq = window.matchMedia("(prefers-color-scheme: dark)");
+      if (mq.addEventListener) mq.addEventListener("change", scheduleDraw);
+    }
+
+    // ===================================================================
+    // 3) Quick controls + read/write by path
+    // ===================================================================
+    function axisPrefix() { const n = parseInt(els.qcAxis.value, 10); return "axis" + (Number.isFinite(n) ? n : 0); }
+    async function writeByPath(path, valueStr, label) {
+      const ep = endpointsByPath.get(path);
+      if (!ep) { logLine("err", (label || "write") + ": path '" + path + "' not found in this device's tree."); return; }
+      const w = await writeEndpoint(ep, valueStr);
+      if (w.error) { logLine("err", "Write " + path + " = " + valueStr + " → " + w.error); return; }
+      logLine("sys", "Wrote " + path + " = " + valueStr);
+      // reflect in the tree cell if present
+      if (ep.readable) { const r = await readEndpoint(ep); const row = els.tree.querySelector('.leaf[data-id="' + ep.id + '"]'); if (row) applyReadResult(row, ep, r); }
+    }
+    els.qcPosBtn.addEventListener("click", () => { const v = els.qcPos.value.trim(); if (v !== "") writeByPath(axisPrefix() + ".controller.input_pos", v, "input_pos"); });
+    els.qcVelBtn.addEventListener("click", () => { const v = els.qcVel.value.trim(); if (v !== "") writeByPath(axisPrefix() + ".controller.input_vel", v, "input_vel"); });
+    els.qcTqBtn.addEventListener("click",  () => { const v = els.qcTq.value.trim();  if (v !== "") writeByPath(axisPrefix() + ".controller.input_torque", v, "input_torque"); });
+    els.qcStateBtn.addEventListener("click", () => { writeByPath(axisPrefix() + ".requested_state", els.qcState.value, "requested_state"); });
+    for (const el of [els.qcPos, els.qcVel, els.qcTq]) {
+      el.addEventListener("keydown", (e) => { if (e.key === "Enter") { const btn = { qcPos: els.qcPosBtn, qcVel: els.qcVelBtn, qcTq: els.qcTqBtn }[el.id]; btn.click(); } });
+    }
+
+    els.rwReadBtn.addEventListener("click", async () => {
+      const path = els.rwPath.value.trim(); if (!path) return;
+      const ep = endpointsByPath.get(path);
+      if (!ep) { els.rwResult.textContent = "path not found"; return; }
+      els.rwResult.textContent = "reading…";
+      const r = await readEndpoint(ep);
+      if (!r) { els.rwResult.textContent = "no response"; return; }
+      if (r.error) { els.rwResult.textContent = r.error; return; }
+      els.rwResult.textContent = ep.type + " = " + fmtValue(ep, r.value);
+      const row = els.tree.querySelector('.leaf[data-id="' + ep.id + '"]'); if (row) applyReadResult(row, ep, r);
+    });
+    els.rwPath.addEventListener("keydown", (e) => { if (e.key === "Enter") els.rwReadBtn.click(); });
+    els.rwWriteBtn.addEventListener("click", async () => {
+      const path = els.rwPath.value.trim(); const v = els.rwVal.value.trim();
+      if (!path || v === "") return;
+      const ep = endpointsByPath.get(path);
+      if (!ep) { els.rwResult.textContent = "path not found"; return; }
+      const w = await writeEndpoint(ep, v);
+      if (w.error) { els.rwResult.textContent = w.error; logLine("err", "Write " + path + " → " + w.error); return; }
+      logLine("sys", "Wrote " + path + " = " + v);
+      if (ep.readable) { const r = await readEndpoint(ep); if (r && !r.error) els.rwResult.textContent = "→ " + fmtValue(ep, r.value); const row = els.tree.querySelector('.leaf[data-id="' + ep.id + '"]'); if (row) applyReadResult(row, ep, r); }
+      else els.rwResult.textContent = "written (write-only)";
+    });
+    els.rwVal.addEventListener("keydown", (e) => { if (e.key === "Enter") els.rwWriteBtn.click(); });
+
+    // ===================================================================
+    // Self-test: CRC-16 golden vectors (printed to console + log on load).
+    // ===================================================================
+    function selfTest() {
+      const g = crc16Str("123456789", 0x1337);
+      const pass = g === 0xaa01;
+      const msg = `CRC16 self-test: crc16("123456789", init=0x1337) = 0x${g.toString(16).padStart(4, "0")} ${pass ? "PASS ✓ (expected 0xaa01)" : "FAIL ✗ (expected 0xaa01)"}`;
+      (pass ? console.log : console.error)("[odrive-native] " + msg);
+      logLine(pass ? "sys" : "err", msg);
+      // Round-trip a couple of codecs as a sanity check.
+      try {
+        const f = TYPES.float.enc("1.5"); const fv = TYPES.float.dec(new DataView(f.buffer));
+        const u = TYPES.uint32.enc("305419896"); const uv = TYPES.uint32.dec(new DataView(u.buffer)); // 0x12345678
+        const okCodec = fv === 1.5 && uv === 305419896 && u[0] === 0x78 && u[3] === 0x12;
+        console.log("[odrive-native] codec self-test:", okCodec ? "PASS ✓" : "FAIL ✗", { fv, uv });
+      } catch (e) { console.error("[odrive-native] codec self-test threw:", e); }
+      return pass;
+    }
+
+    // ===================================================================
+    // Feature detection / init
+    // ===================================================================
+    function init() {
+      selfTest();
+      if (!("usb" in navigator)) {
+        els.unsupported.style.display = "block";
+        els.connectBtn.disabled = true; els.anyDevice.disabled = true;
+        setStatus("error", "Unsupported");
+        logLine("err", "WebUSB (navigator.usb) not available. Use a Chromium browser over https://, http://localhost, or file://.");
+        return;
+      }
+      setStatus("", "Disconnected");
+      setConnectedUI(false);
+      logLine("sys", "Ready. Click Connect and pick the ODrive native (vendor) USB device.");
+      logLine("sys", `Default filter: VID 0x${DEFAULT_VID.toString(16)} / PID 0x${DEFAULT_PID.toString(16)}. Tick "Any device" to see all.`);
+      logLine("sys", "This panel speaks the native (Fibre-endpoint) BINARY protocol, not ASCII.");
+      drawPlot(); updateLegend();
+    }
+    init();
+  })();
+  </script>
+</body>
+</html>

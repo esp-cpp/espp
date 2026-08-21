@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meshtastic - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'wireless/meshtastic';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Meshtastic Example" href="meshtastic_example.html" />
+    <link rel="prev" title="GPS Example" href="gps_example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../web_apps.html">Web Apps</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Core &amp; RTOS APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../buses/index.html">Buses &amp; Low-Level I/O APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../motor_control/index.html">Motor Control APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ota/index.html">Firmware Update (OTA) APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Wireless &amp; Radio APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="sx126x.html">SX126x LoRa Radio</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gps.html">GPS / GNSS</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Meshtastic</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="meshtastic_example.html">Meshtastic Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id1">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id2">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id3">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id4">Header File</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../dev_boards/index.html">Dev Boards (BSPs)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Wireless &amp; Radio APIs</a></li>
+      <li class="breadcrumb-item active">Meshtastic</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/873443f2/docs/en/wireless/meshtastic.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="meshtastic">
+<h1>Meshtastic<a class="headerlink" href="#meshtastic" title="Permalink to this heading"></a></h1>
+<p>The <cite>MeshtasticNode</cite> component is a minimal, radio-agnostic implementation of
+the Meshtastic® over-the-air mesh protocol, sufficient to interoperate with
+stock Meshtastic devices on a shared channel (the public “LongFast” channel by
+default). It handles framing, AES-CTR encryption with the well-known default
+channel key, sending and receiving text messages / node info / positions,
+receive-side deduplication, and optional managed-flood rebroadcasting.</p>
+<p>It is decoupled from any particular radio - you provide a transmit function
+and feed it received frames - and pairs naturally with the <a class="reference internal" href="sx126x.html"><span class="doc">SX126x LoRa Radio</span></a>
+component.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is an independent, clean-room implementation of the published
+Meshtastic protocol; it is not affiliated with or endorsed by Meshtastic
+LLC. “Meshtastic” is a registered trademark of Meshtastic LLC. See the
+component README for licensing and trademark details.</p>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="meshtastic_example.html">Meshtastic Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="meshtastic_example.html#how-to-use-example">How to use example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="meshtastic_example.html#hardware-required">Hardware Required</a></li>
+<li class="toctree-l3"><a class="reference internal" href="meshtastic_example.html#configure">Configure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="meshtastic_example.html#build-and-flash">Build and Flash</a></li>
+<li class="toctree-l3"><a class="reference internal" href="meshtastic_example.html#troubleshooting-i-don-t-see-the-other-node-no-messages">Troubleshooting: “I don’t see the other node / no messages”</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/873443f2/components/meshtastic/include/meshtastic.hpp">components/meshtastic/include/meshtastic.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNodeE">
+<span id="_CPPv3N4espp14MeshtasticNodeE"></span><span id="_CPPv2N4espp14MeshtasticNodeE"></span><span id="espp::MeshtasticNode"></span><span class="target" id="classespp_1_1MeshtasticNode"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MeshtasticNode</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNodeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>A minimal, radio-agnostic Meshtastic-compatible mesh node.</p>
+<p>This class implements enough of the Meshtastic over-the-air protocol to interoperate with stock Meshtastic devices on a shared channel (the public “LongFast” channel by default): it frames, encrypts (AES-CTR with the well-known default key), sends and receives text messages, node info and positions, and performs receive-side deduplication and (optionally) managed-flood rebroadcasting.</p>
+<p>It is decoupled from any particular radio: you provide a transmit function and feed it received frames (e.g. from an <a class="reference internal" href="sx126x.html#classespp_1_1Sx126x"><span class="std std-ref">espp::Sx126x</span></a> driver). Call <a class="reference internal" href="#classespp_1_1MeshtasticNode_1a0e706593a34d62996886469e2845ef34"><span class="std std-ref">modem_config()</span></a> to get the exact LoRa modulation parameters to apply to your radio for the configured region / preset / channel.</p>
+<section id="classespp_1_1MeshtasticNode_1meshtastic_example">
+<h4>Example<a class="headerlink" href="#classespp_1_1MeshtasticNode_1meshtastic_example" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1MeshtasticNode_1meshtastic_example"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1">// build the mesh node, transmitting through the radio</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">node</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">espp</span><span class="o">::</span><span class="n">MeshtasticNode</span><span class="o">&gt;</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">MeshtasticNode</span><span class="o">::</span><span class="n">Config</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="p">.</span><span class="n">long_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_EXAMPLE_LONG_NAME</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">short_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_EXAMPLE_SHORT_NAME</span><span class="p">,</span>
+<span class="cp">#if CONFIG_EXAMPLE_HARDWARE_TDECK</span>
+<span class="w">    </span><span class="p">.</span><span class="n">hw_model</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">meshtastic</span><span class="o">::</span><span class="n">HardwareModel</span><span class="o">::</span><span class="n">T_DECK</span><span class="p">,</span>
+<span class="cp">#elif CONFIG_EXAMPLE_HARDWARE_CARDPUTER_ADV</span>
+<span class="w">      </span><span class="p">.</span><span class="n">hw_model</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">meshtastic</span><span class="o">::</span><span class="n">HardwareModel</span><span class="o">::</span><span class="n">M5STACK_CARDPUTER_ADV</span><span class="p">,</span>
+<span class="cp">#endif</span>
+<span class="w">    </span><span class="p">.</span><span class="n">region</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">REGION</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">preset</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">meshtastic</span><span class="o">::</span><span class="n">ModemPreset</span><span class="o">::</span><span class="n">LONG_FAST</span><span class="p">,</span>
+<span class="w">    </span><span class="p">.</span><span class="n">transmit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="n">radio</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">span</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">frame</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+<span class="w">      </span><span class="kt">bool</span><span class="w"> </span><span class="n">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">radio</span><span class="o">-&gt;</span><span class="n">transmit</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="n">s</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">ok</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// returning to receive is handled by transmit(); log failures</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="n">ok</span><span class="p">;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="cp">#if CONFIG_EXAMPLE_REBROADCAST</span>
+<span class="w">    </span><span class="p">.</span><span class="n">rebroadcast</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span>
+<span class="cp">#else</span>
+<span class="w">      </span><span class="p">.</span><span class="n">rebroadcast</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span>
+<span class="cp">#endif</span>
+<span class="w">    </span><span class="p">.</span><span class="n">on_text</span><span class="w"> </span><span class="o">=</span>
+<span class="w">        </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">meshtastic</span><span class="o">::</span><span class="n">PacketMetadata</span><span class="w"> </span><span class="o">&amp;</span><span class="n">meta</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"[TEXT] from 0x{:08x} ({} hops, SNR {:.1f}): {}"</span><span class="p">,</span><span class="w"> </span><span class="n">meta</span><span class="p">.</span><span class="n">header</span><span class="p">.</span><span class="n">from</span><span class="p">,</span>
+<span class="w">                      </span><span class="n">meta</span><span class="p">.</span><span class="n">hops_taken</span><span class="p">,</span><span class="w"> </span><span class="n">meta</span><span class="p">.</span><span class="n">snr</span><span class="p">,</span><span class="w"> </span><span class="n">text</span><span class="p">);</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">    </span><span class="p">.</span><span class="n">on_nodeinfo</span><span class="w"> </span><span class="o">=</span>
+<span class="w">        </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">meshtastic</span><span class="o">::</span><span class="n">User</span><span class="w"> </span><span class="o">&amp;</span><span class="n">user</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">meshtastic</span><span class="o">::</span><span class="n">PacketMetadata</span><span class="w"> </span><span class="o">&amp;</span><span class="n">meta</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"[NODE] 0x{:08x} is '{}' ({})"</span><span class="p">,</span><span class="w"> </span><span class="n">meta</span><span class="p">.</span><span class="n">header</span><span class="p">.</span><span class="n">from</span><span class="p">,</span><span class="w"> </span><span class="n">user</span><span class="p">.</span><span class="n">long_name</span><span class="p">,</span>
+<span class="w">                      </span><span class="n">user</span><span class="p">.</span><span class="n">short_name</span><span class="p">);</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">    </span><span class="p">.</span><span class="n">on_position</span><span class="w"> </span><span class="o">=</span>
+<span class="w">        </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">meshtastic</span><span class="o">::</span><span class="n">Position</span><span class="w"> </span><span class="o">&amp;</span><span class="n">pos</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">meshtastic</span><span class="o">::</span><span class="n">PacketMetadata</span><span class="w"> </span><span class="o">&amp;</span><span class="n">meta</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"[POS ] 0x{:08x} @ {:.5f}, {:.5f}"</span><span class="p">,</span><span class="w"> </span><span class="n">meta</span><span class="p">.</span><span class="n">header</span><span class="p">.</span><span class="n">from</span><span class="p">,</span><span class="w"> </span><span class="n">pos</span><span class="p">.</span><span class="n">latitude</span><span class="p">(),</span>
+<span class="w">                      </span><span class="n">pos</span><span class="p">.</span><span class="n">longitude</span><span class="p">());</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">    </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">,</span>
+<span class="w">  </span><span class="p">});</span>
+
+<span class="w">  </span><span class="c1">// deliver received radio packets to the mesh node</span>
+<span class="w">  </span><span class="n">radio</span><span class="o">-&gt;</span><span class="n">set_receive_callback</span><span class="p">([</span><span class="n">node</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Sx126x</span><span class="o">::</span><span class="n">RxPacket</span><span class="w"> </span><span class="o">&amp;</span><span class="n">packet</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">node</span><span class="o">-&gt;</span><span class="n">handle_frame</span><span class="p">(</span><span class="n">packet</span><span class="p">.</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">packet</span><span class="p">.</span><span class="n">status</span><span class="p">.</span><span class="n">rssi</span><span class="p">,</span><span class="w"> </span><span class="n">packet</span><span class="p">.</span><span class="n">status</span><span class="p">.</span><span class="n">snr</span><span class="p">);</span>
+<span class="w">  </span><span class="p">});</span>
+
+<span class="w">  </span><span class="c1">// start listening</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">radio</span><span class="o">-&gt;</span><span class="n">start_receive</span><span class="p">(</span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">"Failed to start receiving: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Node {} listening for Meshtastic traffic"</span><span class="p">,</span><span class="w"> </span><span class="n">node</span><span class="o">-&gt;</span><span class="n">node_id</span><span class="p">());</span>
+
+<span class="w">  </span><span class="c1">// announce ourselves so we appear in other nodes' node lists</span>
+<span class="w">  </span><span class="n">node</span><span class="o">-&gt;</span><span class="n">send_node_info</span><span class="p">();</span>
+</pre></div>
+</div>
+</section>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is an independent, clean-room implementation of the published Meshtastic protocol; it is not affiliated with or endorsed by Meshtastic LLC. “Meshtastic” is a registered trademark of Meshtastic LLC. See the component README for details.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Scope: this implements the public default channel with PSK encryption. It does not implement PKI-encrypted direct messages, MQTT, store-and-forward, or the admin protocol.</p>
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode11transmit_fnE">
+<span id="_CPPv3N4espp14MeshtasticNode11transmit_fnE"></span><span id="_CPPv2N4espp14MeshtasticNode11transmit_fnE"></span><span id="espp::MeshtasticNode::transmit_fn"></span><span class="target" id="classespp_1_1MeshtasticNode_1ab2ed3ed16a4c9521f78f8a438ed81e58"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n"><span class="pre">frame</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">transmit_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode11transmit_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function used to transmit a framed packet over the radio. Return true on success. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode16text_callback_fnE">
+<span id="_CPPv3N4espp14MeshtasticNode16text_callback_fnE"></span><span id="_CPPv2N4espp14MeshtasticNode16text_callback_fnE"></span><span id="espp::MeshtasticNode::text_callback_fn"></span><span class="target" id="classespp_1_1MeshtasticNode_1a7f923cbb714fb0b37e2011fb2aa88565"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">meshtastic</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">PacketMetadata</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">text_callback_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode16text_callback_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback invoked when a text message is received. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param text<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The message text </p>
+</dd>
+<dt class="field-even">Param metadata<span class="colon">:</span></dt>
+<dd class="field-even"><p>The packet metadata (sender, RSSI, SNR, …) </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode20nodeinfo_callback_fnE">
+<span id="_CPPv3N4espp14MeshtasticNode20nodeinfo_callback_fnE"></span><span id="_CPPv2N4espp14MeshtasticNode20nodeinfo_callback_fnE"></span><span id="espp::MeshtasticNode::nodeinfo_callback_fn"></span><span class="target" id="classespp_1_1MeshtasticNode_1a6e807a6d720d814b022e1713a5c560e6"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">meshtastic</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">User</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">user</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">meshtastic</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">PacketMetadata</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">nodeinfo_callback_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode20nodeinfo_callback_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback invoked when node info (a User message) is received. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode20position_callback_fnE">
+<span id="_CPPv3N4espp14MeshtasticNode20position_callback_fnE"></span><span id="_CPPv2N4espp14MeshtasticNode20position_callback_fnE"></span><span id="espp::MeshtasticNode::position_callback_fn"></span><span class="target" id="classespp_1_1MeshtasticNode_1ac1012f1a414c033c2943efbcc6c12bb9"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">meshtastic</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Position</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">position</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">meshtastic</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">PacketMetadata</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">position_callback_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode20position_callback_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback invoked when a position is received. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode16data_callback_fnE">
+<span id="_CPPv3N4espp14MeshtasticNode16data_callback_fnE"></span><span id="_CPPv2N4espp14MeshtasticNode16data_callback_fnE"></span><span id="espp::MeshtasticNode::data_callback_fn"></span><span class="target" id="classespp_1_1MeshtasticNode_1a85b47b04221ab13d264e2fffde8ddfae"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">meshtastic</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">DataMessage</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">meshtastic</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">PacketMetadata</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">data_callback_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode16data_callback_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback invoked for any received Data message (after decryption and decode), for handling port numbers not covered by the specific callbacks above. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode14MeshtasticNodeERK6Config">
+<span id="_CPPv3N4espp14MeshtasticNode14MeshtasticNodeERK6Config"></span><span id="_CPPv2N4espp14MeshtasticNode14MeshtasticNodeERK6Config"></span><span id="espp::MeshtasticNode::MeshtasticNode__ConfigCR"></span><span class="target" id="classespp_1_1MeshtasticNode_1a944c7ae9e08b4d3755aaf0bacff2e06a"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MeshtasticNode</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp14MeshtasticNode6ConfigE" title="espp::MeshtasticNode::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode14MeshtasticNodeERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Constructor </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – The configuration for the node </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp14MeshtasticNode12modem_configEv">
+<span id="_CPPv3NK4espp14MeshtasticNode12modem_configEv"></span><span id="_CPPv2NK4espp14MeshtasticNode12modem_configEv"></span><span id="espp::MeshtasticNode::modem_configC"></span><span class="target" id="classespp_1_1MeshtasticNode_1a0e706593a34d62996886469e2845ef34"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">meshtastic</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ModemConfig</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">modem_config</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp14MeshtasticNode12modem_configEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the LoRa modem configuration to apply to the radio for the configured region / preset / channel (frequency, bandwidth, spreading factor, coding rate, sync word). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The modem configuration </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp14MeshtasticNode8node_numEv">
+<span id="_CPPv3NK4espp14MeshtasticNode8node_numEv"></span><span id="_CPPv2NK4espp14MeshtasticNode8node_numEv"></span><span id="espp::MeshtasticNode::node_numC"></span><span class="target" id="classespp_1_1MeshtasticNode_1a45c3a15a2f7e377c38d9e4f0f075dc11"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">node_num</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp14MeshtasticNode8node_numEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get this node’s number. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The node number </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp14MeshtasticNode7node_idEv">
+<span id="_CPPv3NK4espp14MeshtasticNode7node_idEv"></span><span id="_CPPv2NK4espp14MeshtasticNode7node_idEv"></span><span id="espp::MeshtasticNode::node_idC"></span><span class="target" id="classespp_1_1MeshtasticNode_1a5be36202395979bbcb572adb3a7a7a3d"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">node_id</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp14MeshtasticNode7node_idEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get this node’s id string (e.g. “!a1b2c3d4”). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The node id string </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode9send_textENSt11string_viewE8uint32_tb">
+<span id="_CPPv3N4espp14MeshtasticNode9send_textENSt11string_viewE8uint32_tb"></span><span id="_CPPv2N4espp14MeshtasticNode9send_textENSt11string_viewE8uint32_tb"></span><span id="espp::MeshtasticNode::send_text__std::string_view.uint32_t.b"></span><span class="target" id="classespp_1_1MeshtasticNode_1aaaae889053b7a949b628c056df3242d1"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">send_text</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">text</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">destination</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">meshtastic</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">BROADCAST_ADDR</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">want_ack</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode9send_textENSt11string_viewE8uint32_tb" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Send a text message on the channel. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> – The message text (UTF-8, up to ~200 bytes) </p></li>
+<li><p><strong>destination</strong> – The destination node, or BROADCAST_ADDR (default) to broadcast to the channel </p></li>
+<li><p><strong>want_ack</strong> – Whether to request an acknowledgement </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the message was transmitted </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode14send_node_infoEv">
+<span id="_CPPv3N4espp14MeshtasticNode14send_node_infoEv"></span><span id="_CPPv2N4espp14MeshtasticNode14send_node_infoEv"></span><span id="espp::MeshtasticNode::send_node_info"></span><span class="target" id="classespp_1_1MeshtasticNode_1a816f07362f94c80d5d18742839703a89"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">send_node_info</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode14send_node_infoEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Broadcast this node’s info (User message). Stock devices need this to show your node’s name in their node lists. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if the node info was transmitted </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode13send_positionERKN10meshtastic8PositionE">
+<span id="_CPPv3N4espp14MeshtasticNode13send_positionERKN10meshtastic8PositionE"></span><span id="_CPPv2N4espp14MeshtasticNode13send_positionERKN10meshtastic8PositionE"></span><span id="espp::MeshtasticNode::send_position__meshtastic::PositionCR"></span><span class="target" id="classespp_1_1MeshtasticNode_1ab5d3fb95ab5f4e97dcf44ac5e37958d1"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">send_position</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">meshtastic</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Position</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">position</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode13send_positionERKN10meshtastic8PositionE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Broadcast a position. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>position</strong> – The position to broadcast </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the position was transmitted </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode9send_dataERKN10meshtastic11DataMessageE8uint32_tb">
+<span id="_CPPv3N4espp14MeshtasticNode9send_dataERKN10meshtastic11DataMessageE8uint32_tb"></span><span id="_CPPv2N4espp14MeshtasticNode9send_dataERKN10meshtastic11DataMessageE8uint32_tb"></span><span id="espp::MeshtasticNode::send_data__meshtastic::DataMessageCR.uint32_t.b"></span><span class="target" id="classespp_1_1MeshtasticNode_1a13cfc9e76629baf33e2381322f8b7ffc"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">send_data</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">meshtastic</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">DataMessage</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">destination</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">meshtastic</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">BROADCAST_ADDR</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">want_ack</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode9send_dataERKN10meshtastic11DataMessageE8uint32_tb" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Send an arbitrary Data message on the channel (advanced use). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – The Data message to send </p></li>
+<li><p><strong>destination</strong> – The destination node, or BROADCAST_ADDR to broadcast </p></li>
+<li><p><strong>want_ack</strong> – Whether to request an acknowledgement </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the message was transmitted </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode12handle_frameENSt4spanIK7uint8_tEEff">
+<span id="_CPPv3N4espp14MeshtasticNode12handle_frameENSt4spanIK7uint8_tEEff"></span><span id="_CPPv2N4espp14MeshtasticNode12handle_frameENSt4spanIK7uint8_tEEff"></span><span id="espp::MeshtasticNode::handle_frame__std::span:uint8_tC:.float.float"></span><span class="target" id="classespp_1_1MeshtasticNode_1a32e80f7a3dd147fdd41a2ab93ccfdde3"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">handle_frame</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">frame</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rssi</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">snr</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode12handle_frameENSt4spanIK7uint8_tEEff" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Handle a raw frame received from the radio. Decrypts, decodes, performs deduplication, dispatches callbacks, and (if configured) rebroadcasts. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>frame</strong> – The raw received frame (header + encrypted payload) </p></li>
+<li><p><strong>rssi</strong> – The receive RSSI in dBm </p></li>
+<li><p><strong>snr</strong> – The receive SNR in dB </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the frame was a valid, newly-seen packet for our channel </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode17set_text_callbackERK16text_callback_fn">
+<span id="_CPPv3N4espp14MeshtasticNode17set_text_callbackERK16text_callback_fn"></span><span id="_CPPv2N4espp14MeshtasticNode17set_text_callbackERK16text_callback_fn"></span><span id="espp::MeshtasticNode::set_text_callback__text_callback_fnCR"></span><span class="target" id="classespp_1_1MeshtasticNode_1a569d3e762127241c42819d8de5c02cf2"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_text_callback</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp14MeshtasticNode16text_callback_fnE" title="espp::MeshtasticNode::text_callback_fn"><span class="n"><span class="pre">text_callback_fn</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">callback</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode17set_text_callbackERK16text_callback_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the callback invoked when a text message is received. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>callback</strong> – The callback </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode21set_nodeinfo_callbackERK20nodeinfo_callback_fn">
+<span id="_CPPv3N4espp14MeshtasticNode21set_nodeinfo_callbackERK20nodeinfo_callback_fn"></span><span id="_CPPv2N4espp14MeshtasticNode21set_nodeinfo_callbackERK20nodeinfo_callback_fn"></span><span id="espp::MeshtasticNode::set_nodeinfo_callback__nodeinfo_callback_fnCR"></span><span class="target" id="classespp_1_1MeshtasticNode_1a5c0b098525723874b20aa4c4c59ebe5c"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_nodeinfo_callback</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp14MeshtasticNode20nodeinfo_callback_fnE" title="espp::MeshtasticNode::nodeinfo_callback_fn"><span class="n"><span class="pre">nodeinfo_callback_fn</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">callback</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode21set_nodeinfo_callbackERK20nodeinfo_callback_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the callback invoked when node info is received. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>callback</strong> – The callback </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode21set_position_callbackERK20position_callback_fn">
+<span id="_CPPv3N4espp14MeshtasticNode21set_position_callbackERK20position_callback_fn"></span><span id="_CPPv2N4espp14MeshtasticNode21set_position_callbackERK20position_callback_fn"></span><span id="espp::MeshtasticNode::set_position_callback__position_callback_fnCR"></span><span class="target" id="classespp_1_1MeshtasticNode_1a5a90138418639c31dc38b5e007fb3cbe"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_position_callback</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp14MeshtasticNode20position_callback_fnE" title="espp::MeshtasticNode::position_callback_fn"><span class="n"><span class="pre">position_callback_fn</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">callback</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode21set_position_callbackERK20position_callback_fn" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the callback invoked when a position is received. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>callback</strong> – The callback </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp14MeshtasticNode8get_nameEv">
+<span id="_CPPv3NK4espp14MeshtasticNode8get_nameEv"></span><span id="_CPPv2NK4espp14MeshtasticNode8get_nameEv"></span><span id="espp::MeshtasticNode::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp14MeshtasticNode8get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp14MeshtasticNode11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp14MeshtasticNode11set_log_tagERKNSt11string_viewE"></span><span id="espp::MeshtasticNode::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp14MeshtasticNode13get_log_levelEv">
+<span id="_CPPv3NK4espp14MeshtasticNode13get_log_levelEv"></span><span id="_CPPv2NK4espp14MeshtasticNode13get_log_levelEv"></span><span id="espp::MeshtasticNode::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp14MeshtasticNode13get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp14MeshtasticNode13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp14MeshtasticNode13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::MeshtasticNode::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp14MeshtasticNode17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp14MeshtasticNode17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::MeshtasticNode::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="sx126x.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp14MeshtasticNode17get_log_verbosityEv">
+<span id="_CPPv3NK4espp14MeshtasticNode17get_log_verbosityEv"></span><span id="_CPPv2NK4espp14MeshtasticNode17get_log_verbosityEv"></span><span id="espp::MeshtasticNode::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp14MeshtasticNode17get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="sx126x.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp14MeshtasticNode18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp14MeshtasticNode18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::MeshtasticNode::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode6ConfigE">
+<span id="_CPPv3N4espp14MeshtasticNode6ConfigE"></span><span id="_CPPv2N4espp14MeshtasticNode6ConfigE"></span><span id="espp::MeshtasticNode::Config"></span><span class="target" id="structespp_1_1MeshtasticNode_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration for the Meshtastic node. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode6Config8node_numE">
+<span id="_CPPv3N4espp14MeshtasticNode6Config8node_numE"></span><span id="_CPPv2N4espp14MeshtasticNode6Config8node_numE"></span><span id="espp::MeshtasticNode::Config::node_num__uint32_t"></span><span class="target" id="structespp_1_1MeshtasticNode_1_1Config_1a005ffc84009c72b0a4b19114a9ffae3d"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">node_num</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode6Config8node_numE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>This node’s number. If 0, a stable pseudo-random number is derived from the ESP32’s MAC address. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode6Config9long_nameE">
+<span id="_CPPv3N4espp14MeshtasticNode6Config9long_nameE"></span><span id="_CPPv2N4espp14MeshtasticNode6Config9long_nameE"></span><span id="espp::MeshtasticNode::Config::long_name__ss"></span><span class="target" id="structespp_1_1MeshtasticNode_1_1Config_1a920ce6d3f4aa635f1760ca474cba5f34"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">long_name</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="s"><span class="pre">&quot;espp</span> <span class="pre">node&quot;</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode6Config9long_nameE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>This node’s long name. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode6Config10short_nameE">
+<span id="_CPPv3N4espp14MeshtasticNode6Config10short_nameE"></span><span id="_CPPv2N4espp14MeshtasticNode6Config10short_nameE"></span><span id="espp::MeshtasticNode::Config::short_name__ss"></span><span class="target" id="structespp_1_1MeshtasticNode_1_1Config_1ab7b8edf5c95396d61aed70e2650c3f61"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">short_name</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="s"><span class="pre">&quot;espp&quot;</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode6Config10short_nameE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>This node’s short name (&lt;= 4 chars) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode6Config8hw_modelE">
+<span id="_CPPv3N4espp14MeshtasticNode6Config8hw_modelE"></span><span id="_CPPv2N4espp14MeshtasticNode6Config8hw_modelE"></span><span id="espp::MeshtasticNode::Config::hw_model__meshtastic::HardwareModel"></span><span class="target" id="structespp_1_1MeshtasticNode_1_1Config_1a5fe06bd814e31ebc7234a1cba98f27e5"></span><span class="n"><span class="pre">meshtastic</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">HardwareModel</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hw_model</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">meshtastic</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">HardwareModel</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">PRIVATE_HW</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode6Config8hw_modelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>This node’s hardware model. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode6Config6regionE">
+<span id="_CPPv3N4espp14MeshtasticNode6Config6regionE"></span><span id="_CPPv2N4espp14MeshtasticNode6Config6regionE"></span><span id="espp::MeshtasticNode::Config::region__meshtastic::Region"></span><span class="target" id="structespp_1_1MeshtasticNode_1_1Config_1a8c757d535cdd3844e0374fae2d146bea"></span><span class="n"><span class="pre">meshtastic</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Region</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">region</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">meshtastic</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Region</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">US</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode6Config6regionE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Regulatory region. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode6Config6presetE">
+<span id="_CPPv3N4espp14MeshtasticNode6Config6presetE"></span><span id="_CPPv2N4espp14MeshtasticNode6Config6presetE"></span><span id="espp::MeshtasticNode::Config::preset__meshtastic::ModemPreset"></span><span class="target" id="structespp_1_1MeshtasticNode_1_1Config_1a94922152894145b555481c8a8bd72e2a"></span><span class="n"><span class="pre">meshtastic</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ModemPreset</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">preset</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">meshtastic</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ModemPreset</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">LONG_FAST</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode6Config6presetE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Modem preset. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode6Config12channel_nameE">
+<span id="_CPPv3N4espp14MeshtasticNode6Config12channel_nameE"></span><span id="_CPPv2N4espp14MeshtasticNode6Config12channel_nameE"></span><span id="espp::MeshtasticNode::Config::channel_name__ss"></span><span class="target" id="structespp_1_1MeshtasticNode_1_1Config_1a40b95ba74883ed88548e3a01594204ad"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">channel_name</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode6Config12channel_nameE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Channel name; empty uses the default channel (the preset’s display name) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode6Config3pskE">
+<span id="_CPPv3N4espp14MeshtasticNode6Config3pskE"></span><span id="_CPPv2N4espp14MeshtasticNode6Config3pskE"></span><span id="espp::MeshtasticNode::Config::psk__std::vector:uint8_t:"></span><span class="target" id="structespp_1_1MeshtasticNode_1_1Config_1aece15987658588ff9eaed3be5a618b97"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">psk</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode6Config3pskE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The channel PSK. Default {1} = the public default key. See meshtastic::expand_psk. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode6Config8transmitE">
+<span id="_CPPv3N4espp14MeshtasticNode6Config8transmitE"></span><span id="_CPPv2N4espp14MeshtasticNode6Config8transmitE"></span><span id="espp::MeshtasticNode::Config::transmit__transmit_fn"></span><span class="target" id="structespp_1_1MeshtasticNode_1_1Config_1a5c97b941fb20bd041f87b8a891ae5d56"></span><a class="reference internal" href="#_CPPv4N4espp14MeshtasticNode11transmit_fnE" title="espp::MeshtasticNode::transmit_fn"><span class="n"><span class="pre">transmit_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">transmit</span></span></span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode6Config8transmitE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function used to transmit frames. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode6Config9hop_limitE">
+<span id="_CPPv3N4espp14MeshtasticNode6Config9hop_limitE"></span><span id="_CPPv2N4espp14MeshtasticNode6Config9hop_limitE"></span><span id="espp::MeshtasticNode::Config::hop_limit__uint8_t"></span><span class="target" id="structespp_1_1MeshtasticNode_1_1Config_1a4158662f12fa75123fdac00800aa9f63"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hop_limit</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">3</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode6Config9hop_limitE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Hop limit for originated broadcasts (0-7) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode6Config11rebroadcastE">
+<span id="_CPPv3N4espp14MeshtasticNode6Config11rebroadcastE"></span><span id="_CPPv2N4espp14MeshtasticNode6Config11rebroadcastE"></span><span id="espp::MeshtasticNode::Config::rebroadcast__b"></span><span class="target" id="structespp_1_1MeshtasticNode_1_1Config_1a36402f0052a8090a0f57c4bc1a0c9663"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">rebroadcast</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">false</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode6Config11rebroadcastE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether to rebroadcast (relay) others’ packets (managed flood). False = receive/originate only, which still fully interoperates. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode6Config7on_textE">
+<span id="_CPPv3N4espp14MeshtasticNode6Config7on_textE"></span><span id="_CPPv2N4espp14MeshtasticNode6Config7on_textE"></span><span id="espp::MeshtasticNode::Config::on_text__text_callback_fn"></span><span class="target" id="structespp_1_1MeshtasticNode_1_1Config_1a5dd519bcb4579917e3fdfe9cc4da06e2"></span><a class="reference internal" href="#_CPPv4N4espp14MeshtasticNode16text_callback_fnE" title="espp::MeshtasticNode::text_callback_fn"><span class="n"><span class="pre">text_callback_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_text</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode6Config7on_textE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Called on received text messages. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode6Config11on_nodeinfoE">
+<span id="_CPPv3N4espp14MeshtasticNode6Config11on_nodeinfoE"></span><span id="_CPPv2N4espp14MeshtasticNode6Config11on_nodeinfoE"></span><span id="espp::MeshtasticNode::Config::on_nodeinfo__nodeinfo_callback_fn"></span><span class="target" id="structespp_1_1MeshtasticNode_1_1Config_1a8f3e9d6d5f0b5758f748c58052c5cfe0"></span><a class="reference internal" href="#_CPPv4N4espp14MeshtasticNode20nodeinfo_callback_fnE" title="espp::MeshtasticNode::nodeinfo_callback_fn"><span class="n"><span class="pre">nodeinfo_callback_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_nodeinfo</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode6Config11on_nodeinfoE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Called on received node info. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode6Config11on_positionE">
+<span id="_CPPv3N4espp14MeshtasticNode6Config11on_positionE"></span><span id="_CPPv2N4espp14MeshtasticNode6Config11on_positionE"></span><span id="espp::MeshtasticNode::Config::on_position__position_callback_fn"></span><span class="target" id="structespp_1_1MeshtasticNode_1_1Config_1a5ad7d40d965fc48f2d364bacbf7483dd"></span><a class="reference internal" href="#_CPPv4N4espp14MeshtasticNode20position_callback_fnE" title="espp::MeshtasticNode::position_callback_fn"><span class="n"><span class="pre">position_callback_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_position</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode6Config11on_positionE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Called on received positions. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode6Config7on_dataE">
+<span id="_CPPv3N4espp14MeshtasticNode6Config7on_dataE"></span><span id="_CPPv2N4espp14MeshtasticNode6Config7on_dataE"></span><span id="espp::MeshtasticNode::Config::on_data__data_callback_fn"></span><span class="target" id="structespp_1_1MeshtasticNode_1_1Config_1a386fcfc5fdf0fa07724157b43480dd31"></span><a class="reference internal" href="#_CPPv4N4espp14MeshtasticNode16data_callback_fnE" title="espp::MeshtasticNode::data_callback_fn"><span class="n"><span class="pre">data_callback_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_data</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode6Config7on_dataE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Called on any received Data message. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14MeshtasticNode6Config9log_levelE">
+<span id="_CPPv3N4espp14MeshtasticNode6Config9log_levelE"></span><span id="_CPPv2N4espp14MeshtasticNode6Config9log_levelE"></span><span id="espp::MeshtasticNode::Config::log_level__Logger::Verbosity"></span><span class="target" id="structespp_1_1MeshtasticNode_1_1Config_1aa17f173cd572074f65ee77129bc9ce23"></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14MeshtasticNode6Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Log verbosity. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="id1">
+<h3>Header File<a class="headerlink" href="#id1" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/873443f2/components/meshtastic/include/meshtastic_types.hpp">components/meshtastic/include/meshtastic_types.hpp</a></p></li>
+</ul>
+</section>
+<section id="id2">
+<h3>Header File<a class="headerlink" href="#id2" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/873443f2/components/meshtastic/include/meshtastic_protocol.hpp">components/meshtastic/include/meshtastic_protocol.hpp</a></p></li>
+</ul>
+</section>
+<section id="id3">
+<h3>Header File<a class="headerlink" href="#id3" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/873443f2/components/meshtastic/include/meshtastic_crypto.hpp">components/meshtastic/include/meshtastic_crypto.hpp</a></p></li>
+</ul>
+</section>
+<section id="id4">
+<h3>Header File<a class="headerlink" href="#id4" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/873443f2/components/meshtastic/include/meshtastic_protobuf.hpp">components/meshtastic/include/meshtastic_protobuf.hpp</a></p></li>
+</ul>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="gps_example.html" class="btn btn-neutral float-left" title="GPS Example" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="meshtastic_example.html" class="btn btn-neutral float-right" title="Meshtastic Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

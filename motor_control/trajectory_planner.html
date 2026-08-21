@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trajectory Planner APIs - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'motor_control/trajectory_planner';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Trajectory Planner Example" href="trajectory_planner_example.html" />
+    <link rel="prev" title="ODrive Native (Fibre endpoint) Example" href="odrive_native_example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../web_apps.html">Web Apps</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Core &amp; RTOS APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../buses/index.html">Buses &amp; Low-Level I/O APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Motor Control APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="pid.html">PID APIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="adrc.html">ADRC APIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="basicmicro.html">Basicmicro (MCP / RoboClaw) Motor Controller Component</a></li>
+<li class="toctree-l2"><a class="reference internal" href="odrive_ascii.html">ODrive ASCII Protocol Component</a></li>
+<li class="toctree-l2"><a class="reference internal" href="odrive_native.html">ODrive Native (Fibre endpoint) Protocol Component</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Trajectory Planner APIs</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#trajectory-planner">Trajectory Planner</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trajectory_planner_example.html">Trajectory Planner Example</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ota/index.html">Firmware Update (OTA) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wireless/index.html">Wireless &amp; Radio APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../dev_boards/index.html">Dev Boards (BSPs)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Motor Control APIs</a></li>
+      <li class="breadcrumb-item active">Trajectory Planner APIs</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/873443f2/docs/en/motor_control/trajectory_planner.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="trajectory-planner-apis">
+<h1>Trajectory Planner APIs<a class="headerlink" href="#trajectory-planner-apis" title="Permalink to this heading"></a></h1>
+<section id="trajectory-planner">
+<h2>Trajectory Planner<a class="headerlink" href="#trajectory-planner" title="Permalink to this heading"></a></h2>
+<p>The <cite>TrajectoryPlanner</cite> component converts normalized joystick velocity commands
+<code class="docutils literal notranslate"><span class="pre">(v_cmd,</span> <span class="pre">w_cmd)</span></code> into smooth, dynamically feasible chassis motion commands
+<code class="docutils literal notranslate"><span class="pre">(v_ref,</span> <span class="pre">w_ref)</span></code>. It is drive-system independent – the downstream kinematics
+layer is responsible for converting chassis commands into individual motor commands.</p>
+<p>The jerk-limited mode uses a <strong>discrete optimal-control</strong> approach: at each step
+the planner computes the minimum velocity-change distance needed to decelerate
+the current acceleration to zero, then decides whether to accelerate, maintain,
+or decelerate – landing exactly on the target without overshoot, equivalent to
+a time-optimal S-curve under joint jerk and acceleration constraints.</p>
+<p>Code examples are provided in the <cite>trajectory_planner</cite> example folder.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="trajectory_planner_example.html">Trajectory Planner Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="trajectory_planner_example.html#building">Building</a></li>
+<li class="toctree-l2"><a class="reference internal" href="trajectory_planner_example.html#running">Running</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/873443f2/components/trajectory_planner/include/trajectory_planner.hpp">components/trajectory_planner/include/trajectory_planner.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17TrajectoryPlannerE">
+<span id="_CPPv3N4espp17TrajectoryPlannerE"></span><span id="_CPPv2N4espp17TrajectoryPlannerE"></span><span id="espp::TrajectoryPlanner"></span><span class="target" id="classespp_1_1TrajectoryPlanner"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TrajectoryPlanner</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp17TrajectoryPlannerE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Converts normalized joystick velocity commands into smooth, dynamically feasible chassis motion commands (v, w). </p>
+<p>The planner is drive-system independent &amp;#8212; it does not know about wheel geometry or kinematics. It only enforces velocity, acceleration, and jerk limits on chassis-level commands. The downstream kinematics layer converts (v_ref, w_ref) into individual motor commands.</p>
+<p>### Algorithm The jerk-limited mode uses a discrete optimal-control approach: at each step the planner computes the minimum velocity-change distance needed to decelerate the current acceleration to zero, then decides whether to accelerate, maintain, or decelerate to land exactly on the target without overshoot &amp;#8212; equivalent to a time-optimal S-curve under jerk and acceleration constraints.</p>
+<p>### Profiles Motion limits are grouped into two <a class="reference internal" href="#structespp_1_1TrajectoryPlanner_1_1MotionProfile"><span class="std std-ref">MotionProfile</span></a> objects inside <a class="reference internal" href="#structespp_1_1TrajectoryPlanner_1_1Config"><span class="std std-ref">Config</span></a>:<ul class="simple">
+<li><p>**driving_profile** &amp;#8212; used whenever the target is non-zero.</p></li>
+<li><p>**stopping_profile** &amp;#8212; used when the target is (0, 0). Setting jerk to 0 gives a trapezoidal stop; higher acceleration gives faster, firmer braking.</p></li>
+</ul>
+</p>
+<p>A <a class="reference internal" href="#structespp_1_1TrajectoryPlanner_1_1MotionProfile"><span class="std std-ref">MotionProfile</span></a> selects its mode automatically:<ul class="simple">
+<li><p>**Trapezoidal**: `max_linear_jerk == 0 &amp;&amp; max_angular_jerk == 0`</p></li>
+<li><p>**S-curve**: either jerk field is non-zero</p></li>
+</ul>
+</p>
+<p>### Timing Two independent timers run internally:<ul class="simple">
+<li><p>**planning timer** &amp;#8212; calls `update()` at `planning_period` (default 20 ms / 50 Hz). Recommended range: 5-200 ms on microcontrollers.</p></li>
+<li><p>**callback task** &amp;#8212; fires `output_callback` on every `update()` that produces a new output value (CV-notified by the planning timer); no separate period needed.</p></li>
+</ul>
+</p>
+<p>This class is thread-safe: <a class="reference internal" href="#classespp_1_1TrajectoryPlanner_1a5973dc2fe3f65658caadee05ff4501af"><span class="std std-ref">set_target()</span></a>, <a class="reference internal" href="#classespp_1_1TrajectoryPlanner_1abf72834a493d0209be9e0a9debea7228"><span class="std std-ref">get_target()</span></a>, <a class="reference internal" href="#classespp_1_1TrajectoryPlanner_1a3b6dbc1be272db810cdb99bb3be91d60"><span class="std std-ref">output()</span></a>, <a class="reference internal" href="#classespp_1_1TrajectoryPlanner_1ad5f7798ff0c0d34071bfbc797edbff60"><span class="std std-ref">stop()</span></a>, and <a class="reference internal" href="#classespp_1_1TrajectoryPlanner_1aadc7f1b317224d31324959270718e88f"><span class="std std-ref">reset()</span></a> may be called from different threads concurrently.</p>
+<section id="classespp_1_1TrajectoryPlanner_1trajectory_planner_ex0">
+<h4>Quick-Start: Full Public API<a class="headerlink" href="#classespp_1_1TrajectoryPlanner_1trajectory_planner_ex0" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1TrajectoryPlanner_1trajectory_planner_ex0"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// 1. Construct with a Config - task starts automatically.</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">TrajectoryPlanner</span><span class="w"> </span><span class="nf">planner</span><span class="p">({</span>
+<span class="w">        </span><span class="p">.</span><span class="n">max_linear_velocity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">,</span><span class="w">      </span><span class="c1">// m/s</span>
+<span class="w">        </span><span class="p">.</span><span class="n">max_angular_velocity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">3.14159f</span><span class="p">,</span><span class="w"> </span><span class="c1">// rad/s</span>
+<span class="w">        </span><span class="p">.</span><span class="n">driving_profile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{.</span><span class="n">max_linear_acceleration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">2.0f</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">max_angular_acceleration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">6.28f</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">max_linear_jerk</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">2.0f</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">max_angular_jerk</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">20.0f</span><span class="p">},</span>
+<span class="w">        </span><span class="o">//</span><span class="w"> </span><span class="n">Trapezoidal</span><span class="w"> </span><span class="n">stop</span><span class="w"> </span><span class="p">(</span><span class="n">no</span><span class="w"> </span><span class="n">jerk</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">fast</span><span class="p">,</span><span class="w"> </span><span class="n">clean</span><span class="p">,</span><span class="w"> </span><span class="n">no</span><span class="w"> </span><span class="n">overshoot</span>
+<span class="w">        </span><span class="p">.</span><span class="n">stopping_profile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{.</span><span class="n">max_linear_acceleration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">5.0f</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">max_angular_acceleration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">10.0f</span><span class="p">},</span>
+<span class="w">        </span><span class="p">.</span><span class="n">enforce_motion_envelope</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span><span class="w">      </span><span class="c1">// keep (v/vmax)²+(ω/ωmax)²≤1</span>
+<span class="w">        </span><span class="p">.</span><span class="n">max_centripetal_acceleration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.4f</span><span class="p">,</span><span class="w"> </span><span class="c1">// m/s²</span>
+<span class="w">        </span><span class="p">.</span><span class="n">output_callback</span><span class="w"> </span><span class="o">=</span>
+<span class="w">            </span><span class="p">[</span><span class="o">&amp;</span><span class="n">logger</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">TrajectoryPlanner</span><span class="o">::</span><span class="n">MotionCommand</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cmd</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">              </span><span class="n">logger</span><span class="p">.</span><span class="n">debug</span><span class="p">(</span><span class="s">"callback: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">cmd</span><span class="p">);</span>
+<span class="w">            </span><span class="p">},</span>
+<span class="w">        </span><span class="p">.</span><span class="n">planning_period</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">planning_period</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">planning_task_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"tp_qs"</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4096</span><span class="p">},</span>
+<span class="w">    </span><span class="p">});</span>
+
+<span class="w">    </span><span class="c1">// 2. is_running() - confirm the task started.</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Task running: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">planner</span><span class="p">.</span><span class="n">is_running</span><span class="p">());</span>
+
+<span class="w">    </span><span class="c1">// 3. get_config() - inspect active configuration.</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">cfg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">planner</span><span class="p">.</span><span class="n">get_config</span><span class="p">();</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Config: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">cfg</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// 4. set_target(linear, angular) - normalized [-1, +1] joystick inputs.</span>
+<span class="w">    </span><span class="c1">//    +1.0 linear = max_linear_velocity forward.</span>
+<span class="w">    </span><span class="n">planner</span><span class="p">.</span><span class="n">set_target</span><span class="p">(</span><span class="mf">1.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">);</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">600</span><span class="n">ms</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// 5. output() - poll the latest smoothed command at any time.</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">cmd</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">planner</span><span class="p">.</span><span class="n">output</span><span class="p">();</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Polled output: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">cmd</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// 6. set_target with combined motion - forward + right turn.</span>
+<span class="w">    </span><span class="n">planner</span><span class="p">.</span><span class="n">set_target</span><span class="p">(</span><span class="mf">0.6f</span><span class="p">,</span><span class="w"> </span><span class="mf">-0.5f</span><span class="p">);</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">600</span><span class="n">ms</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// 7. set_config() - change parameters at runtime; resets state by default.</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">TrajectoryPlanner</span><span class="o">::</span><span class="n">Config</span><span class="w"> </span><span class="n">new_cfg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">planner</span><span class="p">.</span><span class="n">get_config</span><span class="p">();</span>
+<span class="w">    </span><span class="n">new_cfg</span><span class="p">.</span><span class="n">max_linear_velocity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.5f</span><span class="p">;</span><span class="w"> </span><span class="c1">// half speed cap</span>
+<span class="w">    </span><span class="n">planner</span><span class="p">.</span><span class="n">set_config</span><span class="p">(</span><span class="n">new_cfg</span><span class="p">,</span><span class="w"> </span><span class="cm">/*reset_state=*/</span><span class="nb">false</span><span class="p">);</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Updated max_linear_velocity to 0.5 m/s"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">planner</span><span class="p">.</span><span class="n">set_target</span><span class="p">(</span><span class="mf">1.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">);</span><span class="w"> </span><span class="c1">// still clamped to new 0.5 m/s</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">600</span><span class="n">ms</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// 8. stop() - ramp down to zero respecting deceleration limits.</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Commanding stop (ramp-down)"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">planner</span><span class="p">.</span><span class="n">stop</span><span class="p">();</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">400</span><span class="n">ms</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// 9. reset() - zero state immediately (e.g. after e-stop).</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Emergency reset"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">planner</span><span class="p">.</span><span class="n">reset</span><span class="p">();</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Output after reset: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">planner</span><span class="p">.</span><span class="n">output</span><span class="p">());</span>
+
+<span class="w">    </span><span class="c1">// 10. Destructor stops the task automatically when planner leaves scope.</span>
+</pre></div>
+</div>
+</section>
+<section id="classespp_1_1TrajectoryPlanner_1trajectory_planner_ex1">
+<h4>S-Curve Driving / Trapezoidal Stop<a class="headerlink" href="#classespp_1_1TrajectoryPlanner_1trajectory_planner_ex1" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1TrajectoryPlanner_1trajectory_planner_ex1"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">tick</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">TrajectoryPlanner</span><span class="w"> </span><span class="nf">planner</span><span class="p">({</span>
+<span class="w">        </span><span class="p">.</span><span class="n">max_linear_velocity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">,</span><span class="w">      </span><span class="c1">// m/s</span>
+<span class="w">        </span><span class="p">.</span><span class="n">max_angular_velocity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">3.14159f</span><span class="p">,</span><span class="w"> </span><span class="c1">// rad/s</span>
+<span class="w">        </span><span class="c1">// S-curve driving: smooth ramp with jerk limiting</span>
+<span class="w">        </span><span class="p">.</span><span class="n">driving_profile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{.</span><span class="n">max_linear_acceleration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">2.0f</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">max_angular_acceleration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">6.28f</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">max_linear_jerk</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">2.0f</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">max_angular_jerk</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">25.0f</span><span class="p">},</span>
+<span class="w">        </span><span class="c1">// Trapezoidal stop: no jerk = immediate deceleration, no overshoot</span>
+<span class="w">        </span><span class="p">.</span><span class="n">stopping_profile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{.</span><span class="n">max_linear_acceleration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">6.0f</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">max_angular_acceleration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">12.0f</span><span class="p">},</span>
+<span class="w">        </span><span class="p">.</span><span class="n">enforce_motion_envelope</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">max_centripetal_acceleration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.5f</span><span class="p">,</span><span class="w"> </span><span class="c1">// m/s²</span>
+<span class="w">        </span><span class="p">.</span><span class="n">output_callback</span><span class="w"> </span><span class="o">=</span>
+<span class="w">            </span><span class="p">[</span><span class="o">&amp;</span><span class="n">logger</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">tick</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">TrajectoryPlanner</span><span class="o">::</span><span class="n">MotionCommand</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cmd</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">              </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"[{:3d}] {}"</span><span class="p">,</span><span class="w"> </span><span class="n">tick</span><span class="p">.</span><span class="n">load</span><span class="p">(),</span><span class="w"> </span><span class="n">cmd</span><span class="p">);</span>
+<span class="w">              </span><span class="n">tick</span><span class="o">++</span><span class="p">;</span>
+<span class="w">            </span><span class="p">},</span>
+<span class="w">        </span><span class="p">.</span><span class="n">planning_period</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">planning_period</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">planning_task_config</span><span class="w"> </span><span class="o">=</span>
+<span class="w">            </span><span class="p">{.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"tp_ex1"</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10240</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">priority</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">core_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-1</span><span class="p">},</span>
+<span class="w">    </span><span class="p">});</span>
+
+<span class="w">    </span><span class="c1">// Full forward (normalized: 1.0 = max_linear_velocity)</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Commanding full forward"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">planner</span><span class="p">.</span><span class="n">set_target</span><span class="p">(</span><span class="mf">1.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">);</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">3</span><span class="n">s</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// Gentle right curve at half speed</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Commanding half-speed right curve"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">planner</span><span class="p">.</span><span class="n">set_target</span><span class="p">(</span><span class="mf">0.5f</span><span class="p">,</span><span class="w"> </span><span class="mf">-0.4f</span><span class="p">);</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">3</span><span class="n">s</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// Controlled stop - uses braking deceleration limits</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Stopping"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">planner</span><span class="p">.</span><span class="n">stop</span><span class="p">();</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">500</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// task stops automatically when planner goes out of scope</span>
+</pre></div>
+</div>
+</section>
+<section id="classespp_1_1TrajectoryPlanner_1trajectory_planner_ex2">
+<h4>High-Speed S-Curve with Centripetal Limiting<a class="headerlink" href="#classespp_1_1TrajectoryPlanner_1trajectory_planner_ex2" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1TrajectoryPlanner_1trajectory_planner_ex2"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">tick</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">TrajectoryPlanner</span><span class="w"> </span><span class="nf">planner</span><span class="p">({</span>
+<span class="w">        </span><span class="p">.</span><span class="n">max_linear_velocity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">4.47f</span><span class="p">,</span><span class="w">            </span><span class="c1">// 10 mph</span>
+<span class="w">        </span><span class="p">.</span><span class="n">max_angular_velocity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">3.14159f</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">2.0f</span><span class="p">,</span><span class="w"> </span><span class="c1">// 90 deg/s</span>
+<span class="w">        </span><span class="c1">// S-curve driving: smooth acceleration with jerk limits</span>
+<span class="w">        </span><span class="p">.</span><span class="n">driving_profile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{.</span><span class="n">max_linear_acceleration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">2.0f</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">max_angular_acceleration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">6.28f</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">max_linear_jerk</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">10.0f</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">max_angular_jerk</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">30.0f</span><span class="p">},</span>
+<span class="w">        </span><span class="c1">// Trapezoidal stop: no jerk limit = clean stop, no overshoot</span>
+<span class="w">        </span><span class="p">.</span><span class="n">stopping_profile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{.</span><span class="n">max_linear_acceleration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">4.0f</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">max_angular_acceleration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">8.0f</span><span class="p">},</span>
+<span class="w">        </span><span class="p">.</span><span class="n">enforce_motion_envelope</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">max_centripetal_acceleration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.3f</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">output_callback</span><span class="w"> </span><span class="o">=</span>
+<span class="w">            </span><span class="p">[</span><span class="o">&amp;</span><span class="n">logger</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">tick</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">TrajectoryPlanner</span><span class="o">::</span><span class="n">MotionCommand</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cmd</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">              </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"[{:3d}] {}"</span><span class="p">,</span><span class="w"> </span><span class="n">tick</span><span class="p">.</span><span class="n">load</span><span class="p">(),</span><span class="w"> </span><span class="n">cmd</span><span class="p">);</span>
+<span class="w">              </span><span class="n">tick</span><span class="o">++</span><span class="p">;</span>
+<span class="w">            </span><span class="p">},</span>
+<span class="w">        </span><span class="p">.</span><span class="n">planning_period</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">planning_period</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">planning_task_config</span><span class="w"> </span><span class="o">=</span>
+<span class="w">            </span><span class="p">{.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"tp_ex2"</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10240</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">priority</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">core_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-1</span><span class="p">},</span>
+<span class="w">    </span><span class="p">});</span>
+
+<span class="w">    </span><span class="c1">// Forward + left turn (0.8 = 80% max linear, 0.5 = 50% max angular)</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Commanding forward + left turn"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">planner</span><span class="p">.</span><span class="n">set_target</span><span class="p">(</span><span class="mf">0.8f</span><span class="p">,</span><span class="w"> </span><span class="mf">0.5f</span><span class="p">);</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">1</span><span class="n">s</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// Reverse direction</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Reversing direction"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">planner</span><span class="p">.</span><span class="n">set_target</span><span class="p">(</span><span class="mf">-0.5f</span><span class="p">,</span><span class="w"> </span><span class="mf">-0.5f</span><span class="p">);</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">1</span><span class="n">s</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// Controlled stop</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Stopping"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">planner</span><span class="p">.</span><span class="n">stop</span><span class="p">();</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">500</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// task stops automatically when planner goes out of scope</span>
+</pre></div>
+</div>
+</section>
+<section id="classespp_1_1TrajectoryPlanner_1trajectory_planner_ex3">
+<h4>Constraint Validation<a class="headerlink" href="#classespp_1_1TrajectoryPlanner_1trajectory_planner_ex3" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1TrajectoryPlanner_1trajectory_planner_ex3"><div class="highlight"><pre><span></span><span class="w">    </span><span class="k">using</span><span class="w"> </span><span class="n">Cfg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">TrajectoryPlanner</span><span class="o">::</span><span class="n">Config</span><span class="p">;</span>
+<span class="w">    </span><span class="k">using</span><span class="w"> </span><span class="n">Cmd</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">TrajectoryPlanner</span><span class="o">::</span><span class="n">MotionCommand</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1">// ---- Validator struct ------------------------------------------------</span>
+<span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">Validator</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="c1">// Immutable limits</span>
+<span class="w">      </span><span class="kt">float</span><span class="w"> </span><span class="n">max_v</span><span class="p">,</span><span class="w"> </span><span class="n">max_w</span><span class="p">;</span>
+<span class="w">      </span><span class="kt">float</span><span class="w"> </span><span class="n">a_drv_v</span><span class="p">,</span><span class="w"> </span><span class="n">a_drv_w</span><span class="p">,</span><span class="w"> </span><span class="n">j_drv_v</span><span class="p">,</span><span class="w"> </span><span class="n">j_drv_w</span><span class="p">;</span><span class="w"> </span><span class="c1">// driving profile</span>
+<span class="w">      </span><span class="kt">float</span><span class="w"> </span><span class="n">a_stp_v</span><span class="p">,</span><span class="w"> </span><span class="n">a_stp_w</span><span class="p">,</span><span class="w"> </span><span class="n">j_stp_v</span><span class="p">,</span><span class="w"> </span><span class="n">j_stp_w</span><span class="p">;</span><span class="w"> </span><span class="c1">// stopping profile</span>
+<span class="w">      </span><span class="kt">float</span><span class="w"> </span><span class="n">max_cp</span><span class="p">,</span><span class="w"> </span><span class="n">dt</span><span class="p">;</span>
+
+<span class="w">      </span><span class="c1">// Callback-thread history (only written from callback)</span>
+<span class="w">      </span><span class="kt">float</span><span class="w"> </span><span class="n">pv</span><span class="p">{</span><span class="mi">0</span><span class="p">},</span><span class="w"> </span><span class="n">pw</span><span class="p">{</span><span class="mi">0</span><span class="p">},</span><span class="w"> </span><span class="n">pa_v</span><span class="p">{</span><span class="mi">0</span><span class="p">},</span><span class="w"> </span><span class="n">pa_w</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+<span class="w">      </span><span class="kt">bool</span><span class="w"> </span><span class="n">inited</span><span class="p">{</span><span class="nb">false</span><span class="p">};</span>
+<span class="w">      </span><span class="kt">int</span><span class="w"> </span><span class="n">skip</span><span class="p">{</span><span class="mi">2</span><span class="p">};</span><span class="w"> </span><span class="c1">// skip first N ticks for derivative settling</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">steady_clock</span><span class="o">::</span><span class="n">time_point</span><span class="w"> </span><span class="n">prev_time</span><span class="p">{};</span>
+<span class="w">      </span><span class="kt">bool</span><span class="w"> </span><span class="n">time_inited</span><span class="p">{</span><span class="nb">false</span><span class="p">};</span>
+
+<span class="w">      </span><span class="c1">// Shared results - protected by mtx</span>
+<span class="w">      </span><span class="k">mutable</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="n">mtx</span><span class="p">;</span>
+<span class="w">      </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="w"> </span><span class="o">*</span><span class="n">log</span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span><span class="w"> </span><span class="c1">// set after construction</span>
+<span class="w">      </span><span class="kt">bool</span><span class="w"> </span><span class="n">stopping</span><span class="p">{</span><span class="nb">false</span><span class="p">};</span>
+<span class="w">      </span><span class="kt">int</span><span class="w"> </span><span class="n">viol_drv</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span><span class="w"> </span><span class="c1">// violations during driving phase</span>
+<span class="w">      </span><span class="kt">int</span><span class="w"> </span><span class="n">viol_stp</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span><span class="w"> </span><span class="c1">// violations during stopping phase</span>
+
+<span class="w">      </span><span class="k">struct</span><span class="w"> </span><span class="nc">PhasePeaks</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kt">float</span><span class="w"> </span><span class="n">v</span><span class="p">{</span><span class="mi">0</span><span class="p">},</span><span class="w"> </span><span class="n">w</span><span class="p">{</span><span class="mi">0</span><span class="p">},</span><span class="w"> </span><span class="n">a_v</span><span class="p">{</span><span class="mi">0</span><span class="p">},</span><span class="w"> </span><span class="n">a_w</span><span class="p">{</span><span class="mi">0</span><span class="p">},</span><span class="w"> </span><span class="n">j_v</span><span class="p">{</span><span class="mi">0</span><span class="p">},</span><span class="w"> </span><span class="n">j_w</span><span class="p">{</span><span class="mi">0</span><span class="p">},</span><span class="w"> </span><span class="n">cp</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+<span class="w">        </span><span class="kt">void</span><span class="w"> </span><span class="nf">reset</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a_v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a_w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j_v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j_w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="w">      </span><span class="p">};</span>
+<span class="w">      </span><span class="n">PhasePeaks</span><span class="w"> </span><span class="n">pk_drv</span><span class="p">,</span><span class="w"> </span><span class="n">pk_stp</span><span class="p">;</span>
+
+<span class="w">      </span><span class="kt">void</span><span class="w"> </span><span class="nf">mark_stopping</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lk</span><span class="p">(</span><span class="n">mtx</span><span class="p">);</span>
+<span class="w">        </span><span class="n">stopping</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">        </span><span class="n">skip</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+
+<span class="w">      </span><span class="c1">// Call before resuming a non-zero target after a stop.</span>
+<span class="w">      </span><span class="kt">void</span><span class="w"> </span><span class="nf">mark_driving</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lk</span><span class="p">(</span><span class="n">mtx</span><span class="p">);</span>
+<span class="w">        </span><span class="n">stopping</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">        </span><span class="n">skip</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+
+<span class="w">      </span><span class="c1">// Call before any abrupt target change (direction reversal, etc.).</span>
+<span class="w">      </span><span class="kt">void</span><span class="w"> </span><span class="nf">mark_transition</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lk</span><span class="p">(</span><span class="n">mtx</span><span class="p">);</span>
+<span class="w">        </span><span class="n">skip</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+
+<span class="w">      </span><span class="kt">void</span><span class="w"> </span><span class="nf">reset</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Always called before a new planner starts - no concurrent access</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lk</span><span class="p">(</span><span class="n">mtx</span><span class="p">);</span>
+<span class="w">        </span><span class="n">stopping</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">        </span><span class="n">viol_drv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">        </span><span class="n">viol_stp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">        </span><span class="n">pk_drv</span><span class="p">.</span><span class="n">reset</span><span class="p">();</span>
+<span class="w">        </span><span class="n">pk_stp</span><span class="p">.</span><span class="n">reset</span><span class="p">();</span>
+<span class="w">        </span><span class="n">pv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pw</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pa_v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pa_w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">        </span><span class="n">inited</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">        </span><span class="n">skip</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="w">        </span><span class="n">time_inited</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+
+<span class="w">      </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="k">const</span><span class="w"> </span><span class="n">Cmd</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cmd</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lk</span><span class="p">(</span><span class="n">mtx</span><span class="p">);</span>
+
+<span class="w">        </span><span class="k">const</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">tol</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.08f</span><span class="p">;</span><span class="w"> </span><span class="c1">// 8% margin for scheduler jitter</span>
+<span class="w">        </span><span class="k">const</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">ma_v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">stopping</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">a_stp_v</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">a_drv_v</span><span class="p">;</span>
+<span class="w">        </span><span class="k">const</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">ma_w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">stopping</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">a_stp_w</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">a_drv_w</span><span class="p">;</span>
+<span class="w">        </span><span class="k">const</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">mj_v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">stopping</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">j_stp_v</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">j_drv_v</span><span class="p">;</span>
+<span class="w">        </span><span class="k">const</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">mj_w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">stopping</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">j_stp_w</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">j_drv_w</span><span class="p">;</span>
+
+<span class="w">        </span><span class="c1">// Speed limits</span>
+<span class="w">        </span><span class="n">PhasePeaks</span><span class="w"> </span><span class="o">&amp;</span><span class="n">pk</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">stopping</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">pk_stp</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">pk_drv</span><span class="p">;</span>
+<span class="w">        </span><span class="n">pk</span><span class="p">.</span><span class="n">v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">max</span><span class="p">(</span><span class="n">pk</span><span class="p">.</span><span class="n">v</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">abs</span><span class="p">(</span><span class="n">cmd</span><span class="p">.</span><span class="n">linear_velocity</span><span class="p">));</span>
+<span class="w">        </span><span class="n">pk</span><span class="p">.</span><span class="n">w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">max</span><span class="p">(</span><span class="n">pk</span><span class="p">.</span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">abs</span><span class="p">(</span><span class="n">cmd</span><span class="p">.</span><span class="n">angular_velocity</span><span class="p">));</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">abs</span><span class="p">(</span><span class="n">cmd</span><span class="p">.</span><span class="n">linear_velocity</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">max_v</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">tol</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">log</span><span class="p">)</span>
+<span class="w">            </span><span class="n">log</span><span class="o">-&gt;</span><span class="n">warn</span><span class="p">(</span><span class="s">"VIOL speed_v: {:.3f} &gt; {:.3f} ({})"</span><span class="p">,</span><span class="w"> </span><span class="n">cmd</span><span class="p">.</span><span class="n">linear_velocity</span><span class="p">,</span><span class="w"> </span><span class="n">max_v</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">tol</span><span class="p">,</span>
+<span class="w">                      </span><span class="n">stopping</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="s">"stop"</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="s">"drv"</span><span class="p">);</span>
+<span class="w">          </span><span class="n">stopping</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">viol_stp</span><span class="o">++</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">viol_drv</span><span class="o">++</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">abs</span><span class="p">(</span><span class="n">cmd</span><span class="p">.</span><span class="n">angular_velocity</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">max_w</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">tol</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">log</span><span class="p">)</span>
+<span class="w">            </span><span class="n">log</span><span class="o">-&gt;</span><span class="n">warn</span><span class="p">(</span><span class="s">"VIOL speed_w: {:.3f} &gt; {:.3f} ({})"</span><span class="p">,</span><span class="w"> </span><span class="n">cmd</span><span class="p">.</span><span class="n">angular_velocity</span><span class="p">,</span><span class="w"> </span><span class="n">max_w</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">tol</span><span class="p">,</span>
+<span class="w">                      </span><span class="n">stopping</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="s">"stop"</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="s">"drv"</span><span class="p">);</span>
+<span class="w">          </span><span class="n">stopping</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">viol_stp</span><span class="o">++</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">viol_drv</span><span class="o">++</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="c1">// Centripetal limit</span>
+<span class="w">        </span><span class="kt">float</span><span class="w"> </span><span class="n">cp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">abs</span><span class="p">(</span><span class="n">cmd</span><span class="p">.</span><span class="n">linear_velocity</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">cmd</span><span class="p">.</span><span class="n">angular_velocity</span><span class="p">);</span>
+<span class="w">        </span><span class="n">pk</span><span class="p">.</span><span class="n">cp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">max</span><span class="p">(</span><span class="n">pk</span><span class="p">.</span><span class="n">cp</span><span class="p">,</span><span class="w"> </span><span class="n">cp</span><span class="p">);</span>
+
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">inited</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="c1">// Use actual elapsed time to avoid systematic error from FreeRTOS</span>
+<span class="w">          </span><span class="c1">// scheduling jitter (actual tick ~30 ms vs. nominal 20 ms).</span>
+<span class="w">          </span><span class="k">auto</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">steady_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+<span class="w">          </span><span class="kt">float</span><span class="w"> </span><span class="n">adt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">time_inited</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">prev_time</span><span class="p">).</span><span class="n">count</span><span class="p">()</span>
+<span class="w">                                  </span><span class="o">:</span><span class="w"> </span><span class="n">dt</span><span class="p">;</span><span class="w"> </span><span class="c1">// nominal for first step</span>
+
+<span class="w">          </span><span class="n">prev_time</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">now</span><span class="p">;</span>
+<span class="w">          </span><span class="n">time_inited</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+
+<span class="w">          </span><span class="kt">float</span><span class="w"> </span><span class="n">a_v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">cmd</span><span class="p">.</span><span class="n">linear_velocity</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">pv</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">adt</span><span class="p">;</span>
+<span class="w">          </span><span class="kt">float</span><span class="w"> </span><span class="n">a_w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">cmd</span><span class="p">.</span><span class="n">angular_velocity</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">pw</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">adt</span><span class="p">;</span>
+<span class="w">          </span><span class="n">pk</span><span class="p">.</span><span class="n">a_v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">max</span><span class="p">(</span><span class="n">pk</span><span class="p">.</span><span class="n">a_v</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">abs</span><span class="p">(</span><span class="n">a_v</span><span class="p">));</span>
+<span class="w">          </span><span class="n">pk</span><span class="p">.</span><span class="n">a_w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">max</span><span class="p">(</span><span class="n">pk</span><span class="p">.</span><span class="n">a_w</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">abs</span><span class="p">(</span><span class="n">a_w</span><span class="p">));</span>
+<span class="w">          </span><span class="kt">float</span><span class="w"> </span><span class="n">j_v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">a_v</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">pa_v</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">adt</span><span class="p">;</span>
+<span class="w">          </span><span class="kt">float</span><span class="w"> </span><span class="n">j_w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">a_w</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">pa_w</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">adt</span><span class="p">;</span>
+
+<span class="w">          </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">skip</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="o">--</span><span class="n">skip</span><span class="p">;</span>
+<span class="w">          </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">pk</span><span class="p">.</span><span class="n">j_v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">max</span><span class="p">(</span><span class="n">pk</span><span class="p">.</span><span class="n">j_v</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">abs</span><span class="p">(</span><span class="n">j_v</span><span class="p">));</span>
+<span class="w">            </span><span class="n">pk</span><span class="p">.</span><span class="n">j_w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">max</span><span class="p">(</span><span class="n">pk</span><span class="p">.</span><span class="n">j_w</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">abs</span><span class="p">(</span><span class="n">j_w</span><span class="p">));</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">abs</span><span class="p">(</span><span class="n">a_v</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">ma_v</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">tol</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">              </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">log</span><span class="p">)</span>
+<span class="w">                </span><span class="n">log</span><span class="o">-&gt;</span><span class="n">warn</span><span class="p">(</span><span class="s">"VIOL accel_v: {:.3f} &gt; {:.3f} ({})"</span><span class="p">,</span><span class="w"> </span><span class="n">a_v</span><span class="p">,</span><span class="w"> </span><span class="n">ma_v</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">tol</span><span class="p">,</span>
+<span class="w">                          </span><span class="n">stopping</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="s">"stop"</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="s">"drv"</span><span class="p">);</span>
+<span class="w">              </span><span class="n">stopping</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">viol_stp</span><span class="o">++</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">viol_drv</span><span class="o">++</span><span class="p">;</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">abs</span><span class="p">(</span><span class="n">a_w</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">ma_w</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">tol</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">              </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">log</span><span class="p">)</span>
+<span class="w">                </span><span class="n">log</span><span class="o">-&gt;</span><span class="n">warn</span><span class="p">(</span><span class="s">"VIOL accel_w: {:.3f} &gt; {:.3f} ({})"</span><span class="p">,</span><span class="w"> </span><span class="n">a_w</span><span class="p">,</span><span class="w"> </span><span class="n">ma_w</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">tol</span><span class="p">,</span>
+<span class="w">                          </span><span class="n">stopping</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="s">"stop"</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="s">"drv"</span><span class="p">);</span>
+<span class="w">              </span><span class="n">stopping</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">viol_stp</span><span class="o">++</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">viol_drv</span><span class="o">++</span><span class="p">;</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">mj_v</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mf">0.0f</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">abs</span><span class="p">(</span><span class="n">j_v</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">mj_v</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">tol</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">              </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">log</span><span class="p">)</span>
+<span class="w">                </span><span class="n">log</span><span class="o">-&gt;</span><span class="n">warn</span><span class="p">(</span><span class="s">"VIOL jerk_v:  {:.3f} &gt; {:.3f} ({})"</span><span class="p">,</span><span class="w"> </span><span class="n">j_v</span><span class="p">,</span><span class="w"> </span><span class="n">mj_v</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">tol</span><span class="p">,</span>
+<span class="w">                          </span><span class="n">stopping</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="s">"stop"</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="s">"drv"</span><span class="p">);</span>
+<span class="w">              </span><span class="n">stopping</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">viol_stp</span><span class="o">++</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">viol_drv</span><span class="o">++</span><span class="p">;</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">mj_w</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mf">0.0f</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">abs</span><span class="p">(</span><span class="n">j_w</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">mj_w</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">tol</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">              </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">log</span><span class="p">)</span>
+<span class="w">                </span><span class="n">log</span><span class="o">-&gt;</span><span class="n">warn</span><span class="p">(</span><span class="s">"VIOL jerk_w:  {:.3f} &gt; {:.3f} ({})"</span><span class="p">,</span><span class="w"> </span><span class="n">j_w</span><span class="p">,</span><span class="w"> </span><span class="n">mj_w</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">tol</span><span class="p">,</span>
+<span class="w">                          </span><span class="n">stopping</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="s">"stop"</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="s">"drv"</span><span class="p">);</span>
+<span class="w">              </span><span class="n">stopping</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">viol_stp</span><span class="o">++</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">viol_drv</span><span class="o">++</span><span class="p">;</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">          </span><span class="n">pa_v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a_v</span><span class="p">;</span>
+<span class="w">          </span><span class="n">pa_w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a_w</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="c1">// First tick: start the clock</span>
+<span class="w">          </span><span class="n">prev_time</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">steady_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+<span class="w">          </span><span class="n">time_inited</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="n">pv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cmd</span><span class="p">.</span><span class="n">linear_velocity</span><span class="p">;</span>
+<span class="w">        </span><span class="n">pw</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cmd</span><span class="p">.</span><span class="n">angular_velocity</span><span class="p">;</span>
+<span class="w">        </span><span class="n">inited</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+
+<span class="w">      </span><span class="kt">bool</span><span class="w"> </span><span class="nf">report</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="w"> </span><span class="o">&amp;</span><span class="n">log</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string_view</span><span class="w"> </span><span class="n">name</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lk</span><span class="p">(</span><span class="n">mtx</span><span class="p">);</span>
+<span class="w">        </span><span class="n">log</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"--- {} ---  drv_viol={} stp_viol={}"</span><span class="p">,</span><span class="w"> </span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">viol_drv</span><span class="p">,</span><span class="w"> </span><span class="n">viol_stp</span><span class="p">);</span>
+<span class="w">        </span><span class="n">log</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"  [driving]"</span><span class="p">);</span>
+<span class="w">        </span><span class="n">log</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"    v={:.3f}/{:.1f}   w={:.3f}/{:.1f}"</span><span class="p">,</span><span class="w"> </span><span class="n">pk_drv</span><span class="p">.</span><span class="n">v</span><span class="p">,</span><span class="w"> </span><span class="n">max_v</span><span class="p">,</span><span class="w"> </span><span class="n">pk_drv</span><span class="p">.</span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="n">max_w</span><span class="p">);</span>
+<span class="w">        </span><span class="n">log</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"    a_v={:.3f}/{:.1f}  a_w={:.3f}/{:.1f}"</span><span class="p">,</span><span class="w"> </span><span class="n">pk_drv</span><span class="p">.</span><span class="n">a_v</span><span class="p">,</span><span class="w"> </span><span class="n">a_drv_v</span><span class="p">,</span><span class="w"> </span><span class="n">pk_drv</span><span class="p">.</span><span class="n">a_w</span><span class="p">,</span>
+<span class="w">                 </span><span class="n">a_drv_w</span><span class="p">);</span>
+<span class="w">        </span><span class="n">log</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"    j_v={:.3f}/{:.1f}  j_w={:.3f}/{:.1f}"</span><span class="p">,</span><span class="w"> </span><span class="n">pk_drv</span><span class="p">.</span><span class="n">j_v</span><span class="p">,</span><span class="w"> </span><span class="n">j_drv_v</span><span class="p">,</span><span class="w"> </span><span class="n">pk_drv</span><span class="p">.</span><span class="n">j_w</span><span class="p">,</span>
+<span class="w">                 </span><span class="n">j_drv_w</span><span class="p">);</span>
+<span class="w">        </span><span class="n">log</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"    cp={:.3f}/{:.2f}"</span><span class="p">,</span><span class="w"> </span><span class="n">pk_drv</span><span class="p">.</span><span class="n">cp</span><span class="p">,</span><span class="w"> </span><span class="n">max_cp</span><span class="p">);</span>
+<span class="w">        </span><span class="n">log</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"  [stopping]"</span><span class="p">);</span>
+<span class="w">        </span><span class="n">log</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"    v={:.3f}/{:.1f}   w={:.3f}/{:.1f}"</span><span class="p">,</span><span class="w"> </span><span class="n">pk_stp</span><span class="p">.</span><span class="n">v</span><span class="p">,</span><span class="w"> </span><span class="n">max_v</span><span class="p">,</span><span class="w"> </span><span class="n">pk_stp</span><span class="p">.</span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="n">max_w</span><span class="p">);</span>
+<span class="w">        </span><span class="n">log</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"    a_v={:.3f}/{:.1f}  a_w={:.3f}/{:.1f}"</span><span class="p">,</span><span class="w"> </span><span class="n">pk_stp</span><span class="p">.</span><span class="n">a_v</span><span class="p">,</span><span class="w"> </span><span class="n">a_stp_v</span><span class="p">,</span><span class="w"> </span><span class="n">pk_stp</span><span class="p">.</span><span class="n">a_w</span><span class="p">,</span>
+<span class="w">                 </span><span class="n">a_stp_w</span><span class="p">);</span>
+<span class="w">        </span><span class="n">log</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"    j_v={:.3f}/{:.1f}  j_w={:.3f}/{:.1f}"</span><span class="p">,</span><span class="w"> </span><span class="n">pk_stp</span><span class="p">.</span><span class="n">j_v</span><span class="p">,</span><span class="w"> </span><span class="n">j_stp_v</span><span class="p">,</span><span class="w"> </span><span class="n">pk_stp</span><span class="p">.</span><span class="n">j_w</span><span class="p">,</span>
+<span class="w">                 </span><span class="n">j_stp_w</span><span class="p">);</span>
+<span class="w">        </span><span class="n">log</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"    cp={:.3f}/{:.2f}"</span><span class="p">,</span><span class="w"> </span><span class="n">pk_stp</span><span class="p">.</span><span class="n">cp</span><span class="p">,</span><span class="w"> </span><span class="n">max_cp</span><span class="p">);</span>
+<span class="w">        </span><span class="n">log</span><span class="p">.</span><span class="n">info</span><span class="p">((</span><span class="n">viol_drv</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">viol_stp</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="s">"  [PASS]"</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="s">"  [FAIL]"</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">viol_drv</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">viol_stp</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">};</span>
+
+<span class="w">    </span><span class="c1">// ---- Shared limits ---------------------------------------------------</span>
+<span class="w">    </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">MAX_V</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">,</span><span class="w"> </span><span class="n">MAX_W</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">3.14159f</span><span class="p">;</span>
+<span class="w">    </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">A_DRV_V</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">2.0f</span><span class="p">,</span><span class="w"> </span><span class="n">A_DRV_W</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">6.28f</span><span class="p">;</span>
+<span class="w">    </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">J_DRV_V</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">10.0f</span><span class="p">,</span><span class="w"> </span><span class="n">J_DRV_W</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">25.0f</span><span class="p">;</span>
+<span class="w">    </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">A_STP_V</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">5.0f</span><span class="p">,</span><span class="w"> </span><span class="n">A_STP_W</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">10.0f</span><span class="p">;</span>
+<span class="w">    </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">MAX_CP</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.4f</span><span class="p">,</span><span class="w"> </span><span class="n">DT</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.020f</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">Validator</span><span class="w"> </span><span class="n">val</span><span class="p">;</span>
+<span class="w">    </span><span class="n">val</span><span class="p">.</span><span class="n">max_v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MAX_V</span><span class="p">;</span>
+<span class="w">    </span><span class="n">val</span><span class="p">.</span><span class="n">max_w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MAX_W</span><span class="p">;</span>
+<span class="w">    </span><span class="n">val</span><span class="p">.</span><span class="n">a_drv_v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">A_DRV_V</span><span class="p">;</span>
+<span class="w">    </span><span class="n">val</span><span class="p">.</span><span class="n">a_drv_w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">A_DRV_W</span><span class="p">;</span>
+<span class="w">    </span><span class="n">val</span><span class="p">.</span><span class="n">j_drv_v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">J_DRV_V</span><span class="p">;</span>
+<span class="w">    </span><span class="n">val</span><span class="p">.</span><span class="n">j_drv_w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">J_DRV_W</span><span class="p">;</span>
+<span class="w">    </span><span class="n">val</span><span class="p">.</span><span class="n">a_stp_v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">A_STP_V</span><span class="p">;</span>
+<span class="w">    </span><span class="n">val</span><span class="p">.</span><span class="n">a_stp_w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">A_STP_W</span><span class="p">;</span>
+<span class="w">    </span><span class="n">val</span><span class="p">.</span><span class="n">j_stp_v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">;</span>
+<span class="w">    </span><span class="n">val</span><span class="p">.</span><span class="n">j_stp_w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">;</span><span class="w"> </span><span class="c1">// tests use trapez stop; set non-zero if needed</span>
+<span class="w">    </span><span class="n">val</span><span class="p">.</span><span class="n">max_cp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MAX_CP</span><span class="p">;</span>
+<span class="w">    </span><span class="n">val</span><span class="p">.</span><span class="n">dt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DT</span><span class="p">;</span>
+<span class="w">    </span><span class="n">val</span><span class="p">.</span><span class="n">log</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">&amp;</span><span class="n">logger</span><span class="p">;</span>
+
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="n">Cfg</span><span class="w"> </span><span class="n">cfg</span><span class="p">{</span>
+<span class="w">        </span><span class="p">.</span><span class="n">max_linear_velocity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MAX_V</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">max_angular_velocity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MAX_W</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">driving_profile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{.</span><span class="n">max_linear_acceleration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">A_DRV_V</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">max_angular_acceleration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">A_DRV_W</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">max_linear_jerk</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">J_DRV_V</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">max_angular_jerk</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">J_DRV_W</span><span class="p">},</span>
+<span class="w">        </span><span class="p">.</span><span class="n">stopping_profile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{.</span><span class="n">max_linear_acceleration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">A_STP_V</span><span class="p">,</span>
+<span class="w">                             </span><span class="p">.</span><span class="n">max_angular_acceleration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">A_STP_W</span><span class="p">},</span>
+<span class="w">        </span><span class="p">.</span><span class="n">enforce_motion_envelope</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">max_centripetal_acceleration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MAX_CP</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">output_callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">val</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">Cmd</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cmd</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">val</span><span class="p">(</span><span class="n">cmd</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">        </span><span class="p">.</span><span class="n">planning_period</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">milliseconds</span><span class="p">(</span><span class="mi">50</span><span class="p">),</span>
+<span class="w">        </span><span class="p">.</span><span class="n">planning_task_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"tp_val"</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1024</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">priority</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">},</span>
+<span class="w">        </span><span class="p">.</span><span class="n">callback_task_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"tp_val_cb"</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">8192</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">priority</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">},</span>
+
+<span class="w">    </span><span class="p">};</span>
+
+<span class="w">    </span><span class="c1">// ---- Test A: pure linear ramp ----------------------------------------</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"[A] Pure linear ramp  target=(+1, 0)"</span><span class="p">);</span>
+<span class="w">      </span><span class="n">val</span><span class="p">.</span><span class="n">reset</span><span class="p">();</span>
+<span class="w">      </span><span class="n">espp</span><span class="o">::</span><span class="n">TrajectoryPlanner</span><span class="w"> </span><span class="nf">planner</span><span class="p">(</span><span class="n">cfg</span><span class="p">);</span>
+<span class="w">      </span><span class="n">planner</span><span class="p">.</span><span class="n">set_target</span><span class="p">(</span><span class="mf">1.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">);</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">800</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">      </span><span class="n">val</span><span class="p">.</span><span class="n">report</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span><span class="w"> </span><span class="s">"A: Pure linear ramp"</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// ---- Test B: pure angular ramp ----------------------------------------</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"[B] Pure angular ramp  target=(0, +1)"</span><span class="p">);</span>
+<span class="w">      </span><span class="n">val</span><span class="p">.</span><span class="n">reset</span><span class="p">();</span>
+<span class="w">      </span><span class="n">espp</span><span class="o">::</span><span class="n">TrajectoryPlanner</span><span class="w"> </span><span class="nf">planner</span><span class="p">(</span><span class="n">cfg</span><span class="p">);</span>
+<span class="w">      </span><span class="n">planner</span><span class="p">.</span><span class="n">set_target</span><span class="p">(</span><span class="mf">0.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">);</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">800</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">      </span><span class="n">val</span><span class="p">.</span><span class="n">report</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span><span class="w"> </span><span class="s">"B: Pure angular ramp"</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// ---- Test C: combined motion - tests envelope + centripetal ----------</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"[C] Combined  target=(0.9, 0.9)  envelope + centripetal"</span><span class="p">);</span>
+<span class="w">      </span><span class="n">val</span><span class="p">.</span><span class="n">reset</span><span class="p">();</span>
+<span class="w">      </span><span class="n">espp</span><span class="o">::</span><span class="n">TrajectoryPlanner</span><span class="w"> </span><span class="nf">planner</span><span class="p">(</span><span class="n">cfg</span><span class="p">);</span>
+<span class="w">      </span><span class="n">planner</span><span class="p">.</span><span class="n">set_target</span><span class="p">(</span><span class="mf">0.9f</span><span class="p">,</span><span class="w"> </span><span class="mf">0.9f</span><span class="p">);</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">1</span><span class="n">s</span><span class="p">);</span>
+<span class="w">      </span><span class="n">val</span><span class="p">.</span><span class="n">report</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span><span class="w"> </span><span class="s">"C: Combined (envelope + centripetal)"</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// ---- Test D: drive → controlled stop (stopping profile) ---------------</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"[D] Drive then stop  - tests stopping profile switch"</span><span class="p">);</span>
+<span class="w">      </span><span class="n">val</span><span class="p">.</span><span class="n">reset</span><span class="p">();</span>
+<span class="w">      </span><span class="n">espp</span><span class="o">::</span><span class="n">TrajectoryPlanner</span><span class="w"> </span><span class="nf">planner</span><span class="p">(</span><span class="n">cfg</span><span class="p">);</span>
+<span class="w">      </span><span class="n">planner</span><span class="p">.</span><span class="n">set_target</span><span class="p">(</span><span class="mf">1.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">);</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">600</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">      </span><span class="n">val</span><span class="p">.</span><span class="n">mark_stopping</span><span class="p">();</span>
+<span class="w">      </span><span class="n">planner</span><span class="p">.</span><span class="n">stop</span><span class="p">();</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">400</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">      </span><span class="n">val</span><span class="p">.</span><span class="n">report</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span><span class="w"> </span><span class="s">"D: Drive then stop"</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// ---- Test E: direction reversal ---------------------------------------</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"[E] Direction reversal  (+1, 0) → (-1, 0)"</span><span class="p">);</span>
+<span class="w">      </span><span class="n">val</span><span class="p">.</span><span class="n">reset</span><span class="p">();</span>
+<span class="w">      </span><span class="n">espp</span><span class="o">::</span><span class="n">TrajectoryPlanner</span><span class="w"> </span><span class="nf">planner</span><span class="p">(</span><span class="n">cfg</span><span class="p">);</span>
+<span class="w">      </span><span class="n">planner</span><span class="p">.</span><span class="n">set_target</span><span class="p">(</span><span class="mf">1.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">);</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">1000</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">      </span><span class="n">planner</span><span class="p">.</span><span class="n">set_target</span><span class="p">(</span><span class="mf">-1.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">);</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">2000</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">      </span><span class="n">val</span><span class="p">.</span><span class="n">report</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span><span class="w"> </span><span class="s">"E: Direction reversal"</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// ---- Test F: multi-step sweep - various (linear, angular) pairs -------</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"[F] Multi-step sweep  - varied inputs"</span><span class="p">);</span>
+<span class="w">      </span><span class="n">val</span><span class="p">.</span><span class="n">reset</span><span class="p">();</span>
+<span class="w">      </span><span class="n">espp</span><span class="o">::</span><span class="n">TrajectoryPlanner</span><span class="w"> </span><span class="nf">planner</span><span class="p">(</span><span class="n">cfg</span><span class="p">);</span>
+<span class="w">      </span><span class="kt">bool</span><span class="w"> </span><span class="n">was_stopping</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">      </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">lin</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="mf">0.3f</span><span class="p">,</span><span class="w"> </span><span class="mf">0.6f</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">-0.5f</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">})</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">ang</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="mf">0.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">0.5f</span><span class="p">,</span><span class="w"> </span><span class="mf">-0.5f</span><span class="p">})</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="kt">bool</span><span class="w"> </span><span class="n">next_stopping</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">lin</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mf">0.0f</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">ang</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">);</span>
+<span class="w">          </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">next_stopping</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!</span><span class="n">was_stopping</span><span class="p">)</span>
+<span class="w">            </span><span class="n">val</span><span class="p">.</span><span class="n">mark_stopping</span><span class="p">();</span>
+<span class="w">          </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">next_stopping</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">was_stopping</span><span class="p">)</span>
+<span class="w">            </span><span class="n">val</span><span class="p">.</span><span class="n">mark_driving</span><span class="p">();</span>
+<span class="w">          </span><span class="n">was_stopping</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">next_stopping</span><span class="p">;</span>
+<span class="w">          </span><span class="n">planner</span><span class="p">.</span><span class="n">set_target</span><span class="p">(</span><span class="n">lin</span><span class="p">,</span><span class="w"> </span><span class="n">ang</span><span class="p">);</span>
+<span class="w">          </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">250</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="n">val</span><span class="p">.</span><span class="n">mark_stopping</span><span class="p">();</span>
+<span class="w">      </span><span class="n">planner</span><span class="p">.</span><span class="n">stop</span><span class="p">();</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">300</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">      </span><span class="n">val</span><span class="p">.</span><span class="n">report</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span><span class="w"> </span><span class="s">"F: Multi-step sweep"</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17TrajectoryPlanner17output_callback_tE">
+<span id="_CPPv3N4espp17TrajectoryPlanner17output_callback_tE"></span><span id="_CPPv2N4espp17TrajectoryPlanner17output_callback_tE"></span><span id="espp::TrajectoryPlanner::output_callback_t"></span><span class="target" id="classespp_1_1TrajectoryPlanner_1af17439f2d68268cb5706fdbceb94f1ad"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp17TrajectoryPlanner13MotionCommandE" title="espp::TrajectoryPlanner::MotionCommand"><span class="n"><span class="pre">MotionCommand</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">output_callback_t</span></span></span><a class="headerlink" href="#_CPPv4N4espp17TrajectoryPlanner17output_callback_tE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback invoked at the end of every update() call with the latest smoothed <a class="reference internal" href="#structespp_1_1TrajectoryPlanner_1_1MotionCommand"><span class="std std-ref">MotionCommand</span></a>. Use to feed the output directly into a kinematics layer without polling <a class="reference internal" href="#classespp_1_1TrajectoryPlanner_1a3b6dbc1be272db810cdb99bb3be91d60"><span class="std std-ref">output()</span></a>. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The callback is called without holding the internal mutex, so it is safe to call <a class="reference internal" href="#classespp_1_1TrajectoryPlanner_1a5973dc2fe3f65658caadee05ff4501af"><span class="std std-ref">set_target()</span></a>, <a class="reference internal" href="#classespp_1_1TrajectoryPlanner_1ad5f7798ff0c0d34071bfbc797edbff60"><span class="std std-ref">stop()</span></a>, or <a class="reference internal" href="#classespp_1_1TrajectoryPlanner_1a3b6dbc1be272db810cdb99bb3be91d60"><span class="std std-ref">output()</span></a> from within it. </p>
+</div>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17TrajectoryPlanner17TrajectoryPlannerERK6Config">
+<span id="_CPPv3N4espp17TrajectoryPlanner17TrajectoryPlannerERK6Config"></span><span id="_CPPv2N4espp17TrajectoryPlanner17TrajectoryPlannerERK6Config"></span><span id="espp::TrajectoryPlanner::TrajectoryPlanner__ConfigCR"></span><span class="target" id="classespp_1_1TrajectoryPlanner_1a1decc3a66b46821442dbfb5b08d55ff4"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TrajectoryPlanner</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp17TrajectoryPlanner6ConfigE" title="espp::TrajectoryPlanner::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp17TrajectoryPlanner17TrajectoryPlannerERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct the planner with the given configuration. The periodic update task is started automatically. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – Configuration parameters. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17TrajectoryPlannerD0Ev">
+<span id="_CPPv3N4espp17TrajectoryPlannerD0Ev"></span><span id="_CPPv2N4espp17TrajectoryPlannerD0Ev"></span><span id="espp::TrajectoryPlanner::~TrajectoryPlanner"></span><span class="target" id="classespp_1_1TrajectoryPlanner_1aec0ded151a6fd6922fe9138781818d73"></span><span class="sig-name descname"><span class="n"><span class="pre">~TrajectoryPlanner</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp17TrajectoryPlannerD0Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Destructor. Stops the periodic update task before destruction. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17TrajectoryPlanner10set_configERK6Configb">
+<span id="_CPPv3N4espp17TrajectoryPlanner10set_configERK6Configb"></span><span id="_CPPv2N4espp17TrajectoryPlanner10set_configERK6Configb"></span><span id="espp::TrajectoryPlanner::set_config__ConfigCR.b"></span><span class="target" id="classespp_1_1TrajectoryPlanner_1a2a6cd38c3c6dabd34147ba7b4e3a74da"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_config</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp17TrajectoryPlanner6ConfigE" title="espp::TrajectoryPlanner::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">reset_state</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp17TrajectoryPlanner10set_configERK6Configb" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Update the planner configuration. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>config</strong> – New configuration parameters. </p></li>
+<li><p><strong>reset_state</strong> – If true (default), resets velocity/acceleration state to zero. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the configuration was successfully applied. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp17TrajectoryPlanner10get_configEv">
+<span id="_CPPv3NK4espp17TrajectoryPlanner10get_configEv"></span><span id="_CPPv2NK4espp17TrajectoryPlanner10get_configEv"></span><span id="espp::TrajectoryPlanner::get_configC"></span><span class="target" id="classespp_1_1TrajectoryPlanner_1a223c7407162ff641757b59c1be0235bb"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp17TrajectoryPlanner6ConfigE" title="espp::TrajectoryPlanner::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_config</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp17TrajectoryPlanner10get_configEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the current configuration. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Const reference to the active <a class="reference internal" href="#structespp_1_1TrajectoryPlanner_1_1Config"><span class="std std-ref">Config</span></a>. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17TrajectoryPlanner10set_targetEff">
+<span id="_CPPv3N4espp17TrajectoryPlanner10set_targetEff"></span><span id="_CPPv2N4espp17TrajectoryPlanner10set_targetEff"></span><span id="espp::TrajectoryPlanner::set_target__float.float"></span><span class="target" id="classespp_1_1TrajectoryPlanner_1a5973dc2fe3f65658caadee05ff4501af"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_target</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">linear</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">angular</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp17TrajectoryPlanner10set_targetEff" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the desired chassis velocity target using normalized joystick inputs. </p>
+<p>Both inputs are in the range [-1, +1] and are scaled internally: <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">v_target</span>  <span class="o">=</span> <span class="n">linear</span>  <span class="o">*</span> <span class="n">max_linear_velocity</span>
+<span class="n">w_target</span>  <span class="o">=</span> <span class="n">angular</span> <span class="o">*</span> <span class="n">max_angular_velocity</span>
+</pre></div>
+</div>
+ Values outside [-1, +1] are clamped before scaling.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>linear</strong> – Normalized linear velocity command [-1, +1]. +1 = full forward, -1 = full reverse. </p></li>
+<li><p><strong>angular</strong> – Normalized angular velocity command [-1, +1]. +1 = full left turn, -1 = full right turn. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp17TrajectoryPlanner10get_targetEv">
+<span id="_CPPv3NK4espp17TrajectoryPlanner10get_targetEv"></span><span id="_CPPv2NK4espp17TrajectoryPlanner10get_targetEv"></span><span id="espp::TrajectoryPlanner::get_targetC"></span><span class="target" id="classespp_1_1TrajectoryPlanner_1abf72834a493d0209be9e0a9debea7228"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">pair</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_target</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp17TrajectoryPlanner10get_targetEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the current normalized velocity target. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If enforce_motion_envelope is enabled the stored target may differ from the value passed to <a class="reference internal" href="#classespp_1_1TrajectoryPlanner_1a5973dc2fe3f65658caadee05ff4501af"><span class="std std-ref">set_target()</span></a> (it is projected onto the unit circle). </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Pair of {linear, angular} in [-1, +1]. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp17TrajectoryPlanner6outputEv">
+<span id="_CPPv3NK4espp17TrajectoryPlanner6outputEv"></span><span id="_CPPv2NK4espp17TrajectoryPlanner6outputEv"></span><span id="espp::TrajectoryPlanner::outputC"></span><span class="target" id="classespp_1_1TrajectoryPlanner_1a3b6dbc1be272db810cdb99bb3be91d60"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp17TrajectoryPlannerE" title="espp::TrajectoryPlanner"><span class="n"><span class="pre">TrajectoryPlanner</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp17TrajectoryPlanner13MotionCommandE" title="espp::TrajectoryPlanner::MotionCommand"><span class="n"><span class="pre">MotionCommand</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">output</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp17TrajectoryPlanner6outputEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the current smoothed motion command. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#structespp_1_1TrajectoryPlanner_1_1MotionCommand"><span class="std std-ref">MotionCommand</span></a> containing the trajectory-limited (v_ref, w_ref). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17TrajectoryPlanner4stopEv">
+<span id="_CPPv3N4espp17TrajectoryPlanner4stopEv"></span><span id="_CPPv2N4espp17TrajectoryPlanner4stopEv"></span><span id="espp::TrajectoryPlanner::stop"></span><span class="target" id="classespp_1_1TrajectoryPlanner_1ad5f7798ff0c0d34071bfbc797edbff60"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stop</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp17TrajectoryPlanner4stopEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Command the planner to decelerate to a full stop. </p>
+<p>Equivalent to set_target(0, 0). The planner ramps down respecting all configured limits rather than cutting output immediately. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17TrajectoryPlanner5resetEv">
+<span id="_CPPv3N4espp17TrajectoryPlanner5resetEv"></span><span id="_CPPv2N4espp17TrajectoryPlanner5resetEv"></span><span id="espp::TrajectoryPlanner::reset"></span><span class="target" id="classespp_1_1TrajectoryPlanner_1aadc7f1b317224d31324959270718e88f"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp17TrajectoryPlanner5resetEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Reset velocity, acceleration state, and target to zero immediately. </p>
+<p>The next call to <a class="reference internal" href="#classespp_1_1TrajectoryPlanner_1a3b6dbc1be272db810cdb99bb3be91d60"><span class="std std-ref">output()</span></a> will return (0, 0). Use after an emergency stop or before re-initialising with a new configuration. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp17TrajectoryPlanner10is_runningEv">
+<span id="_CPPv3NK4espp17TrajectoryPlanner10is_runningEv"></span><span id="_CPPv2NK4espp17TrajectoryPlanner10is_runningEv"></span><span id="espp::TrajectoryPlanner::is_runningC"></span><span class="target" id="classespp_1_1TrajectoryPlanner_1ac638777086f0d046c0319a6f670a62fa"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_running</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp17TrajectoryPlanner10is_runningEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Check whether the periodic update task is currently running. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true if the task is running. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp17TrajectoryPlanner8get_nameEv">
+<span id="_CPPv3NK4espp17TrajectoryPlanner8get_nameEv"></span><span id="_CPPv2NK4espp17TrajectoryPlanner8get_nameEv"></span><span id="espp::TrajectoryPlanner::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp17TrajectoryPlanner8get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17TrajectoryPlanner11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp17TrajectoryPlanner11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp17TrajectoryPlanner11set_log_tagERKNSt11string_viewE"></span><span id="espp::TrajectoryPlanner::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp17TrajectoryPlanner11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp17TrajectoryPlanner13get_log_levelEv">
+<span id="_CPPv3NK4espp17TrajectoryPlanner13get_log_levelEv"></span><span id="_CPPv2NK4espp17TrajectoryPlanner13get_log_levelEv"></span><span id="espp::TrajectoryPlanner::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp17TrajectoryPlanner13get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17TrajectoryPlanner13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp17TrajectoryPlanner13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp17TrajectoryPlanner13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::TrajectoryPlanner::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp17TrajectoryPlanner13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17TrajectoryPlanner17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp17TrajectoryPlanner17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp17TrajectoryPlanner17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::TrajectoryPlanner::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp17TrajectoryPlanner17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wireless/sx126x.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp17TrajectoryPlanner17get_log_verbosityEv">
+<span id="_CPPv3NK4espp17TrajectoryPlanner17get_log_verbosityEv"></span><span id="_CPPv2NK4espp17TrajectoryPlanner17get_log_verbosityEv"></span><span id="espp::TrajectoryPlanner::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp17TrajectoryPlanner17get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wireless/sx126x.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17TrajectoryPlanner18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp17TrajectoryPlanner18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp17TrajectoryPlanner18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::TrajectoryPlanner::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp17TrajectoryPlanner18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17TrajectoryPlanner6ConfigE">
+<span id="_CPPv3N4espp17TrajectoryPlanner6ConfigE"></span><span id="_CPPv2N4espp17TrajectoryPlanner6ConfigE"></span><span id="espp::TrajectoryPlanner::Config"></span><span class="target" id="structespp_1_1TrajectoryPlanner_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp17TrajectoryPlanner6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration for the <a class="reference internal" href="#classespp_1_1TrajectoryPlanner"><span class="std std-ref">TrajectoryPlanner</span></a>. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17TrajectoryPlanner6Config19max_linear_velocityE">
+<span id="_CPPv3N4espp17TrajectoryPlanner6Config19max_linear_velocityE"></span><span id="_CPPv2N4espp17TrajectoryPlanner6Config19max_linear_velocityE"></span><span id="espp::TrajectoryPlanner::Config::max_linear_velocity__float"></span><span class="target" id="structespp_1_1TrajectoryPlanner_1_1Config_1a88789df015a3b7d66cd5f8d85f4fed62"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">max_linear_velocity</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1.0f</span></span><a class="headerlink" href="#_CPPv4N4espp17TrajectoryPlanner6Config19max_linear_velocityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Maximum linear velocity magnitude (m/s). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17TrajectoryPlanner6Config20max_angular_velocityE">
+<span id="_CPPv3N4espp17TrajectoryPlanner6Config20max_angular_velocityE"></span><span id="_CPPv2N4espp17TrajectoryPlanner6Config20max_angular_velocityE"></span><span id="espp::TrajectoryPlanner::Config::max_angular_velocity__float"></span><span class="target" id="structespp_1_1TrajectoryPlanner_1_1Config_1a4a237c68a986ee6590386f34cd836db4"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">max_angular_velocity</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">3.14159f</span></span><a class="headerlink" href="#_CPPv4N4espp17TrajectoryPlanner6Config20max_angular_velocityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Maximum angular velocity magnitude (rad/s). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17TrajectoryPlanner6Config15driving_profileE">
+<span id="_CPPv3N4espp17TrajectoryPlanner6Config15driving_profileE"></span><span id="_CPPv2N4espp17TrajectoryPlanner6Config15driving_profileE"></span><span id="espp::TrajectoryPlanner::Config::driving_profile__espp::TrajectoryPlanner::MotionProfile"></span><span class="target" id="structespp_1_1TrajectoryPlanner_1_1Config_1af4422183a37bf1ea6831eed067b35694"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp17TrajectoryPlannerE" title="espp::TrajectoryPlanner"><span class="n"><span class="pre">TrajectoryPlanner</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp17TrajectoryPlanner13MotionProfileE" title="espp::TrajectoryPlanner::MotionProfile"><span class="n"><span class="pre">MotionProfile</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">driving_profile</span></span></span><a class="headerlink" href="#_CPPv4N4espp17TrajectoryPlanner6Config15driving_profileE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Accel/jerk limits used when target != (0, 0). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17TrajectoryPlanner6Config16stopping_profileE">
+<span id="_CPPv3N4espp17TrajectoryPlanner6Config16stopping_profileE"></span><span id="_CPPv2N4espp17TrajectoryPlanner6Config16stopping_profileE"></span><span id="espp::TrajectoryPlanner::Config::stopping_profile__espp::TrajectoryPlanner::MotionProfile"></span><span class="target" id="structespp_1_1TrajectoryPlanner_1_1Config_1a50f81261959757e1fd98daa1d22d3f2a"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp17TrajectoryPlannerE" title="espp::TrajectoryPlanner"><span class="n"><span class="pre">TrajectoryPlanner</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp17TrajectoryPlanner13MotionProfileE" title="espp::TrajectoryPlanner::MotionProfile"><span class="n"><span class="pre">MotionProfile</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stopping_profile</span></span></span><a class="headerlink" href="#_CPPv4N4espp17TrajectoryPlanner6Config16stopping_profileE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Accel/jerk limits used when target == (0, 0). Set jerk to 0 here for a clean trapezoidal stop with no overshoot. Higher acceleration than the driving profile gives faster, firmer braking. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17TrajectoryPlanner6Config23enforce_motion_envelopeE">
+<span id="_CPPv3N4espp17TrajectoryPlanner6Config23enforce_motion_envelopeE"></span><span id="_CPPv2N4espp17TrajectoryPlanner6Config23enforce_motion_envelopeE"></span><span id="espp::TrajectoryPlanner::Config::enforce_motion_envelope__b"></span><span class="target" id="structespp_1_1TrajectoryPlanner_1_1Config_1a64bc7057012f57d3ec43a9c52a914513"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">enforce_motion_envelope</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N4espp17TrajectoryPlanner6Config23enforce_motion_envelopeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>When true, enforces (v/vmax)^2+(w/wmax)^2&lt;=1 on output to prevent infeasible combined commands. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17TrajectoryPlanner6Config28max_centripetal_accelerationE">
+<span id="_CPPv3N4espp17TrajectoryPlanner6Config28max_centripetal_accelerationE"></span><span id="_CPPv2N4espp17TrajectoryPlanner6Config28max_centripetal_accelerationE"></span><span id="espp::TrajectoryPlanner::Config::max_centripetal_acceleration__float"></span><span class="target" id="structespp_1_1TrajectoryPlanner_1_1Config_1a36063019db700a0691fb09eb80b19c0a"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">max_centripetal_acceleration</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0.1f</span></span><a class="headerlink" href="#_CPPv4N4espp17TrajectoryPlanner6Config28max_centripetal_accelerationE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Maximum centripetal acceleration |v*w| (m/s^2). 0 disables the limit. Both v and w are scaled proportionally when the limit is exceeded. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17TrajectoryPlanner6Config15output_callbackE">
+<span id="_CPPv3N4espp17TrajectoryPlanner6Config15output_callbackE"></span><span id="_CPPv2N4espp17TrajectoryPlanner6Config15output_callbackE"></span><span id="espp::TrajectoryPlanner::Config::output_callback__espp::TrajectoryPlanner::output_callback_t"></span><span class="target" id="structespp_1_1TrajectoryPlanner_1_1Config_1adb1b1cf20fcffa55ce648f8f95b3369c"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp17TrajectoryPlannerE" title="espp::TrajectoryPlanner"><span class="n"><span class="pre">TrajectoryPlanner</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp17TrajectoryPlanner17output_callback_tE" title="espp::TrajectoryPlanner::output_callback_t"><span class="n"><span class="pre">output_callback_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">output_callback</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N4espp17TrajectoryPlanner6Config15output_callbackE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Optional callback invoked after each update() with the latest <a class="reference internal" href="#structespp_1_1TrajectoryPlanner_1_1MotionCommand"><span class="std std-ref">MotionCommand</span></a> output. Leave as nullptr to disable. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17TrajectoryPlanner6Config15planning_periodE">
+<span id="_CPPv3N4espp17TrajectoryPlanner6Config15planning_periodE"></span><span id="_CPPv2N4espp17TrajectoryPlanner6Config15planning_periodE"></span><span id="espp::TrajectoryPlanner::Config::planning_period__std::chrono::duration:float:"></span><span class="target" id="structespp_1_1TrajectoryPlanner_1_1Config_1a3f0459fa61c230e9f914fa6d1ae26cc3"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">planning_period</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">milliseconds</span></span><span class="p"><span class="pre">(</span></span><span class="m"><span class="pre">20</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N4espp17TrajectoryPlanner6Config15planning_periodE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Planner update rate (default 50 Hz). Recommended: 5-200 ms on microcontrollers. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="structespp_1_1TrajectoryPlanner_1_1Config_1a7889c65eee330bf626ad5b5e86105cba"></span><span class="sig-name descname"><span class="pre">espp::Task::BaseConfig</span> <span class="pre">planning_task_config</span>&#160; <span class="pre">=</span> <span class="pre">{.name</span> <span class="pre">=</span> <span class="pre">&quot;TP_planning&quot;,.stack_size_bytes</span> <span class="pre">=</span> <span class="pre">4096,.priority</span> <span class="pre">=</span> <span class="pre">0,.core_id</span> <span class="pre">=</span> <span class="pre">-1}</span></span></dt>
+<dd><p>Underlying task config for the timer. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="structespp_1_1TrajectoryPlanner_1_1Config_1ae01343cdaaa72c8efd3eeb259298c598"></span><span class="sig-name descname"><span class="pre">espp::Task::BaseConfig</span> <span class="pre">callback_task_config</span>&#160; <span class="pre">=</span> <span class="pre">{.name</span> <span class="pre">=</span> <span class="pre">&quot;TP_cb&quot;,.stack_size_bytes</span> <span class="pre">=</span> <span class="pre">8192,.priority</span> <span class="pre">=</span> <span class="pre">0,.core_id</span> <span class="pre">=</span> <span class="pre">-1}</span></span></dt>
+<dd><p>Underlying task config for the callback timer. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17TrajectoryPlanner6Config9log_levelE">
+<span id="_CPPv3N4espp17TrajectoryPlanner6Config9log_levelE"></span><span id="_CPPv2N4espp17TrajectoryPlanner6Config9log_levelE"></span><span id="espp::TrajectoryPlanner::Config::log_level__espp::Logger::Verbosity"></span><span class="target" id="structespp_1_1TrajectoryPlanner_1_1Config_1a6eb78fe799de2cb472a39e90771879ae"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><a class="headerlink" href="#_CPPv4N4espp17TrajectoryPlanner6Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger"><span class="std std-ref">Logger</span></a> verbosity. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17TrajectoryPlanner13MotionCommandE">
+<span id="_CPPv3N4espp17TrajectoryPlanner13MotionCommandE"></span><span id="_CPPv2N4espp17TrajectoryPlanner13MotionCommandE"></span><span id="espp::TrajectoryPlanner::MotionCommand"></span><span class="target" id="structespp_1_1TrajectoryPlanner_1_1MotionCommand"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MotionCommand</span></span></span><a class="headerlink" href="#_CPPv4N4espp17TrajectoryPlanner13MotionCommandE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Chassis motion command produced by the planner. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17TrajectoryPlanner13MotionCommand15linear_velocityE">
+<span id="_CPPv3N4espp17TrajectoryPlanner13MotionCommand15linear_velocityE"></span><span id="_CPPv2N4espp17TrajectoryPlanner13MotionCommand15linear_velocityE"></span><span id="espp::TrajectoryPlanner::MotionCommand::linear_velocity__float"></span><span class="target" id="structespp_1_1TrajectoryPlanner_1_1MotionCommand_1a08a22e7d176595e71513c306e89ba716"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">linear_velocity</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0.0f</span></span><a class="headerlink" href="#_CPPv4N4espp17TrajectoryPlanner13MotionCommand15linear_velocityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Linear velocity reference (m/s). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17TrajectoryPlanner13MotionCommand16angular_velocityE">
+<span id="_CPPv3N4espp17TrajectoryPlanner13MotionCommand16angular_velocityE"></span><span id="_CPPv2N4espp17TrajectoryPlanner13MotionCommand16angular_velocityE"></span><span id="espp::TrajectoryPlanner::MotionCommand::angular_velocity__float"></span><span class="target" id="structespp_1_1TrajectoryPlanner_1_1MotionCommand_1af327bef8ef019546cea6108ade847efa"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">angular_velocity</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0.0f</span></span><a class="headerlink" href="#_CPPv4N4espp17TrajectoryPlanner13MotionCommand16angular_velocityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Angular velocity reference (rad/s). </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17TrajectoryPlanner13MotionProfileE">
+<span id="_CPPv3N4espp17TrajectoryPlanner13MotionProfileE"></span><span id="_CPPv2N4espp17TrajectoryPlanner13MotionProfileE"></span><span id="espp::TrajectoryPlanner::MotionProfile"></span><span class="target" id="structespp_1_1TrajectoryPlanner_1_1MotionProfile"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MotionProfile</span></span></span><a class="headerlink" href="#_CPPv4N4espp17TrajectoryPlanner13MotionProfileE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Acceleration and jerk limits for one phase of motion. </p>
+<p>Set max_linear_jerk / max_angular_jerk to 0 for a trapezoidal (ramp) profile, or to a positive value for an S-curve profile.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Using a trapezoidal stopping profile (jerk = 0) is recommended to avoid S-curve overshoot past zero when the planner decelerates from a jerk-limited driving phase. </p>
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17TrajectoryPlanner13MotionProfile23max_linear_accelerationE">
+<span id="_CPPv3N4espp17TrajectoryPlanner13MotionProfile23max_linear_accelerationE"></span><span id="_CPPv2N4espp17TrajectoryPlanner13MotionProfile23max_linear_accelerationE"></span><span id="espp::TrajectoryPlanner::MotionProfile::max_linear_acceleration__float"></span><span class="target" id="structespp_1_1TrajectoryPlanner_1_1MotionProfile_1aefe158bfec193ae557c7435d081d5661"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">max_linear_acceleration</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0.0f</span></span><a class="headerlink" href="#_CPPv4N4espp17TrajectoryPlanner13MotionProfile23max_linear_accelerationE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Linear acceleration limit (m/s^2). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17TrajectoryPlanner13MotionProfile24max_angular_accelerationE">
+<span id="_CPPv3N4espp17TrajectoryPlanner13MotionProfile24max_angular_accelerationE"></span><span id="_CPPv2N4espp17TrajectoryPlanner13MotionProfile24max_angular_accelerationE"></span><span id="espp::TrajectoryPlanner::MotionProfile::max_angular_acceleration__float"></span><span class="target" id="structespp_1_1TrajectoryPlanner_1_1MotionProfile_1ae2240bd06746b55e8cf9eff0c0c5f884"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">max_angular_acceleration</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0.0f</span></span><a class="headerlink" href="#_CPPv4N4espp17TrajectoryPlanner13MotionProfile24max_angular_accelerationE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Angular acceleration limit (rad/s^2). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17TrajectoryPlanner13MotionProfile15max_linear_jerkE">
+<span id="_CPPv3N4espp17TrajectoryPlanner13MotionProfile15max_linear_jerkE"></span><span id="_CPPv2N4espp17TrajectoryPlanner13MotionProfile15max_linear_jerkE"></span><span id="espp::TrajectoryPlanner::MotionProfile::max_linear_jerk__float"></span><span class="target" id="structespp_1_1TrajectoryPlanner_1_1MotionProfile_1ab2174bb738f2354f4437045277a243a0"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">max_linear_jerk</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0.0f</span></span><a class="headerlink" href="#_CPPv4N4espp17TrajectoryPlanner13MotionProfile15max_linear_jerkE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Linear jerk limit (m/s^3). 0 = trapezoidal. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17TrajectoryPlanner13MotionProfile16max_angular_jerkE">
+<span id="_CPPv3N4espp17TrajectoryPlanner13MotionProfile16max_angular_jerkE"></span><span id="_CPPv2N4espp17TrajectoryPlanner13MotionProfile16max_angular_jerkE"></span><span id="espp::TrajectoryPlanner::MotionProfile::max_angular_jerk__float"></span><span class="target" id="structespp_1_1TrajectoryPlanner_1_1MotionProfile_1a32b813bab15125cce872f13d5ed5109b"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">max_angular_jerk</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0.0f</span></span><a class="headerlink" href="#_CPPv4N4espp17TrajectoryPlanner13MotionProfile16max_angular_jerkE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Angular jerk limit (rad/s^3). 0 = trapezoidal. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="odrive_native_example.html" class="btn btn-neutral float-left" title="ODrive Native (Fibre endpoint) Example" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="trajectory_planner_example.html" class="btn btn-neutral float-right" title="Trajectory Planner Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

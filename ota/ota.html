@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OTA (Over-the-Air Firmware Update) - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'ota/ota';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="OTA Example" href="ota_example.html" />
+    <link rel="prev" title="Firmware Update (OTA) APIs" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../web_apps.html">Web Apps</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Core &amp; RTOS APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../buses/index.html">Buses &amp; Low-Level I/O APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../motor_control/index.html">Motor Control APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Firmware Update (OTA) APIs</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">OTA (Over-the-Air Firmware Update)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ota_example.html">OTA Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id1">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id2">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../wireless/index.html">Wireless &amp; Radio APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../dev_boards/index.html">Dev Boards (BSPs)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Firmware Update (OTA) APIs</a></li>
+      <li class="breadcrumb-item active">OTA (Over-the-Air Firmware Update)</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/873443f2/docs/en/ota/ota.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="ota-over-the-air-firmware-update">
+<h1>OTA (Over-the-Air Firmware Update)<a class="headerlink" href="#ota-over-the-air-firmware-update" title="Permalink to this heading"></a></h1>
+<p>The <cite>Ota</cite> class is a transport-agnostic OTA firmware update engine wrapping
+ESP-IDF’s <code class="docutils literal notranslate"><span class="pre">esp_ota_ops</span></code>: a single mutex-serialized update session
+(<code class="docutils literal notranslate"><span class="pre">begin()</span></code> -&gt; <code class="docutils literal notranslate"><span class="pre">write()</span></code> … -&gt; <code class="docutils literal notranslate"><span class="pre">finish()</span></code> / <code class="docutils literal notranslate"><span class="pre">abort()</span></code>) with all
+failures reported via <code class="docutils literal notranslate"><span class="pre">std::error_code</span></code>. It performs no I/O itself — feed it
+image bytes from any transport and it streams them into the next OTA app
+partition. The first chunk is validated against the ESP image magic byte
+(0xE9) and the incoming application descriptor (project name, version, build
+date) is extracted, logged and exposed; <code class="docutils literal notranslate"><span class="pre">finish()</span></code> runs the full image
+validation (including the appended SHA-256) and sets the boot partition, while
+the restart is a separate explicit <code class="docutils literal notranslate"><span class="pre">restart()</span></code> call.</p>
+<p>Rollback helpers (<code class="docutils literal notranslate"><span class="pre">is_pending_verify()</span></code>, <code class="docutils literal notranslate"><span class="pre">mark_app_valid()</span></code>,
+<code class="docutils literal notranslate"><span class="pre">mark_app_invalid_and_rollback()</span></code>) integrate with the bootloader’s app
+rollback support (<code class="docutils literal notranslate"><span class="pre">CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE</span></code>): an app booted
+pending-verify must call <code class="docutils literal notranslate"><span class="pre">mark_app_valid()</span></code> after its own health checks or
+the bootloader rolls back to the previous image on the next reset.</p>
+<p>For OTA over a raw byte stream (such as the
+<a class="reference internal" href="../buses/usb_cdc.html"><span class="doc">usb_device</span></a> vendor / WebUSB interface), the header
+<code class="docutils literal notranslate"><span class="pre">detail/ota_stream_protocol.hpp</span></code> provides a host-testable framed protocol —
+CRC-32-verified little-endian frames (<code class="docutils literal notranslate"><span class="pre">BEGIN</span></code> / <code class="docutils literal notranslate"><span class="pre">DATA</span></code> / <code class="docutils literal notranslate"><span class="pre">FINISH</span></code> /
+<code class="docutils literal notranslate"><span class="pre">ABORT</span></code> and <code class="docutils literal notranslate"><span class="pre">OK</span></code> / <code class="docutils literal notranslate"><span class="pre">ERROR</span></code> / <code class="docutils literal notranslate"><span class="pre">PROGRESS</span></code> replies) with an incremental,
+resynchronizing parser and a bounded 4096-byte maximum payload. The hosted
+<a class="reference external" href="https://esp-cpp.github.io/espp/apps/ota_console.html">espp OTA Console</a> web
+app speaks this protocol over WebUSB directly from a Chromium browser.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ota_example.html">OTA Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ota_example.html#how-to-use-example">How to use example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ota_example.html#hardware-required">Hardware Required</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ota_example.html#configure">Configure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ota_example.html#build-and-flash">Build and Flash</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ota_example.html#update-over-usb-webusb">Update over USB (WebUSB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ota_example.html#update-over-http-wifi-or-ethernet">Update over HTTP (WiFi or Ethernet)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ota_example.html#rollback-semantics">Rollback semantics</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ota_example.html#example-output">Example Output</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/873443f2/components/ota/include/ota.hpp">components/ota/include/ota.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3OtaE">
+<span id="_CPPv3N4espp3OtaE"></span><span id="_CPPv2N4espp3OtaE"></span><span id="espp::Ota"></span><span class="target" id="classespp_1_1Ota"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ota</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp3OtaE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Transport-agnostic OTA (over-the-air) firmware update engine. </p>
+<p>Wraps ESP-IDF’s `esp_ota_ops` in an idiomatic espp API: no exceptions, all failures reported via `std::error_code`, and a single mutex-serialized update session (`begin()` -&gt; `write()`… -&gt; `finish()` / `abort()`). The component performs no I/O of its own — feed it image bytes from ANY transport (USB vendor / WebUSB stream, HTTP request body, TCP socket, UART, SD card, …) and it streams them into the next OTA app partition.</p>
+<p>On the first chunk of `write()` the image is sanity-checked (the ESP image magic byte 0xE9) and the embedded application descriptor (`esp_app_desc_t`: project name, version, build date) is extracted, logged and exposed via `incoming_app_description()`; with `Config::reject_same_version` set, an image whose version matches the running app is rejected. `finish()` runs the full image validation (including the appended SHA-256) via `esp_ota_end()` and sets the boot partition, but does NOT restart — call `restart()` when the application is ready to reboot into the new image.</p>
+<section id="classespp_1_1Ota_1ota_rollback">
+<h4>Rollback<a class="headerlink" href="#classespp_1_1Ota_1ota_rollback" title="Permalink to this heading"></a></h4>
+<p id="classespp_1_1Ota_1ota_rollback">The rollback helpers (`is_pending_verify()`, `mark_app_valid()`, `mark_app_invalid_and_rollback()`) require the bootloader rollback support to be compiled in (`CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y`). With rollback enabled, a freshly-updated app boots in the `ESP_OTA_IMG_PENDING_VERIFY` state and MUST call `mark_app_valid()` after its own health checks pass — otherwise the bootloader rolls back to the previous image on the next reset. Call `mark_app_invalid_and_rollback()` to actively reject the new image and reboot into the previous one.</p>
+</section>
+<section id="classespp_1_1Ota_1ota_ex1">
+<h4>OTA Example (USB / WebUSB + WiFi / Ethernet HTTP)<a class="headerlink" href="#classespp_1_1Ota_1ota_ex1" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1Ota_1ota_ex1"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">namespace</span><span class="w"> </span><span class="nn">proto</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nn">espp</span><span class="o">::</span><span class="nn">detail</span><span class="o">::</span><span class="nn">ota_stream</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// --- The OTA engine (transport-agnostic) -----------------------------------</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Ota</span><span class="w"> </span><span class="nf">ota</span><span class="p">({.</span><span class="n">reject_same_version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span>
+<span class="w">                 </span><span class="p">.</span><span class="n">progress_callback</span><span class="w"> </span><span class="o">=</span>
+<span class="w">                     </span><span class="p">[</span><span class="o">&amp;</span><span class="n">logger</span><span class="p">](</span><span class="kt">size_t</span><span class="w"> </span><span class="n">written</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">total</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                       </span><span class="c1">// log every ~64 KiB so a big image doesn't spam the log</span>
+<span class="w">                       </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">total</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="p">(</span><span class="n">written</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="p">(</span><span class="mi">64</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="p">))</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">4096</span><span class="p">)</span>
+<span class="w">                         </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"OTA progress: {} / {} bytes"</span><span class="p">,</span><span class="w"> </span><span class="n">written</span><span class="p">,</span><span class="w"> </span><span class="n">total</span><span class="p">);</span>
+<span class="w">                     </span><span class="p">},</span>
+<span class="w">                 </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">});</span>
+
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">running</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ota</span><span class="p">.</span><span class="n">running_app_description</span><span class="p">();</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Running '{}' version '{}' (built {} {}) from partition '{}' ({} bytes)"</span><span class="p">,</span>
+<span class="w">              </span><span class="n">running</span><span class="p">.</span><span class="n">project_name</span><span class="p">,</span><span class="w"> </span><span class="n">running</span><span class="p">.</span><span class="n">version</span><span class="p">,</span><span class="w"> </span><span class="n">running</span><span class="p">.</span><span class="n">date</span><span class="p">,</span><span class="w"> </span><span class="n">running</span><span class="p">.</span><span class="n">time</span><span class="p">,</span>
+<span class="w">              </span><span class="n">ota</span><span class="p">.</span><span class="n">running_partition_label</span><span class="p">(),</span><span class="w"> </span><span class="n">ota</span><span class="p">.</span><span class="n">running_partition_size</span><span class="p">());</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Next update will target partition '{}' ({} bytes)"</span><span class="p">,</span><span class="w"> </span><span class="n">ota</span><span class="p">.</span><span class="n">update_partition_label</span><span class="p">(),</span>
+<span class="w">              </span><span class="n">ota</span><span class="p">.</span><span class="n">update_partition_size</span><span class="p">());</span>
+
+<span class="w">  </span><span class="c1">// --- Rollback handling ------------------------------------------------------</span>
+<span class="w">  </span><span class="c1">// With CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE, an app booted right after an</span>
+<span class="w">  </span><span class="c1">// OTA update is in the PENDING_VERIFY state: it must prove it is healthy and</span>
+<span class="w">  </span><span class="c1">// mark itself valid, or the bootloader ROLLS BACK to the previous image on</span>
+<span class="w">  </span><span class="c1">// the next reset. Run the application's self-checks here; this example's</span>
+<span class="w">  </span><span class="c1">// trivial check is that we made it this far with some free heap.</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ota</span><span class="p">.</span><span class="n">is_pending_verify</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">warn</span><span class="p">(</span><span class="s">"This image is PENDING VERIFY (first boot after an OTA update)"</span><span class="p">);</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">self_check_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">esp_get_free_heap_size</span><span class="p">()</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">10</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">self_check_passed</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">ota</span><span class="p">.</span><span class="n">mark_app_valid</span><span class="p">(</span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Self-check passed -&gt; image marked VALID; rollback cancelled"</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">"Self-check failed ({}) -&gt; rolling back to the previous image"</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">      </span><span class="n">ota</span><span class="p">.</span><span class="n">mark_app_invalid_and_rollback</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span><span class="w"> </span><span class="c1">// reboots into the old image</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// --- Transport 1: USB vendor / WebUSB (espp::UsbDevice) --------------------</span>
+<span class="w">  </span><span class="c1">// The vendor interface carries the framed OTA stream protocol (see</span>
+<span class="w">  </span><span class="c1">// detail/ota_stream_protocol.hpp); the hosted web app</span>
+<span class="w">  </span><span class="c1">// https://esp-cpp.github.io/espp/apps/ota_console.html speaks it in the</span>
+<span class="w">  </span><span class="c1">// browser. RX bytes arrive in the TinyUSB task context, so they are queued</span>
+<span class="w">  </span><span class="c1">// and dispatched from a worker task below (esp_ota_begin's flash erase can</span>
+<span class="w">  </span><span class="c1">// take seconds and must not block the USB stack).</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">UsbDevice</span><span class="o">::</span><span class="n">Config</span><span class="w"> </span><span class="n">usb_cfg</span><span class="p">;</span>
+<span class="w">  </span><span class="n">usb_cfg</span><span class="p">.</span><span class="n">manufacturer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"espp"</span><span class="p">;</span>
+<span class="w">  </span><span class="n">usb_cfg</span><span class="p">.</span><span class="n">product</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"espp OTA"</span><span class="p">;</span>
+<span class="w">  </span><span class="n">usb_cfg</span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">;</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">UsbDevice</span><span class="o">::</span><span class="n">VendorFunction</span><span class="w"> </span><span class="n">vendor</span><span class="p">;</span>
+<span class="w">  </span><span class="n">vendor</span><span class="p">.</span><span class="n">interface_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"espp OTA (WebUSB)"</span><span class="p">;</span>
+<span class="w">  </span><span class="n">vendor</span><span class="p">.</span><span class="n">webusb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span><span class="w"> </span><span class="c1">// advertise BOS / WebUSB / MS OS 2.0 descriptors</span>
+<span class="w">  </span><span class="n">vendor</span><span class="p">.</span><span class="n">landing_page_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"esp-cpp.github.io/espp/apps/ota_console.html"</span><span class="p">;</span>
+<span class="w">  </span><span class="n">usb_cfg</span><span class="p">.</span><span class="n">vendor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">vendor</span><span class="p">;</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">UsbDevice</span><span class="w"> </span><span class="nf">usb</span><span class="p">(</span><span class="n">usb_cfg</span><span class="p">);</span>
+
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="n">usb_rx_mutex</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="n">usb_rx_cv</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">deque</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">usb_rx_queue</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">size_t</span><span class="w"> </span><span class="n">usb_rx_queued_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">usb_rx_overflow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="c1">// The protocol is one-frame-in-flight (the host waits for OK/ERROR before</span>
+<span class="w">  </span><span class="c1">// the next DATA), so a well-behaved host queues at most ~one frame while the</span>
+<span class="w">  </span><span class="c1">// worker is busy. Cap the queue anyway: the worker can legitimately block</span>
+<span class="w">  </span><span class="c1">// for seconds inside esp_ota_begin()/end() (flash erase / SHA validation),</span>
+<span class="w">  </span><span class="c1">// and a misbehaving host that pipelines OUT transfers must not be able to</span>
+<span class="w">  </span><span class="c1">// exhaust device RAM. 8 max-size frames of headroom is far more than the</span>
+<span class="w">  </span><span class="c1">// protocol ever needs.</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">kMaxQueuedRxBytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">8</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">detail</span><span class="o">::</span><span class="n">ota_stream</span><span class="o">::</span><span class="n">kMaxFrameSize</span><span class="p">;</span>
+<span class="w">  </span><span class="n">usb</span><span class="p">.</span><span class="n">set_vendor_receive_callback</span><span class="p">([</span><span class="o">&amp;</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">span</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">data</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// TinyUSB task context: just queue the bytes and wake the worker.</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lock</span><span class="p">(</span><span class="n">usb_rx_mutex</span><span class="p">);</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">usb_rx_queued_bytes</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">data</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">kMaxQueuedRxBytes</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Overflow: drop everything (partial frames are useless once bytes</span>
+<span class="w">        </span><span class="c1">// are missing) and let the worker abort + resynchronize + reply.</span>
+<span class="w">        </span><span class="n">usb_rx_queue</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+<span class="w">        </span><span class="n">usb_rx_queued_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">        </span><span class="n">usb_rx_overflow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">usb_rx_queue</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="n">data</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span><span class="w"> </span><span class="n">data</span><span class="p">.</span><span class="n">end</span><span class="p">());</span>
+<span class="w">        </span><span class="n">usb_rx_queued_bytes</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">data</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">usb_rx_cv</span><span class="p">.</span><span class="n">notify_one</span><span class="p">();</span>
+<span class="w">  </span><span class="p">});</span>
+
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">usb_ec</span><span class="p">;</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">usb</span><span class="p">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">usb_ec</span><span class="p">))</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">"Failed to initialize USB device: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">usb_ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+
+<span class="w">  </span><span class="n">proto</span><span class="o">::</span><span class="n">StreamParser</span><span class="w"> </span><span class="n">parser</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">restart_pending</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="c1">// The OTA engine serializes sessions across ALL transports, but that alone</span>
+<span class="w">  </span><span class="c1">// is not enough here: without ownership tracking a USB DATA/FINISH/ABORT</span>
+<span class="w">  </span><span class="c1">// could append to / activate / cancel a session that HTTP started. Set only</span>
+<span class="w">  </span><span class="c1">// after a successful USB BEGIN; cleared on every terminal path (FINISH and</span>
+<span class="w">  </span><span class="c1">// ABORT end the session in all outcomes, and a failed write() aborts it).</span>
+<span class="w">  </span><span class="c1">// If the host unplugs mid-session the flag stays set, so a reconnecting</span>
+<span class="w">  </span><span class="c1">// host's ABORT is still honored (BEGIN would correctly fail busy first).</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">usb_owns_session</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">handle_usb_frame</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">proto</span><span class="o">::</span><span class="n">Frame</span><span class="w"> </span><span class="o">&amp;</span><span class="n">frame</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">reply_error</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="o">&amp;</span><span class="n">err</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">context</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">usb</span><span class="p">.</span><span class="n">write_vendor</span><span class="p">(</span>
+<span class="w">          </span><span class="n">proto</span><span class="o">::</span><span class="n">make_error</span><span class="p">(</span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">uint32_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">err</span><span class="p">.</span><span class="n">value</span><span class="p">()),</span><span class="w"> </span><span class="n">context</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">": "</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">err</span><span class="p">.</span><span class="n">message</span><span class="p">()));</span>
+<span class="w">    </span><span class="p">};</span>
+<span class="w">    </span><span class="k">switch</span><span class="w"> </span><span class="p">(</span><span class="n">frame</span><span class="p">.</span><span class="n">type</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">proto</span><span class="o">::</span><span class="no">MessageType</span><span class="o">::</span><span class="no">Begin</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">image_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">proto</span><span class="o">::</span><span class="n">parse_u32_payload</span><span class="p">(</span><span class="n">frame</span><span class="p">);</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">image_size</span><span class="p">.</span><span class="n">has_value</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">reply_error</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">make_error_code</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">errc</span><span class="o">::</span><span class="n">invalid_argument</span><span class="p">),</span><span class="w"> </span><span class="s">"malformed BEGIN"</span><span class="p">);</span>
+<span class="w">        </span><span class="k">break</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ota</span><span class="p">.</span><span class="n">begin</span><span class="p">(</span><span class="o">*</span><span class="n">image_size</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">usb_owns_session</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">        </span><span class="n">usb</span><span class="p">.</span><span class="n">write_vendor</span><span class="p">(</span><span class="n">proto</span><span class="o">::</span><span class="n">make_ok</span><span class="p">(</span><span class="mi">0</span><span class="p">));</span>
+<span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// busy = another transport's session; ownership stays false</span>
+<span class="w">        </span><span class="n">reply_error</span><span class="p">(</span><span class="n">ec</span><span class="p">,</span><span class="w"> </span><span class="s">"begin failed"</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="k">break</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">proto</span><span class="o">::</span><span class="no">MessageType</span><span class="o">::</span><span class="no">Data</span><span class="p">:</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">usb_owns_session</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">reply_error</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">make_error_code</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">errc</span><span class="o">::</span><span class="n">operation_not_permitted</span><span class="p">),</span>
+<span class="w">                    </span><span class="s">"no USB-owned update session (send BEGIN first)"</span><span class="p">);</span>
+<span class="w">        </span><span class="k">break</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ota</span><span class="p">.</span><span class="n">write</span><span class="p">(</span><span class="n">frame</span><span class="p">.</span><span class="n">payload</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">usb</span><span class="p">.</span><span class="n">write_vendor</span><span class="p">(</span><span class="n">proto</span><span class="o">::</span><span class="n">make_ok</span><span class="p">(</span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">uint32_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">ota</span><span class="p">.</span><span class="n">bytes_written</span><span class="p">())));</span>
+<span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">usb_owns_session</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="c1">// write() aborted the session on failure</span>
+<span class="w">        </span><span class="n">reply_error</span><span class="p">(</span><span class="n">ec</span><span class="p">,</span><span class="w"> </span><span class="s">"write failed"</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="k">break</span><span class="p">;</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">proto</span><span class="o">::</span><span class="no">MessageType</span><span class="o">::</span><span class="no">Finish</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">usb_owns_session</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">reply_error</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">make_error_code</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">errc</span><span class="o">::</span><span class="n">operation_not_permitted</span><span class="p">),</span>
+<span class="w">                    </span><span class="s">"no USB-owned update session (send BEGIN first)"</span><span class="p">);</span>
+<span class="w">        </span><span class="k">break</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">written</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">uint32_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">ota</span><span class="p">.</span><span class="n">bytes_written</span><span class="p">());</span>
+<span class="w">      </span><span class="n">usb_owns_session</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="c1">// finish() ends the session in all outcomes</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ota</span><span class="p">.</span><span class="n">finish</span><span class="p">(</span><span class="n">ec</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">usb</span><span class="p">.</span><span class="n">write_vendor</span><span class="p">(</span><span class="n">proto</span><span class="o">::</span><span class="n">make_ok</span><span class="p">(</span><span class="n">written</span><span class="p">));</span>
+<span class="w">        </span><span class="n">restart_pending</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span><span class="w"> </span><span class="c1">// reply first; the worker restarts shortly</span>
+<span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">reply_error</span><span class="p">(</span><span class="n">ec</span><span class="p">,</span><span class="w"> </span><span class="s">"finish (validate/activate) failed"</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="k">break</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">proto</span><span class="o">::</span><span class="no">MessageType</span><span class="o">::</span><span class="no">Abort</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">usb_owns_session</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">reply_error</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">make_error_code</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">errc</span><span class="o">::</span><span class="n">operation_not_permitted</span><span class="p">),</span>
+<span class="w">                    </span><span class="s">"no USB-owned update session to abort"</span><span class="p">);</span>
+<span class="w">        </span><span class="k">break</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">written</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">uint32_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">ota</span><span class="p">.</span><span class="n">bytes_written</span><span class="p">());</span>
+<span class="w">      </span><span class="n">usb_owns_session</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="c1">// session over either way</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ota</span><span class="p">.</span><span class="n">abort</span><span class="p">(</span><span class="n">ec</span><span class="p">))</span>
+<span class="w">        </span><span class="n">usb</span><span class="p">.</span><span class="n">write_vendor</span><span class="p">(</span><span class="n">proto</span><span class="o">::</span><span class="n">make_ok</span><span class="p">(</span><span class="n">written</span><span class="p">));</span>
+<span class="w">      </span><span class="k">else</span>
+<span class="w">        </span><span class="n">reply_error</span><span class="p">(</span><span class="n">ec</span><span class="p">,</span><span class="w"> </span><span class="s">"abort failed"</span><span class="p">);</span>
+<span class="w">      </span><span class="k">break</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">default</span><span class="o">:</span>
+<span class="w">      </span><span class="n">reply_error</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">make_error_code</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">errc</span><span class="o">::</span><span class="n">not_supported</span><span class="p">),</span><span class="w"> </span><span class="s">"unknown message type"</span><span class="p">);</span>
+<span class="w">      </span><span class="k">break</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">};</span>
+
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="w"> </span><span class="nf">usb_task</span><span class="p">(</span>
+<span class="w">      </span><span class="p">{.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="o">&amp;</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="o">&amp;</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="p">{</span>
+<span class="w">         </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">chunks</span><span class="p">;</span>
+<span class="w">         </span><span class="kt">bool</span><span class="w"> </span><span class="n">overflowed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">         </span><span class="p">{</span>
+<span class="w">           </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lock</span><span class="p">(</span><span class="n">usb_rx_mutex</span><span class="p">);</span>
+<span class="w">           </span><span class="n">usb_rx_cv</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">lock</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="n">ms</span><span class="p">,</span>
+<span class="w">                              </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="o">!</span><span class="n">usb_rx_queue</span><span class="p">.</span><span class="n">empty</span><span class="p">()</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">usb_rx_overflow</span><span class="p">;</span><span class="w"> </span><span class="p">});</span>
+<span class="w">           </span><span class="n">chunks</span><span class="p">.</span><span class="n">assign</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">make_move_iterator</span><span class="p">(</span><span class="n">usb_rx_queue</span><span class="p">.</span><span class="n">begin</span><span class="p">()),</span>
+<span class="w">                         </span><span class="n">std</span><span class="o">::</span><span class="n">make_move_iterator</span><span class="p">(</span><span class="n">usb_rx_queue</span><span class="p">.</span><span class="n">end</span><span class="p">()));</span>
+<span class="w">           </span><span class="n">usb_rx_queue</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+<span class="w">           </span><span class="n">usb_rx_queued_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">           </span><span class="n">overflowed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">usb_rx_overflow</span><span class="p">;</span>
+<span class="w">           </span><span class="n">usb_rx_overflow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">         </span><span class="p">}</span>
+<span class="w">         </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">overflowed</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">           </span><span class="c1">// Bytes were dropped: any in-flight frame/image is</span>
+<span class="w">           </span><span class="c1">// unusable. Abort a USB-owned session, resync the</span>
+<span class="w">           </span><span class="c1">// parser, and tell the host to start over.</span>
+<span class="w">           </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">usb_owns_session</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">             </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">abort_ec</span><span class="p">;</span>
+<span class="w">             </span><span class="n">ota</span><span class="p">.</span><span class="n">abort</span><span class="p">(</span><span class="n">abort_ec</span><span class="p">);</span>
+<span class="w">             </span><span class="n">usb_owns_session</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">           </span><span class="p">}</span>
+<span class="w">           </span><span class="n">parser</span><span class="p">.</span><span class="n">reset</span><span class="p">();</span>
+<span class="w">           </span><span class="n">usb</span><span class="p">.</span><span class="n">write_vendor</span><span class="p">(</span><span class="n">proto</span><span class="o">::</span><span class="n">make_error</span><span class="p">(</span>
+<span class="w">               </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">uint32_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">make_error_code</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">errc</span><span class="o">::</span><span class="n">no_buffer_space</span><span class="p">).</span><span class="n">value</span><span class="p">()),</span>
+<span class="w">               </span><span class="s">"RX overflow: frames dropped; transfer aborted -- wait for OK "</span>
+<span class="w">               </span><span class="s">"replies between frames and restart the update"</span><span class="p">));</span>
+<span class="w">           </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="c1">// dropped chunks are gone; skip parse</span>
+<span class="w">         </span><span class="p">}</span>
+<span class="w">         </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">chunk</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">chunks</span><span class="p">)</span>
+<span class="w">           </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">frame</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">parser</span><span class="p">.</span><span class="n">feed</span><span class="p">(</span><span class="n">chunk</span><span class="p">))</span>
+<span class="w">             </span><span class="n">handle_usb_frame</span><span class="p">(</span><span class="n">frame</span><span class="p">);</span>
+<span class="w">         </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">restart_pending</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">           </span><span class="c1">// give the final OK reply time to reach the host</span>
+<span class="w">           </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">750</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">           </span><span class="n">ota</span><span class="p">.</span><span class="n">restart</span><span class="p">();</span>
+<span class="w">         </span><span class="p">}</span>
+<span class="w">         </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="c1">// don't stop the task</span>
+<span class="w">       </span><span class="p">},</span>
+<span class="w">       </span><span class="p">.</span><span class="n">task_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"ota_usb"</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">8192</span><span class="p">}});</span>
+<span class="w">  </span><span class="n">usb_task</span><span class="p">.</span><span class="n">start</span><span class="p">();</span>
+
+<span class="w">  </span><span class="c1">// --- Transports 2 &amp; 3: WiFi (or Ethernet) + HTTP push -----------------------</span>
+<span class="w">  </span><span class="c1">// NVS is required by the WiFi stack.</span>
+<span class="w">  </span><span class="n">esp_err_t</span><span class="w"> </span><span class="n">nvs_err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nvs_flash_init</span><span class="p">();</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nvs_err</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">ESP_ERR_NVS_NO_FREE_PAGES</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">nvs_err</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">ESP_ERR_NVS_NEW_VERSION_FOUND</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">ESP_ERROR_CHECK</span><span class="p">(</span><span class="n">nvs_flash_erase</span><span class="p">());</span>
+<span class="w">    </span><span class="n">nvs_err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nvs_flash_init</span><span class="p">();</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="n">ESP_ERROR_CHECK</span><span class="p">(</span><span class="n">nvs_err</span><span class="p">);</span>
+
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">WifiSta</span><span class="w"> </span><span class="nf">wifi_sta</span><span class="p">({.</span><span class="n">ssid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_ESP_WIFI_SSID</span><span class="p">,</span>
+<span class="w">                          </span><span class="p">.</span><span class="n">password</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_ESP_WIFI_PASSWORD</span><span class="p">,</span>
+<span class="w">                          </span><span class="p">.</span><span class="n">num_connect_retries</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_ESP_MAXIMUM_RETRY</span><span class="p">,</span>
+<span class="w">                          </span><span class="p">.</span><span class="n">on_connected</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span>
+<span class="w">                          </span><span class="p">.</span><span class="n">on_disconnected</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span>
+<span class="w">                          </span><span class="p">.</span><span class="n">on_got_ip</span><span class="w"> </span><span class="o">=</span>
+<span class="w">                              </span><span class="p">[</span><span class="o">&amp;</span><span class="n">logger</span><span class="p">](</span><span class="n">ip_event_got_ip_t</span><span class="w"> </span><span class="o">*</span><span class="n">eventdata</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                                </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"got IP: {}.{}.{}.{}"</span><span class="p">,</span><span class="w"> </span><span class="n">IP2STR</span><span class="p">(</span><span class="o">&amp;</span><span class="n">eventdata</span><span class="o">-&gt;</span><span class="n">ip_info</span><span class="p">.</span><span class="n">ip</span><span class="p">));</span>
+<span class="w">                                </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"  browser upload page: http://{}.{}.{}.{}/ota"</span><span class="p">,</span>
+<span class="w">                                            </span><span class="n">IP2STR</span><span class="p">(</span><span class="o">&amp;</span><span class="n">eventdata</span><span class="o">-&gt;</span><span class="n">ip_info</span><span class="p">.</span><span class="n">ip</span><span class="p">));</span>
+<span class="w">                                </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"  curl --data-binary @build/ota_example.bin "</span>
+<span class="w">                                            </span><span class="s">"http://{}.{}.{}.{}/ota"</span><span class="p">,</span>
+<span class="w">                                            </span><span class="n">IP2STR</span><span class="p">(</span><span class="o">&amp;</span><span class="n">eventdata</span><span class="o">-&gt;</span><span class="n">ip_info</span><span class="p">.</span><span class="n">ip</span><span class="p">));</span>
+<span class="w">                              </span><span class="p">},</span>
+<span class="w">                          </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
+
+<span class="w">  </span><span class="c1">// The HTTP server binds to every netif, so this exact same code serves OTA</span>
+<span class="w">  </span><span class="c1">// over the espp `ethernet` component as well -- to use Ethernet, simply</span>
+<span class="w">  </span><span class="c1">// bring up its netif (see the ethernet example) instead of WifiSta above.</span>
+<span class="w">  </span><span class="n">httpd_handle_t</span><span class="w"> </span><span class="n">http_server</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">;</span>
+<span class="w">  </span><span class="n">httpd_config_t</span><span class="w"> </span><span class="n">http_cfg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HTTPD_DEFAULT_CONFIG</span><span class="p">();</span>
+<span class="w">  </span><span class="n">http_cfg</span><span class="p">.</span><span class="n">stack_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">8192</span><span class="p">;</span><span class="w"> </span><span class="c1">// OTA handler streams through a 4 KiB buffer</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">httpd_start</span><span class="p">(</span><span class="o">&amp;</span><span class="n">http_server</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">http_cfg</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="n">httpd_uri_t</span><span class="w"> </span><span class="n">get_uri</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="p">.</span><span class="n">uri</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"/ota"</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">method</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HTTP_GET</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">handler</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ota_get_handler</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">user_ctx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">};</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="n">httpd_uri_t</span><span class="w"> </span><span class="n">post_uri</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="p">.</span><span class="n">uri</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"/ota"</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">method</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HTTP_POST</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">handler</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ota_post_handler</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">user_ctx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">&amp;</span><span class="n">ota</span><span class="p">};</span>
+<span class="w">    </span><span class="n">httpd_register_uri_handler</span><span class="p">(</span><span class="n">http_server</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">get_uri</span><span class="p">);</span>
+<span class="w">    </span><span class="n">httpd_register_uri_handler</span><span class="p">(</span><span class="n">http_server</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">post_uri</span><span class="p">);</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"HTTP OTA server ready: GET /ota (upload page), POST /ota (raw image)"</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="n">CONFIG_EXAMPLE_OTA_HTTP_TOKEN</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">warn</span><span class="p">(</span><span class="s">"POST /ota is UNAUTHENTICATED (demo default): any peer that can reach this "</span>
+<span class="w">                  </span><span class="s">"device can install structurally-valid firmware. Set EXAMPLE_OTA_HTTP_TOKEN in "</span>
+<span class="w">                  </span><span class="s">"menuconfig to require a bearer token, and enable secure boot / signed images "</span>
+<span class="w">                  </span><span class="s">"for real deployments."</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">"Failed to start HTTP server"</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Ota20progress_callback_fnE">
+<span id="_CPPv3N4espp3Ota20progress_callback_fnE"></span><span id="_CPPv2N4espp3Ota20progress_callback_fnE"></span><span class="target" id="classespp_1_1Ota_1a16b021ec1f3a5a360588e579e3fbb20a"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">progress_callback_fn</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n"><span class="pre">written</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n"><span class="pre">total</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp3Ota20progress_callback_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Progress callback, invoked (with the session mutex held, so keep it short) after every successful <a class="reference internal" href="#classespp_1_1Ota_1ad7641dab965b8dc226303542916b5735"><span class="std std-ref">write()</span></a>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param written<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Total bytes written to the update partition so far. </p>
+</dd>
+<dt class="field-even">Param total<span class="colon">:</span></dt>
+<dd class="field-even"><p>Total expected image size in bytes (0 if unknown / streaming). </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Ota3OtaERK6Config">
+<span id="_CPPv3N4espp3Ota3OtaERK6Config"></span><span id="_CPPv2N4espp3Ota3OtaERK6Config"></span><span id="espp::Ota::Ota__ConfigCR"></span><span class="target" id="classespp_1_1Ota_1a8a4c70511ff96d605053011698bfbc47"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ota</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp3Ota6ConfigE" title="espp::Ota::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3Ota3OtaERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct the OTA engine. Does not touch the flash until <a class="reference internal" href="#classespp_1_1Ota_1a427e6a0302ccee4fb50332a84387c519"><span class="std std-ref">begin()</span></a>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – Configuration parameters. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3OtaD0Ev">
+<span id="_CPPv3N4espp3OtaD0Ev"></span><span id="_CPPv2N4espp3OtaD0Ev"></span><span id="espp::Ota::~Ota"></span><span class="target" id="classespp_1_1Ota_1ad9d787dcb69227479f47541a50bc270e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~Ota</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3OtaD0Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Aborts any still-active update session. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Ota5beginE6size_tRNSt10error_codeE">
+<span id="_CPPv3N4espp3Ota5beginE6size_tRNSt10error_codeE"></span><span id="_CPPv2N4espp3Ota5beginE6size_tRNSt10error_codeE"></span><span id="espp::Ota::begin__s.std::error_codeR"></span><span class="target" id="classespp_1_1Ota_1a427e6a0302ccee4fb50332a84387c519"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">begin</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">image_size</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3Ota5beginE6size_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Start an update session targeting the next OTA app partition (esp_ota_get_next_update_partition()). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>image_size</strong> – Expected image size in bytes, or 0 if unknown / streaming (OTA_SIZE_UNKNOWN — the WHOLE update partition is erased up front, which can take several seconds; with a known size only the required range is erased). </p></li>
+<li><p><strong>ec</strong> – <strong>[out]</strong> Set on failure: a session is already active (device_or_resource_busy), no OTA partition exists (no_such_device), the image is larger than the partition (no_space_on_device), or the flash erase failed (io_error). </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the session started, false otherwise (ec is set). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Ota5writeENSt4spanIK7uint8_tEERNSt10error_codeE">
+<span id="_CPPv3N4espp3Ota5writeENSt4spanIK7uint8_tEERNSt10error_codeE"></span><span id="_CPPv2N4espp3Ota5writeENSt4spanIK7uint8_tEERNSt10error_codeE"></span><span id="espp::Ota::write__std::span:uint8_tC:.std::error_codeR"></span><span class="target" id="classespp_1_1Ota_1ad7641dab965b8dc226303542916b5735"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3Ota5writeENSt4spanIK7uint8_tEERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Stream image bytes into the update partition. </p>
+<p>The first chunk(s) are additionally used to validate the ESP image magic byte (0xE9) and — once enough bytes have arrived — to extract and log the incoming `esp_app_desc_t` (see <a class="reference internal" href="#classespp_1_1Ota_1a8c23b7a7771a409e6c41e78d19285b31"><span class="std std-ref">incoming_app_description()</span></a>). On ANY failure the session is aborted (a partially-written image is useless), so after an error the caller may simply start over with <a class="reference internal" href="#classespp_1_1Ota_1a427e6a0302ccee4fb50332a84387c519"><span class="std std-ref">begin()</span></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – Image bytes (any chunk size; empty is a no-op). </p></li>
+<li><p><strong>ec</strong> – <strong>[out]</strong> Set on failure: no active session (operation_not_permitted), bad image magic (illegal_byte_sequence), same-version rejection (file_exists, when <a class="reference internal" href="#structespp_1_1Ota_1_1Config_1a225359c5b4c120f54e0f5101a6d97139"><span class="std std-ref">Config::reject_same_version</span></a> is set), the chunk crossing a declared image size (file_too_large &amp;#8212; only that range was erased by <a class="reference internal" href="#classespp_1_1Ota_1a427e6a0302ccee4fb50332a84387c519"><span class="std std-ref">begin()</span></a>), or a flash write failure (io_error). </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the bytes were written, false otherwise (ec is set). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Ota6finishERNSt10error_codeE">
+<span id="_CPPv3N4espp3Ota6finishERNSt10error_codeE"></span><span id="_CPPv2N4espp3Ota6finishERNSt10error_codeE"></span><span id="espp::Ota::finish__std::error_codeR"></span><span class="target" id="classespp_1_1Ota_1a958ebe7e5abe11ff75aa079e72f943b3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">finish</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3Ota6finishERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Finish the update: validate the complete image (esp_ota_end() checks the image structure and its appended SHA-256, plus the signature when secure boot is enabled) and set it as the boot partition. </p>
+<p>Does NOT restart the device — call <a class="reference internal" href="#classespp_1_1Ota_1a9709feb87824e9e95e0427857bca4911"><span class="std std-ref">restart()</span></a> when ready, so the application controls the timing (e.g. after flushing a reply to the host). The session is over after this call, whether it succeeds or fails.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – <strong>[out]</strong> Set on failure: no active session (operation_not_permitted), image validation failed (illegal_byte_sequence), or setting the boot partition failed (io_error). </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the new image is validated and set to boot, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Ota5abortERNSt10error_codeE">
+<span id="_CPPv3N4espp3Ota5abortERNSt10error_codeE"></span><span id="_CPPv2N4espp3Ota5abortERNSt10error_codeE"></span><span id="espp::Ota::abort__std::error_codeR"></span><span class="target" id="classespp_1_1Ota_1a011aded82c848f30c3211056ce78755e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">abort</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3Ota5abortERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Abort the active update session (esp_ota_abort()) and reset the session state. Idempotent: succeeds as a no-op if no session is active. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – <strong>[out]</strong> Set on failure (io_error if esp_ota_abort() fails). </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success (or no-op), false otherwise (ec is set). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Ota7restartEv">
+<span id="_CPPv3N4espp3Ota7restartEv"></span><span id="_CPPv2N4espp3Ota7restartEv"></span><span id="espp::Ota::restart"></span><span class="target" id="classespp_1_1Ota_1a9709feb87824e9e95e0427857bca4911"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">restart</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3Ota7restartEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Restart the device (esp_restart()); does not return. Call after a successful <a class="reference internal" href="#classespp_1_1Ota_1a958ebe7e5abe11ff75aa079e72f943b3"><span class="std std-ref">finish()</span></a> to boot the new image. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp3Ota17is_pending_verifyEv">
+<span id="_CPPv3NK4espp3Ota17is_pending_verifyEv"></span><span id="_CPPv2NK4espp3Ota17is_pending_verifyEv"></span><span id="espp::Ota::is_pending_verifyC"></span><span class="target" id="classespp_1_1Ota_1abe715e5656cd6ac2642b45dde99c42ca"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_pending_verify</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp3Ota17is_pending_verifyEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether the RUNNING app is in the ESP_OTA_IMG_PENDING_VERIFY state, i.e. it was just installed by an OTA update and must call <a class="reference internal" href="#classespp_1_1Ota_1aafe711b8d1aed17fc88fa91911053e86"><span class="std std-ref">mark_app_valid()</span></a> after its health checks, or the bootloader will roll back on the next reset. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only meaningful with CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y; without it this always returns false. </p>
+</div>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Ota14mark_app_validERNSt10error_codeE">
+<span id="_CPPv3N4espp3Ota14mark_app_validERNSt10error_codeE"></span><span id="_CPPv2N4espp3Ota14mark_app_validERNSt10error_codeE"></span><span id="espp::Ota::mark_app_valid__std::error_codeR"></span><span class="target" id="classespp_1_1Ota_1aafe711b8d1aed17fc88fa91911053e86"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mark_app_valid</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3Ota14mark_app_validERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Mark the running app valid and cancel a pending rollback (esp_ota_mark_app_valid_cancel_rollback()). An app booted in the pending-verify state must call this once its own health checks pass. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – <strong>[out]</strong> Set on failure (io_error). </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success, false otherwise (ec is set). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Ota29mark_app_invalid_and_rollbackERNSt10error_codeE">
+<span id="_CPPv3N4espp3Ota29mark_app_invalid_and_rollbackERNSt10error_codeE"></span><span id="_CPPv2N4espp3Ota29mark_app_invalid_and_rollbackERNSt10error_codeE"></span><span id="espp::Ota::mark_app_invalid_and_rollback__std::error_codeR"></span><span class="target" id="classespp_1_1Ota_1a328a5d83d15fc2c072e198035c5409cc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mark_app_invalid_and_rollback</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3Ota29mark_app_invalid_and_rollbackERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Mark the running app invalid and reboot into the previous image (esp_ota_mark_app_invalid_rollback_and_reboot()). Does not return on success. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – <strong>[out]</strong> Set on failure (io_error, e.g. no valid app to roll back to or rollback support not enabled). </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>false (only returns on failure; ec is set). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp3Ota23running_partition_labelEv">
+<span id="_CPPv3NK4espp3Ota23running_partition_labelEv"></span><span id="_CPPv2NK4espp3Ota23running_partition_labelEv"></span><span id="espp::Ota::running_partition_labelC"></span><span class="target" id="classespp_1_1Ota_1aa71ac2077639902af969f3bf36ca60bc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">running_partition_label</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp3Ota23running_partition_labelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Label of the partition the current app is running from (”” if unknown). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp3Ota22running_partition_sizeEv">
+<span id="_CPPv3NK4espp3Ota22running_partition_sizeEv"></span><span id="_CPPv2NK4espp3Ota22running_partition_sizeEv"></span><span id="espp::Ota::running_partition_sizeC"></span><span class="target" id="classespp_1_1Ota_1af7a25cbc8faacf7b240b3f4e832d8726"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">running_partition_size</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp3Ota22running_partition_sizeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Size in bytes of the partition the current app is running from (0 if unknown). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp3Ota20boot_partition_labelEv">
+<span id="_CPPv3NK4espp3Ota20boot_partition_labelEv"></span><span id="_CPPv2NK4espp3Ota20boot_partition_labelEv"></span><span id="espp::Ota::boot_partition_labelC"></span><span class="target" id="classespp_1_1Ota_1a25ac89b04850ffb8cadba31ad6ad5460"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">boot_partition_label</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp3Ota20boot_partition_labelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Label of the currently-configured BOOT partition (”” if unknown). After a successful <a class="reference internal" href="#classespp_1_1Ota_1a958ebe7e5abe11ff75aa079e72f943b3"><span class="std std-ref">finish()</span></a> this is the just-written partition. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp3Ota22update_partition_labelEv">
+<span id="_CPPv3NK4espp3Ota22update_partition_labelEv"></span><span id="_CPPv2NK4espp3Ota22update_partition_labelEv"></span><span id="espp::Ota::update_partition_labelC"></span><span class="target" id="classespp_1_1Ota_1ae6fa8841c2cb92c7a28b2076a1562c4c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">update_partition_label</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp3Ota22update_partition_labelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Label of the partition the next update session will (or the active one does) target (”” if the partition table has no OTA slot). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp3Ota21update_partition_sizeEv">
+<span id="_CPPv3NK4espp3Ota21update_partition_sizeEv"></span><span id="_CPPv2NK4espp3Ota21update_partition_sizeEv"></span><span id="espp::Ota::update_partition_sizeC"></span><span class="target" id="classespp_1_1Ota_1a8442221edbc5c575a1607c798c8e0b0a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">update_partition_size</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp3Ota21update_partition_sizeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Size in bytes of the update target partition (0 if none) — the maximum image size an update can carry. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp3Ota23running_app_descriptionEv">
+<span id="_CPPv3NK4espp3Ota23running_app_descriptionEv"></span><span id="_CPPv2NK4espp3Ota23running_app_descriptionEv"></span><span id="espp::Ota::running_app_descriptionC"></span><span class="target" id="classespp_1_1Ota_1a657110e45f07811b734e5a031b9d5d97"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp3Ota14AppDescriptionE" title="espp::Ota::AppDescription"><span class="n"><span class="pre">AppDescription</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">running_app_description</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp3Ota23running_app_descriptionEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Description (project name / version / build date) of the RUNNING app. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp3Ota24incoming_app_descriptionEv">
+<span id="_CPPv3NK4espp3Ota24incoming_app_descriptionEv"></span><span id="_CPPv2NK4espp3Ota24incoming_app_descriptionEv"></span><span id="espp::Ota::incoming_app_descriptionC"></span><span class="target" id="classespp_1_1Ota_1a8c23b7a7771a409e6c41e78d19285b31"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp3Ota14AppDescriptionE" title="espp::Ota::AppDescription"><span class="n"><span class="pre">AppDescription</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">incoming_app_description</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp3Ota24incoming_app_descriptionEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Description of the INCOMING image, available once enough of the image (the first 288 bytes) has been written in the current / latest session; std::nullopt before then or if the image carries no valid app descriptor. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp3Ota14session_activeEv">
+<span id="_CPPv3NK4espp3Ota14session_activeEv"></span><span id="_CPPv2NK4espp3Ota14session_activeEv"></span><span id="espp::Ota::session_activeC"></span><span class="target" id="classespp_1_1Ota_1ab4495a433c53651f7bd4d6376c752191"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">session_active</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp3Ota14session_activeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether an update session is active (<a class="reference internal" href="#classespp_1_1Ota_1a427e6a0302ccee4fb50332a84387c519"><span class="std std-ref">begin()</span></a> succeeded and neither <a class="reference internal" href="#classespp_1_1Ota_1a958ebe7e5abe11ff75aa079e72f943b3"><span class="std std-ref">finish()</span></a> nor <a class="reference internal" href="#classespp_1_1Ota_1a011aded82c848f30c3211056ce78755e"><span class="std std-ref">abort()</span></a> has ended it). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp3Ota13bytes_writtenEv">
+<span id="_CPPv3NK4espp3Ota13bytes_writtenEv"></span><span id="_CPPv2NK4espp3Ota13bytes_writtenEv"></span><span id="espp::Ota::bytes_writtenC"></span><span class="target" id="classespp_1_1Ota_1ae3aaf80b54edddd00287964a1c7e80a3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">bytes_written</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp3Ota13bytes_writtenEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Bytes written to the update partition in the current session. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp3Ota10image_sizeEv">
+<span id="_CPPv3NK4espp3Ota10image_sizeEv"></span><span id="_CPPv2NK4espp3Ota10image_sizeEv"></span><span id="espp::Ota::image_sizeC"></span><span class="target" id="classespp_1_1Ota_1ad64dfff579479738fed489b38cc45c9b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">image_size</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp3Ota10image_sizeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Expected image size passed to <a class="reference internal" href="#classespp_1_1Ota_1a427e6a0302ccee4fb50332a84387c519"><span class="std std-ref">begin()</span></a> (0 if unknown / streaming). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp3Ota8get_nameEv">
+<span id="_CPPv3NK4espp3Ota8get_nameEv"></span><span id="_CPPv2NK4espp3Ota8get_nameEv"></span><span id="espp::Ota::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp3Ota8get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Ota11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp3Ota11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp3Ota11set_log_tagERKNSt11string_viewE"></span><span id="espp::Ota::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3Ota11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp3Ota13get_log_levelEv">
+<span id="_CPPv3NK4espp3Ota13get_log_levelEv"></span><span id="_CPPv2NK4espp3Ota13get_log_levelEv"></span><span id="espp::Ota::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp3Ota13get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Ota13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp3Ota13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp3Ota13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::Ota::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3Ota13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Ota17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp3Ota17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp3Ota17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::Ota::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3Ota17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wireless/sx126x.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp3Ota17get_log_verbosityEv">
+<span id="_CPPv3NK4espp3Ota17get_log_verbosityEv"></span><span id="_CPPv2NK4espp3Ota17get_log_verbosityEv"></span><span id="espp::Ota::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp3Ota17get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wireless/sx126x.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Ota18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp3Ota18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp3Ota18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::Ota::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3Ota18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Ota14AppDescriptionE">
+<span id="_CPPv3N4espp3Ota14AppDescriptionE"></span><span id="_CPPv2N4espp3Ota14AppDescriptionE"></span><span id="espp::Ota::AppDescription"></span><span class="target" id="structespp_1_1Ota_1_1AppDescription"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AppDescription</span></span></span><a class="headerlink" href="#_CPPv4N4espp3Ota14AppDescriptionE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Application description extracted from an app image’s `esp_app_desc_t`. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Ota14AppDescription12project_nameE">
+<span id="_CPPv3N4espp3Ota14AppDescription12project_nameE"></span><span id="_CPPv2N4espp3Ota14AppDescription12project_nameE"></span><span id="espp::Ota::AppDescription::project_name__ss"></span><span class="target" id="structespp_1_1Ota_1_1AppDescription_1ad5b94612a0643a4b01f6589f92d407ca"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">project_name</span></span></span><a class="headerlink" href="#_CPPv4N4espp3Ota14AppDescription12project_nameE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Project name (CMake project / PROJECT_NAME). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Ota14AppDescription7versionE">
+<span id="_CPPv3N4espp3Ota14AppDescription7versionE"></span><span id="_CPPv2N4espp3Ota14AppDescription7versionE"></span><span id="espp::Ota::AppDescription::version__ss"></span><span class="target" id="structespp_1_1Ota_1_1AppDescription_1acd83b04e13dd2a775834b06a66ad26ab"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">version</span></span></span><a class="headerlink" href="#_CPPv4N4espp3Ota14AppDescription7versionE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Application version (git describe / PROJECT_VER). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Ota14AppDescription4dateE">
+<span id="_CPPv3N4espp3Ota14AppDescription4dateE"></span><span id="_CPPv2N4espp3Ota14AppDescription4dateE"></span><span id="espp::Ota::AppDescription::date__ss"></span><span class="target" id="structespp_1_1Ota_1_1AppDescription_1a23131b6b26fa2f5212061c1a7c1d49aa"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">date</span></span></span><a class="headerlink" href="#_CPPv4N4espp3Ota14AppDescription4dateE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Compile date. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Ota14AppDescription4timeE">
+<span id="_CPPv3N4espp3Ota14AppDescription4timeE"></span><span id="_CPPv2N4espp3Ota14AppDescription4timeE"></span><span id="espp::Ota::AppDescription::time__ss"></span><span class="target" id="structespp_1_1Ota_1_1AppDescription_1a6719d806a919d66503b1464cc2acae84"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">time</span></span></span><a class="headerlink" href="#_CPPv4N4espp3Ota14AppDescription4timeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Compile time. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Ota14AppDescription11idf_versionE">
+<span id="_CPPv3N4espp3Ota14AppDescription11idf_versionE"></span><span id="_CPPv2N4espp3Ota14AppDescription11idf_versionE"></span><span id="espp::Ota::AppDescription::idf_version__ss"></span><span class="target" id="structespp_1_1Ota_1_1AppDescription_1a43b728f645713517cc389752d559e081"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">idf_version</span></span></span><a class="headerlink" href="#_CPPv4N4espp3Ota14AppDescription11idf_versionE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>ESP-IDF version the image was built with. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Ota6ConfigE">
+<span id="_CPPv3N4espp3Ota6ConfigE"></span><span id="_CPPv2N4espp3Ota6ConfigE"></span><span id="espp::Ota::Config"></span><span class="target" id="structespp_1_1Ota_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp3Ota6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration for the <a class="reference internal" href="#classespp_1_1Ota"><span class="std std-ref">Ota</span></a> engine. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Ota6Config19reject_same_versionE">
+<span id="_CPPv3N4espp3Ota6Config19reject_same_versionE"></span><span id="_CPPv2N4espp3Ota6Config19reject_same_versionE"></span><span id="espp::Ota::Config::reject_same_version__b"></span><span class="target" id="structespp_1_1Ota_1_1Config_1a225359c5b4c120f54e0f5101a6d97139"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reject_same_version</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">false</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp3Ota6Config19reject_same_versionE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Reject an incoming image whose `esp_app_desc_t` version string matches the running app’s version (checked on the first chunk of <a class="reference internal" href="#classespp_1_1Ota_1ad7641dab965b8dc226303542916b5735"><span class="std std-ref">write()</span></a>). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Ota6Config17progress_callbackE">
+<span id="_CPPv3N4espp3Ota6Config17progress_callbackE"></span><span id="_CPPv2N4espp3Ota6Config17progress_callbackE"></span><span id="espp::Ota::Config::progress_callback__progress_callback_fn"></span><span class="target" id="structespp_1_1Ota_1_1Config_1a3e2c22b2a3c447853bb9b7d360a6cd8a"></span><a class="reference internal" href="#_CPPv4N4espp3Ota20progress_callback_fnE" title="espp::Ota::progress_callback_fn"><span class="n"><span class="pre">progress_callback_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">progress_callback</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp3Ota6Config17progress_callbackE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Optional progress callback (see progress_callback_fn). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Ota6Config9log_levelE">
+<span id="_CPPv3N4espp3Ota6Config9log_levelE"></span><span id="_CPPv2N4espp3Ota6Config9log_levelE"></span><span id="espp::Ota::Config::log_level__espp::Logger::Verbosity"></span><span class="target" id="structespp_1_1Ota_1_1Config_1acdef3d00e15aa6d3617c3aca9f1352fc"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp3Ota6Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger"><span class="std std-ref">Logger</span></a> verbosity. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="id1">
+<h3>Header File<a class="headerlink" href="#id1" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/873443f2/components/ota/include/detail/ota_stream_protocol.hpp">components/ota/include/detail/ota_stream_protocol.hpp</a></p></li>
+</ul>
+</section>
+<section id="id2">
+<h3>Classes<a class="headerlink" href="#id2" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6detail10ota_stream12StreamParserE">
+<span id="_CPPv3N4espp6detail10ota_stream12StreamParserE"></span><span id="_CPPv2N4espp6detail10ota_stream12StreamParserE"></span><span id="espp::detail::ota_stream::StreamParser"></span><span class="target" id="classespp_1_1detail_1_1ota__stream_1_1StreamParser"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">StreamParser</span></span></span><a class="headerlink" href="#_CPPv4N4espp6detail10ota_stream12StreamParserE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Incremental frame parser for the OTA stream protocol. </p>
+<p>Feed arbitrary chunks of received bytes (USB bulk transfers, socket reads, single bytes, …) and it yields the complete, CRC-verified frames they contain. On a bad magic, an oversized length field (&gt; kMaxPayloadSize) or a CRC mismatch it resynchronizes by discarding bytes until the next plausible frame start, so a corrupted stream recovers at the next intact frame.</p>
+<p>Buffering is bounded: because the length field is capped, the parser never retains more than kMaxFrameSize bytes between <a class="reference internal" href="#classespp_1_1detail_1_1ota__stream_1_1StreamParser_1ab4586600b069941ba8896c5ba03a15e7"><span class="std std-ref">feed()</span></a> calls (plus at most the chunk currently being processed), so a remote-supplied length cannot cause memory exhaustion. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6detail10ota_stream12StreamParser4feedENSt4spanIK7uint8_tEE">
+<span id="_CPPv3N4espp6detail10ota_stream12StreamParser4feedENSt4spanIK7uint8_tEE"></span><span id="_CPPv2N4espp6detail10ota_stream12StreamParser4feedENSt4spanIK7uint8_tEE"></span><span id="espp::detail::ota_stream::StreamParser::feed__std::span:uint8_tC:"></span><span class="target" id="classespp_1_1detail_1_1ota__stream_1_1StreamParser_1ab4586600b069941ba8896c5ba03a15e7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">Frame</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">feed</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6detail10ota_stream12StreamParser4feedENSt4spanIK7uint8_tEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Feed received bytes to the parser. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> – Any number of bytes (frames may be split or batched arbitrarily). </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>All complete, CRC-verified frames terminated by these bytes, in order. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6detail10ota_stream12StreamParser5resetEv">
+<span id="_CPPv3N4espp6detail10ota_stream12StreamParser5resetEv"></span><span id="_CPPv2N4espp6detail10ota_stream12StreamParser5resetEv"></span><span id="espp::detail::ota_stream::StreamParser::reset"></span><span class="target" id="classespp_1_1detail_1_1ota__stream_1_1StreamParser_1a0f2f76da08c4eb5b725f75cc36272a06"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6detail10ota_stream12StreamParser5resetEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Discard all buffered bytes (e.g. on transport reconnect). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6detail10ota_stream12StreamParser8bufferedEv">
+<span id="_CPPv3NK4espp6detail10ota_stream12StreamParser8bufferedEv"></span><span id="_CPPv2NK4espp6detail10ota_stream12StreamParser8bufferedEv"></span><span id="espp::detail::ota_stream::StreamParser::bufferedC"></span><span class="target" id="classespp_1_1detail_1_1ota__stream_1_1StreamParser_1a81e8b4c8cf6128dedc9ef6a0737a2de4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">buffered</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6detail10ota_stream12StreamParser8bufferedEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Number of bytes currently buffered awaiting frame completion. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6detail10ota_stream12StreamParser13dropped_bytesEv">
+<span id="_CPPv3NK4espp6detail10ota_stream12StreamParser13dropped_bytesEv"></span><span id="_CPPv2NK4espp6detail10ota_stream12StreamParser13dropped_bytesEv"></span><span id="espp::detail::ota_stream::StreamParser::dropped_bytesC"></span><span class="target" id="classespp_1_1detail_1_1ota__stream_1_1StreamParser_1afe018d48fde363ed2bfe1d7ff2347e77"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dropped_bytes</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6detail10ota_stream12StreamParser13dropped_bytesEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Total bytes discarded so far while resynchronizing (diagnostics). </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Firmware Update (OTA) APIs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ota_example.html" class="btn btn-neutral float-right" title="OTA Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

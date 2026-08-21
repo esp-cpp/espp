@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OTA Example - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'ota/ota_example';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Wireless &amp; Radio APIs" href="../wireless/index.html" />
+    <link rel="prev" title="OTA (Over-the-Air Firmware Update)" href="ota.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../web_apps.html">Web Apps</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Core &amp; RTOS APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../buses/index.html">Buses &amp; Low-Level I/O APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../motor_control/index.html">Motor Control APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Firmware Update (OTA) APIs</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="ota.html">OTA (Over-the-Air Firmware Update)</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">OTA Example</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#how-to-use-example">How to use example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#example-output">Example Output</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="ota.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../wireless/index.html">Wireless &amp; Radio APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../dev_boards/index.html">Dev Boards (BSPs)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Firmware Update (OTA) APIs</a></li>
+          <li class="breadcrumb-item"><a href="ota.html">OTA (Over-the-Air Firmware Update)</a></li>
+      <li class="breadcrumb-item active">OTA Example</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/873443f2/docs/en/ota/ota_example.md" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="ota-example">
+<h1>OTA Example<a class="headerlink" href="#ota-example" title="Permalink to this heading"></a></h1>
+<p>This example shows how to use the <code class="docutils literal notranslate"><span class="pre">espp::Ota</span></code> component to update a device’s
+firmware over <strong>three transports feeding the exact same engine</strong>:</p>
+<ol class="arabic">
+<li><p><strong>USB vendor / WebUSB</strong> — an <code class="docutils literal notranslate"><span class="pre">espp::UsbDevice</span></code> vendor interface
+(bInterfaceClass 0xFF, WebUSB + MS OS 2.0 descriptors) carrying the framed
+OTA stream protocol from <code class="docutils literal notranslate"><span class="pre">detail/ota_stream_protocol.hpp</span></code>. Update straight
+from a Chromium browser with the hosted
+<a class="reference external" href="https://esp-cpp.github.io/espp/apps/ota_console.html">espp OTA Console</a>
+(source: <a class="reference internal" href="#../web/ota_console.html"><span class="xref myst"><code class="docutils literal notranslate"><span class="pre">components/ota/web/ota_console.html</span></code></span></a>) —
+no driver, no network.</p></li>
+<li><p><strong>WiFi HTTP push</strong> — an <code class="docutils literal notranslate"><span class="pre">esp_http_server</span></code> with <code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/ota</span></code> that streams the
+raw request body into the engine (Content-Length is the image size):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>--data-binary<span class="w"> </span>@build/ota_example.bin<span class="w"> </span>http://&lt;ip&gt;/ota
+<span class="c1"># with EXAMPLE_OTA_HTTP_TOKEN configured:</span>
+curl<span class="w"> </span>-H<span class="w"> </span><span class="s2">"Authorization: Bearer &lt;token&gt;"</span><span class="w"> </span>--data-binary<span class="w"> </span>@build/ota_example.bin<span class="w"> </span>http://&lt;ip&gt;/ota
+</pre></div>
+</div>
+<blockquote>
+<div><p><strong>Security</strong>: by default (empty <code class="docutils literal notranslate"><span class="pre">EXAMPLE_OTA_HTTP_TOKEN</span></code>) this endpoint is
+<strong>unauthenticated</strong> — any peer that can reach the device can install a
+structurally-valid image; a warning is logged at startup. Set
+<code class="docutils literal notranslate"><span class="pre">EXAMPLE_OTA_HTTP_TOKEN</span></code> in menuconfig to require a bearer token (the
+upload page has a matching field). A shared token is demo-grade gating
+only: for real deployments enable <strong>secure boot / signed images</strong> so the
+bootloader rejects unauthorized firmware regardless of transport.</p>
+</div></blockquote>
+</li>
+<li><p><strong>Browser HTTP upload</strong> — <code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/ota</span></code> serves a tiny self-contained upload
+page (file picker + progress bar), so any browser on the LAN can update the
+board.</p></li>
+</ol>
+<p>The HTTP server binds to every network interface, so the <strong>same code works
+unchanged over the espp <code class="docutils literal notranslate"><span class="pre">ethernet</span></code> component</strong> (or any other <code class="docutils literal notranslate"><span class="pre">esp_netif</span></code>) —
+Ethernet needs no separate OTA code path, just bring up its netif instead of
+(or in addition to) <code class="docutils literal notranslate"><span class="pre">espp::WifiSta</span></code>.</p>
+<section id="how-to-use-example">
+<h2>How to use example<a class="headerlink" href="#how-to-use-example" title="Permalink to this heading"></a></h2>
+<section id="hardware-required">
+<h3>Hardware Required<a class="headerlink" href="#hardware-required" title="Permalink to this heading"></a></h3>
+<p>An ESP32-S3 (the native USB-OTG peripheral is required for the USB / WebUSB
+transport; the target is pinned in <code class="docutils literal notranslate"><span class="pre">sdkconfig.defaults</span></code>). Connect BOTH USB
+connectors of a devkit: the USB-Serial-JTAG port carries the log console and
+flashing, the USB-OTG port presents the vendor / WebUSB OTA interface.</p>
+</section>
+<section id="configure">
+<h3>Configure<a class="headerlink" href="#configure" title="Permalink to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>idf.py<span class="w"> </span>menuconfig
+</pre></div>
+</div>
+<p>Set the WiFi SSID / password under <code class="docutils literal notranslate"><span class="pre">OTA</span> <span class="pre">Example</span> <span class="pre">Configuration</span></code> (only needed for
+the HTTP transports; the USB transport works without any network).</p>
+</section>
+<section id="build-and-flash">
+<h3>Build and Flash<a class="headerlink" href="#build-and-flash" title="Permalink to this heading"></a></h3>
+<p>Build the project and flash it to the board, then run monitor tool to view
+serial output:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>idf.py<span class="w"> </span>-p<span class="w"> </span>PORT<span class="w"> </span>flash<span class="w"> </span>monitor
+</pre></div>
+</div>
+<p>(To exit the serial monitor, type <code class="docutils literal notranslate"><span class="pre">Ctrl-]</span></code>.)</p>
+<p>The first flash writes the app into the <code class="docutils literal notranslate"><span class="pre">ota_0</span></code> slot of the factory-less
+partition table (<code class="docutils literal notranslate"><span class="pre">partitions.csv</span></code>: <code class="docutils literal notranslate"><span class="pre">otadata</span></code> + <code class="docutils literal notranslate"><span class="pre">ota_0</span></code> + <code class="docutils literal notranslate"><span class="pre">ota_1</span></code>); every OTA
+update alternates to the other slot.</p>
+</section>
+<section id="update-over-usb-webusb">
+<h3>Update over USB (WebUSB)<a class="headerlink" href="#update-over-usb-webusb" title="Permalink to this heading"></a></h3>
+<ol class="arabic simple">
+<li><p>Open <a class="reference external" href="https://esp-cpp.github.io/espp/apps/ota_console.html">https://esp-cpp.github.io/espp/apps/ota_console.html</a> in a Chromium
+browser (or open <code class="docutils literal notranslate"><span class="pre">components/ota/web/ota_console.html</span></code> from disk).</p></li>
+<li><p>Connect to the “espp OTA” device, pick the new <code class="docutils literal notranslate"><span class="pre">build/ota_example.bin</span></code>, and
+press Upload. The console streams BEGIN / DATA / FINISH frames (4 KiB max
+payload each, one in flight) with a progress bar; the device validates the
+image, replies OK, and restarts into it.</p></li>
+</ol>
+</section>
+<section id="update-over-http-wifi-or-ethernet">
+<h3>Update over HTTP (WiFi or Ethernet)<a class="headerlink" href="#update-over-http-wifi-or-ethernet" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p>Browser: open <code class="docutils literal notranslate"><span class="pre">http://&lt;ip&gt;/ota</span></code>, pick the <code class="docutils literal notranslate"><span class="pre">.bin</span></code>, upload.</p></li>
+<li><p>CLI: <code class="docutils literal notranslate"><span class="pre">curl</span> <span class="pre">--data-binary</span> <span class="pre">&#64;build/ota_example.bin</span> <span class="pre">http://&lt;ip&gt;/ota</span></code> — returns
+<code class="docutils literal notranslate"><span class="pre">{&quot;status&quot;:&quot;ok&quot;,...}</span></code> on success or a 4xx/5xx JSON error.</p></li>
+</ul>
+</section>
+<section id="rollback-semantics">
+<h3>Rollback semantics<a class="headerlink" href="#rollback-semantics" title="Permalink to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y</span></code> is set, so a freshly-installed image
+boots in the <code class="docutils literal notranslate"><span class="pre">PENDING_VERIFY</span></code> state. On boot the example logs the running
+partition + version, and if the image is pending verification it runs a
+(trivial) self-check and calls <code class="docutils literal notranslate"><span class="pre">espp::Ota::mark_app_valid()</span></code> — watch for the
+“image marked VALID; rollback cancelled” log line on the first boot after an
+update. If an updated app crashes/resets before marking itself valid, the
+bootloader automatically <strong>rolls back</strong> to the previous slot. A failed
+self-check would instead call <code class="docutils literal notranslate"><span class="pre">mark_app_invalid_and_rollback()</span></code> to return to
+the old image immediately.</p>
+<p>Note: <code class="docutils literal notranslate"><span class="pre">espp::Ota::finish()</span></code> only validates the image and sets the boot
+partition; the restart is a separate explicit <code class="docutils literal notranslate"><span class="pre">restart()</span></code> call (this example
+restarts ~750 ms after replying to the host, on any transport).</p>
+</section>
+</section>
+<section id="example-output">
+<h2>Example Output<a class="headerlink" href="#example-output" title="Permalink to this heading"></a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>I (608) OtaExample: Running 'ota_example' version 'v1.2.3-14-g35e120b' (built Aug 19 2026 12:34:56) from partition 'ota_0' (1966080 bytes)
+I (618) OtaExample: Next update will target partition 'ota_1' (1966080 bytes)
+I (668) espp_UsbDevice: USB device initialized (vendor/WebUSB interface ready)
+I (5178) OtaExample: got IP: 192.168.1.23
+I (5178) OtaExample:   browser upload page: http://192.168.1.23/ota
+I (5178) OtaExample:   curl --data-binary @build/ota_example.bin http://192.168.1.23/ota
+I (5188) OtaExample: HTTP OTA server ready: GET /ota (upload page), POST /ota (raw image)
+I (5198) OtaExample: OTA example ready; transports: USB vendor/WebUSB, HTTP POST /ota (WiFi/Ethernet)
+I (42198) Ota: incoming firmware: project 'ota_example', version 'v1.2.4', built Aug 20 2026 09:00:00 (IDF v6.0)
+I (55123) Ota: finish: 1204224 bytes validated; boot partition set to 'ota_1' — call restart() to boot the new image
+...reboot...
+W (612) OtaExample: This image is PENDING VERIFY (first boot after an OTA update)
+I (614) Ota: running app marked valid; rollback cancelled
+I (615) OtaExample: Self-check passed -&gt; image marked VALID; rollback cancelled
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ota.html" class="btn btn-neutral float-left" title="OTA (Over-the-Air Firmware Update)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../wireless/index.html" class="btn btn-neutral float-right" title="Wireless &amp; Radio APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

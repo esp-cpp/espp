@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ethernet - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'network/ethernet';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Ethernet Example" href="ethernet_example.html" />
+    <link rel="prev" title="DNS Server Example" href="dns_server_example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../web_apps.html">Web Apps</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Core &amp; RTOS APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../buses/index.html">Buses &amp; Low-Level I/O APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../motor_control/index.html">Motor Control APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Network APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="dns_server.html">DNS Server</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Ethernet</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ethernet_example.html">Ethernet Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ethernet_example.html">Ethernet Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ping.html">Ping</a></li>
+<li class="toctree-l2"><a class="reference internal" href="provisioning.html">Provisioning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="socket_example.html">Socket Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="socket.html">Socket Component</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tcp_socket.html">TCP Sockets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="udp_socket.html">UDP Sockets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="socket_reactor.html">Socket Reactor</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ota/index.html">Firmware Update (OTA) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wireless/index.html">Wireless &amp; Radio APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../dev_boards/index.html">Dev Boards (BSPs)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Network APIs</a></li>
+      <li class="breadcrumb-item active">Ethernet</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/873443f2/docs/en/network/ethernet.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="ethernet">
+<h1>Ethernet<a class="headerlink" href="#ethernet" title="Permalink to this heading"></a></h1>
+<p>The <a class="reference internal" href="#_CPPv4N4espp8EthernetE" title="espp::Ethernet"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">espp::Ethernet</span></code></a> component wraps the ESP-IDF <code class="docutils literal notranslate"><span class="pre">esp_eth</span></code> APIs and
+brings up an Ethernet interface over either <strong>RMII</strong> (internal EMAC, on SoCs with
+<code class="docutils literal notranslate"><span class="pre">SOC_EMAC_SUPPORTED</span></code>) or <strong>SPI</strong> (an external MAC+PHY chip such as the WIZnet
+W5500), plus a pre-built-driver escape hatch for any other chip.</p>
+<p>One class owns the boilerplate that BSPs otherwise duplicate - netif, event loop,
+netif glue, DHCP client/server, static IP, hostname, MAC assignment (explicit or
+eFuse-derived) and link/IP event dispatch to <code class="docutils literal notranslate"><span class="pre">std::function</span></code> callbacks - and,
+unlike the inline BSP implementations it replaces, provides a symmetric teardown
+(<code class="docutils literal notranslate"><span class="pre">deinitialize()</span></code> + destructor).</p>
+<p>The interface-specific configuration is a single tagged <code class="docutils literal notranslate"><span class="pre">Config::interface</span></code>
+member (a <code class="docutils literal notranslate"><span class="pre">std::variant</span></code> of <code class="docutils literal notranslate"><span class="pre">RmiiConfig</span></code> / <code class="docutils literal notranslate"><span class="pre">SpiConfig</span></code> / <code class="docutils literal notranslate"><span class="pre">DriverConfig</span></code>);
+the rest of <code class="docutils literal notranslate"><span class="pre">Config</span></code> (DHCP mode, static IP, hostname, MAC, callbacks) is shared.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The RMII path uses the generic 802.3 PHY driver in <code class="docutils literal notranslate"><span class="pre">esp_eth</span></code> core (no extra
+dependency). The concrete SPI chip drivers (W5500, DM9051, ENC28J60) are
+managed components pulled in only when the matching <code class="docutils literal notranslate"><span class="pre">CONFIG_ESPP_ETHERNET_*</span></code>
+Kconfig option is enabled.</p>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ethernet_example.html">Ethernet Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ethernet_example.html#how-to-use">How to use</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/873443f2/components/ethernet/include/ethernet.hpp">components/ethernet/include/ethernet.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8EthernetE">
+<span id="_CPPv3N4espp8EthernetE"></span><span id="_CPPv2N4espp8EthernetE"></span><span id="espp::Ethernet"></span><span class="target" id="classespp_1_1Ethernet"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ethernet</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp8EthernetE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Cross-interface <a class="reference internal" href="#classespp_1_1Ethernet"><span class="std std-ref">Ethernet</span></a> wrapper around the ESP-IDF esp_eth APIs. </p>
+<p>One class drives both <strong>RMII</strong> (internal EMAC, on SoCs with <code class="docutils literal notranslate"><span class="pre">SOC_EMAC_SUPPORTED</span></code> - esp32 / esp32-p4) and <strong>SPI</strong> (external MAC+PHY chips such as the WIZnet W5500) interfaces, plus a pre-built-driver escape hatch for any other chip. It owns all of the common boilerplate - netif, event loop, glue, attach, DHCP client/server, static IP, hostname, MAC assignment, link/IP event dispatch and, unlike the inline BSP implementations it replaces, a symmetric teardown (<a class="reference internal" href="#classespp_1_1Ethernet_1a9e724db2b63c82071a272821d20b8933"><span class="std std-ref">deinitialize</span></a> + destructor).</p>
+<p>The interface-specific part is a single tagged <a class="reference internal" href="#structespp_1_1Ethernet_1_1Config"><span class="std std-ref">Config</span></a> member: <a class="reference internal" href="#structespp_1_1Ethernet_1_1RmiiConfig"><span class="std std-ref">RmiiConfig</span></a>, <a class="reference internal" href="#structespp_1_1Ethernet_1_1SpiConfig"><span class="std std-ref">SpiConfig</span></a>, or <a class="reference internal" href="#structespp_1_1Ethernet_1_1DriverConfig"><span class="std std-ref">DriverConfig</span></a>.</p>
+<section id="classespp_1_1Ethernet_1ethernet_ex1">
+<h4>RMII Example<a class="headerlink" href="#classespp_1_1Ethernet_1ethernet_ex1" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1Ethernet_1ethernet_ex1"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1">// RMII on the ESP32-Ethernet-Kit (IP101 PHY on GPIO0 ref-clock). Adjust for your board.</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Ethernet</span><span class="w"> </span><span class="nf">eth</span><span class="p">(</span><span class="n">with_callbacks</span><span class="p">({</span>
+<span class="w">      </span><span class="p">.</span><span class="n">interface</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ethernet</span><span class="o">::</span><span class="n">RmiiConfig</span><span class="p">{.</span><span class="n">mdc_gpio</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">23</span><span class="p">,</span>
+<span class="w">                                              </span><span class="p">.</span><span class="n">mdio_gpio</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">18</span><span class="p">,</span>
+<span class="w">                                              </span><span class="p">.</span><span class="n">phy_addr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">                                              </span><span class="p">.</span><span class="n">phy_reset_gpio</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">                                              </span><span class="p">.</span><span class="n">clock_ext_in</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span>
+<span class="w">                                              </span><span class="p">.</span><span class="n">clock_gpio</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">},</span>
+<span class="w">  </span><span class="p">}));</span>
+<span class="w">  </span><span class="n">eth</span><span class="p">.</span><span class="n">initialize</span><span class="p">();</span>
+</pre></div>
+</div>
+</section>
+<section id="classespp_1_1Ethernet_1ethernet_ex2">
+<h4>SPI (W5500) Example<a class="headerlink" href="#classespp_1_1Ethernet_1ethernet_ex2" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1Ethernet_1ethernet_ex2"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1">// Bring up the SPI bus the W5500 lives on (adjust pins for your board).</span>
+<span class="w">  </span><span class="n">spi_bus_config_t</span><span class="w"> </span><span class="n">buscfg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{};</span>
+<span class="w">  </span><span class="n">buscfg</span><span class="p">.</span><span class="n">miso_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">13</span><span class="p">;</span>
+<span class="w">  </span><span class="n">buscfg</span><span class="p">.</span><span class="n">mosi_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">11</span><span class="p">;</span>
+<span class="w">  </span><span class="n">buscfg</span><span class="p">.</span><span class="n">sclk_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">12</span><span class="p">;</span>
+<span class="w">  </span><span class="n">buscfg</span><span class="p">.</span><span class="n">quadwp_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-1</span><span class="p">;</span>
+<span class="w">  </span><span class="n">buscfg</span><span class="p">.</span><span class="n">quadhd_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-1</span><span class="p">;</span>
+<span class="w">  </span><span class="n">buscfg</span><span class="p">.</span><span class="n">max_transfer_sz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1600</span><span class="p">;</span>
+<span class="w">  </span><span class="n">ESP_ERROR_CHECK</span><span class="p">(</span><span class="n">spi_bus_initialize</span><span class="p">(</span><span class="n">SPI2_HOST</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">buscfg</span><span class="p">,</span><span class="w"> </span><span class="n">SPI_DMA_CH_AUTO</span><span class="p">));</span>
+
+<span class="w">  </span><span class="c1">// One reactor-owned W5500 over that bus, DHCP client.</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Ethernet</span><span class="w"> </span><span class="nf">eth</span><span class="p">(</span><span class="n">with_callbacks</span><span class="p">({</span>
+<span class="w">      </span><span class="p">.</span><span class="n">interface</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ethernet</span><span class="o">::</span><span class="n">SpiConfig</span><span class="p">{.</span><span class="n">host</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SPI2_HOST</span><span class="p">,</span>
+<span class="w">                                             </span><span class="p">.</span><span class="n">cs_gpio</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span>
+<span class="w">                                             </span><span class="p">.</span><span class="n">int_gpio</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">14</span><span class="p">,</span>
+<span class="w">                                             </span><span class="p">.</span><span class="n">reset_gpio</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">21</span><span class="p">,</span>
+<span class="w">                                             </span><span class="p">.</span><span class="n">chip</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ethernet</span><span class="o">::</span><span class="n">SpiChip</span><span class="o">::</span><span class="n">W5500</span><span class="p">},</span>
+<span class="w">  </span><span class="p">}));</span>
+<span class="w">  </span><span class="n">eth</span><span class="p">.</span><span class="n">initialize</span><span class="p">();</span>
+</pre></div>
+</div>
+</section>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The concrete SPI chip drivers (W5500, DM9051, ENC28J60) are ESP-IDF managed components pulled in only when the matching <code class="docutils literal notranslate"><span class="pre">CONFIG_ESPP_ETHERNET_*</span></code> option is enabled. The RMII path uses the generic 802.3 PHY driver in <code class="docutils literal notranslate"><span class="pre">esp_eth</span></code> core (no extra dependency), which supports common PHYs (IP101, LAN87xx, DP83848, RTL8201, KSZ8041).</p>
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet8DhcpModeE">
+<span id="_CPPv3N4espp8Ethernet8DhcpModeE"></span><span id="_CPPv2N4espp8Ethernet8DhcpModeE"></span><span class="target" id="classespp_1_1Ethernet_1aaf627507f41db7dbadc31c34b7cc7ebb"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DhcpMode</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet8DhcpModeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>DHCP operating mode. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet8DhcpMode6CLIENTE">
+<span id="_CPPv3N4espp8Ethernet8DhcpMode6CLIENTE"></span><span id="_CPPv2N4espp8Ethernet8DhcpMode6CLIENTE"></span><span class="target" id="classespp_1_1Ethernet_1aaf627507f41db7dbadc31c34b7cc7ebbaef10c650df47bffd6399e5e78da2a9b1"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CLIENT</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet8DhcpMode6CLIENTE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Acquire an IP from an upstream DHCP server (or use a static IP if ip_info is set). </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet8DhcpMode6SERVERE">
+<span id="_CPPv3N4espp8Ethernet8DhcpMode6SERVERE"></span><span id="_CPPv2N4espp8Ethernet8DhcpMode6SERVERE"></span><span class="target" id="classespp_1_1Ethernet_1aaf627507f41db7dbadc31c34b7cc7ebba3d27c95bfdbea691b250894d96852844"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SERVER</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet8DhcpMode6SERVERE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Run a DHCP server on this interface and assign IPs to connected hosts. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet8PhyModelE">
+<span id="_CPPv3N4espp8Ethernet8PhyModelE"></span><span id="_CPPv2N4espp8Ethernet8PhyModelE"></span><span class="target" id="classespp_1_1Ethernet_1a9455ffff334a7cfb25d103df9da374f1"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PhyModel</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet8PhyModelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>PHY model hint for the RMII path. All are handled by the generic 802.3 driver in v1; the field is advisory (kept for a future specific-driver option) and does not change behavior today. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet8PhyModel7GENERICE">
+<span id="_CPPv3N4espp8Ethernet8PhyModel7GENERICE"></span><span id="_CPPv2N4espp8Ethernet8PhyModel7GENERICE"></span><span class="target" id="classespp_1_1Ethernet_1a9455ffff334a7cfb25d103df9da374f1ac942dc2a9f958acddc67e11472d3ca0b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GENERIC</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet8PhyModel7GENERICE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet8PhyModel5IP101E">
+<span id="_CPPv3N4espp8Ethernet8PhyModel5IP101E"></span><span id="_CPPv2N4espp8Ethernet8PhyModel5IP101E"></span><span class="target" id="classespp_1_1Ethernet_1a9455ffff334a7cfb25d103df9da374f1ab3bf4cf99ff1472450271471b5d367ee"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">IP101</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet8PhyModel5IP101E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet8PhyModel7LAN87XXE">
+<span id="_CPPv3N4espp8Ethernet8PhyModel7LAN87XXE"></span><span id="_CPPv2N4espp8Ethernet8PhyModel7LAN87XXE"></span><span class="target" id="classespp_1_1Ethernet_1a9455ffff334a7cfb25d103df9da374f1af7544a7451dbe99fee77fbb64935aa21"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LAN87XX</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet8PhyModel7LAN87XXE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet8PhyModel7DP83848E">
+<span id="_CPPv3N4espp8Ethernet8PhyModel7DP83848E"></span><span id="_CPPv2N4espp8Ethernet8PhyModel7DP83848E"></span><span class="target" id="classespp_1_1Ethernet_1a9455ffff334a7cfb25d103df9da374f1a5ffa4cb219b783817c0572fe4fa9361d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DP83848</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet8PhyModel7DP83848E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet8PhyModel7RTL8201E">
+<span id="_CPPv3N4espp8Ethernet8PhyModel7RTL8201E"></span><span id="_CPPv2N4espp8Ethernet8PhyModel7RTL8201E"></span><span class="target" id="classespp_1_1Ethernet_1a9455ffff334a7cfb25d103df9da374f1aab123dc9c6d404bf78745af3a969e83b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RTL8201</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet8PhyModel7RTL8201E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet8PhyModel7KSZ80XXE">
+<span id="_CPPv3N4espp8Ethernet8PhyModel7KSZ80XXE"></span><span id="_CPPv2N4espp8Ethernet8PhyModel7KSZ80XXE"></span><span class="target" id="classespp_1_1Ethernet_1a9455ffff334a7cfb25d103df9da374f1a4a5a03fdb2e6bd03bab0c0f9a8e92c8d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">KSZ80XX</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet8PhyModel7KSZ80XXE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet7SpiChipE">
+<span id="_CPPv3N4espp8Ethernet7SpiChipE"></span><span id="_CPPv2N4espp8Ethernet7SpiChipE"></span><span class="target" id="classespp_1_1Ethernet_1a7ee7d6ab29531a38aa7b5f5e44fac074"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SpiChip</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet7SpiChipE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Supported built-in SPI ethernet chips. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet7SpiChip5W5500E">
+<span id="_CPPv3N4espp8Ethernet7SpiChip5W5500E"></span><span id="_CPPv2N4espp8Ethernet7SpiChip5W5500E"></span><span class="target" id="classespp_1_1Ethernet_1a7ee7d6ab29531a38aa7b5f5e44fac074a2488572c6dcd9aa515db4b26b0d6c1fc"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">W5500</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet7SpiChip5W5500E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet7SpiChip6DM9051E">
+<span id="_CPPv3N4espp8Ethernet7SpiChip6DM9051E"></span><span id="_CPPv2N4espp8Ethernet7SpiChip6DM9051E"></span><span class="target" id="classespp_1_1Ethernet_1a7ee7d6ab29531a38aa7b5f5e44fac074a53160181fed2c3030fd0bed06f3b0dca"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DM9051</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet7SpiChip6DM9051E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet7SpiChip8ENC28J60E">
+<span id="_CPPv3N4espp8Ethernet7SpiChip8ENC28J60E"></span><span id="_CPPv2N4espp8Ethernet7SpiChip8ENC28J60E"></span><span class="target" id="classespp_1_1Ethernet_1a7ee7d6ab29531a38aa7b5f5e44fac074a65e5b38b01d513caa0cbe017a1276c0c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ENC28J60</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet7SpiChip8ENC28J60E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet12LinkCallbackE">
+<span id="_CPPv3N4espp8Ethernet12LinkCallbackE"></span><span id="_CPPv2N4espp8Ethernet12LinkCallbackE"></span><span class="target" id="classespp_1_1Ethernet_1ad4eed8bef2f52f530be352ac22138391"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LinkCallback</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet12LinkCallbackE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback for link up/down and IP-lost. Runs in the esp event-loop task context - keep it short and non-blocking. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet10IpCallbackE">
+<span id="_CPPv3N4espp8Ethernet10IpCallbackE"></span><span id="_CPPv2N4espp8Ethernet10IpCallbackE"></span><span class="target" id="classespp_1_1Ethernet_1a5425139b5cbe8103ff1409749e22a4ea"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">IpCallback</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">esp_ip4_addr_t</span></span><span class="w"> </span><span class="n"><span class="pre">ip</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet10IpCallbackE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback for IP acquisition. Runs in the esp event-loop task context. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet16ClientIpCallbackE">
+<span id="_CPPv3N4espp8Ethernet16ClientIpCallbackE"></span><span id="_CPPv2N4espp8Ethernet16ClientIpCallbackE"></span><span class="target" id="classespp_1_1Ethernet_1a6d6a93b126db27dcb1d67c2c190a4f8c"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ClientIpCallback</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">esp_ip4_addr_t</span></span><span class="w"> </span><span class="n"><span class="pre">ip</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">MacAddress</span></span><span class="w"> </span><span class="n"><span class="pre">mac</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet16ClientIpCallbackE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback (SERVER mode) invoked for each DHCP lease the server assigns. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet8EthernetERK6Config">
+<span id="_CPPv3N4espp8Ethernet8EthernetERK6Config"></span><span id="_CPPv2N4espp8Ethernet8EthernetERK6Config"></span><span id="espp::Ethernet::Ethernet__ConfigCR"></span><span class="target" id="classespp_1_1Ethernet_1a12406476423897f03688e35b2e3d8525"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ethernet</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp8Ethernet6ConfigE" title="espp::Ethernet::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Ethernet8EthernetERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct (does not start the interface; call <a class="reference internal" href="#classespp_1_1Ethernet_1aeda3299f50ea92745bde033ba2a4f34d"><span class="std std-ref">initialize()</span></a>). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – The configuration. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8EthernetD0Ev">
+<span id="_CPPv3N4espp8EthernetD0Ev"></span><span id="_CPPv2N4espp8EthernetD0Ev"></span><span id="espp::Ethernet::~Ethernet"></span><span class="target" id="classespp_1_1Ethernet_1a5b50e97b4215a51cb18156bf5da14dae"></span><span class="sig-name descname"><span class="n"><span class="pre">~Ethernet</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8EthernetD0Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Destroy - deinitializes the interface if still running. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet10initializeERNSt10error_codeE">
+<span id="_CPPv3N4espp8Ethernet10initializeERNSt10error_codeE"></span><span id="_CPPv2N4espp8Ethernet10initializeERNSt10error_codeE"></span><span id="espp::Ethernet::initialize__std::error_codeR"></span><span class="target" id="classespp_1_1Ethernet_1a72d388e6f1830e30b1937e14400c1215"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Ethernet10initializeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Bring up the interface (create driver, attach netif, register events, apply IP/hostname/MAC, start). Idempotent. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Set to a specific error on failure; cleared on success. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success (interface started). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet10initializeEv">
+<span id="_CPPv3N4espp8Ethernet10initializeEv"></span><span id="_CPPv2N4espp8Ethernet10initializeEv"></span><span id="espp::Ethernet::initialize"></span><span class="target" id="classespp_1_1Ethernet_1aeda3299f50ea92745bde033ba2a4f34d"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Ethernet10initializeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Convenience overload that logs on failure. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet12deinitializeERNSt10error_codeE">
+<span id="_CPPv3N4espp8Ethernet12deinitializeERNSt10error_codeE"></span><span id="_CPPv2N4espp8Ethernet12deinitializeERNSt10error_codeE"></span><span id="espp::Ethernet::deinitialize__std::error_codeR"></span><span class="target" id="classespp_1_1Ethernet_1a9e724db2b63c82071a272821d20b8933"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">deinitialize</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Ethernet12deinitializeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Stop and fully tear down the interface (reverse-order unwind). Idempotent. Does not undo the process-global netif/event-loop init. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ec</strong> – Set on failure; cleared on success. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet12deinitializeEv">
+<span id="_CPPv3N4espp8Ethernet12deinitializeEv"></span><span id="_CPPv2N4espp8Ethernet12deinitializeEv"></span><span id="espp::Ethernet::deinitialize"></span><span class="target" id="classespp_1_1Ethernet_1a708054120ab825593d9935439443fbe8"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">deinitialize</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Ethernet12deinitializeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Convenience overload that logs on failure. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8Ethernet14is_initializedEv">
+<span id="_CPPv3NK4espp8Ethernet14is_initializedEv"></span><span id="_CPPv2NK4espp8Ethernet14is_initializedEv"></span><span id="espp::Ethernet::is_initializedC"></span><span class="target" id="classespp_1_1Ethernet_1a5af179a260b101a64b0206593a40b81f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_initialized</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8Ethernet14is_initializedEv" title="Permalink to this definition"></a><br /></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true if the interface has been initialized/started. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8Ethernet12is_connectedEv">
+<span id="_CPPv3NK4espp8Ethernet12is_connectedEv"></span><span id="_CPPv2NK4espp8Ethernet12is_connectedEv"></span><span id="espp::Ethernet::is_connectedC"></span><span class="target" id="classespp_1_1Ethernet_1a0b77632547459a5f589c77ec4a5a6c03"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_connected</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8Ethernet12is_connectedEv" title="Permalink to this definition"></a><br /></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true if the link is up AND an IP address is held. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8Ethernet7link_upEv">
+<span id="_CPPv3NK4espp8Ethernet7link_upEv"></span><span id="_CPPv2NK4espp8Ethernet7link_upEv"></span><span id="espp::Ethernet::link_upC"></span><span class="target" id="classespp_1_1Ethernet_1a556b390120ac826b16305b307888aa39"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">link_up</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8Ethernet7link_upEv" title="Permalink to this definition"></a><br /></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true if the physical link is up. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8Ethernet2ipEv">
+<span id="_CPPv3NK4espp8Ethernet2ipEv"></span><span id="_CPPv2NK4espp8Ethernet2ipEv"></span><span id="espp::Ethernet::ipC"></span><span class="target" id="classespp_1_1Ethernet_1a228df31ba2b96fe871d2a046a2dfe19a"></span><span class="n"><span class="pre">esp_ip4_addr_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ip</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8Ethernet2ipEv" title="Permalink to this definition"></a><br /></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The current IPv4 address (0 if none). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8Ethernet14get_ip_addressEv">
+<span id="_CPPv3NK4espp8Ethernet14get_ip_addressEv"></span><span id="_CPPv2NK4espp8Ethernet14get_ip_addressEv"></span><span id="espp::Ethernet::get_ip_addressC"></span><span class="target" id="classespp_1_1Ethernet_1acd9de80cfe78700796e0e583166a85b9"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_ip_address</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8Ethernet14get_ip_addressEv" title="Permalink to this definition"></a><br /></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The current IPv4 address as a dotted quad (“0.0.0.0” if none). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8Ethernet15get_mac_addressEv">
+<span id="_CPPv3NK4espp8Ethernet15get_mac_addressEv"></span><span id="_CPPv2NK4espp8Ethernet15get_mac_addressEv"></span><span id="espp::Ethernet::get_mac_addressC"></span><span class="target" id="classespp_1_1Ethernet_1a3c27dcff383daa76f36a38dc3df2b6af"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_mac_address</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8Ethernet15get_mac_addressEv" title="Permalink to this definition"></a><br /></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The interface MAC as “aa:bb:cc:dd:ee:ff” (empty if not initialized). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8Ethernet17link_speed_duplexEv">
+<span id="_CPPv3NK4espp8Ethernet17link_speed_duplexEv"></span><span id="_CPPv2NK4espp8Ethernet17link_speed_duplexEv"></span><span id="espp::Ethernet::link_speed_duplexC"></span><span class="target" id="classespp_1_1Ethernet_1ad47a91fac4ada817dc7241d25f7e029c"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">pair</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">int</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">link_speed_duplex</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8Ethernet17link_speed_duplexEv" title="Permalink to this definition"></a><br /></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>{speed_mbps, full_duplex} if the link is up, else nullopt. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8Ethernet13native_handleEv">
+<span id="_CPPv3NK4espp8Ethernet13native_handleEv"></span><span id="_CPPv2NK4espp8Ethernet13native_handleEv"></span><span id="espp::Ethernet::native_handleC"></span><span class="target" id="classespp_1_1Ethernet_1aa001d72daf6b29f049653509ef503129"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">esp_eth_handle_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">native_handle</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8Ethernet13native_handleEv" title="Permalink to this definition"></a><br /></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The raw esp_eth driver handle (nullptr if not initialized). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8Ethernet5netifEv">
+<span id="_CPPv3NK4espp8Ethernet5netifEv"></span><span id="_CPPv2NK4espp8Ethernet5netifEv"></span><span id="espp::Ethernet::netifC"></span><span class="target" id="classespp_1_1Ethernet_1a0b763f45a96425685938726a8f2169e1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">esp_netif_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">netif</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8Ethernet5netifEv" title="Permalink to this definition"></a><br /></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The raw esp_netif handle (nullptr if not initialized). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8Ethernet8get_nameEv">
+<span id="_CPPv3NK4espp8Ethernet8get_nameEv"></span><span id="_CPPv2NK4espp8Ethernet8get_nameEv"></span><span id="espp::Ethernet::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8Ethernet8get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp8Ethernet11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp8Ethernet11set_log_tagERKNSt11string_viewE"></span><span id="espp::Ethernet::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Ethernet11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8Ethernet13get_log_levelEv">
+<span id="_CPPv3NK4espp8Ethernet13get_log_levelEv"></span><span id="_CPPv2NK4espp8Ethernet13get_log_levelEv"></span><span id="espp::Ethernet::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8Ethernet13get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp8Ethernet13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp8Ethernet13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::Ethernet::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Ethernet13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp8Ethernet17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp8Ethernet17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::Ethernet::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Ethernet17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wireless/sx126x.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8Ethernet17get_log_verbosityEv">
+<span id="_CPPv3NK4espp8Ethernet17get_log_verbosityEv"></span><span id="_CPPv2NK4espp8Ethernet17get_log_verbosityEv"></span><span id="espp::Ethernet::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../core/logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8Ethernet17get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wireless/sx126x.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp8Ethernet18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp8Ethernet18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::Ethernet::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Ethernet18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../core/logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet6ConfigE">
+<span id="_CPPv3N4espp8Ethernet6ConfigE"></span><span id="_CPPv2N4espp8Ethernet6ConfigE"></span><span id="espp::Ethernet::Config"></span><span class="target" id="structespp_1_1Ethernet_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Full configuration. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet6Config9interfaceE">
+<span id="_CPPv3N4espp8Ethernet6Config9interfaceE"></span><span id="_CPPv2N4espp8Ethernet6Config9interfaceE"></span><span id="espp::Ethernet::Config::interface__std::variant:RmiiConfig.SpiConfig.DriverConfig:"></span><span class="target" id="structespp_1_1Ethernet_1_1Config_1af890e584aa1ed5e489ff6f8a4b7f9234"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">variant</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp8Ethernet10RmiiConfigE" title="espp::Ethernet::RmiiConfig"><span class="n"><span class="pre">RmiiConfig</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp8Ethernet9SpiConfigE" title="espp::Ethernet::SpiConfig"><span class="n"><span class="pre">SpiConfig</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp8Ethernet12DriverConfigE" title="espp::Ethernet::DriverConfig"><span class="n"><span class="pre">DriverConfig</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">interface</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet6Config9interfaceE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The interface: RMII (internal EMAC), SPI (external chip), or a pre-built driver. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet6Config4modeE">
+<span id="_CPPv3N4espp8Ethernet6Config4modeE"></span><span id="_CPPv2N4espp8Ethernet6Config4modeE"></span><span id="espp::Ethernet::Config::mode__DhcpMode"></span><span class="target" id="structespp_1_1Ethernet_1_1Config_1a3f9a63cf91311dea9a573d51a4a7f5a3"></span><a class="reference internal" href="#_CPPv4N4espp8Ethernet8DhcpModeE" title="espp::Ethernet::DhcpMode"><span class="n"><span class="pre">DhcpMode</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mode</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="#_CPPv4N4espp8Ethernet8DhcpModeE" title="espp::Ethernet::DhcpMode"><span class="n"><span class="pre">DhcpMode</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp8Ethernet8DhcpMode6CLIENTE" title="espp::Ethernet::DhcpMode::CLIENT"><span class="n"><span class="pre">CLIENT</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet6Config4modeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>DHCP client or server. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet6Config11mac_addressE">
+<span id="_CPPv3N4espp8Ethernet6Config11mac_addressE"></span><span id="_CPPv2N4espp8Ethernet6Config11mac_addressE"></span><span id="espp::Ethernet::Config::mac_address__std::optional:MacAddress:"></span><span class="target" id="structespp_1_1Ethernet_1_1Config_1ae862173d568c6a5664282d87086f236b"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">MacAddress</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mac_address</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet6Config11mac_addressE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Explicit MAC; else eFuse (ESP_MAC_ETH) for chips needing one. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet6Config8hostnameE">
+<span id="_CPPv3N4espp8Ethernet6Config8hostnameE"></span><span id="_CPPv2N4espp8Ethernet6Config8hostnameE"></span><span id="espp::Ethernet::Config::hostname__ss"></span><span class="target" id="structespp_1_1Ethernet_1_1Config_1a03d61c732e4249f586dc27c87e47ac18"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hostname</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet6Config8hostnameE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>netif hostname (empty = ESP-IDF default). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet6Config7ip_infoE">
+<span id="_CPPv3N4espp8Ethernet6Config7ip_infoE"></span><span id="_CPPv2N4espp8Ethernet6Config7ip_infoE"></span><span id="espp::Ethernet::Config::ip_info__esp_netif_ip_info_t"></span><span class="target" id="structespp_1_1Ethernet_1_1Config_1a11562c1c6a99a7676d450169b394be0f"></span><span class="n"><span class="pre">esp_netif_ip_info_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ip_info</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet6Config7ip_infoE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>CLIENT: if ip.addr != 0, use this as a static IP (DHCP client is stopped); else DHCP. SERVER: the interface/gateway IP for the DHCP server (0 -&gt; 192.168.4.1/24). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet6Config10on_link_upE">
+<span id="_CPPv3N4espp8Ethernet6Config10on_link_upE"></span><span id="_CPPv2N4espp8Ethernet6Config10on_link_upE"></span><span id="espp::Ethernet::Config::on_link_up__LinkCallback"></span><span class="target" id="structespp_1_1Ethernet_1_1Config_1a8cd81d65c043333080ac13b4fc09388c"></span><a class="reference internal" href="#_CPPv4N4espp8Ethernet12LinkCallbackE" title="espp::Ethernet::LinkCallback"><span class="n"><span class="pre">LinkCallback</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_link_up</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet6Config10on_link_upE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Physical link came up. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet6Config12on_link_downE">
+<span id="_CPPv3N4espp8Ethernet6Config12on_link_downE"></span><span id="_CPPv2N4espp8Ethernet6Config12on_link_downE"></span><span id="espp::Ethernet::Config::on_link_down__LinkCallback"></span><span class="target" id="structespp_1_1Ethernet_1_1Config_1abe79937b54dbd6b1c42afd30e3058131"></span><a class="reference internal" href="#_CPPv4N4espp8Ethernet12LinkCallbackE" title="espp::Ethernet::LinkCallback"><span class="n"><span class="pre">LinkCallback</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_link_down</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet6Config12on_link_downE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Physical link went down. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet6Config9on_got_ipE">
+<span id="_CPPv3N4espp8Ethernet6Config9on_got_ipE"></span><span id="_CPPv2N4espp8Ethernet6Config9on_got_ipE"></span><span id="espp::Ethernet::Config::on_got_ip__IpCallback"></span><span class="target" id="structespp_1_1Ethernet_1_1Config_1ae9da079649b5cf61c8b14c5fd3fe9ea5"></span><a class="reference internal" href="#_CPPv4N4espp8Ethernet10IpCallbackE" title="espp::Ethernet::IpCallback"><span class="n"><span class="pre">IpCallback</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_got_ip</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet6Config9on_got_ipE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Interface obtained an IPv4 address. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet6Config10on_lost_ipE">
+<span id="_CPPv3N4espp8Ethernet6Config10on_lost_ipE"></span><span id="_CPPv2N4espp8Ethernet6Config10on_lost_ipE"></span><span id="espp::Ethernet::Config::on_lost_ip__LinkCallback"></span><span class="target" id="structespp_1_1Ethernet_1_1Config_1a49c7d89698e7ce1fb25fe828fc3b4b1d"></span><a class="reference internal" href="#_CPPv4N4espp8Ethernet12LinkCallbackE" title="espp::Ethernet::LinkCallback"><span class="n"><span class="pre">LinkCallback</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_lost_ip</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet6Config10on_lost_ipE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Interface lost its IPv4 address. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet6Config18on_client_assignedE">
+<span id="_CPPv3N4espp8Ethernet6Config18on_client_assignedE"></span><span id="_CPPv2N4espp8Ethernet6Config18on_client_assignedE"></span><span id="espp::Ethernet::Config::on_client_assigned__ClientIpCallback"></span><span class="target" id="structespp_1_1Ethernet_1_1Config_1a4e47d25ecb30b875ed940043e13883c6"></span><a class="reference internal" href="#_CPPv4N4espp8Ethernet16ClientIpCallbackE" title="espp::Ethernet::ClientIpCallback"><span class="n"><span class="pre">ClientIpCallback</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_client_assigned</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet6Config18on_client_assignedE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>SERVER mode: a client was assigned an IP. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet12DriverConfigE">
+<span id="_CPPv3N4espp8Ethernet12DriverConfigE"></span><span id="_CPPv2N4espp8Ethernet12DriverConfigE"></span><span id="espp::Ethernet::DriverConfig"></span><span class="target" id="structespp_1_1Ethernet_1_1DriverConfig"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DriverConfig</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet12DriverConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Pre-built-driver escape hatch: the caller creates the MAC+PHY for any chip and hands them over. The component takes ownership (they are freed by esp_eth_driver_uninstall on teardown). </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet12DriverConfig3macE">
+<span id="_CPPv3N4espp8Ethernet12DriverConfig3macE"></span><span id="_CPPv2N4espp8Ethernet12DriverConfig3macE"></span><span id="espp::Ethernet::DriverConfig::mac__esp_eth_mac_tP"></span><span class="target" id="structespp_1_1Ethernet_1_1DriverConfig_1a98c42f19c7552d30ed19cb1cf8e38d26"></span><span class="n"><span class="pre">esp_eth_mac_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">mac</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet12DriverConfig3macE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Caller-created MAC (ownership transfers on <a class="reference internal" href="#classespp_1_1Ethernet_1aeda3299f50ea92745bde033ba2a4f34d"><span class="std std-ref">initialize()</span></a>). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet12DriverConfig3phyE">
+<span id="_CPPv3N4espp8Ethernet12DriverConfig3phyE"></span><span id="_CPPv2N4espp8Ethernet12DriverConfig3phyE"></span><span id="espp::Ethernet::DriverConfig::phy__esp_eth_phy_tP"></span><span class="target" id="structespp_1_1Ethernet_1_1DriverConfig_1a1ac76ad3ee58ff5e4822d98c4634a044"></span><span class="n"><span class="pre">esp_eth_phy_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">phy</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet12DriverConfig3phyE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Caller-created PHY (ownership transfers on <a class="reference internal" href="#classespp_1_1Ethernet_1aeda3299f50ea92745bde033ba2a4f34d"><span class="std std-ref">initialize()</span></a>). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet12DriverConfig17needs_isr_serviceE">
+<span id="_CPPv3N4espp8Ethernet12DriverConfig17needs_isr_serviceE"></span><span id="_CPPv2N4espp8Ethernet12DriverConfig17needs_isr_serviceE"></span><span id="espp::Ethernet::DriverConfig::needs_isr_service__b"></span><span class="target" id="structespp_1_1Ethernet_1_1DriverConfig_1aeca54b46c4a079272499bf10110a0687"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">needs_isr_service</span></span></span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">false</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet12DriverConfig17needs_isr_serviceE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>true if the driver uses a GPIO INT line (installs the ISR service). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet12DriverConfig20needs_mac_assignmentE">
+<span id="_CPPv3N4espp8Ethernet12DriverConfig20needs_mac_assignmentE"></span><span id="_CPPv2N4espp8Ethernet12DriverConfig20needs_mac_assignmentE"></span><span id="espp::Ethernet::DriverConfig::needs_mac_assignment__b"></span><span class="target" id="structespp_1_1Ethernet_1_1DriverConfig_1a300184bdc19e2b7d3993bd177be1204c"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">needs_mac_assignment</span></span></span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">false</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet12DriverConfig20needs_mac_assignmentE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>true if the chip has no factory MAC (assign from config/eFuse). </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet10RmiiConfigE">
+<span id="_CPPv3N4espp8Ethernet10RmiiConfigE"></span><span id="_CPPv2N4espp8Ethernet10RmiiConfigE"></span><span id="espp::Ethernet::RmiiConfig"></span><span class="target" id="structespp_1_1Ethernet_1_1RmiiConfig"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RmiiConfig</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet10RmiiConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>RMII / internal-EMAC interface configuration (esp32 / esp32-p4 only). </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet10RmiiConfig8mdc_gpioE">
+<span id="_CPPv3N4espp8Ethernet10RmiiConfig8mdc_gpioE"></span><span id="_CPPv2N4espp8Ethernet10RmiiConfig8mdc_gpioE"></span><span id="espp::Ethernet::RmiiConfig::mdc_gpio__i"></span><span class="target" id="structespp_1_1Ethernet_1_1RmiiConfig_1a363fc6fc5c6ccb49ed8a2596550a7211"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mdc_gpio</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet10RmiiConfig8mdc_gpioE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>SMI management clock (MDC) GPIO (required). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet10RmiiConfig9mdio_gpioE">
+<span id="_CPPv3N4espp8Ethernet10RmiiConfig9mdio_gpioE"></span><span id="_CPPv2N4espp8Ethernet10RmiiConfig9mdio_gpioE"></span><span id="espp::Ethernet::RmiiConfig::mdio_gpio__i"></span><span class="target" id="structespp_1_1Ethernet_1_1RmiiConfig_1a0c1ec10a80580bd173f062b094636c51"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mdio_gpio</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet10RmiiConfig9mdio_gpioE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>SMI management data (MDIO) GPIO (required). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet10RmiiConfig8phy_addrE">
+<span id="_CPPv3N4espp8Ethernet10RmiiConfig8phy_addrE"></span><span id="_CPPv2N4espp8Ethernet10RmiiConfig8phy_addrE"></span><span id="espp::Ethernet::RmiiConfig::phy_addr__i"></span><span class="target" id="structespp_1_1Ethernet_1_1RmiiConfig_1ae6b3a3c45f64569d785ebb69bdd0db53"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">phy_addr</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet10RmiiConfig8phy_addrE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>PHY SMI address; -1 auto-detects. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet10RmiiConfig14phy_reset_gpioE">
+<span id="_CPPv3N4espp8Ethernet10RmiiConfig14phy_reset_gpioE"></span><span id="_CPPv2N4espp8Ethernet10RmiiConfig14phy_reset_gpioE"></span><span id="espp::Ethernet::RmiiConfig::phy_reset_gpio__i"></span><span class="target" id="structespp_1_1Ethernet_1_1RmiiConfig_1aa232f5b2382d97e8bc2d95e041f44a2a"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">phy_reset_gpio</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet10RmiiConfig14phy_reset_gpioE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Active-low PHY reset GPIO; -1 = none. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet10RmiiConfig3phyE">
+<span id="_CPPv3N4espp8Ethernet10RmiiConfig3phyE"></span><span id="_CPPv2N4espp8Ethernet10RmiiConfig3phyE"></span><span id="espp::Ethernet::RmiiConfig::phy__PhyModel"></span><span class="target" id="structespp_1_1Ethernet_1_1RmiiConfig_1a4e335bf0357e4f8035ff6bafbd469d0e"></span><a class="reference internal" href="#_CPPv4N4espp8Ethernet8PhyModelE" title="espp::Ethernet::PhyModel"><span class="n"><span class="pre">PhyModel</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">phy</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="#_CPPv4N4espp8Ethernet8PhyModelE" title="espp::Ethernet::PhyModel"><span class="n"><span class="pre">PhyModel</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp8Ethernet8PhyModel7GENERICE" title="espp::Ethernet::PhyModel::GENERIC"><span class="n"><span class="pre">GENERIC</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet10RmiiConfig3phyE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>PHY model hint (advisory; see PhyModel). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet10RmiiConfig12clock_ext_inE">
+<span id="_CPPv3N4espp8Ethernet10RmiiConfig12clock_ext_inE"></span><span id="_CPPv2N4espp8Ethernet10RmiiConfig12clock_ext_inE"></span><span id="espp::Ethernet::RmiiConfig::clock_ext_in__b"></span><span class="target" id="structespp_1_1Ethernet_1_1RmiiConfig_1ace3e9e8d6559c67e21bc84dbe0caf557"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clock_ext_in</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet10RmiiConfig12clock_ext_inE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>true: external RMII 50 MHz ref-clock in; false: internal out. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet10RmiiConfig10clock_gpioE">
+<span id="_CPPv3N4espp8Ethernet10RmiiConfig10clock_gpioE"></span><span id="_CPPv2N4espp8Ethernet10RmiiConfig10clock_gpioE"></span><span id="espp::Ethernet::RmiiConfig::clock_gpio__i"></span><span class="target" id="structespp_1_1Ethernet_1_1RmiiConfig_1acb60b39acaf93c6d50b5d5823d7c5b2e"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clock_gpio</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet10RmiiConfig10clock_gpioE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>RMII REF_CLK GPIO (fixed set on esp32; routable on esp32-p4). </p>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet10RmiiConfig8DataPinsE">
+<span id="_CPPv3N4espp8Ethernet10RmiiConfig8DataPinsE"></span><span id="_CPPv2N4espp8Ethernet10RmiiConfig8DataPinsE"></span><span id="espp::Ethernet::RmiiConfig::DataPins"></span><span class="target" id="structespp_1_1Ethernet_1_1RmiiConfig_1_1DataPins"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DataPins</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet10RmiiConfig8DataPinsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>RMII data-plane pins. Only used on SoCs with routable EMAC pins (esp32-p4); ignored on esp32 where they are fixed via IO_MUX. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet9SpiConfigE">
+<span id="_CPPv3N4espp8Ethernet9SpiConfigE"></span><span id="_CPPv2N4espp8Ethernet9SpiConfigE"></span><span id="espp::Ethernet::SpiConfig"></span><span class="target" id="structespp_1_1Ethernet_1_1SpiConfig"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SpiConfig</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet9SpiConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>SPI interface configuration (external MAC+PHY chip on a caller-owned, already-initialized SPI bus). Works on any SoC. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet9SpiConfig4hostE">
+<span id="_CPPv3N4espp8Ethernet9SpiConfig4hostE"></span><span id="_CPPv2N4espp8Ethernet9SpiConfig4hostE"></span><span id="espp::Ethernet::SpiConfig::host__spi_host_device_t"></span><span class="target" id="structespp_1_1Ethernet_1_1SpiConfig_1ab52a421f134293869a1ce782cadbdb9c"></span><span class="n"><span class="pre">spi_host_device_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">host</span></span></span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">SPI2_HOST</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet9SpiConfig4hostE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>SPI host whose bus the caller already initialized (required). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet9SpiConfig7cs_gpioE">
+<span id="_CPPv3N4espp8Ethernet9SpiConfig7cs_gpioE"></span><span id="_CPPv2N4espp8Ethernet9SpiConfig7cs_gpioE"></span><span id="espp::Ethernet::SpiConfig::cs_gpio__i"></span><span class="target" id="structespp_1_1Ethernet_1_1SpiConfig_1a87d6fb2f3809f3b7d980a159e7558e79"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">cs_gpio</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet9SpiConfig7cs_gpioE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Chip-select GPIO (required). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet9SpiConfig8int_gpioE">
+<span id="_CPPv3N4espp8Ethernet9SpiConfig8int_gpioE"></span><span id="_CPPv2N4espp8Ethernet9SpiConfig8int_gpioE"></span><span id="espp::Ethernet::SpiConfig::int_gpio__i"></span><span class="target" id="structespp_1_1Ethernet_1_1SpiConfig_1ae2ef7212d4182e2aa481929f01e2677e"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">int_gpio</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet9SpiConfig8int_gpioE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="../core/interrupt.html#classespp_1_1Interrupt"><span class="std std-ref">Interrupt</span></a> GPIO; -1 to poll instead. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet9SpiConfig10reset_gpioE">
+<span id="_CPPv3N4espp8Ethernet9SpiConfig10reset_gpioE"></span><span id="_CPPv2N4espp8Ethernet9SpiConfig10reset_gpioE"></span><span id="espp::Ethernet::SpiConfig::reset_gpio__i"></span><span class="target" id="structespp_1_1Ethernet_1_1SpiConfig_1a3783946846ac2a8ca59fd2b05ec2f1a9"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset_gpio</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet9SpiConfig10reset_gpioE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Chip reset GPIO; -1 = none. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet9SpiConfig14clock_speed_hzE">
+<span id="_CPPv3N4espp8Ethernet9SpiConfig14clock_speed_hzE"></span><span id="_CPPv2N4espp8Ethernet9SpiConfig14clock_speed_hzE"></span><span id="espp::Ethernet::SpiConfig::clock_speed_hz__i"></span><span class="target" id="structespp_1_1Ethernet_1_1SpiConfig_1ad6b9717fee4c10411720effcb0e17ad1"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clock_speed_hz</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">20000000</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet9SpiConfig14clock_speed_hzE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>SPI clock (W5500 max ~33 MHz; conservative default). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet9SpiConfig8phy_addrE">
+<span id="_CPPv3N4espp8Ethernet9SpiConfig8phy_addrE"></span><span id="_CPPv2N4espp8Ethernet9SpiConfig8phy_addrE"></span><span id="espp::Ethernet::SpiConfig::phy_addr__i"></span><span class="target" id="structespp_1_1Ethernet_1_1SpiConfig_1a40c77abf5478378179921f603565ef33"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">phy_addr</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet9SpiConfig8phy_addrE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>PHY address (W5500 = 1). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Ethernet9SpiConfig4chipE">
+<span id="_CPPv3N4espp8Ethernet9SpiConfig4chipE"></span><span id="_CPPv2N4espp8Ethernet9SpiConfig4chipE"></span><span id="espp::Ethernet::SpiConfig::chip__SpiChip"></span><span class="target" id="structespp_1_1Ethernet_1_1SpiConfig_1a96461d279412cf9c6eacbac2705ffacd"></span><a class="reference internal" href="#_CPPv4N4espp8Ethernet7SpiChipE" title="espp::Ethernet::SpiChip"><span class="n"><span class="pre">SpiChip</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">chip</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="#_CPPv4N4espp8Ethernet7SpiChipE" title="espp::Ethernet::SpiChip"><span class="n"><span class="pre">SpiChip</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp8Ethernet7SpiChip5W5500E" title="espp::Ethernet::SpiChip::W5500"><span class="n"><span class="pre">W5500</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Ethernet9SpiConfig4chipE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Which built-in SPI ethernet chip. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="dns_server_example.html" class="btn btn-neutral float-left" title="DNS Server Example" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ethernet_example.html" class="btn btn-neutral float-right" title="Ethernet Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

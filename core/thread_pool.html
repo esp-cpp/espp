@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Thread Pool APIs - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'core/thread_pool';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Thread Pool Example" href="thread_pool_example.html" />
+    <link rel="prev" title="Task Example" href="task_example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPP
+              <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../web_apps.html">Web Apps</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Core &amp; RTOS APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="base_component.html">Base Component</a></li>
+<li class="toctree-l2"><a class="reference internal" href="base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l2"><a class="reference internal" href="task.html">Task APIs</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Thread Pool APIs</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#threadpool">ThreadPool</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="thread_pool_example.html">Thread Pool Example</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="runqueue.html">RunQueue APIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="timer.html">Timer APIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="interrupt.html">Interrupt APIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logger.html">Logging APIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli.html">Command Line Interface (CLI) APIs</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../buses/index.html">Buses &amp; Low-Level I/O APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../motor_control/index.html">Motor Control APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ota/index.html">Firmware Update (OTA) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wireless/index.html">Wireless &amp; Radio APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../dev_boards/index.html">Dev Boards (BSPs)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Core &amp; RTOS APIs</a></li>
+      <li class="breadcrumb-item active">Thread Pool APIs</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/873443f2/docs/en/core/thread_pool.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="thread-pool-apis">
+<h1>Thread Pool APIs<a class="headerlink" href="#thread-pool-apis" title="Permalink to this heading"></a></h1>
+<section id="threadpool">
+<h2>ThreadPool<a class="headerlink" href="#threadpool" title="Permalink to this heading"></a></h2>
+<p>The <a class="reference internal" href="#_CPPv4N4espp10ThreadPoolE" title="espp::ThreadPool"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">espp::ThreadPool</span></code></a> component provides a reusable pool of worker tasks for
+executing queued jobs asynchronously. Workers are implemented as
+<a class="reference internal" href="task.html#_CPPv4N4espp4TaskE" title="espp::Task"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">espp::Task</span></code></a> instances and pull work from an internal job queue
+(backed by <code class="docutils literal notranslate"><span class="pre">std::deque</span></code>) whose maximum size is optionally enforced by
+<a class="reference internal" href="#_CPPv4N4espp10ThreadPool6Config14max_queue_sizeE" title="espp::ThreadPool::Config::max_queue_size"><code class="xref cpp cpp-member docutils literal notranslate"><span class="pre">espp::ThreadPool::Config::max_queue_size</span></code></a>. Submissions can either
+reject immediately when the queue is full or block until space is available,
+depending on configuration.</p>
+<p>Code examples for the thread pool API are provided in the <code class="docutils literal notranslate"><span class="pre">thread_pool</span></code> example
+folder.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="thread_pool_example.html">Thread Pool Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="thread_pool_example.html#build">Build</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/873443f2/components/thread_pool/include/thread_pool.hpp">components/thread_pool/include/thread_pool.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10ThreadPoolE">
+<span id="_CPPv3N4espp10ThreadPoolE"></span><span id="_CPPv2N4espp10ThreadPoolE"></span><span id="espp::ThreadPool"></span><span class="target" id="classespp_1_1ThreadPool"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ThreadPool</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp10ThreadPoolE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>A thread pool that dispatches submitted jobs to a fixed set of worker threads. </p>
+<p>Workers are implemented as <a class="reference internal" href="task.html#classespp_1_1Task"><span class="std std-ref">espp::Task</span></a> instances. Jobs are queued and consumed in FIFO order. The queue can be optionally bounded; when full, new submissions are either rejected immediately or blocked until space becomes available, depending on the configuration.</p>
+<section id="classespp_1_1ThreadPool_1thread_pool_ex1">
+<h4>Lifecycle: start / stop / is_running / worker_count<a class="headerlink" href="#classespp_1_1ThreadPool_1thread_pool_ex1" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1ThreadPool_1thread_pool_ex1"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"--- {} ---"</span><span class="p">,</span><span class="w"> </span><span class="n">name</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">ThreadPool</span><span class="w"> </span><span class="n">pool</span><span class="p">({</span>
+<span class="w">        </span><span class="p">.</span><span class="n">worker_count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">max_queue_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">auto_start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">worker_task_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"tp_worker"</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4096</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">priority</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">core_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-1</span><span class="p">,</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">,</span>
+<span class="w">    </span><span class="p">});</span>
+
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="o">!</span><span class="n">pool</span><span class="p">.</span><span class="n">is_running</span><span class="p">(),</span><span class="w">       </span><span class="s">"pool should not be running before start()"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">pool</span><span class="p">.</span><span class="n">worker_count</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="s">"worker_count() should be 3"</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">pool</span><span class="p">.</span><span class="n">start</span><span class="p">(),</span><span class="w">   </span><span class="s">"start() should return true on first call"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">pool</span><span class="p">.</span><span class="n">is_running</span><span class="p">(),</span><span class="w"> </span><span class="s">"pool should be running after start()"</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">pool</span><span class="p">.</span><span class="n">start</span><span class="p">(),</span><span class="w">   </span><span class="s">"start() should return true when already running (no-op)"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">pool</span><span class="p">.</span><span class="n">is_running</span><span class="p">(),</span><span class="w"> </span><span class="s">"pool should still be running after duplicate start()"</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">pool</span><span class="p">.</span><span class="n">stop</span><span class="p">();</span>
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="o">!</span><span class="n">pool</span><span class="p">.</span><span class="n">is_running</span><span class="p">(),</span><span class="w"> </span><span class="s">"pool should not be running after stop()"</span><span class="p">);</span>
+</pre></div>
+</div>
+</section>
+<section id="classespp_1_1ThreadPool_1thread_pool_ex2">
+<h4>Submit Jobs<a class="headerlink" href="#classespp_1_1ThreadPool_1thread_pool_ex2" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1ThreadPool_1thread_pool_ex2"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"--- {} ---"</span><span class="p">,</span><span class="w"> </span><span class="n">name</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="n">done_mutex</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="n">done_cv</span><span class="p">;</span>
+<span class="w">    </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">total_jobs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">8</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">completed_jobs</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">ThreadPool</span><span class="w"> </span><span class="n">pool</span><span class="p">({</span>
+<span class="w">        </span><span class="p">.</span><span class="n">worker_count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">max_queue_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">auto_start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">worker_task_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"tp_worker"</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4096</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">priority</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">core_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-1</span><span class="p">,</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">,</span>
+<span class="w">    </span><span class="p">});</span>
+
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">accepted_count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">total_jobs</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">pool</span><span class="p">.</span><span class="n">submit</span><span class="p">([</span><span class="o">&amp;</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">50</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">            </span><span class="o">++</span><span class="n">completed_jobs</span><span class="p">;</span>
+<span class="w">            </span><span class="n">done_cv</span><span class="p">.</span><span class="n">notify_one</span><span class="p">();</span>
+<span class="w">          </span><span class="p">}))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="o">++</span><span class="n">accepted_count</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">accepted_count</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">total_jobs</span><span class="p">,</span><span class="w"> </span><span class="s">"all jobs should be accepted (unbounded queue)"</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">wait_for_jobs</span><span class="p">(</span><span class="n">done_cv</span><span class="p">,</span><span class="w"> </span><span class="n">done_mutex</span><span class="p">,</span><span class="w"> </span><span class="n">completed_jobs</span><span class="p">,</span><span class="w"> </span><span class="n">total_jobs</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">s</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pool</span><span class="p">.</span><span class="n">stats</span><span class="p">();</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"  stats: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">s</span><span class="p">);</span>
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="n">submitted</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">total_jobs</span><span class="p">,</span><span class="w"> </span><span class="s">"submitted count should equal total_jobs"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="n">executed</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">total_jobs</span><span class="p">,</span><span class="w">  </span><span class="s">"executed count should equal total_jobs"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="n">rejected</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">           </span><span class="s">"rejected count should be 0"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">pool</span><span class="p">.</span><span class="n">queue_size</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="s">"queue should be empty after all jobs finish"</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">pool</span><span class="p">.</span><span class="n">stop</span><span class="p">();</span>
+</pre></div>
+</div>
+</section>
+<section id="classespp_1_1ThreadPool_1thread_pool_ex3">
+<h4>try_submit - Non-Blocking Rejection When Full<a class="headerlink" href="#classespp_1_1ThreadPool_1thread_pool_ex3" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1ThreadPool_1thread_pool_ex3"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"--- {} ---"</span><span class="p">,</span><span class="w"> </span><span class="n">name</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1">// 1 worker, queue capacity 2: 1 executing + 2 queued = 3 total slots.</span>
+<span class="w">    </span><span class="c1">//</span>
+<span class="w">    </span><span class="c1">// Jobs are gated by an explicit barrier so workers cannot drain the queue</span>
+<span class="w">    </span><span class="c1">// before we assert rejection, making the test fully deterministic.</span>
+<span class="w">    </span><span class="c1">//</span>
+<span class="w">    </span><span class="c1">// To guarantee the queue is provably full we must also ensure the worker</span>
+<span class="w">    </span><span class="c1">// has dequeued (and is executing) the first job before we fill the two</span>
+<span class="w">    </span><span class="c1">// remaining queue slots.  We use a separate "started" CV for this.</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="n">barrier_mutex</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="n">barrier_cv</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">release_workers</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="n">started_mutex</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="n">started_cv</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">jobs_started</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">blocking_job</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="c1">// Signal that this job is now executing (off the queue)</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lock</span><span class="p">(</span><span class="n">started_mutex</span><span class="p">);</span>
+<span class="w">        </span><span class="o">++</span><span class="n">jobs_started</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="n">started_cv</span><span class="p">.</span><span class="n">notify_one</span><span class="p">();</span>
+<span class="w">      </span><span class="c1">// Block until the test releases the barrier</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lock</span><span class="p">(</span><span class="n">barrier_mutex</span><span class="p">);</span>
+<span class="w">      </span><span class="n">barrier_cv</span><span class="p">.</span><span class="n">wait</span><span class="p">(</span><span class="n">lock</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">release_workers</span><span class="p">;</span><span class="w"> </span><span class="p">});</span>
+<span class="w">    </span><span class="p">};</span>
+
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">ThreadPool</span><span class="w"> </span><span class="n">pool</span><span class="p">({</span>
+<span class="w">        </span><span class="p">.</span><span class="n">worker_count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">max_queue_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">auto_start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">block_on_submit_when_full</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">worker_task_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"tp_worker"</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4096</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">priority</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">core_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-1</span><span class="p">,</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">,</span>
+<span class="w">    </span><span class="p">});</span>
+
+<span class="w">    </span><span class="c1">// Step 1: submit the first job and wait until it is executing</span>
+<span class="w">    </span><span class="c1">//         (it has been removed from the queue by the worker).</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">fill_accepted</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">pool</span><span class="p">.</span><span class="n">try_submit</span><span class="p">(</span><span class="n">blocking_job</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="o">++</span><span class="n">fill_accepted</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lock</span><span class="p">(</span><span class="n">started_mutex</span><span class="p">);</span>
+<span class="w">      </span><span class="n">started_cv</span><span class="p">.</span><span class="n">wait</span><span class="p">(</span><span class="n">lock</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">jobs_started</span><span class="p">.</span><span class="n">load</span><span class="p">()</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="p">});</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// Step 2: fill the 2 remaining queue slots.</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">pool</span><span class="p">.</span><span class="n">try_submit</span><span class="p">(</span><span class="n">blocking_job</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="o">++</span><span class="n">fill_accepted</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">fill_accepted</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="s">"first 3 try_submit calls should be accepted"</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// Step 3: queue is now provably full — every additional try_submit must be rejected.</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">rejected_count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">pool</span><span class="p">.</span><span class="n">try_submit</span><span class="p">([</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{}))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="o">++</span><span class="n">rejected_count</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">rejected_count</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="s">"try_submit when full should return false"</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">s</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pool</span><span class="p">.</span><span class="n">stats</span><span class="p">();</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"  stats: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">s</span><span class="p">);</span>
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="n">rejected</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="s">"stats.rejected should be 3"</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// Release the barrier so workers can finish, then stop cleanly.</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lock</span><span class="p">(</span><span class="n">barrier_mutex</span><span class="p">);</span>
+<span class="w">      </span><span class="n">release_workers</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">barrier_cv</span><span class="p">.</span><span class="n">notify_all</span><span class="p">();</span>
+<span class="w">    </span><span class="n">pool</span><span class="p">.</span><span class="n">stop</span><span class="p">();</span>
+</pre></div>
+</div>
+</section>
+<section id="classespp_1_1ThreadPool_1thread_pool_ex4">
+<h4>Blocking Submit When Full<a class="headerlink" href="#classespp_1_1ThreadPool_1thread_pool_ex4" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1ThreadPool_1thread_pool_ex4"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"--- {} ---"</span><span class="p">,</span><span class="w"> </span><span class="n">name</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="n">done_mutex</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="n">done_cv</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">completed_jobs</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+<span class="w">    </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">total_jobs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">6</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">ThreadPool</span><span class="w"> </span><span class="n">pool</span><span class="p">({</span>
+<span class="w">        </span><span class="p">.</span><span class="n">worker_count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">max_queue_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">auto_start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">block_on_submit_when_full</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">worker_task_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"tp_worker"</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4096</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">priority</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">core_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-1</span><span class="p">,</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">,</span>
+<span class="w">    </span><span class="p">});</span>
+
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">accepted_count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">total_jobs</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">pool</span><span class="p">.</span><span class="n">submit</span><span class="p">([</span><span class="o">&amp;</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">30</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">            </span><span class="o">++</span><span class="n">completed_jobs</span><span class="p">;</span>
+<span class="w">            </span><span class="n">done_cv</span><span class="p">.</span><span class="n">notify_one</span><span class="p">();</span>
+<span class="w">          </span><span class="p">}))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="o">++</span><span class="n">accepted_count</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">accepted_count</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">total_jobs</span><span class="p">,</span><span class="w"> </span><span class="s">"all jobs should be accepted (blocking submit)"</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">wait_for_jobs</span><span class="p">(</span><span class="n">done_cv</span><span class="p">,</span><span class="w"> </span><span class="n">done_mutex</span><span class="p">,</span><span class="w"> </span><span class="n">completed_jobs</span><span class="p">,</span><span class="w"> </span><span class="n">total_jobs</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">s</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pool</span><span class="p">.</span><span class="n">stats</span><span class="p">();</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"  stats: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">s</span><span class="p">);</span>
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="n">submitted</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">total_jobs</span><span class="p">,</span><span class="w"> </span><span class="s">"submitted count should equal total_jobs"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="n">executed</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">total_jobs</span><span class="p">,</span><span class="w">  </span><span class="s">"executed count should equal total_jobs"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="n">rejected</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">           </span><span class="s">"rejected count should be 0"</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">pool</span><span class="p">.</span><span class="n">stop</span><span class="p">();</span>
+</pre></div>
+</div>
+</section>
+<section id="classespp_1_1ThreadPool_1thread_pool_ex5">
+<h4>Submit Rejected After stop()<a class="headerlink" href="#classespp_1_1ThreadPool_1thread_pool_ex5" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1ThreadPool_1thread_pool_ex5"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"--- {} ---"</span><span class="p">,</span><span class="w"> </span><span class="n">name</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">ThreadPool</span><span class="w"> </span><span class="n">pool</span><span class="p">({</span>
+<span class="w">        </span><span class="p">.</span><span class="n">worker_count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">max_queue_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">auto_start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">worker_task_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"tp_worker"</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4096</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">priority</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">core_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-1</span><span class="p">,</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">,</span>
+<span class="w">    </span><span class="p">});</span>
+
+<span class="w">    </span><span class="n">pool</span><span class="p">.</span><span class="n">stop</span><span class="p">();</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">accepted</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pool</span><span class="p">.</span><span class="n">submit</span><span class="p">([]()</span><span class="w"> </span><span class="p">{});</span>
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="o">!</span><span class="n">accepted</span><span class="p">,</span><span class="w">                   </span><span class="s">"submit() after stop() should return false"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">pool</span><span class="p">.</span><span class="n">stats</span><span class="p">().</span><span class="n">submitted</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="s">"submitted count should be 0"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">pool</span><span class="p">.</span><span class="n">stats</span><span class="p">().</span><span class="n">rejected</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w">  </span><span class="s">"rejected count should be 1"</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">s</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pool</span><span class="p">.</span><span class="n">stats</span><span class="p">();</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"  stats: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">s</span><span class="p">);</span>
+</pre></div>
+</div>
+</section>
+<section id="classespp_1_1ThreadPool_1thread_pool_ex6">
+<h4>Concurrent start / stop<a class="headerlink" href="#classespp_1_1ThreadPool_1thread_pool_ex6" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1ThreadPool_1thread_pool_ex6"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"--- {} ---"</span><span class="p">,</span><span class="w"> </span><span class="n">name</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">ThreadPool</span><span class="w"> </span><span class="n">pool</span><span class="p">({</span>
+<span class="w">        </span><span class="p">.</span><span class="n">worker_count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">max_queue_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">auto_start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">worker_task_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"tp_worker"</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4096</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">priority</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">core_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-1</span><span class="p">,</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">,</span>
+<span class="w">    </span><span class="p">});</span>
+
+<span class="w">    </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">num_threads</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="p">;</span>
+<span class="w">    </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">iterations</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="kr">thread</span><span class="o">&gt;</span><span class="w"> </span><span class="n">threads</span><span class="p">;</span>
+<span class="w">    </span><span class="n">threads</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span><span class="n">num_threads</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">num_threads</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">t</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">threads</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">([</span><span class="o">&amp;</span><span class="n">pool</span><span class="p">,</span><span class="w"> </span><span class="n">t</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">iterations</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="k">if</span><span class="w"> </span><span class="p">((</span><span class="n">t</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">pool</span><span class="p">.</span><span class="n">start</span><span class="p">();</span>
+<span class="w">          </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">pool</span><span class="p">.</span><span class="n">stop</span><span class="p">();</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">});</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">t</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">threads</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">t</span><span class="p">.</span><span class="n">join</span><span class="p">();</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// Bring pool to a known stopped state and verify consistency</span>
+<span class="w">    </span><span class="n">pool</span><span class="p">.</span><span class="n">stop</span><span class="p">();</span>
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="o">!</span><span class="n">pool</span><span class="p">.</span><span class="n">is_running</span><span class="p">(),</span><span class="w"> </span><span class="s">"pool should reach a clean stopped state"</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">s</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pool</span><span class="p">.</span><span class="n">stats</span><span class="p">();</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"  stats: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">s</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// No jobs were submitted — all counters must be zero</span>
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="n">submitted</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="n">executed</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="n">rejected</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">                    </span><span class="s">"stats should all be zero (no jobs submitted)"</span><span class="p">);</span>
+</pre></div>
+</div>
+</section>
+<section id="classespp_1_1ThreadPool_1thread_pool_ex7">
+<h4>Concurrent submit and try_submit<a class="headerlink" href="#classespp_1_1ThreadPool_1thread_pool_ex7" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1ThreadPool_1thread_pool_ex7"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"--- {} ---"</span><span class="p">,</span><span class="w"> </span><span class="n">name</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="n">done_mutex</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="n">done_cv</span><span class="p">;</span>
+<span class="w">    </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">num_submit_threads</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span>
+<span class="w">    </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">num_try_submit_threads</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="w">    </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">jobs_per_thread</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span>
+<span class="w">    </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">total_jobs</span><span class="w"> </span><span class="o">=</span>
+<span class="w">        </span><span class="p">(</span><span class="n">num_submit_threads</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">num_try_submit_threads</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">jobs_per_thread</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">completed_jobs</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">total_accepted</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">ThreadPool</span><span class="w"> </span><span class="n">pool</span><span class="p">({</span>
+<span class="w">        </span><span class="p">.</span><span class="n">worker_count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">max_queue_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">auto_start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">worker_task_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"tp_worker"</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4096</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">priority</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">core_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-1</span><span class="p">,</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">,</span>
+<span class="w">    </span><span class="p">});</span>
+
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="kr">thread</span><span class="o">&gt;</span><span class="w"> </span><span class="n">producers</span><span class="p">;</span>
+<span class="w">    </span><span class="n">producers</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span><span class="n">num_submit_threads</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">num_try_submit_threads</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// submit() producers</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">num_submit_threads</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">p</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">producers</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">([</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">jobs_per_thread</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">pool</span><span class="p">.</span><span class="n">submit</span><span class="p">([</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">10</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">                </span><span class="o">++</span><span class="n">completed_jobs</span><span class="p">;</span>
+<span class="w">                </span><span class="n">done_cv</span><span class="p">.</span><span class="n">notify_one</span><span class="p">();</span>
+<span class="w">              </span><span class="p">}))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="o">++</span><span class="n">total_accepted</span><span class="p">;</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">});</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// try_submit() producers</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">num_try_submit_threads</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">p</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">producers</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">([</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">jobs_per_thread</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">pool</span><span class="p">.</span><span class="n">try_submit</span><span class="p">([</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">10</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">                </span><span class="o">++</span><span class="n">completed_jobs</span><span class="p">;</span>
+<span class="w">                </span><span class="n">done_cv</span><span class="p">.</span><span class="n">notify_one</span><span class="p">();</span>
+<span class="w">              </span><span class="p">}))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="o">++</span><span class="n">total_accepted</span><span class="p">;</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">});</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">p</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">producers</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">p</span><span class="p">.</span><span class="n">join</span><span class="p">();</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="n">wait_for_jobs</span><span class="p">(</span><span class="n">done_cv</span><span class="p">,</span><span class="w"> </span><span class="n">done_mutex</span><span class="p">,</span><span class="w"> </span><span class="n">completed_jobs</span><span class="p">,</span><span class="w"> </span><span class="n">total_accepted</span><span class="p">.</span><span class="n">load</span><span class="p">());</span>
+
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">s</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pool</span><span class="p">.</span><span class="n">stats</span><span class="p">();</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"  stats: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">s</span><span class="p">);</span>
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="n">submitted</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="n">rejected</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">total_jobs</span><span class="p">,</span>
+<span class="w">                    </span><span class="s">"submitted + rejected should equal total attempted"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="n">executed</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="n">submitted</span><span class="p">,</span>
+<span class="w">                    </span><span class="s">"all accepted jobs should be executed (unbounded queue)"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="n">rejected</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="s">"unbounded queue should not reject any jobs"</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">pool</span><span class="p">.</span><span class="n">stop</span><span class="p">();</span>
+</pre></div>
+</div>
+</section>
+<section id="classespp_1_1ThreadPool_1thread_pool_ex8">
+<h4>Chained Pools<a class="headerlink" href="#classespp_1_1ThreadPool_1thread_pool_ex8" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1ThreadPool_1thread_pool_ex8"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"--- {} ---"</span><span class="p">,</span><span class="w"> </span><span class="n">name</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="n">done_mutex</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="n">done_cv</span><span class="p">;</span>
+<span class="w">    </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">num_a_jobs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">;</span>
+<span class="w">    </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">b_jobs_per_a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="w">    </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">total_b_jobs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">num_a_jobs</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">b_jobs_per_a</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">completed_b</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">ThreadPool</span><span class="w"> </span><span class="n">pool_b</span><span class="p">({</span>
+<span class="w">        </span><span class="p">.</span><span class="n">worker_count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">max_queue_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">auto_start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">worker_task_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"pool_b_worker"</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4096</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">priority</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">core_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-1</span><span class="p">,</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">,</span>
+<span class="w">    </span><span class="p">});</span>
+
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">ThreadPool</span><span class="w"> </span><span class="n">pool_a</span><span class="p">({</span>
+<span class="w">        </span><span class="p">.</span><span class="n">worker_count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">max_queue_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">auto_start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">worker_task_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"pool_a_worker"</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4096</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">priority</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">core_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-1</span><span class="p">,</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">,</span>
+<span class="w">    </span><span class="p">});</span>
+
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">num_a_jobs</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">pool_a</span><span class="p">.</span><span class="n">submit</span><span class="p">([</span><span class="o">&amp;</span><span class="n">pool_b</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">completed_b</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">done_cv</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">b_jobs_per_a</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="n">pool_b</span><span class="p">.</span><span class="n">submit</span><span class="p">([</span><span class="o">&amp;</span><span class="n">completed_b</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">done_cv</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">20</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">            </span><span class="o">++</span><span class="n">completed_b</span><span class="p">;</span>
+<span class="w">            </span><span class="n">done_cv</span><span class="p">.</span><span class="n">notify_one</span><span class="p">();</span>
+<span class="w">          </span><span class="p">});</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">});</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="n">wait_for_jobs</span><span class="p">(</span><span class="n">done_cv</span><span class="p">,</span><span class="w"> </span><span class="n">done_mutex</span><span class="p">,</span><span class="w"> </span><span class="n">completed_b</span><span class="p">,</span><span class="w"> </span><span class="n">total_b_jobs</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">sa</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pool_a</span><span class="p">.</span><span class="n">stats</span><span class="p">();</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">sb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pool_b</span><span class="p">.</span><span class="n">stats</span><span class="p">();</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"  pool_a stats: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">sa</span><span class="p">);</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"  pool_b stats: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">sb</span><span class="p">);</span>
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">sa</span><span class="p">.</span><span class="n">executed</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">num_a_jobs</span><span class="p">,</span><span class="w">   </span><span class="s">"pool_a should execute all A jobs"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">sb</span><span class="p">.</span><span class="n">executed</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">total_b_jobs</span><span class="p">,</span><span class="w"> </span><span class="s">"pool_b should execute all chained B jobs"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">sb</span><span class="p">.</span><span class="n">rejected</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">            </span><span class="s">"pool_b should not reject any jobs"</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">pool_a</span><span class="p">.</span><span class="n">stop</span><span class="p">();</span>
+<span class="w">    </span><span class="n">pool_b</span><span class="p">.</span><span class="n">stop</span><span class="p">();</span>
+</pre></div>
+</div>
+</section>
+<section id="classespp_1_1ThreadPool_1thread_pool_ex9">
+<h4>Self-Submit<a class="headerlink" href="#classespp_1_1ThreadPool_1thread_pool_ex9" title="Permalink to this heading"></a></h4>
+<div class="highlight-cpp notranslate" id="classespp_1_1ThreadPool_1thread_pool_ex9"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"--- {} ---"</span><span class="p">,</span><span class="w"> </span><span class="n">name</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="n">done_mutex</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="n">done_cv</span><span class="p">;</span>
+<span class="w">    </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">num_initial_jobs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="p">;</span>
+<span class="w">    </span><span class="c1">// Each initial job submits one follow-up job → 4 initial + 4 follow-up = 8 total</span>
+<span class="w">    </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">total_executions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">num_initial_jobs</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">completed</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">ThreadPool</span><span class="w"> </span><span class="n">pool</span><span class="p">({</span>
+<span class="w">        </span><span class="p">.</span><span class="n">worker_count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">max_queue_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">auto_start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">worker_task_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"tp_worker"</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4096</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">priority</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">core_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-1</span><span class="p">,</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">,</span>
+<span class="w">    </span><span class="p">});</span>
+
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">num_initial_jobs</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">pool</span><span class="p">.</span><span class="n">submit</span><span class="p">([</span><span class="o">&amp;</span><span class="n">pool</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">completed</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">done_cv</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="o">++</span><span class="n">completed</span><span class="p">;</span>
+<span class="w">        </span><span class="n">done_cv</span><span class="p">.</span><span class="n">notify_one</span><span class="p">();</span>
+<span class="w">        </span><span class="c1">// Submit a follow-up job back to the same pool without deadlock</span>
+<span class="w">        </span><span class="n">pool</span><span class="p">.</span><span class="n">submit</span><span class="p">([</span><span class="o">&amp;</span><span class="n">completed</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">done_cv</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">10</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">          </span><span class="o">++</span><span class="n">completed</span><span class="p">;</span>
+<span class="w">          </span><span class="n">done_cv</span><span class="p">.</span><span class="n">notify_one</span><span class="p">();</span>
+<span class="w">        </span><span class="p">});</span>
+<span class="w">      </span><span class="p">});</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="n">wait_for_jobs</span><span class="p">(</span><span class="n">done_cv</span><span class="p">,</span><span class="w"> </span><span class="n">done_mutex</span><span class="p">,</span><span class="w"> </span><span class="n">completed</span><span class="p">,</span><span class="w"> </span><span class="n">total_executions</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">s</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pool</span><span class="p">.</span><span class="n">stats</span><span class="p">();</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"  stats: {}"</span><span class="p">,</span><span class="w"> </span><span class="n">s</span><span class="p">);</span>
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="n">submitted</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">total_executions</span><span class="p">,</span>
+<span class="w">                    </span><span class="s">"all initial + follow-up jobs should be submitted"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="n">executed</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">total_executions</span><span class="p">,</span>
+<span class="w">                    </span><span class="s">"all initial + follow-up jobs should be executed"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">passed</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">check</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="n">rejected</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="s">"no jobs should be rejected"</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">pool</span><span class="p">.</span><span class="n">stop</span><span class="p">();</span>
+</pre></div>
+</div>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10ThreadPool3JobE">
+<span id="_CPPv3N4espp10ThreadPool3JobE"></span><span id="_CPPv2N4espp10ThreadPool3JobE"></span><span class="target" id="classespp_1_1ThreadPool_1a8375eb5349a113a3de11f91a27b04672"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Job</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp10ThreadPool3JobE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>A callable job that can be submitted to the pool. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10ThreadPool10ThreadPoolERK6Config">
+<span id="_CPPv3N4espp10ThreadPool10ThreadPoolERK6Config"></span><span id="_CPPv2N4espp10ThreadPool10ThreadPoolERK6Config"></span><span id="espp::ThreadPool::ThreadPool__ConfigCR"></span><span class="target" id="classespp_1_1ThreadPool_1ab1d94fe48bb8e9145605734126466b71"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ThreadPool</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp10ThreadPool6ConfigE" title="espp::ThreadPool::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10ThreadPool10ThreadPoolERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct the pool with the given configuration. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – Pool configuration. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10ThreadPoolD0Ev">
+<span id="_CPPv3N4espp10ThreadPoolD0Ev"></span><span id="_CPPv2N4espp10ThreadPoolD0Ev"></span><span id="espp::ThreadPool::~ThreadPool"></span><span class="target" id="classespp_1_1ThreadPool_1a3c1e8e99a6f009c4f0c5aea453264bcc"></span><span class="sig-name descname"><span class="n"><span class="pre">~ThreadPool</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10ThreadPoolD0Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Destroy the pool, stopping all workers gracefully. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10ThreadPool5startEv">
+<span id="_CPPv3N4espp10ThreadPool5startEv"></span><span id="_CPPv2N4espp10ThreadPool5startEv"></span><span id="espp::ThreadPool::start"></span><span class="target" id="classespp_1_1ThreadPool_1a53e6a2f080c0fce5684923386605f025"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">start</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10ThreadPool5startEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Start all worker threads. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>No-op if the pool is already running and return true immediately. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If any workers could not be started, the pool will roll back to the stopped state. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if all workers were successfully started, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10ThreadPool4stopEv">
+<span id="_CPPv3N4espp10ThreadPool4stopEv"></span><span id="_CPPv2N4espp10ThreadPool4stopEv"></span><span id="espp::ThreadPool::stop"></span><span class="target" id="classespp_1_1ThreadPool_1a453445c4d950f169aa993514d3fbc60f"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stop</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10ThreadPool4stopEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Stop all worker threads and reject further submissions. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Blocks until every worker has exited; queued jobs may not be executed. </p>
+</div>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10ThreadPool10is_runningEv">
+<span id="_CPPv3NK4espp10ThreadPool10is_runningEv"></span><span id="_CPPv2NK4espp10ThreadPool10is_runningEv"></span><span id="espp::ThreadPool::is_runningC"></span><span class="target" id="classespp_1_1ThreadPool_1a4d174103fbaceb797b1528d9e218cbe3"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_running</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10ThreadPool10is_runningEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Query whether the pool is currently running. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true if workers are active, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10ThreadPool6submitERR3Job">
+<span id="_CPPv3N4espp10ThreadPool6submitERR3Job"></span><span id="_CPPv2N4espp10ThreadPool6submitERR3Job"></span><span id="espp::ThreadPool::submit__JobRR"></span><span class="target" id="classespp_1_1ThreadPool_1a3ec2c0b70b710d97ac06733e79af3ddc"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">submit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp10ThreadPool3JobE" title="espp::ThreadPool::Job"><span class="n"><span class="pre">Job</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">job</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10ThreadPool6submitERR3Job" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Submit a job, optionally blocking when the queue is full. </p>
+<p>Blocks if <a class="reference internal" href="#structespp_1_1ThreadPool_1_1Config_1a69d563ac88a18b42dee45e1c6659ab42"><span class="std std-ref">Config::block_on_submit_when_full</span></a> is true and the queue has reached its capacity limit. Otherwise behaves identically to <a class="reference internal" href="#classespp_1_1ThreadPool_1a1957bf0366065c6caba3849b226e32e6"><span class="std std-ref">try_submit()</span></a>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>job</strong> – Callable to enqueue; moved into the queue on acceptance. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the job was accepted, false if it was rejected. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10ThreadPool10try_submitERR3Job">
+<span id="_CPPv3N4espp10ThreadPool10try_submitERR3Job"></span><span id="_CPPv2N4espp10ThreadPool10try_submitERR3Job"></span><span id="espp::ThreadPool::try_submit__JobRR"></span><span class="target" id="classespp_1_1ThreadPool_1a1957bf0366065c6caba3849b226e32e6"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">try_submit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp10ThreadPool3JobE" title="espp::ThreadPool::Job"><span class="n"><span class="pre">Job</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">job</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10ThreadPool10try_submitERR3Job" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Attempt to submit a job without blocking. </p>
+<p>Returns immediately with false when the queue is full. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>job</strong> – Callable to enqueue; moved into the queue on acceptance. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true if the job was accepted, false if it was rejected. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10ThreadPool10queue_sizeEv">
+<span id="_CPPv3NK4espp10ThreadPool10queue_sizeEv"></span><span id="_CPPv2NK4espp10ThreadPool10queue_sizeEv"></span><span id="espp::ThreadPool::queue_sizeC"></span><span class="target" id="classespp_1_1ThreadPool_1a03c4696effb93dc23e3de8963326d6f0"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">queue_size</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10ThreadPool10queue_sizeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Return the number of jobs currently waiting in the queue. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Pending job count. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10ThreadPool12worker_countEv">
+<span id="_CPPv3NK4espp10ThreadPool12worker_countEv"></span><span id="_CPPv2NK4espp10ThreadPool12worker_countEv"></span><span id="espp::ThreadPool::worker_countC"></span><span class="target" id="classespp_1_1ThreadPool_1a693409d7a353fb8bdd275983b16cf3cd"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">worker_count</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10ThreadPool12worker_countEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Return the number of worker threads in the pool. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Worker thread count. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10ThreadPool5statsEv">
+<span id="_CPPv3NK4espp10ThreadPool5statsEv"></span><span id="_CPPv2NK4espp10ThreadPool5statsEv"></span><span id="espp::ThreadPool::statsC"></span><span class="target" id="classespp_1_1ThreadPool_1ad5b5e71565049a626d0bf6c7a2f9421d"></span><a class="reference internal" href="#_CPPv4N4espp10ThreadPool5StatsE" title="espp::ThreadPool::Stats"><span class="n"><span class="pre">Stats</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stats</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10ThreadPool5statsEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Return a snapshot of the pool’s activity counters. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#structespp_1_1ThreadPool_1_1Stats"><span class="std std-ref">Stats</span></a> struct with submitted, executed, and rejected counts. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10ThreadPool8get_nameEv">
+<span id="_CPPv3NK4espp10ThreadPool8get_nameEv"></span><span id="_CPPv2NK4espp10ThreadPool8get_nameEv"></span><span id="espp::ThreadPool::get_nameC"></span><span class="target" id="classespp_1_1BaseComponent_1ad3813fa0c9c026e217163c4e2fdfc4a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10ThreadPool8get_nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the name of the component </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the tag of the logger </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A const reference to the name of the component </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10ThreadPool11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp10ThreadPool11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp10ThreadPool11set_log_tagERKNSt11string_viewE"></span><span id="espp::ThreadPool::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10ThreadPool11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10ThreadPool13get_log_levelEv">
+<span id="_CPPv3NK4espp10ThreadPool13get_log_levelEv"></span><span id="_CPPv2NK4espp10ThreadPool13get_log_levelEv"></span><span id="espp::ThreadPool::get_log_levelC"></span><span class="target" id="classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10ThreadPool13get_log_levelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10ThreadPool13set_log_levelEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp10ThreadPool13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp10ThreadPool13set_log_levelEN4espp6Logger9VerbosityE"></span><span id="espp::ThreadPool::set_log_level__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10ThreadPool13set_log_levelEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10ThreadPool17set_log_verbosityEN4espp6Logger9VerbosityE">
+<span id="_CPPv3N4espp10ThreadPool17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="_CPPv2N4espp10ThreadPool17set_log_verbosityEN4espp6Logger9VerbosityE"></span><span id="espp::ThreadPool::set_log_verbosity__espp::Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1abb459bcd55b41471e201475fbf1a1b1f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10ThreadPool17set_log_verbosityEN4espp6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wireless/sx126x.html#classespp_1_1BaseComponent_1a3159df4e466f93ebb6cca7e685d27243"><span class="std std-ref">set_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1aa8c260085619fd42e17b92c41a638741"><span class="std std-ref">Logger::set_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10ThreadPool17get_log_verbosityEv">
+<span id="_CPPv3NK4espp10ThreadPool17get_log_verbosityEv"></span><span id="_CPPv2NK4espp10ThreadPool17get_log_verbosityEv"></span><span id="espp::ThreadPool::get_log_verbosityC"></span><span class="target" id="classespp_1_1BaseComponent_1ac9cda1ea5d5321040ca13a827057ff79"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_log_verbosity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10ThreadPool17get_log_verbosityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wireless/sx126x.html#classespp_1_1BaseComponent_1a54f34a70b117486a7055e4a6f1d4d7a8"><span class="std std-ref">get_log_level</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1a6ed0028b750b3e4aae21d2ecb3670c55"><span class="std std-ref">Logger::get_verbosity</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls get_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The verbosity level of the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10ThreadPool18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp10ThreadPool18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp10ThreadPool18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::ThreadPool::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10ThreadPool18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a></p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10ThreadPool6ConfigE">
+<span id="_CPPv3N4espp10ThreadPool6ConfigE"></span><span id="_CPPv2N4espp10ThreadPool6ConfigE"></span><span id="espp::ThreadPool::Config"></span><span class="target" id="structespp_1_1ThreadPool_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp10ThreadPool6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration parameters for constructing a <a class="reference internal" href="#classespp_1_1ThreadPool"><span class="std std-ref">ThreadPool</span></a>. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10ThreadPool6Config12worker_countE">
+<span id="_CPPv3N4espp10ThreadPool6Config12worker_countE"></span><span id="_CPPv2N4espp10ThreadPool6Config12worker_countE"></span><span id="espp::ThreadPool::Config::worker_count__std::s"></span><span class="target" id="structespp_1_1ThreadPool_1_1Config_1a1903b032b140fbf595406fa40480be87"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">worker_count</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N4espp10ThreadPool6Config12worker_countE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Number of worker threads to spawn. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10ThreadPool6Config14max_queue_sizeE">
+<span id="_CPPv3N4espp10ThreadPool6Config14max_queue_sizeE"></span><span id="_CPPv2N4espp10ThreadPool6Config14max_queue_sizeE"></span><span id="espp::ThreadPool::Config::max_queue_size__std::s"></span><span class="target" id="structespp_1_1ThreadPool_1_1Config_1a780dac3025cd23467128652046c1bb40"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">max_queue_size</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N4espp10ThreadPool6Config14max_queue_sizeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Maximum pending jobs (0 = unbounded). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10ThreadPool6Config10auto_startE">
+<span id="_CPPv3N4espp10ThreadPool6Config10auto_startE"></span><span id="_CPPv2N4espp10ThreadPool6Config10auto_startE"></span><span id="espp::ThreadPool::Config::auto_start__b"></span><span class="target" id="structespp_1_1ThreadPool_1_1Config_1a66f937673df2407ff7328a9034bedff2"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">auto_start</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><a class="headerlink" href="#_CPPv4N4espp10ThreadPool6Config10auto_startE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Start workers immediately on construction. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10ThreadPool6Config25block_on_submit_when_fullE">
+<span id="_CPPv3N4espp10ThreadPool6Config25block_on_submit_when_fullE"></span><span id="_CPPv2N4espp10ThreadPool6Config25block_on_submit_when_fullE"></span><span id="espp::ThreadPool::Config::block_on_submit_when_full__b"></span><span class="target" id="structespp_1_1ThreadPool_1_1Config_1a69d563ac88a18b42dee45e1c6659ab42"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">block_on_submit_when_full</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N4espp10ThreadPool6Config25block_on_submit_when_fullE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>If true, <a class="reference internal" href="#classespp_1_1ThreadPool_1a3ec2c0b70b710d97ac06733e79af3ddc"><span class="std std-ref">submit()</span></a> blocks when the queue is full instead of rejecting. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10ThreadPool6Config9log_levelE">
+<span id="_CPPv3N4espp10ThreadPool6Config9log_levelE"></span><span id="_CPPv2N4espp10ThreadPool6Config9log_levelE"></span><span id="espp::ThreadPool::Config::log_level__espp::Logger::Verbosity"></span><span class="target" id="structespp_1_1ThreadPool_1_1Config_1ac9145775269aa2857f04e956f929e2af"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><a class="headerlink" href="#_CPPv4N4espp10ThreadPool6Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="logger.html#classespp_1_1Logger"><span class="std std-ref">Logger</span></a> verbosity level. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10ThreadPool5StatsE">
+<span id="_CPPv3N4espp10ThreadPool5StatsE"></span><span id="_CPPv2N4espp10ThreadPool5StatsE"></span><span id="espp::ThreadPool::Stats"></span><span class="target" id="structespp_1_1ThreadPool_1_1Stats"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Stats</span></span></span><a class="headerlink" href="#_CPPv4N4espp10ThreadPool5StatsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Snapshot of pool activity counters. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10ThreadPool5Stats9submittedE">
+<span id="_CPPv3N4espp10ThreadPool5Stats9submittedE"></span><span id="_CPPv2N4espp10ThreadPool5Stats9submittedE"></span><span id="espp::ThreadPool::Stats::submitted__std::uint64_t"></span><span class="target" id="structespp_1_1ThreadPool_1_1Stats_1a47dfa776d6c0d79b26bcdc9ac69be675"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">submitted</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N4espp10ThreadPool5Stats9submittedE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Total jobs accepted into the queue. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10ThreadPool5Stats8executedE">
+<span id="_CPPv3N4espp10ThreadPool5Stats8executedE"></span><span id="_CPPv2N4espp10ThreadPool5Stats8executedE"></span><span id="espp::ThreadPool::Stats::executed__std::uint64_t"></span><span class="target" id="structespp_1_1ThreadPool_1_1Stats_1aa21b04bc6c0fd1f4d373ebc2c8781b86"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">executed</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N4espp10ThreadPool5Stats8executedE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Total jobs successfully executed. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10ThreadPool5Stats8rejectedE">
+<span id="_CPPv3N4espp10ThreadPool5Stats8rejectedE"></span><span id="_CPPv2N4espp10ThreadPool5Stats8rejectedE"></span><span id="espp::ThreadPool::Stats::rejected__std::uint64_t"></span><span class="target" id="structespp_1_1ThreadPool_1_1Stats_1a8f8527c69576754ed1593e28396c477b"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">rejected</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N4espp10ThreadPool5Stats8rejectedE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>full) or dropped (due to stop, the enqueued jobs were dropped). </p>
+<p>Total jobs rejected (invalid job, stopped/stopping, or queue </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="task_example.html" class="btn btn-neutral float-left" title="Task Example" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="thread_pool_example.html" class="btn btn-neutral float-right" title="Thread Pool Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

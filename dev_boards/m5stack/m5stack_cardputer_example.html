@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>M5Stack Cardputer Example - ESP32 -  &mdash; ESPP main documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=a60756f2" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=949a1ff5" />
+      <link rel="stylesheet" type="text/css" href="../../_static/theme_overrides.css?v=851bd809" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js?v=d01aebe5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../../_static/copybutton.js?v=ff8fa330"></script>
+    <script src="../../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'dev_boards/m5stack/m5stack_cardputer_example';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'main';
+        DOCUMENTATION_OPTIONS.LANGUAGE_URL = 'en';
+
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="M5Stack Tab5" href="m5stack_tab5.html" />
+    <link rel="prev" title="M5Stack Cardputer" href="m5stack_cardputer.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            ESPP
+              <img src="../../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introduction</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../web_apps.html">Web Apps</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Core &amp; RTOS</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../core/index.html">Core &amp; RTOS APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Storage &amp; Configuration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../storage/index.html">Storage &amp; Configuration APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Buses &amp; I/O</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../buses/index.html">Buses &amp; Low-Level I/O APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../io_expander/index.html">IO Expander APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Sensors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../imu/index.html">IMU APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../distance_sensors/index.html">Distance Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../presence/index.html">Presence Sensor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../power/index.html">Power Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../thermistor.html">Thermistor APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Motor Control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../motor_control/index.html">Motor Control APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../bldc/index.html">Motor (BDC + BLDC) APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Displays, LEDs &amp; Haptics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../leds/index.html">LED &amp; Lighting APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../led_driver/index.html">LED Driver Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../haptics/index.html">Haptics APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Input &amp; HID</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../hid/index.html">HID APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Connectivity &amp; Protocols</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../wifi/index.html">WiFi APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ota/index.html">Firmware Update (OTA) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../wireless/index.html">Wireless &amp; Radio APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../protocols/index.html">Protocols &amp; Network Tools APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Math &amp; DSP</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../filters/index.html">Filter APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data &amp; Serialization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../data/index.html">Data &amp; Serialization APIs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Dev Boards (BSPs)</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Dev Boards (BSPs)</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../espressif/index.html">Espressif Boards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../adafruit/index.html">Adafruit Boards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lilygo/index.html">LilyGo Boards</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">M5Stack Boards</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="m5stack_cardputer.html">M5Stack Cardputer</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="m5stack_cardputer.html#id1">M5Stack-Cardputer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="m5stack_cardputer.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="m5stack_tab5.html">M5Stack Tab5</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../motorgo/index.html">MotorGo Boards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../seeed/index.html">Seeed Studio Boards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../waveshare/index.html">Waveshare Boards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../other/index.html">Other Boards</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Dev Boards (BSPs)</a></li>
+          <li class="breadcrumb-item"><a href="index.html">M5Stack Boards</a></li>
+          <li class="breadcrumb-item"><a href="m5stack_cardputer.html">M5Stack Cardputer</a></li>
+      <li class="breadcrumb-item active">M5Stack Cardputer Example</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/873443f2/docs/en/dev_boards/m5stack/m5stack_cardputer_example.md" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="m5stack-cardputer-example">
+<h1>M5Stack Cardputer Example<a class="headerlink" href="#m5stack-cardputer-example" title="Permalink to this heading"></a></h1>
+<p>This example shows how to use the <code class="docutils literal notranslate"><span class="pre">espp::M5StackCardputer</span></code> hardware abstraction
+component to initialize and use the components on the M5Stack Cardputer:</p>
+<ul class="simple">
+<li><p>The display (with LVGL, via a small <code class="docutils literal notranslate"><span class="pre">Gui</span></code> class that presents a <strong>tabbed
+interface</strong> switched from the keyboard - there is no touchscreen)</p></li>
+<li><p>The 56-key QWERTY keyboard (typing, shift layer, and the fn layer’s arrow /
+delete / esc keys)</p></li>
+<li><p>The speaker (a key-click beep for every keypress)</p></li>
+<li><p>The RGB LED (the G0 / BOOT button cycles its color)</p></li>
+<li><p>The uSD card (mounted at startup if inserted)</p></li>
+<li><p>The battery voltage / state-of-charge measurement</p></li>
+<li><p>The IMU on the Cardputer ADV (live accelerometer / gyroscope readings)</p></li>
+<li><p>The SX1262 LoRa radio on the LoRa+GPS Cap (send / receive text; Cardputer ADV
+accessory)</p></li>
+<li><p>The ATGM336H GNSS receiver on the same Cap (position / satellites / UTC time
+shown on the GPS tab)</p></li>
+</ul>
+<p>The UI is a tabview with five tabs, switched with <strong>fn+Tab</strong> (or jumped to
+directly with fn+1 / fn+2 / fn+9):</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Tab</p></th>
+<th class="head"><p>Contents</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Text</strong></p></td>
+<td><p>The text editor - type here; this is also where LoRa messages are composed</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>LoRa</strong></p></td>
+<td><p>Radio status and a scrolling log of sent / received messages with RSSI</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>IMU</strong></p></td>
+<td><p>Live accelerometer / gyroscope readings (ADV only)</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>GPS</strong></p></td>
+<td><p>GNSS fix status (position, satellites, UTC time) from the LoRa+GPS Cap</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Sys</strong></p></td>
+<td><p>Board variant, battery, and speaker / mic volumes</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Help</strong></p></td>
+<td><p>The list of controls</p></td>
+</tr>
+</tbody>
+</table>
+<p>A slim status bar along the bottom stays visible on every tab for transient
+messages (key names, volume changes, “Sending…”). While the LoRa tab is
+active, the status bar instead mirrors the message you are composing (the text
+box lives on the Text tab), so you can see what you are about to send.</p>
+<section id="how-to-use-example">
+<h2>How to use example<a class="headerlink" href="#how-to-use-example" title="Permalink to this heading"></a></h2>
+<section id="controls">
+<h3>Controls<a class="headerlink" href="#controls" title="Permalink to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Input</p></th>
+<th class="head"><p>Action</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Fn + Tab</strong></p></td>
+<td><p><strong>Switch to the next tab</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>Printable keys (with shift layer)</p></td>
+<td><p>Type into the text area (Text tab)</p></td>
+</tr>
+<tr class="row-even"><td><p>Backspace / Enter / Tab</p></td>
+<td><p>Edit the text area</p></td>
+</tr>
+<tr class="row-odd"><td><p>Fn + <code class="docutils literal notranslate"><span class="pre">;</span></code> / <code class="docutils literal notranslate"><span class="pre">,</span></code> / <code class="docutils literal notranslate"><span class="pre">.</span></code> / <code class="docutils literal notranslate"><span class="pre">/</span></code></p></td>
+<td><p>Move the cursor (up / left / down / right)</p></td>
+</tr>
+<tr class="row-even"><td><p>Fn + backspace</p></td>
+<td><p>Delete forward</p></td>
+</tr>
+<tr class="row-odd"><td><p>Fn + <code class="docutils literal notranslate"><span class="pre">`</span></code></p></td>
+<td><p>Clear the text area</p></td>
+</tr>
+<tr class="row-even"><td><p>Fn + 1 (F1)</p></td>
+<td><p>Jump to the Help tab</p></td>
+</tr>
+<tr class="row-odd"><td><p>Fn + 2 (F2)</p></td>
+<td><p>Jump to the IMU tab (ADV)</p></td>
+</tr>
+<tr class="row-even"><td><p>Fn + 9 (F9)</p></td>
+<td><p>Jump to the LoRa tab</p></td>
+</tr>
+<tr class="row-odd"><td><p>Fn + 0 (F10)</p></td>
+<td><p>Send the text area’s contents over LoRa</p></td>
+</tr>
+<tr class="row-even"><td><p>Fn + 3 (F3)</p></td>
+<td><p>Start / stop recording from the microphone (ADV)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Fn + 4 (F4)</p></td>
+<td><p>Play back / stop the recording (ADV)</p></td>
+</tr>
+<tr class="row-even"><td><p>Fn + 5 / 6 (F5 / F6)</p></td>
+<td><p>Speaker volume down / up</p></td>
+</tr>
+<tr class="row-odd"><td><p>Fn + 7 / 8 (F7 / F8)</p></td>
+<td><p>Microphone volume down / up (75% = 0 dB)</p></td>
+</tr>
+<tr class="row-even"><td><p>G0 (BOOT) button</p></td>
+<td><p>Cycle the RGB LED color</p></td>
+</tr>
+</tbody>
+</table>
+<p>The controls are also printed to the log at startup, and are shown on the Help
+tab.</p>
+</section>
+<section id="lora-with-the-lora-gps-cap">
+<h3>LoRa (with the LoRa+GPS Cap)<a class="headerlink" href="#lora-with-the-lora-gps-cap" title="Permalink to this heading"></a></h3>
+<p>The <strong>LoRa</strong> tab drives the SX1262 radio on the M5Stack LoRa+GPS Cap (a
+Cardputer ADV accessory). Type a message on the Text tab, press <strong>fn+0</strong> to
+transmit it, and received packets appear in the LoRa tab’s log with their RSSI.</p>
+<p>This uses the same raw-LoRa settings as the T-Deck example (US LongFast
+modulation - 906.875 MHz, SF11/BW250 - on a private sync word <code class="docutils literal notranslate"><span class="pre">0x12</span></code>), so a
+Cardputer with the Cap and a T-Deck each running their example will exchange
+text messages. This is <em>not</em> Meshtastic (that uses sync word <code class="docutils literal notranslate"><span class="pre">0x2B</span></code>) - see the
+<code class="docutils literal notranslate"><span class="pre">meshtastic</span></code> component for Meshtastic interoperability. Attach the antenna
+before transmitting, and make sure the frequency is legal in your region. If
+the Cap is not attached (or the board is not an ADV), the LoRa tab reports that
+the radio is unavailable.</p>
+<p>On the ADV the ES8311 codec runs the speaker and microphone in full duplex,
+so recording works while the speaker is active (key clicks and all). The
+recording buffer prefers PSRAM when present; since neither Cardputer variant
+ships with PSRAM, it normally falls back to a few seconds of voice-rate
+(16 kHz mono) audio in internal RAM. The original Cardputer cannot record in
+this example: its PDM microphone clock shares GPIO 43 with the speaker
+word-select, and the example uses the speaker.</p>
+<p>The status bar at the bottom of the screen shows the most recent key /
+modifier activity and is updated with the battery voltage every few seconds.</p>
+</section>
+<section id="hardware-required">
+<h3>Hardware Required<a class="headerlink" href="#hardware-required" title="Permalink to this heading"></a></h3>
+<p>This example is designed to run on the M5Stack Cardputer (K132), with an
+optional uSD card inserted.</p>
+</section>
+<section id="build-and-flash">
+<h3>Build and Flash<a class="headerlink" href="#build-and-flash" title="Permalink to this heading"></a></h3>
+<p>Build the project and flash it to the board, then run monitor tool to view
+serial output:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">idf</span><span class="o">.</span><span class="n">py</span> <span class="o">-</span><span class="n">p</span> <span class="n">PORT</span> <span class="n">flash</span> <span class="n">monitor</span>
+</pre></div>
+</div>
+<p>(Replace PORT with the name of the serial port to use.)</p>
+<p>(To exit the serial monitor, type <code class="docutils literal notranslate"><span class="pre">Ctrl-]</span></code>.)</p>
+<p>See the <a class="reference external" href="https://docs.espressif.com/projects/esp-idf/en/latest/get-started/index.html">Getting Started Guide</a> for full steps to configure and use ESP-IDF to build projects.</p>
+</section>
+</section>
+<section id="example-output">
+<h2>Example Output<a class="headerlink" href="#example-output" title="Permalink to this heading"></a></h2>
+<p>Serial output showing initialization of the subsystems, followed by log lines
+for keyboard / button activity. The display shows the text editor with the
+status bar along the bottom.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="m5stack_cardputer.html" class="btn btn-neutral float-left" title="M5Stack Cardputer" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="m5stack_tab5.html" class="btn btn-neutral float-right" title="M5Stack Tab5" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2026, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
