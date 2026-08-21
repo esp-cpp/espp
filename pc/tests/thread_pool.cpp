@@ -691,6 +691,8 @@ int main() {
     espp::ThreadPool pool({
         .auto_start = true,
         .band_worker_counts = {{1, 1, 2, 1}}, // 1 Critical, 1 High, 2 Normal, 1 Low worker
+        .band_workers_realtime = true, // exercise the host SCHED_FIFO path (best-effort; falls
+                                       // back gracefully without CAP_SYS_NICE/RLIMIT_RTPRIO)
         .worker_task_config =
             {.name = "tp_worker", .stack_size_bytes = 4096, .priority = 5, .core_id = -1},
     });
@@ -736,7 +738,7 @@ int main() {
           "stats: everything submitted was executed, nothing rejected");
     {
       std::lock_guard<std::mutex> lk(lat_mtx);
-      auto max_of = [](std::vector<std::chrono::microseconds> &v) {
+      auto max_of = [](const std::vector<std::chrono::microseconds> &v) {
         return v.empty() ? std::chrono::microseconds(0) : *std::max_element(v.begin(), v.end());
       };
       logger.info("  critical: n={} max wait={}us; low: n={} max wait={}us",

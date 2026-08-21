@@ -40,6 +40,11 @@ bool Task::apply_thread_priority(std::thread &thread, size_t priority) {
     // value, 0, on Linux; the default is the middle of the range on macOS).
     const int other_min = sched_get_priority_min(SCHED_OTHER);
     const int other_max = sched_get_priority_max(SCHED_OTHER);
+    if (other_min < 0 || other_max < other_min) {
+      // sched_get_priority_min/max return -1 on failure; don't feed a bogus
+      // (negative) priority to pthread_setschedparam.
+      return false;
+    }
     param.sched_priority = (other_min + other_max) / 2;
     const int err = pthread_setschedparam(handle, SCHED_OTHER, &param);
     if (err != 0) {

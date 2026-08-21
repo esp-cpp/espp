@@ -16,12 +16,28 @@ ThreadPool::ThreadPool(const Config &config)
     // Per-band workers: band k gets band_worker_counts[k] workers at
     // band_task_priorities[k], each servicing bands 0..k (its own band and
     // every more urgent band).
+#if !defined(ESP_PLATFORM)
+    // On host platforms Task priority >= 1 maps to SCHED_FIFO real-time
+    // scheduling, which can starve the system - only apply it when explicitly
+    // opted in. Band ordering is still honored at the queue level regardless
+    // (workers pop the most urgent band first).
+    if (!config_.band_workers_realtime) {
+      logger_.info("Per-band workers running without OS real-time priorities (band ordering is "
+                   "queue-level only); set Config::band_workers_realtime to opt in to SCHED_FIFO");
+    }
+#endif
     for (std::size_t band = 0; band < kNumBands; ++band) {
       for (std::size_t i = 0; i < config_.band_worker_counts[band]; ++i) {
         auto worker_config = config_.worker_task_config;
         worker_config.name =
             config_.worker_task_config.name + "_b" + std::to_string(band) + "_" + std::to_string(i);
+#if defined(ESP_PLATFORM)
+        // FreeRTOS priorities are cheap and preemptive by design - always apply.
         worker_config.priority = config_.band_task_priorities[band];
+#else
+        worker_config.priority =
+            config_.band_workers_realtime ? config_.band_task_priorities[band] : 0;
+#endif
         workers_.emplace_back(espp::Task::make_unique({
             .callback = [this, band]() { return worker_task_fn(band); },
             .task_config = worker_config,

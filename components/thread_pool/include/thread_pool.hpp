@@ -132,9 +132,23 @@ public:
                                                              ///< servicing bands 0..k.
     std::array<std::size_t, kNumBands> band_task_priorities{
         10, 7, 5, 1}; ///< espp::Task priorities for per-band workers (only used when
-                      ///< band_worker_counts is set). Defaults descend from Critical to Low; on
-                      ///< ESP these are FreeRTOS priorities, on Linux/macOS they map to SCHED_FIFO
-                      ///< real-time priorities (see espp::Task::BaseConfig::priority).
+                      ///< band_worker_counts is set). Defaults descend from Critical to Low. On
+                      ///< ESP these are FreeRTOS priorities and are always applied; on host
+                      ///< platforms (Linux/macOS) they map to SCHED_FIFO real-time priorities
+                      ///< (see espp::Task::BaseConfig::priority) and are only applied when
+                      ///< band_workers_realtime is set.
+    bool band_workers_realtime =
+        false; ///< Opt-in for OS real-time scheduling of per-band workers on HOST platforms.
+               ///< When false (the default), host per-band workers run at default (non-realtime)
+               ///< scheduling: band ordering is still honored at the queue level (workers pop
+               ///< the most urgent band first), but the OS scheduler does not preempt in favor
+               ///< of the more urgent bands' workers. When true, band_task_priorities are
+               ///< applied as SCHED_FIFO real-time priorities.
+               ///< @warning SCHED_FIFO workers can starve the rest of the system if a job spins;
+               ///< on Linux this additionally requires CAP_SYS_NICE or an RLIMIT_RTPRIO
+               ///< allowance (e.g. under PREEMPT_RT), otherwise the Task falls back to default
+               ///< scheduling with a one-time warning. Ignored on ESP, where FreeRTOS
+               ///< priorities are always applied.
     espp::Task::BaseConfig worker_task_config = {
         ///< Base configuration applied to every worker task. (For per-band workers the priority
         ///< field is overridden by band_task_priorities.)

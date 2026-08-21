@@ -14,13 +14,14 @@ set(EXTRA_COMPONENT_DIRS
   "../../../components/rtsp"
   "../../../components/socket"
   "../../../components/task"
+  "../../../components/thread_pool"
   "../../../components/wifi"
   "../../../components/xiao-esp32s3-sense"
 )
 
 set(
   COMPONENTS
-  "main esptool_py cli esp32-camera mdns monitor rtsp task wifi xiao-esp32s3-sense"
+  "main esptool_py cli esp32-camera mdns monitor rtsp task thread_pool wifi xiao-esp32s3-sense"
   CACHE STRING
   "List of components to include"
   )
