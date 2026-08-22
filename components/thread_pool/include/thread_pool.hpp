@@ -138,8 +138,9 @@ public:
                       ///< (see espp::Task::BaseConfig::priority) and are only applied when
                       ///< band_workers_realtime is set.
     bool band_workers_realtime =
-        false; ///< Opt-in for OS real-time scheduling of per-band workers on HOST platforms.
-               ///< When false (the default), host per-band workers run at default (non-realtime)
+        false; ///< Opt-in for OS real-time scheduling of per-band workers on HOST platforms
+               ///< (sets espp::Task::BaseConfig::host_realtime on each worker). When false (the
+               ///< default), host per-band workers run at default (non-realtime)
                ///< scheduling: band ordering is still honored at the queue level (workers pop
                ///< the most urgent band first), but the OS scheduler does not preempt in favor
                ///< of the more urgent bands' workers. When true, band_task_priorities are

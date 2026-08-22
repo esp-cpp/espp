@@ -2107,23 +2107,29 @@ void py_init_module_espp(py::module &m) {
             "to be used as a configuration struct in other classes\n   *       that may have a "
             "Task as a member.\n")
             .def(py::init<>([](std::string name = std::string(), size_t stack_size_bytes = {4096},
-                               size_t priority = {0}, int core_id = {-1}) {
+                               size_t priority = {0}, int core_id = {-1},
+                               bool host_realtime = {false}) {
                    auto r_ctor_ = std::make_unique<espp::Task::BaseConfig>();
                    r_ctor_->name = name;
                    r_ctor_->stack_size_bytes = stack_size_bytes;
                    r_ctor_->priority = priority;
                    r_ctor_->core_id = core_id;
+                   r_ctor_->host_realtime = host_realtime;
                    return r_ctor_;
                  }),
                  py::arg("name") = std::string(), py::arg("stack_size_bytes") = size_t{4096},
-                 py::arg("priority") = size_t{0}, py::arg("core_id") = int{-1})
+                 py::arg("priority") = size_t{0}, py::arg("core_id") = int{-1},
+                 py::arg("host_realtime") = false)
             .def_readwrite("name", &espp::Task::BaseConfig::name, "*< Name of the task")
             .def_readwrite("stack_size_bytes", &espp::Task::BaseConfig::stack_size_bytes,
                            "*< Stack Size (B) allocated to the task.")
             .def_readwrite("priority", &espp::Task::BaseConfig::priority,
                            "*< Priority of the task, 0 is lowest priority on ESP / FreeRTOS.")
             .def_readwrite("core_id", &espp::Task::BaseConfig::core_id,
-                           "*< Core ID of the task, -1 means it is not pinned to any core.");
+                           "*< Core ID of the task, -1 means it is not pinned to any core.")
+            .def_readwrite("host_realtime", &espp::Task::BaseConfig::host_realtime,
+                           "*< Opt-in to applying the priority to the OS thread on host "
+                           "platforms (SCHED_FIFO on Linux/macOS; ignored on ESP).");
     auto pyClassTask_ClassConfig =
         py::class_<espp::Task::Config>(
             pyClassTask, "Config", py::dynamic_attr(),

@@ -31,13 +31,9 @@ ThreadPool::ThreadPool(const Config &config)
         auto worker_config = config_.worker_task_config;
         worker_config.name =
             config_.worker_task_config.name + "_b" + std::to_string(band) + "_" + std::to_string(i);
-#if defined(ESP_PLATFORM)
-        // FreeRTOS priorities are cheap and preemptive by design - always apply.
         worker_config.priority = config_.band_task_priorities[band];
-#else
-        worker_config.priority =
-            config_.band_workers_realtime ? config_.band_task_priorities[band] : 0;
-#endif
+        // Only meaningful on host (ESP always applies the FreeRTOS priority).
+        worker_config.host_realtime = config_.band_workers_realtime;
         workers_.emplace_back(espp::Task::make_unique({
             .callback = [this, band]() { return worker_task_fn(band); },
             .task_config = worker_config,

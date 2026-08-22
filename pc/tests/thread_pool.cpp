@@ -419,14 +419,16 @@ int main() {
   logger.info("--- task: host priority application (graceful fallback) ---");
   {
     std::atomic<int> iterations{0};
-    espp::Task task(
-        {.callback = [&]() -> bool {
-           ++iterations;
-           std::this_thread::sleep_for(1ms);
-           return false;
-         },
-         .task_config = {
-             .name = "prio_task", .stack_size_bytes = 4096, .priority = 10, .core_id = -1}});
+    espp::Task task({.callback = [&]() -> bool {
+                       ++iterations;
+                       std::this_thread::sleep_for(1ms);
+                       return false;
+                     },
+                     .task_config = {.name = "prio_task",
+                                     .stack_size_bytes = 4096,
+                                     .priority = 10,
+                                     .core_id = -1,
+                                     .host_realtime = true}});
     check(task.get_configured_priority() == 10, "configured priority round-trips from config");
     // Must succeed even when RT scheduling is not permitted (unprivileged CI):
     // the priority application falls back gracefully and never fails start().

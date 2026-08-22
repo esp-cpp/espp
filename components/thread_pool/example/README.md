@@ -15,6 +15,7 @@ operation to more advanced concurrent and multi-pool scenarios.
 | 7 | Concurrent submission | multi-thread `submit()` + `try_submit()` |
 | 8 | Chained pools | a job in `pool_a` submitting work into `pool_b` |
 | 9 | Self-submit | a running job submitting back to its own pool |
+| 10 | Priority bands | `submit(job, QosBand)` — queued `Critical` jobs overtake queued `Low` jobs; per-band `stats()` counters |
 
 Each test logs individual `PASS` / `FAIL` results inline. At the end of the run
 a summary is printed:
@@ -25,7 +26,7 @@ a summary is printed:
   PASS  submit: normal dispatch + queue_size + stats
   ...
 =================================================
-9/9 tests passed
+10/10 tests passed
 All tests passed!
 ```
 

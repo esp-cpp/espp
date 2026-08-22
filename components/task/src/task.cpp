@@ -179,9 +179,13 @@ bool Task::start() {
     thread_ = std::thread(&Task::thread_function, this);
 #if !defined(ESP_PLATFORM)
     // On ESP the priority was applied via esp_pthread above; on host platforms
-    // apply it to the newly-created thread now (best-effort: an unprivileged
-    // failure falls back to default scheduling and never fails the start).
-    apply_thread_priority(thread_, config_.priority);
+    // apply it to the newly-created thread now, but ONLY when explicitly opted
+    // in (best-effort: an unprivileged failure falls back to default
+    // scheduling and never fails the start). Without the opt-in the thread
+    // keeps the OS default scheduling - espp's historical host behavior.
+    if (config_.host_realtime) {
+      apply_thread_priority(thread_, config_.priority);
+    }
 #endif
   }
   logger_.debug("Task started");
@@ -351,9 +355,10 @@ bool Task::set_priority(size_t priority) {
     return true;
   }
 #else
-  // if the task is running, apply the change to the live thread as well
-  // (best-effort; see BaseConfig::priority for the per-platform semantics)
-  if (started_) {
+  // if the task is running and host real-time scheduling was opted in, apply
+  // the change to the live thread as well (best-effort; see
+  // BaseConfig::host_realtime for the per-platform semantics)
+  if (started_ && config_.host_realtime) {
     std::lock_guard<std::mutex> lock(thread_mutex_);
     return apply_thread_priority(thread_, priority);
   }

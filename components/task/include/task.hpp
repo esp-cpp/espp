@@ -161,16 +161,24 @@ public:
     size_t priority{0}; /**< Priority of the task; 0 is the lowest, and espp uses the FreeRTOS
                            convention that ~25 is the highest useful "real-time" priority.
                            Platform semantics: on ESP this is the FreeRTOS task priority (clamped
-                           to configMAX_PRIORITIES - 1). On Linux and macOS, priority 0 leaves the
-                           thread on the default scheduler (SCHED_OTHER), while priority >= 1 is
-                           mapped linearly onto the SCHED_FIFO real-time priority range - giving
-                           true preemptive priority scheduling when permitted (on Linux this
-                           requires CAP_SYS_NICE or an RLIMIT_RTPRIO allowance, and delivers hard
-                           preemption on PREEMPT_RT kernels; without permission the task falls
-                           back gracefully to default scheduling with a one-time warning). On
-                           Windows the priority is mapped best-effort onto SetThreadPriority()
-                           classes (NORMAL / ABOVE_NORMAL / HIGHEST / TIME_CRITICAL). */
+                           to configMAX_PRIORITIES - 1) and is always applied. On host platforms
+                           (Linux / macOS / Windows) the priority is stored but only applied to
+                           the OS thread when host_realtime is set - see below. */
     int core_id{-1};    /**< Core ID of the task, -1 means it is not pinned to any core.  */
+    bool host_realtime{
+        false}; /**< Opt-in to applying the priority to the OS thread on HOST platforms (ignored
+                   on ESP, where the FreeRTOS priority is always applied). When false (the
+                   default) the thread uses the OS default scheduling, matching espp's historical
+                   host behavior. When true: on Linux and macOS, priority 0 resets the thread to
+                   the default scheduler (SCHED_OTHER) while priority >= 1 is mapped linearly
+                   onto the SCHED_FIFO real-time priority range - giving true preemptive
+                   priority scheduling when permitted; on Windows the priority is mapped
+                   best-effort onto SetThreadPriority() classes (NORMAL / ABOVE_NORMAL / HIGHEST
+                   / TIME_CRITICAL).
+                   @warning A SCHED_FIFO thread that spins can starve the rest of the system.
+                   On Linux this requires CAP_SYS_NICE or an RLIMIT_RTPRIO allowance (and
+                   delivers hard preemption on PREEMPT_RT kernels); without permission the task
+                   falls back gracefully to default scheduling with a one-time warning. */
   };
 
   /**
