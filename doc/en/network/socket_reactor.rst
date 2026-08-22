@@ -33,6 +33,25 @@ The reactor drives:
 
 A low-level ``add_fd()`` / ``remove()`` pair is also available.
 
+Priority bands and DSCP
+-----------------------
+
+Each registration carries an :cpp:enum:`espp::QosBand` (``Critical`` / ``High``
+/ ``Normal`` / ``Low``; ``Normal`` by default, preserving the pre-band FIFO
+behavior): when several sockets are readable in one ``select()`` round the
+ready set is dispatched most-urgent-first, and each handler is submitted to the
+:doc:`ThreadPool <../core/thread_pool>` *at its band*, so a ``Critical``
+socket's handler overtakes already-queued lower-band handlers even on a
+saturated pool. ``UdpSocket::ReceiveConfig::band`` sets the band for UDP
+receivers; ``add_tcp_listener()`` / ``add_tcp_stream()`` / ``add_fd()`` take a
+band argument.
+
+UDP receivers can additionally set ``UdpSocket::ReceiveConfig::dscp`` (0-63) to
+mark their *transmitted* replies with a DSCP code point (applied as ``IP_TOS``
+at registration, best-effort). This affects network / driver treatment of
+outgoing traffic (e.g. 46 = EF "expedited forwarding") and is orthogonal to the
+local ``band`` scheduling; out-of-range values are rejected with a warning.
+
 .. note::
 
    Lifetime: registered sockets and callbacks must outlive their registration.
@@ -52,7 +71,7 @@ A low-level ``add_fd()`` / ``remove()`` pair is also available.
 .. ------------------------------- Example -------------------------------------
 
 Code examples for the reactor are provided in the ``socket`` example folder (the
-"Socket reactor" and "TCP reactor" scenarios).
+"Socket reactor", "Reactor priority bands", and "TCP reactor" scenarios).
 
 .. ---------------------------- API Reference ----------------------------------
 

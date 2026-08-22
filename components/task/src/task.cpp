@@ -74,8 +74,24 @@ bool Task::apply_thread_priority_to_handle(std::thread::native_handle_type handl
   if (err != 0) {
     // Most commonly EPERM on Linux: real-time scheduling needs CAP_SYS_NICE or
     // an RLIMIT_RTPRIO allowance. This must never fail the task - fall back to
-    // default scheduling and warn once per process.
-    if (!rt_unavailable_warned.exchange(true)) {
+    // default scheduling and warn once per process. The fallback is an
+    // explicit SCHED_OTHER reset: if a previous application succeeded (and
+    // e.g. a privilege / RLIMIT_RTPRIO change made this one fail), the thread
+    // may currently be running SCHED_FIFO, and leaving it there would
+    // contradict the documented fallback and keep a potentially starving RT
+    // thread alive.
+    const int other_min = sched_get_priority_min(SCHED_OTHER);
+    const int other_max = sched_get_priority_max(SCHED_OTHER);
+    struct sched_param other_param = {};
+    other_param.sched_priority =
+        (other_min >= 0 && other_max >= other_min) ? (other_min + other_max) / 2 : 0;
+    const int reset_err = pthread_setschedparam(handle, SCHED_OTHER, &other_param);
+    if (reset_err != 0) {
+      logger_.warn("Could not apply SCHED_FIFO priority {} to task '{}' ({}), and resetting to "
+                   "default scheduling also failed ({}); the thread keeps its previous scheduling "
+                   "policy",
+                   param.sched_priority, config_.name, strerror(err), strerror(reset_err));
+    } else if (!rt_unavailable_warned.exchange(true)) {
       logger_.warn("Could not apply SCHED_FIFO priority {} to task '{}' ({}); running without "
                    "realtime priority; grant CAP_SYS_NICE or configure RLIMIT_RTPRIO for RT "
                    "scheduling (e.g. PREEMPT_RT)",

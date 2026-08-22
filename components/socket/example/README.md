@@ -15,6 +15,12 @@ The covered scenarios include:
 * TCP request/response followed by reconnect
 * TCP blocked-accept teardown
 * TCP connect failure to an unused port
+* `SocketReactor` multiplexing UDP receivers and TCP listeners/streams on one
+  select loop + thread pool (shared-pool, dynamic remove, lifecycle/validation,
+  and multi-client cases)
+* `SocketReactor` priority bands: Critical (DSCP EF) + Low banded UDP receivers,
+  with the Critical port verified responsive during a Low-band flood
+* UDP send overloads and sender info
 
 At startup the example creates a small open Wi-Fi AP so the network stack is
 initialized, but the actual test traffic stays local to the device using
@@ -40,4 +46,4 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 ## Example Output
 
 The serial log shows each scenario as it starts, a per-scenario pass/fail line,
-and a final summary such as `Socket example summary: 9/9 scenarios passed`.
+and a final summary such as `Socket example summary: 16/16 scenarios passed`.

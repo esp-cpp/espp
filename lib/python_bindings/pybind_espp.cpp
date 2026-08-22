@@ -1606,6 +1606,19 @@ void py_init_module_espp(py::module &m) {
            "structure containing gains, etc.\n");
   ////////////////////    </generated_from:pid.hpp>    ////////////////////
 
+  ////////////////////    <generated_from:qos_band.hpp>    ////////////////////
+  // Bound before the socket / thread_pool sections, whose bindings use
+  // QosBand values as default arguments (defaults are converted at def time).
+  py::enum_<espp::QosBand>(
+      m, "QosBand",
+      "*\n * @brief Priority band for queued work. Critical is the most urgent and Low the "
+      "least;\n * Normal is the default for band-less submissions.\n")
+      .value("Critical", espp::QosBand::Critical)
+      .value("High", espp::QosBand::High)
+      .value("Normal", espp::QosBand::Normal)
+      .value("Low", espp::QosBand::Low);
+  ////////////////////    </generated_from:qos_band.hpp>    ////////////////////
+
   ////////////////////    <generated_from:socket.hpp>    ////////////////////
   auto pyClassSocket =
       py::class_<espp::Socket>(m, "Socket", py::dynamic_attr(),
@@ -1904,7 +1917,9 @@ void py_init_module_espp(py::module &m) {
                                bool is_multicast_endpoint = {false},
                                std::string multicast_group = {""},
                                std::string multicast_interface = {""},
-                               espp::Socket::receive_callback_fn on_receive_callback = {nullptr}) {
+                               espp::Socket::receive_callback_fn on_receive_callback = {nullptr},
+                               espp::QosBand band = {espp::QosBand::Normal},
+                               std::optional<uint8_t> dscp = {}) {
                    auto r_ctor_ = std::make_unique<espp::UdpSocket::ReceiveConfig>();
                    r_ctor_->port = port;
                    r_ctor_->buffer_size = buffer_size;
@@ -1912,13 +1927,17 @@ void py_init_module_espp(py::module &m) {
                    r_ctor_->multicast_group = multicast_group;
                    r_ctor_->multicast_interface = multicast_interface;
                    r_ctor_->on_receive_callback = on_receive_callback;
+                   r_ctor_->band = band;
+                   r_ctor_->dscp = dscp;
                    return r_ctor_;
                  }),
                  py::arg("port") = size_t(), py::arg("buffer_size") = size_t(),
                  py::arg("is_multicast_endpoint") = bool{false},
                  py::arg("multicast_group") = std::string{""},
                  py::arg("multicast_interface") = std::string{""},
-                 py::arg("on_receive_callback") = espp::Socket::receive_callback_fn{nullptr})
+                 py::arg("on_receive_callback") = espp::Socket::receive_callback_fn{nullptr},
+                 py::arg("band") = espp::QosBand::Normal,
+                 py::arg("dscp") = std::optional<uint8_t>{})
             .def_readwrite("port", &espp::UdpSocket::ReceiveConfig::port,
                            "*< Port number to bind to / receive from.")
             .def_readwrite("buffer_size", &espp::UdpSocket::ReceiveConfig::buffer_size,
@@ -1936,7 +1955,14 @@ void py_init_module_espp(py::module &m) {
                 "to a specific NIC (e.g. wired vs Wi-Fi).")
             .def_readwrite("on_receive_callback",
                            &espp::UdpSocket::ReceiveConfig::on_receive_callback,
-                           "*< Function containing business logic to handle data received.");
+                           "*< Function containing business logic to handle data received.")
+            .def_readwrite("band", &espp::UdpSocket::ReceiveConfig::band,
+                           "*< Priority band for dispatching this socket's receive handling when "
+                           "registered on an espp.SocketReactor (unused by start_receiving()).")
+            .def_readwrite("dscp", &espp::UdpSocket::ReceiveConfig::dscp,
+                           "*< Optional DSCP code point (0-63) to mark this socket's TRANSMITTED "
+                           "packets with (applied as IP_TOS by espp.SocketReactor at "
+                           "registration, best-effort).");
     auto pyClassUdpSocket_ClassSendConfig =
         py::class_<espp::UdpSocket::SendConfig>(pyClassUdpSocket, "SendConfig", py::dynamic_attr(),
                                                 "")
@@ -2186,6 +2212,12 @@ void py_init_module_espp(py::module &m) {
            "False\n   *          if the task is not running (the new value still takes effect "
            "the\n   *          next time the task is started) or the platform does not support\n   "
            "*          changing a live task's priority.\n")
+      .def("get_configured_priority", &espp::Task::get_configured_priority,
+           "*\n   * @brief Get the priority stored in the task's configuration.\n   * @details "
+           "This is the value set at construction or via set_priority(); it\n   *          is the "
+           "priority the task will be started with (and, if the task\n   *          is running, "
+           "the priority that was last requested for it).\n   * @return The configured priority "
+           "(0 is lowest; see BaseConfig.priority).\n")
       .def(
           "set_core_id", &espp::Task::set_core_id, py::arg("core_id"),
           "*\n   * @brief Set the core affinity (core ID) of the task.\n   * @details The new core "
@@ -2601,15 +2633,6 @@ void py_init_module_espp(py::module &m) {
   ////////////////////    </generated_from:trajectory_planner.hpp>    ////////////////////
 
   ////////////////////    <generated_from:thread_pool.hpp>    ////////////////////
-  py::enum_<espp::QosBand>(
-      m, "QosBand",
-      "*\n * @brief Priority band for queued work. Critical is the most urgent and Low the "
-      "least;\n * Normal is the default for band-less submissions.\n")
-      .value("Critical", espp::QosBand::Critical)
-      .value("High", espp::QosBand::High)
-      .value("Normal", espp::QosBand::Normal)
-      .value("Low", espp::QosBand::Low);
-
   auto pyClassThreadPool = py::class_<espp::ThreadPool>(
       m, "ThreadPool", py::dynamic_attr(),
       "*\n * @brief A thread pool that dispatches submitted jobs to a fixed set of worker "

@@ -454,6 +454,10 @@ def autogenerate() -> None:
                     include_dir + "math/include/vector2d.hpp", # have to set class template options
                     include_dir + "ndef/include/ndef.hpp",
                     include_dir + "pid/include/pid.hpp",
+                    # NOTE: must come before socket / thread_pool: their bindings use QosBand
+                    # values as default arguments (defaults are converted at def time).
+                    include_dir + "thread_pool/include/qos_band.hpp",
+
                     include_dir + "socket/include/socket.hpp",
                     include_dir + "socket/include/tcp_socket.hpp",
                     include_dir + "socket/include/udp_socket.hpp",

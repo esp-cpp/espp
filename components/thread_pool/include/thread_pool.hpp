@@ -55,7 +55,10 @@ namespace espp {
  * Linux/macOS - see espp::Task::BaseConfig::priority). A band-k worker
  * services bands 0..k, i.e. its own band and every MORE urgent band. This
  * means a Critical job can be picked up by any worker, while a band-k worker
- * never runs work less urgent than band k. The latency guarantee this buys:
+ * never runs work less urgent than band k - with one exception: the deepest
+ * (least urgent) configured band's workers service EVERY band, so that no
+ * band is unreachable when the configuration has no Low-band worker (see
+ * Config::band_worker_counts). The latency guarantee this buys:
  * because every worker drains band 0 first and the band-0 workers run at the
  * highest OS priority, a newly arrived Critical job waits at most the
  * remaining duration of one already-running job before a high-OS-priority

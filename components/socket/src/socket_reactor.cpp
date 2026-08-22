@@ -207,11 +207,19 @@ SocketReactor::add_udp_receiver(espp::UdpSocket &socket,
     // requested DSCP code point. The TOS byte carries the 6-bit DSCP in its
     // upper bits (RFC 2474). Best-effort: network / driver treatment only, no
     // effect on local scheduling (that is what `band` is for).
-    const int tos = (receive_config.dscp.value() & 0x3F) << 2;
-    if (::setsockopt(fd, IPPROTO_IP, IP_TOS, reinterpret_cast<const char *>(&tos), sizeof(tos)) <
-        0) {
-      logger_.warn("add_udp_receiver: could not set IP_TOS (DSCP {}) on port {}",
-                   receive_config.dscp.value(), receive_config.port);
+    const uint8_t dscp = receive_config.dscp.value();
+    if (dscp > 63) {
+      // DSCP is documented as 0-63; silently masking would apply a DIFFERENT
+      // code point (64 -> 0, 255 -> 63), so ignore invalid values instead.
+      logger_.warn("add_udp_receiver: invalid DSCP {} (valid range 0-63) on port {}; not applied",
+                   dscp, receive_config.port);
+    } else {
+      const int tos = dscp << 2;
+      if (::setsockopt(fd, IPPROTO_IP, IP_TOS, reinterpret_cast<const char *>(&tos), sizeof(tos)) <
+          0) {
+        logger_.warn("add_udp_receiver: could not set IP_TOS (DSCP {}) on port {}", dscp,
+                     receive_config.port);
+      }
     }
   }
   auto handler = [this, &socket, callback, buffer_size]() {
