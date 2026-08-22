@@ -117,7 +117,8 @@ bool Task::apply_thread_priority_to_handle(std::thread::native_handle_type handl
 Task::Task(const Task::Config &config)
     : BaseComponent(config.task_config.name, config.log_level)
     , callback_(config.callback)
-    , config_(config.task_config) {}
+    , config_(config.task_config)
+    , priority_(config.task_config.priority) {}
 
 std::unique_ptr<Task> Task::make_unique(const Task::Config &config) {
   return std::make_unique<Task>(config);
@@ -149,7 +150,7 @@ bool Task::start() {
     return false;
   }
   thread_config.stack_size = config_.stack_size_bytes;
-  thread_config.prio = config_.priority;
+  thread_config.prio = priority_.load();
   // this will set the config for the next created thread
   auto err = esp_pthread_set_cfg(&thread_config);
   if (err == ESP_ERR_NO_MEM) {
@@ -345,8 +346,10 @@ bool Task::set_priority(size_t priority) {
     priority = configMAX_PRIORITIES - 1;
   }
 #endif
-  // always store the new priority so it is used on the next start()
-  config_.priority = priority;
+  // always store the new priority so it is used on the next start() (atomic:
+  // the worker thread's startup priority application and
+  // get_configured_priority() read it concurrently)
+  priority_ = priority;
   logger_.debug("Set priority to {} for task '{}'", priority, config_.name);
 #if defined(ESP_PLATFORM)
   // if the task is running, apply the change to the live task as well
@@ -423,9 +426,9 @@ void Task::thread_function() {
   // scheduling with a one-time warning).
   if (config_.host_realtime) {
 #if defined(_WIN32)
-    apply_thread_priority_to_handle(GetCurrentThread(), config_.priority);
+    apply_thread_priority_to_handle(GetCurrentThread(), priority_.load());
 #elif defined(__linux__) || defined(__APPLE__)
-    apply_thread_priority_to_handle(pthread_self(), config_.priority);
+    apply_thread_priority_to_handle(pthread_self(), priority_.load());
 #endif
   }
 #endif // ESP_PLATFORM

@@ -566,6 +566,83 @@ ScenarioResult run_socket_reactor_scenario() {
               "2 UDP sockets multiplexed on 1 select loop + shared pool, both echoed");
 }
 
+ScenarioResult run_reactor_priority_bands_scenario() {
+  // Two UDP echo receivers on ONE reactor, registered at different QosBands.
+  // The Critical receiver additionally marks its transmitted replies with
+  // DSCP 46 (EF, "expedited forwarding"), exercising the IP_TOS setsockopt
+  // path on lwIP. Functional on-target check of the band-aware registration +
+  // dispatch: flood the Low-band port, then confirm the Critical-band port
+  // still answers within the timeout, and that Low is still serviced (no band
+  // is starved or unreachable).
+  constexpr size_t critical_port = 5030;
+  constexpr size_t low_port = 5031;
+  auto echo_reversed = [](const ByteVector &data, const espp::Socket::Info &) {
+    return std::optional<ByteVector>(reversed(data));
+  };
+
+  //! [socket reactor priority example]
+  espp::SocketReactor reactor({.log_level = espp::Logger::Verbosity::WARN});
+
+  espp::UdpSocket critical_server({.log_level = espp::Logger::Verbosity::WARN});
+  espp::UdpSocket low_server({.log_level = espp::Logger::Verbosity::WARN});
+  auto critical_id =
+      reactor.add_udp_receiver(critical_server, {.port = critical_port,
+                                                 .buffer_size = kMaxPacketSize,
+                                                 .on_receive_callback = echo_reversed,
+                                                 .band = espp::QosBand::Critical,
+                                                 .dscp = 46}); // EF: latency-critical replies
+  auto low_id = reactor.add_udp_receiver(low_server, {.port = low_port,
+                                                      .buffer_size = kMaxPacketSize,
+                                                      .on_receive_callback = echo_reversed,
+                                                      .band = espp::QosBand::Low});
+  //! [socket reactor priority example]
+
+  if (critical_id == espp::SocketReactor::INVALID_ID || low_id == espp::SocketReactor::INVALID_ID) {
+    return fail("Reactor priority bands", "failed to register one or both banded UDP receivers");
+  }
+
+  // Flood the Low-band port with fire-and-forget packets so its receive
+  // handling occupies the shared pool...
+  espp::UdpSocket flooder({.log_level = espp::Logger::Verbosity::WARN});
+  for (int i = 0; i < 8; ++i) {
+    flooder.send(make_payload(512, static_cast<uint8_t>(i)),
+                 {.ip_address = kLoopbackAddress, .port = low_port});
+  }
+
+  // ...then verify each banded port answers within the timeout.
+  auto send_and_check = [&](size_t port, uint8_t seed) -> bool {
+    auto request = make_payload(512, seed);
+    auto expected = reversed(request);
+    ByteVector response;
+    std::atomic_bool got_response{false};
+    espp::UdpSocket client({.log_level = espp::Logger::Verbosity::WARN});
+    client.send(request, {.ip_address = kLoopbackAddress,
+                          .port = port,
+                          .wait_for_response = true,
+                          .response_size = kMaxPacketSize,
+                          .on_response_callback =
+                              [&](const ByteVector &r) {
+                                response = r;
+                                got_response = true;
+                              },
+                          .response_timeout = 500ms});
+    return got_response.load() && response == expected;
+  };
+
+  if (!send_and_check(critical_port, 0x20)) {
+    return fail("Reactor priority bands",
+                "Critical-band server did not echo during the Low-band flood");
+  }
+  // The Low band must still be serviced too (banded dispatch must not starve
+  // or strand the least-urgent band).
+  if (!send_and_check(low_port, 0x90)) {
+    return fail("Reactor priority bands", "Low-band server did not echo after the flood");
+  }
+
+  return pass("Reactor priority bands",
+              "Critical (DSCP EF) + Low banded receivers echoed during and after a Low flood");
+}
+
 ScenarioResult run_tcp_reactor_scenario() {
   // A TCP echo server built entirely on the reactor: one listener registration
   // accepts clients, and each accepted client is registered as a stream that
@@ -898,6 +975,7 @@ extern "C" void app_main(void) {
   run_and_record(run_tcp_blocked_accept_teardown_scenario, "TCP blocked accept teardown");
   run_and_record(run_tcp_connect_failure_scenario, "TCP connect failure");
   run_and_record(run_socket_reactor_scenario, "Socket reactor (select + thread pool)");
+  run_and_record(run_reactor_priority_bands_scenario, "Reactor priority bands (QosBand + DSCP)");
   run_and_record(run_tcp_reactor_scenario, "TCP reactor (listener + streams)");
   run_and_record(run_reactor_shared_pool_scenario, "Reactor shared pool + dynamic remove");
   run_and_record(run_reactor_lifecycle_scenario, "Reactor lifecycle + input validation");

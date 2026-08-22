@@ -318,7 +318,7 @@ public:
    *          is running, the priority that was last requested for it).
    * @return The configured priority (0 is lowest; see BaseConfig::priority).
    */
-  size_t get_configured_priority() const { return config_.priority; }
+  size_t get_configured_priority() const { return priority_; }
 
   /**
    * @brief Set the core affinity (core ID) of the task.
@@ -595,6 +595,13 @@ protected:
 
   callback_variant callback_; ///< Variant of the callback function for the task.
   BaseConfig config_;         ///< Configuration for the task.
+
+  /// Configured priority. Single source of truth after construction (initialized
+  /// from config_.priority): written by set_priority() and read concurrently by
+  /// the worker thread's startup priority application, start(), and
+  /// get_configured_priority() - atomic so a live set_priority() cannot race
+  /// those reads.
+  std::atomic<size_t> priority_{0};
 
   std::atomic<bool> started_{false};
   std::condition_variable cv_;

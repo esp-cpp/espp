@@ -81,6 +81,8 @@ namespace espp {
  * \snippet socket_example.cpp socket reactor example
  * \section socket_reactor_ex2 Socket Reactor TCP Example
  * \snippet socket_example.cpp socket reactor tcp example
+ * \section socket_reactor_ex3 Socket Reactor Priority Bands Example
+ * \snippet socket_example.cpp socket reactor priority example
  */
 class SocketReactor : public BaseComponent {
 public:
