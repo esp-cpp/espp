@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -6,9 +7,27 @@
 #include <thread>
 #include <vector>
 
+#include "task.hpp"
 #include "thread_pool.hpp"
 
 using namespace std::chrono_literals;
+
+namespace {
+// Poll `pred` until it returns true or `timeout` elapses; returns the final
+// value of pred(). Used for bounded, non-flaky waits on background progress.
+template <typename Predicate>
+bool wait_until(Predicate &&pred, std::chrono::milliseconds timeout,
+                std::chrono::milliseconds interval = std::chrono::milliseconds(1)) {
+  auto deadline = std::chrono::steady_clock::now() + timeout;
+  while (std::chrono::steady_clock::now() < deadline) {
+    if (pred()) {
+      return true;
+    }
+    std::this_thread::sleep_for(interval);
+  }
+  return pred();
+}
+} // namespace
 
 int main() {
   espp::Logger logger({.tag = "ThreadPool Test", .level = espp::Logger::Verbosity::INFO});
@@ -391,6 +410,371 @@ int main() {
     check(s.submitted == total, "all initial + follow-up jobs submitted");
     check(s.executed == total, "all initial + follow-up jobs executed");
     check(s.rejected == 0, "no jobs rejected");
+    pool.stop();
+  }
+
+  // ---------------------------------------------------------------------------
+  // 10. Task host priority: start()/set_priority() succeed without privileges
+  // ---------------------------------------------------------------------------
+  logger.info("--- task: host priority application (graceful fallback) ---");
+  {
+    std::atomic<int> iterations{0};
+    espp::Task task({.callback = [&]() -> bool {
+                       ++iterations;
+                       std::this_thread::sleep_for(1ms);
+                       return false;
+                     },
+                     .task_config = {.name = "prio_task",
+                                     .stack_size_bytes = 4096,
+                                     .priority = 10,
+                                     .core_id = -1,
+                                     .host_realtime = true}});
+    check(task.get_configured_priority() == 10, "configured priority round-trips from config");
+    // Must succeed even when RT scheduling is not permitted (unprivileged CI):
+    // the priority application falls back gracefully and never fails start().
+    check(task.start(), "start() succeeds with an RT-range priority, unprivileged");
+    check(wait_until([&] { return iterations.load() > 0; }, 2s), "task callback runs");
+    // Live priority changes are best-effort (return value depends on platform
+    // privileges); the stored value must always round-trip.
+    task.set_priority(3);
+    check(task.get_configured_priority() == 3, "set_priority(3) round-trips while running");
+    task.set_priority(0); // demote back to default scheduling
+    check(task.get_configured_priority() == 0, "set_priority(0) round-trips while running");
+    check(task.stop(), "task stops cleanly");
+  }
+
+  // ---------------------------------------------------------------------------
+  // 11. Priority ordering: Critical overtakes queued Low jobs (strict priority)
+  // ---------------------------------------------------------------------------
+  logger.info("--- priority: Critical overtakes queued Low ---");
+  {
+    std::mutex gate_mtx;
+    std::condition_variable gate_cv;
+    bool release = false;
+    std::atomic<int> blocker_started{0};
+    std::atomic<int> done{0};
+    std::mutex order_mtx;
+    std::vector<std::string> order;
+
+    espp::ThreadPool pool({
+        .worker_count = 1,
+        .auto_start = true,
+        .aging_threshold = 0ms, // strict band priority for determinism
+        .worker_task_config =
+            {.name = "tp_worker", .stack_size_bytes = 4096, .priority = 5, .core_id = -1},
+    });
+
+    // Gate the single worker so submission order is fully deterministic.
+    pool.submit(espp::ThreadPool::Job([&]() {
+      ++blocker_started;
+      std::unique_lock<std::mutex> lk(gate_mtx);
+      gate_cv.wait(lk, [&] { return release; });
+    }));
+    check(wait_until([&] { return blocker_started.load() >= 1; }, 2s), "blocker job is executing");
+
+    for (int i = 0; i < 3; ++i) {
+      pool.submit(espp::ThreadPool::Job([&, i]() {
+                    std::lock_guard<std::mutex> lk(order_mtx);
+                    order.push_back("low" + std::to_string(i));
+                    ++done;
+                  }),
+                  espp::QosBand::Low);
+    }
+    pool.submit(espp::ThreadPool::Job([&]() {
+                  std::lock_guard<std::mutex> lk(order_mtx);
+                  order.push_back("critical");
+                  ++done;
+                }),
+                espp::QosBand::Critical);
+
+    {
+      std::lock_guard<std::mutex> lk(gate_mtx);
+      release = true;
+    }
+    gate_cv.notify_all();
+    check(wait_until([&] { return done.load() >= 4; }, 2s), "all banded jobs completed");
+    {
+      std::lock_guard<std::mutex> lk(order_mtx);
+      check(order.size() == 4 && order[0] == "critical",
+            "Critical job ran before the queued Low jobs");
+      check(order.size() == 4 && order[1] == "low0" && order[2] == "low1" && order[3] == "low2",
+            "Low jobs kept FIFO order within their band");
+    }
+    pool.stop();
+  }
+
+  // ---------------------------------------------------------------------------
+  // 12. Default-band equivalence: no-band submits behave FIFO exactly as before
+  // ---------------------------------------------------------------------------
+  logger.info("--- priority: default band preserves FIFO ---");
+  {
+    std::mutex gate_mtx;
+    std::condition_variable gate_cv;
+    bool release = false;
+    std::atomic<int> blocker_started{0};
+    std::atomic<int> done{0};
+    std::mutex order_mtx;
+    std::vector<int> order;
+    constexpr int N = 10;
+
+    espp::ThreadPool pool({
+        .worker_count = 1,
+        .auto_start = true,
+        .worker_task_config =
+            {.name = "tp_worker", .stack_size_bytes = 4096, .priority = 5, .core_id = -1},
+    });
+
+    pool.submit(espp::ThreadPool::Job([&]() {
+      ++blocker_started;
+      std::unique_lock<std::mutex> lk(gate_mtx);
+      gate_cv.wait(lk, [&] { return release; });
+    }));
+    check(wait_until([&] { return blocker_started.load() >= 1; }, 2s), "blocker job is executing");
+
+    for (int i = 0; i < N; ++i) {
+      pool.submit(espp::ThreadPool::Job([&, i]() {
+        std::lock_guard<std::mutex> lk(order_mtx);
+        order.push_back(i);
+        ++done;
+      }));
+    }
+    {
+      std::lock_guard<std::mutex> lk(gate_mtx);
+      release = true;
+    }
+    gate_cv.notify_all();
+    check(wait_until([&] { return done.load() >= N; }, 2s), "all no-band jobs completed");
+    {
+      std::lock_guard<std::mutex> lk(order_mtx);
+      bool fifo = order.size() == N;
+      for (int i = 0; fifo && i < N; ++i) {
+        fifo = (order[i] == i);
+      }
+      check(fifo, "no-band submits execute in exact FIFO submission order");
+    }
+    auto s = pool.stats();
+    check(s.band_submitted[static_cast<size_t>(espp::QosBand::Normal)] == N + 1,
+          "no-band submits are accounted to the Normal band");
+    pool.stop();
+  }
+
+  // ---------------------------------------------------------------------------
+  // 13. Aging: a Low job runs under a continuous stream of Normal jobs
+  // ---------------------------------------------------------------------------
+  logger.info("--- priority: aging rescues a Low job under Normal load ---");
+  {
+    std::mutex gate_mtx;
+    std::condition_variable gate_cv;
+    bool release = false;
+    std::atomic<int> blocker_started{0};
+    std::atomic<bool> low_done{false};
+    std::atomic<int> normals_done{0};
+    std::atomic<bool> stop_stream{false};
+
+    espp::ThreadPool pool({
+        .worker_count = 1,
+        .auto_start = true,
+        .aging_threshold = 20ms,
+        .worker_task_config =
+            {.name = "tp_worker", .stack_size_bytes = 4096, .priority = 5, .core_id = -1},
+    });
+
+    // Gate the worker so the Low job provably queues BEHIND a busy Normal band
+    // (an idle worker would otherwise pick the Low job up immediately).
+    pool.submit(espp::ThreadPool::Job([&]() {
+      ++blocker_started;
+      std::unique_lock<std::mutex> lk(gate_mtx);
+      gate_cv.wait(lk, [&] { return release; });
+    }));
+    check(wait_until([&] { return blocker_started.load() >= 1; }, 2s), "blocker job is executing");
+
+    // The Low job goes in first, plus a primed backlog of Normal jobs longer
+    // than the aging threshold (5 x 5ms > 20ms)...
+    pool.submit(espp::ThreadPool::Job([&]() { low_done = true; }), espp::QosBand::Low);
+    auto normal_job = espp::ThreadPool::Job([&]() {
+      std::this_thread::sleep_for(5ms);
+      ++normals_done;
+    });
+    for (int i = 0; i < 5; ++i) {
+      pool.submit(espp::ThreadPool::Job(normal_job));
+    }
+    // ...then more Normal jobs are produced faster than the single worker
+    // consumes them, so the Normal band never empties. Without aging the Low
+    // job would starve indefinitely; with aging it must run in bounded time.
+    std::thread producer([&]() {
+      while (!stop_stream.load()) {
+        pool.submit(espp::ThreadPool::Job(normal_job));
+        std::this_thread::sleep_for(2ms);
+      }
+    });
+    {
+      std::lock_guard<std::mutex> lk(gate_mtx);
+      release = true;
+    }
+    gate_cv.notify_all();
+
+    bool rescued = wait_until([&] { return low_done.load(); }, 5s, 5ms);
+    stop_stream = true;
+    producer.join();
+    check(rescued, "aged Low job ran while the Normal stream was still active");
+    check(normals_done.load() > 0, "Normal stream made progress concurrently");
+    auto s = pool.stats();
+    logger.info("  stats: {}", s);
+    check(s.band_aged[static_cast<size_t>(espp::QosBand::Low)] >= 1,
+          "stats recorded an aging promotion out of the Low band");
+    pool.stop();
+  }
+
+  // ---------------------------------------------------------------------------
+  // 14. Per-band stats
+  // ---------------------------------------------------------------------------
+  logger.info("--- priority: per-band stats ---");
+  {
+    std::mutex gate_mtx;
+    std::condition_variable gate_cv;
+    bool release = false;
+    std::atomic<int> blocker_started{0};
+    std::atomic<int> done{0};
+
+    espp::ThreadPool pool({
+        .worker_count = 1,
+        .auto_start = true,
+        .aging_threshold = 0ms, // keep jobs in their submitted bands
+        .worker_task_config =
+            {.name = "tp_worker", .stack_size_bytes = 4096, .priority = 5, .core_id = -1},
+    });
+
+    pool.submit(espp::ThreadPool::Job([&]() { // Normal-band blocker
+      ++blocker_started;
+      std::unique_lock<std::mutex> lk(gate_mtx);
+      gate_cv.wait(lk, [&] { return release; });
+    }));
+    check(wait_until([&] { return blocker_started.load() >= 1; }, 2s), "blocker job is executing");
+
+    auto count_done = espp::ThreadPool::Job([&]() { ++done; });
+    pool.submit(espp::ThreadPool::Job(count_done), espp::QosBand::Critical);
+    pool.submit(espp::ThreadPool::Job(count_done), espp::QosBand::High);
+    pool.submit(espp::ThreadPool::Job(count_done), espp::QosBand::Normal);
+    pool.submit(espp::ThreadPool::Job(count_done), espp::QosBand::Low);
+
+    {
+      std::lock_guard<std::mutex> lk(gate_mtx);
+      release = true;
+    }
+    gate_cv.notify_all();
+    check(wait_until([&] { return done.load() >= 4; }, 2s), "one job per band completed");
+
+    auto s = pool.stats();
+    logger.info("  stats: {}", s);
+    check(s.band_submitted[0] == 1 && s.band_submitted[1] == 1 && s.band_submitted[2] == 2 &&
+              s.band_submitted[3] == 1,
+          "band_submitted counts each band (blocker is Normal)");
+    check(s.band_executed == s.band_submitted, "band_executed matches band_submitted (no aging)");
+    check(s.band_aged[0] == 0 && s.band_aged[1] == 0 && s.band_aged[2] == 0 && s.band_aged[3] == 0,
+          "no aging promotions recorded with aging disabled");
+    check(s.submitted == 5 && s.executed == 5 && s.rejected == 0, "totals consistent");
+    pool.stop();
+  }
+
+  // ---------------------------------------------------------------------------
+  // 15. Worker bands: per-band workers, mixed load, nothing lost
+  // ---------------------------------------------------------------------------
+  logger.info("--- priority: per-band workers (worker bands) ---");
+  {
+    constexpr int num_critical = 20;
+    constexpr int num_normal = 40;
+    constexpr int num_low = 20;
+    constexpr int total = num_critical + num_normal + num_low;
+    std::atomic<int> done{0};
+    std::mutex lat_mtx;
+    std::vector<std::chrono::microseconds> critical_latencies;
+    std::vector<std::chrono::microseconds> low_latencies;
+
+    espp::ThreadPool pool({
+        .auto_start = true,
+        .band_worker_counts = {{1, 1, 2, 1}}, // 1 Critical, 1 High, 2 Normal, 1 Low worker
+        .band_workers_realtime = true, // exercise the host SCHED_FIFO path (best-effort; falls
+                                       // back gracefully without CAP_SYS_NICE/RLIMIT_RTPRIO)
+        .worker_task_config =
+            {.name = "tp_worker", .stack_size_bytes = 4096, .priority = 5, .core_id = -1},
+    });
+    check(pool.worker_count() == 5, "per-band worker counts create 1+1+2+1 workers");
+
+    auto submit_timed = [&](espp::QosBand band, std::vector<std::chrono::microseconds> *lat) {
+      auto t0 = std::chrono::steady_clock::now();
+      pool.submit(espp::ThreadPool::Job([&, t0, lat]() {
+                    auto waited = std::chrono::duration_cast<std::chrono::microseconds>(
+                        std::chrono::steady_clock::now() - t0);
+                    if (lat != nullptr) {
+                      std::lock_guard<std::mutex> lk(lat_mtx);
+                      lat->push_back(waited);
+                    }
+                    std::this_thread::sleep_for(2ms);
+                    ++done;
+                  }),
+                  band);
+    };
+
+    // Interleave the load: mostly Normal with periodic Critical / Low.
+    int c = 0, n = 0, l = 0;
+    while (c < num_critical || n < num_normal || l < num_low) {
+      if (n < num_normal) {
+        submit_timed(espp::QosBand::Normal, nullptr);
+        ++n;
+      }
+      if ((n % 2) == 0 && c < num_critical) {
+        submit_timed(espp::QosBand::Critical, &critical_latencies);
+        ++c;
+      }
+      if ((n % 2) == 1 && l < num_low) {
+        submit_timed(espp::QosBand::Low, &low_latencies);
+        ++l;
+      }
+    }
+
+    check(wait_until([&] { return done.load() >= total; }, 10s, 5ms),
+          "all jobs completed on per-band workers (none lost)");
+    auto s = pool.stats();
+    logger.info("  stats: {}", s);
+    check(s.submitted == total && s.executed == total && s.rejected == 0,
+          "stats: everything submitted was executed, nothing rejected");
+    {
+      std::lock_guard<std::mutex> lk(lat_mtx);
+      auto max_of = [](const std::vector<std::chrono::microseconds> &v) {
+        return v.empty() ? std::chrono::microseconds(0) : *std::max_element(v.begin(), v.end());
+      };
+      logger.info("  critical: n={} max wait={}us; low: n={} max wait={}us",
+                  critical_latencies.size(), max_of(critical_latencies).count(),
+                  low_latencies.size(), max_of(low_latencies).count());
+      check(critical_latencies.size() == num_critical && low_latencies.size() == num_low,
+            "latency recorded for every Critical and Low job");
+    }
+    pool.stop();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Per-band workers: every band stays reachable even in strict mode
+  // ---------------------------------------------------------------------------
+  logger.info("--- priority: deepest band worker covers all bands (strict, no aging) ---");
+  {
+    // Only a Critical worker configured, and aging disabled: without the
+    // coverage fallback the Normal and Low submissions below would sit queued
+    // forever. The deepest configured band's workers must service every band.
+    std::atomic<int> done{0};
+    espp::ThreadPool pool({
+        .auto_start = true,
+        .aging_threshold = std::chrono::milliseconds(0), // strict band priority
+        .band_worker_counts = {{1, 0, 0, 0}},            // ONLY a Critical worker
+        .worker_task_config =
+            {.name = "tp_worker", .stack_size_bytes = 4096, .priority = 5, .core_id = -1},
+    });
+    check(pool.worker_count() == 1, "single Critical worker created");
+    pool.submit(espp::ThreadPool::Job([&]() { ++done; }), espp::QosBand::Critical);
+    pool.submit(espp::ThreadPool::Job([&]() { ++done; })); // Normal (default)
+    pool.submit(espp::ThreadPool::Job([&]() { ++done; }), espp::QosBand::Low);
+    check(wait_until([&] { return done.load() == 3; }, 5s),
+          "Critical, Normal, and Low jobs all execute with only a Critical worker (no band "
+          "unreachable)");
     pool.stop();
   }
 

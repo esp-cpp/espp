@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "logger.hpp"
+#include "qos_band.hpp"
 #include "socket.hpp"
 #include "task.hpp"
 
@@ -53,6 +54,17 @@ public:
                 on multi-homed hosts to bind multicast to a specific NIC (e.g. wired vs Wi-Fi). */
     espp::Socket::receive_callback_fn on_receive_callback{
         nullptr}; /**< Function containing business logic to handle data received. */
+    espp::QosBand band{
+        espp::QosBand::Normal};    /**< Priority band for dispatching this socket's receive handling
+                                      when registered on an espp::SocketReactor (unused by
+                                      start_receiving(), which owns a dedicated task). Normal (the
+                                      default) preserves the pre-band FIFO dispatch behavior. */
+    std::optional<uint8_t> dscp{}; /**< Optional DSCP code point (0-63) to mark this socket's
+                                      TRANSMITTED packets with (applied as IP_TOS = dscp << 2 by
+                                      espp::SocketReactor at registration, best-effort). Affects
+                                      network / driver treatment of outgoing traffic (e.g. 46 = EF
+                                      "expedited forwarding" for latency-critical flows, 34 = AF41),
+                                      NOT local scheduling - use `band` for that. */
   };
 
   struct SendConfig {
