@@ -129,7 +129,13 @@ public:
                                                              ///< non-zero, band k gets
                                                              ///< band_worker_counts[k] workers at
                                                              ///< band_task_priorities[k], each
-                                                             ///< servicing bands 0..k.
+                                                             ///< servicing bands 0..k. The
+                                                             ///< deepest configured band's
+                                                             ///< workers service ALL bands (with
+                                                             ///< a warning if that band is not
+                                                             ///< Low), so every band is always
+                                                             ///< reachable even with
+                                                             ///< aging_threshold == 0.
     std::array<std::size_t, kNumBands> band_task_priorities{
         10, 7, 5, 1}; ///< espp::Task priorities for per-band workers (only used when
                       ///< band_worker_counts is set). Defaults descend from Critical to Low. On

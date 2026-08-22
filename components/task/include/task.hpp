@@ -578,6 +578,19 @@ protected:
    *         default scheduling).
    */
   bool apply_thread_priority(std::thread &thread, size_t priority);
+
+  /**
+   * @brief Apply \p priority to the thread identified by the OS-native
+   *        \p handle (best-effort; see BaseConfig::priority). Called by the
+   *        worker thread itself (with its own handle) before its first
+   *        callback invocation so the scheduling policy is guaranteed to be
+   *        in place for the task's entire execution, and by
+   *        apply_thread_priority() for live set_priority() changes.
+   * @param handle Native handle of the thread to apply the priority to.
+   * @param priority The espp priority to apply (0 = default scheduling).
+   * @return true if the OS accepted the scheduling change, false otherwise.
+   */
+  bool apply_thread_priority_to_handle(std::thread::native_handle_type handle, size_t priority);
 #endif
 
   callback_variant callback_; ///< Variant of the callback function for the task.

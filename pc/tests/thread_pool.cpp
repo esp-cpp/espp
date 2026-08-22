@@ -753,6 +753,32 @@ int main() {
   }
 
   // ---------------------------------------------------------------------------
+  // Per-band workers: every band stays reachable even in strict mode
+  // ---------------------------------------------------------------------------
+  logger.info("--- priority: deepest band worker covers all bands (strict, no aging) ---");
+  {
+    // Only a Critical worker configured, and aging disabled: without the
+    // coverage fallback the Normal and Low submissions below would sit queued
+    // forever. The deepest configured band's workers must service every band.
+    std::atomic<int> done{0};
+    espp::ThreadPool pool({
+        .auto_start = true,
+        .aging_threshold = std::chrono::milliseconds(0), // strict band priority
+        .band_worker_counts = {{1, 0, 0, 0}},            // ONLY a Critical worker
+        .worker_task_config =
+            {.name = "tp_worker", .stack_size_bytes = 4096, .priority = 5, .core_id = -1},
+    });
+    check(pool.worker_count() == 1, "single Critical worker created");
+    pool.submit(espp::ThreadPool::Job([&]() { ++done; }), espp::QosBand::Critical);
+    pool.submit(espp::ThreadPool::Job([&]() { ++done; })); // Normal (default)
+    pool.submit(espp::ThreadPool::Job([&]() { ++done; }), espp::QosBand::Low);
+    check(wait_until([&] { return done.load() == 3; }, 5s),
+          "Critical, Normal, and Low jobs all execute with only a Critical worker (no band "
+          "unreachable)");
+    pool.stop();
+  }
+
+  // ---------------------------------------------------------------------------
   // Summary
   // ---------------------------------------------------------------------------
   logger.info("==================== Results ====================");

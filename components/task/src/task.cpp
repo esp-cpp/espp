@@ -31,8 +31,12 @@ bool Task::apply_thread_priority(std::thread &thread, size_t priority) {
   if (!thread.joinable()) {
     return false;
   }
+  return apply_thread_priority_to_handle(thread.native_handle(), priority);
+}
+
+bool Task::apply_thread_priority_to_handle(std::thread::native_handle_type handle,
+                                           size_t priority) {
 #if defined(__linux__) || defined(__APPLE__)
-  auto handle = thread.native_handle();
   struct sched_param param = {};
   if (priority == 0) {
     // espp priority 0 = default (non-realtime) scheduling. SCHED_OTHER only
@@ -92,7 +96,7 @@ bool Task::apply_thread_priority(std::thread &thread, size_t priority) {
   } else if (priority >= 1) {
     win_priority = THREAD_PRIORITY_ABOVE_NORMAL;
   }
-  if (!SetThreadPriority(static_cast<HANDLE>(thread.native_handle()), win_priority)) {
+  if (!SetThreadPriority(static_cast<HANDLE>(handle), win_priority)) {
     if (!rt_unavailable_warned.exchange(true)) {
       logger_.warn("Could not apply thread priority {} to task '{}'; running without elevated "
                    "priority",
@@ -103,6 +107,7 @@ bool Task::apply_thread_priority(std::thread &thread, size_t priority) {
   return true;
 #else
   // Unknown host platform: priorities are stored but not applied.
+  (void)handle;
   (void)priority;
   return false;
 #endif
@@ -177,16 +182,12 @@ bool Task::start() {
     std::lock_guard<std::mutex> lock(thread_mutex_);
     // create and start the std::thread
     thread_ = std::thread(&Task::thread_function, this);
-#if !defined(ESP_PLATFORM)
     // On ESP the priority was applied via esp_pthread above; on host platforms
-    // apply it to the newly-created thread now, but ONLY when explicitly opted
-    // in (best-effort: an unprivileged failure falls back to default
-    // scheduling and never fails the start). Without the opt-in the thread
-    // keeps the OS default scheduling - espp's historical host behavior.
-    if (config_.host_realtime) {
-      apply_thread_priority(thread_, config_.priority);
-    }
-#endif
+    // (when host_realtime is opted in) the new thread applies the priority to
+    // itself at the top of thread_function(), BEFORE the first callback
+    // invocation - applying it from here would race the thread's startup and a
+    // short callback could run entirely (or even exit) at the default
+    // priority.
   }
   logger_.debug("Task started");
   return true;
@@ -415,6 +416,18 @@ std::string Task::get_info(const Task &task) {
 void Task::thread_function() {
 #if defined(ESP_PLATFORM)
   task_handle_ = get_current_id();
+#else
+  // Apply the (opted-in) host scheduling policy to ourselves before the first
+  // callback invocation, so the priority reliably covers the task's entire
+  // execution (best-effort: an unprivileged failure falls back to default
+  // scheduling with a one-time warning).
+  if (config_.host_realtime) {
+#if defined(_WIN32)
+    apply_thread_priority_to_handle(GetCurrentThread(), config_.priority);
+#elif defined(__linux__) || defined(__APPLE__)
+    apply_thread_priority_to_handle(pthread_self(), config_.priority);
+#endif
+  }
 #endif // ESP_PLATFORM
   while (started_) {
     bool should_stop = false;

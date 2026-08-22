@@ -36,7 +36,9 @@ By default all workers are identical and serve every band. Setting
 per-band workers: band *k* gets its own workers running at
 :cpp:member:`espp::ThreadPool::Config::band_task_priorities` [k], each servicing
 bands 0..k (its own band and every more urgent band), so a ``Critical`` job
-never waits behind more than one in-flight lower-band job.
+never waits behind more than one in-flight lower-band job. The deepest (least
+urgent) configured band's workers service *every* band, so no band is ever
+unreachable — even with aging disabled.
 
 On ESP the per-band priorities are FreeRTOS task priorities and are always
 applied. On host platforms (Linux / macOS) they map onto ``SCHED_FIFO``

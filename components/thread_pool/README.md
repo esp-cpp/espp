@@ -25,7 +25,9 @@ It is implemented with `espp::Task` workers and `std::condition_variable` synchr
   bands indefinitely. Set to 0 for strict band priority.
 - **Per-band workers** (opt-in via `Config::band_worker_counts`): band *k* gets
   its own workers at `Config::band_task_priorities[k]`, each servicing bands
-  0..k (its own band and every more urgent band). On ESP the priorities are
+  0..k (its own band and every more urgent band). The deepest (least urgent)
+  configured band's workers service *every* band, so no band is ever
+  unreachable — even with aging disabled. On ESP the priorities are
   FreeRTOS task priorities and are always applied; on host platforms
   (Linux/macOS) they map to `SCHED_FIFO` real-time priorities but are **only
   applied when `Config::band_workers_realtime` is set** — by default the

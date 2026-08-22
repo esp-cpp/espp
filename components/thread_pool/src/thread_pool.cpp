@@ -26,6 +26,22 @@ ThreadPool::ThreadPool(const Config &config)
                    "queue-level only); set Config::band_workers_realtime to opt in to SCHED_FIFO");
     }
 #endif
+    // Guarantee every band is reachable: the deepest (least urgent) configured
+    // band's workers service ALL bands, not just 0..k. Otherwise a
+    // configuration like {1,0,0,0} would leave Normal/Low submissions queued
+    // forever (with aging_threshold == 0 nothing would ever promote them, and
+    // a bounded blocking submit could then deadlock).
+    std::size_t deepest_band = 0;
+    for (std::size_t band = 0; band < kNumBands; ++band) {
+      if (config_.band_worker_counts[band] > 0) {
+        deepest_band = band;
+      }
+    }
+    if (deepest_band != kNumBands - 1) {
+      logger_.warn("No Low-band worker configured; the band-{} workers will service every band so "
+                   "no submission is unreachable",
+                   deepest_band);
+    }
     for (std::size_t band = 0; band < kNumBands; ++band) {
       for (std::size_t i = 0; i < config_.band_worker_counts[band]; ++i) {
         auto worker_config = config_.worker_task_config;
@@ -34,8 +50,9 @@ ThreadPool::ThreadPool(const Config &config)
         worker_config.priority = config_.band_task_priorities[band];
         // Only meaningful on host (ESP always applies the FreeRTOS priority).
         worker_config.host_realtime = config_.band_workers_realtime;
+        const std::size_t max_band = (band == deepest_band) ? (kNumBands - 1) : band;
         workers_.emplace_back(espp::Task::make_unique({
-            .callback = [this, band]() { return worker_task_fn(band); },
+            .callback = [this, max_band]() { return worker_task_fn(max_band); },
             .task_config = worker_config,
             .log_level = config_.log_level,
         }));
