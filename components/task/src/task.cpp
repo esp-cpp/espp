@@ -166,7 +166,16 @@ bool Task::start() {
     return false;
   }
   thread_config.stack_size = config_.stack_size_bytes;
-  thread_config.prio = priority_.load();
+  // clamp to the valid FreeRTOS priority range, exactly like set_priority():
+  // an out-of-range configured value must not make startup fail
+  size_t start_priority = priority_.load();
+  if (start_priority >= configMAX_PRIORITIES) {
+    logger_.warn("Configured priority ({}) >= configMAX_PRIORITIES ({}), clamping", start_priority,
+                 configMAX_PRIORITIES);
+    start_priority = configMAX_PRIORITIES - 1;
+    priority_ = start_priority;
+  }
+  thread_config.prio = start_priority;
   // this will set the config for the next created thread
   auto err = esp_pthread_set_cfg(&thread_config);
   if (err == ESP_ERR_NO_MEM) {

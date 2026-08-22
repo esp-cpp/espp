@@ -39,12 +39,15 @@ namespace espp {
  * next more-urgent band, with its aging clock restarted). Aging is
  * deliberately approximate: only band fronts are examined (O(bands) per pop,
  * no full-queue scans), and because bands are FIFO this is sufficient - the
- * front is always the longest-waiting entry of its band. The resulting bound:
- * an entry waits at most aging_threshold per band hop (so at most
- * 3 * aging_threshold to reach Critical from Low) plus the backlog of each
- * destination band at promotion time; since promoted entries enter ahead of
- * all later arrivals, progress is guaranteed under any sustained load. Set
- * aging_threshold to 0 for strict (starvation-permitting) band priority.
+ * front is always the longest-waiting entry of its band. aging_threshold is
+ * an ELIGIBILITY interval, not an at-most wait bound: promotion is evaluated
+ * only when a worker next dequeues work, so a hop can happen arbitrarily
+ * later than the threshold if every worker is stuck in a long in-flight job,
+ * and after promotion the entry still waits behind the destination band's
+ * backlog at that moment. What IS guaranteed: since promoted entries enter
+ * ahead of all later arrivals, every queued entry makes progress toward
+ * Critical under any sustained load, so nothing starves. Set aging_threshold
+ * to 0 for strict (starvation-permitting) band priority.
  *
  * **Worker bands (true OS preemption, opt-in).** By default all
  * Config::worker_count workers are identical and service every band. Setting
@@ -60,11 +63,13 @@ namespace espp {
  * band is unreachable when the configuration has no Low-band worker (see
  * Config::band_worker_counts). The latency guarantee this buys:
  * because every worker drains band 0 first and the band-0 workers run at the
- * highest OS priority, a newly arrived Critical job waits at most the
- * remaining duration of one already-running job before a high-OS-priority
- * worker picks it up (and on a preemptive OS - e.g. FreeRTOS or Linux
- * PREEMPT_RT with granted RT scheduling - that worker preempts lower-priority
- * ones the moment it becomes runnable).
+ * highest OS priority, a newly arrived Critical job - WHEN the Critical queue
+ * is otherwise empty - waits at most the remaining duration of one
+ * already-running job before a high-OS-priority worker picks it up (and on a
+ * preemptive OS - e.g. FreeRTOS or Linux PREEMPT_RT with granted RT
+ * scheduling - that worker preempts lower-priority ones the moment it becomes
+ * runnable). With a Critical backlog the new job additionally waits behind
+ * the earlier Critical jobs, which drain FIFO across all workers first.
  *
  * \section thread_pool_ex1 Lifecycle: start / stop / is_running / worker_count
  * \snippet thread_pool_example.cpp lifecycle example

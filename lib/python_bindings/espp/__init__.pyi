@@ -3,6 +3,7 @@
 # mypy: disable-error-code="type-arg"
 
 import datetime
+import enum
 from typing import overload, List, Optional
 
 NumberType = (int, float, np.number)

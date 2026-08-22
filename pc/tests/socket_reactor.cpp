@@ -253,6 +253,42 @@ int main() {
       check(crit_id != espp::SocketReactor::INVALID_ID,
             "Critical-band receiver registered (with dscp)");
 
+#if !defined(_WIN32)
+      // Verify the DSCP marking actually landed on the sockets: IP_TOS carries
+      // the DSCP in its upper 6 bits, so read it back with getsockopt().
+      auto read_tos = [](espp::UdpSocket &s) {
+        int tos = -1;
+        socklen_t len = sizeof(tos);
+        if (::getsockopt(s.native_handle(), IPPROTO_IP, IP_TOS, reinterpret_cast<char *>(&tos),
+                         &len) < 0) {
+          return -1;
+        }
+        return tos;
+      };
+      check(read_tos(low_server) == (8 << 2), "IP_TOS on the Low socket reflects DSCP 8 (CS1)");
+      check(read_tos(crit_server) == (46 << 2),
+            "IP_TOS on the Critical socket reflects DSCP 46 (EF)");
+      // Out-of-range DSCP: registration must still succeed, but the invalid
+      // value must be ignored (TOS left at the OS default), not masked into a
+      // different code point.
+      espp::UdpSocket bad_dscp_server({.log_level = WARN});
+      auto bad_dscp_id = reactor.add_udp_receiver(
+          bad_dscp_server,
+          {.port = 6142,
+           .buffer_size = kBufferSize,
+           .on_receive_callback = [](const ByteVector &, const espp::Socket::Info &)
+               -> std::optional<ByteVector> { return std::nullopt; },
+           .dscp = 200});
+      check(bad_dscp_id != espp::SocketReactor::INVALID_ID,
+            "registration with an out-of-range DSCP still succeeds");
+      check(read_tos(bad_dscp_server) == 0, "out-of-range DSCP is ignored (TOS stays default)");
+      // bad_dscp_server is scoped inside the reactor's block, so make sure its
+      // registration is fully gone before it goes out of scope
+      reactor.remove(bad_dscp_id);
+      check(wait_until([&] { return reactor.num_registered() == 2; }, 2s),
+            "out-of-range-DSCP registration removed");
+#endif
+
       // Flood the Low-band socket from a background thread for the duration.
       std::thread flood([&]() {
         espp::UdpSocket client({.log_level = WARN});
