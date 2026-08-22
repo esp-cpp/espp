@@ -2,6 +2,7 @@
 
 # mypy: disable-error-code="type-arg"
 
+import datetime
 from typing import overload, List, Optional
 
 NumberType = (int, float, np.number)
