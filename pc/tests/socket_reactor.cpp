@@ -237,7 +237,7 @@ int main() {
              return std::nullopt;
            },
            .band = espp::QosBand::Low,
-           .dscp = espp::Dscp::CS1}); // "low-priority data"
+           .dscp = espp::Dscp::Cs1}); // "low-priority data"
       auto crit_id = reactor.add_udp_receiver(
           crit_server,
           {.port = crit_port,
@@ -248,7 +248,7 @@ int main() {
              return std::nullopt;
            },
            .band = espp::QosBand::Critical,
-           .dscp = espp::Dscp::EF}); // "expedited forwarding"
+           .dscp = espp::Dscp::Ef}); // "expedited forwarding"
       check(low_id != espp::SocketReactor::INVALID_ID, "Low-band receiver registered (with dscp)");
       check(crit_id != espp::SocketReactor::INVALID_ID,
             "Critical-band receiver registered (with dscp)");
@@ -265,10 +265,10 @@ int main() {
         }
         return tos;
       };
-      check(read_tos(low_server) == espp::dscp_to_tos(espp::Dscp::CS1),
-            "IP_TOS on the Low socket reflects Dscp::CS1");
-      check(read_tos(crit_server) == espp::dscp_to_tos(espp::Dscp::EF),
-            "IP_TOS on the Critical socket reflects Dscp::EF");
+      check(read_tos(low_server) == espp::dscp_to_tos(espp::Dscp::Cs1),
+            "IP_TOS on the Low socket reflects Dscp::Cs1");
+      check(read_tos(crit_server) == espp::dscp_to_tos(espp::Dscp::Ef),
+            "IP_TOS on the Critical socket reflects Dscp::Ef");
       // Out-of-range DSCP: registration must still succeed, but the invalid
       // value must be ignored (TOS left at the OS default), not masked into a
       // different code point.

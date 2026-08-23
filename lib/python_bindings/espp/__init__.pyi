@@ -2754,35 +2754,35 @@ class QosBand(enum.IntEnum):
 class Dscp(enum.IntEnum):
     """*
      * @brief Standard DiffServ code points (DSCP) for IP traffic marking - the 6-bit field
-     * in the IP TOS / Traffic Class byte (RFC 2474). E.g. Dscp.EF = expedited forwarding
-     * for latency-critical flows; Dscp.CS1 = low-priority data; Dscp.AF41 = high-priority
+     * in the IP TOS / Traffic Class byte (RFC 2474). E.g. Dscp.Ef = expedited forwarding
+     * for latency-critical flows; Dscp.Cs1 = low-priority data; Dscp.Af41 = high-priority
      * assured forwarding with low drop probability.
 
     """
-    CS0 = 0                                              #*< Class selector 0 - default / best-effort forwarding.
+    Cs0 = 0                                              #*< Class selector 0 - default / best-effort forwarding.
     Default = 0                                          #*< Alias for CS0.
-    LE = 1                                               #*< Lower effort / scavenger (RFC 8622).
-    CS1 = 8                                              #*< Class selector 1 (conventionally low-priority data).
-    AF11 = 10                                            #*< Assured forwarding: class 1, low drop precedence.
-    AF12 = 12                                            #*< Assured forwarding: class 1, medium drop precedence.
-    AF13 = 14                                            #*< Assured forwarding: class 1, high drop precedence.
-    CS2 = 16                                             #*< Class selector 2 (conventionally OAM / management).
-    AF21 = 18                                            #*< Assured forwarding: class 2, low drop precedence.
-    AF22 = 20                                            #*< Assured forwarding: class 2, medium drop precedence.
-    AF23 = 22                                            #*< Assured forwarding: class 2, high drop precedence.
-    CS3 = 24                                             #*< Class selector 3 (conventionally call signaling).
-    AF31 = 26                                            #*< Assured forwarding: class 3, low drop precedence.
-    AF32 = 28                                            #*< Assured forwarding: class 3, medium drop precedence.
-    AF33 = 30                                            #*< Assured forwarding: class 3, high drop precedence.
-    CS4 = 32                                             #*< Class selector 4 (conventionally real-time interactive).
-    AF41 = 34                                            #*< Assured forwarding: class 4, low drop precedence.
-    AF42 = 36                                            #*< Assured forwarding: class 4, medium drop precedence.
-    AF43 = 38                                            #*< Assured forwarding: class 4, high drop precedence.
-    CS5 = 40                                             #*< Class selector 5 (conventionally broadcast video).
+    Le = 1                                               #*< Lower effort / scavenger (RFC 8622).
+    Cs1 = 8                                              #*< Class selector 1 (conventionally low-priority data).
+    Af11 = 10                                            #*< Assured forwarding: class 1, low drop precedence.
+    Af12 = 12                                            #*< Assured forwarding: class 1, medium drop precedence.
+    Af13 = 14                                            #*< Assured forwarding: class 1, high drop precedence.
+    Cs2 = 16                                             #*< Class selector 2 (conventionally OAM / management).
+    Af21 = 18                                            #*< Assured forwarding: class 2, low drop precedence.
+    Af22 = 20                                            #*< Assured forwarding: class 2, medium drop precedence.
+    Af23 = 22                                            #*< Assured forwarding: class 2, high drop precedence.
+    Cs3 = 24                                             #*< Class selector 3 (conventionally call signaling).
+    Af31 = 26                                            #*< Assured forwarding: class 3, low drop precedence.
+    Af32 = 28                                            #*< Assured forwarding: class 3, medium drop precedence.
+    Af33 = 30                                            #*< Assured forwarding: class 3, high drop precedence.
+    Cs4 = 32                                             #*< Class selector 4 (conventionally real-time interactive).
+    Af41 = 34                                            #*< Assured forwarding: class 4, low drop precedence.
+    Af42 = 36                                            #*< Assured forwarding: class 4, medium drop precedence.
+    Af43 = 38                                            #*< Assured forwarding: class 4, high drop precedence.
+    Cs5 = 40                                             #*< Class selector 5 (conventionally broadcast video).
     VoiceAdmit = 44                                      #*< Capacity-admitted EF traffic (RFC 5865).
-    EF = 46                                              #*< Expedited forwarding (RFC 3246) - low-latency/low-jitter.
-    CS6 = 48                                             #*< Class selector 6 (network control - use with care).
-    CS7 = 56                                             #*< Class selector 7 (reserved network control).
+    Ef = 46                                              #*< Expedited forwarding (RFC 3246) - low-latency/low-jitter.
+    Cs6 = 48                                             #*< Class selector 6 (network control - use with care).
+    Cs7 = 56                                             #*< Class selector 7 (reserved network control).
 
 ####################    </generated_from:dscp.hpp>    ####################
 
@@ -3302,7 +3302,7 @@ class UdpSocket:
                         on multi-homed hosts to bind multicast to a specific NIC (e.g. wired vs Wi-Fi).
         on_receive_callback: Socket.receive_callback_fn = Socket.receive_callback_fn(None)     #*< Function containing business logic to handle data received.
         band: QosBand = QosBand.Normal                                                         #*< Priority band for dispatching this socket's receive handling when registered on an espp.SocketReactor (unused by start_receiving()).
-        dscp: Optional[Dscp] = None                                                            #*< Optional espp.Dscp code point (e.g. Dscp.EF) to mark this socket's TRANSMITTED packets with (applied as IP_TOS by espp.SocketReactor at registration, best-effort).
+        dscp: Optional[Dscp] = None                                                            #*< Optional espp.Dscp code point (e.g. Dscp.Ef) to mark this socket's TRANSMITTED packets with (applied as IP_TOS by espp.SocketReactor at registration, best-effort).
         def __init__(
             self,
             port: int = int(),

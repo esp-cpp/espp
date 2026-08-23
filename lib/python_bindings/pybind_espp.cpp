@@ -1625,33 +1625,33 @@ void py_init_module_espp(py::module &m) {
   py::enum_<espp::Dscp>(
       m, "Dscp",
       "*\n * @brief Standard DiffServ code points (DSCP) for IP traffic marking - the 6-bit "
-      "field\n * in the IP TOS / Traffic Class byte (RFC 2474). E.g. Dscp.EF = expedited "
-      "forwarding\n * for latency-critical flows; Dscp.CS1 = low-priority data; Dscp.AF41 = "
+      "field\n * in the IP TOS / Traffic Class byte (RFC 2474). E.g. Dscp.Ef = expedited "
+      "forwarding\n * for latency-critical flows; Dscp.Cs1 = low-priority data; Dscp.Af41 = "
       "high-priority\n * assured forwarding with low drop probability.\n")
-      .value("CS0", espp::Dscp::CS0)
+      .value("Cs0", espp::Dscp::Cs0)
       .value("Default", espp::Dscp::Default)
-      .value("LE", espp::Dscp::LE)
-      .value("CS1", espp::Dscp::CS1)
-      .value("AF11", espp::Dscp::AF11)
-      .value("AF12", espp::Dscp::AF12)
-      .value("AF13", espp::Dscp::AF13)
-      .value("CS2", espp::Dscp::CS2)
-      .value("AF21", espp::Dscp::AF21)
-      .value("AF22", espp::Dscp::AF22)
-      .value("AF23", espp::Dscp::AF23)
-      .value("CS3", espp::Dscp::CS3)
-      .value("AF31", espp::Dscp::AF31)
-      .value("AF32", espp::Dscp::AF32)
-      .value("AF33", espp::Dscp::AF33)
-      .value("CS4", espp::Dscp::CS4)
-      .value("AF41", espp::Dscp::AF41)
-      .value("AF42", espp::Dscp::AF42)
-      .value("AF43", espp::Dscp::AF43)
-      .value("CS5", espp::Dscp::CS5)
+      .value("Le", espp::Dscp::Le)
+      .value("Cs1", espp::Dscp::Cs1)
+      .value("Af11", espp::Dscp::Af11)
+      .value("Af12", espp::Dscp::Af12)
+      .value("Af13", espp::Dscp::Af13)
+      .value("Cs2", espp::Dscp::Cs2)
+      .value("Af21", espp::Dscp::Af21)
+      .value("Af22", espp::Dscp::Af22)
+      .value("Af23", espp::Dscp::Af23)
+      .value("Cs3", espp::Dscp::Cs3)
+      .value("Af31", espp::Dscp::Af31)
+      .value("Af32", espp::Dscp::Af32)
+      .value("Af33", espp::Dscp::Af33)
+      .value("Cs4", espp::Dscp::Cs4)
+      .value("Af41", espp::Dscp::Af41)
+      .value("Af42", espp::Dscp::Af42)
+      .value("Af43", espp::Dscp::Af43)
+      .value("Cs5", espp::Dscp::Cs5)
       .value("VoiceAdmit", espp::Dscp::VoiceAdmit)
-      .value("EF", espp::Dscp::EF)
-      .value("CS6", espp::Dscp::CS6)
-      .value("CS7", espp::Dscp::CS7);
+      .value("Ef", espp::Dscp::Ef)
+      .value("Cs6", espp::Dscp::Cs6)
+      .value("Cs7", espp::Dscp::Cs7);
   ////////////////////    </generated_from:dscp.hpp>    ////////////////////
 
   ////////////////////    <generated_from:socket.hpp>    ////////////////////
@@ -1995,7 +1995,7 @@ void py_init_module_espp(py::module &m) {
                            "*< Priority band for dispatching this socket's receive handling when "
                            "registered on an espp.SocketReactor (unused by start_receiving()).")
             .def_readwrite("dscp", &espp::UdpSocket::ReceiveConfig::dscp,
-                           "*< Optional espp.Dscp code point (e.g. Dscp.EF) to mark this "
+                           "*< Optional espp.Dscp code point (e.g. Dscp.Ef) to mark this "
                            "socket's TRANSMITTED packets with (applied as IP_TOS by "
                            "espp.SocketReactor at registration, best-effort).");
     auto pyClassUdpSocket_ClassSendConfig =

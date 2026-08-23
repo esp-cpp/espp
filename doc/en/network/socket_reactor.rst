@@ -49,8 +49,8 @@ band argument.
 UDP receivers can additionally set ``UdpSocket::ReceiveConfig::dscp`` to mark
 their *transmitted* replies with a DSCP code point (applied as ``IP_TOS`` at
 registration, best-effort), using the typed :cpp:enum:`espp::Dscp` enum of
-standard DiffServ names - e.g. ``Dscp::EF`` (expedited forwarding for
-latency-critical flows), ``Dscp::CS1`` (low-priority data), ``Dscp::AF41``
+standard DiffServ names - e.g. ``Dscp::Ef`` (expedited forwarding for
+latency-critical flows), ``Dscp::Cs1`` (low-priority data), ``Dscp::Af41``
 (high-priority assured forwarding). This affects network / driver treatment of
 outgoing traffic and is orthogonal to the local ``band`` scheduling. A custom
 code point can be expressed with ``static_cast<Dscp>(0-63)``; out-of-range

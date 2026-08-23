@@ -101,8 +101,8 @@ on a saturated pool. `UdpSocket::ReceiveConfig::band` sets it for UDP receivers;
 argument. UDP receivers can additionally set `UdpSocket::ReceiveConfig::dscp`
 to mark their *transmitted* replies with a DSCP code point (applied as
 `IP_TOS`, best-effort) using the typed `espp::Dscp` enum of standard DiffServ
-names - e.g. `Dscp::EF` (expedited forwarding, latency-critical), `Dscp::CS1`
-(low-priority data), `Dscp::AF41` - network / driver treatment for outgoing
+names - e.g. `Dscp::Ef` (expedited forwarding, latency-critical), `Dscp::Cs1`
+(low-priority data), `Dscp::Af41` - network / driver treatment for outgoing
 traffic, orthogonal to the local `band` scheduling.
 
 ## Example

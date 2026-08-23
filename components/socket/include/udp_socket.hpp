@@ -64,8 +64,8 @@ public:
                                       TRANSMITTED packets with (applied as IP_TOS by
                                       espp::SocketReactor at registration, best-effort). Affects
                                       network / driver treatment of outgoing traffic (e.g.
-                                      Dscp::EF "expedited forwarding" for latency-critical flows,
-                                      Dscp::AF41), NOT local scheduling - use `band` for that.
+                                      Dscp::Ef "expedited forwarding" for latency-critical flows,
+                                      Dscp::Af41), NOT local scheduling - use `band` for that.
                                       A non-standard code point can be expressed with
                                       static_cast<Dscp>(0-63); out-of-range values are rejected
                                       with a warning. */

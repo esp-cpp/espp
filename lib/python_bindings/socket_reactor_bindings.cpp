@@ -117,7 +117,7 @@ void py_init_socket_reactor(py::module &m) {
           "Bind `socket` to `port` and receive on it via the reactor. `callback(data: bytes, "
           "sender) -> Optional[bytes]`; a returned bytes is sent back to the sender. `band` "
           "selects the espp.QosBand this socket's handlers are dispatched at; `dscp` (an "
-          "espp.Dscp, e.g. Dscp.EF) optionally marks transmitted replies (IP_TOS, best-effort). "
+          "espp.Dscp, e.g. Dscp.Ef) optionally marks transmitted replies (IP_TOS, best-effort). "
           "Returns a registration id (0 == INVALID_ID on failure).")
       .def_property_readonly_static(
           "INVALID_ID", [](py::object) { return SocketReactor::INVALID_ID; },

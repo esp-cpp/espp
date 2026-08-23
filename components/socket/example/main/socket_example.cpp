@@ -590,7 +590,7 @@ ScenarioResult run_reactor_priority_bands_scenario() {
                                                .buffer_size = kMaxPacketSize,
                                                .on_receive_callback = echo_reversed,
                                                .band = espp::QosBand::Critical,
-                                               .dscp = espp::Dscp::EF}); // latency-critical replies
+                                               .dscp = espp::Dscp::Ef}); // latency-critical replies
   auto low_id = reactor.add_udp_receiver(low_server, {.port = low_port,
                                                       .buffer_size = kMaxPacketSize,
                                                       .on_receive_callback = echo_reversed,
