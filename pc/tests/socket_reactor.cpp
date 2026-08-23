@@ -237,7 +237,7 @@ int main() {
              return std::nullopt;
            },
            .band = espp::QosBand::Low,
-           .dscp = 8}); // CS1 "low-priority data"
+           .dscp = espp::Dscp::CS1}); // "low-priority data"
       auto crit_id = reactor.add_udp_receiver(
           crit_server,
           {.port = crit_port,
@@ -248,7 +248,7 @@ int main() {
              return std::nullopt;
            },
            .band = espp::QosBand::Critical,
-           .dscp = 46}); // EF "expedited forwarding"
+           .dscp = espp::Dscp::EF}); // "expedited forwarding"
       check(low_id != espp::SocketReactor::INVALID_ID, "Low-band receiver registered (with dscp)");
       check(crit_id != espp::SocketReactor::INVALID_ID,
             "Critical-band receiver registered (with dscp)");
@@ -265,9 +265,10 @@ int main() {
         }
         return tos;
       };
-      check(read_tos(low_server) == (8 << 2), "IP_TOS on the Low socket reflects DSCP 8 (CS1)");
-      check(read_tos(crit_server) == (46 << 2),
-            "IP_TOS on the Critical socket reflects DSCP 46 (EF)");
+      check(read_tos(low_server) == espp::dscp_to_tos(espp::Dscp::CS1),
+            "IP_TOS on the Low socket reflects Dscp::CS1");
+      check(read_tos(crit_server) == espp::dscp_to_tos(espp::Dscp::EF),
+            "IP_TOS on the Critical socket reflects Dscp::EF");
       // Out-of-range DSCP: registration must still succeed, but the invalid
       // value must be ignored (TOS left at the OS default), not masked into a
       // different code point.
@@ -278,7 +279,7 @@ int main() {
            .buffer_size = kBufferSize,
            .on_receive_callback = [](const ByteVector &, const espp::Socket::Info &)
                -> std::optional<ByteVector> { return std::nullopt; },
-           .dscp = 200});
+           .dscp = static_cast<espp::Dscp>(200)});
       check(bad_dscp_id != espp::SocketReactor::INVALID_ID,
             "registration with an out-of-range DSCP still succeeds");
       check(read_tos(bad_dscp_server) == 0, "out-of-range DSCP is ignored (TOS stays default)");

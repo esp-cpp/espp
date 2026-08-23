@@ -458,6 +458,7 @@ def autogenerate() -> None:
                     # values as default arguments (defaults are converted at def time).
                     include_dir + "thread_pool/include/qos_band.hpp",
 
+                    include_dir + "socket/include/dscp.hpp",
                     include_dir + "socket/include/socket.hpp",
                     include_dir + "socket/include/tcp_socket.hpp",
                     include_dir + "socket/include/udp_socket.hpp",

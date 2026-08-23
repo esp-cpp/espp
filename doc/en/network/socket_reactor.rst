@@ -46,11 +46,15 @@ saturated pool. ``UdpSocket::ReceiveConfig::band`` sets the band for UDP
 receivers; ``add_tcp_listener()`` / ``add_tcp_stream()`` / ``add_fd()`` take a
 band argument.
 
-UDP receivers can additionally set ``UdpSocket::ReceiveConfig::dscp`` (0-63) to
-mark their *transmitted* replies with a DSCP code point (applied as ``IP_TOS``
-at registration, best-effort). This affects network / driver treatment of
-outgoing traffic (e.g. 46 = EF "expedited forwarding") and is orthogonal to the
-local ``band`` scheduling; out-of-range values are rejected with a warning.
+UDP receivers can additionally set ``UdpSocket::ReceiveConfig::dscp`` to mark
+their *transmitted* replies with a DSCP code point (applied as ``IP_TOS`` at
+registration, best-effort), using the typed :cpp:enum:`espp::Dscp` enum of
+standard DiffServ names - e.g. ``Dscp::EF`` (expedited forwarding for
+latency-critical flows), ``Dscp::CS1`` (low-priority data), ``Dscp::AF41``
+(high-priority assured forwarding). This affects network / driver treatment of
+outgoing traffic and is orthogonal to the local ``band`` scheduling. A custom
+code point can be expressed with ``static_cast<Dscp>(0-63)``; out-of-range
+values are rejected with a warning.
 
 .. note::
 
@@ -79,3 +83,4 @@ API Reference
 -------------
 
 .. include-build-file:: inc/socket_reactor.inc
+.. include-build-file:: inc/dscp.inc

@@ -416,6 +416,7 @@ INPUT = \
   $(PROJECT_PATH)/components/seeed-studio-round-display/include/seeed-studio-round-display.hpp \
   $(PROJECT_PATH)/components/smartpanlee-sc01-plus/include/smartpanlee-sc01-plus.hpp \
   $(PROJECT_PATH)/components/socket/include/socket.hpp \
+  $(PROJECT_PATH)/components/socket/include/dscp.hpp \
   $(PROJECT_PATH)/components/socket/include/udp_socket.hpp \
   $(PROJECT_PATH)/components/socket/include/tcp_socket.hpp \
   $(PROJECT_PATH)/components/socket/include/socket_reactor.hpp \

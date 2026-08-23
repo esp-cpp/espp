@@ -99,9 +99,11 @@ band, so a `Critical` socket's handler overtakes queued lower-band handlers even
 on a saturated pool. `UdpSocket::ReceiveConfig::band` sets it for UDP receivers;
 `add_tcp_listener(...)` / `add_tcp_stream(...)` / `add_fd(...)` take a band
 argument. UDP receivers can additionally set `UdpSocket::ReceiveConfig::dscp`
-(0-63) to mark their *transmitted* replies with a DSCP code point (applied as
-`IP_TOS`, best-effort) - network / driver treatment for outgoing traffic,
-orthogonal to the local `band` scheduling.
+to mark their *transmitted* replies with a DSCP code point (applied as
+`IP_TOS`, best-effort) using the typed `espp::Dscp` enum of standard DiffServ
+names - e.g. `Dscp::EF` (expedited forwarding, latency-critical), `Dscp::CS1`
+(low-priority data), `Dscp::AF41` - network / driver treatment for outgoing
+traffic, orthogonal to the local `band` scheduling.
 
 ## Example
 

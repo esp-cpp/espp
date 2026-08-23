@@ -585,12 +585,12 @@ ScenarioResult run_reactor_priority_bands_scenario() {
 
   espp::UdpSocket critical_server({.log_level = espp::Logger::Verbosity::WARN});
   espp::UdpSocket low_server({.log_level = espp::Logger::Verbosity::WARN});
-  auto critical_id =
-      reactor.add_udp_receiver(critical_server, {.port = critical_port,
-                                                 .buffer_size = kMaxPacketSize,
-                                                 .on_receive_callback = echo_reversed,
-                                                 .band = espp::QosBand::Critical,
-                                                 .dscp = 46}); // EF: latency-critical replies
+  auto critical_id = reactor.add_udp_receiver(critical_server,
+                                              {.port = critical_port,
+                                               .buffer_size = kMaxPacketSize,
+                                               .on_receive_callback = echo_reversed,
+                                               .band = espp::QosBand::Critical,
+                                               .dscp = espp::Dscp::EF}); // latency-critical replies
   auto low_id = reactor.add_udp_receiver(low_server, {.port = low_port,
                                                       .buffer_size = kMaxPacketSize,
                                                       .on_receive_callback = echo_reversed,

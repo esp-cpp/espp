@@ -1619,6 +1619,41 @@ void py_init_module_espp(py::module &m) {
       .value("Low", espp::QosBand::Low);
   ////////////////////    </generated_from:qos_band.hpp>    ////////////////////
 
+  ////////////////////    <generated_from:dscp.hpp>    ////////////////////
+  // Bound before the socket section, whose bindings use std::optional<Dscp>
+  // parameters.
+  py::enum_<espp::Dscp>(
+      m, "Dscp",
+      "*\n * @brief Standard DiffServ code points (DSCP) for IP traffic marking - the 6-bit "
+      "field\n * in the IP TOS / Traffic Class byte (RFC 2474). E.g. Dscp.EF = expedited "
+      "forwarding\n * for latency-critical flows; Dscp.CS1 = low-priority data; Dscp.AF41 = "
+      "high-priority\n * assured forwarding with low drop probability.\n")
+      .value("CS0", espp::Dscp::CS0)
+      .value("Default", espp::Dscp::Default)
+      .value("LE", espp::Dscp::LE)
+      .value("CS1", espp::Dscp::CS1)
+      .value("AF11", espp::Dscp::AF11)
+      .value("AF12", espp::Dscp::AF12)
+      .value("AF13", espp::Dscp::AF13)
+      .value("CS2", espp::Dscp::CS2)
+      .value("AF21", espp::Dscp::AF21)
+      .value("AF22", espp::Dscp::AF22)
+      .value("AF23", espp::Dscp::AF23)
+      .value("CS3", espp::Dscp::CS3)
+      .value("AF31", espp::Dscp::AF31)
+      .value("AF32", espp::Dscp::AF32)
+      .value("AF33", espp::Dscp::AF33)
+      .value("CS4", espp::Dscp::CS4)
+      .value("AF41", espp::Dscp::AF41)
+      .value("AF42", espp::Dscp::AF42)
+      .value("AF43", espp::Dscp::AF43)
+      .value("CS5", espp::Dscp::CS5)
+      .value("VoiceAdmit", espp::Dscp::VoiceAdmit)
+      .value("EF", espp::Dscp::EF)
+      .value("CS6", espp::Dscp::CS6)
+      .value("CS7", espp::Dscp::CS7);
+  ////////////////////    </generated_from:dscp.hpp>    ////////////////////
+
   ////////////////////    <generated_from:socket.hpp>    ////////////////////
   auto pyClassSocket =
       py::class_<espp::Socket>(m, "Socket", py::dynamic_attr(),
@@ -1919,7 +1954,7 @@ void py_init_module_espp(py::module &m) {
                                std::string multicast_interface = {""},
                                espp::Socket::receive_callback_fn on_receive_callback = {nullptr},
                                espp::QosBand band = {espp::QosBand::Normal},
-                               std::optional<uint8_t> dscp = {}) {
+                               std::optional<espp::Dscp> dscp = {}) {
                    auto r_ctor_ = std::make_unique<espp::UdpSocket::ReceiveConfig>();
                    r_ctor_->port = port;
                    r_ctor_->buffer_size = buffer_size;
@@ -1937,7 +1972,7 @@ void py_init_module_espp(py::module &m) {
                  py::arg("multicast_interface") = std::string{""},
                  py::arg("on_receive_callback") = espp::Socket::receive_callback_fn{nullptr},
                  py::arg("band") = espp::QosBand::Normal,
-                 py::arg("dscp") = std::optional<uint8_t>{})
+                 py::arg("dscp") = std::optional<espp::Dscp>{})
             .def_readwrite("port", &espp::UdpSocket::ReceiveConfig::port,
                            "*< Port number to bind to / receive from.")
             .def_readwrite("buffer_size", &espp::UdpSocket::ReceiveConfig::buffer_size,
@@ -1960,9 +1995,9 @@ void py_init_module_espp(py::module &m) {
                            "*< Priority band for dispatching this socket's receive handling when "
                            "registered on an espp.SocketReactor (unused by start_receiving()).")
             .def_readwrite("dscp", &espp::UdpSocket::ReceiveConfig::dscp,
-                           "*< Optional DSCP code point (0-63) to mark this socket's TRANSMITTED "
-                           "packets with (applied as IP_TOS by espp.SocketReactor at "
-                           "registration, best-effort).");
+                           "*< Optional espp.Dscp code point (e.g. Dscp.EF) to mark this "
+                           "socket's TRANSMITTED packets with (applied as IP_TOS by "
+                           "espp.SocketReactor at registration, best-effort).");
     auto pyClassUdpSocket_ClassSendConfig =
         py::class_<espp::UdpSocket::SendConfig>(pyClassUdpSocket, "SendConfig", py::dynamic_attr(),
                                                 "")
