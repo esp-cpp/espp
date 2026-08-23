@@ -89,6 +89,22 @@ The thread pool may be owned (built from `Config`) or an external shared pool.
 Note: registered sockets must outlive their registration - `stop()` / destroy the
 reactor before destroying the sockets (`stop()` waits for in-flight handlers).
 
+### Priority bands and DSCP
+
+Each registration carries an `espp::QosBand` (`Critical` / `High` / `Normal` /
+`Low`; `Normal` by default, preserving the pre-band FIFO behavior): when several
+sockets are readable in one `select()` round the ready set is dispatched
+most-urgent-first, and each handler is submitted to the `ThreadPool` at its
+band, so a `Critical` socket's handler overtakes queued lower-band handlers even
+on a saturated pool. `UdpSocket::ReceiveConfig::band` sets it for UDP receivers;
+`add_tcp_listener(...)` / `add_tcp_stream(...)` / `add_fd(...)` take a band
+argument. UDP receivers can additionally set `UdpSocket::ReceiveConfig::dscp`
+to mark their *transmitted* replies with a DSCP code point (applied as
+`IP_TOS`, best-effort) using the typed `espp::Dscp` enum of standard DiffServ
+names - e.g. `Dscp::Ef` (expedited forwarding, latency-critical), `Dscp::Cs1`
+(low-priority data), `Dscp::Af41` - network / driver treatment for outgoing
+traffic, orthogonal to the local `band` scheduling.
+
 ## Example
 
 The [example](./example) shows the use of the classes provided by the `socket`
@@ -102,3 +118,5 @@ and reconnect behavior, including:
 * reconnect behavior after TCP session shutdown
 * `SocketReactor` multiplexing UDP receivers and TCP listeners/streams on one
   select loop + thread pool (shared-pool, dynamic remove, and multi-client cases)
+* `SocketReactor` priority bands: a Critical-band receiver (with DSCP-marked
+  replies) staying responsive during a Low-band flood

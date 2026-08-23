@@ -1,6 +1,8 @@
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -194,6 +196,261 @@ int main() {
       check(wait_until([&] { return closed.load(); }), "server observed the client disconnect");
       check(wait_until([&] { return reactor.num_registered() == 1; }),
             "stream auto-removed, only the listener remains");
+      reactor.stop();
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // 5. Priority bands: Critical socket stays responsive under a Low-band flood
+  // -------------------------------------------------------------------------
+  logger.info("--- priority bands + dscp ---");
+  {
+    constexpr size_t low_port = 6140;
+    constexpr size_t crit_port = 6141;
+    constexpr int num_critical_msgs = 10;
+    std::atomic<int> flood_processed{0};
+    std::atomic<int> crit_received{0};
+    std::atomic<bool> stop_flood{false};
+
+    // sockets declared before the reactor so the reactor is destroyed first
+    espp::UdpSocket low_server({.log_level = WARN});
+    espp::UdpSocket crit_server({.log_level = WARN});
+    {
+      // Single pool worker so dispatch order is observable: when both sockets
+      // are readable in one select() round, the Critical one must be handled
+      // first.
+      espp::SocketReactor reactor({.pool_config = {.worker_count = 1,
+                                                   .worker_task_config = {.name = "reactor pool",
+                                                                          .stack_size_bytes = 4096,
+                                                                          .priority = 5}},
+                                   .log_level = WARN});
+
+      auto low_id = reactor.add_udp_receiver(
+          low_server,
+          {.port = low_port,
+           .buffer_size = kBufferSize,
+           .on_receive_callback = [&](const ByteVector &,
+                                      const espp::Socket::Info &) -> std::optional<ByteVector> {
+             // simulate per-packet work so the flood keeps the pool busy
+             std::this_thread::sleep_for(5ms);
+             ++flood_processed;
+             return std::nullopt;
+           },
+           .band = espp::QosBand::Low,
+           .dscp = espp::Dscp::Cs1}); // "low-priority data"
+      auto crit_id = reactor.add_udp_receiver(
+          crit_server,
+          {.port = crit_port,
+           .buffer_size = kBufferSize,
+           .on_receive_callback = [&](const ByteVector &,
+                                      const espp::Socket::Info &) -> std::optional<ByteVector> {
+             ++crit_received;
+             return std::nullopt;
+           },
+           .band = espp::QosBand::Critical,
+           .dscp = espp::Dscp::Ef}); // "expedited forwarding"
+      check(low_id != espp::SocketReactor::INVALID_ID, "Low-band receiver registered (with dscp)");
+      check(crit_id != espp::SocketReactor::INVALID_ID,
+            "Critical-band receiver registered (with dscp)");
+
+#if !defined(_WIN32)
+      // Verify the DSCP marking actually landed on the sockets: IP_TOS carries
+      // the DSCP in its upper 6 bits, so read it back with getsockopt().
+      auto read_tos = [](espp::UdpSocket &s) {
+        int tos = -1;
+        socklen_t len = sizeof(tos);
+        if (::getsockopt(s.native_handle(), IPPROTO_IP, IP_TOS, reinterpret_cast<char *>(&tos),
+                         &len) < 0) {
+          return -1;
+        }
+        return tos;
+      };
+      check(read_tos(low_server) == espp::dscp_to_tos(espp::Dscp::Cs1),
+            "IP_TOS on the Low socket reflects Dscp::Cs1");
+      check(read_tos(crit_server) == espp::dscp_to_tos(espp::Dscp::Ef),
+            "IP_TOS on the Critical socket reflects Dscp::Ef");
+      // Out-of-range DSCP: registration must still succeed, but the invalid
+      // value must be ignored (TOS left at the OS default), not masked into a
+      // different code point.
+      espp::UdpSocket bad_dscp_server({.log_level = WARN});
+      auto bad_dscp_id = reactor.add_udp_receiver(
+          bad_dscp_server,
+          {.port = 6142,
+           .buffer_size = kBufferSize,
+           .on_receive_callback = [](const ByteVector &, const espp::Socket::Info &)
+               -> std::optional<ByteVector> { return std::nullopt; },
+           .dscp = static_cast<espp::Dscp>(200)});
+      check(bad_dscp_id != espp::SocketReactor::INVALID_ID,
+            "registration with an out-of-range DSCP still succeeds");
+      check(read_tos(bad_dscp_server) == 0, "out-of-range DSCP is ignored (TOS stays default)");
+      // bad_dscp_server is scoped inside the reactor's block, so make sure its
+      // registration is fully gone before it goes out of scope
+      reactor.remove(bad_dscp_id);
+      check(wait_until([&] { return reactor.num_registered() == 2; }, 2s),
+            "out-of-range-DSCP registration removed");
+#endif
+
+      // Flood the Low-band socket from a background thread for the duration.
+      std::thread flood([&]() {
+        espp::UdpSocket client({.log_level = WARN});
+        auto payload = make_payload(100, 0x55);
+        while (!stop_flood.load()) {
+          client.send(payload, {.ip_address = kLoopback, .port = low_port});
+          std::this_thread::sleep_for(1ms);
+        }
+      });
+
+      check(wait_until([&] { return flood_processed.load() >= 5; }, 5s),
+            "flood is being processed");
+      const int flood_before = flood_processed.load();
+
+      // Sparse Critical messages; each must be dispatched with bounded delay
+      // even though the (single-worker) pool is saturated by the flood.
+      espp::UdpSocket crit_client({.log_level = WARN});
+      int delivered = 0;
+      std::chrono::milliseconds worst_latency{0};
+      for (int i = 0; i < num_critical_msgs; ++i) {
+        const int before = crit_received.load();
+        const auto t0 = std::chrono::steady_clock::now();
+        crit_client.send(make_payload(32, static_cast<uint8_t>(i)),
+                         {.ip_address = kLoopback, .port = crit_port});
+        if (wait_until([&] { return crit_received.load() > before; }, 2s, 1ms)) {
+          ++delivered;
+          auto latency = std::chrono::duration_cast<std::chrono::milliseconds>(
+              std::chrono::steady_clock::now() - t0);
+          worst_latency = std::max(worst_latency, latency);
+        }
+      }
+      logger.info("  {} critical messages delivered, worst latency {}ms (flood processed: {})",
+                  delivered, worst_latency.count(), flood_processed.load());
+      check(delivered == num_critical_msgs,
+            "all Critical messages dispatched promptly during the flood");
+      // Band-aware dispatch bounds a Critical message's wait to roughly one
+      // in-flight 5ms Low handler + scheduling noise. A band-less FIFO would
+      // queue each Critical behind the ever-growing Low backlog (1ms arrival
+      // vs 5ms service), blowing far past this bound within a few messages.
+      check(worst_latency < 500ms, "worst Critical latency bounded during the flood (<500ms)");
+      check(flood_processed.load() >= flood_before + 5,
+            "Low-band flood kept making progress alongside Critical traffic");
+
+      stop_flood = true;
+      flood.join();
+      reactor.stop();
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // 6. Priority bands: deterministic queue-jump - Critical overtakes an
+  //    already-queued Low backlog (this FAILS under band-less FIFO dispatch)
+  // -------------------------------------------------------------------------
+  logger.info("--- priority bands: deterministic queue-jump ordering ---");
+  {
+    constexpr size_t blocker_port = 6150;
+    constexpr size_t crit_port = 6151;
+    constexpr std::array<size_t, 4> low_ports = {6152, 6153, 6154, 6155};
+
+    // sockets declared before the reactor so the reactor is destroyed first
+    espp::UdpSocket blocker_server({.log_level = WARN});
+    espp::UdpSocket crit_server({.log_level = WARN});
+    std::array<std::unique_ptr<espp::UdpSocket>, low_ports.size()> low_servers;
+    {
+      std::mutex gate_mtx;
+      std::condition_variable gate_cv;
+      bool release = false;
+      std::atomic<bool> blocker_running{false};
+      std::mutex order_mtx;
+      std::vector<std::string> order;
+
+      // External SINGLE-worker pool with aging disabled, so (a) the pop order
+      // is strictly by band and (b) queue_size() lets the test observe when
+      // the backlog is fully queued.
+      auto pool = std::make_shared<espp::ThreadPool>(espp::ThreadPool::Config{
+          .worker_count = 1,
+          .aging_threshold = std::chrono::milliseconds(0),
+          .worker_task_config = {.name = "ordering pool", .stack_size_bytes = 4096, .priority = 5},
+          .log_level = WARN});
+      espp::SocketReactor reactor({.thread_pool = pool, .log_level = WARN});
+
+      // Register the Low receivers FIRST (lowest fds, earliest submissions):
+      // a band-less FIFO dispatch would therefore run them all first.
+      for (size_t i = 0; i < low_ports.size(); ++i) {
+        low_servers[i] =
+            std::make_unique<espp::UdpSocket>(espp::UdpSocket::Config{.log_level = WARN});
+        auto id = reactor.add_udp_receiver(
+            *low_servers[i],
+            {.port = low_ports[i],
+             .buffer_size = kBufferSize,
+             .on_receive_callback = [&](const ByteVector &,
+                                        const espp::Socket::Info &) -> std::optional<ByteVector> {
+               std::lock_guard<std::mutex> lk(order_mtx);
+               order.push_back("low");
+               return std::nullopt;
+             },
+             .band = espp::QosBand::Low});
+        check(id != espp::SocketReactor::INVALID_ID, "Low backlog receiver registered");
+      }
+      auto crit_id = reactor.add_udp_receiver(
+          crit_server,
+          {.port = crit_port,
+           .buffer_size = kBufferSize,
+           .on_receive_callback = [&](const ByteVector &,
+                                      const espp::Socket::Info &) -> std::optional<ByteVector> {
+             std::lock_guard<std::mutex> lk(order_mtx);
+             order.push_back("critical");
+             return std::nullopt;
+           },
+           .band = espp::QosBand::Critical});
+      auto blocker_id = reactor.add_udp_receiver(
+          blocker_server,
+          {.port = blocker_port,
+           .buffer_size = kBufferSize,
+           .on_receive_callback = [&](const ByteVector &,
+                                      const espp::Socket::Info &) -> std::optional<ByteVector> {
+             blocker_running = true;
+             std::unique_lock<std::mutex> lk(gate_mtx);
+             gate_cv.wait(lk, [&] { return release; });
+             return std::nullopt;
+           }});
+      check(crit_id != espp::SocketReactor::INVALID_ID &&
+                blocker_id != espp::SocketReactor::INVALID_ID,
+            "Critical + blocker receivers registered");
+
+      espp::UdpSocket client({.log_level = WARN});
+      // 1. Occupy the single pool worker with the gated blocker handler.
+      client.send(make_payload(8, 0x01), {.ip_address = kLoopback, .port = blocker_port});
+      check(wait_until([&] { return blocker_running.load(); }, 5s),
+            "blocker handler occupies the single pool worker");
+      // 2. Queue the whole Low backlog while the worker is blocked...
+      for (auto port : low_ports) {
+        client.send(make_payload(8, 0x02), {.ip_address = kLoopback, .port = port});
+      }
+      check(wait_until([&] { return pool->queue_size() == low_ports.size(); }, 5s),
+            "all Low handlers queued behind the blocker");
+      // 3. ...then submit the Critical packet LAST.
+      client.send(make_payload(8, 0x03), {.ip_address = kLoopback, .port = crit_port});
+      check(wait_until([&] { return pool->queue_size() == low_ports.size() + 1; }, 5s),
+            "Critical handler queued last");
+      // 4. Release the worker: strict band pop order must run Critical FIRST,
+      //    even though it was the last submission (FIFO would run it last).
+      {
+        std::lock_guard<std::mutex> lk(gate_mtx);
+        release = true;
+      }
+      gate_cv.notify_all();
+      check(wait_until(
+                [&] {
+                  std::lock_guard<std::mutex> lk(order_mtx);
+                  return order.size() == low_ports.size() + 1;
+                },
+                5s),
+            "all queued handlers executed after release");
+      {
+        std::lock_guard<std::mutex> lk(order_mtx);
+        check(!order.empty() && order.front() == "critical",
+              "Critical overtook the entire already-queued Low backlog");
+        check(std::count(order.begin(), order.end(), "low") == static_cast<long>(low_ports.size()),
+              "every Low handler still executed (none lost)");
+      }
       reactor.stop();
     }
   }

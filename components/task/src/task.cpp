@@ -1,11 +1,146 @@
 #include "task.hpp"
 
+#if !defined(ESP_PLATFORM)
+#if defined(_WIN32)
+#include <windows.h>
+#else
+#include <algorithm>
+#include <cstring>
+#include <pthread.h>
+#include <sched.h>
+#endif
+#endif // !ESP_PLATFORM
+
 using namespace espp;
+
+#if !defined(ESP_PLATFORM)
+namespace {
+#if !defined(_WIN32)
+// espp follows the FreeRTOS convention for priorities: 0 is the lowest and
+// ~25 (a configMAX_PRIORITIES-like ceiling) is the highest useful priority.
+// Host-side scheduling maps espp priorities into the native range using this
+// ceiling.
+constexpr size_t ESPP_PRIORITY_CEILING = 25;
+#endif
+// Warn only once per process when real-time scheduling is unavailable
+// (e.g. unprivileged Linux without CAP_SYS_NICE / RLIMIT_RTPRIO).
+std::atomic<bool> rt_unavailable_warned{false};
+} // namespace
+
+bool Task::apply_thread_priority(std::thread &thread, size_t priority) {
+  if (!thread.joinable()) {
+    return false;
+  }
+  return apply_thread_priority_to_handle(thread.native_handle(), priority);
+}
+
+bool Task::apply_thread_priority_to_handle(std::thread::native_handle_type handle,
+                                           size_t priority) {
+#if defined(__linux__) || defined(__APPLE__)
+  struct sched_param param = {};
+  if (priority == 0) {
+    // espp priority 0 = default (non-realtime) scheduling. SCHED_OTHER only
+    // accepts the static priority range [min, max] of that policy (a single
+    // value, 0, on Linux; the default is the middle of the range on macOS).
+    const int other_min = sched_get_priority_min(SCHED_OTHER);
+    const int other_max = sched_get_priority_max(SCHED_OTHER);
+    if (other_min < 0 || other_max < other_min) {
+      // sched_get_priority_min/max return -1 on failure; don't feed a bogus
+      // (negative) priority to pthread_setschedparam.
+      return false;
+    }
+    param.sched_priority = (other_min + other_max) / 2;
+    const int err = pthread_setschedparam(handle, SCHED_OTHER, &param);
+    if (err != 0) {
+      logger_.debug("Could not reset task '{}' to default scheduling: {}", config_.name,
+                    strerror(err));
+      return false;
+    }
+    return true;
+  }
+  // espp priority >= 1: map linearly onto the SCHED_FIFO real-time priority
+  // range. Priority 1 -> the minimum RT priority, ESPP_PRIORITY_CEILING (or
+  // above) -> the maximum.
+  const int fifo_min = sched_get_priority_min(SCHED_FIFO);
+  const int fifo_max = sched_get_priority_max(SCHED_FIFO);
+  if (fifo_min < 0 || fifo_max < fifo_min) {
+    return false;
+  }
+  const size_t clamped = std::min(priority, ESPP_PRIORITY_CEILING);
+  const int span = fifo_max - fifo_min;
+  param.sched_priority = fifo_min + static_cast<int>((clamped - 1) * static_cast<size_t>(span) /
+                                                     (ESPP_PRIORITY_CEILING - 1));
+  const int err = pthread_setschedparam(handle, SCHED_FIFO, &param);
+  if (err != 0) {
+    // Most commonly EPERM on Linux: real-time scheduling needs CAP_SYS_NICE or
+    // an RLIMIT_RTPRIO allowance. This must never fail the task - fall back to
+    // default scheduling and warn once per process. The fallback is an
+    // explicit SCHED_OTHER reset: if a previous application succeeded (and
+    // e.g. a privilege / RLIMIT_RTPRIO change made this one fail), the thread
+    // may currently be running SCHED_FIFO, and leaving it there would
+    // contradict the documented fallback and keep a potentially starving RT
+    // thread alive.
+    const int other_min = sched_get_priority_min(SCHED_OTHER);
+    const int other_max = sched_get_priority_max(SCHED_OTHER);
+    struct sched_param other_param = {};
+    other_param.sched_priority =
+        (other_min >= 0 && other_max >= other_min) ? (other_min + other_max) / 2 : 0;
+    const int reset_err = pthread_setschedparam(handle, SCHED_OTHER, &other_param);
+    if (reset_err != 0) {
+      logger_.warn("Could not apply SCHED_FIFO priority {} to task '{}' ({}), and resetting to "
+                   "default scheduling also failed ({}); the thread keeps its previous scheduling "
+                   "policy",
+                   param.sched_priority, config_.name, strerror(err), strerror(reset_err));
+    } else if (!rt_unavailable_warned.exchange(true)) {
+#if defined(__APPLE__)
+      logger_.warn("Could not apply SCHED_FIFO priority {} to task '{}' ({}); running without "
+                   "realtime priority",
+                   param.sched_priority, config_.name, strerror(err));
+#else
+      logger_.warn("Could not apply SCHED_FIFO priority {} to task '{}' ({}); running without "
+                   "realtime priority; grant CAP_SYS_NICE or configure RLIMIT_RTPRIO for RT "
+                   "scheduling (e.g. PREEMPT_RT)",
+                   param.sched_priority, config_.name, strerror(err));
+#endif
+    }
+    return false;
+  }
+  logger_.debug("Applied SCHED_FIFO priority {} to task '{}'", param.sched_priority, config_.name);
+  return true;
+#elif defined(_WIN32)
+  // Best-effort mapping of the espp priority range onto the Windows thread
+  // priority classes.
+  int win_priority = THREAD_PRIORITY_NORMAL;
+  if (priority >= 17) {
+    win_priority = THREAD_PRIORITY_TIME_CRITICAL;
+  } else if (priority >= 9) {
+    win_priority = THREAD_PRIORITY_HIGHEST;
+  } else if (priority >= 1) {
+    win_priority = THREAD_PRIORITY_ABOVE_NORMAL;
+  }
+  if (!SetThreadPriority(static_cast<HANDLE>(handle), win_priority)) {
+    if (!rt_unavailable_warned.exchange(true)) {
+      logger_.warn("Could not apply thread priority {} to task '{}'; running without elevated "
+                   "priority",
+                   win_priority, config_.name);
+    }
+    return false;
+  }
+  return true;
+#else
+  // Unknown host platform: priorities are stored but not applied.
+  (void)handle;
+  (void)priority;
+  return false;
+#endif
+}
+#endif // !ESP_PLATFORM
 
 Task::Task(const Task::Config &config)
     : BaseComponent(config.task_config.name, config.log_level)
     , callback_(config.callback)
-    , config_(config.task_config) {}
+    , config_(config.task_config)
+    , priority_(config.task_config.priority) {}
 
 std::unique_ptr<Task> Task::make_unique(const Task::Config &config) {
   return std::make_unique<Task>(config);
@@ -37,7 +172,16 @@ bool Task::start() {
     return false;
   }
   thread_config.stack_size = config_.stack_size_bytes;
-  thread_config.prio = config_.priority;
+  // clamp to the valid FreeRTOS priority range, exactly like set_priority():
+  // an out-of-range configured value must not make startup fail
+  size_t start_priority = priority_.load();
+  if (start_priority >= configMAX_PRIORITIES) {
+    logger_.warn("Configured priority ({}) >= configMAX_PRIORITIES ({}), clamping", start_priority,
+                 configMAX_PRIORITIES);
+    start_priority = configMAX_PRIORITIES - 1;
+    priority_ = start_priority;
+  }
+  thread_config.prio = start_priority;
   // this will set the config for the next created thread
   auto err = esp_pthread_set_cfg(&thread_config);
   if (err == ESP_ERR_NO_MEM) {
@@ -70,6 +214,12 @@ bool Task::start() {
     std::lock_guard<std::mutex> lock(thread_mutex_);
     // create and start the std::thread
     thread_ = std::thread(&Task::thread_function, this);
+    // On ESP the priority was applied via esp_pthread above; on host platforms
+    // (when host_realtime is opted in) the new thread applies the priority to
+    // itself at the top of thread_function(), BEFORE the first callback
+    // invocation - applying it from here would race the thread's startup and a
+    // short callback could run entirely (or even exit) at the default
+    // priority.
   }
   logger_.debug("Task started");
   return true;
@@ -227,8 +377,10 @@ bool Task::set_priority(size_t priority) {
     priority = configMAX_PRIORITIES - 1;
   }
 #endif
-  // always store the new priority so it is used on the next start()
-  config_.priority = priority;
+  // always store the new priority so it is used on the next start() (atomic:
+  // the worker thread's startup priority application and
+  // get_configured_priority() read it concurrently)
+  priority_ = priority;
   logger_.debug("Set priority to {} for task '{}'", priority, config_.name);
 #if defined(ESP_PLATFORM)
   // if the task is running, apply the change to the live task as well
@@ -236,6 +388,18 @@ bool Task::set_priority(size_t priority) {
   if (started_ && handle != nullptr) {
     vTaskPrioritySet(handle, static_cast<UBaseType_t>(priority));
     return true;
+  }
+#else
+  // if the task is running and host real-time scheduling was opted in, apply
+  // the change to the live thread as well (best-effort; see
+  // BaseConfig::host_realtime for the per-platform semantics). Apply the
+  // freshest stored value under priority_apply_mutex_ so concurrent
+  // applications (including the worker's startup self-application) always
+  // converge on the last stored priority.
+  if (started_ && config_.host_realtime) {
+    std::lock_guard<std::mutex> lock(thread_mutex_);
+    std::lock_guard<std::mutex> apply_lock(priority_apply_mutex_);
+    return apply_thread_priority(thread_, priority_.load());
   }
 #endif
   return false;
@@ -290,6 +454,23 @@ std::string Task::get_info(const Task &task) {
 void Task::thread_function() {
 #if defined(ESP_PLATFORM)
   task_handle_ = get_current_id();
+#else
+  // Apply the (opted-in) host scheduling policy to ourselves before the first
+  // callback invocation, so the priority reliably covers the task's entire
+  // execution (best-effort: an unprivileged failure falls back to default
+  // scheduling with a one-time warning).
+  if (config_.host_realtime) {
+    // Serialize with a live set_priority() and read the stored priority
+    // INSIDE the lock: otherwise this startup application could overwrite a
+    // newer concurrent request with a stale value (thread runs at the old
+    // priority while get_configured_priority() reports the new one).
+    std::lock_guard<std::mutex> apply_lock(priority_apply_mutex_);
+#if defined(_WIN32)
+    apply_thread_priority_to_handle(GetCurrentThread(), priority_.load());
+#elif defined(__linux__) || defined(__APPLE__)
+    apply_thread_priority_to_handle(pthread_self(), priority_.load());
+#endif
+  }
 #endif // ESP_PLATFORM
   while (started_) {
     bool should_stop = false;

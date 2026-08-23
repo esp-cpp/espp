@@ -18,6 +18,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+#include "dscp.hpp"
+#include "qos_band.hpp"
 #include "socket_reactor.hpp"
 #include "udp_socket.hpp"
 
@@ -100,17 +102,23 @@ void py_init_socket_reactor(py::module &m) {
       .def(
           "add_udp_receiver",
           [](SocketReactor &self, espp::UdpSocket &socket, std::size_t port,
-             std::size_t buffer_size, const py::function &callback) -> SocketReactor::Id {
+             std::size_t buffer_size, const py::function &callback, espp::QosBand band,
+             std::optional<espp::Dscp> dscp) -> SocketReactor::Id {
             espp::UdpSocket::ReceiveConfig rc;
             rc.port = port;
             rc.buffer_size = buffer_size;
             rc.on_receive_callback = wrap_receive_callback(callback);
+            rc.band = band;
+            rc.dscp = dscp;
             return self.add_udp_receiver(socket, rc);
           },
           py::arg("socket"), py::arg("port"), py::arg("buffer_size"), py::arg("callback"),
+          py::arg("band") = espp::QosBand::Normal, py::arg("dscp") = std::optional<espp::Dscp>{},
           "Bind `socket` to `port` and receive on it via the reactor. `callback(data: bytes, "
-          "sender) -> Optional[bytes]`; a returned bytes is sent back to the sender. Returns a "
-          "registration id (0 == INVALID_ID on failure).")
+          "sender) -> Optional[bytes]`; a returned bytes is sent back to the sender. `band` "
+          "selects the espp.QosBand this socket's handlers are dispatched at; `dscp` (an "
+          "espp.Dscp, e.g. Dscp.Ef) optionally marks transmitted replies (IP_TOS, best-effort). "
+          "Returns a registration id (0 == INVALID_ID on failure).")
       .def_property_readonly_static(
           "INVALID_ID", [](py::object) { return SocketReactor::INVALID_ID; },
           "The id value returned by add_* on failure.");

@@ -1606,6 +1606,54 @@ void py_init_module_espp(py::module &m) {
            "structure containing gains, etc.\n");
   ////////////////////    </generated_from:pid.hpp>    ////////////////////
 
+  ////////////////////    <generated_from:qos_band.hpp>    ////////////////////
+  // Bound before the socket / thread_pool sections, whose bindings use
+  // QosBand values as default arguments (defaults are converted at def time).
+  py::enum_<espp::QosBand>(
+      m, "QosBand",
+      "*\n * @brief Priority band for queued work. Critical is the most urgent and Low the "
+      "least;\n * Normal is the default for band-less submissions.\n")
+      .value("Critical", espp::QosBand::Critical)
+      .value("High", espp::QosBand::High)
+      .value("Normal", espp::QosBand::Normal)
+      .value("Low", espp::QosBand::Low);
+  ////////////////////    </generated_from:qos_band.hpp>    ////////////////////
+
+  ////////////////////    <generated_from:dscp.hpp>    ////////////////////
+  // Bound before the socket section, whose bindings use std::optional<Dscp>
+  // parameters.
+  py::enum_<espp::Dscp>(
+      m, "Dscp",
+      "*\n * @brief Standard DiffServ code points (DSCP) for IP traffic marking - the 6-bit "
+      "field\n * in the IP TOS / Traffic Class byte (RFC 2474). E.g. Dscp.Ef = expedited "
+      "forwarding\n * for latency-critical flows; Dscp.Cs1 = low-priority data; Dscp.Af41 = "
+      "high-priority\n * assured forwarding with low drop probability.\n")
+      .value("Cs0", espp::Dscp::Cs0)
+      .value("Default", espp::Dscp::Default)
+      .value("Le", espp::Dscp::Le)
+      .value("Cs1", espp::Dscp::Cs1)
+      .value("Af11", espp::Dscp::Af11)
+      .value("Af12", espp::Dscp::Af12)
+      .value("Af13", espp::Dscp::Af13)
+      .value("Cs2", espp::Dscp::Cs2)
+      .value("Af21", espp::Dscp::Af21)
+      .value("Af22", espp::Dscp::Af22)
+      .value("Af23", espp::Dscp::Af23)
+      .value("Cs3", espp::Dscp::Cs3)
+      .value("Af31", espp::Dscp::Af31)
+      .value("Af32", espp::Dscp::Af32)
+      .value("Af33", espp::Dscp::Af33)
+      .value("Cs4", espp::Dscp::Cs4)
+      .value("Af41", espp::Dscp::Af41)
+      .value("Af42", espp::Dscp::Af42)
+      .value("Af43", espp::Dscp::Af43)
+      .value("Cs5", espp::Dscp::Cs5)
+      .value("VoiceAdmit", espp::Dscp::VoiceAdmit)
+      .value("Ef", espp::Dscp::Ef)
+      .value("Cs6", espp::Dscp::Cs6)
+      .value("Cs7", espp::Dscp::Cs7);
+  ////////////////////    </generated_from:dscp.hpp>    ////////////////////
+
   ////////////////////    <generated_from:socket.hpp>    ////////////////////
   auto pyClassSocket =
       py::class_<espp::Socket>(m, "Socket", py::dynamic_attr(),
@@ -1904,7 +1952,9 @@ void py_init_module_espp(py::module &m) {
                                bool is_multicast_endpoint = {false},
                                std::string multicast_group = {""},
                                std::string multicast_interface = {""},
-                               espp::Socket::receive_callback_fn on_receive_callback = {nullptr}) {
+                               espp::Socket::receive_callback_fn on_receive_callback = {nullptr},
+                               espp::QosBand band = {espp::QosBand::Normal},
+                               std::optional<espp::Dscp> dscp = {}) {
                    auto r_ctor_ = std::make_unique<espp::UdpSocket::ReceiveConfig>();
                    r_ctor_->port = port;
                    r_ctor_->buffer_size = buffer_size;
@@ -1912,13 +1962,17 @@ void py_init_module_espp(py::module &m) {
                    r_ctor_->multicast_group = multicast_group;
                    r_ctor_->multicast_interface = multicast_interface;
                    r_ctor_->on_receive_callback = on_receive_callback;
+                   r_ctor_->band = band;
+                   r_ctor_->dscp = dscp;
                    return r_ctor_;
                  }),
                  py::arg("port") = size_t(), py::arg("buffer_size") = size_t(),
                  py::arg("is_multicast_endpoint") = bool{false},
                  py::arg("multicast_group") = std::string{""},
                  py::arg("multicast_interface") = std::string{""},
-                 py::arg("on_receive_callback") = espp::Socket::receive_callback_fn{nullptr})
+                 py::arg("on_receive_callback") = espp::Socket::receive_callback_fn{nullptr},
+                 py::arg("band") = espp::QosBand::Normal,
+                 py::arg("dscp") = std::optional<espp::Dscp>{})
             .def_readwrite("port", &espp::UdpSocket::ReceiveConfig::port,
                            "*< Port number to bind to / receive from.")
             .def_readwrite("buffer_size", &espp::UdpSocket::ReceiveConfig::buffer_size,
@@ -1936,7 +1990,14 @@ void py_init_module_espp(py::module &m) {
                 "to a specific NIC (e.g. wired vs Wi-Fi).")
             .def_readwrite("on_receive_callback",
                            &espp::UdpSocket::ReceiveConfig::on_receive_callback,
-                           "*< Function containing business logic to handle data received.");
+                           "*< Function containing business logic to handle data received.")
+            .def_readwrite("band", &espp::UdpSocket::ReceiveConfig::band,
+                           "*< Priority band for dispatching this socket's receive handling when "
+                           "registered on an espp.SocketReactor (unused by start_receiving()).")
+            .def_readwrite("dscp", &espp::UdpSocket::ReceiveConfig::dscp,
+                           "*< Optional espp.Dscp code point (e.g. Dscp.Ef) to mark this "
+                           "socket's TRANSMITTED packets with (applied as IP_TOS by "
+                           "espp.SocketReactor at registration, best-effort).");
     auto pyClassUdpSocket_ClassSendConfig =
         py::class_<espp::UdpSocket::SendConfig>(pyClassUdpSocket, "SendConfig", py::dynamic_attr(),
                                                 "")
@@ -2107,23 +2168,29 @@ void py_init_module_espp(py::module &m) {
             "to be used as a configuration struct in other classes\n   *       that may have a "
             "Task as a member.\n")
             .def(py::init<>([](std::string name = std::string(), size_t stack_size_bytes = {4096},
-                               size_t priority = {0}, int core_id = {-1}) {
+                               size_t priority = {0}, int core_id = {-1},
+                               bool host_realtime = {false}) {
                    auto r_ctor_ = std::make_unique<espp::Task::BaseConfig>();
                    r_ctor_->name = name;
                    r_ctor_->stack_size_bytes = stack_size_bytes;
                    r_ctor_->priority = priority;
                    r_ctor_->core_id = core_id;
+                   r_ctor_->host_realtime = host_realtime;
                    return r_ctor_;
                  }),
                  py::arg("name") = std::string(), py::arg("stack_size_bytes") = size_t{4096},
-                 py::arg("priority") = size_t{0}, py::arg("core_id") = int{-1})
+                 py::arg("priority") = size_t{0}, py::arg("core_id") = int{-1},
+                 py::arg("host_realtime") = false)
             .def_readwrite("name", &espp::Task::BaseConfig::name, "*< Name of the task")
             .def_readwrite("stack_size_bytes", &espp::Task::BaseConfig::stack_size_bytes,
                            "*< Stack Size (B) allocated to the task.")
             .def_readwrite("priority", &espp::Task::BaseConfig::priority,
                            "*< Priority of the task, 0 is lowest priority on ESP / FreeRTOS.")
             .def_readwrite("core_id", &espp::Task::BaseConfig::core_id,
-                           "*< Core ID of the task, -1 means it is not pinned to any core.");
+                           "*< Core ID of the task, -1 means it is not pinned to any core.")
+            .def_readwrite("host_realtime", &espp::Task::BaseConfig::host_realtime,
+                           "*< Opt-in to applying the priority to the OS thread on host "
+                           "platforms (SCHED_FIFO on Linux/macOS; ignored on ESP).");
     auto pyClassTask_ClassConfig =
         py::class_<espp::Task::Config>(
             pyClassTask, "Config", py::dynamic_attr(),
@@ -2180,6 +2247,12 @@ void py_init_module_espp(py::module &m) {
            "False\n   *          if the task is not running (the new value still takes effect "
            "the\n   *          next time the task is started) or the platform does not support\n   "
            "*          changing a live task's priority.\n")
+      .def("get_configured_priority", &espp::Task::get_configured_priority,
+           "*\n   * @brief Get the priority stored in the task's configuration.\n   * @details "
+           "This is the value set at construction or via set_priority(); it\n   *          is the "
+           "priority the task will be started with (and, if the task\n   *          is running, "
+           "the priority that was last requested for it).\n   * @return The configured priority "
+           "(0 is lowest; see BaseConfig.priority).\n")
       .def(
           "set_core_id", &espp::Task::set_core_id, py::arg("core_id"),
           "*\n   * @brief Set the core affinity (core ID) of the task.\n   * @details The new core "
@@ -2633,31 +2706,51 @@ void py_init_module_espp(py::module &m) {
             .def_readwrite("executed", &espp::ThreadPool::Stats::executed,
                            "/< Total jobs successfully executed.")
             .def_readwrite("rejected", &espp::ThreadPool::Stats::rejected,
-                           "/< Total jobs rejected (invalid job, stopped/stopping, or queue");
+                           "/< Total jobs rejected (invalid job, stopped/stopping, or queue")
+            .def_readwrite("band_submitted", &espp::ThreadPool::Stats::band_submitted,
+                           "/< Jobs accepted per band (by the band they were submitted to).")
+            .def_readwrite("band_executed", &espp::ThreadPool::Stats::band_executed,
+                           "/< Jobs executed per band (by the band they were popped from, i.e. "
+                           "after any aging promotions).")
+            .def_readwrite("band_aged", &espp::ThreadPool::Stats::band_aged,
+                           "/< Aging promotions OUT of each band (an entry moved from band i to "
+                           "band i-1).")
+            .def_readwrite("band_rejected", &espp::ThreadPool::Stats::band_rejected,
+                           "/< Jobs rejected per band (by the band they were submitted to).");
     auto pyClassThreadPool_ClassConfig =
         py::class_<espp::ThreadPool::Config>(
             pyClassThreadPool, "Config", py::dynamic_attr(),
             "/ @brief Configuration parameters for constructing a ThreadPool.")
-            .def(py::init<>([](std::size_t worker_count = 1, std::size_t max_queue_size = 0,
-                               bool auto_start = true, bool block_on_submit_when_full = false,
-                               espp::Task::BaseConfig worker_task_config =
-                                   {
-                                       ///< Base configuration applied to every worker task.
-                                       .name = "thread_pool_worker",
-                                       .stack_size_bytes = 4096,
-                                       .priority = 5,
-                                       .core_id = -1,
-                                   },
-                               espp::Logger::Verbosity log_level = espp::Logger::Verbosity::WARN) {
-                   auto r_ctor_ = std::make_unique<espp::ThreadPool::Config>();
-                   r_ctor_->worker_count = worker_count;
-                   r_ctor_->max_queue_size = max_queue_size;
-                   r_ctor_->auto_start = auto_start;
-                   r_ctor_->block_on_submit_when_full = block_on_submit_when_full;
-                   r_ctor_->worker_task_config = worker_task_config;
-                   r_ctor_->log_level = log_level;
-                   return r_ctor_;
-                 }),
+            .def(py::init<>(
+                     [](std::size_t worker_count = 1, std::size_t max_queue_size = 0,
+                        bool auto_start = true, bool block_on_submit_when_full = false,
+                        espp::Task::BaseConfig worker_task_config =
+                            {
+                                ///< Base configuration applied to every worker task.
+                                .name = "thread_pool_worker",
+                                .stack_size_bytes = 4096,
+                                .priority = 5,
+                                .core_id = -1,
+                            },
+                        espp::Logger::Verbosity log_level = espp::Logger::Verbosity::WARN,
+                        std::chrono::milliseconds aging_threshold = std::chrono::milliseconds{100},
+                        std::array<std::size_t, espp::kNumQosBands> band_worker_counts = {},
+                        std::array<std::size_t, espp::kNumQosBands> band_task_priorities = {10, 7,
+                                                                                            5, 1},
+                        bool band_workers_realtime = false) {
+                       auto r_ctor_ = std::make_unique<espp::ThreadPool::Config>();
+                       r_ctor_->worker_count = worker_count;
+                       r_ctor_->max_queue_size = max_queue_size;
+                       r_ctor_->auto_start = auto_start;
+                       r_ctor_->block_on_submit_when_full = block_on_submit_when_full;
+                       r_ctor_->worker_task_config = worker_task_config;
+                       r_ctor_->log_level = log_level;
+                       r_ctor_->aging_threshold = aging_threshold;
+                       r_ctor_->band_worker_counts = band_worker_counts;
+                       r_ctor_->band_task_priorities = band_task_priorities;
+                       r_ctor_->band_workers_realtime = band_workers_realtime;
+                       return r_ctor_;
+                     }),
                  py::arg("worker_count") = 1, py::arg("max_queue_size") = 0,
                  py::arg("auto_start") = true, py::arg("block_on_submit_when_full") = false,
                  py::arg("worker_task_config") =
@@ -2668,7 +2761,12 @@ void py_init_module_espp(py::module &m) {
                          .priority = 5,
                          .core_id = -1,
                      },
-                 py::arg("log_level") = espp::Logger::Verbosity::WARN)
+                 py::arg("log_level") = espp::Logger::Verbosity::WARN,
+                 py::arg("aging_threshold") = std::chrono::milliseconds{100},
+                 py::arg("band_worker_counts") = std::array<std::size_t, espp::kNumQosBands>{},
+                 py::arg("band_task_priorities") =
+                     std::array<std::size_t, espp::kNumQosBands>{10, 7, 5, 1},
+                 py::arg("band_workers_realtime") = false)
             .def_readwrite("worker_count", &espp::ThreadPool::Config::worker_count,
                            "/< Number of worker threads to spawn.")
             .def_readwrite("max_queue_size", &espp::ThreadPool::Config::max_queue_size,
@@ -2680,7 +2778,20 @@ void py_init_module_espp(py::module &m) {
                 "/< If True, submit() blocks when the queue is full instead of rejecting.")
             .def_readwrite("worker_task_config", &espp::ThreadPool::Config::worker_task_config, "")
             .def_readwrite("log_level", &espp::ThreadPool::Config::log_level,
-                           "/< Logger verbosity level.");
+                           "/< Logger verbosity level.")
+            .def_readwrite("aging_threshold", &espp::ThreadPool::Config::aging_threshold,
+                           "/< Starvation guard: a queued job whose wait exceeds this is promoted "
+                           "up one band. 0 disables aging (strict band priority).")
+            .def_readwrite("band_worker_counts", &espp::ThreadPool::Config::band_worker_counts,
+                           "/< Opt-in per-band worker counts (index = QosBand); all zero = "
+                           "disabled (identical workers service all bands).")
+            .def_readwrite("band_task_priorities", &espp::ThreadPool::Config::band_task_priorities,
+                           "/< Task priorities for per-band workers (only used when "
+                           "band_worker_counts is set).")
+            .def_readwrite("band_workers_realtime",
+                           &espp::ThreadPool::Config::band_workers_realtime,
+                           "/< Opt-in for OS real-time scheduling of per-band workers on host "
+                           "platforms (SCHED_FIFO; see Task.BaseConfig.host_realtime).");
   } // end of inner classes & enums of ThreadPool
 
   pyClassThreadPool.def(py::init<const espp::ThreadPool::Config &>())
@@ -2697,17 +2808,41 @@ void py_init_module_espp(py::module &m) {
       .def("is_running", &espp::ThreadPool::is_running,
            "/ @brief Query whether the pool is currently running.\n/ @return True if workers are "
            "active, False otherwise.")
-      .def("submit", &espp::ThreadPool::submit, py::arg("job"),
-           "/ @brief Submit a job, optionally blocking when the queue is full.\n/\n/ Blocks if "
-           "Config::block_on_submit_when_full is True and the queue has\n/ reached its capacity "
-           "limit. Otherwise behaves identically to try_submit().\n/ @param job Callable to "
-           "enqueue; moved into the queue on acceptance.\n/ @return True if the job was accepted, "
-           "False if it was rejected.",
+      .def("submit",
+           static_cast<bool (espp::ThreadPool::*)(espp::ThreadPool::Job &&)>(
+               &espp::ThreadPool::submit),
+           py::arg("job"),
+           "/ @brief Submit a job at QosBand.Normal, optionally blocking when the queue is "
+           "full.\n/\n/ Blocks if Config::block_on_submit_when_full is True and the queue has\n/ "
+           "reached its capacity limit. Otherwise behaves identically to try_submit().\n/ @param "
+           "job Callable to enqueue; moved into the queue on acceptance.\n/ @return True if the "
+           "job was accepted, False if it was rejected.",
            py::call_guard<py::gil_scoped_release>())
-      .def("try_submit", &espp::ThreadPool::try_submit, py::arg("job"),
-           "/ @brief Attempt to submit a job without blocking.\n/\n/ Returns immediately with "
-           "False when the queue is full.\n/ @param job Callable to enqueue; moved into the queue "
-           "on acceptance.\n/ @return True if the job was accepted, False if it was rejected.")
+      .def("submit",
+           static_cast<bool (espp::ThreadPool::*)(espp::ThreadPool::Job &&, espp::QosBand)>(
+               &espp::ThreadPool::submit),
+           py::arg("job"), py::arg("band"),
+           "/ @brief Submit a job at the given priority band, optionally blocking when the queue "
+           "is full.\n/ @param job Callable to enqueue; moved into the queue on acceptance.\n/ "
+           "@param band Priority band to enqueue the job at.\n/ @return True if the job was "
+           "accepted, False if it was rejected.",
+           py::call_guard<py::gil_scoped_release>())
+      .def("try_submit",
+           static_cast<bool (espp::ThreadPool::*)(espp::ThreadPool::Job &&)>(
+               &espp::ThreadPool::try_submit),
+           py::arg("job"),
+           "/ @brief Attempt to submit a job at QosBand.Normal without blocking.\n/\n/ Returns "
+           "immediately with False when the queue is full.\n/ @param job Callable to enqueue; "
+           "moved into the queue on acceptance.\n/ @return True if the job was accepted, False if "
+           "it was rejected.")
+      .def("try_submit",
+           static_cast<bool (espp::ThreadPool::*)(espp::ThreadPool::Job &&, espp::QosBand)>(
+               &espp::ThreadPool::try_submit),
+           py::arg("job"), py::arg("band"),
+           "/ @brief Attempt to submit a job at the given priority band without blocking.\n/ "
+           "@param job Callable to enqueue; moved into the queue on acceptance.\n/ @param band "
+           "Priority band to enqueue the job at.\n/ @return True if the job was accepted, False "
+           "if it was rejected.")
       .def("queue_size", &espp::ThreadPool::queue_size,
            "/ @brief Return the number of jobs currently waiting in the queue.\n/ @return Pending "
            "job count.")

@@ -1,7 +1,9 @@
 #include "socket_reactor.hpp"
 
+#include <algorithm>
 #include <exception>
 #include <thread>
+#include <utility>
 
 #ifndef _WIN32
 #include <fcntl.h>
@@ -168,15 +170,16 @@ SocketReactor::Id SocketReactor::allocate_id() {
   return next_id_;
 }
 
-void SocketReactor::insert_entry(Id id, sock_type_t fd, ReadHandler handler) {
+void SocketReactor::insert_entry(Id id, sock_type_t fd, ReadHandler handler, QosBand band) {
   {
     std::lock_guard<std::mutex> lock(mutex_);
-    entries_[id] = Entry{.fd = fd, .handler = std::move(handler)};
+    entries_[id] = Entry{.fd = fd, .handler = std::move(handler), .band = band};
   }
   wake(); // interrupt select() so the new fd is picked up
 }
 
-SocketReactor::Id SocketReactor::add_fd(sock_type_t fd, SocketReactor::ReadHandler handler) {
+SocketReactor::Id SocketReactor::add_fd(sock_type_t fd, SocketReactor::ReadHandler handler,
+                                        QosBand band) {
   if (!handler) {
     logger_.error("add_fd: null handler");
     return INVALID_ID;
@@ -185,7 +188,7 @@ SocketReactor::Id SocketReactor::add_fd(sock_type_t fd, SocketReactor::ReadHandl
     return INVALID_ID;
   }
   Id id = allocate_id();
-  insert_entry(id, fd, std::move(handler));
+  insert_entry(id, fd, std::move(handler), band);
   return id;
 }
 
@@ -199,6 +202,27 @@ SocketReactor::add_udp_receiver(espp::UdpSocket &socket,
   const auto callback = receive_config.on_receive_callback;
   const auto buffer_size = receive_config.buffer_size;
   sock_type_t fd = socket.native_handle();
+  if (receive_config.dscp.has_value()) {
+    // Mark this socket's transmitted packets (e.g. echo responses) with the
+    // requested DSCP code point. The TOS byte carries the 6-bit DSCP in its
+    // upper bits (RFC 2474). Best-effort: network / driver treatment only, no
+    // effect on local scheduling (that is what `band` is for).
+    const uint8_t dscp = static_cast<uint8_t>(receive_config.dscp.value());
+    if (dscp > 63) {
+      // Named espp::Dscp values are always in range; a custom static_cast'd
+      // code point is documented as 0-63. Silently masking would apply a
+      // DIFFERENT code point (64 -> 0, 255 -> 63), so ignore invalid values.
+      logger_.warn("add_udp_receiver: invalid DSCP {} (valid range 0-63) on port {}; not applied",
+                   dscp, receive_config.port);
+    } else {
+      const int tos = espp::dscp_to_tos(receive_config.dscp.value());
+      if (::setsockopt(fd, IPPROTO_IP, IP_TOS, reinterpret_cast<const char *>(&tos), sizeof(tos)) <
+          0) {
+        logger_.warn("add_udp_receiver: could not set IP_TOS (DSCP {}) on port {}", dscp,
+                     receive_config.port);
+      }
+    }
+  }
   auto handler = [this, &socket, callback, buffer_size]() {
     std::vector<uint8_t> data;
     Socket::Info sender;
@@ -223,11 +247,11 @@ SocketReactor::add_udp_receiver(espp::UdpSocket &socket,
       logger_.warn("Failed to send UDP response to {}", sender);
     }
   };
-  return add_fd(fd, std::move(handler));
+  return add_fd(fd, std::move(handler), receive_config.band);
 }
 
 SocketReactor::Id SocketReactor::add_tcp_listener(espp::TcpSocket &listener,
-                                                  const AcceptCallback &on_accept) {
+                                                  const AcceptCallback &on_accept, QosBand band) {
   sock_type_t fd = listener.native_handle();
   auto handler = [this, &listener, on_accept]() {
     // select() reported the listener readable, so accept() returns immediately.
@@ -239,12 +263,12 @@ SocketReactor::Id SocketReactor::add_tcp_listener(espp::TcpSocket &listener,
       on_accept(std::move(client));
     }
   };
-  return add_fd(fd, std::move(handler));
+  return add_fd(fd, std::move(handler), band);
 }
 
 SocketReactor::Id SocketReactor::add_tcp_stream(espp::TcpSocket &connection,
                                                 const StreamCallback &on_data, size_t buffer_size,
-                                                const CloseCallback &on_close) {
+                                                const CloseCallback &on_close, QosBand band) {
   sock_type_t fd = connection.native_handle();
   if (!check_fd(fd)) {
     return INVALID_ID;
@@ -269,7 +293,7 @@ SocketReactor::Id SocketReactor::add_tcp_stream(espp::TcpSocket &connection,
     }
     remove(id);
   };
-  insert_entry(id, fd, std::move(handler));
+  insert_entry(id, fd, std::move(handler), band);
   return id;
 }
 
@@ -404,7 +428,7 @@ bool SocketReactor::loop_iteration(std::mutex &, std::condition_variable &, bool
 
   // Collect readable entries, disarming each so it is not dispatched again
   // until its handler completes.
-  std::vector<Id> ready;
+  std::vector<std::pair<Id, QosBand>> ready;
   {
     std::lock_guard<std::mutex> lock(mutex_);
     for (auto &[id, entry] : entries_) {
@@ -412,14 +436,20 @@ bool SocketReactor::loop_iteration(std::mutex &, std::condition_variable &, bool
           (FD_ISSET(entry.fd, &readfds) || FD_ISSET(entry.fd, &exceptfds))) {
         entry.armed = false;
         entry.in_flight = true;
-        ready.push_back(id);
+        ready.emplace_back(id, entry.band);
       }
     }
   }
 
-  for (Id id : ready) {
+  // Dispatch in band order (most urgent first; stable, so same-band sockets
+  // keep their registration order). Submitting urgent sockets first also means
+  // they win the remaining pool slots when the pool is nearly saturated.
+  std::stable_sort(ready.begin(), ready.end(),
+                   [](const auto &a, const auto &b) { return a.second < b.second; });
+
+  for (const auto &[id, band] : ready) {
     ++in_flight_count_;
-    bool submitted = pool_->submit([this, id]() { dispatch(id); });
+    bool submitted = pool_->submit([this, id]() { dispatch(id); }, band);
     if (!submitted) {
       // Pool is saturated; revert and let the next select() re-report this fd
       // (the data stays buffered in the socket - natural backpressure).

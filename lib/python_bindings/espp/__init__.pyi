@@ -2,7 +2,9 @@
 
 # mypy: disable-error-code="type-arg"
 
-from typing import overload, List
+import datetime
+import enum
+from typing import overload, List, Optional
 
 NumberType = (int, float, np.number)
 
@@ -2731,6 +2733,60 @@ class Pid:
 ####################    </generated_from:pid.hpp>    ####################
 
 
+####################    <generated_from:qos_band.hpp>    ####################
+
+class QosBand(enum.IntEnum):
+    """*
+     * @brief Priority band for queued work. Critical is the most urgent and Low the
+     * least; Normal is the default for band-less submissions.
+
+    """
+    Critical = enum.auto()                               # (= 0)  #*< Most urgent.
+    High = enum.auto()                                   # (= 1)
+    Normal = enum.auto()                                 # (= 2)  #*< Default for band-less submissions.
+    Low = enum.auto()                                    # (= 3)  #*< Least urgent.
+
+####################    </generated_from:qos_band.hpp>    ####################
+
+
+####################    <generated_from:dscp.hpp>    ####################
+
+class Dscp(enum.IntEnum):
+    """*
+     * @brief Standard DiffServ code points (DSCP) for IP traffic marking - the 6-bit field
+     * in the IP TOS / Traffic Class byte (RFC 2474). E.g. Dscp.Ef = expedited forwarding
+     * for latency-critical flows; Dscp.Cs1 = low-priority data; Dscp.Af41 = high-priority
+     * assured forwarding with low drop probability.
+
+    """
+    Cs0 = 0                                              #*< Class selector 0 - default / best-effort forwarding.
+    Default = 0                                          #*< Alias for CS0.
+    Le = 1                                               #*< Lower effort / scavenger (RFC 8622).
+    Cs1 = 8                                              #*< Class selector 1 (conventionally low-priority data).
+    Af11 = 10                                            #*< Assured forwarding: class 1, low drop precedence.
+    Af12 = 12                                            #*< Assured forwarding: class 1, medium drop precedence.
+    Af13 = 14                                            #*< Assured forwarding: class 1, high drop precedence.
+    Cs2 = 16                                             #*< Class selector 2 (conventionally OAM / management).
+    Af21 = 18                                            #*< Assured forwarding: class 2, low drop precedence.
+    Af22 = 20                                            #*< Assured forwarding: class 2, medium drop precedence.
+    Af23 = 22                                            #*< Assured forwarding: class 2, high drop precedence.
+    Cs3 = 24                                             #*< Class selector 3 (conventionally call signaling).
+    Af31 = 26                                            #*< Assured forwarding: class 3, low drop precedence.
+    Af32 = 28                                            #*< Assured forwarding: class 3, medium drop precedence.
+    Af33 = 30                                            #*< Assured forwarding: class 3, high drop precedence.
+    Cs4 = 32                                             #*< Class selector 4 (conventionally real-time interactive).
+    Af41 = 34                                            #*< Assured forwarding: class 4, low drop precedence.
+    Af42 = 36                                            #*< Assured forwarding: class 4, medium drop precedence.
+    Af43 = 38                                            #*< Assured forwarding: class 4, high drop precedence.
+    Cs5 = 40                                             #*< Class selector 5 (conventionally broadcast video).
+    VoiceAdmit = 44                                      #*< Capacity-admitted EF traffic (RFC 5865).
+    Ef = 46                                              #*< Expedited forwarding (RFC 3246) - low-latency/low-jitter.
+    Cs6 = 48                                             #*< Class selector 6 (network control - use with care).
+    Cs7 = 56                                             #*< Class selector 7 (reserved network control).
+
+####################    </generated_from:dscp.hpp>    ####################
+
+
 ####################    <generated_from:socket.hpp>    ####################
 
 
@@ -3245,6 +3301,8 @@ class UdpSocket:
                         receive its traffic. Empty/"0.0.0.0" lets the OS pick the default interface; set it
                         on multi-homed hosts to bind multicast to a specific NIC (e.g. wired vs Wi-Fi).
         on_receive_callback: Socket.receive_callback_fn = Socket.receive_callback_fn(None)     #*< Function containing business logic to handle data received.
+        band: QosBand = QosBand.Normal                                                         #*< Priority band for dispatching this socket's receive handling when registered on an espp.SocketReactor (unused by start_receiving()).
+        dscp: Optional[Dscp] = None                                                            #*< Optional espp.Dscp code point (e.g. Dscp.Ef) to mark this socket's TRANSMITTED packets with (applied as IP_TOS by espp.SocketReactor at registration, best-effort).
         def __init__(
             self,
             port: int = int(),
@@ -3252,7 +3310,9 @@ class UdpSocket:
             is_multicast_endpoint: bool = bool(False),
             multicast_group: str = str(""),
             multicast_interface: str = str(""),
-            on_receive_callback: Socket.receive_callback_fn = Socket.receive_callback_fn(None)
+            on_receive_callback: Socket.receive_callback_fn = Socket.receive_callback_fn(None),
+            band: QosBand = QosBand.Normal,
+            dscp: Optional[Dscp] = None
             ) -> None:
             """Auto-generated default constructor with named params"""
             pass
@@ -3478,12 +3538,14 @@ class Task:
         stack_size_bytes: int = int(4096)                                      #*< Stack Size (B) allocated to the task.
         priority: int = int(0)                                                 #*< Priority of the task, 0 is lowest priority on ESP / FreeRTOS.
         core_id: int = int(-1)                                                 #*< Core ID of the task, -1 means it is not pinned to any core.
+        host_realtime: bool = False                                            #*< Opt-in to applying the priority to the OS thread on host platforms (SCHED_FIFO on Linux/macOS; ignored on ESP).
         def __init__(
             self,
             name: str = "",
             stack_size_bytes: int = int(4096),
             priority: int = int(0),
-            core_id: int = int(-1)
+            core_id: int = int(-1),
+            host_realtime: bool = False
             ) -> None:
             """Auto-generated default constructor with named params"""
             pass
@@ -3565,6 +3627,16 @@ class Task:
            *          next time the task is started) or the platform does not support
            *          changing a live task's priority.
 
+        """
+        pass
+
+    def get_configured_priority(self) -> int:
+        """*
+           * @brief Get the priority stored in the task's configuration.
+           * @details This is the value set at construction or via set_priority(); it
+           *          is the priority the task will be started with (and, if the task
+           *          is running, the priority that was last requested for it).
+           * @return The configured priority (0 is lowest; see BaseConfig.priority).
         """
         pass
 
@@ -4099,6 +4171,10 @@ class ThreadPool:
         executed: std.int = 0                                #/< Total jobs successfully executed.
         rejected: std.int = 0                                #/< Total jobs rejected (invalid job, stopped/stopping, or queue
         #/< full) or dropped (due to stop, the enqueued jobs were dropped).
+        band_submitted: List[int]                            #/< Jobs accepted per band (index = QosBand).
+        band_executed: List[int]                             #/< Jobs executed per band (by the band they were popped from, i.e. after any aging promotions).
+        band_aged: List[int]                                 #/< Aging promotions OUT of each band (an entry moved from band i to band i-1).
+        band_rejected: List[int]                             #/< Jobs rejected per band (by the band they were submitted to).
         def __init__(
             self,
             submitted: std.int = 0,
@@ -4122,6 +4198,10 @@ class ThreadPool:
                 .core_id = -1,
             )
         log_level: Logger.Verbosity = Logger.Verbosity.WARN  #/< Logger verbosity level.
+        aging_threshold: datetime.timedelta                  #/< Starvation guard: a queued job whose wait exceeds this is promoted up one band (default 100ms; 0 disables aging - strict band priority). Pass a datetime.timedelta or float seconds.
+        band_worker_counts: List[int]                        #/< Opt-in per-band worker counts (index = QosBand); all zero (the default) = disabled: identical workers service all bands.
+        band_task_priorities: List[int]                      #/< Task priorities for per-band workers (default [10, 7, 5, 1]; only used when band_worker_counts is set).
+        band_workers_realtime: bool = False                  #/< Opt-in for OS real-time scheduling of per-band workers on host platforms (SCHED_FIFO; see Task.BaseConfig.host_realtime).
         def __init__(
             self,
             worker_count: std.int = 1,
@@ -4134,7 +4214,11 @@ class ThreadPool:
                     .priority = 5,
                     .core_id = -1,
                 ),
-            log_level: Logger.Verbosity = Logger.Verbosity.WARN
+            log_level: Logger.Verbosity = Logger.Verbosity.WARN,
+            aging_threshold: datetime.timedelta = ...,
+            band_worker_counts: List[int] = ...,
+            band_task_priorities: List[int] = ...,
+            band_workers_realtime: bool = False
             ) -> None:
             """Auto-generated default constructor with named params"""
             pass
@@ -4161,8 +4245,9 @@ class ThreadPool:
         """
         pass
 
+    @overload
     def submit(self, job: Job) -> bool:
-        """/ @brief Submit a job, optionally blocking when the queue is full.
+        """/ @brief Submit a job at QosBand.Normal, optionally blocking when the queue is full.
         /
         / Blocks if Config::block_on_submit_when_full is True and the queue has
         / reached its capacity limit. Otherwise behaves identically to try_submit().
@@ -4171,11 +4256,30 @@ class ThreadPool:
         """
         pass
 
+    @overload
+    def submit(self, job: Job, band: QosBand) -> bool:
+        """/ @brief Submit a job at the given priority band, optionally blocking when the queue is full.
+        / @param job Callable to enqueue; moved into the queue on acceptance.
+        / @param band Priority band to enqueue the job at.
+        / @return True if the job was accepted, False if it was rejected.
+        """
+        pass
+
+    @overload
     def try_submit(self, job: Job) -> bool:
-        """/ @brief Attempt to submit a job without blocking.
+        """/ @brief Attempt to submit a job at QosBand.Normal without blocking.
         /
         / Returns immediately with False when the queue is full.
         / @param job Callable to enqueue; moved into the queue on acceptance.
+        / @return True if the job was accepted, False if it was rejected.
+        """
+        pass
+
+    @overload
+    def try_submit(self, job: Job, band: QosBand) -> bool:
+        """/ @brief Attempt to submit a job at the given priority band without blocking.
+        / @param job Callable to enqueue; moved into the queue on acceptance.
+        / @param band Priority band to enqueue the job at.
         / @return True if the job was accepted, False if it was rejected.
         """
         pass
@@ -4194,12 +4298,12 @@ class ThreadPool:
 
     def stats(self) -> ThreadPool.Stats:
         """/ @brief Return a snapshot of the pool's activity counters.
-        / @return Stats struct with submitted, executed, and rejected counts.
+        / @return Stats struct with submitted, executed, and rejected counts (total and per band).
         """
         pass
 
-    def __init__(self) -> None:
-        """Auto-generated default constructor"""
+    def __init__(self, config: ThreadPool.Config) -> None:
+        """/ @brief Construct the pool with the given configuration."""
         pass
 
 

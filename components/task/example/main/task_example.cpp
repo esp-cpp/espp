@@ -481,16 +481,38 @@ extern "C" void app_main(void) {
       return false; // keep running
     };
     auto task = espp::Task({.callback = task_fn,
-                            .task_config = {.name = "Reconfig Task", .priority = 5, .core_id = 0},
+                            .task_config = {.name = "Reconfig Task",
+                                            .priority = 5,
+                                            .core_id = 0,
+                                            // host-only opt-in: on Linux/macOS/Windows this would
+                                            // apply the priority to the OS thread (SCHED_FIFO /
+                                            // SetThreadPriority); ignored on ESP, where the
+                                            // FreeRTOS priority is always applied
+                                            .host_realtime = false},
                             .log_level = espp::Logger::Verbosity::DEBUG});
+    // the configured priority is readable before (and while) the task runs
+    if (task.get_configured_priority() != 5) {
+      logger.error("get_configured_priority() != 5 after construction!");
+    }
     task.start();
-    fmt::println("Task started on core {} at priority {}", espp::Task::get_core_id(task),
-                 espp::Task::get_priority(task));
+    fmt::println("Task started on core {} at priority {} (configured {})",
+                 espp::Task::get_core_id(task), espp::Task::get_priority(task),
+                 task.get_configured_priority());
 
-    // priority changes apply to the running task immediately
+    // priority changes apply to the running task immediately, and the
+    // configured priority tracks them (thread-safe to read from other threads)
     bool applied = task.set_priority(10);
-    fmt::println("set_priority(10) applied live: {}, priority now {}", applied,
-                 espp::Task::get_priority(task));
+    fmt::println("set_priority(10) applied live: {}, priority now {} (configured {})", applied,
+                 espp::Task::get_priority(task), task.get_configured_priority());
+    if (task.get_configured_priority() != 10) {
+      logger.error("get_configured_priority() != 10 after set_priority(10)!");
+    }
+#if defined(ESP_PLATFORM)
+    // on ESP the FreeRTOS scheduler must observe the live change as well
+    if (espp::Task::get_priority(task) != 10) {
+      logger.error("FreeRTOS priority did not follow set_priority(10)!");
+    }
+#endif
 
     // core affinity changes are stored but only take effect when the task is
     // (re)started on the default ESP-IDF FreeRTOS port (a task's core is fixed

@@ -11,7 +11,14 @@ template <> struct fmt::formatter<espp::ThreadPool::Stats> {
   template <typename FormatContext>
   auto format(espp::ThreadPool::Stats const &s, FormatContext &ctx) const {
     return fmt::format_to(ctx.out(),
-                          "ThreadPool::Stats{{submitted: {}, executed: {}, rejected: {}}}",
-                          s.submitted, s.executed, s.rejected);
+                          "ThreadPool::Stats{{submitted: {}, executed: {}, rejected: {}, "
+                          "band_submitted: [{}, {}, {}, {}], band_executed: [{}, {}, {}, {}], "
+                          "band_aged: [{}, {}, {}, {}], band_rejected: [{}, {}, {}, {}]}}",
+                          s.submitted, s.executed, s.rejected, s.band_submitted[0],
+                          s.band_submitted[1], s.band_submitted[2], s.band_submitted[3],
+                          s.band_executed[0], s.band_executed[1], s.band_executed[2],
+                          s.band_executed[3], s.band_aged[0], s.band_aged[1], s.band_aged[2],
+                          s.band_aged[3], s.band_rejected[0], s.band_rejected[1],
+                          s.band_rejected[2], s.band_rejected[3]);
   }
 };

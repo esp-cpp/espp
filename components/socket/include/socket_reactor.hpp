@@ -45,6 +45,19 @@ namespace espp {
  *          responsive by a loopback UDP "wakeup" socket that is also in the
  *          select set: poking it interrupts @c select() at once.
  *
+ *          Each registration carries a priority band (@ref espp::QosBand,
+ *          default Normal). When one @c select() wakeup reports several
+ *          sockets readable at once, their handlers are submitted to the pool
+ *          in band order (most urgent first) and each is submitted AT its band,
+ *          so band-aware pools (see @ref espp::ThreadPool) run urgent sockets'
+ *          handlers first. This also shapes the saturation policy: when the
+ *          pool is (nearly) full, urgent sockets win the remaining queue slots
+ *          while less urgent ones simply stay readable and are re-reported by
+ *          the next @c select() (kernel-buffer backpressure, no data loss for
+ *          TCP / bounded loss semantics identical to before for UDP). With the
+ *          default band on every registration the dispatch order and behavior
+ *          are unchanged from the pre-band reactor.
+ *
  * @note Lifetime. Registered sockets and callbacks must outlive their
  *       registration. @ref stop (and the destructor) waits for any in-flight
  *       handler to finish, so the guaranteed-safe teardown order is: stop() /
@@ -68,6 +81,8 @@ namespace espp {
  * \snippet socket_example.cpp socket reactor example
  * \section socket_reactor_ex2 Socket Reactor TCP Example
  * \snippet socket_example.cpp socket reactor tcp example
+ * \section socket_reactor_ex3 Socket Reactor Priority Bands Example
+ * \snippet socket_example.cpp socket reactor priority example
  */
 class SocketReactor : public BaseComponent {
 public:
@@ -156,9 +171,14 @@ public:
    *        data, it is sent back to the sender.
    * @note This replaces UdpSocket::start_receiving() (which spawns a dedicated
    *       thread) - the reactor drives the socket instead.
+   * @note The receive_config's band field selects the priority band this
+   *       socket's handling is dispatched at, and its dscp field (if set) is
+   *       applied to the socket via IP_TOS here (best-effort, marks
+   *       transmitted packets - see UdpSocket::ReceiveConfig).
    * @param socket A UdpSocket to bind and receive on. Must outlive the
    *        registration (call remove() before destroying it).
-   * @param receive_config Port / multicast / buffer_size / callback config.
+   * @param receive_config Port / multicast / buffer_size / callback / band /
+   *        dscp config.
    * @return A registration Id, or INVALID_ID on failure.
    */
   Id add_udp_receiver(espp::UdpSocket &socket,
@@ -171,9 +191,12 @@ public:
    * @param listener A TcpSocket that has already been bind()+listen()'d. Must
    *        outlive the registration.
    * @param on_accept Callback given ownership of each accepted client.
+   * @param band Priority band to dispatch accept handling at (see
+   *        espp::QosBand; default Normal = pre-band behavior).
    * @return A registration Id, or INVALID_ID on failure.
    */
-  Id add_tcp_listener(espp::TcpSocket &listener, const AcceptCallback &on_accept);
+  Id add_tcp_listener(espp::TcpSocket &listener, const AcceptCallback &on_accept,
+                      QosBand band = QosBand::Normal);
 
   /**
    * @brief Register a connected TcpSocket for reading. When it is readable the
@@ -185,19 +208,23 @@ public:
    * @param on_data Callback given the connection and the bytes read.
    * @param buffer_size Max bytes to read per readable event.
    * @param on_close Optional callback fired once when the peer closes.
+   * @param band Priority band to dispatch read handling at (see espp::QosBand;
+   *        default Normal = pre-band behavior).
    * @return A registration Id, or INVALID_ID on failure.
    */
   Id add_tcp_stream(espp::TcpSocket &connection, const StreamCallback &on_data, size_t buffer_size,
-                    const CloseCallback &on_close = {});
+                    const CloseCallback &on_close = {}, QosBand band = QosBand::Normal);
 
   /**
    * @brief Low-level registration: watch @p fd for readability and run
    *        @p handler (on a pool worker) each time it is readable.
    * @param fd A valid socket file descriptor (see Socket::native_handle()).
    * @param handler Handler that reads/processes the socket.
+   * @param band Priority band to dispatch the handler at (see espp::QosBand;
+   *        default Normal = pre-band behavior).
    * @return A registration Id, or INVALID_ID on failure.
    */
-  Id add_fd(sock_type_t fd, ReadHandler handler);
+  Id add_fd(sock_type_t fd, ReadHandler handler, QosBand band = QosBand::Normal);
 
   /**
    * @brief Unregister a socket. Safe to call from any thread, including from
@@ -215,6 +242,7 @@ protected:
   struct Entry {
     sock_type_t fd{static_cast<sock_type_t>(-1)}; ///< Watched file descriptor.
     ReadHandler handler;                          ///< Handler run on the pool.
+    QosBand band{QosBand::Normal};                ///< Priority band for dispatch.
     bool armed{true};                             ///< In the select set (not currently dispatched).
     bool in_flight{false};                        ///< A pool job is currently running the handler.
     bool remove_requested{false};                 ///< remove() was called while in-flight.
@@ -229,7 +257,7 @@ protected:
   Id allocate_id();
   /// Insert an entry for a pre-allocated id and wake the loop. Used so a
   /// stream handler can capture its own id before the entry becomes reachable.
-  void insert_entry(Id id, sock_type_t fd, ReadHandler handler);
+  void insert_entry(Id id, sock_type_t fd, ReadHandler handler, QosBand band);
 
   /// One iteration of the select() loop (the loop task callback body).
   bool loop_iteration(std::mutex &m, std::condition_variable &cv, bool &task_notified);
