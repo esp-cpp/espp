@@ -112,8 +112,12 @@ public:
     std::array<std::uint64_t, kNumBands> band_executed{};  ///< Jobs executed per band (by the band
                                                            ///< they were popped from, i.e. after
                                                            ///< any aging promotions).
-    std::array<std::uint64_t, kNumBands> band_aged{}; ///< Aging promotions OUT of each band (an
-                                                      ///< entry moved from band i to band i-1).
+    std::array<std::uint64_t, kNumBands> band_aged{};     ///< Aging promotions OUT of each band (an
+                                                          ///< entry moved from band i to band i-1).
+    std::array<std::uint64_t, kNumBands> band_rejected{}; ///< Jobs rejected per band (by the band
+                                                          ///< they were submitted to; on stop(),
+                                                          ///< dropped queued jobs count against
+                                                          ///< the band they were queued in).
   };
 
   /// @brief Configuration parameters for constructing a ThreadPool.
@@ -276,6 +280,7 @@ private:
   std::array<std::atomic<std::uint64_t>, kNumBands> band_submitted_{};
   std::array<std::atomic<std::uint64_t>, kNumBands> band_executed_{};
   std::array<std::atomic<std::uint64_t>, kNumBands> band_aged_{};
+  std::array<std::atomic<std::uint64_t>, kNumBands> band_rejected_{};
 };
 
 } // namespace espp

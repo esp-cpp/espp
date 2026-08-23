@@ -2714,7 +2714,9 @@ void py_init_module_espp(py::module &m) {
                            "after any aging promotions).")
             .def_readwrite("band_aged", &espp::ThreadPool::Stats::band_aged,
                            "/< Aging promotions OUT of each band (an entry moved from band i to "
-                           "band i-1).");
+                           "band i-1).")
+            .def_readwrite("band_rejected", &espp::ThreadPool::Stats::band_rejected,
+                           "/< Jobs rejected per band (by the band they were submitted to).");
     auto pyClassThreadPool_ClassConfig =
         py::class_<espp::ThreadPool::Config>(
             pyClassThreadPool, "Config", py::dynamic_attr(),

@@ -157,6 +157,15 @@ int main() {
     }
     check(rejected == 3, "3 try_submit calls rejected when queue full");
     check(pool.stats().rejected == 3, "stats.rejected == 3");
+    // band-less try_submit rejects at Normal; the rejection must be
+    // attributed to that band in the per-band counters
+    check(pool.stats().band_rejected[static_cast<size_t>(espp::QosBand::Normal)] == 3,
+          "stats.band_rejected[Normal] == 3");
+    // a band-aware rejection is attributed to ITS band
+    check(!pool.try_submit(espp::ThreadPool::Job([] {}), espp::QosBand::Critical),
+          "banded try_submit also rejected when queue full");
+    check(pool.stats().band_rejected[static_cast<size_t>(espp::QosBand::Critical)] == 1,
+          "stats.band_rejected[Critical] == 1");
 
     {
       std::lock_guard<std::mutex> lk(barrier_mtx);

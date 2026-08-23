@@ -4174,6 +4174,7 @@ class ThreadPool:
         band_submitted: List[int]                            #/< Jobs accepted per band (index = QosBand).
         band_executed: List[int]                             #/< Jobs executed per band (by the band they were popped from, i.e. after any aging promotions).
         band_aged: List[int]                                 #/< Aging promotions OUT of each band (an entry moved from band i to band i-1).
+        band_rejected: List[int]                             #/< Jobs rejected per band (by the band they were submitted to).
         def __init__(
             self,
             submitted: std.int = 0,

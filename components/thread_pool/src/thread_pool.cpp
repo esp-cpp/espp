@@ -124,8 +124,9 @@ void ThreadPool::stop() {
   {
     std::lock_guard<std::mutex> lock(queue_mutex_);
     rejected_ += static_cast<std::uint64_t>(total_queued_);
-    for (auto &queue : queues_) {
-      queue.clear();
+    for (std::size_t band = 0; band < kNumBands; ++band) {
+      band_rejected_[band] += static_cast<std::uint64_t>(queues_[band].size());
+      queues_[band].clear();
     }
     total_queued_ = 0;
   }
@@ -157,20 +158,22 @@ bool ThreadPool::try_submit(Job &&job, QosBand band) {
 }
 
 bool ThreadPool::submit_impl(Job &&job, QosBand band, bool allow_blocking_when_full) {
-  if (!job) {
-    rejected_++;
-    return false;
-  }
-
   auto band_index = static_cast<std::size_t>(band);
   if (band_index >= kNumBands) {
     logger_.warn("Invalid band {}, clamping to Low", band_index);
     band_index = static_cast<std::size_t>(QosBand::Low);
   }
 
+  if (!job) {
+    rejected_++;
+    band_rejected_[band_index]++;
+    return false;
+  }
+
   std::unique_lock<std::mutex> lock(queue_mutex_);
   if (!running_.load() || stopping_) {
     rejected_++;
+    band_rejected_[band_index]++;
     return false;
   }
 
@@ -180,10 +183,12 @@ bool ThreadPool::submit_impl(Job &&job, QosBand band, bool allow_blocking_when_f
           lock, [&]() { return stopping_ || total_queued_ < config_.max_queue_size; });
       if (stopping_) {
         rejected_++;
+        band_rejected_[band_index]++;
         return false;
       }
     } else if (total_queued_ >= config_.max_queue_size) {
       rejected_++;
+      band_rejected_[band_index]++;
       return false;
     }
   }
@@ -220,6 +225,7 @@ ThreadPool::Stats ThreadPool::stats() const {
     s.band_submitted[band] = band_submitted_[band].load();
     s.band_executed[band] = band_executed_[band].load();
     s.band_aged[band] = band_aged_[band].load();
+    s.band_rejected[band] = band_rejected_[band].load();
   }
   return s;
 }

@@ -20,7 +20,7 @@ Jobs can be submitted at one of four :cpp:enum:`espp::QosBand` priority bands â€
 ``submit(job, band)`` / ``try_submit(job, band)``. Internally the pool keeps one
 FIFO queue per band and workers always pop the most urgent non-empty band
 first; the band-less ``submit(job)`` overload uses ``Normal``, so code that does
-not use bands behaves exactly as before. Per-band submitted / executed / aged
+not use bands behaves exactly as before. Per-band submitted / executed / aged / rejected
 counters are reported through :cpp:member:`espp::ThreadPool::Stats`.
 
 To keep a busy high band from starving lower bands, a queued job whose wait
