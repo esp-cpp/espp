@@ -92,10 +92,16 @@ bool Task::apply_thread_priority_to_handle(std::thread::native_handle_type handl
                    "policy",
                    param.sched_priority, config_.name, strerror(err), strerror(reset_err));
     } else if (!rt_unavailable_warned.exchange(true)) {
+#if defined(__APPLE__)
+      logger_.warn("Could not apply SCHED_FIFO priority {} to task '{}' ({}); running without "
+                   "realtime priority",
+                   param.sched_priority, config_.name, strerror(err));
+#else
       logger_.warn("Could not apply SCHED_FIFO priority {} to task '{}' ({}); running without "
                    "realtime priority; grant CAP_SYS_NICE or configure RLIMIT_RTPRIO for RT "
                    "scheduling (e.g. PREEMPT_RT)",
                    param.sched_priority, config_.name, strerror(err));
+#endif
     }
     return false;
   }
@@ -386,10 +392,14 @@ bool Task::set_priority(size_t priority) {
 #else
   // if the task is running and host real-time scheduling was opted in, apply
   // the change to the live thread as well (best-effort; see
-  // BaseConfig::host_realtime for the per-platform semantics)
+  // BaseConfig::host_realtime for the per-platform semantics). Apply the
+  // freshest stored value under priority_apply_mutex_ so concurrent
+  // applications (including the worker's startup self-application) always
+  // converge on the last stored priority.
   if (started_ && config_.host_realtime) {
     std::lock_guard<std::mutex> lock(thread_mutex_);
-    return apply_thread_priority(thread_, priority);
+    std::lock_guard<std::mutex> apply_lock(priority_apply_mutex_);
+    return apply_thread_priority(thread_, priority_.load());
   }
 #endif
   return false;
@@ -450,6 +460,11 @@ void Task::thread_function() {
   // execution (best-effort: an unprivileged failure falls back to default
   // scheduling with a one-time warning).
   if (config_.host_realtime) {
+    // Serialize with a live set_priority() and read the stored priority
+    // INSIDE the lock: otherwise this startup application could overwrite a
+    // newer concurrent request with a stale value (thread runs at the old
+    // priority while get_configured_priority() reports the new one).
+    std::lock_guard<std::mutex> apply_lock(priority_apply_mutex_);
 #if defined(_WIN32)
     apply_thread_priority_to_handle(GetCurrentThread(), priority_.load());
 #elif defined(__linux__) || defined(__APPLE__)

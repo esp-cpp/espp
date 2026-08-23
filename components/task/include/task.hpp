@@ -609,6 +609,15 @@ protected:
   std::mutex cv_m_;
   std::mutex thread_mutex_;
   std::thread thread_;
+#if !defined(ESP_PLATFORM)
+  /// Serializes the OS-level priority applications (the worker's startup
+  /// self-application vs a live set_priority()), so a startup application can
+  /// never overwrite a newer concurrent request with a stale value. Separate
+  /// from thread_mutex_ because notify_and_join() holds thread_mutex_ across
+  /// join() - the worker taking thread_mutex_ at startup could deadlock a
+  /// stop() issued right after start().
+  std::mutex priority_apply_mutex_;
+#endif
 #if defined(ESP_PLATFORM)
   std::atomic<bool> watchdog_started_{false};
   task_id_t task_handle_{nullptr};
