@@ -35,6 +35,7 @@ cmake -S lib -B lib/build -DCMAKE_BUILD_TYPE=Release -DESPP_INSTALL=ON -DCMAKE_I
        rtps_service_interop_server rtps_service_interop_client \
        rtps_action_interop_server rtps_action_interop_client \
        rtps_sedp_dedicated_locator rtps_banded_pubsub rtps_banded_deferred rtps_banded_ration \
+       rtps_banded_churn \
        rtps_interop_pub rtps_interop_sub > /tmp/build.log 2>&1
 build_rc=$?
 result "build" $build_rc
@@ -72,6 +73,9 @@ note "per-endpoint priority: dedicated ports (SEDP locator + ration) + banded lo
 "$BIN"/rtps_banded_pubsub; result "banded_pubsub" $?
 "$BIN"/rtps_banded_deferred; result "banded_deferred" $?
 "$BIN"/rtps_banded_ration; result "banded_ration" $?
+# Teardown-under-load regression (the CI shutdown-hang class): dedicated-port
+# churn + stop() with deferred deliveries in flight must complete promptly.
+timeout 120 "$BIN"/rtps_banded_churn; result "banded_churn" $?
 
 # Regression guard: a reliable writer under backlog must retain + send every
 # sample on the dynamic (host) storage path (no cursor-advance-as-drop skip).
