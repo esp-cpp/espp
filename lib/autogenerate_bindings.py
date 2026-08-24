@@ -320,7 +320,15 @@ _BASE_CLASS_FIX = {
 
 
 def _fix_base_classes(code: str) -> str:
+    # Like _fix_implicit_default_ctors: each pattern must apply exactly once. A
+    # count of 0 means litgen's output drifted and python-side inheritance
+    # would silently regress; > 1 means the pattern matched something it
+    # should not have. Warn loudly either way so regeneration surfaces it.
     for old, new in _BASE_CLASS_FIX.items():
+        n = code.count(old)
+        if n != 1:
+            print(f"WARNING: base-class fix `{old}` applied {n} times (expected 1); "
+                  "python UdpSocket/TcpSocket may not inherit Socket - update _BASE_CLASS_FIX")
         code = code.replace(old, new)
     return code
 
