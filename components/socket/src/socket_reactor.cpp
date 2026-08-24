@@ -202,6 +202,19 @@ SocketReactor::add_udp_receiver(espp::UdpSocket &socket,
   const auto callback = receive_config.on_receive_callback;
   const auto buffer_size = receive_config.buffer_size;
   sock_type_t fd = socket.native_handle();
+  // Bound the handler's read: the reactor only reads AFTER select() reported
+  // the socket readable, but that readiness can be stale or spurious (Linux
+  // documents select() may report a UDP socket readable and a subsequent read
+  // still block, e.g. a checksum-failed datagram discarded in between). With
+  // an unbounded blocking recvfrom such a dispatch would never finish and
+  // stop()'s in-flight wait could hang forever. A 1 s cap is invisible on the
+  // data path (data is normally already queued) and guarantees every dispatch
+  // - and therefore stop() - makes progress. Best-effort: registration
+  // proceeds even if the option cannot be set.
+  if (!socket.set_receive_timeout(std::chrono::duration<float>(1.0f))) {
+    logger_.warn("add_udp_receiver: could not set a receive timeout on port {}",
+                 receive_config.port);
+  }
   if (receive_config.dscp.has_value()) {
     // Mark this socket's transmitted packets (e.g. echo responses) with the
     // requested DSCP code point. Best-effort: network / driver treatment
