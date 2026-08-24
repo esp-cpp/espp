@@ -57,12 +57,21 @@ namespace espp {
 /// "std_msgs::msg::dds_::String_" matches a ROS 2 std_msgs/String subscriber
 /// on /chatter).
 ///
-/// Phase 1 facade (see components/rtps/REFACTOR_PLAN.md): the engine
-/// beneath is unchanged, so its current limitations apply - domain id is fixed
-/// at compile time (Config::DOMAIN_ID, default 0), announcement/heartbeat
-/// periods are compile-time constants, endpoint counts are bounded by the
-/// engine's pools, and a second RtpsParticipant in the same process will
-/// collide on unicast ports (scheduled fix in Phase 2).
+/// Engine limitations that still apply (see components/rtps/REFACTOR_PLAN.md):
+/// domain id is fixed at compile time (Config::DOMAIN_ID, default 0),
+/// announcement/heartbeat periods are compile-time constants, and endpoint
+/// counts are bounded by the engine's pools. Multiple RtpsParticipants per
+/// process/host work - each probes forward to free unicast ports.
+///
+/// Priority scheduling: transport channels dispatch at espp::QosBand bands
+/// (metatraffic High by default - Config::metatraffic_band; user traffic
+/// Normal). Endpoints get per-endpoint priority via WriterConfig::band /
+/// ReaderConfig::band (and ServiceConfig / ActionConfig): a banded endpoint is
+/// granted a dedicated, band-scheduled (optionally DSCP-marked) unicast port,
+/// announced to peers via its SEDP unicast locator; when the dedicated-port
+/// ration (Config::max_prioritized_endpoint_ports) is exhausted, banded
+/// readers fall back to deferred banded dispatch. See the component README's
+/// "Priority scheduling" section.
 ///
 /// \section rtps_participant_ex1 RtpsParticipant Example
 /// \snippet rtps_example.cpp rtps participant example
