@@ -150,12 +150,21 @@ int main() {
       const int before = received.load();
       reader->registerCallback(
           [](void *, const rtps::ReaderCacheChange &) { received.fetch_add(1); }, nullptr);
-      // Wait until live traffic flows over THIS dedicated port (or a short
-      // deadline - churning without traffic still exercises the release/reuse
-      // race, so don't fail on a slow match).
-      const auto deadline = std::chrono::steady_clock::now() + 2s;
+      // Wait until live traffic flows over THIS dedicated port. This is a
+      // REQUIREMENT: an iteration that never sees a sample has not exercised
+      // the delete-with-traffic-in-flight race the test exists for, so it
+      // fails rather than silently churning idle sockets. The first iteration
+      // gets a longer deadline for SPDP/SEDP discovery and matching.
+      const auto deadline = std::chrono::steady_clock::now() + (iter == 0 ? 15s : 5s);
       while (received.load() < before + 2 && std::chrono::steady_clock::now() < deadline) {
         std::this_thread::sleep_for(5ms);
+      }
+      if (received.load() < before + 2) {
+        std::printf("FAIL: iter %d saw no live samples on its dedicated port (received %d)\n", iter,
+                    received.load() - before);
+        flood = false;
+        flooder.join();
+        return 1;
       }
       // Delete the reader (closing/releasing its dedicated port) WHILE the
       // publisher is still sending to it - the next iteration's dedicated
