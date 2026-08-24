@@ -155,6 +155,11 @@ void StatelessWriter::progress() {
   // TODO smarter packaging e.g. by creating MessageStruct and serializing
   // after adjusting values.
 
+  // Hold m_mutex across the proxy iteration: proxies are added/removed under
+  // m_mutex from the SEDP receive workers, and iterating unlocked races those
+  // mutations (see StatefulWriter::sendHeartBeat). m_mutex is recursive, so
+  // the pre-existing inner history guard stays harmless.
+  std::lock_guard<std::recursive_mutex> proxies_lock(m_mutex);
   if (m_proxies.getNumElements() == 0) {
     SLW_LOG("No proxy!");
   }

@@ -241,6 +241,10 @@ void EsppTransport::stop() {
   if (m_pool) {
     m_pool->stop();
   }
+  // Reactor and pool have quiesced: no handler can reference a retired socket
+  // anymore, so the deferred closes are safe now (see m_retiredSockets).
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  m_retiredSockets.clear();
 }
 
 bool EsppTransport::ensureReceivePort(Ip4Port_t receivePort, bool is_multicast,
@@ -263,10 +267,20 @@ bool EsppTransport::releaseReceivePort(Ip4Port_t receivePort) {
     return false;
   }
   if (channel->reactor_id != espp::SocketReactor::INVALID_ID) {
+    // Non-blocking: erases the registration, or defers erasure while a
+    // dispatch for this socket is in flight. Never wait here - the handler may
+    // need locks this caller's stack holds (Domain/transport mutexes).
     m_reactor->remove(channel->reactor_id);
     channel->reactor_id = espp::SocketReactor::INVALID_ID;
   }
-  channel->socket.reset();
+  // RETIRE the socket instead of destroying it: an in-flight (or
+  // just-submitted) reactor dispatch still references it, and destroying it
+  // here is a use-after-free - a handler was observed blocking forever on the
+  // freed object's internal logger mutex, which then wedged
+  // SocketReactor::stop()'s in-flight wait (the CI shutdown hang). The socket
+  // is closed in stop(), once the reactor and pool have quiesced; the channel
+  // slot itself is reusable immediately.
+  m_retiredSockets.push_back(std::move(channel->socket));
   channel->port = 0;
   channel->in_use = false;
   return true;

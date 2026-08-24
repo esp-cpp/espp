@@ -69,8 +69,11 @@ public:
   /// its original band/dscp).
   bool ensureReceivePort(Ip4Port_t receivePort, bool is_multicast,
                          const ChannelOptions &options = {});
-  /// Tear down the receive channel for a port (used to unwind a partially
-  /// successful unicast port probe).
+  /// Tear down the receive channel for a port (unwinds a partially successful
+  /// unicast port probe; also releases a deleted endpoint's dedicated port).
+  /// The channel slot is freed immediately, but the underlying socket is
+  /// RETIRED - kept alive (fd open, port bound) until stop() - because a
+  /// reactor dispatch may still reference it (see m_retiredSockets).
   bool releaseReceivePort(Ip4Port_t receivePort);
   bool joinMultiCastGroup(const Ip4AddressBytes &addr) const;
   void sendPacket(PacketInfo &info);
@@ -108,6 +111,18 @@ private:
   void *m_callbackArgs{nullptr};
   mutable std::recursive_mutex m_mutex;
   std::array<Channel, Config::MAX_NUM_UDP_CONNECTIONS> m_channels{};
+  /// Sockets released at runtime (releaseReceivePort) are RETIRED here, not
+  /// destroyed: SocketReactor::remove() intentionally defers unregistration
+  /// while a dispatch is in flight, and that dispatch's handler references the
+  /// UdpSocket - destroying it immediately is a use-after-free (a handler was
+  /// observed blocking forever on the freed object's internal mutex, wedging
+  /// SocketReactor::stop()'s in-flight wait). Keeping the socket - and its fd -
+  /// alive until stop(), after the reactor and pool have quiesced, also keeps
+  /// the fd number from being reused by a new channel while stale select()
+  /// readiness for it may still be latched. Cost: a released port stays bound
+  /// (one fd) until the transport stops. Declared before m_pool/m_reactor so
+  /// it is destroyed AFTER them (reverse member order).
+  std::vector<std::unique_ptr<espp::UdpSocket>> m_retiredSockets{};
   /// Shared worker pool for received-datagram dispatch (via the reactor) and
   /// asynchronous writer work (submit()). Declared after m_channels and before
   /// m_reactor: destruction runs reactor -> pool -> channels.

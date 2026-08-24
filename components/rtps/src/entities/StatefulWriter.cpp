@@ -548,6 +548,13 @@ void StatefulWriter::dropDisposeAfterWriteChanges() {
 
 void StatefulWriter::sendHeartBeat() {
   INIT_GUARD()
+  // Hold m_mutex across the WHOLE proxy iteration: matched-reader proxies are
+  // added/removed under m_mutex from the SEDP receive workers (endpoint
+  // (un)announcements), and iterating the pool unlocked from the protocol
+  // task races those mutations - observed as a SIGSEGV in this loop during
+  // endpoint churn. m_mutex is recursive, so the pre-existing inner history
+  // guard below stays harmless.
+  std::lock_guard<std::recursive_mutex> proxies_lock(m_mutex);
   if (m_proxies.isEmpty() || !m_is_initialized_) {
 
     SFW_LOG("Skipping heartbeat. No proxies.");

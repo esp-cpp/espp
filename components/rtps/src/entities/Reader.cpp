@@ -132,6 +132,7 @@ void Reader::reset() {
 }
 
 bool Reader::isProxy(const Guid_t &guid) {
+  std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
   for (const auto &proxy : m_proxies) {
     if (proxy.remoteWriterGuid.operator==(guid)) {
       return true;
@@ -141,6 +142,7 @@ bool Reader::isProxy(const Guid_t &guid) {
 }
 
 WriterProxy *Reader::getProxy(Guid_t guid) {
+  std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
   auto isElementToFind = [&](const WriterProxy &proxy) { return proxy.remoteWriterGuid == guid; };
   auto thunk = [](void *arg, const WriterProxy &value) {
     return (*static_cast<decltype(isElementToFind) *>(arg))(value);

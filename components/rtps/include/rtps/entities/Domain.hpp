@@ -147,8 +147,13 @@ private:
     Participant *participant{nullptr};
   };
   /// Active dedicated ports, for receive routing (port -> owning participant)
-  /// and for release on endpoint deletion. Bounded by the ration.
+  /// and for release on endpoint deletion. Bounded by the ration. Guarded by
+  /// m_dedicatedPortsMutex - its OWN small mutex, NOT m_mutex: the lookup runs
+  /// on the receive path (receiveCallback on a pool worker), and taking
+  /// m_mutex there would let an API caller holding m_mutex across a blocking
+  /// operation stall every receive worker.
   std::vector<DedicatedPort> m_dedicatedPorts;
+  mutable std::mutex m_dedicatedPortsMutex;
   /// Next port offset to try, so allocation walks forward deterministically.
   uint16_t m_nextDedicatedPortOffset = 0;
   /// Allocate (bind + register) a dedicated unicast port for an endpoint of

@@ -99,6 +99,10 @@ bool StatefulReader::addNewMatchedWriter(const WriterProxy &newProxy) {
 #if SFR_VERBOSE && RTPS_GLOBAL_VERBOSE
   SFR_LOG("New writer added");
 #endif
+  // Guard the pool mutation: newChange()/onNewHeartbeat() iterate m_proxies
+  // under m_proxies_mutex on the receive workers, and an unlocked add races
+  // them (endpoint (re)announcements arrive on a different worker).
+  std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
   return m_proxies.add(newProxy);
 }
 

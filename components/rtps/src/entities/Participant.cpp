@@ -101,17 +101,30 @@ bool Participant::registerOnNewSubscriberMatchedCallback(void (*callback)(void *
 }
 
 rtps::Writer *Participant::addWriter(Writer *pWriter) {
-  std::lock_guard<std::recursive_mutex> lock(m_mutex);
-  for (unsigned int i = 0; i < m_writers.size(); i++) {
-    if (m_writers[i] == nullptr) {
-      m_writers[i] = pWriter;
-      if (m_hasBuilInEndpoints) {
-        m_sedpAgent.addWriter(*pWriter);
+  // Reserve the slot under m_mutex, but announce via the SEDP agent OUTSIDE
+  // it: the agent locks SEDPAgent::m_mutex and then this mutex (its receive
+  // handlers and tryMatchUnmatchedEndpoints() call back into this
+  // participant), so nesting the agent call under m_mutex is a lock-order
+  // inversion that deadlocks under concurrent discovery traffic. The global
+  // order is SEDPAgent::m_mutex -> Participant::m_mutex, never the reverse.
+  bool inserted = false;
+  {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    for (unsigned int i = 0; i < m_writers.size(); i++) {
+      if (m_writers[i] == nullptr) {
+        m_writers[i] = pWriter;
+        inserted = true;
+        break;
       }
-      return pWriter;
     }
   }
-  return nullptr;
+  if (!inserted) {
+    return nullptr;
+  }
+  if (m_hasBuilInEndpoints) {
+    m_sedpAgent.addWriter(*pWriter);
+  }
+  return pWriter;
 }
 
 bool Participant::isWritersFull() {
@@ -126,43 +139,86 @@ bool Participant::isWritersFull() {
 }
 
 rtps::Reader *Participant::addReader(Reader *pReader) {
-  std::lock_guard<std::recursive_mutex> lock(m_mutex);
-  for (unsigned int i = 0; i < m_readers.size(); i++) {
-    if (m_readers[i] == nullptr) {
-      m_readers[i] = pReader;
-      if (m_hasBuilInEndpoints) {
-        m_sedpAgent.addReader(*pReader);
+  // Slot under m_mutex, SEDP announcement outside it - see addWriter() for
+  // the lock-order rationale (SEDPAgent::m_mutex must never be acquired while
+  // holding m_mutex).
+  bool inserted = false;
+  {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    for (unsigned int i = 0; i < m_readers.size(); i++) {
+      if (m_readers[i] == nullptr) {
+        m_readers[i] = pReader;
+        inserted = true;
+        break;
       }
-      return pReader;
     }
   }
-
-  return nullptr;
+  if (!inserted) {
+    return nullptr;
+  }
+  if (m_hasBuilInEndpoints) {
+    m_sedpAgent.addReader(*pReader);
+  }
+  return pReader;
 }
 
 bool Participant::deleteReader(Reader *reader) {
+  // Membership check under m_mutex; the SEDP deletion announcement OUTSIDE it
+  // (see addWriter() for the lock-order rationale); then clear the slot.
+  // Matching is by pointer identity (endpoints are pooled objects owned by
+  // the Domain), which also guards the empty (nullptr) slots the previous
+  // sequence-number comparison dereferenced.
+  bool found = false;
+  {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    for (unsigned int i = 0; i < m_readers.size(); i++) {
+      if (m_readers[i] == reader) {
+        found = true;
+        break;
+      }
+    }
+  }
+  if (!found || reader == nullptr) {
+    return false;
+  }
+  if (!m_sedpAgent.deleteReader(reader)) {
+    PARTICIPANT_LOG("Found reader but SEDP deletion failed");
+    return false;
+  }
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   for (unsigned int i = 0; i < m_readers.size(); i++) {
-    if (m_readers[i]->getSEDPSequenceNumber() == reader->getSEDPSequenceNumber()) {
-      if (m_sedpAgent.deleteReader(reader)) {
-        m_readers[i] = nullptr;
-        return true;
-      }
-      PARTICIPANT_LOG("Found reader but SEDP deletion failed");
+    if (m_readers[i] == reader) {
+      m_readers[i] = nullptr;
+      return true;
     }
   }
   return false;
 }
 
 bool Participant::deleteWriter(Writer *writer) {
+  // Same structure and lock-order rationale as deleteReader().
+  bool found = false;
+  {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    for (unsigned int i = 0; i < m_writers.size(); i++) {
+      if (m_writers[i] == writer) {
+        found = true;
+        break;
+      }
+    }
+  }
+  if (!found || writer == nullptr) {
+    return false;
+  }
+  if (!m_sedpAgent.deleteWriter(writer)) {
+    PARTICIPANT_LOG("Found writer but SEDP deletion failed");
+    return false;
+  }
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   for (unsigned int i = 0; i < m_writers.size(); i++) {
-    if (m_writers[i]->getSEDPSequenceNumber() == writer->getSEDPSequenceNumber()) {
-      if (m_sedpAgent.deleteWriter(writer)) {
-        m_writers[i] = nullptr;
-        return true;
-      }
-      PARTICIPANT_LOG("Found reader but SEDP deletion failed");
+    if (m_writers[i] == writer) {
+      m_writers[i] = nullptr;
+      return true;
     }
   }
   return false;

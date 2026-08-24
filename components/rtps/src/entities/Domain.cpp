@@ -380,7 +380,10 @@ rtps::Participant *Domain::findParticipantById(ParticipantId_t id) {
 }
 
 rtps::Participant *Domain::findParticipantByDedicatedPort(Ip4Port_t port) {
-  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  // Receive-path lookup: guarded by the registry's own small mutex, NOT
+  // m_mutex - an API caller holding m_mutex (create/delete) must never be
+  // able to stall the receive workers (see m_dedicatedPorts).
+  std::lock_guard<std::mutex> lock(m_dedicatedPortsMutex);
   const auto it = std::find_if(m_dedicatedPorts.begin(), m_dedicatedPorts.end(),
                                [port](const DedicatedPort &entry) { return entry.port == port; });
   return (it != m_dedicatedPorts.end()) ? it->participant : nullptr;
@@ -392,11 +395,15 @@ rtps::Ip4Port_t Domain::allocateDedicatedEndpointPort(Participant &part, espp::Q
   if (!m_config.enable_dedicated_endpoint_ports) {
     return 0;
   }
-  if (m_dedicatedPorts.size() >= m_config.max_prioritized_endpoint_ports) {
+  std::size_t in_use = 0;
+  {
+    std::lock_guard<std::mutex> registry_lock(m_dedicatedPortsMutex);
+    in_use = m_dedicatedPorts.size();
+  }
+  if (in_use >= m_config.max_prioritized_endpoint_ports) {
     logger_.warn("Dedicated endpoint port ration exhausted ({} in use, cap {}); "
                  "falling back to the shared user-unicast port",
-                 m_dedicatedPorts.size(),
-                 static_cast<unsigned int>(m_config.max_prioritized_endpoint_ports));
+                 in_use, static_cast<unsigned int>(m_config.max_prioritized_endpoint_ports));
     return 0;
   }
   const Ip4Port_t base = 7400 + 250 * Config::DOMAIN_ID + DEDICATED_PORT_OFFSET;
@@ -412,6 +419,7 @@ rtps::Ip4Port_t Domain::allocateDedicatedEndpointPort(Participant &part, espp::Q
     if (m_transport->ensureReceivePort(port, /*is_multicast=*/false,
                                        {.band = band, .dscp = dscp})) {
       m_nextDedicatedPortOffset = offset + 1;
+      std::lock_guard<std::mutex> registry_lock(m_dedicatedPortsMutex);
       m_dedicatedPorts.push_back(DedicatedPort{port, &part});
       return port;
     }
@@ -423,16 +431,23 @@ rtps::Ip4Port_t Domain::allocateDedicatedEndpointPort(Participant &part, espp::Q
 }
 
 void Domain::releaseDedicatedEndpointPort(Ip4Port_t port) {
-  // Caller holds m_mutex (deleteWriter/deleteReader).
+  // Caller holds m_mutex (deleteWriter/deleteReader); the registry has its
+  // own mutex, held only for the erase (never across the transport call).
   if (port == 0) {
     return;
   }
-  for (auto it = m_dedicatedPorts.begin(); it != m_dedicatedPorts.end(); ++it) {
-    if (it->port == port) {
-      m_transport->releaseReceivePort(port);
+  bool releasing = false;
+  {
+    std::lock_guard<std::mutex> registry_lock(m_dedicatedPortsMutex);
+    const auto it = std::find_if(m_dedicatedPorts.begin(), m_dedicatedPorts.end(),
+                                 [port](const DedicatedPort &entry) { return entry.port == port; });
+    if (it != m_dedicatedPorts.end()) {
       m_dedicatedPorts.erase(it);
-      return;
+      releasing = true;
     }
+  }
+  if (releasing) {
+    m_transport->releaseReceivePort(port);
   }
 }
 
