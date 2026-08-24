@@ -310,8 +310,24 @@ def _add_gil_release_guards(code: str) -> str:
     return code
 
 
+# litgen does not emit base classes for the socket hierarchy; declare them so the
+# python-side UdpSocket/TcpSocket inherit the base Socket methods (set_dscp,
+# set_receive_timeout, native_handle, ...).
+_BASE_CLASS_FIX = {
+    "py::class_<espp::TcpSocket>(": "py::class_<espp::TcpSocket, espp::Socket>(",
+    "py::class_<espp::UdpSocket>(": "py::class_<espp::UdpSocket, espp::Socket>(",
+}
+
+
+def _fix_base_classes(code: str) -> str:
+    for old, new in _BASE_CLASS_FIX.items():
+        code = code.replace(old, new)
+    return code
+
+
 def _postprocess_generated(code: str) -> str:
     code = _fix_implicit_default_ctors(code)
+    code = _fix_base_classes(code)
     code = _fix_template_class_nested(code)
     code = _remove_static_instance_dups(code)
     code = _fix_class_holders(code)

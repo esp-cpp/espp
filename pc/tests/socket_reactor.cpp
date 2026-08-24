@@ -254,21 +254,12 @@ int main() {
             "Critical-band receiver registered (with dscp)");
 
 #if !defined(_WIN32)
-      // Verify the DSCP marking actually landed on the sockets: IP_TOS carries
-      // the DSCP in its upper 6 bits, so read it back with getsockopt().
-      auto read_tos = [](espp::UdpSocket &s) {
-        int tos = -1;
-        socklen_t len = sizeof(tos);
-        if (::getsockopt(s.native_handle(), IPPROTO_IP, IP_TOS, reinterpret_cast<char *>(&tos),
-                         &len) < 0) {
-          return -1;
-        }
-        return tos;
-      };
-      check(read_tos(low_server) == espp::dscp_to_tos(espp::Dscp::Cs1),
-            "IP_TOS on the Low socket reflects Dscp::Cs1");
-      check(read_tos(crit_server) == espp::dscp_to_tos(espp::Dscp::Ef),
-            "IP_TOS on the Critical socket reflects Dscp::Ef");
+      // Verify the DSCP marking actually landed on the sockets, read back
+      // through the socket's own getter.
+      check(low_server.get_dscp() == espp::Dscp::Cs1,
+            "get_dscp() on the Low socket reflects Dscp::Cs1");
+      check(crit_server.get_dscp() == espp::Dscp::Ef,
+            "get_dscp() on the Critical socket reflects Dscp::Ef");
       // Out-of-range DSCP: registration must still succeed, but the invalid
       // value must be ignored (TOS left at the OS default), not masked into a
       // different code point.
@@ -282,7 +273,17 @@ int main() {
            .dscp = static_cast<espp::Dscp>(200)});
       check(bad_dscp_id != espp::SocketReactor::INVALID_ID,
             "registration with an out-of-range DSCP still succeeds");
-      check(read_tos(bad_dscp_server) == 0, "out-of-range DSCP is ignored (TOS stays default)");
+      check(bad_dscp_server.get_dscp() == espp::Dscp::Cs0,
+            "out-of-range DSCP is ignored (TOS stays default)");
+      // Direct Socket::set_dscp()/get_dscp() round-trip on the same socket,
+      // independent of the reactor: valid value applies, invalid is rejected
+      // without changing the previous one.
+      check(bad_dscp_server.set_dscp(espp::Dscp::Af41), "set_dscp(Af41) succeeds");
+      check(bad_dscp_server.get_dscp() == espp::Dscp::Af41, "get_dscp() round-trips Af41");
+      check(!bad_dscp_server.set_dscp(static_cast<espp::Dscp>(64)),
+            "set_dscp(64) rejected (out of range)");
+      check(bad_dscp_server.get_dscp() == espp::Dscp::Af41,
+            "rejected set_dscp leaves the previous code point in place");
       // bad_dscp_server is scoped inside the reactor's block, so make sure its
       // registration is fully gone before it goes out of scope
       reactor.remove(bad_dscp_id);

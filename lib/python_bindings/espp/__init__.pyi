@@ -2916,6 +2916,24 @@ class Socket:
         """
         pass
 
+    def set_dscp(self, dscp: Dscp) -> bool:
+        """*
+           * @brief Mark this socket's TRANSMITTED packets with a DSCP code point
+           *        (applied as IP_TOS - RFC 2474). Best-effort: network / driver
+           *        treatment of outgoing traffic (e.g. Dscp.Ef), NOT local scheduling.
+           * @param dscp the espp.Dscp code point to apply.
+           * @return True if IP_TOS was successfully set.
+        """
+        pass
+
+    def get_dscp(self) -> Optional[Dscp]:
+        """*
+           * @brief Get the DSCP code point this socket marks its transmitted packets
+           *        with (read back from IP_TOS; ECN bits discarded).
+           * @return The espp.Dscp code point, or None on failure.
+        """
+        pass
+
     def enable_reuse(self) -> bool:
         """*
            * @brief Allow others to use this address/port combination after we're done
@@ -2996,7 +3014,7 @@ class Socket:
 
 
 
-class TcpSocket:
+class TcpSocket(Socket):
     """*
      *   @brief Class for managing sending and receiving data using TCP/IP. Can be
      *          used to create client or server sockets.
@@ -3266,7 +3284,7 @@ class TcpSocket:
 # TODO: should this class _contain_ a socket or just create sockets within each
 #       call?
 
-class UdpSocket:
+class UdpSocket(Socket):
     """*
      *   @brief Class for managing sending and receiving data using UDP/IP. Can be
      *          used to create client or server sockets.

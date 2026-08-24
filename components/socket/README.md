@@ -29,6 +29,12 @@ includes some initialization, cleanup, and conversion utilities.
 
 The socket class is subclassed into UdpSocket and TcpSocket.
 
+It provides typed option setters (e.g. `set_receive_timeout(...)`,
+`set_receive_buffer_size(...)`, `set_reuse_address(...)`, and
+`set_dscp(...)` / `get_dscp()` for marking transmitted packets with a
+DiffServ code point such as `espp::Dscp::Ef`) plus a generic `set_option()`
+wrapper, so callers never need the native handle for common configuration.
+
 ## UDP Socket
 
 UDP sockets provide unreliable, unordered communication over IP network sockets.
