@@ -58,6 +58,8 @@ struct DomainConfig {
   /// Ration for dedicated endpoint ports (each one consumes a UDP socket/fd;
   /// lwIP on ESP32 defaults to ~10 sockets total). When exhausted, further
   /// banded endpoints fall back to the shared user port (with a warning).
+  /// The cap is a TRUE fd bound: released sockets whose fd is still open
+  /// awaiting the reactor's removal completion (retired) count toward it.
   uint8_t max_prioritized_endpoint_ports{4};
 };
 

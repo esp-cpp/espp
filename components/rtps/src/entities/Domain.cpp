@@ -395,23 +395,33 @@ rtps::Ip4Port_t Domain::allocateDedicatedEndpointPort(Participant &part, espp::Q
   if (!m_config.enable_dedicated_endpoint_ports) {
     return 0;
   }
-  std::size_t in_use = 0;
+  // The ration must be a TRUE fd bound: count both the active dedicated
+  // ports AND released sockets whose fd is still open awaiting the reactor's
+  // removal completion (retired sockets close promptly, but a handler in
+  // flight defers the close - without counting them, churn could push the
+  // real fd usage past the cap).
+  std::size_t active = 0;
   {
     std::lock_guard<std::mutex> registry_lock(m_dedicatedPortsMutex);
-    in_use = m_dedicatedPorts.size();
+    active = m_dedicatedPorts.size();
   }
-  if (in_use >= m_config.max_prioritized_endpoint_ports) {
-    logger_.warn("Dedicated endpoint port ration exhausted ({} in use, cap {}); "
+  const std::size_t retired = m_transport->retiredSocketCount();
+  if (active + retired >= m_config.max_prioritized_endpoint_ports) {
+    logger_.warn("Dedicated endpoint port ration exhausted ({} active + {} retired, cap {}); "
                  "falling back to the shared user-unicast port",
-                 in_use, static_cast<unsigned int>(m_config.max_prioritized_endpoint_ports));
+                 active, retired,
+                 static_cast<unsigned int>(m_config.max_prioritized_endpoint_ports));
     return 0;
   }
   const Ip4Port_t base = 7400 + 250 * Config::DOMAIN_ID + DEDICATED_PORT_OFFSET;
+  const uint16_t first_offset = m_nextDedicatedPortOffset;
+  uint16_t probed = 0;
   for (uint16_t probe = 0; probe < DEDICATED_PORT_PROBE_LIMIT; ++probe) {
-    const uint16_t offset = m_nextDedicatedPortOffset + probe;
+    const uint16_t offset = first_offset + probe;
     if (DEDICATED_PORT_OFFSET + offset > 249) {
       break; // stay inside this domain's 250-port block
     }
+    ++probed;
     const Ip4Port_t port = base + offset;
     // Reuse-disabled unicast bind: a port taken by another process fails
     // loudly here and the next candidate is probed (same strategy as the
@@ -424,9 +434,14 @@ rtps::Ip4Port_t Domain::allocateDedicatedEndpointPort(Participant &part, espp::Q
       return port;
     }
   }
-  logger_.warn("No free dedicated endpoint port (probed {} from offset {}); "
-               "falling back to the shared user-unicast port",
-               DEDICATED_PORT_PROBE_LIMIT, m_nextDedicatedPortOffset);
+  // Advance PAST the failed window so the next allocation probes fresh ports;
+  // without this a fully-occupied window (e.g. ports taken by another
+  // process) would be retried forever and dedicated allocation would be
+  // permanently stuck even though later ports in the 100..249 block are free.
+  m_nextDedicatedPortOffset = first_offset + probed;
+  logger_.warn("No free dedicated endpoint port (probed {} from offset {}; next allocation "
+               "starts at offset {}); falling back to the shared user-unicast port",
+               probed, first_offset, m_nextDedicatedPortOffset);
   return 0;
 }
 
