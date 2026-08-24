@@ -141,8 +141,9 @@ bool run_checks() {
     CHECK(writer_port != reader_port, "writer and reader ports are distinct");
 
     // 3. Ration exhausted (cap 2, both used): fall back to the shared port.
-    rtps::Reader *over_cap = domain.createReader(*part, "over_cap", "PrioType", /*reliable=*/true,
-                                                 {0, 0, 0, 0}, {.band = espp::QosBand::High});
+    const rtps::Reader *over_cap =
+        domain.createReader(*part, "over_cap", "PrioType", /*reliable=*/true, {0, 0, 0, 0},
+                            {.band = espp::QosBand::High});
     CHECK(over_cap != nullptr, "over-cap reader still created");
     CHECK(!over_cap->m_attributes.hasDedicatedPort, "over-cap reader fell back to shared port");
     CHECK(over_cap->m_attributes.unicastLocator.port == shared_port,
@@ -152,7 +153,7 @@ bool run_checks() {
 
     // 4. Deleting a dedicated-port endpoint returns its port to the ration.
     CHECK(domain.deleteReader(*part, banded_reader), "delete banded reader");
-    rtps::Reader *after_delete =
+    const rtps::Reader *after_delete =
         domain.createReader(*part, "after_delete", "PrioType", /*reliable=*/true, {0, 0, 0, 0},
                             {.band = espp::QosBand::High});
     CHECK(after_delete != nullptr, "post-delete reader created");
@@ -167,8 +168,9 @@ bool run_checks() {
     rtps::Domain domain(kIp, cfg);
     rtps::Participant *part = domain.createParticipant();
     CHECK(part != nullptr, "createParticipant (disabled)");
-    rtps::Reader *reader = domain.createReader(*part, "prio_topic", "PrioType", /*reliable=*/true,
-                                               {0, 0, 0, 0}, {.band = espp::QosBand::Critical});
+    const rtps::Reader *reader =
+        domain.createReader(*part, "prio_topic", "PrioType", /*reliable=*/true, {0, 0, 0, 0},
+                            {.band = espp::QosBand::Critical});
     CHECK(reader != nullptr, "reader created (disabled)");
     CHECK(!reader->m_attributes.hasDedicatedPort, "no dedicated port when disabled");
     CHECK(reader->m_attributes.unicastLocator.port ==

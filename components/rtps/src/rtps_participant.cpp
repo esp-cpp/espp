@@ -386,12 +386,15 @@ void RtpsParticipant::reader_trampoline(void *arg, const rtps::ReaderCacheChange
   if (ctx->deferred.enabled) {
     // Banded shared-port reader: copy the payload now (`change` is only valid
     // during this callback) and deliver it from the pool at the reader's band.
-    std::vector<uint8_t> sample(change.getDataSize());
-    if (sample.empty() || !change.copyInto(sample.data(), change.getDataSize())) {
+    // shared_ptr payload (rather than a moved vector) keeps the closure
+    // cheaply copyable inside std::function and avoids a GCC 15
+    // -Wfree-nonheap-object false positive on moved-vector captures.
+    auto sample = std::make_shared<std::vector<uint8_t>>(change.getDataSize());
+    if (sample->empty() || !change.copyInto(sample->data(), change.getDataSize())) {
       return;
     }
-    ctx->deferred.run_or_defer([ctx, sample = std::move(sample)]() {
-      ctx->on_sample(std::span<const uint8_t>(sample.data(), sample.size()));
+    ctx->deferred.run_or_defer([ctx, sample]() {
+      ctx->on_sample(std::span<const uint8_t>(sample->data(), sample->size()));
     });
     return;
   }
@@ -531,9 +534,11 @@ void RtpsParticipant::service_request_trampoline(void *arg, const rtps::ReaderCa
   if (ctx == nullptr || !ctx->handler || ctx->reply_writer == nullptr) {
     return;
   }
-  // Copy the request payload (valid only during this callback).
-  std::vector<uint8_t> request(change.getDataSize());
-  if (!request.empty() && !change.copyInto(request.data(), change.getDataSize())) {
+  // Copy the request payload (valid only during this callback). shared_ptr so
+  // the deferred closure stays cheaply copyable inside std::function (and to
+  // avoid a GCC 15 -Wfree-nonheap-object false positive on moved vectors).
+  auto request = std::make_shared<std::vector<uint8_t>>(change.getDataSize());
+  if (!request->empty() && !change.copyInto(request->data(), change.getDataSize())) {
     return;
   }
 
@@ -549,10 +554,9 @@ void RtpsParticipant::service_request_trampoline(void *arg, const rtps::ReaderCa
   state->related.sequence_number = change.sn;
   // Inline for the default path; banded shared-port servers run the handler
   // from the pool at their band instead (see DeferredDispatch).
-  ctx->deferred.run_or_defer(
-      [ctx, request = std::move(request), responder = ServiceResponder(state)]() {
-        ctx->handler(request, responder);
-      });
+  ctx->deferred.run_or_defer([ctx, request, responder = ServiceResponder(state)]() {
+    ctx->handler(std::span<const uint8_t>(request->data(), request->size()), responder);
+  });
 }
 
 void RtpsParticipant::service_reply_trampoline(void *arg, const rtps::ReaderCacheChange &change) {
@@ -566,8 +570,9 @@ void RtpsParticipant::service_reply_trampoline(void *arg, const rtps::ReaderCach
   }
   const uint64_t key = seq_key(change.relatedSampleIdentity.sequence_number);
 
-  std::vector<uint8_t> reply(change.getDataSize());
-  if (!reply.empty() && !change.copyInto(reply.data(), change.getDataSize())) {
+  // shared_ptr payload: see service_request_trampoline.
+  auto reply = std::make_shared<std::vector<uint8_t>>(change.getDataSize());
+  if (!reply->empty() && !change.copyInto(reply->data(), change.getDataSize())) {
     return;
   }
 
@@ -583,14 +588,14 @@ void RtpsParticipant::service_reply_trampoline(void *arg, const rtps::ReaderCach
   }
   // Correlation (map lookup/erase) ran inline above; only the user-facing
   // delivery is deferred for banded shared-port clients (inline by default).
-  impl->deferred.run_or_defer([pending = std::move(pending), reply = std::move(reply)]() mutable {
+  impl->deferred.run_or_defer([pending = std::move(pending), reply]() {
     if (pending.sync) {
       std::lock_guard<std::mutex> lock(pending.sync->m);
-      pending.sync->reply = std::move(reply);
+      pending.sync->reply = std::move(*reply);
       pending.sync->done = true;
       pending.sync->cv.notify_one();
     } else if (pending.on_reply) {
-      pending.on_reply(reply);
+      pending.on_reply(std::span<const uint8_t>(reply->data(), reply->size()));
     }
   });
 }

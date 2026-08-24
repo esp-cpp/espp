@@ -26,6 +26,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/entities/Domain.hpp"
 #include "rtps/utils/Log.hpp"
 #include "rtps/utils/udpUtils.hpp"
+#include <algorithm>
 #include <cassert>
 #include <mutex>
 #include <random>
@@ -68,10 +69,8 @@ bool Domain::initializeTransport() {
   // Metatraffic (SPDP discovery multicast) is registered at the configured
   // metatraffic band (High by default) so discovery dispatch overtakes queued
   // user-traffic handling; user multicast runs at the user-traffic band.
-  bool success = true;
-  success = m_transport->ensureReceivePort(getUserMulticastPort(), /*is_multicast=*/true,
-                                           {.band = m_config.user_traffic_band}) &&
-            success;
+  bool success = m_transport->ensureReceivePort(getUserMulticastPort(), /*is_multicast=*/true,
+                                                {.band = m_config.user_traffic_band});
   success = m_transport->ensureReceivePort(getBuiltInMulticastPort(), /*is_multicast=*/true,
                                            {.band = m_config.metatraffic_band}) &&
             success;
@@ -382,12 +381,9 @@ rtps::Participant *Domain::findParticipantById(ParticipantId_t id) {
 
 rtps::Participant *Domain::findParticipantByDedicatedPort(Ip4Port_t port) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
-  for (const auto &entry : m_dedicatedPorts) {
-    if (entry.port == port) {
-      return entry.participant;
-    }
-  }
-  return nullptr;
+  const auto it = std::find_if(m_dedicatedPorts.begin(), m_dedicatedPorts.end(),
+                               [port](const DedicatedPort &entry) { return entry.port == port; });
+  return (it != m_dedicatedPorts.end()) ? it->participant : nullptr;
 }
 
 rtps::Ip4Port_t Domain::allocateDedicatedEndpointPort(Participant &part, espp::QosBand band,
