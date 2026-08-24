@@ -151,7 +151,16 @@ bool RtpsParticipant::start() {
     return false;
   }
 
-  domain_ = std::make_unique<rtps::Domain>(ip_bytes);
+  // Channel/endpoint scheduling: metatraffic (SPDP/SEDP) dispatches at
+  // metatraffic_band (High by default), user traffic at user_traffic_band;
+  // banded endpoints may get dedicated ports, rationed by the configured cap.
+  const rtps::DomainConfig domain_config{
+      .metatraffic_band = config_.metatraffic_band,
+      .user_traffic_band = config_.user_traffic_band,
+      .enable_dedicated_endpoint_ports = config_.enable_dedicated_endpoint_ports,
+      .max_prioritized_endpoint_ports = config_.max_prioritized_endpoint_ports,
+  };
+  domain_ = std::make_unique<rtps::Domain>(ip_bytes, domain_config);
   // Fresh liveness token for this run (a prior stop() left the old one flipped).
   live_ = std::make_shared<Liveness>();
 
@@ -203,7 +212,8 @@ bool RtpsParticipant::add_writer(const WriterConfig &config) {
   }
   rtps::Writer *writer =
       domain_->createWriter(*participant_, config.topic.c_str(), config.type_name.c_str(),
-                            config.reliability == Reliability::RELIABLE);
+                            config.reliability == Reliability::RELIABLE, /*enforceUnicast=*/false,
+                            rtps::EndpointOptions{.band = config.band, .dscp = config.dscp});
   if (writer == nullptr) {
     logger_.error("Engine could not create writer '{}' (pool exhausted or name too long)",
                   config.topic);
@@ -225,9 +235,10 @@ bool RtpsParticipant::add_reader(const ReaderConfig &config) {
     logger_.error("Cannot add reader '{}': not started", config.topic);
     return false;
   }
-  rtps::Reader *reader =
-      domain_->createReader(*participant_, config.topic.c_str(), config.type_name.c_str(),
-                            config.reliability == Reliability::RELIABLE);
+  rtps::Reader *reader = domain_->createReader(
+      *participant_, config.topic.c_str(), config.type_name.c_str(),
+      config.reliability == Reliability::RELIABLE, /*mcastaddress=*/{0, 0, 0, 0},
+      rtps::EndpointOptions{.band = config.band, .dscp = config.dscp});
   if (reader == nullptr) {
     logger_.error("Engine could not create reader '{}' (pool exhausted or name too long)",
                   config.topic);
@@ -236,6 +247,17 @@ bool RtpsParticipant::add_reader(const ReaderConfig &config) {
   auto ctx = std::make_unique<ReaderContext>();
   ctx->self = this;
   ctx->on_sample = config.on_sample;
+  // Banded reader without a dedicated port (ration exhausted or dedicated
+  // ports disabled): fall back to deferred banded dispatch of on_sample (see
+  // DeferredDispatch). Dedicated-port readers are already dispatched at their
+  // band by the reactor, so they keep the inline path.
+  if (config.band != espp::QosBand::Normal && !reader->m_attributes.hasDedicatedPort) {
+    ctx->deferred.enabled = true;
+    ctx->deferred.band = config.band;
+    ctx->deferred.transport = &domain_->getTransport();
+    logger_.info("Reader '{}' uses deferred banded dispatch (band {}, no dedicated port)",
+                 config.topic, static_cast<int>(config.band));
+  }
   if (config.on_sample) {
     if (reader->registerCallback(&reader_trampoline, ctx.get()) == 0) {
       logger_.error("Engine could not register the sample callback for '{}'", config.topic);
@@ -292,9 +314,85 @@ bool RtpsParticipant::publish(std::string_view topic, std::span<const uint8_t> c
   return true;
 }
 
+namespace {
+// DeferredDispatch has no logger of its own (it is a small POD-ish helper
+// embedded in several contexts), so drops are reported through this one.
+espp::Logger s_deferred_logger({.tag = "RtpsDeferred", .level = espp::Logger::Verbosity::WARN});
+} // namespace
+
+void RtpsParticipant::DeferredDispatch::run_or_defer(std::function<void()> delivery) {
+  if (!enabled || transport == nullptr) {
+    delivery();
+    return;
+  }
+  bool arm = false;
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    if (queue.size() >= max_queued) {
+      ++dropped;
+      s_deferred_logger.warn(
+          "Deferred delivery queue full ({}); dropping sample (total dropped {})", max_queued,
+          dropped);
+      return;
+    }
+    queue.push_back(std::move(delivery));
+    if (!in_flight) {
+      in_flight = true;
+      arm = true;
+    }
+  }
+  if (arm && !transport->submit([this]() { drain(); }, band)) {
+    // Pool full/stopped: disarm so the next arrival tries again; the queued
+    // deliveries stay pending (bounded by max_queued).
+    std::lock_guard<std::mutex> lock(mutex);
+    in_flight = false;
+  }
+}
+
+void RtpsParticipant::DeferredDispatch::drain() {
+  // One delivery per job (mirrors the reactor's one-shot arming): pop the
+  // oldest, run it OUTSIDE the lock, then re-arm while more are pending.
+  std::function<void()> delivery;
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    if (queue.empty()) {
+      in_flight = false;
+      return;
+    }
+    delivery = std::move(queue.front());
+    queue.pop_front();
+  }
+  delivery();
+  bool rearm = false;
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    if (queue.empty()) {
+      in_flight = false;
+    } else {
+      rearm = true;
+    }
+  }
+  if (rearm && !transport->submit([this]() { drain(); }, band)) {
+    std::lock_guard<std::mutex> lock(mutex);
+    in_flight = false;
+  }
+}
+
 void RtpsParticipant::reader_trampoline(void *arg, const rtps::ReaderCacheChange &change) {
   auto *ctx = static_cast<ReaderContext *>(arg);
   if (ctx == nullptr || !ctx->on_sample) {
+    return;
+  }
+  if (ctx->deferred.enabled) {
+    // Banded shared-port reader: copy the payload now (`change` is only valid
+    // during this callback) and deliver it from the pool at the reader's band.
+    std::vector<uint8_t> sample(change.getDataSize());
+    if (sample.empty() || !change.copyInto(sample.data(), change.getDataSize())) {
+      return;
+    }
+    ctx->deferred.run_or_defer([ctx, sample = std::move(sample)]() {
+      ctx->on_sample(std::span<const uint8_t>(sample.data(), sample.size()));
+    });
     return;
   }
   // Serialize deliveries per reader: the engine may invoke this from a worker
@@ -340,6 +438,7 @@ struct RtpsParticipant::ServiceServerContext {
   service_deferred_handler_t handler{nullptr}; // sync handlers are wrapped as deferred
   rtps::Writer *reply_writer{nullptr};
   rtps::Reader *request_reader{nullptr};
+  DeferredDispatch deferred; // banded request reader without a dedicated port
 };
 
 // Deferred-reply state: the reply writer + the identity to echo, so a response
@@ -399,6 +498,7 @@ struct RtpsParticipant::ServiceClient::Impl {
   rtps::Guid_t reply_reader_guid{};
   std::mutex mutex;
   std::unordered_map<uint64_t, Pending> pending;
+  DeferredDispatch deferred; // banded reply reader without a dedicated port
 
   // Send a request carrying our reply-reader GUID as related_sample_identity
   // (with an UNKNOWN sequence number, per rmw), register the pending entry keyed
@@ -447,7 +547,12 @@ void RtpsParticipant::service_request_trampoline(void *arg, const rtps::ReaderCa
                                    ? change.relatedSampleIdentity.writer_guid
                                    : change.writerGuid;
   state->related.sequence_number = change.sn;
-  ctx->handler(request, ServiceResponder(state));
+  // Inline for the default path; banded shared-port servers run the handler
+  // from the pool at their band instead (see DeferredDispatch).
+  ctx->deferred.run_or_defer(
+      [ctx, request = std::move(request), responder = ServiceResponder(state)]() {
+        ctx->handler(request, responder);
+      });
 }
 
 void RtpsParticipant::service_reply_trampoline(void *arg, const rtps::ReaderCacheChange &change) {
@@ -476,14 +581,18 @@ void RtpsParticipant::service_reply_trampoline(void *arg, const rtps::ReaderCach
     pending = std::move(it->second);
     impl->pending.erase(it);
   }
-  if (pending.sync) {
-    std::lock_guard<std::mutex> lock(pending.sync->m);
-    pending.sync->reply = std::move(reply);
-    pending.sync->done = true;
-    pending.sync->cv.notify_one();
-  } else if (pending.on_reply) {
-    pending.on_reply(reply);
-  }
+  // Correlation (map lookup/erase) ran inline above; only the user-facing
+  // delivery is deferred for banded shared-port clients (inline by default).
+  impl->deferred.run_or_defer([pending = std::move(pending), reply = std::move(reply)]() mutable {
+    if (pending.sync) {
+      std::lock_guard<std::mutex> lock(pending.sync->m);
+      pending.sync->reply = std::move(reply);
+      pending.sync->done = true;
+      pending.sync->cv.notify_one();
+    } else if (pending.on_reply) {
+      pending.on_reply(reply);
+    }
+  });
 }
 
 RtpsParticipant::ServiceClient::ServiceClient(std::unique_ptr<Impl> impl)
@@ -548,10 +657,15 @@ bool RtpsParticipant::add_service_server_deferred(const ServiceConfig &config,
   const std::string req_type = rtps::rpc::service_request_type(config.type_name);
   const std::string rep_type = rtps::rpc::service_response_type(config.type_name);
 
+  // The service's band/dscp apply to BOTH endpoints (request reader + reply
+  // writer) - each banded endpoint may get a dedicated port (rationed).
+  const rtps::EndpointOptions endpoint_options{.band = config.band, .dscp = config.dscp};
   rtps::Writer *reply_writer =
-      domain_->createWriter(*participant_, rep_topic.c_str(), rep_type.c_str(), /*reliable=*/true);
+      domain_->createWriter(*participant_, rep_topic.c_str(), rep_type.c_str(), /*reliable=*/true,
+                            /*enforceUnicast=*/false, endpoint_options);
   rtps::Reader *request_reader =
-      domain_->createReader(*participant_, req_topic.c_str(), req_type.c_str(), /*reliable=*/true);
+      domain_->createReader(*participant_, req_topic.c_str(), req_type.c_str(), /*reliable=*/true,
+                            /*mcastaddress=*/{0, 0, 0, 0}, endpoint_options);
   if (reply_writer == nullptr || request_reader == nullptr) {
     logger_.error("Service server '{}': endpoint creation failed", config.service);
     return false;
@@ -561,6 +675,15 @@ bool RtpsParticipant::add_service_server_deferred(const ServiceConfig &config,
   ctx->handler = std::move(handler);
   ctx->reply_writer = reply_writer;
   ctx->request_reader = request_reader;
+  if (config.band != espp::QosBand::Normal && !request_reader->m_attributes.hasDedicatedPort) {
+    // Banded request reader on the shared port: run the handler deferred at
+    // the service's band instead of inline on the receive worker.
+    ctx->deferred.enabled = true;
+    ctx->deferred.band = config.band;
+    ctx->deferred.transport = &domain_->getTransport();
+    logger_.info("Service server '{}' uses deferred banded dispatch (band {}, no dedicated port)",
+                 config.service, static_cast<int>(config.band));
+  }
   if (request_reader->registerCallback(&service_request_trampoline, ctx.get()) == 0) {
     logger_.error("Service server '{}': could not register request callback", config.service);
     return false;
@@ -739,10 +862,18 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
   ctx->status_topic = rtps::rpc::action_status_topic(config.action);
   ctx->execute = std::move(execute);
 
-  // Feedback + status publishers (plain reliable topics).
-  if (!add_writer({ctx->feedback_topic, rtps::rpc::action_feedback_type(config.type_name),
-                   Reliability::RELIABLE}) ||
-      !add_writer({ctx->status_topic, rtps::rpc::action_status_type(), Reliability::RELIABLE})) {
+  // Feedback + status publishers (plain reliable topics). The action's
+  // band/dscp are inherited by every underlying endpoint (see ActionConfig).
+  if (!add_writer({.topic = ctx->feedback_topic,
+                   .type_name = rtps::rpc::action_feedback_type(config.type_name),
+                   .reliability = Reliability::RELIABLE,
+                   .band = config.band,
+                   .dscp = config.dscp}) ||
+      !add_writer({.topic = ctx->status_topic,
+                   .type_name = rtps::rpc::action_status_type(),
+                   .reliability = Reliability::RELIABLE,
+                   .band = config.band,
+                   .dscp = config.dscp})) {
     logger_.error("Action server '{}': feedback/status writer creation failed", config.action);
     return false;
   }
@@ -751,7 +882,8 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
 
   // send_goal service: accept/reject, then spawn the execute thread.
   const ServiceConfig send_goal_cfg{rtps::rpc::action_send_goal_service(config.action),
-                                    rtps::rpc::action_send_goal_type(config.type_name)};
+                                    rtps::rpc::action_send_goal_type(config.type_name), config.band,
+                                    config.dscp};
   bool ok = add_service_server(
       send_goal_cfg, [this, weak, on_goal](std::span<const uint8_t> req) -> std::vector<uint8_t> {
         auto server = weak.lock();
@@ -795,7 +927,8 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
 
   // get_result service (DEFERRED): reply now if done, else hold the responder.
   const ServiceConfig get_result_cfg{rtps::rpc::action_get_result_service(config.action),
-                                     rtps::rpc::action_get_result_type(config.type_name)};
+                                     rtps::rpc::action_get_result_type(config.type_name),
+                                     config.band, config.dscp};
   ok = ok && add_service_server_deferred(
                  get_result_cfg, [weak](std::span<const uint8_t> req, ServiceResponder responder) {
                    auto server = weak.lock();
@@ -837,7 +970,7 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
   // cancel_goal service: mark the goal canceling; the execute callback observes
   // is_canceling(). Minimal CancelGoal_Response (return_code=0, empty list).
   const ServiceConfig cancel_cfg{rtps::rpc::action_cancel_goal_service(config.action),
-                                 rtps::rpc::action_cancel_goal_type()};
+                                 rtps::rpc::action_cancel_goal_type(), config.band, config.dscp};
   ok = ok &&
        add_service_server(
            cancel_cfg, [weak, on_cancel](std::span<const uint8_t> req) -> std::vector<uint8_t> {
@@ -967,13 +1100,16 @@ RtpsParticipant::add_action_client(const ActionConfig &config) {
   auto impl = std::make_unique<ActionClient::Impl>();
   impl->self = this;
   impl->action = config.action;
+  // The action's band/dscp are inherited by every underlying endpoint.
   impl->send_goal_client = add_service_client({rtps::rpc::action_send_goal_service(config.action),
-                                               rtps::rpc::action_send_goal_type(config.type_name)});
-  impl->get_result_client =
-      add_service_client({rtps::rpc::action_get_result_service(config.action),
-                          rtps::rpc::action_get_result_type(config.type_name)});
-  impl->cancel_client = add_service_client(
-      {rtps::rpc::action_cancel_goal_service(config.action), rtps::rpc::action_cancel_goal_type()});
+                                               rtps::rpc::action_send_goal_type(config.type_name),
+                                               config.band, config.dscp});
+  impl->get_result_client = add_service_client({rtps::rpc::action_get_result_service(config.action),
+                                                rtps::rpc::action_get_result_type(config.type_name),
+                                                config.band, config.dscp});
+  impl->cancel_client =
+      add_service_client({rtps::rpc::action_cancel_goal_service(config.action),
+                          rtps::rpc::action_cancel_goal_type(), config.band, config.dscp});
   if (!impl->send_goal_client || !impl->get_result_client || !impl->cancel_client) {
     logger_.error("Action client '{}': service client creation failed", config.action);
     return nullptr;
@@ -1000,7 +1136,8 @@ RtpsParticipant::add_action_client(const ActionConfig &config) {
                      if (cb) {
                        cb({fb.data(), fb.size()});
                      }
-                   }})) {
+                   },
+                   config.band, config.dscp})) {
     logger_.error("Action client '{}': feedback reader creation failed", config.action);
     return nullptr;
   }
@@ -1023,10 +1160,15 @@ RtpsParticipant::add_service_client(const ServiceConfig &config) {
   const std::string req_type = rtps::rpc::service_request_type(config.type_name);
   const std::string rep_type = rtps::rpc::service_response_type(config.type_name);
 
+  // The service's band/dscp apply to BOTH endpoints (reply reader + request
+  // writer) - each banded endpoint may get a dedicated port (rationed).
+  const rtps::EndpointOptions endpoint_options{.band = config.band, .dscp = config.dscp};
   rtps::Reader *reply_reader =
-      domain_->createReader(*participant_, rep_topic.c_str(), rep_type.c_str(), /*reliable=*/true);
+      domain_->createReader(*participant_, rep_topic.c_str(), rep_type.c_str(), /*reliable=*/true,
+                            /*mcastaddress=*/{0, 0, 0, 0}, endpoint_options);
   rtps::Writer *request_writer =
-      domain_->createWriter(*participant_, req_topic.c_str(), req_type.c_str(), /*reliable=*/true);
+      domain_->createWriter(*participant_, req_topic.c_str(), req_type.c_str(), /*reliable=*/true,
+                            /*enforceUnicast=*/false, endpoint_options);
   if (reply_reader == nullptr || request_writer == nullptr) {
     logger_.error("Service client '{}': endpoint creation failed", config.service);
     return nullptr;
@@ -1035,6 +1177,15 @@ RtpsParticipant::add_service_client(const ServiceConfig &config) {
   impl->self = this;
   impl->request_writer = request_writer;
   impl->reply_reader_guid = reply_reader->m_attributes.endpointGuid;
+  if (config.band != espp::QosBand::Normal && !reply_reader->m_attributes.hasDedicatedPort) {
+    // Banded reply reader on the shared port: deliver replies deferred at the
+    // service's band instead of inline on the receive worker.
+    impl->deferred.enabled = true;
+    impl->deferred.band = config.band;
+    impl->deferred.transport = &domain_->getTransport();
+    logger_.info("Service client '{}' uses deferred banded dispatch (band {}, no dedicated port)",
+                 config.service, static_cast<int>(config.band));
+  }
   if (reply_reader->registerCallback(&service_reply_trampoline, impl.get()) == 0) {
     logger_.error("Service client '{}': could not register reply callback", config.service);
     return nullptr;
@@ -1146,7 +1297,14 @@ bool RtpsParticipant::add_native_service_server(const ServiceConfig &config,
   ctx->handler = std::move(handler);
   const std::string req_topic = rtps::rpc::native_request_topic(config.service);
 
-  if (!add_writer({ctx->reply_topic, config.type_name, Reliability::RELIABLE})) {
+  // The service's band/dscp apply to both native endpoints (request reader +
+  // reply writer); the request reader inherits deferred banded dispatch from
+  // add_reader() when it gets no dedicated port.
+  if (!add_writer({.topic = ctx->reply_topic,
+                   .type_name = config.type_name,
+                   .reliability = Reliability::RELIABLE,
+                   .band = config.band,
+                   .dscp = config.dscp})) {
     logger_.error("Native service server '{}': reply writer failed", config.service);
     return false;
   }
@@ -1168,7 +1326,8 @@ bool RtpsParticipant::add_native_service_server(const ServiceConfig &config,
                      rh.op = rtps::rpc::NativeOp::REPLY;
                      auto out = rtps::rpc::native_encode(rh, reply);
                      raw->self->publish(raw->reply_topic, {out.data(), out.size()});
-                   }})) {
+                   },
+                   config.band, config.dscp})) {
     logger_.error("Native service server '{}': request reader failed", config.service);
     return false;
   }
@@ -1189,7 +1348,11 @@ RtpsParticipant::add_native_service_client(const ServiceConfig &config) {
   impl->my_prefix = participant_->m_guidPrefix.id;
   const std::string rep_topic = rtps::rpc::native_reply_topic(config.service);
 
-  if (!add_writer({impl->request_topic, config.type_name, Reliability::RELIABLE})) {
+  if (!add_writer({.topic = impl->request_topic,
+                   .type_name = config.type_name,
+                   .reliability = Reliability::RELIABLE,
+                   .band = config.band,
+                   .dscp = config.dscp})) {
     logger_.error("Native service client '{}': request writer failed", config.service);
     return nullptr;
   }
@@ -1220,7 +1383,8 @@ RtpsParticipant::add_native_service_client(const ServiceConfig &config) {
                      } else if (p.on_reply) {
                        p.on_reply(payload);
                      }
-                   }})) {
+                   },
+                   config.band, config.dscp})) {
     logger_.error("Native service client '{}': reply reader failed", config.service);
     return nullptr;
   }
@@ -1304,14 +1468,19 @@ bool RtpsParticipant::add_native_action_server(const ActionConfig &config,
   ctx->feedback_topic = rtps::rpc::native_feedback_topic(config.action);
   ctx->execute = std::move(execute);
 
-  if (!add_writer({ctx->feedback_topic, config.type_name, Reliability::RELIABLE})) {
+  // The action's band/dscp are inherited by all ~3 native endpoints.
+  if (!add_writer({.topic = ctx->feedback_topic,
+                   .type_name = config.type_name,
+                   .reliability = Reliability::RELIABLE,
+                   .band = config.band,
+                   .dscp = config.dscp})) {
     logger_.error("Native action server '{}': feedback writer failed", config.action);
     return false;
   }
   auto weak = std::weak_ptr<NativeActionServerContext>(ctx);
   // The send_goal native service: accept -> spawn execute -> reply goal_handle.
   const bool ok = add_native_service_server(
-      {rtps::rpc::native_goal_service(config.action), config.type_name},
+      {rtps::rpc::native_goal_service(config.action), config.type_name, config.band, config.dscp},
       [this, weak, on_goal](std::span<const uint8_t> goal) -> std::vector<uint8_t> {
         auto server = weak.lock();
         if (server == nullptr || (on_goal && !on_goal(goal))) {
@@ -1351,7 +1520,7 @@ bool RtpsParticipant::add_native_action_server(const ActionConfig &config,
   // The cancel native service: mark a running goal canceling (the execute
   // callback observes is_canceling()); on_cancel, if set, gates acceptance.
   const bool cancel_ok = add_native_service_server(
-      {rtps::rpc::native_cancel_service(config.action), config.type_name},
+      {rtps::rpc::native_cancel_service(config.action), config.type_name, config.band, config.dscp},
       [weak, on_cancel](std::span<const uint8_t> req) -> std::vector<uint8_t> {
         auto server = weak.lock();
         uint32_t handle = 0;
@@ -1493,10 +1662,11 @@ RtpsParticipant::add_native_action_client(const ActionConfig &config) {
   }
   auto impl = std::make_unique<NativeActionClient::Impl>();
   impl->self = this;
-  impl->goal_client =
-      add_native_service_client({rtps::rpc::native_goal_service(config.action), config.type_name});
-  impl->cancel_client = add_native_service_client(
-      {rtps::rpc::native_cancel_service(config.action), config.type_name});
+  // The action's band/dscp are inherited by all native client endpoints.
+  impl->goal_client = add_native_service_client(
+      {rtps::rpc::native_goal_service(config.action), config.type_name, config.band, config.dscp});
+  impl->cancel_client = add_native_service_client({rtps::rpc::native_cancel_service(config.action),
+                                                   config.type_name, config.band, config.dscp});
   if (!impl->goal_client || !impl->cancel_client) {
     logger_.error("Native action client '{}': goal/cancel client failed", config.action);
     return nullptr;
@@ -1504,30 +1674,31 @@ RtpsParticipant::add_native_action_client(const ActionConfig &config) {
   NativeActionClient::Impl *raw = impl.get();
   // Feedback subscriber: route feedback/result by goal_handle; terminal status
   // (>= SUCCEEDED) delivers the result and retires the goal.
-  if (!add_reader({rtps::rpc::native_feedback_topic(config.action), config.type_name,
-                   Reliability::RELIABLE, [raw](std::span<const uint8_t> msg) {
-                     uint32_t handle = 0;
-                     rtps::rpc::NativeGoalStatus status{};
-                     std::vector<uint8_t> payload;
-                     if (!rtps::rpc::native_parse_feedback(msg, handle, status, payload)) {
-                       return;
-                     }
-                     {
-                       std::lock_guard<std::mutex> lock(raw->mutex);
-                       if (raw->goals.find(handle) == raw->goals.end()) {
-                         // Goal not registered yet (its send_goal reply is still in
-                         // flight): buffer this early message, bounded, for replay when
-                         // send_goal installs the goal. See Impl::pending_early.
-                         if (raw->pending_early_count <
-                             NativeActionClient::Impl::kMaxPendingEarly) {
-                           raw->pending_early[handle].push_back({status, std::move(payload)});
-                           ++raw->pending_early_count;
-                         }
-                         return;
-                       }
-                     }
-                     NativeActionClient::Impl::deliver(raw, handle, status, payload);
-                   }})) {
+  if (!add_reader(
+          {rtps::rpc::native_feedback_topic(config.action), config.type_name, Reliability::RELIABLE,
+           [raw](std::span<const uint8_t> msg) {
+             uint32_t handle = 0;
+             rtps::rpc::NativeGoalStatus status{};
+             std::vector<uint8_t> payload;
+             if (!rtps::rpc::native_parse_feedback(msg, handle, status, payload)) {
+               return;
+             }
+             {
+               std::lock_guard<std::mutex> lock(raw->mutex);
+               if (raw->goals.find(handle) == raw->goals.end()) {
+                 // Goal not registered yet (its send_goal reply is still in
+                 // flight): buffer this early message, bounded, for replay when
+                 // send_goal installs the goal. See Impl::pending_early.
+                 if (raw->pending_early_count < NativeActionClient::Impl::kMaxPendingEarly) {
+                   raw->pending_early[handle].push_back({status, std::move(payload)});
+                   ++raw->pending_early_count;
+                 }
+                 return;
+               }
+             }
+             NativeActionClient::Impl::deliver(raw, handle, status, payload);
+           },
+           config.band, config.dscp})) {
     logger_.error("Native action client '{}': feedback reader failed", config.action);
     return nullptr;
   }

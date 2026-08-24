@@ -4,6 +4,7 @@
 #include <atomic>
 #include <chrono>
 #include <cstdint>
+#include <deque>
 #include <functional>
 #include <future>
 #include <memory>
@@ -16,6 +17,8 @@
 #include <vector>
 
 #include "base_component.hpp"
+#include "dscp.hpp"     // espp::Dscp (per-endpoint outbound marking)
+#include "qos_band.hpp" // espp::QosBand (per-endpoint / per-channel priority)
 
 // Forward declarations of the embeddedRTPS engine types (see
 // components/rtps/include/rtps/). The engine headers are only needed
@@ -26,6 +29,7 @@ class Participant;
 class Writer;
 class Reader;
 class ReaderCacheChange;
+class EsppTransport;
 } // namespace rtps
 
 // The RPC layer (services + actions, ROS-interoperable and native) is compiled
@@ -96,6 +100,19 @@ public:
     /// compiled in (always on host; opt-in on ESP32). Ignored for samples that
     /// fit a single DATA submessage.
     uint16_t fragment_size{63000};
+    /// Priority band for this writer's endpoint (see espp::QosBand). A
+    /// non-Normal band (or a set dscp) requests a DEDICATED unicast port for
+    /// the endpoint: inbound protocol traffic addressed to it (ACKNACKs from
+    /// reliable readers) is dispatched at this band, and the writer's outgoing
+    /// DATA is sent from the dedicated socket. Rationed - see
+    /// Config::max_prioritized_endpoint_ports; when no dedicated port is
+    /// available a writer's band currently has no further effect (deferred
+    /// banded dispatch applies to reader callbacks only).
+    espp::QosBand band{espp::QosBand::Normal};
+    /// Optional DSCP code point (e.g. espp::Dscp::Ef) marking the traffic this
+    /// writer SENDS. Requires (and by itself requests) a dedicated port, since
+    /// DSCP is per-socket; ignored when none could be allocated.
+    std::optional<espp::Dscp> dscp{};
   };
 
   /// Configuration for a reader (subscribing endpoint).
@@ -104,6 +121,22 @@ public:
     std::string type_name; ///< DDS type name (e.g. "std_msgs::msg::dds_::String_").
     Reliability reliability{Reliability::BEST_EFFORT}; ///< Reliability QoS.
     sample_callback_t on_sample{nullptr};              ///< Called for each received sample.
+    /// Priority band for this reader's endpoint (see espp::QosBand). A
+    /// non-Normal band (or a set dscp) requests a DEDICATED unicast port,
+    /// announced to peers via the endpoint's SEDP unicast locator (standard
+    /// DDS, honored by FastDDS/ROS 2), so this reader's samples arrive on
+    /// their own socket and are dispatched at this band ahead of Normal
+    /// traffic. Rationed - see Config::max_prioritized_endpoint_ports; when no
+    /// dedicated port is available (or dedicated ports are disabled) the
+    /// reader falls back to DEFERRED banded dispatch: its on_sample runs from
+    /// a bounded per-reader queue re-submitted to the transport pool at this
+    /// band (ordering preserved, one in-flight callback per reader) instead of
+    /// inline on the shared-port receive worker.
+    espp::QosBand band{espp::QosBand::Normal};
+    /// Optional DSCP code point marking the traffic this reader SENDS (its
+    /// ACKNACKs, when reliable). Requires a dedicated port; ignored when none
+    /// could be allocated.
+    std::optional<espp::Dscp> dscp{};
   };
 
   /// Configuration for the participant.
@@ -115,6 +148,25 @@ public:
     matched_callback_t on_publisher_matched{nullptr};     ///< A writer gained a remote reader.
     matched_callback_t on_subscriber_matched{nullptr};    ///< A reader gained a remote writer.
     Logger::Verbosity log_level{Logger::Verbosity::WARN}; ///< Facade log verbosity.
+    /// Priority band for the metatraffic (SPDP/SEDP discovery) channels. High
+    /// by default so discovery dispatch stays responsive when user traffic
+    /// backs the worker pool up; set to QosBand::Normal for the exact pre-band
+    /// behavior.
+    espp::QosBand metatraffic_band{espp::QosBand::High};
+    /// Priority band for the shared user-traffic channels (user unicast +
+    /// user multicast). Normal by default (pre-band behavior).
+    espp::QosBand user_traffic_band{espp::QosBand::Normal};
+    /// Allow endpoints with a non-Normal band (or a dscp) to get a dedicated
+    /// unicast port (see WriterConfig::band / ReaderConfig::band). Disable to
+    /// force every banded endpoint onto the shared user port (readers then use
+    /// deferred banded dispatch).
+    bool enable_dedicated_endpoint_ports{true};
+    /// Cap on dedicated endpoint ports. Each consumes one UDP socket/fd - on
+    /// ESP32, lwIP's CONFIG_LWIP_MAX_SOCKETS defaults to ~10 total and the
+    /// participant already uses 4 - so dedicated ports are deliberately
+    /// rationed. When exhausted, further banded endpoints log a warning and
+    /// fall back to the shared port (readers: deferred banded dispatch).
+    uint8_t max_prioritized_endpoint_ports{4};
   };
 
   /// Construct the participant (does not open sockets; see start()).
@@ -207,6 +259,15 @@ public:
     /// Base DDS service type, e.g. "example_interfaces::srv::dds_::AddTwoInts".
     /// The _Request_/_Response_ suffixes are derived internally.
     std::string type_name;
+    /// Priority band applied to BOTH of the service's endpoints: for a server
+    /// its request reader + reply writer, for a client its request writer +
+    /// reply reader (see WriterConfig::band / ReaderConfig::band for the
+    /// dedicated-port / deferred-dispatch semantics; note each banded endpoint
+    /// counts against Config::max_prioritized_endpoint_ports).
+    espp::QosBand band{espp::QosBand::Normal};
+    /// Optional DSCP code point applied to both endpoints' dedicated sockets
+    /// (marks the requests/replies this side SENDS).
+    std::optional<espp::Dscp> dscp{};
   };
 
   /// Handle to reply to a service request later (deferred reply). Copyable and
@@ -306,6 +367,17 @@ public:
     std::string action; ///< ROS 2 action name, e.g. "/fibonacci".
     /// Base DDS action type, e.g. "example_interfaces::action::dds_::Fibonacci".
     std::string type_name;
+    /// Priority band inherited by ALL of the action's underlying endpoints:
+    /// the send_goal/cancel_goal/get_result service endpoints and the
+    /// feedback/status topic endpoints (a ROS action server is ~8 endpoints,
+    /// a client ~7 - far more than the default dedicated-port ration of
+    /// Config::max_prioritized_endpoint_ports, so most of a banded action's
+    /// endpoints will use the shared port; readers there get deferred banded
+    /// dispatch. Raise the cap if you want dedicated ports for a whole
+    /// action.) Native actions inherit it on their ~3 endpoints likewise.
+    espp::QosBand band{espp::QosBand::Normal};
+    /// Optional DSCP code point for the endpoints' dedicated sockets.
+    std::optional<espp::Dscp> dscp{};
   };
 
   /// Server-side handle to a running goal, passed to the execute callback (which
@@ -495,6 +567,36 @@ public:
 #endif // RTPS_WITH_RPC
 
 protected:
+  /// Deferred banded dispatch for a banded endpoint that did NOT get a
+  /// dedicated port (ration exhausted or dedicated ports disabled): instead of
+  /// running the user callback inline on the shared-port receive worker, each
+  /// delivery is queued (bounded) and drained by a single in-flight job
+  /// re-submitted to the transport's worker pool at `band` - one delivery per
+  /// job, mirroring the reactor's one-shot pattern - preserving per-endpoint
+  /// ordering while letting the pool schedule it against other bands. When
+  /// disabled (the default path and dedicated-port endpoints), run() executes
+  /// the delivery inline, exactly as before.
+  struct DeferredDispatch {
+    bool enabled{false};
+    espp::QosBand band{espp::QosBand::Normal};
+    rtps::EsppTransport *transport{nullptr};
+    std::mutex mutex;                        ///< guards queue / in_flight / dropped
+    std::deque<std::function<void()>> queue; ///< pending deliveries (bounded)
+    bool in_flight{false};                   ///< a drain job is queued/running
+    std::size_t dropped{0};                  ///< deliveries dropped (queue full)
+    /// Pending-delivery bound per endpoint: beyond it the NEWEST delivery is
+    /// dropped (with a warning), so a stalled callback cannot queue without
+    /// limit beyond the pool's own bounds.
+    static constexpr std::size_t max_queued = 32;
+
+    /// Run `delivery` inline (when not enabled) or enqueue it and arm the
+    /// single drain job at `band`.
+    void run_or_defer(std::function<void()> delivery);
+
+  private:
+    void drain(); ///< execute one delivery, then re-arm if more are queued
+  };
+
   /// Per-reader context bridging the engine's C function-pointer callback to
   /// the std::function callback; heap-allocated so its address stays stable
   /// for the lifetime of the reader.
@@ -503,6 +605,7 @@ protected:
     sample_callback_t on_sample{nullptr};
     std::mutex buffer_mutex;
     std::vector<uint8_t> buffer;
+    DeferredDispatch deferred; ///< banded shared-port readers only
   };
 
   static void reader_trampoline(void *arg, const rtps::ReaderCacheChange &change);
