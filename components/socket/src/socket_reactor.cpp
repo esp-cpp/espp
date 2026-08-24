@@ -300,23 +300,46 @@ SocketReactor::Id SocketReactor::add_tcp_stream(espp::TcpSocket &connection,
   return id;
 }
 
-bool SocketReactor::remove(SocketReactor::Id id) {
+bool SocketReactor::remove(SocketReactor::Id id) { return remove(id, RemovedCallback{}); }
+
+bool SocketReactor::remove(SocketReactor::Id id, RemovedCallback on_removed) {
   bool found = false;
+  RemovedCallback completed; // invoked (unlocked) when the removal is already complete here
   {
     std::lock_guard<std::mutex> lock(mutex_);
     auto it = entries_.find(id);
     if (it != entries_.end()) {
       found = true;
       if (it->second.in_flight) {
-        // A handler is running; defer erasure until dispatch() completes.
+        // A handler is running (or a dispatch is pending); defer erasure until
+        // dispatch() - or the pool-saturated revert in loop_iteration() -
+        // completes. The completion callback rides along on the entry; a
+        // repeated remove() for the same id chains the callbacks.
         it->second.remove_requested = true;
+        if (on_removed) {
+          if (it->second.on_removed) {
+            it->second.on_removed = [first = std::move(it->second.on_removed),
+                                     second = std::move(on_removed)]() {
+              first();
+              second();
+            };
+          } else {
+            it->second.on_removed = std::move(on_removed);
+          }
+        }
       } else {
         entries_.erase(it);
+        completed = std::move(on_removed);
       }
     }
   }
   if (found) {
     wake();
+  }
+  if (completed) {
+    // Idle at remove() time: the removal is already complete - notify from
+    // the caller's thread, without the reactor lock.
+    completed();
   }
   return found;
 }
@@ -367,13 +390,18 @@ void SocketReactor::dispatch(SocketReactor::Id id) {
 #endif
   }
   bool wake_needed = false;
+  RemovedCallback removed; // deferred-removal completion, invoked unlocked below
   {
     std::lock_guard<std::mutex> lock(mutex_);
     auto it = entries_.find(id);
     if (it != entries_.end()) {
       it->second.in_flight = false;
       if (it->second.remove_requested) {
+        removed = std::move(it->second.on_removed);
         entries_.erase(it);
+        // Wake so the loop drops the fd from its interest set promptly (the
+        // completion callback may close the fd).
+        wake_needed = true;
       } else {
         it->second.armed = true; // re-arm so the loop watches it again
         wake_needed = true;
@@ -382,6 +410,11 @@ void SocketReactor::dispatch(SocketReactor::Id id) {
   }
   if (wake_needed) {
     wake();
+  }
+  if (removed) {
+    // The handler has finished and the entry is gone: removal complete.
+    // Invoked on this pool worker, without the reactor lock.
+    removed();
   }
 }
 
@@ -457,17 +490,26 @@ bool SocketReactor::loop_iteration(std::mutex &, std::condition_variable &, bool
       // Pool is saturated; revert and let the next select() re-report this fd
       // (the data stays buffered in the socket - natural backpressure).
       --in_flight_count_;
-      std::lock_guard<std::mutex> lock(mutex_);
-      auto it = entries_.find(id);
-      if (it != entries_.end()) {
-        it->second.in_flight = false;
-        // Honor a remove() that arrived while this entry was marked in_flight,
-        // rather than blindly re-arming a logically-removed registration.
-        if (it->second.remove_requested) {
-          entries_.erase(it);
-        } else {
-          it->second.armed = true;
+      RemovedCallback removed;
+      {
+        std::lock_guard<std::mutex> lock(mutex_);
+        auto it = entries_.find(id);
+        if (it != entries_.end()) {
+          it->second.in_flight = false;
+          // Honor a remove() that arrived while this entry was marked in_flight,
+          // rather than blindly re-arming a logically-removed registration.
+          if (it->second.remove_requested) {
+            removed = std::move(it->second.on_removed);
+            entries_.erase(it);
+          } else {
+            it->second.armed = true;
+          }
         }
+      }
+      if (removed) {
+        // No handler ever ran for the reverted dispatch: removal complete.
+        // Invoked on the reactor loop thread, without the reactor lock.
+        removed();
       }
     }
   }

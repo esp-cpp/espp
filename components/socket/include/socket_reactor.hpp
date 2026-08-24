@@ -226,6 +226,10 @@ public:
    */
   Id add_fd(sock_type_t fd, ReadHandler handler, QosBand band = QosBand::Normal);
 
+  /// Removal-completion notification for remove(): see the two-argument
+  /// remove() overload for the exact invocation guarantees.
+  using RemovedCallback = std::function<void()>;
+
   /**
    * @brief Unregister a socket. Safe to call from any thread, including from
    *        within a running handler. If a handler for this id is currently
@@ -234,6 +238,41 @@ public:
    * @return true if the id was found.
    */
   bool remove(Id id);
+
+  /**
+   * @brief Unregister a socket and be notified when the removal has fully
+   *        completed - i.e. the registration is erased AND any handler that
+   *        was running or pending for it has finished, so no reactor code can
+   *        reference the socket/fd anymore. Use this to know when it is safe
+   *        to destroy the socket (the reactor's handlers hold references to
+   *        it, and remove() itself never blocks).
+   *
+   * Invocation guarantees for @p on_removed:
+   * - Invoked EXACTLY ONCE, and only when this call returns true (an unknown
+   *   id returns false and never invokes it).
+   * - Thread: the CALLER's thread (synchronously, before remove() returns)
+   *   when no handler is in flight at remove() time; otherwise the pool
+   *   worker that finishes the in-flight handler, or the reactor loop thread
+   *   when a pending dispatch is reverted (pool saturated). Callers must be
+   *   prepared for any of the three.
+   * - Runs with NO reactor lock held: it may re-enter the reactor (add_*,
+   *   remove), but must return promptly (it can run on a worker or the loop)
+   *   and must not call stop() when it runs from a worker/loop context.
+   * - Residual fd caveat: an already-blocked select() may still have the fd
+   *   in its interest set for one iteration (the reactor wakes itself on
+   *   removal, so the window is tiny). Closing the fd from the callback is
+   *   safe; if the OS immediately reuses the fd number, the worst case is one
+   *   bounded spurious wake of the new registration (handlers must already
+   *   tolerate spurious readiness - see add_udp_receiver()'s receive bound).
+   * - Calling remove() again for an id whose removal is still pending chains
+   *   the callbacks (both fire on completion).
+   *
+   * @param id The registration Id returned by an add_* method.
+   * @param on_removed Invoked once the removal has fully completed (may be
+   *        empty, making this identical to remove(id)).
+   * @return true if the id was found.
+   */
+  bool remove(Id id, RemovedCallback on_removed);
 
   /// @return the number of currently registered sockets.
   size_t num_registered() const;
@@ -246,6 +285,7 @@ protected:
     bool armed{true};                             ///< In the select set (not currently dispatched).
     bool in_flight{false};                        ///< A pool job is currently running the handler.
     bool remove_requested{false};                 ///< remove() was called while in-flight.
+    RemovedCallback on_removed{};                 ///< Fired (unlocked) when the entry is erased.
   };
 
   /// Validate an fd for registration: must be valid and (for the select()
