@@ -128,6 +128,7 @@ int main() {
 
     static std::atomic<int> received{0};
     int churned = 0;
+    uint32_t first_dedicated_port = 0; // asserted bindable again after the churn
     for (int iter = 0; iter < kChurnIterations; ++iter) {
       rtps::Reader *reader = sub_domain.createReader(*part, topic, type, /*reliable=*/true,
                                                      {0, 0, 0, 0}, {.band = espp::QosBand::High});
@@ -142,6 +143,9 @@ int main() {
         flood = false;
         flooder.join();
         return 1;
+      }
+      if (first_dedicated_port == 0) {
+        first_dedicated_port = reader->m_attributes.unicastLocator.port;
       }
       const int before = received.load();
       reader->registerCallback(
@@ -169,6 +173,40 @@ int main() {
     flooder.join();
     std::printf("phase1: churned %d dedicated-port readers, received %d samples\n", churned,
                 received.load());
+    // Prompt fd/port release: the retired sockets must drain via the
+    // reactor's removal-completion callbacks (NOT accumulate until stop) -
+    // and the very first iteration's dedicated port must be bindable again
+    // by a fresh reuse-disabled socket, all BEFORE the domains stop.
+    {
+      const auto deadline = std::chrono::steady_clock::now() + 5s;
+      while (sub_domain.getTransport().retiredSocketCount() > 0 &&
+             std::chrono::steady_clock::now() < deadline) {
+        std::this_thread::sleep_for(20ms);
+      }
+      const std::size_t retired = sub_domain.getTransport().retiredSocketCount();
+      if (retired != 0) {
+        std::printf("FAIL: %zu retired sockets still parked after churn\n", retired);
+        return 1;
+      }
+      bool rebindable = false;
+      const auto bind_deadline = std::chrono::steady_clock::now() + 2s;
+      while (!rebindable && std::chrono::steady_clock::now() < bind_deadline) {
+        espp::UdpSocket probe({.log_level = espp::Logger::Verbosity::NONE});
+        espp::UdpSocket::ReceiveConfig rc;
+        rc.port = static_cast<uint16_t>(first_dedicated_port);
+        rebindable = probe.is_valid() && probe.disable_reuse() && probe.bind(rc);
+        if (!rebindable) {
+          std::this_thread::sleep_for(20ms);
+        }
+      }
+      if (!rebindable) {
+        std::printf("FAIL: first dedicated port %u not released before stop\n",
+                    static_cast<unsigned>(first_dedicated_port));
+        return 1;
+      }
+      std::printf("phase1: retired sockets drained, port %u released before stop\n",
+                  static_cast<unsigned>(first_dedicated_port));
+    }
     // Teardown with the peer still matched: sub_domain and pub stop here. A
     // shutdown hang (the CI failure mode) trips the harness timeout.
     sub_domain.stop();

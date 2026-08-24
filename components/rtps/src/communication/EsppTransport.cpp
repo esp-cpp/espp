@@ -241,8 +241,10 @@ void EsppTransport::stop() {
   if (m_pool) {
     m_pool->stop();
   }
-  // Reactor and pool have quiesced: no handler can reference a retired socket
-  // anymore, so the deferred closes are safe now (see m_retiredSockets).
+  // Backstop: retired sockets are normally destroyed promptly by the
+  // reactor's removal-completion callback; anything still parked here (e.g.
+  // a completion that never fired because the pool died first) is safe to
+  // close now that the reactor and pool have quiesced.
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   m_retiredSockets.clear();
 }
@@ -266,24 +268,53 @@ bool EsppTransport::releaseReceivePort(Ip4Port_t receivePort) {
   if (channel == nullptr) {
     return false;
   }
-  if (channel->reactor_id != espp::SocketReactor::INVALID_ID) {
-    // Non-blocking: erases the registration, or defers erasure while a
-    // dispatch for this socket is in flight. Never wait here - the handler may
-    // need locks this caller's stack holds (Domain/transport mutexes).
-    m_reactor->remove(channel->reactor_id);
-    channel->reactor_id = espp::SocketReactor::INVALID_ID;
-  }
-  // RETIRE the socket instead of destroying it: an in-flight (or
+  // RETIRE the socket instead of destroying it here: an in-flight (or
   // just-submitted) reactor dispatch still references it, and destroying it
-  // here is a use-after-free - a handler was observed blocking forever on the
+  // now is a use-after-free - a handler was observed blocking forever on the
   // freed object's internal logger mutex, which then wedged
-  // SocketReactor::stop()'s in-flight wait (the CI shutdown hang). The socket
-  // is closed in stop(), once the reactor and pool have quiesced; the channel
-  // slot itself is reusable immediately.
+  // SocketReactor::stop()'s in-flight wait (the CI shutdown hang). The
+  // reactor's removal-completion callback destroys the retired socket -
+  // closing the fd and unbinding the port - as soon as the registration is
+  // fully gone and no handler can reference it (usually immediately; at the
+  // latest when the in-flight handler finishes). stop() remains the backstop
+  // for any socket whose completion never fired (e.g. the pool died first).
+  // The socket must be parked BEFORE remove(): the completion callback can
+  // run synchronously on this thread.
+  espp::UdpSocket *retired = channel->socket.get();
   m_retiredSockets.push_back(std::move(channel->socket));
+  const espp::SocketReactor::Id reactor_id = channel->reactor_id;
+  channel->reactor_id = espp::SocketReactor::INVALID_ID;
   channel->port = 0;
   channel->in_use = false;
+  if (reactor_id != espp::SocketReactor::INVALID_ID) {
+    // Non-blocking: never wait here - the in-flight handler may need locks
+    // this caller's stack holds (Domain/transport mutexes).
+    m_reactor->remove(reactor_id, [this, retired]() { destroyRetiredSocket(retired); });
+  } else {
+    // Never registered on the reactor: nothing can reference it.
+    destroyRetiredSocket(retired);
+  }
   return true;
+}
+
+void EsppTransport::destroyRetiredSocket(espp::UdpSocket *socket) {
+  // Removal-completion path: may run on the releasing caller's own thread
+  // (recursive m_mutex makes that safe), a reactor pool worker, or the
+  // reactor loop. Erasing under m_mutex closes the fd and unbinds the port;
+  // racing stop() (which clears the whole retired list) simply makes this a
+  // no-op - the pointer is only used to FIND the entry, never dereferenced.
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  const auto it = std::find_if(
+      m_retiredSockets.begin(), m_retiredSockets.end(),
+      [socket](const std::unique_ptr<espp::UdpSocket> &s) { return s.get() == socket; });
+  if (it != m_retiredSockets.end()) {
+    m_retiredSockets.erase(it);
+  }
+}
+
+std::size_t EsppTransport::retiredSocketCount() const {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  return m_retiredSockets.size();
 }
 
 bool EsppTransport::joinMultiCastGroup(const Ip4AddressBytes &addr) const {

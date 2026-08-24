@@ -14,9 +14,11 @@
 //
 // Exits 0 on success, 1 on the first failed check.
 
+#include <chrono>
 #include <cstdio>
 #include <cstring>
 #include <span>
+#include <thread>
 #include <vector>
 
 #include "rtps/entities/Domain.hpp"
@@ -69,6 +71,34 @@ std::vector<uint8_t> expected_unicast_locator_param(uint32_t port) {
   }
   p.insert(p.end(), kIp.begin(), kIp.end());
   return p;
+}
+
+// Poll (up to ~2 s) until a fresh reuse-disabled socket can bind the port -
+// i.e. the previously bound fd was actually closed, not parked until stop().
+bool wait_for_port_released(uint16_t port) {
+  const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+  while (std::chrono::steady_clock::now() < deadline) {
+    espp::UdpSocket probe({.log_level = espp::Logger::Verbosity::NONE});
+    espp::UdpSocket::ReceiveConfig rc;
+    rc.port = port;
+    if (probe.is_valid() && probe.disable_reuse() && probe.bind(rc)) {
+      return true;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+  }
+  return false;
+}
+
+// Poll (up to ~2 s) until the transport reports no retired sockets pending.
+bool wait_for_no_retired_sockets(rtps::EsppTransport &transport) {
+  const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+  while (std::chrono::steady_clock::now() < deadline) {
+    if (transport.retiredSocketCount() == 0) {
+      return true;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+  }
+  return false;
 }
 
 bool contains(std::span<const uint8_t> haystack, std::span<const uint8_t> needle) {
@@ -151,8 +181,16 @@ bool run_checks() {
     CHECK(over_cap->m_attributes.band == espp::QosBand::High,
           "over-cap reader keeps its band (for deferred dispatch)");
 
-    // 4. Deleting a dedicated-port endpoint returns its port to the ration.
+    // 4. Deleting a dedicated-port endpoint returns its port to the ration
+    //    AND promptly releases the underlying fd/port (the retired socket is
+    //    destroyed by the reactor's removal-completion callback, not held
+    //    until stop()): binding a fresh reuse-disabled socket to the released
+    //    port must succeed well before the domain stops.
     CHECK(domain.deleteReader(*part, banded_reader), "delete banded reader");
+    CHECK(wait_for_port_released(static_cast<uint16_t>(reader_port)),
+          "released dedicated port is bindable again before stop()");
+    CHECK(wait_for_no_retired_sockets(domain.getTransport()),
+          "no retired sockets accumulate after the release");
     const rtps::Reader *after_delete =
         domain.createReader(*part, "after_delete", "PrioType", /*reliable=*/true, {0, 0, 0, 0},
                             {.band = espp::QosBand::High});
