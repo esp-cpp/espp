@@ -61,6 +61,13 @@ int main(int argc, char **argv) {
   const char *interface_ip = (argc > 6) ? argv[6] : ""; // "" -> auto-detect
   const std::size_t payload_bytes = (argc > 7) ? std::strtoul(argv[7], nullptr, 10) : 0;
   const int band_arg = (argc > 8) ? std::atoi(argv[8]) : static_cast<int>(espp::QosBand::Normal);
+  // Validate before casting: an out-of-range value would index band arrays.
+  if (band_arg < static_cast<int>(espp::QosBand::Critical) ||
+      band_arg > static_cast<int>(espp::QosBand::Low)) {
+    std::printf("FAIL: band must be 0..%d (0=Critical 1=High 2=Normal 3=Low), got %d\n",
+                static_cast<int>(espp::QosBand::Low), band_arg);
+    return 1;
+  }
   const auto band = static_cast<espp::QosBand>(band_arg);
   const std::string expected = payload_bytes > 0 ? make_pattern(payload_bytes) : std::string{};
 

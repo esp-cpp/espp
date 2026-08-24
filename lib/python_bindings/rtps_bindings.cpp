@@ -246,7 +246,8 @@ void py_init_rtps(py::module &m) {
           py::arg("on_sample") = py::none(), py::arg("band") = espp::QosBand::Normal,
           py::arg("dscp") = py::none(),
           "Add a subscribing endpoint; on_sample receives each sample as bytes. A non-Normal\n"
-          "band requests a dedicated receive port (deferred banded dispatch as fallback).")
+          "band (or a dscp) requests a dedicated receive port (banded readers fall back to\n"
+          "deferred banded dispatch when no dedicated port is available).")
       .def(
           "publish",
           [](Rtps &self, const std::string &topic, const py::bytes &data) {
