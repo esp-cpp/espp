@@ -209,11 +209,20 @@ SocketReactor::add_udp_receiver(espp::UdpSocket &socket,
   // an unbounded blocking recvfrom such a dispatch would never finish and
   // stop()'s in-flight wait could hang forever. A 1 s cap is invisible on the
   // data path (data is normally already queued) and guarantees every dispatch
-  // - and therefore stop() - makes progress. Best-effort: registration
-  // proceeds even if the option cannot be set.
+  // - and therefore stop() - makes progress.
+  //
+  // A bounded read is a REQUIREMENT of registering here, not best-effort: if
+  // the bound cannot be installed the hang guard is void, so registration
+  // fails. SO_RCVTIMEO is chosen over O_NONBLOCK deliberately - it bounds
+  // ONLY receives, while non-blocking mode would also make sends through this
+  // same fd (the owner and the echo path send on it) fail with EWOULDBLOCK
+  // under buffer pressure, silently changing send semantics. SO_RCVTIMEO is
+  // supported on POSIX, lwIP (LWIP_SO_RCVTIMEO), and Windows.
   if (!socket.set_receive_timeout(std::chrono::duration<float>(1.0f))) {
-    logger_.warn("add_udp_receiver: could not set a receive timeout on port {}",
-                 receive_config.port);
+    logger_.error("add_udp_receiver: could not set a receive timeout on port {}; refusing the "
+                  "registration (an unbounded blocking read could hang stop() forever)",
+                  receive_config.port);
+    return INVALID_ID;
   }
   if (receive_config.dscp.has_value()) {
     // Mark this socket's transmitted packets (e.g. echo responses) with the
