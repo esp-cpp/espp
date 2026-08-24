@@ -6,10 +6,15 @@
 // std_msgs/String on /chatter.
 //
 // Usage: rtps_interop_sub [topic] [type] [reliable(0|1)] [required] [timeout_s]
-// [interface_ip] [payload_bytes]
+// [interface_ip] [payload_bytes] [band]
 // When payload_bytes > 0, each received String is verified byte-exact against the
 // deterministic payload_bytes-long pattern (proving fragmented >64 KB samples are
 // reassembled correctly); only byte-exact receptions count toward `required`.
+// band (0=Critical 1=High 2=Normal 3=Low; default 2=Normal): the reader's
+// espp::QosBand. A non-Normal band gives the reader a DEDICATED unicast port
+// announced via its SEDP per-endpoint unicast locator - the interop matrix uses
+// this to prove a FastDDS/ROS 2 peer honors that locator and delivers the
+// topic's traffic to the dedicated port.
 // Exits 0 once `required` samples arrive within `timeout_s`.
 
 #include <atomic>
@@ -55,6 +60,8 @@ int main(int argc, char **argv) {
   const int timeout_s = (argc > 5) ? std::atoi(argv[5]) : 30;
   const char *interface_ip = (argc > 6) ? argv[6] : ""; // "" -> auto-detect
   const std::size_t payload_bytes = (argc > 7) ? std::strtoul(argv[7], nullptr, 10) : 0;
+  const int band_arg = (argc > 8) ? std::atoi(argv[8]) : static_cast<int>(espp::QosBand::Normal);
+  const auto band = static_cast<espp::QosBand>(band_arg);
   const std::string expected = payload_bytes > 0 ? make_pattern(payload_bytes) : std::string{};
 
   std::atomic<int> received{0};
@@ -96,12 +103,13 @@ int main(int argc, char **argv) {
                   std::fflush(stdout);
                 }
               },
+          .band = band,
       })) {
     std::printf("FAIL: add_reader\n");
     return 1;
   }
-  std::printf("interop_sub: topic=%s type=%s reliable=%d required=%d timeout=%ds\n", topic, type,
-              reliable ? 1 : 0, required, timeout_s);
+  std::printf("interop_sub: topic=%s type=%s reliable=%d required=%d timeout=%ds band=%d\n", topic,
+              type, reliable ? 1 : 0, required, timeout_s, band_arg);
 
   const auto start = std::chrono::steady_clock::now();
   while (received.load() < required &&
