@@ -204,23 +204,13 @@ SocketReactor::add_udp_receiver(espp::UdpSocket &socket,
   sock_type_t fd = socket.native_handle();
   if (receive_config.dscp.has_value()) {
     // Mark this socket's transmitted packets (e.g. echo responses) with the
-    // requested DSCP code point. The TOS byte carries the 6-bit DSCP in its
-    // upper bits (RFC 2474). Best-effort: network / driver treatment only, no
-    // effect on local scheduling (that is what `band` is for).
-    const uint8_t dscp = static_cast<uint8_t>(receive_config.dscp.value());
-    if (dscp > 63) {
-      // Named espp::Dscp values are always in range; a custom static_cast'd
-      // code point is documented as 0-63. Silently masking would apply a
-      // DIFFERENT code point (64 -> 0, 255 -> 63), so ignore invalid values.
-      logger_.warn("add_udp_receiver: invalid DSCP {} (valid range 0-63) on port {}; not applied",
-                   dscp, receive_config.port);
-    } else {
-      const int tos = espp::dscp_to_tos(receive_config.dscp.value());
-      if (::setsockopt(fd, IPPROTO_IP, IP_TOS, reinterpret_cast<const char *>(&tos), sizeof(tos)) <
-          0) {
-        logger_.warn("add_udp_receiver: could not set IP_TOS (DSCP {}) on port {}", dscp,
-                     receive_config.port);
-      }
+    // requested DSCP code point. Best-effort: network / driver treatment
+    // only, no effect on local scheduling (that is what `band` is for).
+    // Socket::set_dscp() validates the code point and logs specifics;
+    // registration proceeds either way.
+    if (!socket.set_dscp(receive_config.dscp.value())) {
+      logger_.warn("add_udp_receiver: could not apply DSCP {} on port {}",
+                   static_cast<uint8_t>(receive_config.dscp.value()), receive_config.port);
     }
   }
   auto handler = [this, &socket, callback, buffer_size]() {

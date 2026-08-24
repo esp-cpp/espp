@@ -27,6 +27,7 @@ typedef int sock_type_t;
 #include <math.h>
 
 #include "base_component.hpp"
+#include "dscp.hpp"
 #include "format.hpp"
 
 namespace espp {
@@ -238,6 +239,28 @@ public:
    * @return the receive buffer size in bytes, or std::nullopt on failure.
    */
   std::optional<size_t> get_receive_buffer_size();
+
+  /**
+   * @brief Mark this socket's TRANSMITTED packets with a DSCP code point
+   *        (applied as IP_TOS - the DSCP occupies the upper 6 bits of the
+   *        TOS / Traffic Class byte, RFC 2474).
+   * @note Best-effort: affects network / driver treatment of outgoing traffic
+   *       (e.g. Dscp::Ef "expedited forwarding" for latency-critical flows),
+   *       NOT local scheduling. Some platforms may ignore it.
+   * @param dscp the code point to apply. A custom (non-standard) value can be
+   *        expressed with static_cast<Dscp>(0-63); values above 63 are
+   *        rejected (returns false with a log) rather than silently masked to
+   *        a different code point.
+   * @return true if IP_TOS was successfully set.
+   */
+  bool set_dscp(espp::Dscp dscp);
+
+  /**
+   * @brief Get the DSCP code point this socket marks its transmitted packets
+   *        with (read back from IP_TOS; the lower 2 ECN bits are discarded).
+   * @return the code point, or std::nullopt on failure.
+   */
+  std::optional<espp::Dscp> get_dscp();
 
   /**
    * @brief Allow others to use this address/port combination after we're done

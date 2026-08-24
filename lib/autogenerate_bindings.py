@@ -310,8 +310,56 @@ def _add_gil_release_guards(code: str) -> str:
     return code
 
 
+# litgen does not emit base classes for the socket hierarchy; declare them so the
+# python-side UdpSocket/TcpSocket inherit the base Socket methods (set_dscp,
+# set_receive_timeout, native_handle, ...).
+_BASE_CLASS_FIX = {
+    "py::class_<espp::TcpSocket>(": "py::class_<espp::TcpSocket, espp::Socket>(",
+    "py::class_<espp::UdpSocket>(": "py::class_<espp::UdpSocket, espp::Socket>(",
+}
+
+
+def _fix_base_classes(code: str) -> str:
+    # Like _fix_implicit_default_ctors: each pattern must apply exactly once. A
+    # count of 0 means litgen's output drifted and python-side inheritance
+    # would silently regress; > 1 means the pattern matched something it
+    # should not have. Warn loudly either way so regeneration surfaces it.
+    for old, new in _BASE_CLASS_FIX.items():
+        n = code.count(old)
+        if n != 1:
+            print(f"WARNING: base-class fix `{old}` applied {n} times (expected 1); "
+                  "python UdpSocket/TcpSocket may not inherit Socket - update _BASE_CLASS_FIX")
+        code = code.replace(old, new)
+    return code
+
+
+# The stub (.pyi) is generated alongside the pydef and needs the same base-class
+# treatment: litgen emits `class TcpSocket:` / `class UdpSocket:` without the
+# Socket base, so type checkers / IDEs would not see the inherited Socket
+# methods (set_dscp, set_receive_timeout, ...). Extend this map as further
+# developer-facing stub fixes are needed.
+_STUB_FIX = {
+    "\nclass TcpSocket:\n": "\nclass TcpSocket(Socket):\n",
+    "\nclass UdpSocket:\n": "\nclass UdpSocket(Socket):\n",
+}
+
+
+def _postprocess_generated_stub(code: str) -> str:
+    # Same exactly-once contract (and loud warning) as _fix_base_classes: a
+    # count of 0 means litgen's stub output drifted and the committed
+    # inheritance would silently regress on regeneration.
+    for old, new in _STUB_FIX.items():
+        n = code.count(old)
+        if n != 1:
+            print(f"WARNING: stub fix {old!r} applied {n} times (expected 1); "
+                  "the generated .pyi may lose fixes - update _STUB_FIX")
+        code = code.replace(old, new)
+    return code
+
+
 def _postprocess_generated(code: str) -> str:
     code = _fix_implicit_default_ctors(code)
+    code = _fix_base_classes(code)
     code = _fix_template_class_nested(code)
     code = _remove_static_instance_dups(code)
     code = _fix_class_holders(code)
@@ -550,6 +598,16 @@ def autogenerate() -> None:
     with open(pydef_file, "w") as f:
         f.write(code)
     print(f"Post-processed {pydef_file}")
+
+    # The stub is a generated artifact too - reapply its fixes so regeneration
+    # preserves them (see _postprocess_generated_stub).
+    stub_file = output_dir + "/espp/__init__.pyi"
+    with open(stub_file, "r") as f:
+        stub = f.read()
+    stub = _postprocess_generated_stub(stub)
+    with open(stub_file, "w") as f:
+        f.write(stub)
+    print(f"Post-processed {stub_file}")
     # NOTE: all fixups are applied statically in _postprocess_generated() above, so the generated
     # file compiles with no manual edits and without a build step. fix_generated_bindings.py is kept
     # as an optional diagnostic: if a future litgen version introduces *new* unqualified names, run

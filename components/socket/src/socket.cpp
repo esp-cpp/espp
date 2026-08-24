@@ -228,6 +228,37 @@ std::optional<size_t> Socket::get_receive_buffer_size() {
   return static_cast<size_t>(value);
 }
 
+bool Socket::set_dscp(espp::Dscp dscp) {
+  const auto code_point = static_cast<uint8_t>(dscp);
+  if (code_point > 63) {
+    // Named espp::Dscp values are always in range; a custom static_cast'd
+    // code point is documented as 0-63. Silently masking would apply a
+    // DIFFERENT code point (64 -> 0, 255 -> 63), so reject invalid values.
+    logger_.error("set_dscp: invalid DSCP {} (valid range 0-63); not applied", code_point);
+    return false;
+  }
+  const int tos = espp::dscp_to_tos(dscp);
+  return set_option(IPPROTO_IP, IP_TOS, tos);
+}
+
+std::optional<espp::Dscp> Socket::get_dscp() {
+  int value = 0;
+#if defined(_WIN32)
+  // Winsock's getsockopt takes the optlen as int*, not socklen_t*.
+  int len = sizeof(value);
+  int err = getsockopt(socket_, IPPROTO_IP, IP_TOS, reinterpret_cast<char *>(&value), &len);
+#else
+  socklen_t len = sizeof(value);
+  int err = getsockopt(socket_, IPPROTO_IP, IP_TOS, &value, &len);
+#endif
+  if (err < 0) {
+    logger_.error("Couldn't get IP_TOS: {}", error_string());
+    return {};
+  }
+  // the DSCP is the upper 6 bits of the TOS byte (the lower 2 are ECN)
+  return static_cast<espp::Dscp>((static_cast<uint8_t>(value) >> 2) & 0x3F);
+}
+
 bool Socket::disable_reuse() {
 #if !CONFIG_LWIP_SO_REUSE && defined(ESP_PLATFORM)
   // reuse is not compiled into lwip, so it is already effectively disabled

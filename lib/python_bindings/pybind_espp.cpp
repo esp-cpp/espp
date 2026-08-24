@@ -1726,6 +1726,16 @@ void py_init_module_espp(py::module &m) {
            "*\n   * @brief Set the receive timeout on the provided socket.\n   * @param timeout "
            "requested timeout, must be > 0.\n   * @return True if SO_RECVTIMEO was successfully "
            "set.\n")
+      .def("set_dscp", &espp::Socket::set_dscp, py::arg("dscp"),
+           "*\n   * @brief Mark this socket's TRANSMITTED packets with a DSCP code point\n   *   "
+           "     (applied as IP_TOS - RFC 2474). Best-effort: network / driver\n   *        "
+           "treatment of outgoing traffic (e.g. Dscp.Ef), NOT local scheduling.\n   * @param "
+           "dscp the espp.Dscp code point to apply.\n   * @return True if IP_TOS was "
+           "successfully set.\n")
+      .def("get_dscp", &espp::Socket::get_dscp,
+           "*\n   * @brief Get the DSCP code point this socket marks its transmitted packets\n   "
+           "*        with (read back from IP_TOS; ECN bits discarded).\n   * @return The "
+           "espp.Dscp code point, or None on failure.\n")
       .def("enable_reuse", &espp::Socket::enable_reuse,
            "*\n   * @brief Allow others to use this address/port combination after we're done\n   "
            "*        with it.\n   * @return True if SO_REUSEADDR and SO_REUSEPORT were "
@@ -1762,7 +1772,7 @@ void py_init_module_espp(py::module &m) {
   ////////////////////    </generated_from:socket.hpp>    ////////////////////
 
   ////////////////////    <generated_from:tcp_socket.hpp>    ////////////////////
-  auto pyClassTcpSocket = py::class_<espp::TcpSocket>(
+  auto pyClassTcpSocket = py::class_<espp::TcpSocket, espp::Socket>(
       m, "TcpSocket", py::dynamic_attr(),
       "*\n *   @brief Class for managing sending and receiving data using TCP/IP. Can be\n *       "
       "   used to create client or server sockets.\n *\n * \\section tcp_ex1 TCP Client Example\n "
@@ -1929,7 +1939,7 @@ void py_init_module_espp(py::module &m) {
   ////////////////////    </generated_from:tcp_socket.hpp>    ////////////////////
 
   ////////////////////    <generated_from:udp_socket.hpp>    ////////////////////
-  auto pyClassUdpSocket = py::class_<espp::UdpSocket>(
+  auto pyClassUdpSocket = py::class_<espp::UdpSocket, espp::Socket>(
       m, "UdpSocket", py::dynamic_attr(),
       "*\n *   @brief Class for managing sending and receiving data using UDP/IP. Can be\n *       "
       "   used to create client or server sockets.\n *\n *   See\n *   "
