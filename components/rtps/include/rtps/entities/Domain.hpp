@@ -41,10 +41,41 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include <rtps/common/Locator.hpp>
 
 namespace rtps {
+
+/// Runtime scheduling configuration for a Domain (all fields optional; the
+/// defaults preserve pre-band behavior except that metatraffic - SPDP/SEDP
+/// discovery - is dispatched at QosBand::High so discovery stays responsive
+/// under user-traffic load).
+struct DomainConfig {
+  /// Band for the metatraffic (SPDP multicast + SEDP unicast) channels.
+  espp::QosBand metatraffic_band{espp::QosBand::High};
+  /// Band for the shared user-traffic (user unicast + user multicast) channels.
+  espp::QosBand user_traffic_band{espp::QosBand::Normal};
+  /// Allow endpoints with a non-default band (or a dscp) to be granted their
+  /// own dedicated unicast port (announced via their SEDP per-endpoint unicast
+  /// locator). Disable to force banded endpoints onto the shared user port.
+  bool enable_dedicated_endpoint_ports{true};
+  /// Ration for dedicated endpoint ports (each one consumes a UDP socket/fd;
+  /// lwIP on ESP32 defaults to ~10 sockets total). When exhausted, further
+  /// banded endpoints fall back to the shared user port (with a warning).
+  uint8_t max_prioritized_endpoint_ports{4};
+};
+
+/// Per-endpoint scheduling options for createWriter()/createReader().
+struct EndpointOptions {
+  /// Priority band for the endpoint's received-traffic dispatch. A non-Normal
+  /// band requests a dedicated unicast port (see DomainConfig).
+  espp::QosBand band{espp::QosBand::Normal};
+  /// Optional DSCP code point for traffic the endpoint sends; requires (and by
+  /// itself requests) a dedicated port, since DSCP is per-socket.
+  std::optional<espp::Dscp> dscp{};
+};
+
 class Domain : public espp::BaseComponent {
 public:
-  explicit Domain(const Ip4AddressBytes &localIpAddress);
-  Domain(EsppTransport &transport, const Ip4AddressBytes &localIpAddress);
+  explicit Domain(const Ip4AddressBytes &localIpAddress, const DomainConfig &config = {});
+  Domain(EsppTransport &transport, const Ip4AddressBytes &localIpAddress,
+         const DomainConfig &config = {});
   ~Domain();
 
   bool completeInit();
@@ -52,9 +83,11 @@ public:
 
   Participant *createParticipant();
   Writer *createWriter(Participant &part, const char *topicName, const char *typeName,
-                       bool reliable, bool enforceUnicast = false);
+                       bool reliable, bool enforceUnicast = false,
+                       const EndpointOptions &options = {});
   Reader *createReader(Participant &part, const char *topicName, const char *typeName,
-                       bool reliable, Ip4AddressBytes mcastaddress = {0, 0, 0, 0});
+                       bool reliable, Ip4AddressBytes mcastaddress = {0, 0, 0, 0},
+                       const EndpointOptions &options = {});
 
   Writer *writerExists(Participant &part, const char *topicName, const char *typeName,
                        bool reliable);
@@ -63,6 +96,11 @@ public:
 
   bool deleteWriter(Participant &part, Writer *writer);
   bool deleteReader(Participant &part, Reader *reader);
+
+  /// The transport the domain receives/sends through. Exposed so higher layers
+  /// (e.g. the espp facade's banded deferred dispatch) can submit work onto the
+  /// transport's worker pool at a chosen priority band.
+  EsppTransport &getTransport() { return *m_transport; }
 
   void printInfo();
 
@@ -88,6 +126,45 @@ private:
   /// How many participant ids to probe for free unicast ports before giving up.
   static constexpr uint8_t PARTICIPANT_PORT_PROBE_LIMIT = 16;
   Participant *findParticipantById(ParticipantId_t id);
+
+  DomainConfig m_config{};
+
+  // --- Dedicated endpoint ports (per-endpoint priority) ---------------------
+  // Deterministic allocation strategy: dedicated ports live in this domain's
+  // RTPS port block at offset DEDICATED_PORT_OFFSET, i.e.
+  //   port = 7400 + 250*DOMAIN_ID + DEDICATED_PORT_OFFSET + n
+  // with n probed linearly (reuse-disabled bind, so a port taken by another
+  // process on this host fails loudly and the next one is tried). The standard
+  // RTPS offsets (builtin/user, multicast/unicast) stay below 100 for
+  // participant ids 0..44, so the two ranges cannot collide, and the whole
+  // range stays inside this domain's 250-port block (offsets 100..249 -> up to
+  // 150 candidate ports; allocation is additionally rationed by
+  // DomainConfig::max_prioritized_endpoint_ports).
+  static constexpr uint16_t DEDICATED_PORT_OFFSET = 100;
+  static constexpr uint16_t DEDICATED_PORT_PROBE_LIMIT = 16;
+  struct DedicatedPort {
+    Ip4Port_t port{0};
+    Participant *participant{nullptr};
+  };
+  /// Active dedicated ports, for receive routing (port -> owning participant)
+  /// and for release on endpoint deletion. Bounded by the ration.
+  std::vector<DedicatedPort> m_dedicatedPorts;
+  /// Next port offset to try, so allocation walks forward deterministically.
+  uint16_t m_nextDedicatedPortOffset = 0;
+  /// Allocate (bind + register) a dedicated unicast port for an endpoint of
+  /// `part` at `band` (optionally DSCP-marked). Returns 0 when disabled, the
+  /// ration is exhausted, or no free port was found - callers then fall back
+  /// to the shared user-unicast port.
+  Ip4Port_t allocateDedicatedEndpointPort(Participant &part, espp::QosBand band,
+                                          const std::optional<espp::Dscp> &dscp);
+  /// Release an endpoint's dedicated port (no-op for port 0 / unknown ports).
+  void releaseDedicatedEndpointPort(Ip4Port_t port);
+  Participant *findParticipantByDedicatedPort(Ip4Port_t port);
+  /// Apply EndpointOptions to freshly-built endpoint attributes: copies
+  /// band/dscp and, when the options request priority, tries to allocate a
+  /// dedicated port and rewrites attributes.unicastLocator to it.
+  void applyEndpointOptions(Participant &part, TopicData &attributes,
+                            const EndpointOptions &options);
 
   /// Single deadline-scheduled protocol task: drives SPDP announcements for
   /// every participant and heartbeat ticks for every stateful writer,

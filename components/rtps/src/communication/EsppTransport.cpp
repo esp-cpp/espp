@@ -117,7 +117,8 @@ std::string EsppTransport::ip4ToString(const Ip4AddressBytes &addr) {
          "." + std::to_string(addr[3]);
 }
 
-bool EsppTransport::startReceiver(Channel &channel, Ip4Port_t receivePort) {
+bool EsppTransport::startReceiver(Channel &channel, Ip4Port_t receivePort,
+                                  const ChannelOptions &options) {
   if (!channel.socket) {
     logger_.error("startReceiver called with null socket on port {}", receivePort);
     return false;
@@ -130,6 +131,11 @@ bool EsppTransport::startReceiver(Channel &channel, Ip4Port_t receivePort) {
   // preserving RTPS's per-locator ordering.
   espp::UdpSocket::ReceiveConfig receive_config;
   receive_config.port = receivePort;
+  // Priority band for this channel's receive dispatch (metatraffic channels
+  // run above user channels by default - see Domain) and optional DSCP marking
+  // for traffic sent from this socket (dedicated endpoint ports).
+  receive_config.band = options.band;
+  receive_config.dscp = options.dscp;
 #ifdef RTPS_ENABLE_FRAGMENTATION
   // With fragmentation enabled a peer (e.g. FastDDS/ROS 2) may send DATA_FRAG
   // fragments as large as a full UDP datagram (~64 KB), so the per-datagram read
@@ -155,7 +161,8 @@ bool EsppTransport::startReceiver(Channel &channel, Ip4Port_t receivePort) {
   return true;
 }
 
-EsppTransport::Channel *EsppTransport::createChannel(Ip4Port_t receivePort, bool allow_reuse) {
+EsppTransport::Channel *EsppTransport::createChannel(Ip4Port_t receivePort, bool allow_reuse,
+                                                     const ChannelOptions &options) {
   for (auto &channel : m_channels) {
     if (channel.in_use) {
       continue;
@@ -175,7 +182,8 @@ EsppTransport::Channel *EsppTransport::createChannel(Ip4Port_t receivePort, bool
     // large (fragmented) sample is not dropped before the reactor drains it.
     // Best-effort: some stacks clamp SO_RCVBUF, so failure is ignored. Only
     // compiled when fragmentation is enabled (never on the ESP32 default build).
-    (void)channel.socket->set_receive_buffer_size(4 * 1024 * 1024); // request 4 MB (kernel may clamp)
+    (void)channel.socket->set_receive_buffer_size(4 * 1024 *
+                                                  1024); // request 4 MB (kernel may clamp)
 #endif
 
     if (!allow_reuse && !channel.socket->disable_reuse()) {
@@ -187,7 +195,7 @@ EsppTransport::Channel *EsppTransport::createChannel(Ip4Port_t receivePort, bool
     channel.port = receivePort;
     channel.in_use = true;
 
-    if (!startReceiver(channel, receivePort)) {
+    if (!startReceiver(channel, receivePort, options)) {
       channel.socket.reset();
       channel.port = 0;
       channel.in_use = false;
@@ -218,8 +226,8 @@ void EsppTransport::onReceive(Ip4Port_t receivePort, std::vector<uint8_t> &data,
                static_cast<Ip4Port_t>(sender.port), remoteAddress);
 }
 
-bool EsppTransport::submit(std::function<void()> job) {
-  if (!m_pool || !m_pool->try_submit(std::move(job))) {
+bool EsppTransport::submit(std::function<void()> job, espp::QosBand band) {
+  if (!m_pool || !m_pool->try_submit(std::move(job), band)) {
     logger_.warn("Transport worker pool rejected a job (stopped or queue full)");
     return false;
   }
@@ -235,7 +243,8 @@ void EsppTransport::stop() {
   }
 }
 
-bool EsppTransport::ensureReceivePort(Ip4Port_t receivePort, bool is_multicast) {
+bool EsppTransport::ensureReceivePort(Ip4Port_t receivePort, bool is_multicast,
+                                      const ChannelOptions &options) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
   Channel *existing = findChannel(receivePort);
@@ -243,7 +252,7 @@ bool EsppTransport::ensureReceivePort(Ip4Port_t receivePort, bool is_multicast) 
     return true;
   }
 
-  Channel *created = createChannel(receivePort, /*allow_reuse=*/is_multicast);
+  Channel *created = createChannel(receivePort, /*allow_reuse=*/is_multicast, options);
   return created != nullptr;
 }
 
@@ -306,7 +315,7 @@ void EsppTransport::sendPacket(PacketInfo &info) {
   if (channel == nullptr) {
     // Sending from one of our own unicast ports: apply unicast semantics
     // (no port sharing) if the channel was not already registered.
-    channel = createChannel(info.srcPort, /*allow_reuse=*/false);
+    channel = createChannel(info.srcPort, /*allow_reuse=*/false, ChannelOptions{});
   }
 
   if (channel == nullptr || !channel->socket) {

@@ -24,6 +24,8 @@ This file is part of the espp embeddedRTPS port.
 #define RTPS_ESPPTRANSPORT_H
 
 #include "base_component.hpp"
+#include "dscp.hpp"
+#include "qos_band.hpp"
 #include "rtps/common/types.hpp"
 #include "rtps/communication/PacketInfo.hpp"
 #include "rtps/config.hpp"
@@ -34,10 +36,23 @@ This file is part of the espp embeddedRTPS port.
 #include <array>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <vector>
 
 namespace rtps {
+
+/// Per-channel scheduling options applied when a transport channel's socket is
+/// registered on the reactor (see EsppTransport::ensureReceivePort).
+struct ChannelOptions {
+  /// Priority band the reactor dispatches this socket's datagrams at (see
+  /// espp::QosBand / espp::SocketReactor). Normal = pre-band behavior.
+  espp::QosBand band{espp::QosBand::Normal};
+  /// Optional DSCP code point set on the socket (marks traffic SENT from this
+  /// channel; see espp::Socket::set_dscp()). Best-effort: unsupported stacks
+  /// simply ignore it.
+  std::optional<espp::Dscp> dscp{};
+};
 
 class EsppTransport : public espp::BaseComponent {
 public:
@@ -49,8 +64,11 @@ public:
   /// Ensure a receive channel exists for the port. Unicast ports are bound
   /// with address/port reuse DISABLED so an in-use port fails loudly (the
   /// Domain then probes the next participant id); multicast ports keep reuse
-  /// enabled so multiple processes on one host can share them.
-  bool ensureReceivePort(Ip4Port_t receivePort, bool is_multicast);
+  /// enabled so multiple processes on one host can share them. The options
+  /// only apply when the channel is newly created (an existing channel keeps
+  /// its original band/dscp).
+  bool ensureReceivePort(Ip4Port_t receivePort, bool is_multicast,
+                         const ChannelOptions &options = {});
   /// Tear down the receive channel for a port (used to unwind a partially
   /// successful unicast port probe).
   bool releaseReceivePort(Ip4Port_t receivePort);
@@ -59,9 +77,10 @@ public:
 
   /// Submit asynchronous protocol work (e.g. a writer's progress()) onto the
   /// transport's shared worker pool - the same pool the reactor dispatches
-  /// received datagrams on. Non-blocking; returns false (and logs) when the
+  /// received datagrams on - at the given priority band (Normal preserves the
+  /// pre-band FIFO behavior). Non-blocking; returns false (and logs) when the
   /// pool queue is full or stopped.
-  bool submit(std::function<void()> job);
+  bool submit(std::function<void()> job, espp::QosBand band = espp::QosBand::Normal);
 
   /// Stop receive dispatch and the worker pool. Must be called before the
   /// objects referenced by in-flight/queued jobs (writers, participants) are
@@ -78,8 +97,8 @@ private:
 
   Channel *findChannel(Ip4Port_t port);
   const Channel *findChannel(Ip4Port_t port) const;
-  Channel *createChannel(Ip4Port_t receivePort, bool allow_reuse);
-  bool startReceiver(Channel &channel, Ip4Port_t receivePort);
+  Channel *createChannel(Ip4Port_t receivePort, bool allow_reuse, const ChannelOptions &options);
+  bool startReceiver(Channel &channel, Ip4Port_t receivePort, const ChannelOptions &options);
   void onReceive(Ip4Port_t receivePort, std::vector<uint8_t> &data,
                  const espp::Socket::Info &sender) const;
 

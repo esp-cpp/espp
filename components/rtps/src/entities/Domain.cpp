@@ -44,29 +44,37 @@ Author: i11 - Embedded Software, RWTH Aachen University
 
 using rtps::Domain;
 
-Domain::Domain(const rtps::Ip4AddressBytes &localIpAddress)
+Domain::Domain(const rtps::Ip4AddressBytes &localIpAddress, const DomainConfig &config)
     : espp::BaseComponent("RtpsDomain", espp::Logger::Verbosity::WARN)
     , m_defaultTransport(&Domain::datagramJumppad, this)
     , m_transport(&m_defaultTransport)
-    , m_localIpAddress(localIpAddress) {
+    , m_localIpAddress(localIpAddress)
+    , m_config(config) {
   m_transportSetupOk = initializeTransport();
 }
 
-Domain::Domain(rtps::EsppTransport &transport, const rtps::Ip4AddressBytes &localIpAddress)
+Domain::Domain(rtps::EsppTransport &transport, const rtps::Ip4AddressBytes &localIpAddress,
+               const DomainConfig &config)
     : espp::BaseComponent("RtpsDomain", espp::Logger::Verbosity::WARN)
     , m_defaultTransport(&Domain::datagramJumppad, this)
     , m_transport(&transport)
-    , m_localIpAddress(localIpAddress) {
+    , m_localIpAddress(localIpAddress)
+    , m_config(config) {
   m_transportSetupOk = initializeTransport();
 }
 
 bool Domain::initializeTransport() {
   assert(m_transport != nullptr);
+  // Metatraffic (SPDP discovery multicast) is registered at the configured
+  // metatraffic band (High by default) so discovery dispatch overtakes queued
+  // user-traffic handling; user multicast runs at the user-traffic band.
   bool success = true;
-  success =
-      m_transport->ensureReceivePort(getUserMulticastPort(), /*is_multicast=*/true) && success;
-  success =
-      m_transport->ensureReceivePort(getBuiltInMulticastPort(), /*is_multicast=*/true) && success;
+  success = m_transport->ensureReceivePort(getUserMulticastPort(), /*is_multicast=*/true,
+                                           {.band = m_config.user_traffic_band}) &&
+            success;
+  success = m_transport->ensureReceivePort(getBuiltInMulticastPort(), /*is_multicast=*/true,
+                                           {.band = m_config.metatraffic_band}) &&
+            success;
   success = m_transport->joinMultiCastGroup({239, 255, 0, 1}) && success;
   return success;
 }
@@ -220,6 +228,13 @@ void Domain::receiveCallback(const PacketInfo &packet) {
         m_participants[slot].newMessage(payload, payload_size);
       }
     }
+  } else if (Participant *dedicated = findParticipantByDedicatedPort(packet.destPort);
+             dedicated != nullptr) {
+    // A dedicated (per-endpoint) unicast port: route straight to the owning
+    // participant; the engine's MessageReceiver demuxes by entity id, so the
+    // local port the datagram arrived on is otherwise irrelevant.
+    DOMAIN_LOG("Domain: Got message on dedicated endpoint port {}", packet.destPort);
+    dedicated->newMessage(payload, payload_size);
   } else {
     // Pass to addressed one only (Unicast, by Port)
     ParticipantId_t id =
@@ -257,10 +272,13 @@ rtps::Participant *Domain::createParticipant() {
   const ParticipantId_t last_candidate = m_nextParticipantId + PARTICIPANT_PORT_PROBE_LIMIT;
   bool ports_ok = false;
   for (; candidate < last_candidate; ++candidate) {
-    if (!m_transport->ensureReceivePort(getUserUnicastPort(candidate), /*is_multicast=*/false)) {
+    if (!m_transport->ensureReceivePort(getUserUnicastPort(candidate), /*is_multicast=*/false,
+                                        {.band = m_config.user_traffic_band})) {
       continue;
     }
-    if (m_transport->ensureReceivePort(getBuiltInUnicastPort(candidate), /*is_multicast=*/false)) {
+    // SEDP unicast is metatraffic: keep discovery dispatch above user traffic.
+    if (m_transport->ensureReceivePort(getBuiltInUnicastPort(candidate), /*is_multicast=*/false,
+                                       {.band = m_config.metatraffic_band})) {
       ports_ok = true;
       break;
     }
@@ -362,6 +380,92 @@ rtps::Participant *Domain::findParticipantById(ParticipantId_t id) {
   return nullptr;
 }
 
+rtps::Participant *Domain::findParticipantByDedicatedPort(Ip4Port_t port) {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  for (const auto &entry : m_dedicatedPorts) {
+    if (entry.port == port) {
+      return entry.participant;
+    }
+  }
+  return nullptr;
+}
+
+rtps::Ip4Port_t Domain::allocateDedicatedEndpointPort(Participant &part, espp::QosBand band,
+                                                      const std::optional<espp::Dscp> &dscp) {
+  // Caller holds m_mutex (createWriter/createReader).
+  if (!m_config.enable_dedicated_endpoint_ports) {
+    return 0;
+  }
+  if (m_dedicatedPorts.size() >= m_config.max_prioritized_endpoint_ports) {
+    logger_.warn("Dedicated endpoint port ration exhausted ({} in use, cap {}); "
+                 "falling back to the shared user-unicast port",
+                 m_dedicatedPorts.size(),
+                 static_cast<unsigned int>(m_config.max_prioritized_endpoint_ports));
+    return 0;
+  }
+  const Ip4Port_t base = 7400 + 250 * Config::DOMAIN_ID + DEDICATED_PORT_OFFSET;
+  for (uint16_t probe = 0; probe < DEDICATED_PORT_PROBE_LIMIT; ++probe) {
+    const uint16_t offset = m_nextDedicatedPortOffset + probe;
+    if (DEDICATED_PORT_OFFSET + offset > 249) {
+      break; // stay inside this domain's 250-port block
+    }
+    const Ip4Port_t port = base + offset;
+    // Reuse-disabled unicast bind: a port taken by another process fails
+    // loudly here and the next candidate is probed (same strategy as the
+    // participant-id port probe above).
+    if (m_transport->ensureReceivePort(port, /*is_multicast=*/false,
+                                       {.band = band, .dscp = dscp})) {
+      m_nextDedicatedPortOffset = offset + 1;
+      m_dedicatedPorts.push_back(DedicatedPort{port, &part});
+      return port;
+    }
+  }
+  logger_.warn("No free dedicated endpoint port (probed {} from offset {}); "
+               "falling back to the shared user-unicast port",
+               DEDICATED_PORT_PROBE_LIMIT, m_nextDedicatedPortOffset);
+  return 0;
+}
+
+void Domain::releaseDedicatedEndpointPort(Ip4Port_t port) {
+  // Caller holds m_mutex (deleteWriter/deleteReader).
+  if (port == 0) {
+    return;
+  }
+  for (auto it = m_dedicatedPorts.begin(); it != m_dedicatedPorts.end(); ++it) {
+    if (it->port == port) {
+      m_transport->releaseReceivePort(port);
+      m_dedicatedPorts.erase(it);
+      return;
+    }
+  }
+}
+
+void Domain::applyEndpointOptions(Participant &part, TopicData &attributes,
+                                  const EndpointOptions &options) {
+  attributes.band = options.band;
+  attributes.dscp = options.dscp;
+  // A non-default band (or a DSCP marking, which is per-socket) requests a
+  // dedicated unicast port. On success the endpoint's SEDP announcement
+  // carries the dedicated port as its per-endpoint unicast locator (a standard
+  // DDS parameter - PID_UNICAST_LOCATOR - so FastDDS/ROS 2 peers send this
+  // endpoint's traffic there), and the endpoint also SENDS from that socket
+  // (m_srcPort follows the unicast locator), so the DSCP marking applies to
+  // its outgoing traffic. On failure (disabled / ration exhausted / no free
+  // port) the endpoint keeps the shared user-unicast locator; a higher layer
+  // may then apply deferred banded dispatch (see the espp facade).
+  if (options.band == espp::QosBand::Normal && !options.dscp.has_value()) {
+    return;
+  }
+  const Ip4Port_t port = allocateDedicatedEndpointPort(part, options.band, options.dscp);
+  if (port == 0) {
+    return;
+  }
+  attributes.unicastLocator = FullLengthLocator::createUDPv4Locator(
+      m_localIpAddress[0], m_localIpAddress[1], m_localIpAddress[2], m_localIpAddress[3], port);
+  attributes.hasDedicatedPort = true;
+  DOMAIN_LOG("Granted dedicated endpoint port {} (band {})", port, static_cast<int>(options.band));
+}
+
 void Domain::registerMulticastPort(FullLengthLocator mcastLocator) {
   if (mcastLocator.kind == LocatorKind_t::LOCATOR_KIND_UDPv4) {
     m_transportSetupOk =
@@ -459,7 +563,8 @@ rtps::Writer *Domain::writerExists(Participant &part, const char *topicName, con
 }
 
 rtps::Writer *Domain::createWriter(Participant &part, const char *topicName, const char *typeName,
-                                   bool reliable, bool enforceUnicast) {
+                                   bool reliable, bool enforceUnicast,
+                                   const EndpointOptions &options) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   StatelessWriter *statelessWriter =
       getNextUnusedEndpoint<decltype(m_statelessWriters), StatelessWriter>(m_statelessWriters);
@@ -491,18 +596,26 @@ rtps::Writer *Domain::createWriter(Participant &part, const char *topicName, con
                                       EntityKind_t::USER_DEFINED_WRITER_WITHOUT_KEY};
   attributes.unicastLocator = getUserUnicastLocator(part.m_participantId, m_localIpAddress);
   attributes.durabilityKind = DurabilityKind_t::TRANSIENT_LOCAL;
+  applyEndpointOptions(part, attributes, options);
 
   DOMAIN_LOG("Creating writer[{}, {}]", topicName, typeName);
+
+  // On any failure below, return the endpoint's dedicated port (if one was
+  // granted) so it is not leaked.
+  const Ip4Port_t dedicated_port =
+      attributes.hasDedicatedPort ? static_cast<Ip4Port_t>(attributes.unicastLocator.port) : 0;
 
   if (reliable) {
     attributes.reliabilityKind = ReliabilityKind_t::RELIABLE;
 
     if (!statefulWriter->init(attributes, TopicKind_t::NO_KEY, *m_transport, enforceUnicast)) {
       DOMAIN_LOG("StatefulWriter init failed.");
+      releaseDedicatedEndpointPort(dedicated_port);
       return nullptr;
     }
 
     if (!part.addWriter(statefulWriter)) {
+      releaseDedicatedEndpointPort(dedicated_port);
       return nullptr;
     }
     return statefulWriter;
@@ -511,10 +624,12 @@ rtps::Writer *Domain::createWriter(Participant &part, const char *topicName, con
 
     if (!statelessWriter->init(attributes, TopicKind_t::NO_KEY, *m_transport, enforceUnicast)) {
       DOMAIN_LOG("StatelessWriter init failed.");
+      releaseDedicatedEndpointPort(dedicated_port);
       return nullptr;
     }
 
     if (!part.addWriter(statelessWriter)) {
+      releaseDedicatedEndpointPort(dedicated_port);
       return nullptr;
     }
     return statelessWriter;
@@ -522,7 +637,8 @@ rtps::Writer *Domain::createWriter(Participant &part, const char *topicName, con
 }
 
 rtps::Reader *Domain::createReader(Participant &part, const char *topicName, const char *typeName,
-                                   bool reliable, rtps::Ip4AddressBytes mcastaddress) {
+                                   bool reliable, rtps::Ip4AddressBytes mcastaddress,
+                                   const EndpointOptions &options) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   StatelessReader *statelessReader =
       getNextUnusedEndpoint<decltype(m_statelessReaders), StatelessReader>(m_statelessReaders);
@@ -572,8 +688,14 @@ rtps::Reader *Domain::createReader(Participant &part, const char *topicName, con
     }
   }
   attributes.durabilityKind = DurabilityKind_t::VOLATILE;
+  applyEndpointOptions(part, attributes, options);
 
   DOMAIN_LOG("Creating reader[{}, {}]", topicName, typeName);
+
+  // On any failure below, return the endpoint's dedicated port (if one was
+  // granted) so it is not leaked.
+  const Ip4Port_t dedicated_port =
+      attributes.hasDedicatedPort ? static_cast<Ip4Port_t>(attributes.unicastLocator.port) : 0;
 
   if (reliable) {
 
@@ -584,6 +706,7 @@ rtps::Reader *Domain::createReader(Participant &part, const char *topicName, con
     if (!part.addReader(statefulReader)) {
       DOMAIN_LOG("Failed to add reader to participant.");
 
+      releaseDedicatedEndpointPort(dedicated_port);
       return nullptr;
     }
     return statefulReader;
@@ -594,6 +717,7 @@ rtps::Reader *Domain::createReader(Participant &part, const char *topicName, con
     statelessReader->init(attributes);
 
     if (!part.addReader(statelessReader)) {
+      releaseDedicatedEndpointPort(dedicated_port);
       return nullptr;
     }
     return statelessReader;
@@ -609,6 +733,11 @@ bool rtps::Domain::deleteReader(Participant &part, Reader *reader) {
     return false;
   }
 
+  // Return the reader's dedicated port (if any) before its attributes are
+  // wiped by reset().
+  if (reader->m_attributes.hasDedicatedPort) {
+    releaseDedicatedEndpointPort(static_cast<Ip4Port_t>(reader->m_attributes.unicastLocator.port));
+  }
   reader->reset();
   return true;
 }
@@ -622,6 +751,11 @@ bool rtps::Domain::deleteWriter(Participant &part, Writer *writer) {
     return false;
   }
 
+  // Return the writer's dedicated port (if any) before its attributes are
+  // wiped by reset().
+  if (writer->m_attributes.hasDedicatedPort) {
+    releaseDedicatedEndpointPort(static_cast<Ip4Port_t>(writer->m_attributes.unicastLocator.port));
+  }
   writer->reset();
   return true;
 }
