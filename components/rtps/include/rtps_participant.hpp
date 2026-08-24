@@ -174,7 +174,9 @@ public:
     /// ESP32, lwIP's CONFIG_LWIP_MAX_SOCKETS defaults to ~10 total and the
     /// participant already uses 4 - so dedicated ports are deliberately
     /// rationed. When exhausted, further banded endpoints log a warning and
-    /// fall back to the shared port (readers: deferred banded dispatch).
+    /// fall back to the shared port (readers: deferred banded dispatch). The
+    /// cap is a TRUE fd bound: a released endpoint's socket counts against it
+    /// until its fd actually closes (normally immediate).
     uint8_t max_prioritized_endpoint_ports{4};
   };
 
@@ -614,7 +616,9 @@ protected:
     sample_callback_t on_sample{nullptr};
     std::mutex buffer_mutex;
     std::vector<uint8_t> buffer;
-    DeferredDispatch deferred; ///< banded shared-port readers only
+    DeferredDispatch deferred;     ///< banded shared-port readers only
+    std::string topic;             ///< for rollback of partially-built composites
+    rtps::Reader *reader{nullptr}; ///< engine endpoint (for rollback deletion)
   };
 
   static void reader_trampoline(void *arg, const rtps::ReaderCacheChange &change);
@@ -628,9 +632,29 @@ protected:
   struct ServiceServerContext;
   static void service_request_trampoline(void *arg, const rtps::ReaderCacheChange &change);
   static void service_reply_trampoline(void *arg, const rtps::ReaderCacheChange &change);
+
+  /// Composite (action) rollback support: container sizes recorded before a
+  /// multi-endpoint build, and unwinding of everything added past that mark
+  /// when a later step fails - so a partially-built action leaves no announced
+  /// endpoint or consumed ration slot behind. All lock mutex_ internally.
+  std::size_t service_servers_count();
+  std::size_t service_clients_count();
+  std::size_t native_service_servers_count();
+  std::size_t native_service_clients_count();
+  void rollback_service_servers(std::size_t keep_count);
+  void rollback_service_clients(std::size_t keep_count);
+  void rollback_native_service_servers(std::size_t keep_count);
+  void rollback_native_service_clients(std::size_t keep_count);
 #endif // RTPS_WITH_RPC
 
   bool resolve_interface_address(std::array<uint8_t, 4> &ip_bytes) const;
+
+  /// Rollback helpers for partially-built composite endpoints (services /
+  /// actions): remove a previously added writer/reader so a failed composite
+  /// leaves no announced endpoint and no consumed dedicated-port ration slot
+  /// behind. Both lock mutex_ internally - callers must NOT hold it.
+  bool remove_writer(const std::string &topic);
+  bool remove_reader(const std::string &topic);
 
   Config config_;
   std::atomic<bool> started_{false};
