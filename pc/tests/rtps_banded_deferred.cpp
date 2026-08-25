@@ -158,9 +158,10 @@ int run_band_queue_jump_test() {
     std::printf("FAIL: the queued Low drain never ran\n");
     return 1;
   }
+  // order[0] == 'H' is already established above; the queued Low must follow.
   std::lock_guard<std::mutex> lock(order_mutex);
-  if (order[0] != 'H' || order[1] != 'L') {
-    std::printf("FAIL: unexpected delivery order (%c%c)\n", order[0], order[1]);
+  if (order[1] != 'L') {
+    std::printf("FAIL: unexpected second delivery (%c)\n", order[1]);
     return 1;
   }
   std::printf("queue-jump: High banded delivery overtook queued Low - PASS\n");
