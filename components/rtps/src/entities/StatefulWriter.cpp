@@ -486,6 +486,11 @@ bool StatefulWriter::sendDataWRMulticast(const ReaderProxy &reader, const CacheC
 
 std::chrono::steady_clock::time_point
 StatefulWriter::heartbeatTick(std::chrono::steady_clock::time_point now) {
+  // Hold m_mutex across the WHOLE tick: sendHeartBeat() locks it, but the
+  // unconfirmed-changes scan below also iterates m_proxies, which the SEDP
+  // receive workers mutate under m_mutex - the scan must not run unlocked
+  // (m_mutex is recursive, so the nested guards stay harmless).
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
   if (!m_is_initialized_) {
     // Not ticking: report a far-future deadline so the scheduler ignores us.
     return now + std::chrono::hours(24);
