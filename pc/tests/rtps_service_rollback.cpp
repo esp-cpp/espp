@@ -1,7 +1,10 @@
 // Transactional service/action creation: a partial endpoint-creation failure
 // must roll back the endpoints that DID build - nothing stays announced, no
 // engine pool slot stays consumed, and no dedicated-port ration slot (or fd)
-// leaks.
+// leaks - and the rollback is PRECISE: only the endpoints created by the
+// failing invocation are removed (a duplicate add must not delete the first
+// instance's endpoints; a concurrent add must never be rolled back as
+// collateral).
 //
 // Failure seam: a service name chosen so the request topic ("rq/<name>Request")
 // exceeds the engine's MAX_TOPICNAME_LENGTH while the reply topic
@@ -19,13 +22,27 @@
 //     partway; the rollback must return all 3 slots - proven by 3 subsequent
 //     add_writer() calls succeeding.
 //  4. The participant stays fully usable: a valid banded service then builds.
+//  5. Duplicate add_action_server(): the second call fails (duplicate topics)
+//     but the FIRST action's feedback/status writers keep working - precise
+//     rollback removes only what the failing call created.
+//  6. Rollback under concurrent adds: writers added by another thread while
+//     failing composites run are never rolled back as collateral.
+//
+// Deletion-failure ordering (facade keeps its writer-map entry / reader
+// context when Domain::deleteWriter/deleteReader fails) is not covered here:
+// inducing an engine deletion failure requires corrupting engine-internal
+// state (the pooled endpoint must vanish from the participant while the
+// facade still holds it), which no public API can do cheaply - the ordering
+// is enforced by construction in remove_writer()/remove_reader().
 //
 // Exits 0 on success.
 
+#include <atomic>
 #include <chrono>
 #include <cstdio>
 #include <string>
 #include <thread>
+#include <vector>
 
 #include "rtps/config.hpp"
 #include "rtps_participant.hpp"
@@ -148,6 +165,62 @@ int main() {
             {.service = "/good", .type_name = "test::srv::dds_::Good", .band = espp::QosBand::High},
             [](std::span<const uint8_t>) { return std::vector<uint8_t>{}; }),
         "valid banded service builds");
+  // 5. Duplicate action: the second add_action_server() must fail without
+  //    harming the first (its feedback/status writers keep accepting samples).
+  const char *dup_action = "/dup_action";
+  CHECK(
+      participant2.add_action_server({.action = dup_action, .type_name = "test::action::dds_::Dup"},
+                                     nullptr, [](espp::RtpsParticipant::ActionGoalHandle) {}),
+      "first action builds");
+  CHECK(!participant2.add_action_server(
+            {.action = dup_action, .type_name = "test::action::dds_::Dup"}, nullptr,
+            [](espp::RtpsParticipant::ActionGoalHandle) {}),
+        "duplicate action fails");
+  const std::vector<uint8_t> payload{0x00, 0x01, 0x00, 0x00, 0x2a, 0x00, 0x00, 0x00};
+  const std::string dup_feedback = "rt/dup_action/_action/feedback";
+  const std::string dup_status = "rt/dup_action/_action/status";
+  CHECK(participant2.publish(dup_feedback, payload),
+        "first action's feedback writer survives the duplicate's rollback");
+  CHECK(participant2.publish(dup_status, payload),
+        "first action's status writer survives the duplicate's rollback");
+
+  // 6. Precise rollback under concurrent adds: writers added by another
+  //    thread while failing composites run must never be rolled back.
+  // Writer-budget note: participant2 already carries 6 writers (the valid
+  // banded service + the first dup_action), so stay well inside the ~13
+  // usable slots with 5 concurrent adds.
+  std::atomic<bool> adder_ok{true};
+  std::thread adder([&participant2, &adder_ok]() {
+    for (int i = 0; i < 5; ++i) {
+      if (!participant2.add_writer({.topic = "conc_" + std::to_string(i),
+                                    .type_name = "test::msg::dds_::Conc_",
+                                    .reliability = Reliability::RELIABLE})) {
+        adder_ok = false;
+        return;
+      }
+      std::this_thread::sleep_for(1ms);
+    }
+  });
+  for (int i = 0; i < 5; ++i) {
+    // Two flavors of failing composite run their (precise) rollbacks
+    // concurrently with the adder thread: a duplicate action (fails at the
+    // first step, rolls back nothing) and a partially-built service (its
+    // reply writer IS created and must be rolled back - real deletions racing
+    // the adds).
+    (void)participant2.add_action_server(
+        {.action = dup_action, .type_name = "test::action::dds_::Dup"}, nullptr,
+        [](espp::RtpsParticipant::ActionGoalHandle) {});
+    (void)participant2.add_service_server(
+        {.service = bad_service, .type_name = "test::srv::dds_::Bad", .band = espp::QosBand::High},
+        [](std::span<const uint8_t>) { return std::vector<uint8_t>{}; });
+  }
+  adder.join();
+  CHECK(adder_ok.load(), "concurrent adds all succeeded");
+  for (int i = 0; i < 5; ++i) {
+    CHECK(participant2.publish("conc_" + std::to_string(i), payload),
+          "concurrently added writer survives the failing composites");
+  }
+
   participant2.stop();
 
   std::printf("PASS\n");
