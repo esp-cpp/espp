@@ -80,6 +80,10 @@ EsppTransport::EsppTransport(RxCallback callback, void *args)
     , m_callbackArgs(args) {
   espp::ThreadPool::Config pool_config;
   pool_config.worker_count = 2;
+  // Bounded queue: rejected submissions are real backpressure signals (the
+  // reactor re-arms the socket and the deferred dispatchers retry via their
+  // timer), instead of an unbounded heap-backed backlog under overload.
+  pool_config.max_queue_size = 64;
   pool_config.worker_task_config = {
       .name = "rtps_worker",
       .stack_size_bytes = Config::THREAD_POOL_READER_STACKSIZE,

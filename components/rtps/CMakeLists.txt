@@ -20,7 +20,7 @@ idf_component_register(
   INCLUDE_DIRS
     "include"
   REQUIRES
-    base_component cdr task thread_pool socket
+    base_component cdr task thread_pool timer socket
 )
 
 # Select the RTPS static-limits profile from Kconfig (see Kconfig in this

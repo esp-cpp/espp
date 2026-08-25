@@ -19,6 +19,7 @@
 #include "base_component.hpp"
 #include "dscp.hpp"     // espp::Dscp (per-endpoint outbound marking)
 #include "qos_band.hpp" // espp::QosBand (per-endpoint / per-channel priority)
+#include "timer.hpp"    // retry timer for rejected deferred-drain arms
 
 // Forward declarations of the embeddedRTPS engine types (see
 // components/rtps/include/rtps/). The engine headers are only needed
@@ -342,8 +343,10 @@ public:
   private:
     friend class RtpsParticipant;
     struct Impl;
-    explicit ServiceClient(std::unique_ptr<Impl> impl);
-    std::unique_ptr<Impl> impl_;
+    explicit ServiceClient(std::shared_ptr<Impl> impl);
+    /// shared_ptr: deferred drain jobs capture the Impl (see DeferredDispatch),
+    /// so it must be shareable and outlive queued work.
+    std::shared_ptr<Impl> impl_;
   };
 
   /// Add a service server. The handler is invoked for each request; its return
@@ -591,27 +594,49 @@ protected:
     bool enabled{false};
     espp::QosBand band{espp::QosBand::Normal};
     rtps::EsppTransport *transport{nullptr};
-    std::mutex mutex;                        ///< guards queue / in_flight / dropped
+    std::mutex mutex;                        ///< guards queue / flags / dropped
     std::deque<std::function<void()>> queue; ///< pending deliveries (bounded)
     bool in_flight{false};                   ///< a drain job is queued/running
+    bool needs_arm{false};                   ///< an arm was rejected; retried by the timer
+    bool closed{false};                      ///< close() ran: drop queue, refuse new work
     std::size_t dropped{0};                  ///< deliveries dropped (queue full)
+    /// Lazy retry timer, created only when the transport pool rejects a drain
+    /// arm: guarantees a queued (possibly lone/last) delivery is re-armed even
+    /// if no further traffic arrives. Its callback captures the OWNING context
+    /// weakly (no cycle) and cancels itself once the arm succeeds.
+    std::unique_ptr<espp::Timer> retry_timer;
     /// Pending-delivery bound per endpoint: beyond it the NEWEST delivery is
     /// dropped (with a warning), so a stalled callback cannot queue without
     /// limit beyond the pool's own bounds.
     static constexpr std::size_t max_queued = 32;
 
     /// Run `delivery` inline (when not enabled) or enqueue it and arm the
-    /// single drain job at `band`.
-    void run_or_defer(std::function<void()> delivery);
+    /// single drain job at `band`. `owner` is the shared context this
+    /// dispatcher is embedded in: every drain job (and the retry timer)
+    /// captures it, so queued work can never outlive the context (the
+    /// lifetime model for all deferred work - see close()).
+    void run_or_defer(std::function<void()> delivery, std::shared_ptr<void> owner);
+
+    /// Quiesce: drop all queued deliveries, refuse new ones, and cancel the
+    /// retry timer (synchronously - after close() returns no timer callback
+    /// is running). MUST be called before the owning context's references are
+    /// released and before its engine endpoints are deleted; the at-most-one
+    /// in-flight delivery finishes against memory kept alive by its shared
+    /// owner capture.
+    void close();
 
   private:
-    void drain(); ///< execute one delivery, then re-arm if more are queued
+    /// Submit the single drain job (in_flight must already be true). On pool
+    /// rejection: flags needs_arm and starts the retry timer.
+    void arm(std::shared_ptr<void> owner);
+    void drain(std::shared_ptr<void> owner); ///< one delivery, then re-arm if queued
+    void ensure_retry_timer_locked(const std::shared_ptr<void> &owner); ///< mutex held
   };
 
   /// Per-reader context bridging the engine's C function-pointer callback to
   /// the std::function callback; heap-allocated so its address stays stable
   /// for the lifetime of the reader.
-  struct ReaderContext {
+  struct ReaderContext : std::enable_shared_from_this<ReaderContext> {
     RtpsParticipant *self{nullptr};
     sample_callback_t on_sample{nullptr};
     std::mutex buffer_mutex;
@@ -633,18 +658,23 @@ protected:
   static void service_request_trampoline(void *arg, const rtps::ReaderCacheChange &change);
   static void service_reply_trampoline(void *arg, const rtps::ReaderCacheChange &change);
 
-  /// Composite (action) rollback support: container sizes recorded before a
-  /// multi-endpoint build, and unwinding of everything added past that mark
-  /// when a later step fails - so a partially-built action leaves no announced
-  /// endpoint or consumed ration slot behind. All lock mutex_ internally.
-  std::size_t service_servers_count();
-  std::size_t service_clients_count();
-  std::size_t native_service_servers_count();
-  std::size_t native_service_clients_count();
-  void rollback_service_servers(std::size_t keep_count);
-  void rollback_service_clients(std::size_t keep_count);
-  void rollback_native_service_servers(std::size_t keep_count);
-  void rollback_native_service_clients(std::size_t keep_count);
+  /// Composite (action) transaction support: the internal add_* variants
+  /// return the exact handle they created, and the remove_* helpers remove
+  /// exactly that handle - so a failed composite rolls back only what THIS
+  /// invocation built (never a concurrently added endpoint), and calling a
+  /// composite twice cannot delete the first instance's endpoints. Each
+  /// removal closes the handle's deferred dispatcher before deleting its
+  /// engine endpoints (the deferred-work lifetime discipline).
+  struct NativeServiceServerContext;
+  std::shared_ptr<ServiceServerContext>
+  add_service_server_deferred_internal(const ServiceConfig &config,
+                                       service_deferred_handler_t handler);
+  std::shared_ptr<NativeServiceServerContext>
+  add_native_service_server_internal(const ServiceConfig &config, service_handler_t handler);
+  void remove_service_server(const std::shared_ptr<ServiceServerContext> &server);
+  void remove_service_client(const std::shared_ptr<ServiceClient> &client);
+  void remove_native_service_server(const std::shared_ptr<NativeServiceServerContext> &server);
+  void remove_native_service_client(const std::shared_ptr<NativeServiceClient> &client);
 #endif // RTPS_WITH_RPC
 
   bool resolve_interface_address(std::array<uint8_t, 4> &ip_bytes) const;
@@ -662,7 +692,10 @@ protected:
   std::unique_ptr<rtps::Domain> domain_;
   rtps::Participant *participant_{nullptr};
   std::unordered_map<std::string, rtps::Writer *> writers_;
-  std::vector<std::unique_ptr<ReaderContext>> reader_contexts_;
+  /// shared_ptr (not unique_ptr): deferred deliveries and drain jobs capture
+  /// the context, so it stays alive until the last queued job releases it
+  /// even if it is removed/rolled back first (see DeferredDispatch).
+  std::vector<std::shared_ptr<ReaderContext>> reader_contexts_;
 
   // Shared liveness token for async RPC reply paths. A deferred service responder
   // (which user code may hold and fulfill arbitrarily long after the request)
@@ -689,7 +722,6 @@ protected:
   std::vector<std::shared_ptr<ActionServerContext>> action_servers_;
   std::vector<std::shared_ptr<ActionClient>> action_clients_;
 
-  struct NativeServiceServerContext;
   std::vector<std::shared_ptr<NativeServiceServerContext>> native_service_servers_;
   std::vector<std::shared_ptr<NativeServiceClient>> native_service_clients_;
 

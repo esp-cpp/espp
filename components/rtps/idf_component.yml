@@ -22,4 +22,5 @@ dependencies:
   espp/cdr: '>=1.0'
   espp/task: '>=1.0'
   espp/thread_pool: '>=1.0'
+  espp/timer: '>=1.0'
   espp/socket: '>=1.0'
