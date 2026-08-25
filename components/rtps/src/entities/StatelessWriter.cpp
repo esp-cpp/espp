@@ -119,7 +119,10 @@ const CacheChange *StatelessWriter::newChange(rtps::ChangeKind_t kind, const uin
   if (m_transport != nullptr) {
     // Run the send asynchronously on the transport's worker pool (never inline
     // under the caller's locks), matching the previous ThreadPool semantics.
-    m_transport->submit([this]() { progress(); });
+    // Guaranteed + banded: a bounded-queue rejection must not strand unsent
+    // samples (a lone best-effort DATA has no recovery path), and a
+    // prioritized endpoint's outbound work runs at ITS band end-to-end.
+    m_transport->submitGuaranteed([this]() { progress(); }, m_attributes.band);
   }
 
   SLW_LOG("Adding new data.");
@@ -140,7 +143,10 @@ void StatelessWriter::setAllChangesToUnsent() {
   if (m_transport != nullptr) {
     // Run the send asynchronously on the transport's worker pool (never inline
     // under the caller's locks), matching the previous ThreadPool semantics.
-    m_transport->submit([this]() { progress(); });
+    // Guaranteed + banded: a bounded-queue rejection must not strand unsent
+    // samples (a lone best-effort DATA has no recovery path), and a
+    // prioritized endpoint's outbound work runs at ITS band end-to-end.
+    m_transport->submitGuaranteed([this]() { progress(); }, m_attributes.band);
   }
 }
 

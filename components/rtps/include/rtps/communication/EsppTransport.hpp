@@ -31,9 +31,11 @@ This file is part of the espp embeddedRTPS port.
 #include "rtps/config.hpp"
 #include "socket_reactor.hpp"
 #include "thread_pool.hpp"
+#include "timer.hpp"
 #include "udp_socket.hpp"
 
 #include <array>
+#include <deque>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -92,6 +94,16 @@ public:
   /// pool queue is full or stopped.
   bool submit(std::function<void()> job, espp::QosBand band = espp::QosBand::Normal);
 
+  /// Submit work that MUST eventually run - e.g. a writer's progress(): the
+  /// pool queue is bounded, and a silently rejected progress submission would
+  /// strand unsent samples (a lone best-effort DATA has no heartbeat/acknack
+  /// path to recover it). On rejection the job is parked (bounded pending
+  /// list) and a lazy retry timer re-submits it until the pool accepts -
+  /// the same needs-arm/retry pattern the facade's deferred dispatch uses.
+  /// Jobs must remain safe to run until stop() (engine endpoints are pooled
+  /// and outlive the transport's stop, per the existing submit() contract).
+  void submitGuaranteed(std::function<void()> job, espp::QosBand band = espp::QosBand::Normal);
+
   /// Stop receive dispatch and the worker pool. Must be called before the
   /// objects referenced by in-flight/queued jobs (writers, participants) are
   /// destroyed; safe to call more than once.
@@ -118,6 +130,10 @@ private:
                  const espp::Socket::Info &sender) const;
 
   static std::string ip4ToString(const Ip4AddressBytes &addr);
+
+  /// Park a rejected guaranteed job and (lazily) start the retry timer.
+  /// Bounded: overflow drops the OLDEST parked job with a warning.
+  void parkPendingJob(std::function<void()> job, espp::QosBand band);
 
   RxCallback m_rxCallback{nullptr};
   void *m_callbackArgs{nullptr};
@@ -148,6 +164,20 @@ private:
   /// (reverse member order): the reactor must stop before its sockets die.
   std::shared_ptr<espp::SocketReactor> m_reactor{};
   mutable std::vector<std::string> m_multicastGroups;
+
+  /// Guaranteed-submission retry state (see submitGuaranteed()). The timer is
+  /// created lazily on the first rejection and cancels itself once the
+  /// pending list drains; stop() cancels it synchronously BEFORE stopping the
+  /// reactor/pool, so no retry callback runs during or after teardown.
+  struct PendingJob {
+    std::function<void()> job;
+    espp::QosBand band{espp::QosBand::Normal};
+  };
+  std::mutex m_pendingMutex;
+  std::deque<PendingJob> m_pendingJobs;
+  std::unique_ptr<espp::Timer> m_retryTimer;
+  bool m_stopping{false};
+  static constexpr std::size_t MAX_PENDING_JOBS = 256;
 };
 
 } // namespace rtps

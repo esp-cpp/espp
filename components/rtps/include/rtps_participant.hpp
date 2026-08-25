@@ -671,10 +671,16 @@ protected:
                                        service_deferred_handler_t handler);
   std::shared_ptr<NativeServiceServerContext>
   add_native_service_server_internal(const ServiceConfig &config, service_handler_t handler);
-  void remove_service_server(const std::shared_ptr<ServiceServerContext> &server);
-  void remove_service_client(const std::shared_ptr<ServiceClient> &client);
-  void remove_native_service_server(const std::shared_ptr<NativeServiceServerContext> &server);
-  void remove_native_service_client(const std::shared_ptr<NativeServiceClient> &client);
+  /// Removal invariant (all remove_* helpers): ENGINE deletion first, facade
+  /// state (registry entry, deferred close, handle fields) mutated only after
+  /// the deletion is CONFIRMED. A failed deletion leaves every remaining
+  /// handle - and the still-live callbacks/dispatchers they anchor - intact
+  /// for retry; partial progress is recorded by nulling/clearing the already
+  /// deleted endpoint's field so a retry resumes where it left off.
+  bool remove_service_server(const std::shared_ptr<ServiceServerContext> &server);
+  bool remove_service_client(const std::shared_ptr<ServiceClient> &client);
+  bool remove_native_service_server(const std::shared_ptr<NativeServiceServerContext> &server);
+  bool remove_native_service_client(const std::shared_ptr<NativeServiceClient> &client);
 #endif // RTPS_WITH_RPC
 
   bool resolve_interface_address(std::array<uint8_t, 4> &ip_bytes) const;

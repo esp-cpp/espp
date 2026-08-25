@@ -298,16 +298,18 @@ bool RtpsParticipant::remove_reader(const std::string &topic) {
   // Latest-added context for the topic (composites roll back most recent first).
   for (auto it = reader_contexts_.rbegin(); it != reader_contexts_.rend(); ++it) {
     if ((*it)->topic == topic && (*it)->reader != nullptr) {
-      // Quiesce the deferred dispatcher, then delete the ENGINE reader (which
-      // clears its callback registration under the engine's locks) and only
-      // then drop the context: if deletion fails the reader's callback still
-      // points at the context, so the context must stay alive - it does, and
-      // is left in place for a retry. Queued deferred work holds its own
-      // shared reference to the context either way.
-      (*it)->deferred.close();
+      // ENGINE deletion FIRST (clears the callback registration under the
+      // engine's locks); the dispatcher is closed and the context dropped
+      // only after the deletion is CONFIRMED. close() is irreversible, so
+      // closing before a deletion that then fails would leave a live reader
+      // whose future deferred deliveries are permanently dropped - on
+      // failure, context AND dispatcher stay fully functional for retry.
+      // Queued deferred work holds its own shared reference to the context
+      // either way.
       if (!domain_->deleteReader(*participant_, (*it)->reader)) {
         return false;
       }
+      (*it)->deferred.close();
       reader_contexts_.erase(std::next(it).base());
       return true;
     }
@@ -1036,42 +1038,61 @@ void RtpsParticipant::ActionGoalHandle::canceled(std::span<const uint8_t> result
   terminate(static_cast<int>(ract::GoalStatus::CANCELED), result);
 }
 
-void RtpsParticipant::remove_service_server(const std::shared_ptr<ServiceServerContext> &server) {
+bool RtpsParticipant::remove_service_server(const std::shared_ptr<ServiceServerContext> &server) {
   if (server == nullptr) {
-    return;
+    return false;
   }
+  // ENGINE deletions FIRST; facade state (registry entry, dispatcher) is only
+  // mutated once every engine endpoint is confirmed gone. On failure the
+  // context stays registered and fully live (the engine reader's callback
+  // still targets it), with already-deleted endpoints nulled so a retry
+  // resumes where it left off.
+  if (server->request_reader != nullptr) {
+    if (!domain_->deleteReader(*participant_, server->request_reader)) {
+      return false;
+    }
+    server->request_reader = nullptr;
+  }
+  if (server->reply_writer != nullptr) {
+    if (!domain_->deleteWriter(*participant_, server->reply_writer)) {
+      return false;
+    }
+    server->reply_writer = nullptr;
+  }
+  server->deferred.close();
   {
     // Remove exactly THIS handle (pointer identity) - a concurrently added
     // server is untouched.
     std::lock_guard<std::mutex> lock(mutex_);
     std::erase(service_servers_, server);
   }
-  // Deferred-work discipline: quiesce the dispatcher, then delete the engine
-  // endpoints; queued work holds its own shared reference to the context.
-  server->deferred.close();
-  if (server->request_reader != nullptr) {
-    domain_->deleteReader(*participant_, server->request_reader);
-  }
-  if (server->reply_writer != nullptr) {
-    domain_->deleteWriter(*participant_, server->reply_writer);
-  }
+  return true;
 }
 
-void RtpsParticipant::remove_service_client(const std::shared_ptr<ServiceClient> &client) {
+bool RtpsParticipant::remove_service_client(const std::shared_ptr<ServiceClient> &client) {
   if (client == nullptr) {
-    return;
+    return false;
   }
+  // Same invariant as remove_service_server(): engine first, facade on
+  // confirmed success, partial progress recorded for retry.
+  if (client->impl_->reply_reader != nullptr) {
+    if (!domain_->deleteReader(*participant_, client->impl_->reply_reader)) {
+      return false;
+    }
+    client->impl_->reply_reader = nullptr;
+  }
+  if (client->impl_->request_writer != nullptr) {
+    if (!domain_->deleteWriter(*participant_, client->impl_->request_writer)) {
+      return false;
+    }
+    client->impl_->request_writer = nullptr;
+  }
+  client->impl_->deferred.close();
   {
     std::lock_guard<std::mutex> lock(mutex_);
     std::erase(service_clients_, client);
   }
-  client->impl_->deferred.close();
-  if (client->impl_->reply_reader != nullptr) {
-    domain_->deleteReader(*participant_, client->impl_->reply_reader);
-  }
-  if (client->impl_->request_writer != nullptr) {
-    domain_->deleteWriter(*participant_, client->impl_->request_writer);
-  }
+  return true;
 }
 
 bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_callback_t on_goal,
@@ -1494,6 +1515,10 @@ struct RtpsParticipant::NativeServiceServerContext {
   std::string reply_topic;
   std::string request_topic; ///< retained for composite (native action) rollback
   service_handler_t handler{nullptr};
+  // Partial-removal markers (see remove_native_service_server): flags, not
+  // cleared strings - in-flight handlers still read the topic strings.
+  bool request_removed{false};
+  bool reply_removed{false};
 };
 
 struct RtpsParticipant::NativeServiceClient::Impl {
@@ -1510,6 +1535,9 @@ struct RtpsParticipant::NativeServiceClient::Impl {
   RtpsParticipant *self{nullptr};
   std::string request_topic;
   std::string reply_topic; ///< retained for composite (native action) rollback
+  // Partial-removal markers (see remove_native_service_client).
+  bool reply_removed{false};
+  bool request_removed{false};
   std::array<uint8_t, 12> my_prefix{};
   std::atomic<uint32_t> next_id{1};
   std::mutex mutex;
@@ -1575,33 +1603,61 @@ RtpsParticipant::NativeServiceClient::call_future(std::span<const uint8_t> reque
   return future;
 }
 
-void RtpsParticipant::remove_native_service_server(
+bool RtpsParticipant::remove_native_service_server(
     const std::shared_ptr<NativeServiceServerContext> &server) {
   if (server == nullptr) {
-    return;
+    return false;
+  }
+  // Same invariant as remove_service_server(): the endpoints (a facade reader
+  // whose callback captures this context, and a writer) are deleted FIRST via
+  // remove_reader/remove_writer - which themselves only mutate facade state on
+  // confirmed engine deletion - and the registry entry is dropped only after
+  // both succeed. Removal flags record partial progress for retry.
+  if (!server->request_removed) {
+    if (!remove_reader(server->request_topic)) {
+      return false;
+    }
+    server->request_removed = true;
+  }
+  if (!server->reply_removed) {
+    if (!remove_writer(server->reply_topic)) {
+      return false;
+    }
+    server->reply_removed = true;
   }
   {
     // Remove exactly THIS handle - a concurrently added server is untouched.
     std::lock_guard<std::mutex> lock(mutex_);
     std::erase(native_service_servers_, server);
   }
-  // The native server's endpoints are a facade reader + writer; remove_reader
-  // closes the reader context's deferred dispatcher before deletion.
-  remove_reader(server->request_topic);
-  remove_writer(server->reply_topic);
+  return true;
 }
 
-void RtpsParticipant::remove_native_service_client(
+bool RtpsParticipant::remove_native_service_client(
     const std::shared_ptr<NativeServiceClient> &client) {
   if (client == nullptr) {
-    return;
+    return false;
+  }
+  // Same invariant as remove_native_service_server(): the reply reader's
+  // callback captures the Impl, so its engine deletion must be confirmed
+  // before this handle is unregistered.
+  if (!client->impl_->reply_removed) {
+    if (!remove_reader(client->impl_->reply_topic)) {
+      return false;
+    }
+    client->impl_->reply_removed = true;
+  }
+  if (!client->impl_->request_removed) {
+    if (!remove_writer(client->impl_->request_topic)) {
+      return false;
+    }
+    client->impl_->request_removed = true;
   }
   {
     std::lock_guard<std::mutex> lock(mutex_);
     std::erase(native_service_clients_, client);
   }
-  remove_reader(client->impl_->reply_topic);
-  remove_writer(client->impl_->request_topic);
+  return true;
 }
 
 bool RtpsParticipant::add_native_service_server(const ServiceConfig &config,

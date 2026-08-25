@@ -3,19 +3,31 @@
 // sample, in order, with its callback re-submitted to the transport pool at the
 // reader's band instead of running inline on the receive worker.
 //
-// The publisher sends kTotal sequence-numbered samples (reliable); the test
-// requires all of them, strictly in order, at the subscriber.
+// Phase 1 (deterministic, unit-level): proves the CORE guarantee the loopback
+// below cannot - that a shared-port banded delivery is dispatched through the
+// pool AT ITS BAND. Two DeferredDispatch instances (Low + High) enqueue a
+// delivery each while both transport workers are blocked, so both drain jobs
+// sit in the pool queue together; a single freed worker must then service the
+// High drain BEFORE the Low drain (band-priority pop). If the drain were
+// resubmitted at Normal (the regression this guards), the two jobs would be
+// FIFO-ordered and Low (enqueued first) would run first - failing the test.
+//
+// Phase 2 (loopback): the publisher sends kTotal sequence-numbered samples
+// (reliable); the test requires all of them, strictly in order, at the
+// subscriber (delivery + per-reader ordering through the real wiring).
 //
 // Exits 0 on success.
 
 #include <atomic>
 #include <chrono>
 #include <cstdio>
+#include <memory>
 #include <mutex>
 #include <thread>
 #include <vector>
 
 #include "cdr.hpp"
+#include "rtps/communication/EsppTransport.hpp"
 #include "rtps_participant.hpp"
 
 struct SeqMsg {
@@ -28,7 +40,109 @@ inline std::span<const uint8_t> u8_span(const std::vector<std::byte> &bytes) {
 
 using namespace std::chrono_literals;
 
+namespace {
+// Expose the protected DeferredDispatch type for unit testing.
+struct TestParticipant : espp::RtpsParticipant {
+  using espp::RtpsParticipant::DeferredDispatch;
+};
+using DeferredDispatch = TestParticipant::DeferredDispatch;
+
+void noop_rx(void *, const uint8_t *, std::size_t, rtps::Ip4Port_t, rtps::Ip4Port_t,
+             const rtps::Ip4AddressBytes &) {}
+
+// Returns 0 on success, 1 on failure.
+int run_band_queue_jump_test() {
+  rtps::EsppTransport transport(&noop_rx, nullptr);
+  auto owner = std::make_shared<int>(0);
+
+  auto low = std::make_shared<DeferredDispatch>();
+  low->enabled = true;
+  low->band = espp::QosBand::Low;
+  low->transport = &transport;
+  auto high = std::make_shared<DeferredDispatch>();
+  high->enabled = true;
+  high->band = espp::QosBand::High;
+  high->transport = &transport;
+
+  // Block BOTH workers with independent release flags so we can later free
+  // exactly ONE and have it service both queued drains in band order.
+  std::atomic<int> latched{0};
+  std::atomic<bool> release_a{false};
+  std::atomic<bool> release_b{false};
+  const auto block = [&latched](std::atomic<bool> &rel) {
+    latched.fetch_add(1);
+    while (!rel.load()) {
+      std::this_thread::sleep_for(1ms);
+    }
+  };
+  if (!transport.submit([&] { block(release_a); }) ||
+      !transport.submit([&] { block(release_b); })) {
+    std::printf("FAIL: could not block the transport workers\n");
+    return 1;
+  }
+  const auto latch_deadline = std::chrono::steady_clock::now() + 5s;
+  while (latched.load() < 2 && std::chrono::steady_clock::now() < latch_deadline) {
+    std::this_thread::sleep_for(1ms);
+  }
+  if (latched.load() < 2) {
+    std::printf("FAIL: workers never picked up the blockers\n");
+    release_a = release_b = true;
+    return 1;
+  }
+
+  // Enqueue Low FIRST, then High: both drain jobs are now queued at their
+  // bands while the workers are busy.
+  std::mutex order_mutex;
+  std::vector<char> order;
+  low->run_or_defer(
+      [&] {
+        std::lock_guard<std::mutex> lock(order_mutex);
+        order.push_back('L');
+      },
+      owner);
+  high->run_or_defer(
+      [&] {
+        std::lock_guard<std::mutex> lock(order_mutex);
+        order.push_back('H');
+      },
+      owner);
+
+  // Free a SINGLE worker: it pops the higher-priority High drain first, so the
+  // High delivery is recorded before the Low delivery.
+  release_b = true;
+  const auto deadline = std::chrono::steady_clock::now() + 5s;
+  while (std::chrono::steady_clock::now() < deadline) {
+    std::lock_guard<std::mutex> lock(order_mutex);
+    if (order.size() >= 2) {
+      break;
+    }
+    std::this_thread::sleep_for(5ms);
+  }
+  release_a = true; // let the other blocker exit
+  low->close();
+  high->close();
+  transport.stop();
+
+  std::lock_guard<std::mutex> lock(order_mutex);
+  if (order.size() < 2) {
+    std::printf("FAIL: banded drains did not both run (got %zu)\n", order.size());
+    return 1;
+  }
+  if (order[0] != 'H' || order[1] != 'L') {
+    std::printf("FAIL: High-band delivery did not overtake queued Low (order=%c%c)\n", order[0],
+                order[1]);
+    return 1;
+  }
+  std::printf("queue-jump: High banded delivery overtook queued Low - PASS\n");
+  return 0;
+}
+} // namespace
+
 int main() {
+  if (run_band_queue_jump_test() != 0) {
+    return 1;
+  }
+
   constexpr uint32_t kTotal = 30; // < the 32-entry deferred queue bound
   constexpr auto kDeadline = 30s;
   const char *topic = "deferred_loopback";

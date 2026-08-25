@@ -238,7 +238,78 @@ bool EsppTransport::submit(std::function<void()> job, espp::QosBand band) {
   return true;
 }
 
+void EsppTransport::submitGuaranteed(std::function<void()> job, espp::QosBand band) {
+  // try_submit only moves the job on the accept path; a rejected submit leaves
+  // `job` intact, so it is safe to std::move here and still park it below.
+  if (m_pool && m_pool->try_submit(std::move(job), band)) {
+    return;
+  }
+  parkPendingJob(std::move(job), band);
+}
+
+void EsppTransport::parkPendingJob(std::function<void()> job, espp::QosBand band) {
+  std::lock_guard<std::mutex> lock(m_pendingMutex);
+  if (m_stopping) {
+    return; // teardown: nothing to guarantee anymore
+  }
+  if (m_pendingJobs.size() >= MAX_PENDING_JOBS) {
+    // Bounded: drop the OLDEST parked job. In practice the pending list holds
+    // duplicate progress() pokes for a small set of writers, so a later
+    // duplicate compensates; warn loudly regardless.
+    logger_.warn("Guaranteed-job retry list full ({}); dropping the oldest parked job",
+                 MAX_PENDING_JOBS);
+    m_pendingJobs.pop_front();
+  }
+  m_pendingJobs.push_back(PendingJob{std::move(job), band});
+  if (m_retryTimer) {
+    m_retryTimer->start(); // restart if it had cancelled itself
+    return;
+  }
+  m_retryTimer = std::make_unique<espp::Timer>(espp::Timer::Config{
+      .name = "rtps_job_retry",
+      .period = std::chrono::milliseconds(20),
+      .delay = std::chrono::milliseconds(20),
+      .callback = [this]() -> bool {
+        // Re-submit parked jobs in order; keep retrying while any remain.
+        while (true) {
+          PendingJob pending;
+          {
+            std::lock_guard<std::mutex> lock(m_pendingMutex);
+            if (m_stopping || m_pendingJobs.empty()) {
+              return true; // drained (or tearing down): cancel the timer
+            }
+            pending = std::move(m_pendingJobs.front());
+            m_pendingJobs.pop_front();
+          }
+          if (!m_pool || !m_pool->try_submit(std::move(pending.job), pending.band)) {
+            // Still saturated: put it back and try again next tick (a
+            // rejected try_submit leaves pending.job intact).
+            std::lock_guard<std::mutex> lock(m_pendingMutex);
+            if (!m_stopping) {
+              m_pendingJobs.push_front(std::move(pending));
+            }
+            return false;
+          }
+        }
+      },
+      .auto_start = true,
+      .log_level = espp::Logger::Verbosity::WARN,
+  });
+}
+
 void EsppTransport::stop() {
+  // Quiesce the guaranteed-job retry FIRST: cancel is synchronous, so no
+  // retry callback runs during or after the reactor/pool teardown below, and
+  // parked jobs (which may reference writers) are dropped before endpoint
+  // teardown.
+  {
+    std::lock_guard<std::mutex> lock(m_pendingMutex);
+    m_stopping = true;
+    m_pendingJobs.clear();
+  }
+  if (m_retryTimer) {
+    m_retryTimer->cancel();
+  }
   if (m_reactor) {
     m_reactor->stop();
   }
