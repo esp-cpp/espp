@@ -107,30 +107,60 @@ int run_band_queue_jump_test() {
       },
       owner);
 
-  // Free a SINGLE worker: it pops the higher-priority High drain first, so the
-  // High delivery is recorded before the Low delivery.
-  release_b = true;
-  const auto deadline = std::chrono::steady_clock::now() + 5s;
-  while (std::chrono::steady_clock::now() < deadline) {
-    std::lock_guard<std::mutex> lock(order_mutex);
-    if (order.size() >= 2) {
-      break;
+  auto wait_for_count = [&](std::size_t n) {
+    const auto deadline = std::chrono::steady_clock::now() + 10s;
+    while (std::chrono::steady_clock::now() < deadline) {
+      {
+        std::lock_guard<std::mutex> lock(order_mutex);
+        if (order.size() >= n) {
+          return true;
+        }
+      }
+      std::this_thread::sleep_for(2ms);
     }
-    std::this_thread::sleep_for(5ms);
+    return false;
+  };
+
+  // Free ONE worker while both drains are queued: the queue-jump property is
+  // that it services the higher-priority High drain FIRST, so the very first
+  // delivery must be 'H' even though Low was enqueued first. (Two-phase, one
+  // delivery per freed worker, so the assertion never depends on a single
+  // worker draining both jobs within a timing window.)
+  release_b = true;
+  if (!wait_for_count(1)) {
+    std::printf("FAIL: no banded drain ran after freeing the first worker\n");
+    release_a = true;
+    low->close();
+    high->close();
+    transport.stop();
+    return 1;
   }
-  release_a = true; // let the other blocker exit
+  {
+    std::lock_guard<std::mutex> lock(order_mutex);
+    if (order[0] != 'H') {
+      std::printf("FAIL: High-band delivery did not overtake queued Low (first=%c)\n", order[0]);
+      release_a = true;
+      low->close();
+      high->close();
+      transport.stop();
+      return 1;
+    }
+  }
+
+  // Free the second worker: the remaining Low drain now runs.
+  release_a = true;
+  const bool both = wait_for_count(2);
   low->close();
   high->close();
   transport.stop();
 
-  std::lock_guard<std::mutex> lock(order_mutex);
-  if (order.size() < 2) {
-    std::printf("FAIL: banded drains did not both run (got %zu)\n", order.size());
+  if (!both) {
+    std::printf("FAIL: the queued Low drain never ran\n");
     return 1;
   }
+  std::lock_guard<std::mutex> lock(order_mutex);
   if (order[0] != 'H' || order[1] != 'L') {
-    std::printf("FAIL: High-band delivery did not overtake queued Low (order=%c%c)\n", order[0],
-                order[1]);
+    std::printf("FAIL: unexpected delivery order (%c%c)\n", order[0], order[1]);
     return 1;
   }
   std::printf("queue-jump: High banded delivery overtook queued Low - PASS\n");
