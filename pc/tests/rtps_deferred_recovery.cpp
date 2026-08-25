@@ -46,15 +46,31 @@ int main() {
   dispatch->transport = &transport;
 
   // Saturate the pool: block both workers, then fill the bounded queue until
-  // submissions are rejected.
+  // submissions are rejected. CRITICAL for determinism: wait until BOTH
+  // blockers are actually RUNNING before filling. A blocker still sitting in
+  // the queue when the fill completes means a late-waking worker will pop the
+  // HIGH-band drain job ahead of the Normal-band fillers (band-priority pop),
+  // running the delivery while the test believes the pool is saturated - the
+  // observed flake this guard eliminates.
   std::atomic<bool> release{false};
-  const auto blocker = [&release]() {
+  std::atomic<int> latched{0};
+  const auto blocker = [&release, &latched]() {
+    latched.fetch_add(1);
     while (!release.load()) {
       std::this_thread::sleep_for(1ms);
     }
   };
   if (!transport.submit(blocker) || !transport.submit(blocker)) {
     std::printf("FAIL: could not block the transport workers\n");
+    return 1;
+  }
+  const auto latch_deadline = std::chrono::steady_clock::now() + 5s;
+  while (latched.load() < 2 && std::chrono::steady_clock::now() < latch_deadline) {
+    std::this_thread::sleep_for(1ms);
+  }
+  if (latched.load() < 2) {
+    std::printf("FAIL: workers never picked up the blockers\n");
+    release = true;
     return 1;
   }
   int fillers = 0;
