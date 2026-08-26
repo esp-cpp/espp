@@ -123,8 +123,20 @@ protected:
 
   friend class SizeInspector;
   bool m_is_initialized_ = false;
+  // Bumped by reset() (under m_mutex) each time this pooled writer slot is torn
+  // down. A guaranteed progress() job captures the generation at submit time
+  // and runs via progressIfCurrent(), which re-checks it under m_mutex - so a
+  // job accepted by the pool before deletion cannot run against a reset writer
+  // or the next endpoint that reuses this slot (a stale generation no-ops).
+  uint32_t m_generation_ = 0;
   virtual ~Writer() = default;
   MemoryPool<ReaderProxy, Config::NUM_READER_PROXIES_PER_WRITER> m_proxies;
+
+  //! Snapshot the current initialization generation (taken at job submit time).
+  uint32_t currentGeneration();
+  //! Run progress() only if `generation` still matches AND the writer is still
+  //! initialized, atomically under m_mutex. Used by the guaranteed-job lambdas.
+  void progressIfCurrent(uint32_t generation);
 
   void resetSendOptions();
   void manageSendOptions();

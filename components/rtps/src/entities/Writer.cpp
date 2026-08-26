@@ -142,3 +142,21 @@ int rtps::Writer::dumpAllProxies(dumpProxyCallback target, void *arg) {
   }
   return dump_count;
 }
+
+uint32_t rtps::Writer::currentGeneration() {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  return m_generation_;
+}
+
+void rtps::Writer::progressIfCurrent(uint32_t generation) {
+  // Check the generation AND initialization atomically with the send: reset()
+  // bumps m_generation_ / clears m_is_initialized_ under m_mutex, so a job that
+  // was accepted by the pool before this writer was deleted (and possibly reused
+  // for another endpoint) no-ops here instead of sending on the wrong endpoint.
+  // m_mutex is recursive, so the progress() override re-locking is harmless.
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  if (generation != m_generation_ || !m_is_initialized_) {
+    return;
+  }
+  progress();
+}

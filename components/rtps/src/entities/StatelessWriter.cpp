@@ -80,9 +80,11 @@ bool StatelessWriter::init(TopicData attributes, TopicKind_t topicKind, EsppTran
 void StatelessWriter::reset() {
   // Clear the init flag under m_mutex so it synchronizes with progress(): an
   // in-flight progress() completes before reset() proceeds, and any later job
-  // sees !initialized and no-ops.
+  // sees !initialized and no-ops. Bump the generation so an already-accepted
+  // guaranteed job cannot run against this slot once it is reused.
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   m_is_initialized_ = false;
+  ++m_generation_;
 }
 
 const CacheChange *StatelessWriter::newChange(rtps::ChangeKind_t kind, const uint8_t *data,
@@ -129,7 +131,7 @@ const CacheChange *StatelessWriter::newChange(rtps::ChangeKind_t kind, const uin
     // samples (a lone best-effort DATA has no recovery path), and a
     // prioritized endpoint's outbound work runs at ITS band end-to-end.
     m_transport->submitGuaranteed(
-        this, [this]() { progress(); }, m_attributes.band);
+        this, [this, gen = currentGeneration()]() { progressIfCurrent(gen); }, m_attributes.band);
   }
 
   SLW_LOG("Adding new data.");
@@ -154,7 +156,7 @@ void StatelessWriter::setAllChangesToUnsent() {
     // samples (a lone best-effort DATA has no recovery path), and a
     // prioritized endpoint's outbound work runs at ITS band end-to-end.
     m_transport->submitGuaranteed(
-        this, [this]() { progress(); }, m_attributes.band);
+        this, [this, gen = currentGeneration()]() { progressIfCurrent(gen); }, m_attributes.band);
   }
 }
 

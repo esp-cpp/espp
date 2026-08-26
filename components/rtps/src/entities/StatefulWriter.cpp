@@ -84,8 +84,11 @@ void StatefulWriter::reset() {
   // Clear the init flag under m_mutex so it synchronizes with progress() /
   // newChange() (which read it under the same lock): an in-flight progress()
   // completes before reset() proceeds, and any later job sees !initialized.
+  // Bump the generation so an already-accepted guaranteed job cannot run
+  // against this slot once it is reused for another endpoint.
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   m_is_initialized_ = false;
+  ++m_generation_;
   // TODO
 }
 
@@ -133,7 +136,7 @@ StatefulWriter::newChange(ChangeKind_t kind, const uint8_t *data, DataSize_t siz
     // samples (a lone best-effort DATA has no recovery path), and a
     // prioritized endpoint's outbound work runs at ITS band end-to-end.
     m_transport->submitGuaranteed(
-        this, [this]() { progress(); }, m_attributes.band);
+        this, [this, gen = currentGeneration()]() { progressIfCurrent(gen); }, m_attributes.band);
   }
   // Piggyback: pull the next heartbeat evaluation forward so a reliable
   // publish is followed promptly by a HEARTBEAT instead of waiting out the
@@ -216,7 +219,7 @@ void StatefulWriter::setAllChangesToUnsent() {
     // samples (a lone best-effort DATA has no recovery path), and a
     // prioritized endpoint's outbound work runs at ITS band end-to-end.
     m_transport->submitGuaranteed(
-        this, [this]() { progress(); }, m_attributes.band);
+        this, [this, gen = currentGeneration()]() { progressIfCurrent(gen); }, m_attributes.band);
   }
   // Piggyback: pull the next heartbeat evaluation forward so a reliable
   // publish is followed promptly by a HEARTBEAT instead of waiting out the
