@@ -238,59 +238,63 @@ bool EsppTransport::submit(std::function<void()> job, espp::QosBand band) {
   return true;
 }
 
-void EsppTransport::submitGuaranteed(std::function<void()> job, espp::QosBand band) {
+void EsppTransport::submitGuaranteed(const void *key, std::function<void()> job,
+                                     espp::QosBand band) {
   // try_submit only moves the job on the accept path; a rejected submit leaves
   // `job` intact, so it is safe to std::move here and still park it below.
   if (m_pool && m_pool->try_submit(std::move(job), band)) {
     return;
   }
-  parkPendingJob(std::move(job), band);
+  parkPendingJob(key, std::move(job), band);
 }
 
-void EsppTransport::parkPendingJob(std::function<void()> job, espp::QosBand band) {
+void EsppTransport::parkPendingJob(const void *key, std::function<void()> job, espp::QosBand band) {
   std::lock_guard<std::mutex> lock(m_pendingMutex);
   if (m_stopping) {
     return; // teardown: nothing to guarantee anymore
   }
-  if (m_pendingJobs.size() >= MAX_PENDING_JOBS) {
-    // Bounded: drop the OLDEST parked job. In practice the pending list holds
-    // duplicate progress() pokes for a small set of writers, so a later
-    // duplicate compensates; warn loudly regardless.
-    logger_.warn("Guaranteed-job retry list full ({}); dropping the oldest parked job",
-                 MAX_PENDING_JOBS);
-    m_pendingJobs.pop_front();
-  }
-  m_pendingJobs.push_back(PendingJob{std::move(job), band});
+  // Coalesce by producer: a repeated poke for the same writer just bumps its
+  // owed count (the job/band are identical), so the map is bounded by the
+  // producer count and nothing is ever dropped. Each owed run re-invokes
+  // progress() once, preserving one-poke/one-sample.
+  auto &entry = m_pendingByKey[key];
+  entry.job = std::move(job);
+  entry.band = band;
+  ++entry.count;
   if (m_retryTimer) {
-    m_retryTimer->start(); // restart if it had cancelled itself
-    return;
+    return; // already running; it drains owed runs on its next tick
   }
+  // The retry timer NEVER self-cancels (callback always returns false). A
+  // self-cancelling espp::Timer stops its task but leaves running_ set, so a
+  // later start() would no-op against a dead task and strand parked work;
+  // keeping it alive until stop() sidesteps that. Cost: a 20 ms mutex+empty
+  // check, paid only after an actual pool rejection and only until stop().
   m_retryTimer = std::make_unique<espp::Timer>(espp::Timer::Config{
       .name = "rtps_job_retry",
       .period = std::chrono::milliseconds(20),
       .delay = std::chrono::milliseconds(20),
       .callback = [this]() -> bool {
-        // Re-submit parked jobs in order; keep retrying while any remain.
-        while (true) {
-          PendingJob pending;
-          {
-            std::lock_guard<std::mutex> lock(m_pendingMutex);
-            if (m_stopping || m_pendingJobs.empty()) {
-              return true; // drained (or tearing down): cancel the timer
-            }
-            pending = std::move(m_pendingJobs.front());
-            m_pendingJobs.pop_front();
+        std::lock_guard<std::mutex> lock(m_pendingMutex);
+        if (m_stopping) {
+          return false; // stop() cancels this timer; nothing to do
+        }
+        for (auto it = m_pendingByKey.begin(); it != m_pendingByKey.end();) {
+          auto &entry = it->second;
+          // Drain owed runs while the pool accepts (each accepted run is one
+          // progress()); stop at the first rejection and retry next tick.
+          // Pass a COPY of the job each time - it is reused `count` times, so
+          // it must not be moved out (try_submit takes it by rvalue).
+          while (entry.count > 0 && m_pool &&
+                 m_pool->try_submit(std::function<void()>(entry.job), entry.band)) {
+            --entry.count;
           }
-          if (!m_pool || !m_pool->try_submit(std::move(pending.job), pending.band)) {
-            // Still saturated: put it back and try again next tick (a
-            // rejected try_submit leaves pending.job intact).
-            std::lock_guard<std::mutex> lock(m_pendingMutex);
-            if (!m_stopping) {
-              m_pendingJobs.push_front(std::move(pending));
-            }
-            return false;
+          if (entry.count == 0) {
+            it = m_pendingByKey.erase(it);
+          } else {
+            ++it; // still saturated for this key; try again next tick
           }
         }
+        return false; // never self-cancel (see above)
       },
       .auto_start = true,
       .log_level = espp::Logger::Verbosity::WARN,
@@ -305,7 +309,7 @@ void EsppTransport::stop() {
   {
     std::lock_guard<std::mutex> lock(m_pendingMutex);
     m_stopping = true;
-    m_pendingJobs.clear();
+    m_pendingByKey.clear();
   }
   if (m_retryTimer) {
     m_retryTimer->cancel();

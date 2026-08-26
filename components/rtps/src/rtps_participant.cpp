@@ -419,13 +419,18 @@ void RtpsParticipant::DeferredDispatch::arm(std::shared_ptr<void> owner) {
 void RtpsParticipant::DeferredDispatch::ensure_retry_timer_locked(
     const std::shared_ptr<void> &owner) {
   if (retry_timer) {
-    retry_timer->start(); // restart the periodic retry (it cancels itself on success)
-    return;
+    return; // already running; it re-arms from needs_arm on its next tick
   }
+  // The timer runs until close() cancels it synchronously - it NEVER
+  // self-cancels. A self-cancelling espp::Timer (callback returning true)
+  // stops its underlying task but leaves Timer::running_ set, so a later
+  // start() would CAS-fail ("already running") and no-op against a dead task,
+  // stranding the parked work. Keeping it alive (callback always returns
+  // false) sidesteps that entirely; the per-tick cost is a mutex + empty
+  // check, paid only after an actual pool rejection and only until close().
+  //
   // Weak owner capture: the context owns this dispatcher (and thus the timer),
-  // so a strong capture would be a cycle. The callback promotes the weak
-  // reference per tick; once close() runs (which cancels this timer
-  // synchronously) or the owner is gone, the callback stops.
+  // so a strong capture would be a cycle; the callback promotes it per tick.
   std::weak_ptr<void> weak_owner = owner;
   retry_timer = std::make_unique<espp::Timer>(espp::Timer::Config{
       .name = "rtps_defer_arm",
@@ -434,30 +439,29 @@ void RtpsParticipant::DeferredDispatch::ensure_retry_timer_locked(
       .callback = [this, weak_owner]() -> bool {
         auto strong = weak_owner.lock();
         if (!strong) {
-          return true; // owner gone; cancel
+          return false; // owner gone (close() cancels first); nothing to do
         }
         {
           std::lock_guard<std::mutex> lock(mutex);
           if (closed || !needs_arm || in_flight) {
-            return true; // nothing to recover; cancel
+            return false; // nothing to recover this tick; keep the timer alive
           }
           if (queue.empty()) {
             needs_arm = false;
-            return true;
+            return false;
           }
           in_flight = true;
           needs_arm = false;
         }
-        if (transport->submit([this, strong]() { drain(strong); }, band)) {
-          return true; // armed; cancel the timer
+        // Reached only when a drain is owed and now in_flight: try to arm it.
+        if (!transport->submit([this, strong]() { drain(strong); }, band)) {
+          std::lock_guard<std::mutex> lock(mutex);
+          in_flight = false;
+          if (!closed) {
+            needs_arm = true; // still saturated; the next tick retries
+          }
         }
-        std::lock_guard<std::mutex> lock(mutex);
-        in_flight = false;
-        if (closed) {
-          return true;
-        }
-        needs_arm = true;
-        return false; // keep retrying
+        return false; // never self-cancel (see above)
       },
       .auto_start = true,
       .log_level = espp::Logger::Verbosity::WARN,
@@ -471,13 +475,20 @@ void RtpsParticipant::DeferredDispatch::close() {
     needs_arm = false;
     queue.clear();
   }
-  // Cancel synchronously: after close() returns, no retry-timer callback is
-  // running or will run, so the owner's references can be released safely
-  // (the timer callback is the only place a strong owner reference can be
-  // (re)created outside a queued drain job).
+  // Cancel the retry timer synchronously and OUTSIDE the lock: cancel() joins
+  // the timer task, whose callback takes `mutex` - holding it here would
+  // deadlock. After cancel() returns no timer callback is running or will run.
   if (retry_timer) {
     retry_timer->cancel();
   }
+  // Wait for any in-flight delivery to finish. A delivery runs a user handler
+  // that may still be using endpoints the caller is about to delete (e.g. a
+  // service reply writer via ServiceResponder::reply()); close() must not
+  // return until it completes. The caller must NOT hold Participant::mutex_
+  // here (the delivery may need it) - every remove_* path calls close()
+  // outside that lock.
+  std::unique_lock<std::mutex> lock(mutex);
+  drain_done.wait(lock, [this]() { return !delivering; });
 }
 
 void RtpsParticipant::DeferredDispatch::drain(std::shared_ptr<void> owner) {
@@ -492,6 +503,10 @@ void RtpsParticipant::DeferredDispatch::drain(std::shared_ptr<void> owner) {
     }
     delivery = std::move(queue.front());
     queue.pop_front();
+    // Mark a delivery as executing so close() can wait for it before the
+    // caller deletes endpoints the delivery may still use (e.g. a service
+    // reply writer). Runs OUTSIDE the lock below; close() waits on drain_done.
+    delivering = true;
   }
   // Exception boundary, mirroring SocketReactor::dispatch(): this runs as a
   // plain pool job, and a throwing user callback would otherwise kill the
@@ -512,6 +527,8 @@ void RtpsParticipant::DeferredDispatch::drain(std::shared_ptr<void> owner) {
   bool rearm = false;
   {
     std::lock_guard<std::mutex> lock(mutex);
+    delivering = false;
+    drain_done.notify_all(); // wake close() if it is waiting for us
     if (closed || queue.empty()) {
       in_flight = false;
     } else {
@@ -1042,24 +1059,29 @@ bool RtpsParticipant::remove_service_server(const std::shared_ptr<ServiceServerC
   if (server == nullptr) {
     return false;
   }
-  // ENGINE deletions FIRST; facade state (registry entry, dispatcher) is only
-  // mutated once every engine endpoint is confirmed gone. On failure the
-  // context stays registered and fully live (the engine reader's callback
-  // still targets it), with already-deleted endpoints nulled so a retry
-  // resumes where it left off.
+  // Ordering (all confirmed before facade state is mutated; on failure the
+  // context stays registered and live for retry, already-deleted endpoints
+  // nulled):
+  //   1. delete the request READER first, so no NEW request is dispatched;
+  //   2. close() the deferred dispatcher, which WAITS for the in-flight
+  //      request handler to finish - that handler may still call
+  //      ServiceResponder::reply() through the reply writer, so it must be
+  //      quiesced BEFORE the writer is deleted;
+  //   3. delete the reply WRITER, now that no handler can reference it;
+  //   4. drop the registry entry.
   if (server->request_reader != nullptr) {
     if (!domain_->deleteReader(*participant_, server->request_reader)) {
       return false;
     }
     server->request_reader = nullptr;
   }
+  server->deferred.close();
   if (server->reply_writer != nullptr) {
     if (!domain_->deleteWriter(*participant_, server->reply_writer)) {
       return false;
     }
     server->reply_writer = nullptr;
   }
-  server->deferred.close();
   {
     // Remove exactly THIS handle (pointer identity) - a concurrently added
     // server is untouched.
@@ -1073,21 +1095,25 @@ bool RtpsParticipant::remove_service_client(const std::shared_ptr<ServiceClient>
   if (client == nullptr) {
     return false;
   }
-  // Same invariant as remove_service_server(): engine first, facade on
-  // confirmed success, partial progress recorded for retry.
+  // Same ordering as remove_service_server(): delete the reply READER first
+  // (stops new reply deliveries), then close() the deferred dispatcher
+  // (WAITS for the in-flight reply callback, which references this Impl),
+  // then delete the request WRITER, then drop the registry entry. Facade
+  // state is mutated only on confirmed engine deletion; partial progress is
+  // nulled for retry.
   if (client->impl_->reply_reader != nullptr) {
     if (!domain_->deleteReader(*participant_, client->impl_->reply_reader)) {
       return false;
     }
     client->impl_->reply_reader = nullptr;
   }
+  client->impl_->deferred.close();
   if (client->impl_->request_writer != nullptr) {
     if (!domain_->deleteWriter(*participant_, client->impl_->request_writer)) {
       return false;
     }
     client->impl_->request_writer = nullptr;
   }
-  client->impl_->deferred.close();
   {
     std::lock_guard<std::mutex> lock(mutex_);
     std::erase(service_clients_, client);

@@ -3,6 +3,7 @@
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
 #include <cstdint>
 #include <deque>
 #include <functional>
@@ -110,14 +111,20 @@ public:
     /// compiled in (always on host; opt-in on ESP32). Ignored for samples that
     /// fit a single DATA submessage.
     uint16_t fragment_size{63000};
-    /// Priority band for this writer's endpoint (see espp::QosBand). A
-    /// non-Normal band (or a set dscp) requests a DEDICATED unicast port for
-    /// the endpoint: inbound protocol traffic addressed to it (ACKNACKs from
-    /// reliable readers) is dispatched at this band, and the writer's outgoing
-    /// DATA is sent from the dedicated socket. Rationed - see
-    /// Config::max_prioritized_endpoint_ports; when no dedicated port is
-    /// available a writer's band currently has no further effect (deferred
-    /// banded dispatch applies to reader callbacks only).
+    /// Priority band for this writer's endpoint (see espp::QosBand). Two
+    /// distinct effects:
+    ///   - Outbound pool scheduling (ALWAYS applies, no dedicated port
+    ///     needed): the writer's progress()/send work is submitted to the
+    ///     transport pool at this band, so a higher-band writer's outgoing
+    ///     DATA is scheduled ahead of lower-band work under load.
+    ///   - Inbound socket dispatch (requires a DEDICATED unicast port): a
+    ///     non-Normal band (or a set dscp) requests a dedicated port so
+    ///     inbound protocol traffic addressed to it (ACKNACKs from reliable
+    ///     readers) is dispatched at this band and outgoing DATA leaves from
+    ///     that socket. Rationed - see Config::max_prioritized_endpoint_ports;
+    ///     when no dedicated port is available only the inbound-dispatch part
+    ///     is lost (ACKNACKs share the participant's user-unicast port), while
+    ///     the outbound pool scheduling above still applies.
     espp::QosBand band{espp::QosBand::Normal};
     /// Optional DSCP code point (e.g. espp::Dscp::Ef) marking the traffic this
     /// writer SENDS. Requires (and by itself requests) a dedicated port, since
@@ -599,6 +606,8 @@ protected:
     bool in_flight{false};                   ///< a drain job is queued/running
     bool needs_arm{false};                   ///< an arm was rejected; retried by the timer
     bool closed{false};                      ///< close() ran: drop queue, refuse new work
+    bool delivering{false};                  ///< a delivery callback is executing right now
+    std::condition_variable drain_done;      ///< signalled when a delivery finishes (close() waits)
     std::size_t dropped{0};                  ///< deliveries dropped (queue full)
     /// Lazy retry timer, created only when the transport pool rejects a drain
     /// arm: guarantees a queued (possibly lone/last) delivery is re-armed even

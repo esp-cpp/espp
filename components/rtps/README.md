@@ -177,8 +177,18 @@ at a **priority band** (`espp::QosBand`). Defaults: metatraffic (SPDP/SEDP
 discovery) at `High` — so discovery stays responsive when user traffic backs the
 pool up — and the shared user channels at `Normal`. Both are configurable
 (`RtpsParticipant::Config::metatraffic_band` / `user_traffic_band`); apart from
-the metatraffic elevation, an unconfigured participant behaves exactly as
-before.
+the two default changes below, an unconfigured participant behaves exactly as
+before:
+
+1. **Metatraffic elevation** — discovery dispatches at `High` instead of
+   `Normal` (above).
+2. **Bounded transport pool queue** — the transport's worker-pool queue is now
+   bounded (64 jobs) instead of unbounded. Under sustained overload a
+   submission is rejected rather than growing an unbounded heap backlog;
+   rejection is a real backpressure signal that the reactor (re-arm the socket
+   on the next `select()`) and the deferred/guaranteed retry paths recover
+   from without loss. This changes behavior only under extreme overload, where
+   the previous unbounded queue would have grown memory without bound.
 
 Since all of a participant's user traffic shares one user-unicast port,
 per-endpoint priority uses **dedicated ports**: give a writer/reader config a

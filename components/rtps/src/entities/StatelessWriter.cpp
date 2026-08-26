@@ -122,7 +122,8 @@ const CacheChange *StatelessWriter::newChange(rtps::ChangeKind_t kind, const uin
     // Guaranteed + banded: a bounded-queue rejection must not strand unsent
     // samples (a lone best-effort DATA has no recovery path), and a
     // prioritized endpoint's outbound work runs at ITS band end-to-end.
-    m_transport->submitGuaranteed([this]() { progress(); }, m_attributes.band);
+    m_transport->submitGuaranteed(
+        this, [this]() { progress(); }, m_attributes.band);
   }
 
   SLW_LOG("Adding new data.");
@@ -146,7 +147,8 @@ void StatelessWriter::setAllChangesToUnsent() {
     // Guaranteed + banded: a bounded-queue rejection must not strand unsent
     // samples (a lone best-effort DATA has no recovery path), and a
     // prioritized endpoint's outbound work runs at ITS band end-to-end.
-    m_transport->submitGuaranteed([this]() { progress(); }, m_attributes.band);
+    m_transport->submitGuaranteed(
+        this, [this]() { progress(); }, m_attributes.band);
   }
 }
 

@@ -128,7 +128,8 @@ StatefulWriter::newChange(ChangeKind_t kind, const uint8_t *data, DataSize_t siz
     // Guaranteed + banded: a bounded-queue rejection must not strand unsent
     // samples (a lone best-effort DATA has no recovery path), and a
     // prioritized endpoint's outbound work runs at ITS band end-to-end.
-    m_transport->submitGuaranteed([this]() { progress(); }, m_attributes.band);
+    m_transport->submitGuaranteed(
+        this, [this]() { progress(); }, m_attributes.band);
   }
   // Piggyback: pull the next heartbeat evaluation forward so a reliable
   // publish is followed promptly by a HEARTBEAT instead of waiting out the
@@ -203,7 +204,8 @@ void StatefulWriter::setAllChangesToUnsent() {
     // Guaranteed + banded: a bounded-queue rejection must not strand unsent
     // samples (a lone best-effort DATA has no recovery path), and a
     // prioritized endpoint's outbound work runs at ITS band end-to-end.
-    m_transport->submitGuaranteed([this]() { progress(); }, m_attributes.band);
+    m_transport->submitGuaranteed(
+        this, [this]() { progress(); }, m_attributes.band);
   }
   // Piggyback: pull the next heartbeat evaluation forward so a reliable
   // publish is followed promptly by a HEARTBEAT instead of waiting out the

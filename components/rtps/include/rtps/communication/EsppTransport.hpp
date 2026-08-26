@@ -35,7 +35,7 @@ This file is part of the espp embeddedRTPS port.
 #include "udp_socket.hpp"
 
 #include <array>
-#include <deque>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -97,12 +97,17 @@ public:
   /// Submit work that MUST eventually run - e.g. a writer's progress(): the
   /// pool queue is bounded, and a silently rejected progress submission would
   /// strand unsent samples (a lone best-effort DATA has no heartbeat/acknack
-  /// path to recover it). On rejection the job is parked (bounded pending
-  /// list) and a lazy retry timer re-submits it until the pool accepts -
-  /// the same needs-arm/retry pattern the facade's deferred dispatch uses.
-  /// Jobs must remain safe to run until stop() (engine endpoints are pooled
-  /// and outlive the transport's stop, per the existing submit() contract).
-  void submitGuaranteed(std::function<void()> job, espp::QosBand band = espp::QosBand::Normal);
+  /// path to recover it). On rejection the poke is PARKED per producer \p key
+  /// (the writer): each key holds one job + band and a count of owed runs, and
+  /// a retry timer re-submits them until the pool accepts. This is lossless
+  /// (nothing is dropped) and bounded by the number of producers, not by the
+  /// number of pokes - key by the producer so repeated pokes coalesce into its
+  /// count instead of growing an unbounded/dropping list. Each owed run maps
+  /// one-to-one to a progress() call, preserving the one-poke/one-sample
+  /// semantics. Jobs must remain safe to run until stop() (engine endpoints
+  /// are pooled and outlive the transport's stop, per the submit() contract).
+  void submitGuaranteed(const void *key, std::function<void()> job,
+                        espp::QosBand band = espp::QosBand::Normal);
 
   /// Stop receive dispatch and the worker pool. Must be called before the
   /// objects referenced by in-flight/queued jobs (writers, participants) are
@@ -131,9 +136,10 @@ private:
 
   static std::string ip4ToString(const Ip4AddressBytes &addr);
 
-  /// Park a rejected guaranteed job and (lazily) start the retry timer.
-  /// Bounded: overflow drops the OLDEST parked job with a warning.
-  void parkPendingJob(std::function<void()> job, espp::QosBand band);
+  /// Park a rejected guaranteed poke under \p key (coalescing into its owed
+  /// count) and (lazily) create the retry timer. Lossless and bounded by the
+  /// producer count.
+  void parkPendingJob(const void *key, std::function<void()> job, espp::QosBand band);
 
   RxCallback m_rxCallback{nullptr};
   void *m_callbackArgs{nullptr};
@@ -169,15 +175,18 @@ private:
   /// created lazily on the first rejection and cancels itself once the
   /// pending list drains; stop() cancels it synchronously BEFORE stopping the
   /// reactor/pool, so no retry callback runs during or after teardown.
-  struct PendingJob {
+  struct PendingProgress {
     std::function<void()> job;
     espp::QosBand band{espp::QosBand::Normal};
+    std::size_t count{0}; ///< owed progress() runs (one per rejected poke), never dropped
   };
   std::mutex m_pendingMutex;
-  std::deque<PendingJob> m_pendingJobs;
+  /// Coalesced per producer (writer pointer): repeated rejected pokes for the
+  /// same writer accumulate in `count` rather than growing the map, so memory
+  /// is bounded by the producer count regardless of publish volume.
+  std::map<const void *, PendingProgress> m_pendingByKey;
   std::unique_ptr<espp::Timer> m_retryTimer;
   bool m_stopping{false};
-  static constexpr std::size_t MAX_PENDING_JOBS = 256;
 };
 
 } // namespace rtps

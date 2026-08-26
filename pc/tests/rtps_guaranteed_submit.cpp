@@ -67,10 +67,18 @@ int main() {
   }
   std::printf("queue saturated after %d filler jobs\n", fillers);
 
-  // Submit ONE guaranteed job: the pool rejects it right now, so it must be
-  // parked (not run) rather than silently dropped.
+  // Submit the SAME producer's guaranteed poke kExpected times while the pool
+  // is saturated: each is rejected and parked. This is the lossless-coalescing
+  // path - the pokes coalesce into one map entry with an owed count of
+  // kExpected, and NONE may be dropped (each parked poke maps one-to-one to a
+  // progress() run / one sample).
+  constexpr int kExpected = 300; // > any old fixed cap; proves nothing is dropped
   std::atomic<int> ran{0};
-  transport.submitGuaranteed([&ran]() { ran.fetch_add(1); }, espp::QosBand::High);
+  const int producer = 0; // arbitrary producer identity (a real caller passes its writer)
+  for (int i = 0; i < kExpected; ++i) {
+    transport.submitGuaranteed(
+        &producer, [&ran]() { ran.fetch_add(1); }, espp::QosBand::High);
+  }
   std::this_thread::sleep_for(100ms);
   if (ran.load() != 0) {
     std::printf("FAIL: guaranteed job ran while the pool was saturated?\n");
@@ -79,20 +87,20 @@ int main() {
   }
 
   // Release the workers. NO further submissions: only the retry timer can get
-  // the parked job into the pool once the fillers drain.
+  // the parked pokes into the pool once the fillers drain.
   release = true;
-  const auto deadline = std::chrono::steady_clock::now() + 5s;
-  while (ran.load() == 0 && std::chrono::steady_clock::now() < deadline) {
+  const auto deadline = std::chrono::steady_clock::now() + 10s;
+  while (ran.load() < kExpected && std::chrono::steady_clock::now() < deadline) {
     std::this_thread::sleep_for(10ms);
   }
   const int n = ran.load();
 
   transport.stop(); // cancels the retry timer, quiesces
 
-  if (n != 1) {
-    std::printf("FAIL: parked guaranteed job never recovered (ran=%d)\n", n);
+  if (n != kExpected) {
+    std::printf("FAIL: parked guaranteed pokes lost (ran=%d, expected=%d)\n", n, kExpected);
     return 1;
   }
-  std::printf("PASS\n");
+  std::printf("PASS (all %d parked pokes recovered, none dropped)\n", kExpected);
   return 0;
 }
