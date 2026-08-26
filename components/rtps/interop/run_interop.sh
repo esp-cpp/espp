@@ -36,6 +36,7 @@ cmake -S lib -B lib/build -DCMAKE_BUILD_TYPE=Release -DESPP_INSTALL=ON -DCMAKE_I
        rtps_action_interop_server rtps_action_interop_client \
        rtps_sedp_dedicated_locator rtps_banded_pubsub rtps_banded_deferred rtps_banded_ration \
        rtps_banded_churn rtps_service_rollback rtps_deferred_recovery rtps_guaranteed_submit \
+       rtps_remove_reader_deadlock \
        rtps_interop_pub rtps_interop_sub > /tmp/build.log 2>&1
 build_rc=$?
 result "build" $build_rc
@@ -83,6 +84,9 @@ timeout 60 "$BIN"/rtps_deferred_recovery; result "deferred_recovery" $?
 # Guaranteed writer-progress submission: a pool-rejected progress poke must be
 # re-armed by the retry mechanism, never dropped.
 timeout 60 "$BIN"/rtps_guaranteed_submit; result "guaranteed_submit" $?
+# remove_reader must not deadlock when the removed reader's callback calls back
+# into the participant (e.g. publish()).
+timeout 60 "$BIN"/rtps_remove_reader_deadlock; result "remove_reader_deadlock" $?
 
 # Regression guard: a reliable writer under backlog must retain + send every
 # sample on the dynamic (host) storage path (no cursor-advance-as-drop skip).

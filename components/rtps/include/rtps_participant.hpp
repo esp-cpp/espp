@@ -612,7 +612,11 @@ protected:
     /// Lazy retry timer, created only when the transport pool rejects a drain
     /// arm: guarantees a queued (possibly lone/last) delivery is re-armed even
     /// if no further traffic arrives. Its callback captures the OWNING context
-    /// weakly (no cycle) and cancels itself once the arm succeeds.
+    /// weakly (no cycle). It NEVER self-cancels (the callback always returns
+    /// false, no-op'ing once there is nothing to re-arm); only close() cancels
+    /// it, synchronously. A self-cancelling espp::Timer leaves running_ set
+    /// while its task exits, so a later start() would no-op against a dead task
+    /// and strand the parked delivery - keeping it alive avoids that race.
     std::unique_ptr<espp::Timer> retry_timer;
     /// Pending-delivery bound per endpoint: beyond it the NEWEST delivery is
     /// dropped (with a warning), so a stalled callback cannot queue without

@@ -172,9 +172,12 @@ private:
   mutable std::vector<std::string> m_multicastGroups;
 
   /// Guaranteed-submission retry state (see submitGuaranteed()). The timer is
-  /// created lazily on the first rejection and cancels itself once the
-  /// pending list drains; stop() cancels it synchronously BEFORE stopping the
-  /// reactor/pool, so no retry callback runs during or after teardown.
+  /// created lazily on the first rejection and NEVER self-cancels (its callback
+  /// always returns false; it is a cheap no-op once the pending map drains);
+  /// only stop() cancels it - synchronously, BEFORE stopping the reactor/pool,
+  /// so no retry callback runs during or after teardown. (A self-cancelling
+  /// espp::Timer leaves running_ set while its task exits, so a later start()
+  /// would no-op against a dead task and strand parked work - hence keep-alive.)
   struct PendingProgress {
     std::function<void()> job;
     espp::QosBand band{espp::QosBand::Normal};

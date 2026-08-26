@@ -291,30 +291,42 @@ bool RtpsParticipant::remove_writer(const std::string &topic) {
 }
 
 bool RtpsParticipant::remove_reader(const std::string &topic) {
-  std::lock_guard<std::mutex> lock(mutex_);
-  if (domain_ == nullptr || participant_ == nullptr) {
-    return false;
-  }
-  // Latest-added context for the topic (composites roll back most recent first).
-  for (auto it = reader_contexts_.rbegin(); it != reader_contexts_.rend(); ++it) {
-    if ((*it)->topic == topic && (*it)->reader != nullptr) {
-      // ENGINE deletion FIRST (clears the callback registration under the
-      // engine's locks); the dispatcher is closed and the context dropped
-      // only after the deletion is CONFIRMED. close() is irreversible, so
-      // closing before a deletion that then fails would leave a live reader
-      // whose future deferred deliveries are permanently dropped - on
-      // failure, context AND dispatcher stay fully functional for retry.
-      // Queued deferred work holds its own shared reference to the context
-      // either way.
-      if (!domain_->deleteReader(*participant_, (*it)->reader)) {
-        return false;
+  // Select the most-recent matching context and detach it from the list under
+  // the lock (composites roll back most recent first). Detaching up front both
+  // keeps a concurrent remover / stop() from processing it and lets us do the
+  // engine deletion + quiesce WITHOUT holding mutex_: close() waits for the
+  // in-flight delivery, and that user callback may itself call back into the
+  // participant (e.g. publish()) and take mutex_ - holding it here would
+  // deadlock. `target` keeps the context alive throughout.
+  std::shared_ptr<ReaderContext> target;
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (domain_ == nullptr || participant_ == nullptr) {
+      return false;
+    }
+    for (auto it = reader_contexts_.rbegin(); it != reader_contexts_.rend(); ++it) {
+      if ((*it)->topic == topic && (*it)->reader != nullptr) {
+        target = *it;
+        reader_contexts_.erase(std::next(it).base());
+        break;
       }
-      (*it)->deferred.close();
-      reader_contexts_.erase(std::next(it).base());
-      return true;
     }
   }
-  return false;
+  if (!target) {
+    return false;
+  }
+  // ENGINE deletion FIRST (clears the callback registration under the engine's
+  // locks). On failure the reader is still live, so re-attach the (intact)
+  // context for a retry rather than leaking it.
+  if (!domain_->deleteReader(*participant_, target->reader)) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    reader_contexts_.push_back(std::move(target));
+    return false;
+  }
+  // Quiesce the dispatcher (waits for the in-flight delivery). The context is
+  // freed when `target` goes out of scope here - after close() has drained.
+  target->deferred.close();
+  return true;
 }
 
 bool RtpsParticipant::publish(std::string_view topic, std::span<const uint8_t> cdr_payload) {
