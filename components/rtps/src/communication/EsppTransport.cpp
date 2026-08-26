@@ -283,20 +283,58 @@ void EsppTransport::parkPendingJob(const void *key, std::function<void()> job, e
         if (m_stopping) {
           return false; // stop() cancels this timer; nothing to do
         }
-        for (auto it = m_pendingByKey.begin(); it != m_pendingByKey.end();) {
-          auto &entry = it->second;
-          // Drain owed runs while the pool accepts (each accepted run is one
-          // progress()); stop at the first rejection and retry next tick.
-          // Pass a COPY of the job each time - it is reused `count` times, so
-          // it must not be moved out (try_submit takes it by rvalue).
-          while (entry.count > 0 && m_pool &&
-                 m_pool->try_submit(std::function<void()>(entry.job), entry.band)) {
-            --entry.count;
+        // Fair, priority-aware drain. Draining one key to exhaustion before
+        // moving on could starve later keys under sustained overload (and,
+        // since the map is keyed by pointer, a high-band writer sorted later
+        // could be starved by a low-band one), violating both the eventual-run
+        // contract and endpoint priority. Instead: order the owed keys by band
+        // (Critical first), rotate the starting key across ticks so equal-band
+        // producers take turns, and submit at most one owed run per key per
+        // pass - looping only while the pool keeps accepting.
+        using MapIt = std::map<const void *, PendingProgress>::iterator;
+        std::vector<MapIt> ready;
+        ready.reserve(m_pendingByKey.size());
+        for (auto it = m_pendingByKey.begin(); it != m_pendingByKey.end(); ++it) {
+          if (it->second.count > 0) {
+            ready.push_back(it);
           }
-          if (entry.count == 0) {
-            it = m_pendingByKey.erase(it);
-          } else {
-            ++it; // still saturated for this key; try again next tick
+        }
+        if (!ready.empty()) {
+          // Rotate first (fairness among equal-band producers when only a few
+          // submits are accepted per tick), then a STABLE sort by band keeps
+          // that rotated order within each band while putting higher bands
+          // first (QosBand::Critical == 0 is most urgent).
+          std::rotate(ready.begin(), ready.begin() + (m_drainRotor++ % ready.size()), ready.end());
+          std::stable_sort(ready.begin(), ready.end(),
+                           [](MapIt a, MapIt b) { return a->second.band < b->second.band; });
+          bool saturated = false;
+          while (!saturated) {
+            bool submitted_this_pass = false;
+            for (MapIt it : ready) {
+              if (it->second.count == 0) {
+                continue;
+              }
+              // Pass a COPY of the job - it is reused `count` times, so it must
+              // not be moved out (try_submit takes it by rvalue).
+              if (!m_pool ||
+                  !m_pool->try_submit(std::function<void()>(it->second.job), it->second.band)) {
+                saturated = true; // pool full; remaining owed runs retry next tick
+                break;
+              }
+              --it->second.count;
+              submitted_this_pass = true;
+            }
+            if (!submitted_this_pass) {
+              break; // every key drained (or nothing left to submit)
+            }
+          }
+          // Drop fully-drained keys.
+          for (auto it = m_pendingByKey.begin(); it != m_pendingByKey.end();) {
+            if (it->second.count == 0) {
+              it = m_pendingByKey.erase(it);
+            } else {
+              ++it;
+            }
           }
         }
         return false; // never self-cancel (see above)
