@@ -248,6 +248,11 @@ void EsppTransport::submitGuaranteed(const void *key, std::function<void()> job,
   parkPendingJob(key, std::move(job), band);
 }
 
+void EsppTransport::cancelGuaranteed(const void *key) {
+  std::lock_guard<std::mutex> lock(m_pendingMutex);
+  m_pendingByKey.erase(key);
+}
+
 void EsppTransport::parkPendingJob(const void *key, std::function<void()> job, espp::QosBand band) {
   std::lock_guard<std::mutex> lock(m_pendingMutex);
   if (m_stopping) {

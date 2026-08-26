@@ -777,12 +777,23 @@ bool rtps::Domain::deleteWriter(Participant &part, Writer *writer) {
     return false;
   }
 
-  // Return the writer's dedicated port (if any) before its attributes are
-  // wiped by reset().
-  if (writer->m_attributes.hasDedicatedPort) {
-    releaseDedicatedEndpointPort(static_cast<Ip4Port_t>(writer->m_attributes.unicastLocator.port));
+  // Cancel any PARKED guaranteed progress() job for this writer so the retry
+  // timer cannot resurrect it after deletion. A job already handed to the pool
+  // is made safe by reset() below (progress() no-ops once !initialized).
+  if (m_transport != nullptr) {
+    m_transport->cancelGuaranteed(writer);
   }
+
+  // Capture the dedicated port BEFORE reset() wipes the attributes, but release
+  // it AFTER reset(): reset() quiesces any in-flight progress() (it takes the
+  // writer's m_mutex and clears m_is_initialized_), so once it returns no job
+  // can still send on this port.
+  const bool had_dedicated_port = writer->m_attributes.hasDedicatedPort;
+  const auto dedicated_port = static_cast<Ip4Port_t>(writer->m_attributes.unicastLocator.port);
   writer->reset();
+  if (had_dedicated_port) {
+    releaseDedicatedEndpointPort(dedicated_port);
+  }
   return true;
 }
 

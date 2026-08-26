@@ -153,11 +153,20 @@ bool Socket::set_receive_timeout(const std::chrono::duration<float> &timeout) {
   // const time_t response_timeout_s = floor(seconds);
   // const time_t response_timeout_us = microseconds;
 
+#if defined(_WIN32)
+  // Winsock's SO_RCVTIMEO takes a DWORD count of milliseconds, not a POSIX
+  // timeval - passing a timeval sets a garbage (or zero) timeout. Convert.
+  DWORD timeout_ms = static_cast<DWORD>(response_timeout_s) * 1000u +
+                     static_cast<DWORD>(response_timeout_us / 1000);
+  int err = setsockopt(socket_, SOL_SOCKET, SO_RCVTIMEO,
+                       reinterpret_cast<const char *>(&timeout_ms), sizeof(timeout_ms));
+#else
   struct timeval tv;
   tv.tv_sec = response_timeout_s;
   tv.tv_usec = response_timeout_us;
   int err =
       setsockopt(socket_, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char *>(&tv), sizeof(tv));
+#endif
   if (err < 0) {
     return false;
   }

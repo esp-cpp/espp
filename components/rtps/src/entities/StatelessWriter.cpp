@@ -77,7 +77,13 @@ bool StatelessWriter::init(TopicData attributes, TopicKind_t topicKind, EsppTran
   return true;
 }
 
-void StatelessWriter::reset() { m_is_initialized_ = false; }
+void StatelessWriter::reset() {
+  // Clear the init flag under m_mutex so it synchronizes with progress(): an
+  // in-flight progress() completes before reset() proceeds, and any later job
+  // sees !initialized and no-ops.
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  m_is_initialized_ = false;
+}
 
 const CacheChange *StatelessWriter::newChange(rtps::ChangeKind_t kind, const uint8_t *data,
                                               DataSize_t size, bool inLineQoS,
@@ -168,6 +174,13 @@ void StatelessWriter::progress() {
   // mutations (see StatefulWriter::sendHeartBeat). m_mutex is recursive, so
   // the pre-existing inner history guard stays harmless.
   std::lock_guard<std::recursive_mutex> proxies_lock(m_mutex);
+  // A guaranteed progress() job may still be parked/queued when this writer is
+  // deleted; reset() clears m_is_initialized_ under m_mutex, so a late job
+  // no-ops here instead of sending on a reset/reused endpoint or a released
+  // dedicated port.
+  if (!m_is_initialized_) {
+    return;
+  }
   if (m_proxies.getNumElements() == 0) {
     SLW_LOG("No proxy!");
   }

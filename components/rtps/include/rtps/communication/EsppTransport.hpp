@@ -109,6 +109,15 @@ public:
   void submitGuaranteed(const void *key, std::function<void()> job,
                         espp::QosBand band = espp::QosBand::Normal);
 
+  /// Drop any PARKED guaranteed job for `key` so the retry timer cannot
+  /// resubmit it after the producer has been deleted. Call this when an
+  /// endpoint keyed here is being torn down individually (a single writer
+  /// delete, not a full stop()): a parked progress() job would otherwise be
+  /// resurrected against a reset/reused endpoint or an already-released port.
+  /// Only removes not-yet-accepted work; a job already handed to the pool is
+  /// made safe by the endpoint's own reset()/progress() init guard.
+  void cancelGuaranteed(const void *key);
+
   /// Stop receive dispatch and the worker pool. Must be called before the
   /// objects referenced by in-flight/queued jobs (writers, participants) are
   /// destroyed; safe to call more than once.

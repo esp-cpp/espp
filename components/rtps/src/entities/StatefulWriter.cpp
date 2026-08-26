@@ -81,6 +81,10 @@ bool StatefulWriter::init(TopicData attributes, TopicKind_t topicKind, EsppTrans
 }
 
 void StatefulWriter::reset() {
+  // Clear the init flag under m_mutex so it synchronizes with progress() /
+  // newChange() (which read it under the same lock): an in-flight progress()
+  // completes before reset() proceeds, and any later job sees !initialized.
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
   m_is_initialized_ = false;
   // TODO
 }
@@ -147,6 +151,13 @@ StatefulWriter::newChange(ChangeKind_t kind, const uint8_t *data, DataSize_t siz
 void StatefulWriter::progress() {
   INIT_GUARD()
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  // A guaranteed progress() job may still be parked/queued when this writer is
+  // deleted. reset() clears m_is_initialized_ under m_mutex, so a job that runs
+  // after deletion no-ops here instead of sending the (now reset) history or
+  // touching an already-released dedicated port. Mirrors newChange()'s guard.
+  if (!m_is_initialized_) {
+    return;
+  }
   CacheChange *next = m_history.getChangeBySN(m_nextSequenceNumberToSend);
   if (next != nullptr) {
     uint32_t i = 0;
