@@ -32,6 +32,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/communication/PacketInfo.hpp"
 #include "rtps/messages/MessageFactory.hpp"
 #include "rtps/storages/PayloadBuffer.hpp"
+#include "rtps/utils/Diagnostics.hpp"
 #include "rtps/utils/Log.hpp"
 #include "rtps/utils/udpUtils.hpp"
 #include <mutex>
@@ -127,6 +128,10 @@ const CacheChange *StatelessWriter::newChange(rtps::ChangeKind_t kind, const uin
     const SequenceNumber_t minAfter = m_history.getSeqNumMin();
     if (minBefore < minAfter && m_nextSequenceNumberToSend < minAfter) {
       m_nextSequenceNumberToSend = minAfter; // Skip past the dropped sample
+      // Count the loss (an UNSENT sample was overwritten): per-writer for the
+      // facade's publish()-time warning, process-wide for Diagnostics.
+      ++m_history_drops_;
+      ++Diagnostics::Writer::history_overwrite_drops;
       SLW_LOG("History full, dropped oldest {}", this->m_attributes.topicName);
     }
   }
@@ -191,6 +196,22 @@ void StatelessWriter::progress() {
   }
   if (m_proxies.getNumElements() == 0) {
     SLW_LOG("No proxy!");
+  }
+
+  // Clamp a send cursor that fell behind the history: under KEEP_LAST
+  // overflow, newChange() overwrites the oldest UNSENT change and advances the
+  // cursor - but by the time this (queued) progress() runs, further publishes
+  // may have overwritten the cursor's change again. Without the clamp every
+  // such invocation returned early having sent NOTHING, so a saturated
+  // best-effort writer collapsed to ~zero delivery instead of degrading to
+  // drop-oldest (the counterpart of StatefulWriter::progress()'s hole-skip;
+  // the ring is contiguous, so resuming at the minimum is sufficient. m_mutex
+  // is held, so the cursor/history are stable across the clamp and sends).
+  {
+    const SequenceNumber_t minSN = m_history.getSeqNumMin();
+    if (!(minSN == SEQUENCENUMBER_UNKNOWN) && m_nextSequenceNumberToSend < minSN) {
+      m_nextSequenceNumberToSend = minSN; // resume at the oldest live sample
+    }
   }
 
   for (const auto &proxy : m_proxies) {

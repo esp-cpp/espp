@@ -58,6 +58,13 @@ extern std::atomic<uint32_t> sfr_unexpected_sn;
 extern std::atomic<uint32_t> sfr_retransmit_requests;
 } // namespace StatefulReader
 
+namespace Writer {
+/// UNSENT samples overwritten by KEEP_LAST history overflow across all writers
+/// (a saturated publisher outrunning the send path). See also the per-writer
+/// rtps::Writer::historyDrops() and the facade's rate-limited publish warning.
+extern std::atomic<uint32_t> history_overwrite_drops;
+} // namespace Writer
+
 namespace Network {
 extern std::atomic<uint32_t> lwip_allocation_failures;
 }

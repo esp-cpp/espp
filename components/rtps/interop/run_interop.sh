@@ -37,6 +37,7 @@ cmake -S lib -B lib/build -DCMAKE_BUILD_TYPE=Release -DESPP_INSTALL=ON -DCMAKE_I
        rtps_sedp_dedicated_locator rtps_banded_pubsub rtps_banded_deferred rtps_banded_ration \
        rtps_banded_churn rtps_service_rollback rtps_deferred_recovery rtps_guaranteed_submit \
        rtps_remove_reader_deadlock rtps_guaranteed_fairness rtps_writer_churn \
+       rtps_stateless_saturation \
        rtps_interop_pub rtps_interop_sub > /tmp/build.log 2>&1
 build_rc=$?
 result "build" $build_rc
@@ -94,6 +95,10 @@ timeout 90 "$BIN"/rtps_guaranteed_fairness; result "guaranteed_fairness" $?
 # Writer create/publish/delete churn under load: deletion racing parked/queued
 # progress() jobs must neither crash nor wedge the SEDP announcement stream.
 timeout 120 "$BIN"/rtps_writer_churn; result "writer_churn" $?
+# Best-effort saturation must not collapse: a burst far faster than the send
+# path is (near-)losslessly drained with growable history (static-ring
+# drop-oldest behavior validated out-of-CI - see the test header).
+timeout 90 "$BIN"/rtps_stateless_saturation; result "stateless_saturation" $?
 
 # Regression guard: a reliable writer under backlog must retain + send every
 # sample on the dynamic (host) storage path (no cursor-advance-as-drop skip).

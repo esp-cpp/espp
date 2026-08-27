@@ -139,7 +139,9 @@ const uint16_t MAX_NUM_UNMATCHED_REMOTE_READERS = RTPS_CFG_MAX_NUM_UNMATCHED_REM
 const uint8_t MAX_NUM_READER_CALLBACKS = RTPS_CFG_MAX_NUM_READER_CALLBACKS;
 
 #ifndef RTPS_CFG_HISTORY_SIZE_STATELESS
-#define RTPS_CFG_HISTORY_SIZE_STATELESS 2
+// 8 (was 2): with only 2 slots a saturated BEST_EFFORT publisher immediately
+// overwrites unsent samples; the relaxed host profile can afford real slack.
+#define RTPS_CFG_HISTORY_SIZE_STATELESS 8
 #endif
 const uint8_t HISTORY_SIZE_STATELESS = RTPS_CFG_HISTORY_SIZE_STATELESS;
 #ifndef RTPS_CFG_HISTORY_SIZE_STATEFUL

@@ -28,6 +28,10 @@ std::atomic<uint32_t> sfr_unexpected_sn{0};
 std::atomic<uint32_t> sfr_retransmit_requests{0};
 } // namespace StatefulReader
 
+namespace Writer {
+std::atomic<uint32_t> history_overwrite_drops{0};
+} // namespace Writer
+
 namespace Network {
 std::atomic<uint32_t> lwip_allocation_failures{0};
 }

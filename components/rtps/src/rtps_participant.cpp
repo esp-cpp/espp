@@ -441,11 +441,27 @@ bool RtpsParticipant::publish(std::string_view topic, std::span<const uint8_t> c
     return false;
   }
 #endif
+  // KEEP_LAST overflow visibility: on a full static history ring the engine
+  // OVERWRITES the oldest unsent sample and still accepts the new one, so a
+  // saturated publisher would otherwise report nothing but success while
+  // silently losing data. Detect the overwrite via the per-writer drop counter
+  // delta across this call and surface it (rate-limited; the process-wide
+  // total lives in rtps::Diagnostics::Writer::history_overwrite_drops).
+  const uint32_t drops_before = it->second->historyDrops();
   const auto *change = it->second->newChange(rtps::ChangeKind_t::ALIVE, cdr_payload.data(),
                                              static_cast<rtps::DataSize_t>(cdr_payload.size()));
   if (change == nullptr) {
     logger_.warn("Writer history full for topic '{}'; sample dropped", topic);
     return false;
+  }
+  const uint32_t drops_now = it->second->historyDrops();
+  if (drops_now != drops_before) {
+    logger_.warn_rate_limited(
+        "History overflow on topic '{}': publish outran the send path, oldest UNSENT sample "
+        "overwritten (writer total: {}). This sample WAS queued (KEEP_LAST). Raise the history "
+        "depth (RTPS_CFG_HISTORY_SIZE_STATELESS / _STATEFUL or menuconfig 'Custom capacity "
+        "overrides'), enable RTPS_STORAGE_DYNAMIC, or pace the publisher.",
+        topic, drops_now);
   }
   return true;
 }

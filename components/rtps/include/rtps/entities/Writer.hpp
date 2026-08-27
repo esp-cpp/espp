@@ -94,6 +94,13 @@ public:
   //! receive path inside the participant's locked endpoint lookup.
   uint32_t generation() const { return m_generation_.load(); }
 
+  //! Number of UNSENT samples this writer's history has overwritten under
+  //! KEEP_LAST overflow (newChange() on a full static ring drops the oldest
+  //! unsent change and advances the send cursor past it). The facade uses the
+  //! delta across a publish() to surface the loss; Diagnostics::Writer keeps a
+  //! process-wide total.
+  uint32_t historyDrops() const { return m_history_drops_.load(); }
+
   using dumpProxyCallback = void (*)(const Writer *writer, const ReaderProxy &, void *arg);
 
   int dumpAllProxies(dumpProxyCallback target, void *arg);
@@ -147,6 +154,8 @@ protected:
   // onNewAckNackIfCurrent() can reject a dispatch that lost the race with
   // deletion/reuse; all bumps still happen under m_mutex.
   std::atomic<uint32_t> m_generation_{0};
+  //! Unsent samples overwritten by KEEP_LAST overflow (see historyDrops()).
+  std::atomic<uint32_t> m_history_drops_{0};
   virtual ~Writer() = default;
   MemoryPool<ReaderProxy, Config::NUM_READER_PROXIES_PER_WRITER> m_proxies;
 

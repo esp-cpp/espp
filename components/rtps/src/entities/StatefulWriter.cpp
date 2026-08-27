@@ -28,6 +28,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/messages/MessageFactory.hpp"
 #include "rtps/messages/MessageTypes.hpp"
 #include "rtps/storages/PayloadBuffer.hpp"
+#include "rtps/utils/Diagnostics.hpp"
 #include "rtps/utils/Log.hpp"
 #include <algorithm>
 #include <chrono>
@@ -133,6 +134,10 @@ StatefulWriter::newChange(ChangeKind_t kind, const uint8_t *data, DataSize_t siz
     const SequenceNumber_t minAfter = m_history.getCurrentSeqNumMin();
     if (minBefore < minAfter && m_nextSequenceNumberToSend < minAfter) {
       m_nextSequenceNumberToSend = minAfter; // Skip past the dropped change
+      // Count the loss (an UNSENT change was overwritten): per-writer for the
+      // facade's publish()-time warning, process-wide for Diagnostics.
+      ++m_history_drops_;
+      ++Diagnostics::Writer::history_overwrite_drops;
       SFW_LOG("History full, dropped oldest {}.", this->m_attributes.topicName);
     }
   }
