@@ -24,11 +24,13 @@ Author: i11 - Embedded Software, RWTH Aachen University
 */
 
 #include "rtps/entities/StatefulReader.hpp"
+
 #include "rtps/communication/EsppTransport.hpp"
 #include "rtps/messages/MessageFactory.hpp"
 #include "rtps/storages/PayloadBuffer.hpp"
 #include "rtps/utils/Diagnostics.hpp"
 #include "rtps/utils/Log.hpp"
+#include <algorithm>
 #include <mutex>
 
 #if SFR_VERBOSE && RTPS_GLOBAL_VERBOSE
@@ -84,23 +86,25 @@ void StatefulReader::newChange(const ReaderCacheChange &cacheChange) {
   bool deliver = false;
   {
     std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
-    for (auto &proxy : m_proxies) {
-      if (proxy.remoteWriterGuid == cacheChange.writerGuid) {
-        if (proxy.expectedSN == cacheChange.sn) {
-          // Claim the SN under the proxies mutex; the callbacks run below,
-          // still serialized by m_delivery_mutex so delivery order matches
-          // claim order.
-          ++proxy.expectedSN;
-          deliver = true;
-        } else {
-          Diagnostics::StatefulReader::sfr_unexpected_sn++;
-          SFR_LOG("Unexpected SN {}.{} != {}.{}, dropping! GUID {} {} {} {}",
-                  (int)proxy.expectedSN.high, (int)proxy.expectedSN.low, (int)cacheChange.sn.high,
-                  (int)cacheChange.sn.low, cacheChange.writerGuid.prefix.id[0],
-                  cacheChange.writerGuid.prefix.id[1], cacheChange.writerGuid.prefix.id[2],
-                  cacheChange.writerGuid.prefix.id[3]);
-        }
-        break;
+    auto matches_writer = [&](const WriterProxy &proxy) {
+      return proxy.remoteWriterGuid == cacheChange.writerGuid;
+    };
+    auto it = std::find_if(m_proxies.begin(), m_proxies.end(), matches_writer);
+    if (it != m_proxies.end()) {
+      WriterProxy &proxy = *it;
+      if (proxy.expectedSN == cacheChange.sn) {
+        // Claim the SN under the proxies mutex; the callbacks run below,
+        // still serialized by m_delivery_mutex so delivery order matches
+        // claim order.
+        ++proxy.expectedSN;
+        deliver = true;
+      } else {
+        Diagnostics::StatefulReader::sfr_unexpected_sn++;
+        SFR_LOG("Unexpected SN {}.{} != {}.{}, dropping! GUID {} {} {} {}",
+                (int)proxy.expectedSN.high, (int)proxy.expectedSN.low, (int)cacheChange.sn.high,
+                (int)cacheChange.sn.low, cacheChange.writerGuid.prefix.id[0],
+                cacheChange.writerGuid.prefix.id[1], cacheChange.writerGuid.prefix.id[2],
+                cacheChange.writerGuid.prefix.id[3]);
       }
     }
   }
