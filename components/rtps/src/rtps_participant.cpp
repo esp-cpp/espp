@@ -275,6 +275,16 @@ bool RtpsParticipant::add_reader(const ReaderConfig &config) {
 
 bool RtpsParticipant::remove_writer(const std::string &topic) {
   std::lock_guard<std::mutex> lock(mutex_);
+  // Reject once teardown has begun: after stop()'s phase-1.5 wait releases
+  // mutex_, phase 4 runs domain_->stop() WITHOUT it, so holding mutex_ here no
+  // longer serializes against the engine's own teardown - a deleteWriter()
+  // racing domain_->stop() must not start. (domain_ is only reset in phase 5
+  // under mutex_, so this check is what makes the dereference safe.) The
+  // teardown reclaims every endpoint anyway, so a rejected removal during
+  // stop leaks nothing.
+  if (stopping_) {
+    return false;
+  }
   auto it = writers_.find(topic);
   if (it == writers_.end() || domain_ == nullptr || participant_ == nullptr) {
     return false;
@@ -1217,6 +1227,16 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
     logger_.error("Cannot add action server '{}': not started", config.action);
     return false;
   }
+  // Pin the ENTIRE composite transaction as one engine operation: the nested
+  // adds release mutex_ between endpoints, so without the pin a concurrent
+  // stop() could tear the engine down mid-build (or race the registry commit
+  // below against teardown's container clearing). With the operation
+  // registered, stop() waits at its phase 1.5 until this function returns.
+  if (!begin_engine_op()) {
+    logger_.error("Cannot add action server '{}': shutting down", config.action);
+    return false;
+  }
+  EngineOpGuard op_guard(*this);
   auto ctx = std::make_shared<ActionServerContext>();
   ctx->self = this;
   ctx->feedback_topic = rtps::rpc::action_feedback_topic(config.action);
@@ -1399,26 +1419,42 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
     // slot) for the action that failed to build, and nothing else is touched.
     // The goal service was announced before this failure, so a peer may already
     // have submitted an accepted goal and spawned a joinable execute worker in
-    // ctx->exec_threads: signal cancellation, remove the endpoints (so no new
-    // goals arrive and a worker's final feedback/result publish is a no-op),
-    // then JOIN before ctx is destroyed - a joinable std::thread destructor
-    // would call std::terminate. Not under mutex_, so a worker can take it.
+    // ctx->exec_threads. Teardown order matters:
+    //   1. remove the send_goal service FIRST (created_servers[0]) so no NEW
+    //      goal can spawn another worker after the join below;
+    //   2. signal cooperative cancellation and JOIN the workers - BEFORE the
+    //      get_result service (and its reply writer) is deleted, because a
+    //      deferred get_result handler may have handed a ServiceResponder to a
+    //      worker, whose goal-terminating reply() must go through that writer
+    //      while it is still alive (deleting it first would leave the
+    //      responder replying through a reset/reused writer slot);
+    //   3. only then remove the remaining services and the topic writers.
+    // A joinable std::thread destructor would std::terminate, so the join must
+    // also precede ctx destruction. Not under mutex_, so workers can take it.
+    if (!created_servers.empty()) {
+      remove_service_server(created_servers.front()); // send_goal: stop new spawns
+    }
     {
       std::lock_guard<std::mutex> lock(ctx->goals_mutex);
       for (auto &kv : ctx->goals) {
         kv.second->cancel_requested.store(true);
       }
     }
-    for (const auto &server : created_servers) {
-      remove_service_server(server);
+    join_exec_threads(ctx->threads_mutex, ctx->exec_threads);
+    for (size_t i = 1; i < created_servers.size(); ++i) {
+      remove_service_server(created_servers[i]);
     }
     remove_writer(ctx->status_topic);
     remove_writer(ctx->feedback_topic);
-    join_exec_threads(ctx->threads_mutex, ctx->exec_threads);
     logger_.error("Action server '{}': service endpoint creation failed", config.action);
     return false;
   }
-  action_servers_.push_back(std::move(ctx));
+  {
+    // Commit under mutex_: the registry vectors are iterated/cleared by
+    // stop()'s teardown and mutated by concurrent adds.
+    std::lock_guard<std::mutex> lock(mutex_);
+    action_servers_.push_back(std::move(ctx));
+  }
   logger_.info("Added action server: '{}' ({})", config.action, config.type_name);
   return true;
 }
@@ -1515,6 +1551,16 @@ RtpsParticipant::add_action_client(const ActionConfig &config) {
     logger_.error("Cannot add action client '{}': not started", config.action);
     return nullptr;
   }
+  // Pin the ENTIRE composite transaction as one engine operation: the nested
+  // adds release mutex_ between endpoints, so without the pin a concurrent
+  // stop() could tear the engine down mid-build (or race the registry commit
+  // below against teardown's container clearing). With the operation
+  // registered, stop() waits at its phase 1.5 until this function returns.
+  if (!begin_engine_op()) {
+    logger_.error("Cannot add action client '{}': shutting down", config.action);
+    return nullptr;
+  }
+  EngineOpGuard op_guard(*this);
   auto impl = std::make_unique<ActionClient::Impl>();
   impl->self = this;
   impl->action = config.action;
@@ -1570,7 +1616,10 @@ RtpsParticipant::add_action_client(const ActionConfig &config) {
   }
 
   auto client = std::shared_ptr<ActionClient>(new ActionClient(std::move(impl)));
-  action_clients_.push_back(client);
+  {
+    std::lock_guard<std::mutex> lock(mutex_); // commit vs stop()/concurrent adds
+    action_clients_.push_back(client);
+  }
   logger_.info("Added action client: '{}' ({})", config.action, config.type_name);
   return client;
 }
@@ -1984,6 +2033,16 @@ bool RtpsParticipant::add_native_action_server(const ActionConfig &config,
     logger_.error("Cannot add native action server '{}': not started", config.action);
     return false;
   }
+  // Pin the ENTIRE composite transaction as one engine operation: the nested
+  // adds release mutex_ between endpoints, so without the pin a concurrent
+  // stop() could tear the engine down mid-build (or race the registry commit
+  // below against teardown's container clearing). With the operation
+  // registered, stop() waits at its phase 1.5 until this function returns.
+  if (!begin_engine_op()) {
+    logger_.error("Cannot add native action server '{}': shutting down", config.action);
+    return false;
+  }
+  EngineOpGuard op_guard(*this);
   auto ctx = std::make_shared<NativeActionServerContext>();
   ctx->self = this;
   ctx->feedback_topic = rtps::rpc::native_feedback_topic(config.action);
@@ -2081,7 +2140,10 @@ bool RtpsParticipant::add_native_action_server(const ActionConfig &config,
     logger_.error("Native action server '{}': cancel service failed", config.action);
     return false;
   }
-  native_action_servers_.push_back(std::move(ctx));
+  {
+    std::lock_guard<std::mutex> lock(mutex_); // commit vs stop()/concurrent adds
+    native_action_servers_.push_back(std::move(ctx));
+  }
   logger_.info("Added native action server: '{}'", config.action);
   return true;
 }
@@ -2193,6 +2255,16 @@ RtpsParticipant::add_native_action_client(const ActionConfig &config) {
     logger_.error("Cannot add native action client '{}': not started", config.action);
     return nullptr;
   }
+  // Pin the ENTIRE composite transaction as one engine operation: the nested
+  // adds release mutex_ between endpoints, so without the pin a concurrent
+  // stop() could tear the engine down mid-build (or race the registry commit
+  // below against teardown's container clearing). With the operation
+  // registered, stop() waits at its phase 1.5 until this function returns.
+  if (!begin_engine_op()) {
+    logger_.error("Cannot add native action client '{}': shutting down", config.action);
+    return nullptr;
+  }
+  EngineOpGuard op_guard(*this);
   auto impl = std::make_unique<NativeActionClient::Impl>();
   impl->self = this;
   // The action's band/dscp are inherited by all native client endpoints. On a
@@ -2242,7 +2314,10 @@ RtpsParticipant::add_native_action_client(const ActionConfig &config) {
     return nullptr;
   }
   auto client = std::shared_ptr<NativeActionClient>(new NativeActionClient(std::move(impl)));
-  native_action_clients_.push_back(client);
+  {
+    std::lock_guard<std::mutex> lock(mutex_); // commit vs stop()/concurrent adds
+    native_action_clients_.push_back(client);
+  }
   logger_.info("Added native action client: '{}'", config.action);
   return client;
 }

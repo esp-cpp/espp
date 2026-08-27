@@ -71,27 +71,46 @@ void StatefulReader::newChange(const ReaderCacheChange &cacheChange) {
   if (m_callback_count == 0 || !m_is_initialized_) {
     return;
   }
-  std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
-  for (auto &proxy : m_proxies) {
-    if (proxy.remoteWriterGuid == cacheChange.writerGuid) {
-      if (proxy.expectedSN == cacheChange.sn) {
-        SFR_LOG("Delivering SN {}.{} | GUID {} {} {} {}", (int)cacheChange.sn.high,
-                (int)cacheChange.sn.low, cacheChange.writerGuid.prefix.id[0],
-                cacheChange.writerGuid.prefix.id[1], cacheChange.writerGuid.prefix.id[2],
-                cacheChange.writerGuid.prefix.id[3]);
-        executeCallbacks(cacheChange);
-        ++proxy.expectedSN;
-        SFR_LOG("Done processing SN {}.{}", (int)cacheChange.sn.high, (int)cacheChange.sn.low);
-        return;
-      } else {
-        Diagnostics::StatefulReader::sfr_unexpected_sn++;
-        SFR_LOG("Unexpected SN {}.{} != {}.{}, dropping! GUID {} {} {} {}",
-                (int)proxy.expectedSN.high, (int)proxy.expectedSN.low, (int)cacheChange.sn.high,
-                (int)cacheChange.sn.low, cacheChange.writerGuid.prefix.id[0],
-                cacheChange.writerGuid.prefix.id[1], cacheChange.writerGuid.prefix.id[2],
-                cacheChange.writerGuid.prefix.id[3]);
+  // Serialize the whole delivery (claim + callbacks) on m_delivery_mutex, and
+  // hold m_proxies_mutex only for the expectedSN claim - NOT across the user
+  // callbacks. Invoking user code under the proxies mutex created a lock-order
+  // cycle: a callback calling back into the facade (e.g. add_writer/publish)
+  // reaches the facade/SEDP/participant locks, while the SEDP receive path
+  // takes those locks and then this reader's proxies mutex
+  // (addNewMatchedWriter). The delivery mutex is a leaf acquired first, so the
+  // strict in-order, one-callback-at-a-time semantics are preserved while the
+  // proxies mutex stays off every user-callback stack.
+  std::lock_guard<std::mutex> delivery(m_delivery_mutex);
+  bool deliver = false;
+  {
+    std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);
+    for (auto &proxy : m_proxies) {
+      if (proxy.remoteWriterGuid == cacheChange.writerGuid) {
+        if (proxy.expectedSN == cacheChange.sn) {
+          // Claim the SN under the proxies mutex; the callbacks run below,
+          // still serialized by m_delivery_mutex so delivery order matches
+          // claim order.
+          ++proxy.expectedSN;
+          deliver = true;
+        } else {
+          Diagnostics::StatefulReader::sfr_unexpected_sn++;
+          SFR_LOG("Unexpected SN {}.{} != {}.{}, dropping! GUID {} {} {} {}",
+                  (int)proxy.expectedSN.high, (int)proxy.expectedSN.low, (int)cacheChange.sn.high,
+                  (int)cacheChange.sn.low, cacheChange.writerGuid.prefix.id[0],
+                  cacheChange.writerGuid.prefix.id[1], cacheChange.writerGuid.prefix.id[2],
+                  cacheChange.writerGuid.prefix.id[3]);
+        }
+        break;
       }
     }
+  }
+  if (deliver) {
+    SFR_LOG("Delivering SN {}.{} | GUID {} {} {} {}", (int)cacheChange.sn.high,
+            (int)cacheChange.sn.low, cacheChange.writerGuid.prefix.id[0],
+            cacheChange.writerGuid.prefix.id[1], cacheChange.writerGuid.prefix.id[2],
+            cacheChange.writerGuid.prefix.id[3]);
+    executeCallbacks(cacheChange);
+    SFR_LOG("Done processing SN {}.{}", (int)cacheChange.sn.high, (int)cacheChange.sn.low);
   }
 }
 

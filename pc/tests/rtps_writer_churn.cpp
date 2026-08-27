@@ -148,6 +148,11 @@ int main() {
     return 1;
   }
 
+  // Baseline for the flood-progress assertion below: flood_received was
+  // already required to be nonzero above, so the final check must require an
+  // INCREASE across the churn (a plain nonzero check would be vacuous).
+  const int flood_before_churn = flood_received.load();
+
   // ---- Phase 1: hostile churn - delete with progress() jobs in flight ------
   constexpr int kHostileIterations = 15;
   constexpr int kBurst = 25;
@@ -231,12 +236,16 @@ int main() {
   }
   std::printf("phase 2 OK: %d verified churn iterations\n", kVerifiedIterations);
 
-  // Flood must have kept working across all the churn.
+  // Flood must have kept MAKING PROGRESS across all the churn (>= ~40 ms
+  // worth of 1 ms-paced samples is a lenient floor that still catches a
+  // wedged flood, which would show zero new deliveries).
   const int flood_final = flood_received.load();
   flood = false;
   flooder.join();
-  if (flood_final == 0) {
-    std::printf("FAIL: flood stopped during churn\n");
+  constexpr int kMinFloodProgress = 40;
+  if (flood_final - flood_before_churn < kMinFloodProgress) {
+    std::printf("FAIL: flood stalled during churn (before=%d, after=%d)\n", flood_before_churn,
+                flood_final);
     return 1;
   }
 

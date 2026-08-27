@@ -254,17 +254,34 @@ Reader::callbackIdentifier_t Reader::registerCallback(Reader::callbackFunction_t
 uint32_t Reader::getProxiesCount() { return m_proxies.getNumElements(); }
 
 bool Reader::removeCallback(Reader::callbackIdentifier_t identifier) {
-  std::lock_guard<std::recursive_mutex> lock(m_callback_mutex);
-  for (unsigned int i = 0; i < m_callbacks.size(); i++) {
-    if (m_callbacks[i].identifier == identifier) {
-      m_callbacks[i].function = nullptr;
-      m_callbacks[i].arg = nullptr;
-      m_callback_count--;
-      return true;
+  bool removed = false;
+  {
+    std::lock_guard<std::recursive_mutex> lock(m_callback_mutex);
+    for (unsigned int i = 0; i < m_callbacks.size(); i++) {
+      if (m_callbacks[i].identifier == identifier) {
+        m_callbacks[i].function = nullptr;
+        m_callbacks[i].arg = nullptr;
+        m_callback_count--;
+        removed = true;
+        break;
+      }
     }
   }
-
-  return false;
+  if (removed) {
+    // Removal-completion guarantee: executeCallbacks() snapshots the
+    // registration array and invokes UNLOCKED, so a snapshot taken before the
+    // clear above can still hold this registration. Every such invocation runs
+    // inside a guarded dispatch (m_active_dispatches_), so draining it here
+    // guarantees that when removeCallback() returns, no callback taken from a
+    // pre-removal snapshot is running or will run - the caller may then free
+    // the registration's arg. Dispatches that snapshot after the clear no
+    // longer contain it. NOTE: must not be called from within a reader
+    // callback (the drain would wait on its own dispatch).
+    while (m_active_dispatches_.load() != 0) {
+      std::this_thread::sleep_for(std::chrono::microseconds(100));
+    }
+  }
+  return removed;
 }
 
 uint8_t Reader::getNumCallbacks() { return m_callback_count; }
