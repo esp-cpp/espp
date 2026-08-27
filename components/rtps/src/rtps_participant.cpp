@@ -210,6 +210,11 @@ bool RtpsParticipant::add_writer(const WriterConfig &config) {
     logger_.error("Writer '{}': fragment_size must be non-zero", config.topic);
     return false;
   }
+  if (config.dscp.has_value() && static_cast<uint8_t>(config.dscp.value()) > 63) {
+    logger_.error("Writer '{}': invalid DSCP {} (valid code points are 0..63)", config.topic,
+                  static_cast<int>(config.dscp.value()));
+    return false;
+  }
   rtps::Writer *writer =
       domain_->createWriter(*participant_, config.topic.c_str(), config.type_name.c_str(),
                             config.reliability == Reliability::RELIABLE, /*enforceUnicast=*/false,
@@ -219,8 +224,10 @@ bool RtpsParticipant::add_writer(const WriterConfig &config) {
     // knob that raises it - so hitting a pool ceiling is a one-line config fix
     // instead of a debugging session (the builtin discovery endpoints consume
     // slots from these same pools, which makes the usable count non-obvious).
-    if (config.topic.size() > rtps::Config::MAX_TOPICNAME_LENGTH ||
-        config.type_name.size() > rtps::Config::MAX_TYPENAME_LENGTH) {
+    if (config.topic.size() >= rtps::Config::MAX_TOPICNAME_LENGTH ||
+        config.type_name.size() >= rtps::Config::MAX_TYPENAME_LENGTH) {
+      // >= : the engine stores names in fixed arrays with a terminating NUL,
+      // so a name of exactly MAX_*_LENGTH is rejected there too.
       logger_.error("Engine could not create writer '{}': topic/type name too long "
                     "(MAX_TOPICNAME_LENGTH={}, MAX_TYPENAME_LENGTH={})",
                     config.topic, static_cast<int>(rtps::Config::MAX_TOPICNAME_LENGTH),
@@ -269,6 +276,11 @@ bool RtpsParticipant::add_reader(const ReaderConfig &config) {
     logger_.error("Cannot add reader '{}': not started", config.topic);
     return false;
   }
+  if (config.dscp.has_value() && static_cast<uint8_t>(config.dscp.value()) > 63) {
+    logger_.error("Reader '{}': invalid DSCP {} (valid code points are 0..63)", config.topic,
+                  static_cast<int>(config.dscp.value()));
+    return false;
+  }
   rtps::Reader *reader = domain_->createReader(
       *participant_, config.topic.c_str(), config.type_name.c_str(),
       config.reliability == Reliability::RELIABLE, /*mcastaddress=*/{0, 0, 0, 0},
@@ -277,8 +289,9 @@ bool RtpsParticipant::add_reader(const ReaderConfig &config) {
     // Same actionable diagnostics as add_writer(): name the bound limit, its
     // size, and the Kconfig knob (builtin discovery readers consume slots from
     // these pools: 1 stateless for SPDP, 2 stateful for SEDP).
-    if (config.topic.size() > rtps::Config::MAX_TOPICNAME_LENGTH ||
-        config.type_name.size() > rtps::Config::MAX_TYPENAME_LENGTH) {
+    if (config.topic.size() >= rtps::Config::MAX_TOPICNAME_LENGTH ||
+        config.type_name.size() >= rtps::Config::MAX_TYPENAME_LENGTH) {
+      // >= : matches the engine's fixed-array + NUL bound (see add_writer()).
       logger_.error("Engine could not create reader '{}': topic/type name too long "
                     "(MAX_TOPICNAME_LENGTH={}, MAX_TYPENAME_LENGTH={})",
                     config.topic, static_cast<int>(rtps::Config::MAX_TOPICNAME_LENGTH),
@@ -732,6 +745,13 @@ struct RtpsParticipant::ServiceServerContext
   rtps::Writer *reply_writer{nullptr};
   rtps::Reader *request_reader{nullptr};
   DeferredDispatch deferred; // banded request reader without a dedicated port
+  // Endpoint-scoped liveness for RETAINED ServiceResponders: a responder may
+  // legally outlive the handler invocation, and the participant-wide token
+  // only covers stop() - an individual removal (e.g. an action rollback)
+  // deletes/reuses this reply writer while the participant stays alive.
+  // remove_service_server() flips this false (under its lock, which waits for
+  // an in-flight reply()) BEFORE the writer is deleted.
+  std::shared_ptr<Liveness> writer_live{std::make_shared<Liveness>()};
 };
 
 // Deferred-reply state: the reply writer + the identity to echo, so a response
@@ -743,6 +763,11 @@ struct RtpsParticipant::ServiceResponder::State {
   // Held so a deferred reply that races participant shutdown no-ops instead of
   // writing through a freed engine writer (see RtpsParticipant::Liveness).
   std::shared_ptr<Liveness> live;
+  // Endpoint-scoped: invalidated by remove_service_server() BEFORE the reply
+  // writer is deleted, so a responder retained past an individual removal
+  // (e.g. an action rollback) no-ops instead of writing through a
+  // reset/reused writer slot while the participant is still alive.
+  std::shared_ptr<Liveness> endpoint_live;
 };
 
 void RtpsParticipant::ServiceResponder::reply(std::span<const uint8_t> response) const {
@@ -759,12 +784,22 @@ void RtpsParticipant::ServiceResponder::reply(std::span<const uint8_t> response)
   if (!state_->replied.compare_exchange_strong(expected, true)) {
     return; // reply exactly once
   }
-  // Hold the liveness lock across the write: stop() flips `alive` false under
-  // the same lock before destroying the domain, so we either complete the write
-  // against a still-valid writer or observe !alive and drop.
+  // Hold BOTH liveness locks across the write: stop() flips the participant
+  // token false and remove_service_server() flips the endpoint token false -
+  // each under its own lock, before the writer is destroyed/deleted - so we
+  // either complete the write against a still-valid writer or observe !alive
+  // and drop. Lock order participant -> endpoint (removal only ever takes the
+  // endpoint lock alone, so there is no reverse nesting).
   std::lock_guard<std::mutex> live_lock(state_->live->m);
   if (!state_->live->alive) {
     return;
+  }
+  std::unique_lock<std::mutex> endpoint_lock;
+  if (state_->endpoint_live) {
+    endpoint_lock = std::unique_lock<std::mutex>(state_->endpoint_live->m);
+    if (!state_->endpoint_live->alive) {
+      return;
+    }
   }
   state_->reply_writer->newChangeWithRelatedSampleIdentity(
       rtps::ChangeKind_t::ALIVE, response.data(), static_cast<rtps::DataSize_t>(response.size()),
@@ -840,6 +875,7 @@ void RtpsParticipant::service_request_trampoline(void *arg, const rtps::ReaderCa
   auto state = std::make_shared<ServiceResponder::State>();
   state->reply_writer = ctx->reply_writer;
   state->live = ctx->self->live_;
+  state->endpoint_live = ctx->writer_live;
   state->related.writer_guid = change.hasRelatedSampleIdentity
                                    ? change.relatedSampleIdentity.writer_guid
                                    : change.writerGuid;
@@ -1262,6 +1298,14 @@ bool RtpsParticipant::remove_service_server(const std::shared_ptr<ServiceServerC
     server->request_reader = nullptr;
   }
   server->deferred.close();
+  // Invalidate RETAINED responders before the reply writer dies: holding the
+  // endpoint-liveness lock waits for an in-flight reply() to finish against
+  // the still-live writer, and any later reply() observes !alive and no-ops
+  // instead of writing through the deleted (possibly reused) writer slot.
+  if (server->writer_live) {
+    std::lock_guard<std::mutex> endpoint_lock(server->writer_live->m);
+    server->writer_live->alive = false;
+  }
   if (server->reply_writer != nullptr) {
     if (!domain_->deleteWriter(*participant_, server->reply_writer)) {
       return false;

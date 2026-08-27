@@ -152,7 +152,7 @@ StatefulWriter::newChange(ChangeKind_t kind, const uint8_t *data, DataSize_t siz
     // Guaranteed + banded: a bounded-queue rejection must not strand unsent
     // samples (a lone best-effort DATA has no recovery path), and a
     // prioritized endpoint's outbound work runs at ITS band end-to-end.
-    m_transport->submitGuaranteed(
+    m_transport->submitGuaranteedDrain(
         this, [this, gen = currentGeneration()]() { progressIfCurrent(gen); }, m_attributes.band);
   }
   // Piggyback: pull the next heartbeat evaluation forward so a reliable
@@ -241,6 +241,17 @@ void StatefulWriter::progress() {
     SFW_LOG("HB from progress");
     sendHeartBeat();
 
+    // Drain re-arm (see EsppTransport::submitGuaranteedDrain): pokes park
+    // with a pending-count of at most ONE, so this run must resubmit itself
+    // while unsent samples remain - each admitted run sends one sample and
+    // re-arms until the cursor catches up with the history, keeping the
+    // parked debt per writer bounded at one (m_mutex is held, so the
+    // cursor/history read is stable).
+    if (!m_history.isEmpty() && m_nextSequenceNumberToSend <= m_history.getCurrentSeqNumMax() &&
+        m_transport != nullptr) {
+      m_transport->submitGuaranteedDrain(
+          this, [this, gen = currentGeneration()]() { progressIfCurrent(gen); }, m_attributes.band);
+    }
   } else {
     SFW_LOG("Couldn't get a CacheChange with SN ({},{})", m_nextSequenceNumberToSend.high,
             m_nextSequenceNumberToSend.low);
@@ -259,7 +270,7 @@ void StatefulWriter::setAllChangesToUnsent() {
     // Guaranteed + banded: a bounded-queue rejection must not strand unsent
     // samples (a lone best-effort DATA has no recovery path), and a
     // prioritized endpoint's outbound work runs at ITS band end-to-end.
-    m_transport->submitGuaranteed(
+    m_transport->submitGuaranteedDrain(
         this, [this, gen = currentGeneration()]() { progressIfCurrent(gen); }, m_attributes.band);
   }
   // Piggyback: pull the next heartbeat evaluation forward so a reliable

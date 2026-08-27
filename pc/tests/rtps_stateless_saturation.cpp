@@ -106,7 +106,11 @@ int main() {
   // best-effort wire loss and would flake the lossless assertion (observed in
   // the slower interop container, where 5000 samples publish in <20 ms).
   // (~500 datagrams: a default linux rmem of ~208 KB holds ~800 small
-  // datagrams after per-skb accounting overhead, so 500 leaves real margin.)
+  // datagrams after per-skb accounting overhead, so 500 leaves real margin.
+  // Margin, not immunity: the guaranteed-drain chain sends the burst
+  // back-to-back at pool speed, so a receiver draining concurrently in a slow
+  // container can still shed a few percent - hence the dynamic floor's slack
+  // below.)
   constexpr int kBurst = 500;
   int published_ok = 0;
   const auto t0 = std::chrono::steady_clock::now();
@@ -171,10 +175,20 @@ int main() {
     return 1;
   }
 #else
-  // Growable (dynamic) history - the host/CI default: nothing may be dropped;
-  // allow a small slack for genuine (UDP) loss. A collapse regression delivers
-  // a few percent at best, far below this floor.
-  if (got < (kBurst * 97) / 100) {
+  // Growable (dynamic) history - the host/CI default. The DETERMINISTIC
+  // property: a dynamic history never overwrites, so every sample must reach
+  // the wire (drops == 0, and publish accepted all - asserted above). The
+  // delivered fraction is best-effort UDP: the guaranteed-drain chain sends
+  // the burst back-to-back at pool speed (no retry-timer metering), so a
+  // slower receiver's kernel buffer can shed a few percent as genuine wire
+  // loss (observed: 100% on host, ~95% in the interop container). A
+  // chain/parking regression instead delivers at most the pool-queue prefix
+  // of the burst (~64/500 = 13%), far below this floor.
+  if (drops != 0) {
+    std::printf("FAIL: dynamic history reported overwrite drops (%u)\n", drops);
+    return 1;
+  }
+  if (got < (kBurst * 80) / 100) {
     std::printf("FAIL: saturation collapse (%d/%d delivered)\n", got, kBurst);
     return 1;
   }

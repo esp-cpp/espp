@@ -679,6 +679,17 @@ rtps::Writer *Domain::writerExists(Participant &part, const char *topicName, con
 rtps::Writer *Domain::createWriter(Participant &part, const char *topicName, const char *typeName,
                                    bool reliable, bool enforceUnicast,
                                    const EndpointOptions &options) {
+  // Validate the DSCP up front: an out-of-range code point can never be
+  // applied (Socket::set_dscp rejects > 63), so probing would burn dedicated
+  // -port offsets on binds that fail their marking and then silently fall
+  // back without the requested behavior. Reject the writer instead so the
+  // misconfiguration is an explicit endpoint-creation error.
+  if (options.dscp.has_value() && static_cast<uint8_t>(options.dscp.value()) > 63) {
+    logger_.error("Invalid DSCP {} for writer '{}' (valid code points are 0..63); rejecting",
+                  static_cast<int>(options.dscp.value()), topicName);
+    return nullptr;
+  }
+
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   StatelessWriter *statelessWriter =
       getNextUnusedEndpoint<decltype(m_statelessWriters), StatelessWriter>(m_statelessWriters);
@@ -753,6 +764,17 @@ rtps::Writer *Domain::createWriter(Participant &part, const char *topicName, con
 rtps::Reader *Domain::createReader(Participant &part, const char *topicName, const char *typeName,
                                    bool reliable, rtps::Ip4AddressBytes mcastaddress,
                                    const EndpointOptions &options) {
+  // Validate the DSCP up front: an out-of-range code point can never be
+  // applied (Socket::set_dscp rejects > 63), so probing would burn dedicated
+  // -port offsets on binds that fail their marking and then silently fall
+  // back without the requested behavior. Reject the reader instead so the
+  // misconfiguration is an explicit endpoint-creation error.
+  if (options.dscp.has_value() && static_cast<uint8_t>(options.dscp.value()) > 63) {
+    logger_.error("Invalid DSCP {} for reader '{}' (valid code points are 0..63); rejecting",
+                  static_cast<int>(options.dscp.value()), topicName);
+    return nullptr;
+  }
+
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   StatelessReader *statelessReader =
       getNextUnusedEndpoint<decltype(m_statelessReaders), StatelessReader>(m_statelessReaders);

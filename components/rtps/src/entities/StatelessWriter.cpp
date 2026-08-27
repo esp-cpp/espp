@@ -144,7 +144,7 @@ const CacheChange *StatelessWriter::newChange(rtps::ChangeKind_t kind, const uin
     // Guaranteed + banded: a bounded-queue rejection must not strand unsent
     // samples (a lone best-effort DATA has no recovery path), and a
     // prioritized endpoint's outbound work runs at ITS band end-to-end.
-    m_transport->submitGuaranteed(
+    m_transport->submitGuaranteedDrain(
         this, [this, gen = currentGeneration()]() { progressIfCurrent(gen); }, m_attributes.band);
   }
 
@@ -169,7 +169,7 @@ void StatelessWriter::setAllChangesToUnsent() {
     // Guaranteed + banded: a bounded-queue rejection must not strand unsent
     // samples (a lone best-effort DATA has no recovery path), and a
     // prioritized endpoint's outbound work runs at ITS band end-to-end.
-    m_transport->submitGuaranteed(
+    m_transport->submitGuaranteedDrain(
         this, [this, gen = currentGeneration()]() { progressIfCurrent(gen); }, m_attributes.band);
   }
 }
@@ -302,6 +302,19 @@ void StatelessWriter::progress() {
 
   m_history.removeUntilIncl(m_nextSequenceNumberToSend);
   ++m_nextSequenceNumberToSend;
+
+  // Drain re-arm (see EsppTransport::submitGuaranteedDrain): pokes park with a
+  // pending-count of at most ONE, so this run must resubmit itself while
+  // unsent samples remain - each admitted run sends one sample and re-arms
+  // until the retained history is empty, keeping the parked debt per writer
+  // bounded at one regardless of how many samples a KEEP_LAST overflow storm
+  // published (m_mutex is held, so the cursor/history read is stable).
+  const SequenceNumber_t maxSN = m_history.getSeqNumMax();
+  if (!(maxSN == SEQUENCENUMBER_UNKNOWN) && m_nextSequenceNumberToSend <= maxSN &&
+      m_transport != nullptr) {
+    m_transport->submitGuaranteedDrain(
+        this, [this, gen = currentGeneration()]() { progressIfCurrent(gen); }, m_attributes.band);
+  }
 }
 
 #ifdef RTPS_ENABLE_FRAGMENTATION

@@ -109,6 +109,17 @@ public:
   void submitGuaranteed(const void *key, std::function<void()> job,
                         espp::QosBand band = espp::QosBand::Normal);
 
+  /// Like submitGuaranteed(), but with DRAIN semantics: a parked entry keeps a
+  /// pending-count of at most ONE, because the job itself re-arms (resubmits)
+  /// while the producer still has unsent data. Used by the writers' progress()
+  /// pokes: under sustained overload a KEEP_LAST history overwrites samples,
+  /// so per-sample owed counts would accumulate unbounded debt for data that
+  /// no longer exists - millions of no-op pokes after the storm. One pending
+  /// drain per producer is lossless (each admitted run drains and re-arms
+  /// until the retained history is empty) with debt bounded at 1.
+  void submitGuaranteedDrain(const void *key, std::function<void()> job,
+                             espp::QosBand band = espp::QosBand::Normal);
+
   /// Drop any PARKED guaranteed job for `key` so the retry timer cannot
   /// resubmit it after the producer has been deleted. Call this when an
   /// endpoint keyed here is being torn down individually (a single writer
@@ -148,7 +159,8 @@ private:
   /// Park a rejected guaranteed poke under \p key (coalescing into its owed
   /// count) and (lazily) create the retry timer. Lossless and bounded by the
   /// producer count.
-  void parkPendingJob(const void *key, std::function<void()> job, espp::QosBand band);
+  void parkPendingJob(const void *key, std::function<void()> job, espp::QosBand band,
+                      bool cap_to_one);
 
   RxCallback m_rxCallback{nullptr};
   void *m_callbackArgs{nullptr};

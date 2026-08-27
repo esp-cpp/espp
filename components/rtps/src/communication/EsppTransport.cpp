@@ -245,7 +245,16 @@ void EsppTransport::submitGuaranteed(const void *key, std::function<void()> job,
   if (m_pool && m_pool->try_submit(std::move(job), band)) {
     return;
   }
-  parkPendingJob(key, std::move(job), band);
+  parkPendingJob(key, std::move(job), band, /*cap_to_one=*/false);
+}
+void EsppTransport::submitGuaranteedDrain(const void *key, std::function<void()> job,
+                                          espp::QosBand band) {
+  // Same accept path as submitGuaranteed(); on rejection park with the
+  // pending-count capped at one (drain semantics - see the header).
+  if (m_pool && m_pool->try_submit(std::move(job), band)) {
+    return;
+  }
+  parkPendingJob(key, std::move(job), band, /*cap_to_one=*/true);
 }
 
 void EsppTransport::cancelGuaranteed(const void *key) {
@@ -253,7 +262,8 @@ void EsppTransport::cancelGuaranteed(const void *key) {
   m_pendingByKey.erase(key);
 }
 
-void EsppTransport::parkPendingJob(const void *key, std::function<void()> job, espp::QosBand band) {
+void EsppTransport::parkPendingJob(const void *key, std::function<void()> job, espp::QosBand band,
+                                   bool cap_to_one) {
   std::lock_guard<std::mutex> lock(m_pendingMutex);
   if (m_stopping) {
     return; // teardown: nothing to guarantee anymore
@@ -265,7 +275,15 @@ void EsppTransport::parkPendingJob(const void *key, std::function<void()> job, e
   auto &entry = m_pendingByKey[key];
   entry.job = std::move(job);
   entry.band = band;
-  ++entry.count;
+  if (cap_to_one) {
+    // Drain semantics (submitGuaranteedDrain): the job re-arms itself while
+    // unsent data remains, so one pending run per producer suffices; counting
+    // per poke would accumulate debt for samples a KEEP_LAST history has
+    // already overwritten.
+    entry.count = 1;
+  } else {
+    ++entry.count;
+  }
   if (m_retryTimer) {
     return; // already running; it drains owed runs on its next tick
   }
