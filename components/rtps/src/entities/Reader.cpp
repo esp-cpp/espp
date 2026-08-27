@@ -21,19 +21,43 @@ void Reader::executeCallbacks(const ReaderCacheChange &cacheChange) {
   // callback stack (the SPDP/SEDP handlers take the participant/SEDP mutexes,
   // and user handlers may create endpoints, i.e. register callbacks on other
   // readers), creating lock-order inversions against registerCallback().
-  // Invoking a just-removed callback is prevented at the LIFECYCLE level, not
-  // here: every engine invocation path runs inside a generation-guarded
-  // dispatch (see the *IfCurrent wrappers), and Reader::reset() retires the
-  // generation and drains in-flight dispatches before a slot's callbacks are
-  // cleared or its owner torn down.
+  //
+  // Each entry is REVALIDATED against the live table (by its unique,
+  // never-reused identifier) immediately before its invocation: an earlier
+  // callback in this very loop may have removed a later one and freed its arg
+  // (removeCallback()'s drain rightly excludes the caller's own dispatch, so
+  // it returns while this loop is still running) - invoking the stale snapshot
+  // entry would be a use-after-free. Cross-thread removals are excluded by the
+  // drain itself (they wait for this dispatch), so the unlocked window between
+  // revalidation and invocation cannot see a concurrent removal complete.
+  // Full teardown is prevented at the LIFECYCLE level: every engine invocation
+  // path runs inside a generation-guarded dispatch (see the *IfCurrent
+  // wrappers), and Reader::reset() retires the generation and drains in-flight
+  // dispatches before a slot's callbacks are cleared or its owner torn down.
   decltype(m_callbacks) snapshot;
   {
     std::lock_guard<std::recursive_mutex> lock(m_callback_mutex);
     snapshot = m_callbacks;
   }
   for (unsigned int i = 0; i < snapshot.size(); i++) {
-    if (snapshot[i].function != nullptr) {
-      snapshot[i].function(snapshot[i].arg, cacheChange);
+    if (snapshot[i].function == nullptr) {
+      continue;
+    }
+    callbackFunction_t fn = nullptr;
+    void *arg = nullptr;
+    {
+      std::lock_guard<std::recursive_mutex> lock(m_callback_mutex);
+      for (unsigned int j = 0; j < m_callbacks.size(); j++) {
+        if (m_callbacks[j].identifier == snapshot[i].identifier &&
+            m_callbacks[j].function != nullptr) {
+          fn = m_callbacks[j].function;
+          arg = m_callbacks[j].arg;
+          break;
+        }
+      }
+    }
+    if (fn != nullptr) {
+      fn(arg, cacheChange);
     }
   }
 }

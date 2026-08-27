@@ -64,6 +64,22 @@ set(RTPS_LIMIT_KNOBS
 )
 foreach(knob ${RTPS_LIMIT_KNOBS})
   if(DEFINED CONFIG_RTPS_LIMIT_${knob} AND NOT "${CONFIG_RTPS_LIMIT_${knob}}" STREQUAL "" AND NOT "${CONFIG_RTPS_LIMIT_${knob}}" STREQUAL "0")
+    # Builtin-aware minima (0 stays the "use profile default" sentinel): the
+    # discovery endpoints draw from these pools, so a nonzero value below the
+    # reservation would crash startup (the second SEDP allocation returns null)
+    # or silently omit the builtins (per-participant caps < 3).
+    if((knob STREQUAL "NUM_STATEFUL_WRITERS" OR knob STREQUAL "NUM_STATEFUL_READERS")
+       AND CONFIG_RTPS_LIMIT_${knob} LESS 2)
+      message(FATAL_ERROR
+        "CONFIG_RTPS_LIMIT_${knob}=${CONFIG_RTPS_LIMIT_${knob}} is below the minimum of 2 "
+        "(2 slots are reserved for the builtin SEDP endpoints)")
+    endif()
+    if((knob STREQUAL "NUM_WRITERS_PER_PARTICIPANT" OR knob STREQUAL "NUM_READERS_PER_PARTICIPANT")
+       AND CONFIG_RTPS_LIMIT_${knob} LESS 3)
+      message(FATAL_ERROR
+        "CONFIG_RTPS_LIMIT_${knob}=${CONFIG_RTPS_LIMIT_${knob}} is below the minimum of 3 "
+        "(the 3 builtin discovery endpoints count against the per-participant cap)")
+    endif()
     target_compile_definitions(${COMPONENT_LIB} PUBLIC "RTPS_CFG_${knob}=${CONFIG_RTPS_LIMIT_${knob}}")
   endif()
 endforeach()

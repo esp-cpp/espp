@@ -91,10 +91,23 @@ foreach(override ${RTPS_LIMIT_OVERRIDES})
     set(_rtps_max 255)
     set(_rtps_type "uint8_t")
   endif()
-  if(_rtps_value LESS 1 OR _rtps_value GREATER ${_rtps_max})
+  # Builtin-aware minima: the discovery endpoints draw from these pools, so a
+  # technically-representable value below the reservation would crash startup
+  # (the second SEDP allocation returns null and createBuiltinWritersAndReaders
+  # dereferences it) or silently omit the builtins (per-participant caps < 3).
+  if(_rtps_knob STREQUAL "NUM_STATEFUL_WRITERS" OR _rtps_knob STREQUAL "NUM_STATEFUL_READERS")
+    set(_rtps_min 2) # 2 SEDP builtins
+  elseif(_rtps_knob STREQUAL "NUM_WRITERS_PER_PARTICIPANT"
+         OR _rtps_knob STREQUAL "NUM_READERS_PER_PARTICIPANT")
+    set(_rtps_min 3) # SPDP + 2 SEDP builtins
+  else()
+    set(_rtps_min 1)
+  endif()
+  if(_rtps_value LESS ${_rtps_min} OR _rtps_value GREATER ${_rtps_max})
     message(FATAL_ERROR
       "RTPS limit override '${override}' out of range: ${_rtps_knob} is ${_rtps_type} under the "
-      "'${RTPS_LIMITS_PROFILE}' profile, valid range 1..${_rtps_max}")
+      "'${RTPS_LIMITS_PROFILE}' profile, valid range ${_rtps_min}..${_rtps_max} (minima account "
+      "for the builtin discovery endpoints)")
   endif()
   add_compile_definitions("RTPS_CFG_${override}")
   list(APPEND RTPS_LIMIT_OVERRIDE_DEFS "RTPS_CFG_${override}")

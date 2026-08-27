@@ -37,7 +37,7 @@ cmake -S lib -B lib/build -DCMAKE_BUILD_TYPE=Release -DESPP_INSTALL=ON -DCMAKE_I
        rtps_sedp_dedicated_locator rtps_banded_pubsub rtps_banded_deferred rtps_banded_ration \
        rtps_banded_churn rtps_service_rollback rtps_deferred_recovery rtps_guaranteed_submit \
        rtps_remove_reader_deadlock rtps_guaranteed_fairness rtps_writer_churn \
-       rtps_stateless_saturation \
+       rtps_stateless_saturation rtps_callback_reentrancy \
        rtps_interop_pub rtps_interop_sub > /tmp/build.log 2>&1
 build_rc=$?
 result "build" $build_rc
@@ -98,11 +98,17 @@ timeout 120 "$BIN"/rtps_writer_churn; result "writer_churn" $?
 # Best-effort saturation must not collapse: a burst far faster than the send
 # path is (near-)losslessly drained with growable history.
 timeout 90 "$BIN"/rtps_stateless_saturation; result "stateless_saturation" $?
+# Reentrant cross-callback removal: a callback removing a later-registered
+# callback (and freeing its arg) must prevent the stale snapshot entry from
+# being invoked.
+timeout 30 "$BIN"/rtps_callback_reentrancy; result "callback_reentrancy" $?
 
 # The same saturation test against a STATIC-storage build of the engine with a
 # 2-slot best-effort history: this exercises the KEEP_LAST overwrite path (the
 # test requires overflow drops to be counted) and the progress() cursor clamp
-# (pre-fix the writer collapsed to ~10% delivered; the test requires >= 25%).
+# (the test requires overflow drops to be COUNTED, delivered+dropped to
+# conserve the burst, and delivery above the total-collapse level - the
+# pre-fix cursor bug delivered only the final ring contents).
 # Built as a separate lib/test pair because the storage model and the history
 # depth are baked into the library at compile time.
 note "static-storage saturation gate (KEEP_LAST drop-oldest, cursor clamp)"
