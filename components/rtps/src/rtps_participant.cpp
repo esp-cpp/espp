@@ -298,12 +298,16 @@ bool RtpsParticipant::remove_reader(const std::string &topic) {
   // in-flight delivery, and that user callback may itself call back into the
   // participant (e.g. publish()) and take mutex_ - holding it here would
   // deadlock. `target` keeps the context alive throughout.
+  // Pin the engine for the unlocked phase below: stop() waits for active
+  // engine ops before stopping/destroying the domain, so domain_/participant_
+  // stay valid across the deletion + quiesce even if a stop() races in.
+  if (!begin_engine_op()) {
+    return false;
+  }
+  EngineOpGuard op_guard(*this);
   std::shared_ptr<ReaderContext> target;
   {
     std::lock_guard<std::mutex> lock(mutex_);
-    if (domain_ == nullptr || participant_ == nullptr) {
-      return false;
-    }
     for (auto it = reader_contexts_.rbegin(); it != reader_contexts_.rend(); ++it) {
       if ((*it)->topic == topic && (*it)->reader != nullptr) {
         target = *it;
@@ -852,6 +856,26 @@ bool RtpsParticipant::add_service_server_deferred(const ServiceConfig &config,
 
 // Internal variant returning the exact context created, so composite builders
 // (actions) can roll back precisely what THIS invocation added.
+bool RtpsParticipant::begin_engine_op() {
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (stopping_ || domain_ == nullptr || participant_ == nullptr) {
+    // Teardown has begun (or never started): the engine will be (or already
+    // is) destroyed; the caller must not touch it. During stop() the domain
+    // teardown itself reclaims every endpoint, so skipping the individual
+    // removal leaks nothing.
+    return false;
+  }
+  ++active_engine_ops_;
+  return true;
+}
+
+void RtpsParticipant::end_engine_op() {
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (--active_engine_ops_ == 0) {
+    engine_ops_cv_.notify_all();
+  }
+}
+
 void RtpsParticipant::rollback_delete_writer(rtps::Writer *writer) {
   if (writer == nullptr) {
     return;
@@ -1111,6 +1135,13 @@ bool RtpsParticipant::remove_service_server(const std::shared_ptr<ServiceServerC
   if (server == nullptr) {
     return false;
   }
+  // Pin the engine: the deletions + deferred close() below run OUTSIDE mutex_
+  // (close() waits for an in-flight handler that may take mutex_), and stop()
+  // must not stop/destroy the domain while they are using it.
+  if (!begin_engine_op()) {
+    return false;
+  }
+  EngineOpGuard op_guard(*this);
   // Ordering (all confirmed before facade state is mutated; on failure the
   // context stays registered and live for retry, already-deleted endpoints
   // nulled):
@@ -1147,6 +1178,12 @@ bool RtpsParticipant::remove_service_client(const std::shared_ptr<ServiceClient>
   if (client == nullptr) {
     return false;
   }
+  // Pin the engine for the unlocked deletion + quiesce (see
+  // remove_service_server()).
+  if (!begin_engine_op()) {
+    return false;
+  }
+  EngineOpGuard op_guard(*this);
   // Same ordering as remove_service_server(): delete the reply READER first
   // (stops new reply deliveries), then close() the deferred dispatcher
   // (WAITS for the in-flight reply callback, which references this Impl),
@@ -2216,13 +2253,25 @@ RtpsParticipant::add_native_action_client(const ActionConfig &config) {
 // unique_ptr/shared_ptr elements are destroyed - see the note by the constructor.
 void RtpsParticipant::stop() {
   // Phase 1: flip started_ under mutex_ so no further publish()/add_*()/reply
-  // proceeds past its started_ check.
+  // proceeds past its started_ check, and stopping_ so no NEW engine operation
+  // (an unlocked removal/quiesce sequence) can begin.
   {
     std::lock_guard<std::mutex> lock(mutex_);
     if (!started_) {
       return;
     }
     started_ = false;
+    stopping_ = true;
+  }
+  // Phase 1.5: wait for in-flight engine operations to finish. Removals
+  // deliberately dereference domain_/participant_ OUTSIDE mutex_ (their
+  // deferred close() waits for user callbacks that may take mutex_), so the
+  // engine must stay alive until they complete. cv.wait releases mutex_ while
+  // waiting, so those callbacks can still acquire it and the operations can
+  // finish; begin_engine_op() rejects new operations now that stopping_ is set.
+  {
+    std::unique_lock<std::mutex> lock(mutex_);
+    engine_ops_cv_.wait(lock, [this] { return active_engine_ops_ == 0; });
   }
   // Phase 2: invalidate deferred RPC replies. A service responder held by user
   // code checks live_->alive under this lock before writing through its engine
@@ -2321,7 +2370,8 @@ void RtpsParticipant::stop() {
     native_action_servers_.clear();
     native_service_clients_.clear();
     native_service_servers_.clear();
-#endif // RTPS_WITH_RPC
+#endif                 // RTPS_WITH_RPC
+    stopping_ = false; // teardown complete; a future start() may proceed
   }
   logger_.info("Stopped");
 }

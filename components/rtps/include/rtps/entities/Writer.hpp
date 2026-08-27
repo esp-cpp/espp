@@ -32,6 +32,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/storages/CacheChange.hpp"
 #include "rtps/storages/MemoryPool.hpp"
 
+#include <atomic>
 #include <cstdint>
 #include <mutex>
 
@@ -79,6 +80,19 @@ public:
   virtual bool removeFromHistory(const SequenceNumber_t &s) = 0;
   virtual void setAllChangesToUnsent() = 0;
   virtual void onNewAckNack(const SubmessageAckNack &msg, const GuidPrefix_t &sourceGuidPrefix) = 0;
+
+  //! Dispatch an ACKNACK only if `generation` still matches (checked under
+  //! m_mutex together with initialization). The receive path captures the
+  //! generation inside the participant's locked endpoint lookup, so a handler
+  //! that obtained this pooled Writer* just before it was deleted (and possibly
+  //! reused for another endpoint) no-ops instead of mutating/retransmitting the
+  //! new endpoint's history.
+  void onNewAckNackIfCurrent(uint32_t generation, const SubmessageAckNack &msg,
+                             const GuidPrefix_t &sourceGuidPrefix);
+
+  //! Pooled-slot reuse generation (see onNewAckNackIfCurrent); captured by the
+  //! receive path inside the participant's locked endpoint lookup.
+  uint32_t generation() const { return m_generation_.load(); }
 
   using dumpProxyCallback = void (*)(const Writer *writer, const ReaderProxy &, void *arg);
 
@@ -128,7 +142,11 @@ protected:
   // and runs via progressIfCurrent(), which re-checks it under m_mutex - so a
   // job accepted by the pool before deletion cannot run against a reset writer
   // or the next endpoint that reuses this slot (a stale generation no-ops).
-  uint32_t m_generation_ = 0;
+  // Atomic so the receive path can capture it inside the participant's locked
+  // endpoint lookup (see Participant::getWriter(id, generation_out)) and
+  // onNewAckNackIfCurrent() can reject a dispatch that lost the race with
+  // deletion/reuse; all bumps still happen under m_mutex.
+  std::atomic<uint32_t> m_generation_{0};
   virtual ~Writer() = default;
   MemoryPool<ReaderProxy, Config::NUM_READER_PROXIES_PER_WRITER> m_proxies;
 

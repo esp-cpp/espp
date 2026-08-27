@@ -1,10 +1,12 @@
 #include <algorithm>
+#include <chrono>
 #include <mutex>
 #include <rtps/entities/Reader.hpp>
 #include <rtps/entities/StatefulReader.hpp>
 #include <rtps/entities/StatelessReader.hpp>
 #include <rtps/utils/Log.hpp>
 #include <rtps/utils/printutils.hpp>
+#include <thread>
 
 using namespace rtps;
 
@@ -118,6 +120,18 @@ void Reader::newFragment(const Guid_t &writerGuid, const SequenceNumber_t &sn,
 #endif
 
 void Reader::reset() {
+  // Retire this pooled slot's generation FIRST: any receive dispatch that
+  // captured the old generation at lookup but has not yet passed its guarded
+  // check will now no-op (see the *IfCurrent wrappers). Then wait - WITHOUT
+  // holding the reader mutexes, which an in-flight dispatch needs to finish -
+  // for dispatches that passed their check before the bump: they run against
+  // the still-intact endpoint and must complete before its state is torn down
+  // (and before the slot can be reused for another endpoint).
+  ++m_generation_;
+  while (m_active_dispatches_.load() != 0) {
+    std::this_thread::sleep_for(std::chrono::microseconds(100));
+  }
+
   std::lock_guard<std::recursive_mutex> lock1(m_proxies_mutex);
   std::lock_guard<std::recursive_mutex> lock2(m_callback_mutex);
 
@@ -130,6 +144,60 @@ void Reader::reset() {
   m_callback_count = 0;
   m_is_initialized_ = false;
 }
+
+namespace {
+// Counts a guarded receive dispatch in/out of the reader (RAII so an early
+// return cannot leak the count and wedge reset()'s drain wait).
+struct DispatchGuard {
+  explicit DispatchGuard(std::atomic<int> &count)
+      : count_(count) {
+    count_.fetch_add(1);
+  }
+  ~DispatchGuard() { count_.fetch_sub(1); }
+  std::atomic<int> &count_;
+};
+} // namespace
+
+void Reader::newChangeIfCurrent(uint32_t generation, const ReaderCacheChange &cacheChange) {
+  DispatchGuard guard(m_active_dispatches_);
+  if (generation != m_generation_.load()) {
+    return; // slot deleted (and possibly reused) since the lookup
+  }
+  newChange(cacheChange);
+}
+
+bool Reader::onNewHeartbeatIfCurrent(uint32_t generation, const SubmessageHeartbeat &msg,
+                                     const GuidPrefix_t &remotePrefix) {
+  DispatchGuard guard(m_active_dispatches_);
+  if (generation != m_generation_.load()) {
+    return false;
+  }
+  return onNewHeartbeat(msg, remotePrefix);
+}
+
+bool Reader::onNewGapIfCurrent(uint32_t generation, const SubmessageGap &msg,
+                               const GuidPrefix_t &remotePrefix) {
+  DispatchGuard guard(m_active_dispatches_);
+  if (generation != m_generation_.load()) {
+    return false;
+  }
+  return onNewGapMessage(msg, remotePrefix);
+}
+
+#ifdef RTPS_ENABLE_FRAGMENTATION
+void Reader::newFragmentIfCurrent(uint32_t generation, const Guid_t &writerGuid,
+                                  const SequenceNumber_t &sn, uint32_t fragmentStartingNum,
+                                  uint16_t fragmentsInSubmessage, uint16_t fragmentSize,
+                                  uint32_t sampleSize, const uint8_t *fragData,
+                                  DataSize_t fragDataLen) {
+  DispatchGuard guard(m_active_dispatches_);
+  if (generation != m_generation_.load()) {
+    return;
+  }
+  newFragment(writerGuid, sn, fragmentStartingNum, fragmentsInSubmessage, fragmentSize, sampleSize,
+              fragData, fragDataLen);
+}
+#endif
 
 bool Reader::isProxy(const Guid_t &guid) {
   std::lock_guard<std::recursive_mutex> lock(m_proxies_mutex);

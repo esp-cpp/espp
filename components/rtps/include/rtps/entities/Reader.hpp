@@ -127,6 +127,29 @@ public:
 
   virtual bool sendPreemptiveAckNack(const WriterProxy &writer);
 
+  /// Pooled-slot reuse generation, captured by the receive path inside the
+  /// participant's locked endpoint lookup (see Participant::getReader(id,
+  /// generation_out)) and re-checked by the *IfCurrent dispatch wrappers below.
+  uint32_t generation() const { return m_generation_.load(); }
+  /// Guarded dispatch for the receive path: runs the corresponding virtual only
+  /// if `generation` still matches. Together with reset() - which bumps the
+  /// generation FIRST and then waits for in-flight guarded dispatches to drain
+  /// (before any state is torn down) - this closes the window where a receive
+  /// worker that already resolved this pooled Reader* dispatches into a
+  /// deleted endpoint or into the NEXT endpoint reusing the slot (which would
+  /// deliver an old topic's payload to the new callback).
+  void newChangeIfCurrent(uint32_t generation, const ReaderCacheChange &cacheChange);
+  bool onNewHeartbeatIfCurrent(uint32_t generation, const SubmessageHeartbeat &msg,
+                               const GuidPrefix_t &remotePrefix);
+  bool onNewGapIfCurrent(uint32_t generation, const SubmessageGap &msg,
+                         const GuidPrefix_t &remotePrefix);
+#ifdef RTPS_ENABLE_FRAGMENTATION
+  void newFragmentIfCurrent(uint32_t generation, const Guid_t &writerGuid,
+                            const SequenceNumber_t &sn, uint32_t fragmentStartingNum,
+                            uint16_t fragmentsInSubmessage, uint16_t fragmentSize,
+                            uint32_t sampleSize, const uint8_t *fragData, DataSize_t fragDataLen);
+#endif
+
 #ifdef RTPS_ENABLE_FRAGMENTATION
   /// Accumulate one DATA_FRAG fragment (best-effort reassembly). When all
   /// fragments of the sample identified by (writerGuid, sn) have arrived, the
@@ -159,6 +182,15 @@ protected:
   // Atomic: mutated by registerCallback()/removeCallback() (app threads) and
   // read as newChange()'s unlocked fast-path guard on the receive workers.
   std::atomic<uint8_t> m_callback_count{0};
+
+  // Pooled-slot reuse guard for the receive path (see the *IfCurrent wrappers).
+  // reset() bumps m_generation_ FIRST, then spins (lock-free, before taking any
+  // reader mutex) until m_active_dispatches_ drains: a dispatch that passed its
+  // generation check before the bump completes against the still-intact
+  // endpoint; one that checks after no-ops. The spin must not hold the reader
+  // mutexes - an in-flight dispatch needs them to finish.
+  std::atomic<uint32_t> m_generation_{0};
+  std::atomic<int> m_active_dispatches_{0};
   using callbackElement_t = struct {
     callbackFunction_t function;
     void *arg;

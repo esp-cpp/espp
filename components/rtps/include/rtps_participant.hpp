@@ -716,6 +716,27 @@ protected:
   /// even if it is removed/rolled back first (see DeferredDispatch).
   std::vector<std::shared_ptr<ReaderContext>> reader_contexts_;
 
+  // Active engine operations: removal/quiesce sequences that must dereference
+  // domain_/participant_ OUTSIDE mutex_ (their deferred close() waits for an
+  // in-flight user callback that may take mutex_, so they cannot hold it).
+  // begin_engine_op() registers such an operation under mutex_ (failing once
+  // teardown has begun); stop() waits for the count to reach zero BEFORE
+  // stopping/destroying the engine, so those unlocked phases can never race
+  // domain teardown into a use-after-free. The cv waits on mutex_ (and
+  // releases it while waiting, so an operation's callback can still take it).
+  int active_engine_ops_{0};
+  std::condition_variable engine_ops_cv_;
+  bool stopping_{false}; ///< set in stop() phase 1 (under mutex_): no new ops
+  bool begin_engine_op();
+  void end_engine_op();
+  /// RAII for begin/end_engine_op(); use after a successful begin.
+  struct EngineOpGuard {
+    explicit EngineOpGuard(RtpsParticipant &p)
+        : p_(p) {}
+    ~EngineOpGuard() { p_.end_engine_op(); }
+    RtpsParticipant &p_;
+  };
+
   // Endpoints whose deletion failed during a creation-time rollback (e.g. the
   // SEDP dispose could not be sent, so Domain::deleteWriter/deleteReader
   // returned false and the endpoint stayed registered with its dedicated port).

@@ -284,6 +284,39 @@ rtps::Reader *Participant::getReaderByWriterId(const Guid_t &guid) {
   return nullptr;
 }
 
+// Generation-capturing lookup variants for the receive path. The generation is
+// read while m_mutex is held, i.e. atomically with the slot still being
+// registered: deleteReader()/deleteWriter() clear the slot under this mutex
+// BEFORE reset() bumps the generation, so a pointer returned here always comes
+// with the pre-deletion generation and a stale dispatch is rejected by the
+// endpoint's *IfCurrent check.
+rtps::Writer *Participant::getWriter(EntityId_t id, uint32_t &generation_out) {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  Writer *writer = getWriter(id);
+  if (writer != nullptr) {
+    generation_out = writer->generation();
+  }
+  return writer;
+}
+
+rtps::Reader *Participant::getReader(EntityId_t id, uint32_t &generation_out) {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  Reader *reader = getReader(id);
+  if (reader != nullptr) {
+    generation_out = reader->generation();
+  }
+  return reader;
+}
+
+rtps::Reader *Participant::getReaderByWriterId(const Guid_t &guid, uint32_t &generation_out) {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  Reader *reader = getReaderByWriterId(guid);
+  if (reader != nullptr) {
+    generation_out = reader->generation();
+  }
+  return reader;
+}
+
 rtps::Writer *Participant::getMatchingWriter(const TopicData &readerTopicData) {
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   for (size_t i = 0; i < m_writers.size(); ++i) {
