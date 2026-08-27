@@ -316,17 +316,70 @@ rtps::Participant *Domain::createParticipant() {
   auto &entry = m_participants[m_numParticipants];
   ++m_numParticipants;
   entry.reuse(generateGuidPrefix(candidate), candidate, m_localIpAddress);
-  createBuiltinWritersAndReaders(entry);
+  if (!createBuiltinWritersAndReaders(entry)) {
+    // Pool exhaustion (see createBuiltinWritersAndReaders): unwind the slot
+    // and the probed ports so the failure is clean and the caller gets a
+    // truthful nullptr instead of a participant missing its discovery
+    // endpoints (or a crash).
+    --m_numParticipants;
+    m_transport->releaseReceivePort(getUserUnicastPort(candidate));
+    m_transport->releaseReceivePort(getBuiltInUnicastPort(candidate));
+    return nullptr;
+  }
   m_nextParticipantId = static_cast<ParticipantId_t>(candidate + 1);
   return &entry;
 }
 
-void Domain::createBuiltinWritersAndReaders(Participant &part) {
+bool Domain::createBuiltinWritersAndReaders(Participant &part) {
+  // Every allocation below is null-checked: the pools are GLOBAL, so a limits
+  // override (or profile) sized for fewer participants than
+  // MAX_NUM_PARTICIPANTS legitimately runs out here - that must fail the
+  // participant cleanly, not crash. Allocation and init() interleave (the
+  // allocator returns the first UNINITIALIZED slot, so a second allocation
+  // from the same pool must come after the first one's init()); on a failure
+  // partway, the endpoints this invocation already initialized are reset() so
+  // nothing leaks from the pools.
+  StatelessWriter *spdpWriter = nullptr;
+  StatelessReader *spdpReader = nullptr;
+  StatefulReader *sedpPubReader = nullptr;
+  StatefulReader *sedpSubReader = nullptr;
+  StatefulWriter *sedpPubWriter = nullptr;
+  const auto fail = [&](const char *what) {
+    DOMAIN_LOG("Builtin endpoint pool exhausted creating participant ({}): each participant "
+               "consumes 1 stateless writer/reader and 2 stateful writers/readers from the "
+               "GLOBAL pools - raise the NUM_STATELESS_*/NUM_STATEFUL_* limits or lower "
+               "MAX_NUM_PARTICIPANTS",
+               what);
+    (void)what;
+    if (spdpWriter != nullptr) {
+      spdpWriter->reset();
+    }
+    if (spdpReader != nullptr) {
+      spdpReader->reset();
+    }
+    if (sedpPubReader != nullptr) {
+      sedpPubReader->reset();
+    }
+    if (sedpSubReader != nullptr) {
+      sedpSubReader->reset();
+    }
+    if (sedpPubWriter != nullptr) {
+      sedpPubWriter->reset();
+    }
+    return false;
+  };
+
   // SPDP
-  StatelessWriter *spdpWriter =
+  spdpWriter =
       getNextUnusedEndpoint<decltype(m_statelessWriters), StatelessWriter>(m_statelessWriters);
-  StatelessReader *spdpReader =
+  if (spdpWriter == nullptr) {
+    return fail("stateless writer for SPDP");
+  }
+  spdpReader =
       getNextUnusedEndpoint<decltype(m_statelessReaders), StatelessReader>(m_statelessReaders);
+  if (spdpReader == nullptr) {
+    return fail("stateless reader for SPDP");
+  }
 
   TopicData spdpWriterAttributes;
   spdpWriterAttributes.topicName[0] = '\0';
@@ -359,24 +412,36 @@ void Domain::createBuiltinWritersAndReaders(Participant &part) {
   sedpAttributes.unicastLocator = getBuiltInUnicastLocator(part.m_participantId, m_localIpAddress);
 
   // READER
-  StatefulReader *sedpPubReader =
+  sedpPubReader =
       getNextUnusedEndpoint<decltype(m_statefulReaders), StatefulReader>(m_statefulReaders);
+  if (sedpPubReader == nullptr) {
+    return fail("stateful reader for SEDP publications");
+  }
   sedpAttributes.endpointGuid.entityId = ENTITYID_SEDP_BUILTIN_PUBLICATIONS_READER;
   sedpPubReader->init(sedpAttributes, *m_transport);
 
-  StatefulReader *sedpSubReader =
+  sedpSubReader =
       getNextUnusedEndpoint<decltype(m_statefulReaders), StatefulReader>(m_statefulReaders);
+  if (sedpSubReader == nullptr) {
+    return fail("stateful reader for SEDP subscriptions");
+  }
   sedpAttributes.endpointGuid.entityId = ENTITYID_SEDP_BUILTIN_SUBSCRIPTIONS_READER;
   sedpSubReader->init(sedpAttributes, *m_transport);
 
   // WRITER
-  StatefulWriter *sedpPubWriter =
+  sedpPubWriter =
       getNextUnusedEndpoint<decltype(m_statefulWriters), StatefulWriter>(m_statefulWriters);
+  if (sedpPubWriter == nullptr) {
+    return fail("stateful writer for SEDP publications");
+  }
   sedpAttributes.endpointGuid.entityId = ENTITYID_SEDP_BUILTIN_PUBLICATIONS_WRITER;
   sedpPubWriter->init(sedpAttributes, TopicKind_t::NO_KEY, *m_transport);
 
   StatefulWriter *sedpSubWriter =
       getNextUnusedEndpoint<decltype(m_statefulWriters), StatefulWriter>(m_statefulWriters);
+  if (sedpSubWriter == nullptr) {
+    return fail("stateful writer for SEDP subscriptions");
+  }
   sedpAttributes.endpointGuid.entityId = ENTITYID_SEDP_BUILTIN_SUBSCRIPTIONS_WRITER;
   sedpSubWriter->init(sedpAttributes, TopicKind_t::NO_KEY, *m_transport);
 
@@ -390,6 +455,7 @@ void Domain::createBuiltinWritersAndReaders(Participant &part) {
   endpoints.sedpSubWriter = sedpSubWriter;
 
   part.addBuiltInEndpoints(endpoints);
+  return true;
 }
 
 rtps::Participant *Domain::findParticipantById(ParticipantId_t id) {
@@ -781,12 +847,18 @@ bool rtps::Domain::deleteReader(Participant &part, Reader *reader) {
     return false;
   }
 
-  // Return the reader's dedicated port (if any) before its attributes are
-  // wiped by reset().
-  if (reader->m_attributes.hasDedicatedPort) {
-    releaseDedicatedEndpointPort(static_cast<Ip4Port_t>(reader->m_attributes.unicastLocator.port));
-  }
+  // Capture the dedicated port BEFORE reset() wipes the attributes, but
+  // release it AFTER reset(): reset() drains the in-flight guarded dispatches,
+  // and a still-running HEARTBEAT/GAP handler may sendPacket() from this
+  // source port - releasing first would let EsppTransport::sendPacket()
+  // recreate it as an ordinary untracked channel (default band/DSCP) and leak
+  // the fd. Mirrors the writer teardown below.
+  const bool had_dedicated_port = reader->m_attributes.hasDedicatedPort;
+  const auto dedicated_port = static_cast<Ip4Port_t>(reader->m_attributes.unicastLocator.port);
   reader->reset();
+  if (had_dedicated_port) {
+    releaseDedicatedEndpointPort(dedicated_port);
+  }
   return true;
 }
 

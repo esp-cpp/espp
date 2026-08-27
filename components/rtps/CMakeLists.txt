@@ -81,8 +81,53 @@ foreach(knob ${RTPS_LIMIT_KNOBS})
         "(the 3 builtin discovery endpoints count against the per-participant cap)")
     endif()
     target_compile_definitions(${COMPONENT_LIB} PUBLIC "RTPS_CFG_${knob}=${CONFIG_RTPS_LIMIT_${knob}}")
+    set(RTPS_EFFECTIVE_${knob} ${CONFIG_RTPS_LIMIT_${knob}})
   endif()
 endforeach()
+
+# Cross-limit capacity check (mirrors lib/espp.cmake): every participant
+# consumes 1 stateless writer/reader + 2 stateful writers/readers from the
+# GLOBAL pools for its builtin discovery endpoints. Effective value = the
+# Kconfig override if nonzero, else the selected profile's default.
+if(CONFIG_RTPS_LIMITS_PROFILE_HOST)
+  set(_rtps_defaults 8 16 16 32 32)
+elseif(CONFIG_RTPS_LIMITS_PROFILE_HOST_LARGE)
+  set(_rtps_defaults 32 64 64 128 128)
+else() # embedded (default)
+  set(_rtps_defaults 1 5 5 5 5)
+endif()
+list(GET _rtps_defaults 0 _rtps_d_participants)
+list(GET _rtps_defaults 1 _rtps_d_stateless_w)
+list(GET _rtps_defaults 2 _rtps_d_stateless_r)
+list(GET _rtps_defaults 3 _rtps_d_stateful_w)
+list(GET _rtps_defaults 4 _rtps_d_stateful_r)
+foreach(pair
+    "MAX_NUM_PARTICIPANTS;_rtps_d_participants"
+    "NUM_STATELESS_WRITERS;_rtps_d_stateless_w"
+    "NUM_STATELESS_READERS;_rtps_d_stateless_r"
+    "NUM_STATEFUL_WRITERS;_rtps_d_stateful_w"
+    "NUM_STATEFUL_READERS;_rtps_d_stateful_r")
+  list(GET pair 0 _rtps_k)
+  list(GET pair 1 _rtps_dvar)
+  if(NOT DEFINED RTPS_EFFECTIVE_${_rtps_k})
+    set(RTPS_EFFECTIVE_${_rtps_k} ${${_rtps_dvar}})
+  endif()
+endforeach()
+math(EXPR _rtps_need_stateful "2 * ${RTPS_EFFECTIVE_MAX_NUM_PARTICIPANTS}")
+if(RTPS_EFFECTIVE_NUM_STATELESS_WRITERS LESS RTPS_EFFECTIVE_MAX_NUM_PARTICIPANTS
+   OR RTPS_EFFECTIVE_NUM_STATELESS_READERS LESS RTPS_EFFECTIVE_MAX_NUM_PARTICIPANTS
+   OR RTPS_EFFECTIVE_NUM_STATEFUL_WRITERS LESS _rtps_need_stateful
+   OR RTPS_EFFECTIVE_NUM_STATEFUL_READERS LESS _rtps_need_stateful)
+  message(FATAL_ERROR
+    "RTPS limits cannot host the participant budget: MAX_NUM_PARTICIPANTS="
+    "${RTPS_EFFECTIVE_MAX_NUM_PARTICIPANTS} needs >= ${RTPS_EFFECTIVE_MAX_NUM_PARTICIPANTS} "
+    "stateless writers/readers (have ${RTPS_EFFECTIVE_NUM_STATELESS_WRITERS}/"
+    "${RTPS_EFFECTIVE_NUM_STATELESS_READERS}) and >= ${_rtps_need_stateful} stateful "
+    "writers/readers (have ${RTPS_EFFECTIVE_NUM_STATEFUL_WRITERS}/"
+    "${RTPS_EFFECTIVE_NUM_STATEFUL_READERS}) for the builtin discovery endpoints "
+    "(1 stateless W/R + 2 stateful W/R per participant). Raise the pool overrides "
+    "(menuconfig 'Custom capacity overrides') or lower MAX_NUM_PARTICIPANTS.")
+endif()
 
 if(CONFIG_RTPS_STORAGE_DYNAMIC)
   target_compile_definitions(${COMPONENT_LIB} PUBLIC RTPS_STORAGE_DYNAMIC)

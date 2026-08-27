@@ -111,8 +111,63 @@ foreach(override ${RTPS_LIMIT_OVERRIDES})
   endif()
   add_compile_definitions("RTPS_CFG_${override}")
   list(APPEND RTPS_LIMIT_OVERRIDE_DEFS "RTPS_CFG_${override}")
+  set(RTPS_EFFECTIVE_${_rtps_knob} ${_rtps_value})
   message(STATUS "RTPS limit override: ${override}")
 endforeach()
+
+# Cross-limit capacity check: the endpoint pools are GLOBAL, and EVERY
+# participant consumes 1 stateless writer/reader + 2 stateful writers/readers
+# for its builtin discovery endpoints - per-knob minima alone cannot see a
+# combination like NUM_STATEFUL_WRITERS=2 with MAX_NUM_PARTICIPANTS=8, whose
+# second participant would exhaust the pool (the engine now fails that
+# participant cleanly, but a documented override should not configure a
+# participant budget it cannot deliver). Effective value = override if given,
+# else the selected profile's default.
+if(RTPS_LIMITS_PROFILE STREQUAL "embedded")
+  set(_rtps_d_participants 1)
+  set(_rtps_d_stateless_w 5)
+  set(_rtps_d_stateless_r 5)
+  set(_rtps_d_stateful_w 5)
+  set(_rtps_d_stateful_r 5)
+elseif(RTPS_LIMITS_PROFILE STREQUAL "host")
+  set(_rtps_d_participants 8)
+  set(_rtps_d_stateless_w 16)
+  set(_rtps_d_stateless_r 16)
+  set(_rtps_d_stateful_w 32)
+  set(_rtps_d_stateful_r 32)
+else() # host_large
+  set(_rtps_d_participants 32)
+  set(_rtps_d_stateless_w 64)
+  set(_rtps_d_stateless_r 64)
+  set(_rtps_d_stateful_w 128)
+  set(_rtps_d_stateful_r 128)
+endif()
+foreach(pair
+    "MAX_NUM_PARTICIPANTS;_rtps_d_participants"
+    "NUM_STATELESS_WRITERS;_rtps_d_stateless_w"
+    "NUM_STATELESS_READERS;_rtps_d_stateless_r"
+    "NUM_STATEFUL_WRITERS;_rtps_d_stateful_w"
+    "NUM_STATEFUL_READERS;_rtps_d_stateful_r")
+  list(GET pair 0 _rtps_k)
+  list(GET pair 1 _rtps_dvar)
+  if(NOT DEFINED RTPS_EFFECTIVE_${_rtps_k})
+    set(RTPS_EFFECTIVE_${_rtps_k} ${${_rtps_dvar}})
+  endif()
+endforeach()
+math(EXPR _rtps_need_stateful "2 * ${RTPS_EFFECTIVE_MAX_NUM_PARTICIPANTS}")
+if(RTPS_EFFECTIVE_NUM_STATELESS_WRITERS LESS RTPS_EFFECTIVE_MAX_NUM_PARTICIPANTS
+   OR RTPS_EFFECTIVE_NUM_STATELESS_READERS LESS RTPS_EFFECTIVE_MAX_NUM_PARTICIPANTS
+   OR RTPS_EFFECTIVE_NUM_STATEFUL_WRITERS LESS _rtps_need_stateful
+   OR RTPS_EFFECTIVE_NUM_STATEFUL_READERS LESS _rtps_need_stateful)
+  message(FATAL_ERROR
+    "RTPS limits cannot host the participant budget: MAX_NUM_PARTICIPANTS="
+    "${RTPS_EFFECTIVE_MAX_NUM_PARTICIPANTS} needs >= ${RTPS_EFFECTIVE_MAX_NUM_PARTICIPANTS} "
+    "stateless writers/readers (have ${RTPS_EFFECTIVE_NUM_STATELESS_WRITERS}/"
+    "${RTPS_EFFECTIVE_NUM_STATELESS_READERS}) and >= ${_rtps_need_stateful} stateful "
+    "writers/readers (have ${RTPS_EFFECTIVE_NUM_STATEFUL_WRITERS}/"
+    "${RTPS_EFFECTIVE_NUM_STATEFUL_READERS}) for the builtin discovery endpoints. Raise the "
+    "pool overrides or lower MAX_NUM_PARTICIPANTS.")
+endif()
 
 # ---------------------------------------------------------------------------
 # RTPS best-effort DATA_FRAG fragmentation (Slice C).

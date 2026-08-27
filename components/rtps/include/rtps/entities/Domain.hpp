@@ -217,7 +217,13 @@ private:
 
   void receiveCallback(const PacketInfo &packet);
   GuidPrefix_t generateGuidPrefix(ParticipantId_t id) const;
-  void createBuiltinWritersAndReaders(Participant &part);
+  //! Allocate + wire the participant's builtin discovery endpoints. Returns
+  //! false (after rolling back any endpoint this invocation initialized) when
+  //! a GLOBAL endpoint pool is exhausted - each participant consumes 1
+  //! stateless writer/reader and 2 stateful writers/readers, so undersized
+  //! limits (or too many participants) must fail participant creation cleanly
+  //! instead of dereferencing a null builtin.
+  bool createBuiltinWritersAndReaders(Participant &part);
   bool initializeTransport();
   void registerMulticastPort(FullLengthLocator mcastLocator);
   static void receiveJumppad(void *callee, const PacketInfo &packet);
