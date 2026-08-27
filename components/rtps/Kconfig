@@ -41,6 +41,130 @@ menu "RTPS"
                 only appropriate on targets with plenty of RAM.
     endchoice
 
+    menu "Custom capacity overrides (advanced)"
+        # Each option below overrides ONE capacity cap of the selected limits
+        # profile (0 = keep the profile's default). This gives fine-grained
+        # control - e.g. raise only NUM_STATELESS_WRITERS instead of paying the
+        # RAM for a whole relaxed profile. All values are capacity-only and do
+        # NOT change any bytes on the wire. The builtin discovery endpoints
+        # consume slots from these same pools (see the profile help above), so
+        # size them as "usable + builtins". For a FULLY custom profile, a
+        # source-level escape hatch also exists: define RTPS_CONFIG_HEADER to
+        # your own header path.
+        config RTPS_LIMIT_NUM_STATELESS_WRITERS
+            int "NUM_STATELESS_WRITERS (0 = profile default)"
+            default 0
+            range 0 255
+            help
+                Stateless (BEST_EFFORT) writer pool; 1 slot is reserved for the builtin SPDP writer. 0 keeps the selected profile's value.
+
+        config RTPS_LIMIT_NUM_STATELESS_READERS
+            int "NUM_STATELESS_READERS (0 = profile default)"
+            default 0
+            range 0 255
+            help
+                Stateless (BEST_EFFORT) reader pool; 1 slot is reserved for the builtin SPDP reader. 0 keeps the selected profile's value.
+
+        config RTPS_LIMIT_NUM_STATEFUL_WRITERS
+            int "NUM_STATEFUL_WRITERS (0 = profile default)"
+            default 0
+            range 0 255
+            help
+                Stateful (RELIABLE) writer pool; 2 slots are reserved for the builtin SEDP writers. 0 keeps the selected profile's value.
+
+        config RTPS_LIMIT_NUM_STATEFUL_READERS
+            int "NUM_STATEFUL_READERS (0 = profile default)"
+            default 0
+            range 0 255
+            help
+                Stateful (RELIABLE) reader pool; 2 slots are reserved for the builtin SEDP readers. 0 keeps the selected profile's value.
+
+        config RTPS_LIMIT_MAX_NUM_PARTICIPANTS
+            int "MAX_NUM_PARTICIPANTS (0 = profile default)"
+            default 0
+            range 0 255
+            help
+                Maximum domain participants per process. 0 keeps the selected profile's value.
+
+        config RTPS_LIMIT_NUM_WRITERS_PER_PARTICIPANT
+            int "NUM_WRITERS_PER_PARTICIPANT (0 = profile default)"
+            default 0
+            range 0 255
+            help
+                Per-participant writer cap; the 3 builtin discovery writers count against it. 0 keeps the selected profile's value.
+
+        config RTPS_LIMIT_NUM_READERS_PER_PARTICIPANT
+            int "NUM_READERS_PER_PARTICIPANT (0 = profile default)"
+            default 0
+            range 0 255
+            help
+                Per-participant reader cap; the 3 builtin discovery readers count against it. 0 keeps the selected profile's value.
+
+        config RTPS_LIMIT_NUM_WRITER_PROXIES_PER_READER
+            int "NUM_WRITER_PROXIES_PER_READER (0 = profile default)"
+            default 0
+            range 0 255
+            help
+                Remote writers a single reader can match. 0 keeps the selected profile's value.
+
+        config RTPS_LIMIT_NUM_READER_PROXIES_PER_WRITER
+            int "NUM_READER_PROXIES_PER_WRITER (0 = profile default)"
+            default 0
+            range 0 255
+            help
+                Remote readers a single writer can match. 0 keeps the selected profile's value.
+
+        config RTPS_LIMIT_MAX_NUM_UNMATCHED_REMOTE_WRITERS
+            int "MAX_NUM_UNMATCHED_REMOTE_WRITERS (0 = profile default)"
+            default 0
+            range 0 255
+            help
+                Registry of discovered-but-unmatched remote writers. 0 keeps the selected profile's value.
+
+        config RTPS_LIMIT_MAX_NUM_UNMATCHED_REMOTE_READERS
+            int "MAX_NUM_UNMATCHED_REMOTE_READERS (0 = profile default)"
+            default 0
+            range 0 255
+            help
+                Registry of discovered-but-unmatched remote readers. 0 keeps the selected profile's value.
+
+        config RTPS_LIMIT_MAX_NUM_READER_CALLBACKS
+            int "MAX_NUM_READER_CALLBACKS (0 = profile default)"
+            default 0
+            range 0 255
+            help
+                Callback registrations per reader. 0 keeps the selected profile's value.
+
+        config RTPS_LIMIT_HISTORY_SIZE_STATELESS
+            int "HISTORY_SIZE_STATELESS (0 = profile default)"
+            default 0
+            range 0 255
+            help
+                History depth (samples) per stateless endpoint. 0 keeps the selected profile's value.
+
+        config RTPS_LIMIT_HISTORY_SIZE_STATEFUL
+            int "HISTORY_SIZE_STATEFUL (0 = profile default)"
+            default 0
+            range 0 255
+            help
+                History depth (samples) per stateful endpoint. 0 keeps the selected profile's value.
+
+        config RTPS_LIMIT_MAX_TYPENAME_LENGTH
+            int "MAX_TYPENAME_LENGTH (0 = profile default)"
+            default 0
+            range 0 255
+            help
+                Maximum DDS type-name length. 0 keeps the selected profile's value.
+
+        config RTPS_LIMIT_MAX_TOPICNAME_LENGTH
+            int "MAX_TOPICNAME_LENGTH (0 = profile default)"
+            default 0
+            range 0 255
+            help
+                Maximum DDS topic-name length. 0 keeps the selected profile's value.
+
+    endmenu
+
     config RTPS_STORAGE_DYNAMIC
         bool "Use dynamic (heap) history/queue storage"
         default n

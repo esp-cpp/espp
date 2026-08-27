@@ -40,6 +40,34 @@ endif()
 # limits profile never silently switches the MCU to heap-backed history. The
 # limits headers no longer define RTPS_STORAGE_DYNAMIC themselves; it is set here
 # on ESP and defaulted on in config.hpp for host/PC builds.
+# Per-limit capacity overrides (Kconfig "Custom capacity overrides"): a
+# nonzero value overrides that single cap of the selected profile via its
+# RTPS_CFG_* macro. PUBLIC so application translation units see the same
+# values as the engine (the pools are sized in this component's sources).
+set(RTPS_LIMIT_KNOBS
+    NUM_STATELESS_WRITERS
+    NUM_STATELESS_READERS
+    NUM_STATEFUL_WRITERS
+    NUM_STATEFUL_READERS
+    MAX_NUM_PARTICIPANTS
+    NUM_WRITERS_PER_PARTICIPANT
+    NUM_READERS_PER_PARTICIPANT
+    NUM_WRITER_PROXIES_PER_READER
+    NUM_READER_PROXIES_PER_WRITER
+    MAX_NUM_UNMATCHED_REMOTE_WRITERS
+    MAX_NUM_UNMATCHED_REMOTE_READERS
+    MAX_NUM_READER_CALLBACKS
+    HISTORY_SIZE_STATELESS
+    HISTORY_SIZE_STATEFUL
+    MAX_TYPENAME_LENGTH
+    MAX_TOPICNAME_LENGTH
+)
+foreach(knob ${RTPS_LIMIT_KNOBS})
+  if(DEFINED CONFIG_RTPS_LIMIT_${knob} AND NOT "${CONFIG_RTPS_LIMIT_${knob}}" STREQUAL "" AND NOT "${CONFIG_RTPS_LIMIT_${knob}}" STREQUAL "0")
+    target_compile_definitions(${COMPONENT_LIB} PUBLIC "RTPS_CFG_${knob}=${CONFIG_RTPS_LIMIT_${knob}}")
+  endif()
+endforeach()
+
 if(CONFIG_RTPS_STORAGE_DYNAMIC)
   target_compile_definitions(${COMPONENT_LIB} PUBLIC RTPS_STORAGE_DYNAMIC)
 endif()

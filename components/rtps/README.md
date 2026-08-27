@@ -168,6 +168,37 @@ via `include/rtps/config.hpp`.
 The domain id, announcement/heartbeat periods, and pool sizes live in the profile
 headers.
 
+### Per-limit capacity overrides
+
+Every capacity cap in the profile headers can be raised (or lowered)
+**individually** on top of the selected profile - so a system that only needs
+more BEST_EFFORT writers does not have to pay the RAM for a whole relaxed
+profile. Each cap `NAME` is overridable via an `RTPS_CFG_<NAME>` compile
+definition (see the `RTPS_CFG_*` blocks in `include/rtps/config_*.hpp` for the
+full knob list):
+
+- **ESP-IDF**: menuconfig, `RTPS -> Custom capacity overrides (advanced)` -
+  each option overrides one cap; `0` keeps the profile default.
+- **Host (espp.cmake / lib build)**: pass a semicolon list, e.g.
+  `-DRTPS_LIMIT_OVERRIDES="NUM_STATELESS_WRITERS=16;HISTORY_SIZE_STATEFUL=20"`.
+
+The overrides must be applied when **compiling the rtps sources** (the pools
+are sized inside the library); both mechanisms above do this and propagate the
+same values to consumer translation units. Defining `RTPS_CFG_*` for only a
+consumer TU (e.g. before including the headers in application code) would
+silently disagree with the library and must be avoided. All caps are
+capacity-only and change no bytes on the wire.
+
+Note the builtin discovery endpoints consume slots from the same pools: 1
+stateless writer + 1 stateless reader for SPDP and 2 stateful writers + 2
+stateful readers for SEDP (which also count against the per-participant caps) -
+so size pools as "usable + builtins". `add_writer()`/`add_reader()` report the
+bound limits, the reserved slots, and the usable counts when a creation fails.
+
+For a **fully custom profile**, the source-level escape hatch is defining
+`RTPS_CONFIG_HEADER` to your own header path (it replaces the profile header
+entirely).
+
 ---
 
 ## Priority scheduling (bands, dedicated ports, DSCP)

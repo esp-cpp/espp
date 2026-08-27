@@ -41,6 +41,27 @@ add_compile_definitions(RTPS_CONFIG_HEADER="${RTPS_CONFIG_HEADER_FILE}")
 message(STATUS "RTPS limits profile: ${RTPS_LIMITS_PROFILE}")
 
 # ---------------------------------------------------------------------------
+# RTPS per-limit capacity overrides (fine-grained alternative to switching
+# profiles): a semicolon list of NAME=VALUE entries, each overriding ONE
+# capacity cap of the selected profile via its RTPS_CFG_<NAME> macro - e.g.
+#   -DRTPS_LIMIT_OVERRIDES="NUM_STATELESS_WRITERS=16;HISTORY_SIZE_STATEFUL=20"
+# See the RTPS_CFG_* blocks in include/rtps/config_*.hpp for the knob names.
+# Applied as GLOBAL compile definitions so the engine sources (which size the
+# pools) and every consumer translation unit agree on the values - defining
+# them for only a consumer TU would silently disagree with the library.
+# Capacity-only: no bytes on the wire change.
+# ---------------------------------------------------------------------------
+set(RTPS_LIMIT_OVERRIDES "" CACHE STRING
+    "Semicolon list of RTPS capacity overrides, e.g. NUM_STATELESS_WRITERS=16;HISTORY_SIZE_STATEFUL=20")
+foreach(override ${RTPS_LIMIT_OVERRIDES})
+  if(NOT override MATCHES "^[A-Z_]+=[0-9]+$")
+    message(FATAL_ERROR "Invalid RTPS_LIMIT_OVERRIDES entry '${override}' (expected NAME=VALUE)")
+  endif()
+  add_compile_definitions("RTPS_CFG_${override}")
+  message(STATUS "RTPS limit override: ${override}")
+endforeach()
+
+# ---------------------------------------------------------------------------
 # RTPS best-effort DATA_FRAG fragmentation (Slice C).
 #
 # On host builds fragmentation is ALWAYS enabled: samples larger than a single
