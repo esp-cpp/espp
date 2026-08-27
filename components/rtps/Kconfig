@@ -12,6 +12,14 @@ menu "RTPS"
             storage. These caps are pure capacity limits and do NOT change any
             bytes on the wire.
 
+            Note: the builtin discovery endpoints draw from the same pools, so
+            the USABLE per-participant counts are lower than the raw caps:
+            1 stateless writer + 1 stateless reader are reserved for SPDP, and
+            2 stateful writers + 2 stateful readers for SEDP. E.g. the embedded
+            profile's NUM_STATELESS_WRITERS=5 leaves 4 usable BEST_EFFORT
+            writers. add_writer()/add_reader() name the exhausted pool and its
+            cap when a creation fails.
+
         config RTPS_LIMITS_PROFILE_EMBEDDED
             bool "embedded (tight MCU caps)"
             help

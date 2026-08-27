@@ -215,8 +215,42 @@ bool RtpsParticipant::add_writer(const WriterConfig &config) {
                             config.reliability == Reliability::RELIABLE, /*enforceUnicast=*/false,
                             rtps::EndpointOptions{.band = config.band, .dscp = config.dscp});
   if (writer == nullptr) {
-    logger_.error("Engine could not create writer '{}' (pool exhausted or name too long)",
-                  config.topic);
+    // Name the exact failure: which limit bound, its configured size, and the
+    // knob that raises it - so hitting a pool ceiling is a one-line config fix
+    // instead of a debugging session (the builtin discovery endpoints consume
+    // slots from these same pools, which makes the usable count non-obvious).
+    if (config.topic.size() > rtps::Config::MAX_TOPICNAME_LENGTH ||
+        config.type_name.size() > rtps::Config::MAX_TYPENAME_LENGTH) {
+      logger_.error("Engine could not create writer '{}': topic/type name too long "
+                    "(MAX_TOPICNAME_LENGTH={}, MAX_TYPENAME_LENGTH={})",
+                    config.topic, static_cast<int>(rtps::Config::MAX_TOPICNAME_LENGTH),
+                    static_cast<int>(rtps::Config::MAX_TYPENAME_LENGTH));
+    } else if (config.reliability == Reliability::RELIABLE) {
+      // Two limits can bind (whichever is hit first): the stateful pool and the
+      // per-participant writer cap; the builtin discovery writers (1 SPDP + 2
+      // SEDP) consume slots from both, hence the "usable" numbers.
+      logger_.error(
+          "Engine could not create writer '{}': RELIABLE writer capacity reached - stateful pool "
+          "NUM_STATEFUL_WRITERS={} (2 reserved for SEDP -> {} usable) and/or per-participant cap "
+          "NUM_WRITERS_PER_PARTICIPANT={} (3 builtin writers -> {} usable). Select a larger limits "
+          "profile (CONFIG_RTPS_LIMITS_PROFILE_HOST or _HOST_LARGE; capacity-only, no wire "
+          "change).",
+          config.topic, static_cast<int>(rtps::Config::NUM_STATEFUL_WRITERS),
+          static_cast<int>(rtps::Config::NUM_STATEFUL_WRITERS) - 2,
+          static_cast<int>(rtps::Config::NUM_WRITERS_PER_PARTICIPANT),
+          static_cast<int>(rtps::Config::NUM_WRITERS_PER_PARTICIPANT) - 3);
+    } else {
+      logger_.error(
+          "Engine could not create writer '{}': BEST_EFFORT writer capacity reached - stateless "
+          "pool NUM_STATELESS_WRITERS={} (1 reserved for SPDP -> {} usable) and/or per-participant "
+          "cap NUM_WRITERS_PER_PARTICIPANT={} (3 builtin writers -> {} usable). Select a larger "
+          "limits profile (CONFIG_RTPS_LIMITS_PROFILE_HOST or _HOST_LARGE; capacity-only, no wire "
+          "change).",
+          config.topic, static_cast<int>(rtps::Config::NUM_STATELESS_WRITERS),
+          static_cast<int>(rtps::Config::NUM_STATELESS_WRITERS) - 1,
+          static_cast<int>(rtps::Config::NUM_WRITERS_PER_PARTICIPANT),
+          static_cast<int>(rtps::Config::NUM_WRITERS_PER_PARTICIPANT) - 3);
+    }
     return false;
   }
   // Per-writer fragment size (only used when a sample exceeds a single DATA
@@ -240,8 +274,38 @@ bool RtpsParticipant::add_reader(const ReaderConfig &config) {
       config.reliability == Reliability::RELIABLE, /*mcastaddress=*/{0, 0, 0, 0},
       rtps::EndpointOptions{.band = config.band, .dscp = config.dscp});
   if (reader == nullptr) {
-    logger_.error("Engine could not create reader '{}' (pool exhausted or name too long)",
-                  config.topic);
+    // Same actionable diagnostics as add_writer(): name the bound limit, its
+    // size, and the Kconfig knob (builtin discovery readers consume slots from
+    // these pools: 1 stateless for SPDP, 2 stateful for SEDP).
+    if (config.topic.size() > rtps::Config::MAX_TOPICNAME_LENGTH ||
+        config.type_name.size() > rtps::Config::MAX_TYPENAME_LENGTH) {
+      logger_.error("Engine could not create reader '{}': topic/type name too long "
+                    "(MAX_TOPICNAME_LENGTH={}, MAX_TYPENAME_LENGTH={})",
+                    config.topic, static_cast<int>(rtps::Config::MAX_TOPICNAME_LENGTH),
+                    static_cast<int>(rtps::Config::MAX_TYPENAME_LENGTH));
+    } else if (config.reliability == Reliability::RELIABLE) {
+      logger_.error(
+          "Engine could not create reader '{}': RELIABLE reader capacity reached - stateful pool "
+          "NUM_STATEFUL_READERS={} (2 reserved for SEDP -> {} usable) and/or per-participant cap "
+          "NUM_READERS_PER_PARTICIPANT={} (3 builtin readers -> {} usable). Select a larger limits "
+          "profile (CONFIG_RTPS_LIMITS_PROFILE_HOST or _HOST_LARGE; capacity-only, no wire "
+          "change).",
+          config.topic, static_cast<int>(rtps::Config::NUM_STATEFUL_READERS),
+          static_cast<int>(rtps::Config::NUM_STATEFUL_READERS) - 2,
+          static_cast<int>(rtps::Config::NUM_READERS_PER_PARTICIPANT),
+          static_cast<int>(rtps::Config::NUM_READERS_PER_PARTICIPANT) - 3);
+    } else {
+      logger_.error(
+          "Engine could not create reader '{}': BEST_EFFORT reader capacity reached - stateless "
+          "pool NUM_STATELESS_READERS={} (1 reserved for SPDP -> {} usable) and/or per-participant "
+          "cap NUM_READERS_PER_PARTICIPANT={} (3 builtin readers -> {} usable). Select a larger "
+          "limits profile (CONFIG_RTPS_LIMITS_PROFILE_HOST or _HOST_LARGE; capacity-only, no wire "
+          "change).",
+          config.topic, static_cast<int>(rtps::Config::NUM_STATELESS_READERS),
+          static_cast<int>(rtps::Config::NUM_STATELESS_READERS) - 1,
+          static_cast<int>(rtps::Config::NUM_READERS_PER_PARTICIPANT),
+          static_cast<int>(rtps::Config::NUM_READERS_PER_PARTICIPANT) - 3);
+    }
     return false;
   }
   auto ctx = std::make_shared<ReaderContext>();
