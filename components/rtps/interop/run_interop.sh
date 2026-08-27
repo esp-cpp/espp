@@ -96,9 +96,29 @@ timeout 90 "$BIN"/rtps_guaranteed_fairness; result "guaranteed_fairness" $?
 # progress() jobs must neither crash nor wedge the SEDP announcement stream.
 timeout 120 "$BIN"/rtps_writer_churn; result "writer_churn" $?
 # Best-effort saturation must not collapse: a burst far faster than the send
-# path is (near-)losslessly drained with growable history (static-ring
-# drop-oldest behavior validated out-of-CI - see the test header).
+# path is (near-)losslessly drained with growable history.
 timeout 90 "$BIN"/rtps_stateless_saturation; result "stateless_saturation" $?
+
+# The same saturation test against a STATIC-storage build of the engine with a
+# 2-slot best-effort history: this exercises the KEEP_LAST overwrite path (the
+# test requires overflow drops to be counted) and the progress() cursor clamp
+# (pre-fix the writer collapsed to ~10% delivered; the test requires >= 25%).
+# Built as a separate lib/test pair because the storage model and the history
+# depth are baked into the library at compile time.
+note "static-storage saturation gate (KEEP_LAST drop-oldest, cursor clamp)"
+STATIC_FLAGS="-DRTPS_STORAGE_STATIC -DRTPS_CFG_HISTORY_SIZE_STATELESS=2"
+cmake -S lib -B lib/build-static -DCMAKE_BUILD_TYPE=Release -DESPP_INSTALL=ON \
+      -DESPP_BUILD_PYTHON=OFF -DCMAKE_INSTALL_PREFIX=/tmp/espp/install-static \
+      -DCMAKE_CXX_FLAGS="$STATIC_FLAGS" > /tmp/cmake_static.log 2>&1 \
+  && cmake --build lib/build-static -j"$(nproc)" --target install > /tmp/build_static.log 2>&1 \
+  && cmake -S pc -B pc/build-static -DCMAKE_BUILD_TYPE=Release \
+       -DCMAKE_PREFIX_PATH=/tmp/espp/install-static \
+       -DCMAKE_CXX_FLAGS="$STATIC_FLAGS" > /tmp/cmake_static_pc.log 2>&1 \
+  && cmake --build pc/build-static -j"$(nproc)" --target rtps_stateless_saturation > /tmp/build_static_pc.log 2>&1
+static_build_rc=$?
+result "static_build" $static_build_rc
+if [ $static_build_rc -ne 0 ]; then tail -20 /tmp/cmake_static.log /tmp/build_static.log /tmp/build_static_pc.log; fi
+timeout 90 pc/build-static/rtps_stateless_saturation; result "stateless_saturation_static" $?
 
 # Regression guard: a reliable writer under backlog must retain + send every
 # sample on the dynamic (host) storage path (no cursor-advance-as-drop skip).

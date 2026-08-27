@@ -365,6 +365,13 @@ bool RtpsParticipant::remove_writer(const std::string &topic) {
 }
 
 bool RtpsParticipant::remove_reader(const std::string &topic) {
+  // Supported from within the reader's OWN on_sample for INLINE (Normal-band /
+  // non-deferred) readers: the engine's teardown drain excludes the caller's
+  // own dispatch and the delivery trampoline holds the context alive across
+  // the callback. NOT supported from within a DEFERRED reader's own callback:
+  // the dispatcher's close() below waits for the in-flight delivery - i.e.
+  // the caller - and would deadlock.
+  //
   // Select the most-recent matching context and detach it from the list under
   // the lock (composites roll back most recent first). Detaching up front both
   // keeps a concurrent remover / stop() from processing it and lets us do the
@@ -675,14 +682,20 @@ void RtpsParticipant::reader_trampoline(void *arg, const rtps::ReaderCacheChange
     return;
   }
   // Serialize deliveries per reader: the engine may invoke this from a worker
-  // thread while a previous delivery is still running.
-  std::lock_guard<std::mutex> lock(ctx->buffer_mutex);
+  // thread while a previous delivery is still running. Hold a shared reference
+  // for the delivery's duration: the callback may legally remove its OWN
+  // reader (remove_reader() from on_sample), which detaches and releases the
+  // registry's reference while this invocation is still on the stack - the
+  // engine's teardown drain deliberately excludes the caller's own dispatch,
+  // so without this hold the context would be destroyed under the callback.
+  auto self = ctx->shared_from_this();
+  std::lock_guard<std::mutex> lock(self->buffer_mutex);
   const auto size = change.getDataSize();
-  ctx->buffer.resize(size);
-  if (size == 0 || !change.copyInto(ctx->buffer.data(), size)) {
+  self->buffer.resize(size);
+  if (size == 0 || !change.copyInto(self->buffer.data(), size)) {
     return;
   }
-  ctx->on_sample(std::span<const uint8_t>(ctx->buffer.data(), ctx->buffer.size()));
+  self->on_sample(std::span<const uint8_t>(self->buffer.data(), self->buffer.size()));
 }
 
 void RtpsParticipant::publisher_matched_trampoline(void *arg) {

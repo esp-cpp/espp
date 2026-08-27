@@ -64,3 +64,8 @@ docs/
 
 # Local example-build helper script (not part of the repo).
 build_examples.sh
+
+# local sanitizer / variant build trees (host TSan/ASan, static-storage validation)
+lib/build-*/
+pc/build-*/
+install-*/

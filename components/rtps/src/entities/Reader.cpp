@@ -140,11 +140,11 @@ void Reader::reset() {
   // holding the reader mutexes, which an in-flight dispatch needs to finish -
   // for dispatches that passed their check before the bump: they run against
   // the still-intact endpoint and must complete before its state is torn down
-  // (and before the slot can be reused for another endpoint).
+  // (and before the slot can be reused for another endpoint). The drain is
+  // self-aware: removal initiated from within this reader's own callback does
+  // not wait on itself (see drainDispatchesForTeardown()).
   ++m_generation_;
-  while (m_active_dispatches_.load() != 0) {
-    std::this_thread::sleep_for(std::chrono::microseconds(100));
-  }
+  drainDispatchesForTeardown();
 
   std::lock_guard<std::recursive_mutex> lock1(m_proxies_mutex);
   std::lock_guard<std::recursive_mutex> lock2(m_callback_mutex);
@@ -160,20 +160,48 @@ void Reader::reset() {
 }
 
 namespace {
+// The reader whose guarded dispatch is running on THIS thread (nullptr when
+// none). Lets the teardown drains below recognize their OWN dispatch: a
+// callback may legally initiate removal of its own reader (previously
+// reentrant via the recursive callback mutex), and unconditionally waiting for
+// the dispatch count to reach zero would then deadlock on the caller's own
+// count. Engine dispatches never nest across readers on one thread (delivery
+// is serialized per reader and callbacks do not synchronously drive another
+// reader's dispatch), so a single pointer suffices.
+thread_local const void *t_dispatching_reader = nullptr;
+
 // Counts a guarded receive dispatch in/out of the reader (RAII so an early
-// return cannot leak the count and wedge reset()'s drain wait).
+// return cannot leak the count and wedge the teardown drains).
 struct DispatchGuard {
-  explicit DispatchGuard(std::atomic<int> &count)
-      : count_(count) {
+  explicit DispatchGuard(std::atomic<int> &count, const void *reader)
+      : count_(count)
+      , prev_(t_dispatching_reader) {
     count_.fetch_add(1);
+    t_dispatching_reader = reader;
   }
-  ~DispatchGuard() { count_.fetch_sub(1); }
+  ~DispatchGuard() {
+    t_dispatching_reader = prev_;
+    count_.fetch_sub(1);
+  }
   std::atomic<int> &count_;
+  const void *prev_;
 };
 } // namespace
 
+void Reader::drainDispatchesForTeardown() {
+  // Wait for in-flight guarded dispatches on OTHER threads. If this thread is
+  // itself inside this reader's dispatch (removal initiated from the callback),
+  // its own count is excluded - the callback cannot return until the removal
+  // does, so waiting for it would deadlock; it runs against still-intact state
+  // and unwinds through the snapshot-invoking executeCallbacks() safely.
+  const int self = (t_dispatching_reader == this) ? 1 : 0;
+  while (m_active_dispatches_.load() > self) {
+    std::this_thread::sleep_for(std::chrono::microseconds(100));
+  }
+}
+
 void Reader::newChangeIfCurrent(uint32_t generation, const ReaderCacheChange &cacheChange) {
-  DispatchGuard guard(m_active_dispatches_);
+  DispatchGuard guard(m_active_dispatches_, this);
   if (generation != m_generation_.load()) {
     return; // slot deleted (and possibly reused) since the lookup
   }
@@ -182,7 +210,7 @@ void Reader::newChangeIfCurrent(uint32_t generation, const ReaderCacheChange &ca
 
 bool Reader::onNewHeartbeatIfCurrent(uint32_t generation, const SubmessageHeartbeat &msg,
                                      const GuidPrefix_t &remotePrefix) {
-  DispatchGuard guard(m_active_dispatches_);
+  DispatchGuard guard(m_active_dispatches_, this);
   if (generation != m_generation_.load()) {
     return false;
   }
@@ -191,7 +219,7 @@ bool Reader::onNewHeartbeatIfCurrent(uint32_t generation, const SubmessageHeartb
 
 bool Reader::onNewGapIfCurrent(uint32_t generation, const SubmessageGap &msg,
                                const GuidPrefix_t &remotePrefix) {
-  DispatchGuard guard(m_active_dispatches_);
+  DispatchGuard guard(m_active_dispatches_, this);
   if (generation != m_generation_.load()) {
     return false;
   }
@@ -204,7 +232,7 @@ void Reader::newFragmentIfCurrent(uint32_t generation, const Guid_t &writerGuid,
                                   uint16_t fragmentsInSubmessage, uint16_t fragmentSize,
                                   uint32_t sampleSize, const uint8_t *fragData,
                                   DataSize_t fragDataLen) {
-  DispatchGuard guard(m_active_dispatches_);
+  DispatchGuard guard(m_active_dispatches_, this);
   if (generation != m_generation_.load()) {
     return;
   }
@@ -272,14 +300,14 @@ bool Reader::removeCallback(Reader::callbackIdentifier_t identifier) {
     // registration array and invokes UNLOCKED, so a snapshot taken before the
     // clear above can still hold this registration. Every such invocation runs
     // inside a guarded dispatch (m_active_dispatches_), so draining it here
-    // guarantees that when removeCallback() returns, no callback taken from a
-    // pre-removal snapshot is running or will run - the caller may then free
-    // the registration's arg. Dispatches that snapshot after the clear no
-    // longer contain it. NOTE: must not be called from within a reader
-    // callback (the drain would wait on its own dispatch).
-    while (m_active_dispatches_.load() != 0) {
-      std::this_thread::sleep_for(std::chrono::microseconds(100));
-    }
+    // guarantees that when removeCallback() returns, no OTHER thread is (or
+    // will be) running a callback taken from a pre-removal snapshot - the
+    // caller may then free the registration's arg. Dispatches that snapshot
+    // after the clear no longer contain it. The drain is self-aware: a
+    // callback removing ITSELF (or its reader) does not wait on its own
+    // dispatch - previously reentrant via the recursive callback mutex, and
+    // by definition that callback's invocation is already past.
+    drainDispatchesForTeardown();
   }
   return removed;
 }

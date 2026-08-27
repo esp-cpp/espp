@@ -117,14 +117,16 @@ menu "RTPS"
         config RTPS_LIMIT_MAX_NUM_UNMATCHED_REMOTE_WRITERS
             int "MAX_NUM_UNMATCHED_REMOTE_WRITERS (0 = profile default)"
             default 0
-            range 0 255
+            range 0 255 if RTPS_LIMITS_PROFILE_EMBEDDED
+            range 0 65535
             help
                 Registry of discovered-but-unmatched remote writers. 0 keeps the selected profile's value.
 
         config RTPS_LIMIT_MAX_NUM_UNMATCHED_REMOTE_READERS
             int "MAX_NUM_UNMATCHED_REMOTE_READERS (0 = profile default)"
             default 0
-            range 0 255
+            range 0 255 if RTPS_LIMITS_PROFILE_EMBEDDED
+            range 0 65535
             help
                 Registry of discovered-but-unmatched remote readers. 0 keeps the selected profile's value.
 

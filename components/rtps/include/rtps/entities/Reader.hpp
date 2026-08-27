@@ -183,6 +183,11 @@ protected:
   // read as newChange()'s unlocked fast-path guard on the receive workers.
   std::atomic<uint8_t> m_callback_count{0};
 
+  //! Wait for in-flight guarded dispatches on OTHER threads (a dispatch on the
+  //! calling thread is excluded so a callback can initiate its own reader's
+  //! removal without deadlocking). Used by reset() and removeCallback().
+  void drainDispatchesForTeardown();
+
   // Pooled-slot reuse guard for the receive path (see the *IfCurrent wrappers).
   // reset() bumps m_generation_ FIRST, then spins (lock-free, before taking any
   // reader mutex) until m_active_dispatches_ drains: a dispatch that passed its

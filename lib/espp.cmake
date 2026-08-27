@@ -54,9 +54,12 @@ message(STATUS "RTPS limits profile: ${RTPS_LIMITS_PROFILE}")
 set(RTPS_LIMIT_OVERRIDES "" CACHE STRING
     "Semicolon list of RTPS capacity overrides, e.g. NUM_STATELESS_WRITERS=16;HISTORY_SIZE_STATEFUL=20")
 # The supported knobs (must match the RTPS_CFG_* blocks in the profile headers).
-# All of them back uint8_t constants, so values are bounded to 1..255 - an
-# unvalidated 256 would silently truncate to a ZERO-capacity pool, and a typoed
-# name would silently define an unused macro (i.e. no override at all).
+# Validated: an unknown name would silently define an unused macro (no override
+# at all), and an out-of-range value would silently truncate - e.g. 256 into a
+# uint8_t knob becomes a ZERO-capacity pool. Most knobs back uint8_t constants
+# (range 1..255); the unmatched-remote registries are uint16_t in the host
+# profiles (host_large defaults them to 1024/512), so those two accept up to
+# 65535 - EXCEPT under the embedded profile, where they are uint8_t too.
 set(RTPS_LIMIT_KNOB_NAMES
     NUM_STATELESS_WRITERS NUM_STATELESS_READERS NUM_STATEFUL_WRITERS NUM_STATEFUL_READERS
     MAX_NUM_PARTICIPANTS NUM_WRITERS_PER_PARTICIPANT NUM_READERS_PER_PARTICIPANT
@@ -64,6 +67,12 @@ set(RTPS_LIMIT_KNOB_NAMES
     MAX_NUM_UNMATCHED_REMOTE_WRITERS MAX_NUM_UNMATCHED_REMOTE_READERS
     MAX_NUM_READER_CALLBACKS HISTORY_SIZE_STATELESS HISTORY_SIZE_STATEFUL
     MAX_TYPENAME_LENGTH MAX_TOPICNAME_LENGTH)
+set(RTPS_LIMIT_UINT16_KNOBS MAX_NUM_UNMATCHED_REMOTE_WRITERS MAX_NUM_UNMATCHED_REMOTE_READERS)
+# Collect the validated definitions; they are applied directory-wide below AND
+# exported via ESPP_RTPS_COMPILE_DEFINITIONS (they change public Config
+# constants and array-backed layouts, so a find_package(espp) consumer MUST
+# compile the headers with the same values the archive was built with).
+set(RTPS_LIMIT_OVERRIDE_DEFS "")
 foreach(override ${RTPS_LIMIT_OVERRIDES})
   if(NOT override MATCHES "^([A-Z_]+)=([0-9]+)$")
     message(FATAL_ERROR "Invalid RTPS_LIMIT_OVERRIDES entry '${override}' (expected NAME=VALUE)")
@@ -75,11 +84,20 @@ foreach(override ${RTPS_LIMIT_OVERRIDES})
       "Unknown RTPS limit knob '${_rtps_knob}' in RTPS_LIMIT_OVERRIDES. Supported knobs: "
       "${RTPS_LIMIT_KNOB_NAMES}")
   endif()
-  if(_rtps_value LESS 1 OR _rtps_value GREATER 255)
+  if(_rtps_knob IN_LIST RTPS_LIMIT_UINT16_KNOBS AND NOT RTPS_LIMITS_PROFILE STREQUAL "embedded")
+    set(_rtps_max 65535)
+    set(_rtps_type "uint16_t")
+  else()
+    set(_rtps_max 255)
+    set(_rtps_type "uint8_t")
+  endif()
+  if(_rtps_value LESS 1 OR _rtps_value GREATER ${_rtps_max})
     message(FATAL_ERROR
-      "RTPS limit override '${override}' out of range: all knobs are uint8_t, valid range 1..255")
+      "RTPS limit override '${override}' out of range: ${_rtps_knob} is ${_rtps_type} under the "
+      "'${RTPS_LIMITS_PROFILE}' profile, valid range 1..${_rtps_max}")
   endif()
   add_compile_definitions("RTPS_CFG_${override}")
+  list(APPEND RTPS_LIMIT_OVERRIDE_DEFS "RTPS_CFG_${override}")
   message(STATUS "RTPS limit override: ${override}")
 endforeach()
 
@@ -107,7 +125,11 @@ message(STATUS "RTPS fragmentation: ON (max sample size ${RTPS_MAX_SAMPLE_SIZE} 
 set(ESPP_RTPS_COMPILE_DEFINITIONS
   RTPS_CONFIG_HEADER="${RTPS_CONFIG_HEADER_FILE}"
   RTPS_ENABLE_FRAGMENTATION
-  RTPS_MAX_SAMPLE_SIZE=${RTPS_MAX_SAMPLE_SIZE})
+  RTPS_MAX_SAMPLE_SIZE=${RTPS_MAX_SAMPLE_SIZE}
+  # Per-limit overrides are ABI-critical for the same reason as the profile
+  # header: they resize public Config constants and the array-backed pools, so
+  # exported consumers must see identical values (empty when no overrides).
+  ${RTPS_LIMIT_OVERRIDE_DEFS})
 
 set(ESPP_EXTERNAL_INCLUDES
   ${ESPP_COMPONENTS}/serialization/detail/alpaca/include

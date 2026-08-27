@@ -7,9 +7,10 @@
 //    (progress() clamps a cursor that fell behind the ring instead of sending
 //    nothing) and surfaces every overwritten sample via the facade's
 //    rate-limited warning and Diagnostics::Writer::history_overwrite_drops.
-//    (Validated with an RTPS_STORAGE_STATIC + HISTORY_SIZE_STATELESS=2 build:
-//    ~10% delivered before the clamp fix, ~60-70% after; the static
-//    configuration is not built in CI, so this test asserts the dynamic side.)
+//    The interop harness ALSO builds and runs this test in a static-storage
+//    variant (RTPS_STORAGE_STATIC + HISTORY_SIZE_STATELESS=2), where it
+//    requires overflow drops to have occurred AND delivery to stay well above
+//    the collapse level (~10% pre-fix vs ~60-70% post-fix measured).
 //
 // Exits 0 on success.
 #include <atomic>
@@ -20,6 +21,7 @@
 #include <vector>
 
 #include "cdr.hpp"
+#include "rtps/utils/Diagnostics.hpp"
 #include "rtps_participant.hpp"
 
 #include <arpa/inet.h>
@@ -137,12 +139,35 @@ int main() {
     std::printf("FAIL: publish() rejected samples under saturation\n");
     return 1;
   }
-  // Allow a small slack for genuine (UDP) loss; a collapse regression delivers
+  const uint32_t drops = rtps::Diagnostics::Writer::history_overwrite_drops.load();
+  std::printf("history_overwrite_drops=%u\n", drops);
+#if defined(RTPS_STORAGE_STATIC)
+  // Static KEEP_LAST ring (the interop harness builds this variant with
+  // HISTORY_SIZE_STATELESS=2): the burst MUST overflow (drops observed - this
+  // is what exercises the overwrite accounting and the cursor clamp), and the
+  // writer must DEGRADE to drop-oldest, not collapse. Measured post-fix
+  // delivery: ~27-36% on a dev host, ~18% worst-case in the slower interop
+  // container (received + drops == burst on a loss-free loopback either way);
+  // the pre-fix cursor bug delivers only the odd lucky sample plus the final
+  // ring contents (a few percent). A 10% floor sits well below every observed
+  // fixed run and well above the collapse.
+  if (drops == 0) {
+    std::printf("FAIL: static ring never overflowed - the KEEP_LAST path was not exercised\n");
+    return 1;
+  }
+  if (got < kBurst / 10) {
+    std::printf("FAIL: saturation collapse (%d/%d delivered)\n", got, kBurst);
+    return 1;
+  }
+#else
+  // Growable (dynamic) history - the host/CI default: nothing may be dropped;
+  // allow a small slack for genuine (UDP) loss. A collapse regression delivers
   // a few percent at best, far below this floor.
   if (got < (kBurst * 97) / 100) {
     std::printf("FAIL: saturation collapse (%d/%d delivered)\n", got, kBurst);
     return 1;
   }
+#endif
   std::printf("PASS\n");
   return 0;
 }

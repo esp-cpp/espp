@@ -115,8 +115,12 @@ int main() {
   // Remove the reader while its callback is in-flight. On a separate thread so
   // a deadlock is observable via the watchdog rather than hanging the test.
   std::atomic<bool> removed{false};
+  std::atomic<bool> removed_ok{false};
   std::thread remover([&]() {
-    part.remove_reader(topic_a);
+    // Capture the RESULT too: an implementation that bailed out early (never
+    // exercising the deletion/quiesce under test) would otherwise still pass
+    // the prompt-return assertion below.
+    removed_ok = part.remove_reader(topic_a);
     removed = true;
   });
   // Give remove_reader() time to reach close()'s in-flight wait, then let the
@@ -142,10 +146,56 @@ int main() {
     std::printf("FAIL: remove_reader() deadlocked (held mutex_ across close())\n");
     return 1;
   }
+  if (!removed_ok.load()) {
+    std::printf("FAIL: remove_reader() returned false (removal not exercised)\n");
+    return 1;
+  }
   if (!callback_published.load()) {
     std::printf("FAIL: callback's publish() never completed\n");
     return 1;
   }
+  // Scenario 2: a callback removing ITS OWN reader. The engine's teardown
+  // drain must recognize the caller's own in-flight dispatch (previously
+  // reentrant via the recursive callback mutex; an unconditional
+  // wait-for-zero would deadlock on the callback's own dispatch count).
+  const char *topic_c = "deadlock_self";
+  std::atomic<bool> self_removed{false};
+  std::atomic<bool> self_removed_ok{false};
+  if (!pub.add_writer(
+          {.topic = topic_c, .type_name = type, .reliability = Reliability::RELIABLE})) {
+    std::printf("FAIL: scenario-2 add_writer\n");
+    return 1;
+  }
+  if (!part.add_reader({.topic = topic_c,
+                        .type_name = type,
+                        .reliability = Reliability::RELIABLE,
+                        .on_sample = [&](std::span<const uint8_t>) {
+                          if (!self_removed.exchange(true)) {
+                            self_removed_ok = part.remove_reader(topic_c);
+                          }
+                        }})) {
+    std::printf("FAIL: scenario-2 add_reader\n");
+    return 1;
+  }
+  const auto self_deadline = std::chrono::steady_clock::now() + 10s;
+  while (!self_removed.load() && std::chrono::steady_clock::now() < self_deadline) {
+    auto bytes = cdr::serialize<cdr::xcdr1>(SeqMsg{2});
+    if (bytes) {
+      pub.publish(topic_c, u8_span(*bytes));
+    }
+    std::this_thread::sleep_for(10ms);
+  }
+  // The watchdog is the harness timeout: a self-wait deadlock would hang the
+  // callback (and this loop's publisher would keep running) until the kill.
+  if (!self_removed.load()) {
+    std::printf("FAIL: scenario-2 callback never ran\n");
+    return 1;
+  }
+  if (!self_removed_ok.load()) {
+    std::printf("FAIL: scenario-2 remove_reader() from own callback failed\n");
+    return 1;
+  }
+
   part.stop();
   pub.stop();
   std::printf("PASS\n");
