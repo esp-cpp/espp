@@ -4,49 +4,49 @@ namespace rtps {
 namespace Diagnostics {
 
 namespace ThreadPool {
-uint32_t dropped_incoming_packets_usertraffic = 0;
-uint32_t dropped_incoming_packets_metatraffic = 0;
+std::atomic<uint32_t> dropped_incoming_packets_usertraffic{0};
+std::atomic<uint32_t> dropped_incoming_packets_metatraffic{0};
 
-uint32_t dropped_outgoing_packets_usertraffic = 0;
-uint32_t dropped_outgoing_packets_metatraffic = 0;
+std::atomic<uint32_t> dropped_outgoing_packets_usertraffic{0};
+std::atomic<uint32_t> dropped_outgoing_packets_metatraffic{0};
 
-uint32_t processed_incoming_metatraffic = 0;
-uint32_t processed_outgoing_metatraffic = 0;
-uint32_t processed_incoming_usertraffic = 0;
-uint32_t processed_outgoing_usertraffic = 0;
+std::atomic<uint32_t> processed_incoming_metatraffic{0};
+std::atomic<uint32_t> processed_outgoing_metatraffic{0};
+std::atomic<uint32_t> processed_incoming_usertraffic{0};
+std::atomic<uint32_t> processed_outgoing_usertraffic{0};
 
-uint32_t max_ever_elements_outgoing_usertraffic_queue;
-uint32_t max_ever_elements_incoming_usertraffic_queue;
+std::atomic<uint32_t> max_ever_elements_outgoing_usertraffic_queue{0};
+std::atomic<uint32_t> max_ever_elements_incoming_usertraffic_queue{0};
 
-uint32_t max_ever_elements_outgoing_metatraffic_queue;
-uint32_t max_ever_elements_incoming_metatraffic_queue;
+std::atomic<uint32_t> max_ever_elements_outgoing_metatraffic_queue{0};
+std::atomic<uint32_t> max_ever_elements_incoming_metatraffic_queue{0};
 
 } // namespace ThreadPool
 
 namespace StatefulReader {
-uint32_t sfr_unexpected_sn;
-uint32_t sfr_retransmit_requests;
+std::atomic<uint32_t> sfr_unexpected_sn{0};
+std::atomic<uint32_t> sfr_retransmit_requests{0};
 } // namespace StatefulReader
 
 namespace Network {
-uint32_t lwip_allocation_failures;
+std::atomic<uint32_t> lwip_allocation_failures{0};
 }
 
 namespace SEDP {
-uint32_t max_ever_remote_participants;
-uint32_t current_remote_participants;
+std::atomic<uint32_t> max_ever_remote_participants{0};
+std::atomic<uint32_t> current_remote_participants{0};
 
-uint32_t max_ever_matched_reader_proxies;
-uint32_t current_max_matched_reader_proxies;
+std::atomic<uint32_t> max_ever_matched_reader_proxies{0};
+std::atomic<uint32_t> current_max_matched_reader_proxies{0};
 
-uint32_t max_ever_matched_writer_proxies;
-uint32_t current_max_matched_writer_proxies;
+std::atomic<uint32_t> max_ever_matched_writer_proxies{0};
+std::atomic<uint32_t> current_max_matched_writer_proxies{0};
 
-uint32_t max_ever_unmatched_reader_proxies;
-uint32_t current_max_unmatched_reader_proxies;
+std::atomic<uint32_t> max_ever_unmatched_reader_proxies{0};
+std::atomic<uint32_t> current_max_unmatched_reader_proxies{0};
 
-uint32_t max_ever_unmatched_writer_proxies;
-uint32_t current_max_unmatched_writer_proxies;
+std::atomic<uint32_t> max_ever_unmatched_writer_proxies{0};
+std::atomic<uint32_t> current_max_unmatched_writer_proxies{0};
 } // namespace SEDP
 
 } // namespace Diagnostics

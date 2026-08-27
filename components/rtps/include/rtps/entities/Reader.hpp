@@ -33,6 +33,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/entities/WriterProxy.hpp"
 #include "rtps/rpc/sample_identity.hpp"
 #include "rtps/storages/MemoryPool.hpp"
+#include <atomic>
 #include <cstring>
 #include <mutex>
 #ifdef RTPS_ENABLE_FRAGMENTATION
@@ -144,14 +145,20 @@ protected:
 
   SequenceNumber_t m_sedp_sequence_number;
 
-  bool m_is_initialized_ = false;
+  // Atomic: written by init()/reset() on the app thread and read as the
+  // unlocked fast-path guard in newChange()/onNewHeartbeat() on the receive
+  // workers. The seq_cst store in init() also publishes the preceding member
+  // writes to a worker that observes initialized == true.
+  std::atomic<bool> m_is_initialized_{false};
   Reader();
   virtual ~Reader() = default;
   MemoryPool<WriterProxy, Config::NUM_WRITER_PROXIES_PER_READER> m_proxies;
 
   callbackIdentifier_t m_callback_identifier = 1;
 
-  uint8_t m_callback_count = 0;
+  // Atomic: mutated by registerCallback()/removeCallback() (app threads) and
+  // read as newChange()'s unlocked fast-path guard on the receive workers.
+  std::atomic<uint8_t> m_callback_count{0};
   using callbackElement_t = struct {
     callbackFunction_t function;
     void *arg;

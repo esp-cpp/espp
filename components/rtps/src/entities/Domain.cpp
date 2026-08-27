@@ -118,6 +118,15 @@ void Domain::stop() {
     m_protocolStopRequested = true;
     nudgeProtocol();        // wake the loop so it observes the stop flag
     m_protocolTask->stop(); // returns promptly
+    // Retract the published task synchronization pointers BEFORE the task (and
+    // the mutex/cv they point into) is destroyed: a late nudge from a racing
+    // publisher then no-ops instead of locking a destroyed mutex.
+    {
+      std::lock_guard<std::mutex> nudge_lock(m_protocolNudgeMutex);
+      m_protocolMutex = nullptr;
+      m_protocolCv = nullptr;
+      m_protocolNotified = nullptr;
+    }
     m_protocolTask.reset();
     m_protocolStopRequested = false;
   }
@@ -157,12 +166,20 @@ bool Domain::protocolLoop(std::mutex &m, std::condition_variable &cv, bool &noti
     next_deadline = std::min(next_deadline, writer_deadline);
   }
 
+  // Publish the task's synchronization objects for nudgeProtocol() under the
+  // nudge mutex: nudges arrive from arbitrary publisher threads, so unguarded
+  // pointer writes here would race their reads (and re-writing every
+  // iteration raced even after the first). The values are stable for the
+  // task's lifetime, so this is one uncontended lock per tick.
+  {
+    std::lock_guard<std::mutex> nudge_lock(m_protocolNudgeMutex);
+    m_protocolMutex = &m;
+    m_protocolCv = &cv;
+    m_protocolNotified = &notified;
+  }
   // Sleep until the earliest deadline; a publish on a reliable writer (or
   // stop()) notifies the cv to re-evaluate immediately.
   std::unique_lock<std::mutex> lock(m);
-  m_protocolMutex = &m;
-  m_protocolCv = &cv;
-  m_protocolNotified = &notified;
   cv.wait_until(lock, next_deadline, [&notified] { return notified; });
   if (notified) {
     notified = false;
@@ -177,6 +194,11 @@ bool Domain::protocolLoop(std::mutex &m, std::condition_variable &cv, bool &noti
 }
 
 void Domain::nudgeProtocol() {
+  // Read the published pointers under the nudge mutex (see the member doc):
+  // this synchronizes with protocolLoop()'s publication and with stop()'s
+  // nulling, so a nudge racing either is a safe no-op rather than a torn read
+  // or a use-after-free of the destroyed task's mutex/cv.
+  std::lock_guard<std::mutex> nudge_lock(m_protocolNudgeMutex);
   if (m_protocolMutex != nullptr && m_protocolCv != nullptr && m_protocolNotified != nullptr) {
     std::lock_guard<std::mutex> lock(*m_protocolMutex);
     *m_protocolNotified = true;

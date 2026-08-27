@@ -181,6 +181,15 @@ private:
   bool protocolLoop(std::mutex &m, std::condition_variable &cv, bool &notified);
   void nudgeProtocol();
   std::unique_ptr<espp::Task> m_protocolTask;
+  /// Leaf mutex guarding the publication, use and teardown of the three task
+  /// synchronization pointers below. protocolLoop() publishes them (under this
+  /// mutex) before its first wait; nudgeProtocol() - called from arbitrary
+  /// publisher threads via the writers' protocol nudge - reads them under it;
+  /// stop() nulls them under it before the task (and with it the pointed-to
+  /// mutex/cv) is destroyed, so a late nudge is a safe no-op instead of a
+  /// use-after-free. Lock order: this mutex may be held while taking the
+  /// task's mutex, never the reverse.
+  std::mutex m_protocolNudgeMutex;
   std::mutex *m_protocolMutex = nullptr;
   std::condition_variable *m_protocolCv = nullptr;
   bool *m_protocolNotified = nullptr;

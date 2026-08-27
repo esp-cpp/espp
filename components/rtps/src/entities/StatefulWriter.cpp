@@ -168,7 +168,31 @@ void StatefulWriter::progress() {
   if (!m_is_initialized_) {
     return;
   }
+  // Skip any hole the cursor points at: a change can be dropped WITHOUT the
+  // cursor advancing past it - e.g. an unsent dispose-after-write removed by
+  // dropDisposeAfterWriteChanges() when its endpoint was deleted before the
+  // send cursor reached it (rapid endpoint churn). The SN is gone from
+  // history, so it can never be sent; without advancing, the cursor would be
+  // stuck and every LATER change (for the SEDP writer: every subsequent
+  // endpoint announcement of this participant) never transmitted. Jump to the
+  // history minimum when the cursor fell behind it, and step past mid-history
+  // holes until a live change (or the end) is reached - in THIS poke, so one
+  // poke cannot be swallowed by a run of consecutive holes. Readers are told
+  // of the skip by the normal GAP/heartbeat machinery (same recovery as the
+  // history-full drop in newChange()).
   CacheChange *next = m_history.getChangeBySN(m_nextSequenceNumberToSend);
+  if (next == nullptr && !m_history.isEmpty()) {
+    const SequenceNumber_t minSN = m_history.getCurrentSeqNumMin();
+    if (m_nextSequenceNumberToSend < minSN) {
+      SFW_LOG("Cursor fell behind history; jumping to SN ({},{})", minSN.high, minSN.low);
+      m_nextSequenceNumberToSend = minSN;
+      next = m_history.getChangeBySN(m_nextSequenceNumberToSend);
+    }
+    while (next == nullptr && m_nextSequenceNumberToSend < m_history.getCurrentSeqNumMax()) {
+      ++m_nextSequenceNumberToSend; // mid-history hole: step past it
+      next = m_history.getChangeBySN(m_nextSequenceNumberToSend);
+    }
+  }
   if (next != nullptr) {
     uint32_t i = 0;
     for (const auto &proxy : m_proxies) {
