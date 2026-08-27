@@ -716,6 +716,18 @@ protected:
   /// even if it is removed/rolled back first (see DeferredDispatch).
   std::vector<std::shared_ptr<ReaderContext>> reader_contexts_;
 
+  // Endpoints whose deletion failed during a creation-time rollback (e.g. the
+  // SEDP dispose could not be sent, so Domain::deleteWriter/deleteReader
+  // returned false and the endpoint stayed registered with its dedicated port).
+  // Retained (not dropped) so stop() can retry the deletion instead of leaking
+  // an untracked endpoint. Guarded by mutex_.
+  std::vector<rtps::Writer *> orphaned_writers_;
+  std::vector<rtps::Reader *> orphaned_readers_;
+  // Delete an endpoint during a rollback; on failure retain it in the orphan
+  // list above. Called with mutex_ held.
+  void rollback_delete_writer(rtps::Writer *writer);
+  void rollback_delete_reader(rtps::Reader *reader);
+
   // Shared liveness token for async RPC reply paths. A deferred service responder
   // (which user code may hold and fulfill arbitrarily long after the request)
   // checks `alive` under this mutex before writing through its engine reply

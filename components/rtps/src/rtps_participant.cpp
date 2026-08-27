@@ -852,6 +852,32 @@ bool RtpsParticipant::add_service_server_deferred(const ServiceConfig &config,
 
 // Internal variant returning the exact context created, so composite builders
 // (actions) can roll back precisely what THIS invocation added.
+void RtpsParticipant::rollback_delete_writer(rtps::Writer *writer) {
+  if (writer == nullptr) {
+    return;
+  }
+  if (domain_ == nullptr || participant_ == nullptr ||
+      !domain_->deleteWriter(*participant_, writer)) {
+    // Deletion failed (e.g. the SEDP dispose could not be sent): the endpoint
+    // stays registered and keeps its dedicated port. Retain it so stop() can
+    // retry rather than dropping the only handle and leaking an untracked
+    // endpoint.
+    logger_.warn("Rollback: writer deletion failed; retaining for cleanup at stop()");
+    orphaned_writers_.push_back(writer);
+  }
+}
+
+void RtpsParticipant::rollback_delete_reader(rtps::Reader *reader) {
+  if (reader == nullptr) {
+    return;
+  }
+  if (domain_ == nullptr || participant_ == nullptr ||
+      !domain_->deleteReader(*participant_, reader)) {
+    logger_.warn("Rollback: reader deletion failed; retaining for cleanup at stop()");
+    orphaned_readers_.push_back(reader);
+  }
+}
+
 std::shared_ptr<RtpsParticipant::ServiceServerContext>
 RtpsParticipant::add_service_server_deferred_internal(const ServiceConfig &config,
                                                       service_deferred_handler_t handler) {
@@ -876,13 +902,10 @@ RtpsParticipant::add_service_server_deferred_internal(const ServiceConfig &confi
                             /*mcastaddress=*/{0, 0, 0, 0}, endpoint_options);
   if (reply_writer == nullptr || request_reader == nullptr) {
     // Transactional: a partial failure must not leave the successful endpoint
-    // announced (and its dedicated-port ration slot consumed).
-    if (reply_writer != nullptr) {
-      domain_->deleteWriter(*participant_, reply_writer);
-    }
-    if (request_reader != nullptr) {
-      domain_->deleteReader(*participant_, request_reader);
-    }
+    // announced (and its dedicated-port ration slot consumed). A deletion that
+    // itself fails is retained for retry rather than leaked.
+    rollback_delete_writer(reply_writer);
+    rollback_delete_reader(request_reader);
     logger_.error("Service server '{}': endpoint creation failed", config.service);
     return nullptr;
   }
@@ -901,8 +924,8 @@ RtpsParticipant::add_service_server_deferred_internal(const ServiceConfig &confi
                  config.service, static_cast<int>(config.band));
   }
   if (request_reader->registerCallback(&service_request_trampoline, ctx.get()) == 0) {
-    domain_->deleteReader(*participant_, request_reader);
-    domain_->deleteWriter(*participant_, reply_writer);
+    rollback_delete_reader(request_reader);
+    rollback_delete_writer(reply_writer);
     logger_.error("Service server '{}': could not register request callback", config.service);
     return nullptr;
   }
@@ -945,6 +968,23 @@ void reap_and_store(std::mutex &m, std::vector<ActionExecThread> &threads, std::
     }
   }
   threads.push_back(ActionExecThread{std::move(th), std::move(finished)});
+}
+
+// Join every execute worker and clear the list. A joinable std::thread's
+// destructor calls std::terminate, so any worker an accepted goal spawned MUST
+// be joined before its owning context is destroyed - during shutdown AND when a
+// partially-created action server is rolled back (its goal service was already
+// announced, so a peer could have submitted a goal). Callers should first
+// remove the endpoints / signal cooperative cancellation so this cannot block
+// on a long-running execute callback.
+void join_exec_threads(std::mutex &m, std::vector<ActionExecThread> &threads) {
+  std::lock_guard<std::mutex> lock(m);
+  for (auto &t : threads) {
+    if (t.thread.joinable()) {
+      t.thread.join();
+    }
+  }
+  threads.clear();
 }
 
 // Generate a unique 16-byte goal id: random_device bytes mixed with a process
@@ -1320,11 +1360,24 @@ bool RtpsParticipant::add_action_server(const ActionConfig &config, action_goal_
     // the tracked service-server handles and the two topic writers (created
     // above by this call) - so nothing stays announced (or holds a ration
     // slot) for the action that failed to build, and nothing else is touched.
+    // The goal service was announced before this failure, so a peer may already
+    // have submitted an accepted goal and spawned a joinable execute worker in
+    // ctx->exec_threads: signal cancellation, remove the endpoints (so no new
+    // goals arrive and a worker's final feedback/result publish is a no-op),
+    // then JOIN before ctx is destroyed - a joinable std::thread destructor
+    // would call std::terminate. Not under mutex_, so a worker can take it.
+    {
+      std::lock_guard<std::mutex> lock(ctx->goals_mutex);
+      for (auto &kv : ctx->goals) {
+        kv.second->cancel_requested.store(true);
+      }
+    }
     for (const auto &server : created_servers) {
       remove_service_server(server);
     }
     remove_writer(ctx->status_topic);
     remove_writer(ctx->feedback_topic);
+    join_exec_threads(ctx->threads_mutex, ctx->exec_threads);
     logger_.error("Action server '{}': service endpoint creation failed", config.action);
     return false;
   }
@@ -1507,13 +1560,10 @@ RtpsParticipant::add_service_client(const ServiceConfig &config) {
       domain_->createWriter(*participant_, req_topic.c_str(), req_type.c_str(), /*reliable=*/true,
                             /*enforceUnicast=*/false, endpoint_options);
   if (reply_reader == nullptr || request_writer == nullptr) {
-    // Transactional: see add_service_server_deferred().
-    if (reply_reader != nullptr) {
-      domain_->deleteReader(*participant_, reply_reader);
-    }
-    if (request_writer != nullptr) {
-      domain_->deleteWriter(*participant_, request_writer);
-    }
+    // Transactional: see add_service_server_deferred(). A deletion that itself
+    // fails is retained for retry rather than leaked.
+    rollback_delete_reader(reply_reader);
+    rollback_delete_writer(request_writer);
     logger_.error("Service client '{}': endpoint creation failed", config.service);
     return nullptr;
   }
@@ -1532,8 +1582,8 @@ RtpsParticipant::add_service_client(const ServiceConfig &config) {
                  config.service, static_cast<int>(config.band));
   }
   if (reply_reader->registerCallback(&service_reply_trampoline, impl.get()) == 0) {
-    domain_->deleteReader(*participant_, reply_reader);
-    domain_->deleteWriter(*participant_, request_writer);
+    rollback_delete_reader(reply_reader);
+    rollback_delete_writer(request_writer);
     logger_.error("Service client '{}': could not register reply callback", config.service);
     return nullptr;
   }
@@ -1982,9 +2032,15 @@ bool RtpsParticipant::add_native_action_server(const ActionConfig &config,
       });
   if (cancel_server == nullptr) {
     // Transactional: unwind EXACTLY what this invocation created - the goal
-    // service handle and the feedback writer.
+    // service handle and the feedback writer. The goal service was announced
+    // before this failure, so a peer may already have submitted an accepted
+    // goal and spawned a joinable execute worker: remove the endpoints, then
+    // JOIN before ctx is destroyed (a joinable std::thread destructor would
+    // call std::terminate). Matches the native-server teardown in stop(), which
+    // likewise joins without a cancel signal (native goals are weak refs).
     remove_native_service_server(goal_server);
     remove_writer(ctx->feedback_topic);
+    join_exec_threads(ctx->threads_mutex, ctx->exec_threads);
     logger_.error("Native action server '{}': cancel service failed", config.action);
     return false;
   }
@@ -2177,7 +2233,25 @@ void RtpsParticipant::stop() {
     std::lock_guard<std::mutex> lock(live_->m);
     live_->alive = false;
   }
-  // Phase 3: stop the engine (no more reader/service callbacks fire), then join
+  // Phase 3: retry any endpoint deletions that a creation-time rollback could
+  // not complete (the SEDP dispose failed then, so the endpoint stayed
+  // registered with its dedicated port). Do it while the domain is still live so
+  // a successful retry releases the port and disposes cleanly; whatever still
+  // fails is torn down by domain_->stop() below regardless.
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (domain_ != nullptr && participant_ != nullptr) {
+      for (auto *writer : orphaned_writers_) {
+        domain_->deleteWriter(*participant_, writer);
+      }
+      for (auto *reader : orphaned_readers_) {
+        domain_->deleteReader(*participant_, reader);
+      }
+    }
+    orphaned_writers_.clear();
+    orphaned_readers_.clear();
+  }
+  // Phase 4: stop the engine (no more reader/service callbacks fire), then join
   // every owned action-execute worker so none touches this participant after
   // the domain and its writers are gone. Done WITHOUT mutex_ held: a worker's
   // final publish()/reply must be able to take mutex_/live_ and run to
@@ -2187,15 +2261,6 @@ void RtpsParticipant::stop() {
     domain_->stop();
   }
 #ifdef RTPS_WITH_RPC
-  const auto join_workers = [](std::mutex &m, std::vector<ActionExecThread> &threads) {
-    std::lock_guard<std::mutex> lock(m);
-    for (auto &t : threads) {
-      if (t.thread.joinable()) {
-        t.thread.join();
-      }
-    }
-    threads.clear();
-  };
   for (auto &ctx : action_servers_) {
     if (!ctx) {
       continue;
@@ -2209,15 +2274,15 @@ void RtpsParticipant::stop() {
         kv.second->cancel_requested.store(true);
       }
     }
-    join_workers(ctx->threads_mutex, ctx->exec_threads);
+    join_exec_threads(ctx->threads_mutex, ctx->exec_threads);
   }
   for (auto &ctx : native_action_servers_) {
     if (ctx) {
-      join_workers(ctx->threads_mutex, ctx->exec_threads);
+      join_exec_threads(ctx->threads_mutex, ctx->exec_threads);
     }
   }
 #endif // RTPS_WITH_RPC
-  // Phase 4: tear the domain down and drop bookkeeping under mutex_. The engine
+  // Phase 5: tear the domain down and drop bookkeeping under mutex_. The engine
   // owns the endpoint objects, so release our references before the domain (and
   // with it every writer/reader and their callback registrations) goes away.
   {

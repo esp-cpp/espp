@@ -278,6 +278,12 @@ public:
   size_t num_registered() const;
 
 protected:
+  /// Invoke a removal-completion callback without letting an exception escape.
+  /// These run on a pool worker OUTSIDE the handler try/catch (and chained
+  /// callbacks must each run to honor the exactly-once guarantee), so a throw
+  /// here would otherwise terminate the worker or skip a chained callback.
+  void invoke_removed(const RemovedCallback &cb) noexcept;
+
   struct Entry {
     sock_type_t fd{static_cast<sock_type_t>(-1)}; ///< Watched file descriptor.
     ReadHandler handler;                          ///< Handler run on the pool.

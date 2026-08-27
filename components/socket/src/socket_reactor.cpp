@@ -327,10 +327,11 @@ bool SocketReactor::remove(SocketReactor::Id id, RemovedCallback on_removed) {
         it->second.remove_requested = true;
         if (on_removed) {
           if (it->second.on_removed) {
-            it->second.on_removed = [first = std::move(it->second.on_removed),
+            it->second.on_removed = [this, first = std::move(it->second.on_removed),
                                      second = std::move(on_removed)]() {
-              first();
-              second();
+              // Run BOTH even if one throws, to honor the exactly-once contract.
+              invoke_removed(first);
+              invoke_removed(second);
             };
           } else {
             it->second.on_removed = std::move(on_removed);
@@ -348,9 +349,26 @@ bool SocketReactor::remove(SocketReactor::Id id, RemovedCallback on_removed) {
   if (completed) {
     // Idle at remove() time: the removal is already complete - notify from
     // the caller's thread, without the reactor lock.
-    completed();
+    invoke_removed(completed);
   }
   return found;
+}
+
+void SocketReactor::invoke_removed(const RemovedCallback &cb) noexcept {
+  if (!cb) {
+    return;
+  }
+#if defined(__cpp_exceptions) && __cpp_exceptions
+  try {
+    cb();
+  } catch (const std::exception &e) {
+    logger_.error("Exception in reactor removal callback: {}", e.what());
+  } catch (...) {
+    logger_.error("Unknown exception in reactor removal callback");
+  }
+#else
+  cb();
+#endif
 }
 
 size_t SocketReactor::num_registered() const {
@@ -422,8 +440,9 @@ void SocketReactor::dispatch(SocketReactor::Id id) {
   }
   if (removed) {
     // The handler has finished and the entry is gone: removal complete.
-    // Invoked on this pool worker, without the reactor lock.
-    removed();
+    // Invoked on this pool worker, without the reactor lock (guarded so a
+    // throwing completion callback cannot escape the worker).
+    invoke_removed(removed);
   }
 }
 
@@ -517,8 +536,9 @@ bool SocketReactor::loop_iteration(std::mutex &, std::condition_variable &, bool
       }
       if (removed) {
         // No handler ever ran for the reverted dispatch: removal complete.
-        // Invoked on the reactor loop thread, without the reactor lock.
-        removed();
+        // Invoked on the reactor loop thread, without the reactor lock (guarded
+        // so a throwing completion callback cannot escape the loop thread).
+        invoke_removed(removed);
       }
     }
   }
