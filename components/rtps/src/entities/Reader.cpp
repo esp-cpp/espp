@@ -16,10 +16,24 @@ Reader::Reader()
 }
 
 void Reader::executeCallbacks(const ReaderCacheChange &cacheChange) {
-  std::lock_guard<std::recursive_mutex> lock(m_callback_mutex);
-  for (unsigned int i = 0; i < m_callbacks.size(); i++) {
-    if (m_callbacks[i].function != nullptr) {
-      m_callbacks[i].function(m_callbacks[i].arg, cacheChange);
+  // Snapshot the registrations under m_callback_mutex, then invoke UNLOCKED:
+  // holding the mutex across the callbacks put it on every user/discovery
+  // callback stack (the SPDP/SEDP handlers take the participant/SEDP mutexes,
+  // and user handlers may create endpoints, i.e. register callbacks on other
+  // readers), creating lock-order inversions against registerCallback().
+  // Invoking a just-removed callback is prevented at the LIFECYCLE level, not
+  // here: every engine invocation path runs inside a generation-guarded
+  // dispatch (see the *IfCurrent wrappers), and Reader::reset() retires the
+  // generation and drains in-flight dispatches before a slot's callbacks are
+  // cleared or its owner torn down.
+  decltype(m_callbacks) snapshot;
+  {
+    std::lock_guard<std::recursive_mutex> lock(m_callback_mutex);
+    snapshot = m_callbacks;
+  }
+  for (unsigned int i = 0; i < snapshot.size(); i++) {
+    if (snapshot[i].function != nullptr) {
+      snapshot[i].function(snapshot[i].arg, cacheChange);
     }
   }
 }

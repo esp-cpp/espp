@@ -484,8 +484,14 @@ uint32_t Participant::getRemoteParticipantCount() {
 rtps::MessageReceiver *Participant::getMessageReceiver() { return &m_receiver; }
 
 bool Participant::checkAndResetHeartbeats() {
-  std::lock_guard<std::recursive_mutex> lock1(m_mutex);
-  std::lock_guard<std::recursive_mutex> lock2(m_spdpAgent.m_mutex);
+  // Lock order: SPDP-agent mutex BEFORE the participant mutex, matching the
+  // SPDP receive path (handleSPDPPackage holds the agent mutex and then calls
+  // findRemoteParticipant, which takes m_mutex) and the documented global
+  // agent -> participant order. The previous participant-first order was an
+  // ABBA inversion that could deadlock this (protocol-scheduler) call against
+  // a concurrently arriving SPDP datagram.
+  std::lock_guard<std::recursive_mutex> lock1(m_spdpAgent.m_mutex);
+  std::lock_guard<std::recursive_mutex> lock2(m_mutex);
   PARTICIPANT_LOG("Have {} remote participants",
                   (unsigned int)m_remoteParticipants.getNumElements());
   PARTICIPANT_LOG("Unmatched remote writers/readers, {} / {}",
@@ -596,8 +602,17 @@ void Participant::printInfo() {
 rtps::SPDPAgent &Participant::getSPDPAgent() { return m_spdpAgent; }
 
 void Participant::addBuiltInEndpoints(BuiltInEndpoints &endpoints) {
-  std::lock_guard<std::recursive_mutex> lock(m_mutex);
-  m_hasBuilInEndpoints = true;
+  // Only the flag needs m_mutex. The agent init()s register reader callbacks
+  // (Reader::m_callback_mutex) and the add*() calls take the SEDP/participant
+  // locks themselves; running them under m_mutex would establish a
+  // participant -> callback-mutex (and participant -> SEDP) order that
+  // inverts the discovery receive path (callback/SEDP mutex -> participant)
+  // and could deadlock init against a concurrently arriving SPDP/SEDP
+  // datagram.
+  {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    m_hasBuilInEndpoints = true;
+  }
   m_spdpAgent.init(*this, endpoints);
   m_sedpAgent.init(*this, endpoints);
 
