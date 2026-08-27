@@ -163,11 +163,9 @@ rtps::Reader *Participant::addReader(Reader *pReader) {
 }
 
 bool Participant::deleteReader(Reader *reader) {
-  // Membership check under m_mutex; the SEDP deletion announcement OUTSIDE it
-  // (see addWriter() for the lock-order rationale); then clear the slot.
-  // Matching is by pointer identity (endpoints are pooled objects owned by
-  // the Domain), which also guards the empty (nullptr) slots the previous
-  // sequence-number comparison dereferenced.
+  // Membership check under m_mutex first (pointer identity - endpoints are
+  // pooled objects owned by the Domain - which also guards the empty (nullptr)
+  // slots the previous sequence-number comparison dereferenced).
   bool found = false;
   {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
@@ -181,6 +179,15 @@ bool Participant::deleteReader(Reader *reader) {
   if (!found || reader == nullptr) {
     return false;
   }
+  // Make the SEDP disposal and the slot removal ATOMIC by holding the agent's
+  // mutex across both, in the global lock order (SEDPAgent::m_mutex ->
+  // Participant::m_mutex, see addWriter()). Without this, a concurrent SEDP
+  // receive handler could match a newly announced remote writer to this reader
+  // in the window between its disposal and the slot-clear - consuming the
+  // remote from the unmatched registry just before the reader vanishes, losing
+  // that match for any replacement reader. Both mutexes are recursive, so the
+  // agent's own lock in deleteReader() nests harmlessly.
+  std::lock_guard<std::recursive_mutex> sedp_lock(m_sedpAgent.getMutex());
   if (!m_sedpAgent.deleteReader(reader)) {
     PARTICIPANT_LOG("Found reader but SEDP deletion failed");
     return false;
@@ -210,6 +217,9 @@ bool Participant::deleteWriter(Writer *writer) {
   if (!found || writer == nullptr) {
     return false;
   }
+  // Atomic disposal + slot removal under the agent's mutex, in the global lock
+  // order (SEDPAgent::m_mutex -> Participant::m_mutex) - see deleteReader().
+  std::lock_guard<std::recursive_mutex> sedp_lock(m_sedpAgent.getMutex());
   if (!m_sedpAgent.deleteWriter(writer)) {
     PARTICIPANT_LOG("Found writer but SEDP deletion failed");
     return false;

@@ -59,6 +59,12 @@ StatelessWriter::~StatelessWriter() {
 
 bool StatelessWriter::init(TopicData attributes, TopicKind_t topicKind, EsppTransport &driver,
                            bool enfUnicast) {
+  // Take m_mutex across the FULL (re)initialization: progress() (possibly a
+  // stale generation-guarded job for the slot's previous owner) reads
+  // m_is_initialized_ / m_proxies / m_history under this lock, and a pooled
+  // writer slot can be re-init()ed while such a job runs on another thread -
+  // unlocked writes here would be a data race exposing partial state.
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
   m_attributes = attributes;
 

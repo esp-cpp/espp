@@ -283,14 +283,16 @@ void EsppTransport::parkPendingJob(const void *key, std::function<void()> job, e
         if (m_stopping) {
           return false; // stop() cancels this timer; nothing to do
         }
-        // Fair, priority-aware drain. Draining one key to exhaustion before
-        // moving on could starve later keys under sustained overload (and,
-        // since the map is keyed by pointer, a high-band writer sorted later
-        // could be starved by a low-band one), violating both the eventual-run
-        // contract and endpoint priority. Instead: order the owed keys by band
-        // (Critical first), rotate the starting key across ticks so equal-band
-        // producers take turns, and submit at most one owed run per key per
-        // pass - looping only while the pool keeps accepting.
+        // Fair drain: submit at most one owed run per key per pass and rotate
+        // the starting key across ticks, with NO band ordering at this
+        // admission stage. Draining one key to exhaustion starved later keys;
+        // sorting by band here was no better - a continuously-owed higher-band
+        // producer would take the only freed slot on every tick and starve
+        // lower bands forever, violating submitGuaranteed()'s eventual-run
+        // contract. Round-robin admission guarantees every key is admitted
+        // within N ticks of a free slot; PRIORITY is preserved because each job
+        // is submitted at its own band and the pool's banded queues (with
+        // aging) decide execution order among admitted jobs.
         using MapIt = std::map<const void *, PendingProgress>::iterator;
         std::vector<MapIt> ready;
         ready.reserve(m_pendingByKey.size());
@@ -300,13 +302,8 @@ void EsppTransport::parkPendingJob(const void *key, std::function<void()> job, e
           }
         }
         if (!ready.empty()) {
-          // Rotate first (fairness among equal-band producers when only a few
-          // submits are accepted per tick), then a STABLE sort by band keeps
-          // that rotated order within each band while putting higher bands
-          // first (QosBand::Critical == 0 is most urgent).
+          // Rotate the start so a different key leads each tick.
           std::rotate(ready.begin(), ready.begin() + (m_drainRotor++ % ready.size()), ready.end());
-          std::stable_sort(ready.begin(), ready.end(),
-                           [](MapIt a, MapIt b) { return a->second.band < b->second.band; });
           bool saturated = false;
           while (!saturated) {
             bool submitted_this_pass = false;

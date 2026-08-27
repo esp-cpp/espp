@@ -56,6 +56,13 @@ StatefulWriter::~StatefulWriter() = default;
 
 bool StatefulWriter::init(TopicData attributes, TopicKind_t topicKind, EsppTransport &driver,
                           bool enfUnicast) {
+  // Take m_mutex across the FULL (re)initialization: the protocol scheduler's
+  // heartbeatTick() and a stale generation-guarded progress() job read
+  // m_is_initialized_ / m_nextHeartbeat / m_proxies / m_history under this
+  // lock, and a pooled writer slot can be re-init()ed while either is running
+  // on another thread - unlocked writes here would be a data race exposing
+  // partially initialized state.
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
   m_attributes = attributes;
 

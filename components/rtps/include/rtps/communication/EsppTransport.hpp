@@ -197,9 +197,11 @@ private:
   /// same writer accumulate in `count` rather than growing the map, so memory
   /// is bounded by the producer count regardless of publish volume.
   std::map<const void *, PendingProgress> m_pendingByKey;
-  /// Round-robin cursor advanced each retry tick so that, among equal-band
-  /// producers, a different one leads the drain each tick (prevents same-band
-  /// starvation when the pool accepts only a few submits per tick).
+  /// Round-robin cursor advanced each retry tick so a different pending key
+  /// leads the drain each tick. Admission is deliberately band-agnostic (pure
+  /// rotation): every owed key is admitted within N ticks of a free slot, so
+  /// no producer can be starved at this stage; band priority is applied by the
+  /// pool's banded queues once a job is admitted.
   std::size_t m_drainRotor{0};
   std::unique_ptr<espp::Timer> m_retryTimer;
   bool m_stopping{false};
