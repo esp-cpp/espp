@@ -110,8 +110,12 @@ int main() {
     int64_t got = 0;
     const int64_t a2 = 1000, b2 = 337;
     if (call->call_async(encode_request(a2, b2), [&](std::span<const uint8_t> rep) {
+          // Notify UNDER the lock: main destroys the cv right after wait()
+          // returns, and wait() must re-acquire the mutex to return - which
+          // orders the destruction after this notify completes. An unlocked
+          // notify races the destruction (caught by the TSan CI leg).
+          std::lock_guard<std::mutex> lk(m);
           if (rep.size() >= 4 + 8) {
-            std::lock_guard<std::mutex> lk(m);
             got = get_i64(rep, 4);
             done = true;
           }

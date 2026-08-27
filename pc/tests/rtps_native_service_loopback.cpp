@@ -85,8 +85,11 @@ int main() {
     bool done = false;
     int64_t got = 0;
     call->call_async(request(1000, 337), [&](std::span<const uint8_t> r) {
+      // Notify UNDER the lock so the cv destruction in main (right after its
+      // wait() returns and re-acquires the mutex) is ordered after this
+      // notify - an unlocked notify races it (caught by the TSan CI leg).
+      std::lock_guard<std::mutex> lk(m);
       if (r.size() >= 12) {
-        std::lock_guard<std::mutex> lk(m);
         got = get_i64(r, 4);
         done = true;
       }

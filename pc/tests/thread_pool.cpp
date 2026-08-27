@@ -86,6 +86,10 @@ int main() {
     for (int i = 0; i < N; ++i) {
       pool.submit(espp::ThreadPool::Job([&]() {
         std::this_thread::sleep_for(20ms);
+        // Notify UNDER the lock: main destroys the cv right after its wait()
+        // returns; wait() re-acquires mtx to return, ordering the destruction
+        // after this notify (an unlocked notify races the destruction).
+        std::lock_guard<std::mutex> lk(mtx);
         ++done;
         cv.notify_one();
       }));
