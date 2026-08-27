@@ -160,9 +160,24 @@ int main() {
                   reply.has_value() ? (long long)get_i64(*reply, 4) : -1,
                   deferred_ok ? "ok" : "MISMATCH/timeout");
     }
-    for (auto &t : workers) {
-      if (t.joinable())
-        t.join();
+    // Join the reply workers via locked swap-and-drain passes: the handler
+    // emplaces under wm, and a deferred handler can still fire while we join
+    // (e.g. when the call above timed out and the dispatch lands late -
+    // iterating the vector unlocked here raced that emplace under TSan).
+    bool drained = false;
+    for (int pass = 0; pass < 15 && !drained; ++pass) {
+      std::vector<std::thread> to_join;
+      {
+        std::lock_guard<std::mutex> lk(wm);
+        to_join.swap(workers);
+      }
+      for (auto &t : to_join) {
+        if (t.joinable())
+          t.join();
+      }
+      std::this_thread::sleep_for(100ms);
+      std::lock_guard<std::mutex> lk(wm);
+      drained = workers.empty();
     }
   }
 
