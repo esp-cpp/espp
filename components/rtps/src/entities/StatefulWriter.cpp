@@ -78,6 +78,11 @@ bool StatefulWriter::init(TopicData attributes, TopicKind_t topicKind, EsppTrans
   m_history.clear();
   m_hbCount = {1};
 
+  // Reused pooled slot: this is a NEW logical writer, so its public drop
+  // counter must not inherit the previous endpoint's total (the facade
+  // attributes publish()-time overflow warnings to it).
+  m_history_drops_ = 0;
+
   // Thread already exists, do not create new one (reusing slot case)
   m_is_initialized_ = true;
 

@@ -53,9 +53,31 @@ message(STATUS "RTPS limits profile: ${RTPS_LIMITS_PROFILE}")
 # ---------------------------------------------------------------------------
 set(RTPS_LIMIT_OVERRIDES "" CACHE STRING
     "Semicolon list of RTPS capacity overrides, e.g. NUM_STATELESS_WRITERS=16;HISTORY_SIZE_STATEFUL=20")
+# The supported knobs (must match the RTPS_CFG_* blocks in the profile headers).
+# All of them back uint8_t constants, so values are bounded to 1..255 - an
+# unvalidated 256 would silently truncate to a ZERO-capacity pool, and a typoed
+# name would silently define an unused macro (i.e. no override at all).
+set(RTPS_LIMIT_KNOB_NAMES
+    NUM_STATELESS_WRITERS NUM_STATELESS_READERS NUM_STATEFUL_WRITERS NUM_STATEFUL_READERS
+    MAX_NUM_PARTICIPANTS NUM_WRITERS_PER_PARTICIPANT NUM_READERS_PER_PARTICIPANT
+    NUM_WRITER_PROXIES_PER_READER NUM_READER_PROXIES_PER_WRITER
+    MAX_NUM_UNMATCHED_REMOTE_WRITERS MAX_NUM_UNMATCHED_REMOTE_READERS
+    MAX_NUM_READER_CALLBACKS HISTORY_SIZE_STATELESS HISTORY_SIZE_STATEFUL
+    MAX_TYPENAME_LENGTH MAX_TOPICNAME_LENGTH)
 foreach(override ${RTPS_LIMIT_OVERRIDES})
-  if(NOT override MATCHES "^[A-Z_]+=[0-9]+$")
+  if(NOT override MATCHES "^([A-Z_]+)=([0-9]+)$")
     message(FATAL_ERROR "Invalid RTPS_LIMIT_OVERRIDES entry '${override}' (expected NAME=VALUE)")
+  endif()
+  string(REGEX REPLACE "^([A-Z_]+)=[0-9]+$" "\\1" _rtps_knob "${override}")
+  string(REGEX REPLACE "^[A-Z_]+=([0-9]+)$" "\\1" _rtps_value "${override}")
+  if(NOT _rtps_knob IN_LIST RTPS_LIMIT_KNOB_NAMES)
+    message(FATAL_ERROR
+      "Unknown RTPS limit knob '${_rtps_knob}' in RTPS_LIMIT_OVERRIDES. Supported knobs: "
+      "${RTPS_LIMIT_KNOB_NAMES}")
+  endif()
+  if(_rtps_value LESS 1 OR _rtps_value GREATER 255)
+    message(FATAL_ERROR
+      "RTPS limit override '${override}' out of range: all knobs are uint8_t, valid range 1..255")
   endif()
   add_compile_definitions("RTPS_CFG_${override}")
   message(STATUS "RTPS limit override: ${override}")

@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <memory>
 #include <mutex>
 #include <optional>
 #include <span>
@@ -104,45 +105,57 @@ int main() {
   // Asynchronous call: a second request must correlate independently.
   bool async_ok = false;
   {
-    std::mutex m;
-    std::condition_variable cv;
-    bool done = false;
-    int64_t got = 0;
+    // The callback state is SHARED and captured by value: call_async retains
+    // the callback, so if the wait below times out a late reply may still
+    // invoke it - stack-captured references would then be use-after-scope.
+    // The shared_ptr keeps the state alive as long as the callback exists, and
+    // notifying under the lock orders any cv destruction after the notify.
+    struct AsyncState {
+      std::mutex m;
+      std::condition_variable cv;
+      bool done = false;
+      int64_t got = 0;
+    };
+    auto st = std::make_shared<AsyncState>();
     const int64_t a2 = 1000, b2 = 337;
-    if (call->call_async(encode_request(a2, b2), [&](std::span<const uint8_t> rep) {
-          // Notify UNDER the lock: main destroys the cv right after wait()
-          // returns, and wait() must re-acquire the mutex to return - which
-          // orders the destruction after this notify completes. An unlocked
-          // notify races the destruction (caught by the TSan CI leg).
-          std::lock_guard<std::mutex> lk(m);
+    if (call->call_async(encode_request(a2, b2), [st](std::span<const uint8_t> rep) {
+          std::lock_guard<std::mutex> lk(st->m);
           if (rep.size() >= 4 + 8) {
-            got = get_i64(rep, 4);
-            done = true;
+            st->got = get_i64(rep, 4);
+            st->done = true;
           }
-          cv.notify_one();
+          st->cv.notify_one();
         })) {
-      std::unique_lock<std::mutex> lk(m);
-      if (cv.wait_for(lk, 10s, [&] { return done; })) {
-        async_ok = (got == a2 + b2);
+      std::unique_lock<std::mutex> lk(st->m);
+      if (st->cv.wait_for(lk, 10s, [&] { return st->done; })) {
+        async_ok = (st->got == a2 + b2);
       }
-      std::printf("async call: got %lld (expected %lld) => %s\n", (long long)got,
+      std::printf("async call: got %lld (expected %lld) => %s\n", (long long)st->got,
                   (long long)(a2 + b2), async_ok ? "ok" : "MISMATCH/timeout");
     }
   }
 
   // Deferred server: a separate service whose handler replies from another
   // thread after a delay (exercises add_service_server_deferred + ServiceResponder).
+  // The worker registry is SHARED and captured by value: the handler can fire
+  // arbitrarily late (e.g. a dispatch landing after the call below timed out),
+  // so stack-captured references would be use-after-scope; the shared_ptr keeps
+  // the registry alive as long as the handler exists, and the workers are
+  // joined after server.stop() below, once no handler can run anymore.
+  struct WorkerState {
+    std::mutex wm;
+    std::vector<std::thread> workers;
+  };
+  auto wstate = std::make_shared<WorkerState>();
   bool deferred_ok = false;
   {
     const char *dsvc = "/add_two_ints_deferred";
-    std::vector<std::thread> workers;
-    std::mutex wm;
     server.add_service_server_deferred(
         {dsvc, "example_interfaces::srv::dds_::AddTwoInts"},
-        [&](std::span<const uint8_t> req, espp::RtpsParticipant::ServiceResponder responder) {
+        [wstate](std::span<const uint8_t> req, espp::RtpsParticipant::ServiceResponder responder) {
           std::vector<uint8_t> r(req.begin(), req.end());
-          std::lock_guard<std::mutex> lk(wm);
-          workers.emplace_back([r, responder]() {
+          std::lock_guard<std::mutex> lk(wstate->wm);
+          wstate->workers.emplace_back([r, responder]() {
             std::this_thread::sleep_for(300ms); // reply later, off the worker thread
             if (r.size() >= 4 + 16) {
               responder.reply(encode_response(get_i64(r, 4) + get_i64(r, 12)));
@@ -157,27 +170,9 @@ int main() {
         deferred_ok = (get_i64(*dreply, 4) == 42);
       }
       std::printf("deferred call: 11 + 31 = %lld => %s\n",
-                  reply.has_value() ? (long long)get_i64(*reply, 4) : -1,
+                  (dreply.has_value() && dreply->size() >= 4 + 8) ? (long long)get_i64(*dreply, 4)
+                                                                  : -1,
                   deferred_ok ? "ok" : "MISMATCH/timeout");
-    }
-    // Join the reply workers via locked swap-and-drain passes: the handler
-    // emplaces under wm, and a deferred handler can still fire while we join
-    // (e.g. when the call above timed out and the dispatch lands late -
-    // iterating the vector unlocked here raced that emplace under TSan).
-    bool drained = false;
-    for (int pass = 0; pass < 15 && !drained; ++pass) {
-      std::vector<std::thread> to_join;
-      {
-        std::lock_guard<std::mutex> lk(wm);
-        to_join.swap(workers);
-      }
-      for (auto &t : to_join) {
-        if (t.joinable())
-          t.join();
-      }
-      std::this_thread::sleep_for(100ms);
-      std::lock_guard<std::mutex> lk(wm);
-      drained = workers.empty();
     }
   }
 
@@ -201,6 +196,24 @@ int main() {
 
   server.stop();
   client.stop();
+
+  // After stop() the facade has quiesced the deferred dispatchers, so no
+  // handler can spawn another reply worker: one locked drain now joins every
+  // worker - including any spawned by a late dispatch after a call timeout -
+  // with no pass limit needed. (A worker's own late reply() is a safe no-op
+  // once the participant is stopped.)
+  {
+    std::vector<std::thread> to_join;
+    {
+      std::lock_guard<std::mutex> lk(wstate->wm);
+      to_join.swap(wstate->workers);
+    }
+    for (auto &t : to_join) {
+      if (t.joinable()) {
+        t.join();
+      }
+    }
+  }
 
   if (ok && async_ok && future_ok && deferred_ok) {
     std::printf("PASS\n");

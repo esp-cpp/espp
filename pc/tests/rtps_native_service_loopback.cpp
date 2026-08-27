@@ -8,6 +8,7 @@
 #include <condition_variable>
 #include <cstdint>
 #include <cstdio>
+#include <memory>
 #include <mutex>
 #include <optional>
 #include <span>
@@ -80,25 +81,31 @@ int main() {
   // Async.
   bool async_ok = false;
   {
-    std::mutex m;
-    std::condition_variable cv;
-    bool done = false;
-    int64_t got = 0;
-    call->call_async(request(1000, 337), [&](std::span<const uint8_t> r) {
-      // Notify UNDER the lock so the cv destruction in main (right after its
-      // wait() returns and re-acquires the mutex) is ordered after this
-      // notify - an unlocked notify races it (caught by the TSan CI leg).
-      std::lock_guard<std::mutex> lk(m);
+    // The callback state is SHARED and captured by value: call_async retains
+    // the callback, so if the wait below times out a late reply may still
+    // invoke it - stack-captured references would then be use-after-scope.
+    // The shared_ptr keeps the state alive as long as the callback exists, and
+    // notifying under the lock orders any cv destruction after the notify.
+    struct AsyncState {
+      std::mutex m;
+      std::condition_variable cv;
+      bool done = false;
+      int64_t got = 0;
+    };
+    auto st = std::make_shared<AsyncState>();
+    call->call_async(request(1000, 337), [st](std::span<const uint8_t> r) {
+      std::lock_guard<std::mutex> lk(st->m);
       if (r.size() >= 12) {
-        got = get_i64(r, 4);
-        done = true;
+        st->got = get_i64(r, 4);
+        st->done = true;
       }
-      cv.notify_one();
+      st->cv.notify_one();
     });
-    std::unique_lock<std::mutex> lk(m);
-    if (cv.wait_for(lk, 10s, [&] { return done; }))
-      async_ok = (got == 1337);
-    std::printf("native async: 1000+337 => %lld %s\n", (long long)got, async_ok ? "ok" : "FAIL");
+    std::unique_lock<std::mutex> lk(st->m);
+    if (st->cv.wait_for(lk, 10s, [&] { return st->done; }))
+      async_ok = (st->got == 1337);
+    std::printf("native async: 1000+337 => %lld %s\n", (long long)st->got,
+                async_ok ? "ok" : "FAIL");
   }
   // Future.
   bool future_ok = false;

@@ -74,6 +74,9 @@ bool StatelessWriter::init(TopicData attributes, TopicKind_t topicKind, EsppTran
 
   m_topicKind = topicKind;
   m_nextSequenceNumberToSend = {0, 1};
+  // Reused pooled slot: fresh logical writer, fresh drop counter (the facade
+  // attributes publish()-time overflow warnings to it).
+  m_history_drops_ = 0;
   m_is_initialized_ = true;
 
   m_proxies.clear();
