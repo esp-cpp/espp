@@ -101,17 +101,30 @@ bool Participant::registerOnNewSubscriberMatchedCallback(void (*callback)(void *
 }
 
 rtps::Writer *Participant::addWriter(Writer *pWriter) {
-  std::lock_guard<std::recursive_mutex> lock(m_mutex);
-  for (unsigned int i = 0; i < m_writers.size(); i++) {
-    if (m_writers[i] == nullptr) {
-      m_writers[i] = pWriter;
-      if (m_hasBuilInEndpoints) {
-        m_sedpAgent.addWriter(*pWriter);
+  // Reserve the slot under m_mutex, but announce via the SEDP agent OUTSIDE
+  // it: the agent locks SEDPAgent::m_mutex and then this mutex (its receive
+  // handlers and tryMatchUnmatchedEndpoints() call back into this
+  // participant), so nesting the agent call under m_mutex is a lock-order
+  // inversion that deadlocks under concurrent discovery traffic. The global
+  // order is SEDPAgent::m_mutex -> Participant::m_mutex, never the reverse.
+  bool inserted = false;
+  {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    for (unsigned int i = 0; i < m_writers.size(); i++) {
+      if (m_writers[i] == nullptr) {
+        m_writers[i] = pWriter;
+        inserted = true;
+        break;
       }
-      return pWriter;
     }
   }
-  return nullptr;
+  if (!inserted) {
+    return nullptr;
+  }
+  if (m_hasBuilInEndpoints) {
+    m_sedpAgent.addWriter(*pWriter);
+  }
+  return pWriter;
 }
 
 bool Participant::isWritersFull() {
@@ -126,43 +139,96 @@ bool Participant::isWritersFull() {
 }
 
 rtps::Reader *Participant::addReader(Reader *pReader) {
-  std::lock_guard<std::recursive_mutex> lock(m_mutex);
-  for (unsigned int i = 0; i < m_readers.size(); i++) {
-    if (m_readers[i] == nullptr) {
-      m_readers[i] = pReader;
-      if (m_hasBuilInEndpoints) {
-        m_sedpAgent.addReader(*pReader);
+  // Slot under m_mutex, SEDP announcement outside it - see addWriter() for
+  // the lock-order rationale (SEDPAgent::m_mutex must never be acquired while
+  // holding m_mutex).
+  bool inserted = false;
+  {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    for (unsigned int i = 0; i < m_readers.size(); i++) {
+      if (m_readers[i] == nullptr) {
+        m_readers[i] = pReader;
+        inserted = true;
+        break;
       }
-      return pReader;
     }
   }
-
-  return nullptr;
+  if (!inserted) {
+    return nullptr;
+  }
+  if (m_hasBuilInEndpoints) {
+    m_sedpAgent.addReader(*pReader);
+  }
+  return pReader;
 }
 
 bool Participant::deleteReader(Reader *reader) {
+  // Membership check under m_mutex first (pointer identity - endpoints are
+  // pooled objects owned by the Domain - which also guards the empty (nullptr)
+  // slots the previous sequence-number comparison dereferenced).
+  bool found = false;
+  {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    for (unsigned int i = 0; i < m_readers.size(); i++) {
+      if (m_readers[i] == reader) {
+        found = true;
+        break;
+      }
+    }
+  }
+  if (!found || reader == nullptr) {
+    return false;
+  }
+  // Make the SEDP disposal and the slot removal ATOMIC by holding the agent's
+  // mutex across both, in the global lock order (SEDPAgent::m_mutex ->
+  // Participant::m_mutex, see addWriter()). Without this, a concurrent SEDP
+  // receive handler could match a newly announced remote writer to this reader
+  // in the window between its disposal and the slot-clear - consuming the
+  // remote from the unmatched registry just before the reader vanishes, losing
+  // that match for any replacement reader. Both mutexes are recursive, so the
+  // agent's own lock in deleteReader() nests harmlessly.
+  std::lock_guard<std::recursive_mutex> sedp_lock(m_sedpAgent.getMutex());
+  if (!m_sedpAgent.deleteReader(reader)) {
+    PARTICIPANT_LOG("Found reader but SEDP deletion failed");
+    return false;
+  }
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   for (unsigned int i = 0; i < m_readers.size(); i++) {
-    if (m_readers[i]->getSEDPSequenceNumber() == reader->getSEDPSequenceNumber()) {
-      if (m_sedpAgent.deleteReader(reader)) {
-        m_readers[i] = nullptr;
-        return true;
-      }
-      PARTICIPANT_LOG("Found reader but SEDP deletion failed");
+    if (m_readers[i] == reader) {
+      m_readers[i] = nullptr;
+      return true;
     }
   }
   return false;
 }
 
 bool Participant::deleteWriter(Writer *writer) {
+  // Same structure and lock-order rationale as deleteReader().
+  bool found = false;
+  {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    for (unsigned int i = 0; i < m_writers.size(); i++) {
+      if (m_writers[i] == writer) {
+        found = true;
+        break;
+      }
+    }
+  }
+  if (!found || writer == nullptr) {
+    return false;
+  }
+  // Atomic disposal + slot removal under the agent's mutex, in the global lock
+  // order (SEDPAgent::m_mutex -> Participant::m_mutex) - see deleteReader().
+  std::lock_guard<std::recursive_mutex> sedp_lock(m_sedpAgent.getMutex());
+  if (!m_sedpAgent.deleteWriter(writer)) {
+    PARTICIPANT_LOG("Found writer but SEDP deletion failed");
+    return false;
+  }
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   for (unsigned int i = 0; i < m_writers.size(); i++) {
-    if (m_writers[i]->getSEDPSequenceNumber() == writer->getSEDPSequenceNumber()) {
-      if (m_sedpAgent.deleteWriter(writer)) {
-        m_writers[i] = nullptr;
-        return true;
-      }
-      PARTICIPANT_LOG("Found reader but SEDP deletion failed");
+    if (m_writers[i] == writer) {
+      m_writers[i] = nullptr;
+      return true;
     }
   }
   return false;
@@ -216,6 +282,39 @@ rtps::Reader *Participant::getReaderByWriterId(const Guid_t &guid) {
     }
   }
   return nullptr;
+}
+
+// Generation-capturing lookup variants for the receive path. The generation is
+// read while m_mutex is held, i.e. atomically with the slot still being
+// registered: deleteReader()/deleteWriter() clear the slot under this mutex
+// BEFORE reset() bumps the generation, so a pointer returned here always comes
+// with the pre-deletion generation and a stale dispatch is rejected by the
+// endpoint's *IfCurrent check.
+rtps::Writer *Participant::getWriter(EntityId_t id, uint32_t &generation_out) {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  Writer *writer = getWriter(id);
+  if (writer != nullptr) {
+    generation_out = writer->generation();
+  }
+  return writer;
+}
+
+rtps::Reader *Participant::getReader(EntityId_t id, uint32_t &generation_out) {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  Reader *reader = getReader(id);
+  if (reader != nullptr) {
+    generation_out = reader->generation();
+  }
+  return reader;
+}
+
+rtps::Reader *Participant::getReaderByWriterId(const Guid_t &guid, uint32_t &generation_out) {
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
+  Reader *reader = getReaderByWriterId(guid);
+  if (reader != nullptr) {
+    generation_out = reader->generation();
+  }
+  return reader;
 }
 
 rtps::Writer *Participant::getMatchingWriter(const TopicData &readerTopicData) {
@@ -284,6 +383,14 @@ bool Participant::addNewRemoteParticipant(const ParticipantProxyData &remotePart
 }
 
 bool Participant::removeRemoteParticipant(const GuidPrefix_t &prefix) {
+  // Documented global lock order: SEDPAgent::m_mutex BEFORE
+  // Participant::m_mutex. The removal below calls into the SEDP agent
+  // (removeUnmatchedEntitiesOfParticipant takes its mutex), so acquire the
+  // agent mutex first - taking m_mutex alone here and letting the nested call
+  // grab the agent mutex would be an ABBA inversion against the SEDP receive
+  // handlers, which hold the agent mutex and call findRemoteParticipant()
+  // (m_mutex). Callers must not already hold m_mutex without the agent mutex.
+  std::lock_guard<std::recursive_mutex> sedp_lock(m_sedpAgent.getMutex());
   std::lock_guard<std::recursive_mutex> lock(m_mutex);
   auto isElementToRemove = [&](const ParticipantProxyData &proxy) {
     return proxy.m_guid.prefix == prefix;
@@ -385,30 +492,45 @@ uint32_t Participant::getRemoteParticipantCount() {
 rtps::MessageReceiver *Participant::getMessageReceiver() { return &m_receiver; }
 
 bool Participant::checkAndResetHeartbeats() {
-  std::lock_guard<std::recursive_mutex> lock1(m_mutex);
-  std::lock_guard<std::recursive_mutex> lock2(m_spdpAgent.m_mutex);
-  PARTICIPANT_LOG("Have {} remote participants",
-                  (unsigned int)m_remoteParticipants.getNumElements());
-  PARTICIPANT_LOG("Unmatched remote writers/readers, {} / {}",
-                  static_cast<unsigned int>(m_sedpAgent.getNumRemoteUnmatchedWriters()),
-                  static_cast<unsigned int>(m_sedpAgent.getNumRemoteUnmatchedReaders()));
-  for (auto &remote : m_remoteParticipants) {
-    PARTICIPANT_LOG("Remote GUID = {} {} {} {} | Age = {} [ms]", remote.m_guid.prefix.id[4],
-                    remote.m_guid.prefix.id[5], remote.m_guid.prefix.id[6],
-                    remote.m_guid.prefix.id[7],
-                    (unsigned int)remote.getAliveSignalAgeInMilliseconds());
-    if (remote.isAlive()) {
-      continue;
-    }
-    PARTICIPANT_LOG("removing remote participant");
-    bool success = removeRemoteParticipant(remote.m_guid.prefix);
-    if (!success) {
-      return false;
-    } else {
-      return true;
+  // Phase 1 - SCAN ONLY. Lock order: SPDP-agent mutex BEFORE the participant
+  // mutex, matching the SPDP receive path (handleSPDPPackage holds the agent
+  // mutex and then calls findRemoteParticipant, which takes m_mutex). The
+  // expired participant is only SELECTED here; the removal itself must run
+  // with these locks RELEASED, because removeRemoteParticipant() acquires the
+  // SEDP-agent mutex before m_mutex (the documented global order) - removing
+  // while m_mutex is held would be an ABBA inversion against the SEDP receive
+  // handlers, which hold the SEDP mutex and call findRemoteParticipant().
+  GuidPrefix_t expiredPrefix{};
+  bool haveExpired = false;
+  {
+    std::lock_guard<std::recursive_mutex> lock1(m_spdpAgent.m_mutex);
+    std::lock_guard<std::recursive_mutex> lock2(m_mutex);
+    PARTICIPANT_LOG("Have {} remote participants",
+                    (unsigned int)m_remoteParticipants.getNumElements());
+    PARTICIPANT_LOG("Unmatched remote writers/readers, {} / {}",
+                    static_cast<unsigned int>(m_sedpAgent.getNumRemoteUnmatchedWriters()),
+                    static_cast<unsigned int>(m_sedpAgent.getNumRemoteUnmatchedReaders()));
+    for (auto &remote : m_remoteParticipants) {
+      PARTICIPANT_LOG("Remote GUID = {} {} {} {} | Age = {} [ms]", remote.m_guid.prefix.id[4],
+                      remote.m_guid.prefix.id[5], remote.m_guid.prefix.id[6],
+                      remote.m_guid.prefix.id[7],
+                      (unsigned int)remote.getAliveSignalAgeInMilliseconds());
+      if (remote.isAlive()) {
+        continue;
+      }
+      PARTICIPANT_LOG("removing remote participant");
+      expiredPrefix = remote.m_guid.prefix;
+      haveExpired = true;
+      break;
     }
   }
-  return true;
+  if (!haveExpired) {
+    return true;
+  }
+  // Phase 2 - remove with no locks held (a liveness refresh racing this
+  // window loses by design: the lease already expired, and SPDP rediscovery
+  // re-adds the participant).
+  return removeRemoteParticipant(expiredPrefix);
 }
 
 void Participant::printInfo() {
@@ -497,8 +619,17 @@ void Participant::printInfo() {
 rtps::SPDPAgent &Participant::getSPDPAgent() { return m_spdpAgent; }
 
 void Participant::addBuiltInEndpoints(BuiltInEndpoints &endpoints) {
-  std::lock_guard<std::recursive_mutex> lock(m_mutex);
-  m_hasBuilInEndpoints = true;
+  // Only the flag needs m_mutex. The agent init()s register reader callbacks
+  // (Reader::m_callback_mutex) and the add*() calls take the SEDP/participant
+  // locks themselves; running them under m_mutex would establish a
+  // participant -> callback-mutex (and participant -> SEDP) order that
+  // inverts the discovery receive path (callback/SEDP mutex -> participant)
+  // and could deadlock init against a concurrently arriving SPDP/SEDP
+  // datagram.
+  {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    m_hasBuilInEndpoints = true;
+  }
   m_spdpAgent.init(*this, endpoints);
   m_sedpAgent.init(*this, endpoints);
 

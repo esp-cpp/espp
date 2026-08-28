@@ -202,6 +202,28 @@ SocketReactor::add_udp_receiver(espp::UdpSocket &socket,
   const auto callback = receive_config.on_receive_callback;
   const auto buffer_size = receive_config.buffer_size;
   sock_type_t fd = socket.native_handle();
+  // Bound the handler's read: the reactor only reads AFTER select() reported
+  // the socket readable, but that readiness can be stale or spurious (Linux
+  // documents select() may report a UDP socket readable and a subsequent read
+  // still block, e.g. a checksum-failed datagram discarded in between). With
+  // an unbounded blocking recvfrom such a dispatch would never finish and
+  // stop()'s in-flight wait could hang forever. A 1 s cap is invisible on the
+  // data path (data is normally already queued) and guarantees every dispatch
+  // - and therefore stop() - makes progress.
+  //
+  // A bounded read is a REQUIREMENT of registering here, not best-effort: if
+  // the bound cannot be installed the hang guard is void, so registration
+  // fails. SO_RCVTIMEO is chosen over O_NONBLOCK deliberately - it bounds
+  // ONLY receives, while non-blocking mode would also make sends through this
+  // same fd (the owner and the echo path send on it) fail with EWOULDBLOCK
+  // under buffer pressure, silently changing send semantics. SO_RCVTIMEO is
+  // supported on POSIX, lwIP (LWIP_SO_RCVTIMEO), and Windows.
+  if (!socket.set_receive_timeout(std::chrono::duration<float>(1.0f))) {
+    logger_.error("add_udp_receiver: could not set a receive timeout on port {}; refusing the "
+                  "registration (an unbounded blocking read could hang stop() forever)",
+                  receive_config.port);
+    return INVALID_ID;
+  }
   if (receive_config.dscp.has_value()) {
     // Mark this socket's transmitted packets (e.g. echo responses) with the
     // requested DSCP code point. Best-effort: network / driver treatment
@@ -287,25 +309,66 @@ SocketReactor::Id SocketReactor::add_tcp_stream(espp::TcpSocket &connection,
   return id;
 }
 
-bool SocketReactor::remove(SocketReactor::Id id) {
+bool SocketReactor::remove(SocketReactor::Id id) { return remove(id, RemovedCallback{}); }
+
+bool SocketReactor::remove(SocketReactor::Id id, RemovedCallback on_removed) {
   bool found = false;
+  RemovedCallback completed; // invoked (unlocked) when the removal is already complete here
   {
     std::lock_guard<std::mutex> lock(mutex_);
     auto it = entries_.find(id);
     if (it != entries_.end()) {
       found = true;
       if (it->second.in_flight) {
-        // A handler is running; defer erasure until dispatch() completes.
+        // A handler is running (or a dispatch is pending); defer erasure until
+        // dispatch() - or the pool-saturated revert in loop_iteration() -
+        // completes. The completion callback rides along on the entry; a
+        // repeated remove() for the same id chains the callbacks.
         it->second.remove_requested = true;
+        if (on_removed) {
+          if (it->second.on_removed) {
+            it->second.on_removed = [this, first = std::move(it->second.on_removed),
+                                     second = std::move(on_removed)]() {
+              // Run BOTH even if one throws, to honor the exactly-once contract.
+              invoke_removed(first);
+              invoke_removed(second);
+            };
+          } else {
+            it->second.on_removed = std::move(on_removed);
+          }
+        }
       } else {
         entries_.erase(it);
+        completed = std::move(on_removed);
       }
     }
   }
   if (found) {
     wake();
   }
+  if (completed) {
+    // Idle at remove() time: the removal is already complete - notify from
+    // the caller's thread, without the reactor lock.
+    invoke_removed(completed);
+  }
   return found;
+}
+
+void SocketReactor::invoke_removed(const RemovedCallback &cb) noexcept {
+  if (!cb) {
+    return;
+  }
+#if defined(__cpp_exceptions) && __cpp_exceptions
+  try {
+    cb();
+  } catch (const std::exception &e) {
+    logger_.error("Exception in reactor removal callback: {}", e.what());
+  } catch (...) {
+    logger_.error("Unknown exception in reactor removal callback");
+  }
+#else
+  cb();
+#endif
 }
 
 size_t SocketReactor::num_registered() const {
@@ -354,13 +417,18 @@ void SocketReactor::dispatch(SocketReactor::Id id) {
 #endif
   }
   bool wake_needed = false;
+  RemovedCallback removed; // deferred-removal completion, invoked unlocked below
   {
     std::lock_guard<std::mutex> lock(mutex_);
     auto it = entries_.find(id);
     if (it != entries_.end()) {
       it->second.in_flight = false;
       if (it->second.remove_requested) {
+        removed = std::move(it->second.on_removed);
         entries_.erase(it);
+        // Wake so the loop drops the fd from its interest set promptly (the
+        // completion callback may close the fd).
+        wake_needed = true;
       } else {
         it->second.armed = true; // re-arm so the loop watches it again
         wake_needed = true;
@@ -369,6 +437,12 @@ void SocketReactor::dispatch(SocketReactor::Id id) {
   }
   if (wake_needed) {
     wake();
+  }
+  if (removed) {
+    // The handler has finished and the entry is gone: removal complete.
+    // Invoked on this pool worker, without the reactor lock (guarded so a
+    // throwing completion callback cannot escape the worker).
+    invoke_removed(removed);
   }
 }
 
@@ -444,17 +518,27 @@ bool SocketReactor::loop_iteration(std::mutex &, std::condition_variable &, bool
       // Pool is saturated; revert and let the next select() re-report this fd
       // (the data stays buffered in the socket - natural backpressure).
       --in_flight_count_;
-      std::lock_guard<std::mutex> lock(mutex_);
-      auto it = entries_.find(id);
-      if (it != entries_.end()) {
-        it->second.in_flight = false;
-        // Honor a remove() that arrived while this entry was marked in_flight,
-        // rather than blindly re-arming a logically-removed registration.
-        if (it->second.remove_requested) {
-          entries_.erase(it);
-        } else {
-          it->second.armed = true;
+      RemovedCallback removed;
+      {
+        std::lock_guard<std::mutex> lock(mutex_);
+        auto it = entries_.find(id);
+        if (it != entries_.end()) {
+          it->second.in_flight = false;
+          // Honor a remove() that arrived while this entry was marked in_flight,
+          // rather than blindly re-arming a logically-removed registration.
+          if (it->second.remove_requested) {
+            removed = std::move(it->second.on_removed);
+            entries_.erase(it);
+          } else {
+            it->second.armed = true;
+          }
         }
+      }
+      if (removed) {
+        // No handler ever ran for the reverted dispatch: removal complete.
+        // Invoked on the reactor loop thread, without the reactor lock (guarded
+        // so a throwing completion callback cannot escape the loop thread).
+        invoke_removed(removed);
       }
     }
   }

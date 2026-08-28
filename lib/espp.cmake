@@ -41,6 +41,158 @@ add_compile_definitions(RTPS_CONFIG_HEADER="${RTPS_CONFIG_HEADER_FILE}")
 message(STATUS "RTPS limits profile: ${RTPS_LIMITS_PROFILE}")
 
 # ---------------------------------------------------------------------------
+# RTPS per-limit capacity overrides (fine-grained alternative to switching
+# profiles): a semicolon list of NAME=VALUE entries, each overriding ONE
+# capacity cap of the selected profile via its RTPS_CFG_<NAME> macro - e.g.
+#   -DRTPS_LIMIT_OVERRIDES="NUM_STATELESS_WRITERS=16;HISTORY_SIZE_STATEFUL=20"
+# See the RTPS_CFG_* blocks in include/rtps/config_*.hpp for the knob names.
+# Applied as GLOBAL compile definitions so the engine sources (which size the
+# pools) and every consumer translation unit agree on the values - defining
+# them for only a consumer TU would silently disagree with the library.
+# Capacity-only: no bytes on the wire change.
+# ---------------------------------------------------------------------------
+set(RTPS_LIMIT_OVERRIDES "" CACHE STRING
+    "Semicolon list of RTPS capacity overrides, e.g. NUM_STATELESS_WRITERS=16;HISTORY_SIZE_STATEFUL=20")
+# The supported knobs (must match the RTPS_CFG_* blocks in the profile headers).
+# Validated: an unknown name would silently define an unused macro (no override
+# at all), and an out-of-range value would silently truncate - e.g. 256 into a
+# uint8_t knob becomes a ZERO-capacity pool. Most knobs back uint8_t constants
+# (range 1..255); the unmatched-remote registries are uint16_t in the host
+# profiles (host_large defaults them to 1024/512), so those two accept up to
+# 65535 - EXCEPT under the embedded profile, where they are uint8_t too.
+set(RTPS_LIMIT_KNOB_NAMES
+    NUM_STATELESS_WRITERS NUM_STATELESS_READERS NUM_STATEFUL_WRITERS NUM_STATEFUL_READERS
+    MAX_NUM_PARTICIPANTS NUM_WRITERS_PER_PARTICIPANT NUM_READERS_PER_PARTICIPANT
+    NUM_WRITER_PROXIES_PER_READER NUM_READER_PROXIES_PER_WRITER
+    MAX_NUM_UNMATCHED_REMOTE_WRITERS MAX_NUM_UNMATCHED_REMOTE_READERS
+    MAX_NUM_READER_CALLBACKS HISTORY_SIZE_STATELESS HISTORY_SIZE_STATEFUL
+    MAX_TYPENAME_LENGTH MAX_TOPICNAME_LENGTH MAX_NUM_UDP_CONNECTIONS)
+set(RTPS_LIMIT_UINT16_KNOBS MAX_NUM_UNMATCHED_REMOTE_WRITERS MAX_NUM_UNMATCHED_REMOTE_READERS)
+# Collect the validated definitions; they are applied directory-wide below AND
+# exported via ESPP_RTPS_COMPILE_DEFINITIONS (they change public Config
+# constants and array-backed layouts, so a find_package(espp) consumer MUST
+# compile the headers with the same values the archive was built with).
+set(RTPS_LIMIT_OVERRIDE_DEFS "")
+foreach(override ${RTPS_LIMIT_OVERRIDES})
+  if(NOT override MATCHES "^([A-Z_]+)=([0-9]+)$")
+    message(FATAL_ERROR "Invalid RTPS_LIMIT_OVERRIDES entry '${override}' (expected NAME=VALUE)")
+  endif()
+  string(REGEX REPLACE "^([A-Z_]+)=[0-9]+$" "\\1" _rtps_knob "${override}")
+  string(REGEX REPLACE "^[A-Z_]+=([0-9]+)$" "\\1" _rtps_value "${override}")
+  if(NOT _rtps_knob IN_LIST RTPS_LIMIT_KNOB_NAMES)
+    message(FATAL_ERROR
+      "Unknown RTPS limit knob '${_rtps_knob}' in RTPS_LIMIT_OVERRIDES. Supported knobs: "
+      "${RTPS_LIMIT_KNOB_NAMES}")
+  endif()
+  if(_rtps_knob IN_LIST RTPS_LIMIT_UINT16_KNOBS AND NOT RTPS_LIMITS_PROFILE STREQUAL "embedded")
+    set(_rtps_max 65535)
+    set(_rtps_type "uint16_t")
+  else()
+    set(_rtps_max 255)
+    set(_rtps_type "uint8_t")
+  endif()
+  # Builtin-aware minima: the discovery endpoints draw from these pools, so a
+  # technically-representable value below the reservation would crash startup
+  # (the second SEDP allocation returns null and createBuiltinWritersAndReaders
+  # dereferences it) or silently omit the builtins (per-participant caps < 3).
+  if(_rtps_knob STREQUAL "NUM_STATEFUL_WRITERS" OR _rtps_knob STREQUAL "NUM_STATEFUL_READERS")
+    set(_rtps_min 2) # 2 SEDP builtins
+  elseif(_rtps_knob STREQUAL "NUM_WRITERS_PER_PARTICIPANT"
+         OR _rtps_knob STREQUAL "NUM_READERS_PER_PARTICIPANT")
+    set(_rtps_min 3) # SPDP + 2 SEDP builtins
+  elseif(_rtps_knob STREQUAL "MAX_NUM_UDP_CONNECTIONS")
+    set(_rtps_min 4) # 2 shared multicast + 2 unicast channels for 1 participant
+  else()
+    set(_rtps_min 1)
+  endif()
+  if(_rtps_value LESS ${_rtps_min} OR _rtps_value GREATER ${_rtps_max})
+    message(FATAL_ERROR
+      "RTPS limit override '${override}' out of range: ${_rtps_knob} is ${_rtps_type} under the "
+      "'${RTPS_LIMITS_PROFILE}' profile, valid range ${_rtps_min}..${_rtps_max} (minima account "
+      "for the builtin discovery endpoints)")
+  endif()
+  add_compile_definitions("RTPS_CFG_${override}")
+  list(APPEND RTPS_LIMIT_OVERRIDE_DEFS "RTPS_CFG_${override}")
+  set(RTPS_EFFECTIVE_${_rtps_knob} ${_rtps_value})
+  message(STATUS "RTPS limit override: ${override}")
+endforeach()
+
+# Cross-limit capacity check: the endpoint pools are GLOBAL, and EVERY
+# participant consumes 1 stateless writer/reader + 2 stateful writers/readers
+# for its builtin discovery endpoints - per-knob minima alone cannot see a
+# combination like NUM_STATEFUL_WRITERS=2 with MAX_NUM_PARTICIPANTS=8, whose
+# second participant would exhaust the pool (the engine now fails that
+# participant cleanly, but a documented override should not configure a
+# participant budget it cannot deliver). Effective value = override if given,
+# else the selected profile's default.
+if(RTPS_LIMITS_PROFILE STREQUAL "embedded")
+  set(_rtps_d_participants 1)
+  set(_rtps_d_stateless_w 5)
+  set(_rtps_d_stateless_r 5)
+  set(_rtps_d_stateful_w 5)
+  set(_rtps_d_stateful_r 5)
+  set(_rtps_d_channels 10)
+elseif(RTPS_LIMITS_PROFILE STREQUAL "host")
+  set(_rtps_d_participants 8)
+  set(_rtps_d_stateless_w 16)
+  set(_rtps_d_stateless_r 16)
+  set(_rtps_d_stateful_w 32)
+  set(_rtps_d_stateful_r 32)
+  set(_rtps_d_channels 24)
+else() # host_large
+  set(_rtps_d_participants 32)
+  set(_rtps_d_stateless_w 64)
+  set(_rtps_d_stateless_r 64)
+  set(_rtps_d_stateful_w 128)
+  set(_rtps_d_stateful_r 128)
+  set(_rtps_d_channels 72)
+endif()
+foreach(pair
+    "MAX_NUM_PARTICIPANTS;_rtps_d_participants"
+    "NUM_STATELESS_WRITERS;_rtps_d_stateless_w"
+    "NUM_STATELESS_READERS;_rtps_d_stateless_r"
+    "NUM_STATEFUL_WRITERS;_rtps_d_stateful_w"
+    "NUM_STATEFUL_READERS;_rtps_d_stateful_r"
+    "MAX_NUM_UDP_CONNECTIONS;_rtps_d_channels")
+  list(GET pair 0 _rtps_k)
+  list(GET pair 1 _rtps_dvar)
+  if(NOT DEFINED RTPS_EFFECTIVE_${_rtps_k})
+    set(RTPS_EFFECTIVE_${_rtps_k} ${${_rtps_dvar}})
+  endif()
+endforeach()
+math(EXPR _rtps_need_stateful "2 * ${RTPS_EFFECTIVE_MAX_NUM_PARTICIPANTS}")
+if(RTPS_EFFECTIVE_NUM_STATELESS_WRITERS LESS RTPS_EFFECTIVE_MAX_NUM_PARTICIPANTS
+   OR RTPS_EFFECTIVE_NUM_STATELESS_READERS LESS RTPS_EFFECTIVE_MAX_NUM_PARTICIPANTS
+   OR RTPS_EFFECTIVE_NUM_STATEFUL_WRITERS LESS _rtps_need_stateful
+   OR RTPS_EFFECTIVE_NUM_STATEFUL_READERS LESS _rtps_need_stateful)
+  message(FATAL_ERROR
+    "RTPS limits cannot host the participant budget: MAX_NUM_PARTICIPANTS="
+    "${RTPS_EFFECTIVE_MAX_NUM_PARTICIPANTS} needs >= ${RTPS_EFFECTIVE_MAX_NUM_PARTICIPANTS} "
+    "stateless writers/readers (have ${RTPS_EFFECTIVE_NUM_STATELESS_WRITERS}/"
+    "${RTPS_EFFECTIVE_NUM_STATELESS_READERS}) and >= ${_rtps_need_stateful} stateful "
+    "writers/readers (have ${RTPS_EFFECTIVE_NUM_STATEFUL_WRITERS}/"
+    "${RTPS_EFFECTIVE_NUM_STATEFUL_READERS}) for the builtin discovery endpoints. Raise the "
+    "pool overrides or lower MAX_NUM_PARTICIPANTS.")
+endif()
+# Channel-pool constraint: a Domain permanently binds 2 shared multicast
+# channels (SPDP metatraffic + user multicast) and 2 unicast channels per
+# participant (builtin + user), all drawn from the same
+# MAX_NUM_UDP_CONNECTIONS transport pool as runtime dedicated endpoint ports.
+# Without this check an override combination can pass the endpoint-pool math
+# above yet createParticipant() still fails on channels before reaching the
+# advertised participant capacity.
+math(EXPR _rtps_need_channels "2 + 2 * ${RTPS_EFFECTIVE_MAX_NUM_PARTICIPANTS}")
+if(RTPS_EFFECTIVE_MAX_NUM_UDP_CONNECTIONS LESS _rtps_need_channels)
+  message(FATAL_ERROR
+    "RTPS limits cannot host the participant budget: MAX_NUM_PARTICIPANTS="
+    "${RTPS_EFFECTIVE_MAX_NUM_PARTICIPANTS} needs >= ${_rtps_need_channels} transport channels "
+    "(2 shared multicast + 2 unicast per participant) but MAX_NUM_UDP_CONNECTIONS is "
+    "${RTPS_EFFECTIVE_MAX_NUM_UDP_CONNECTIONS}. Raise MAX_NUM_UDP_CONNECTIONS (leave headroom "
+    "for dedicated endpoint ports - max_prioritized_endpoint_ports, default 4 - which draw "
+    "from the same pool at runtime) or lower MAX_NUM_PARTICIPANTS.")
+endif()
+
+# ---------------------------------------------------------------------------
 # RTPS best-effort DATA_FRAG fragmentation (Slice C).
 #
 # On host builds fragmentation is ALWAYS enabled: samples larger than a single
@@ -64,7 +216,11 @@ message(STATUS "RTPS fragmentation: ON (max sample size ${RTPS_MAX_SAMPLE_SIZE} 
 set(ESPP_RTPS_COMPILE_DEFINITIONS
   RTPS_CONFIG_HEADER="${RTPS_CONFIG_HEADER_FILE}"
   RTPS_ENABLE_FRAGMENTATION
-  RTPS_MAX_SAMPLE_SIZE=${RTPS_MAX_SAMPLE_SIZE})
+  RTPS_MAX_SAMPLE_SIZE=${RTPS_MAX_SAMPLE_SIZE}
+  # Per-limit overrides are ABI-critical for the same reason as the profile
+  # header: they resize public Config constants and the array-backed pools, so
+  # exported consumers must see identical values (empty when no overrides).
+  ${RTPS_LIMIT_OVERRIDE_DEFS})
 
 set(ESPP_EXTERNAL_INCLUDES
   ${ESPP_COMPONENTS}/serialization/detail/alpaca/include

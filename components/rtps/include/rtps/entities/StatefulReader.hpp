@@ -32,6 +32,7 @@ Author: i11 - Embedded Software, RWTH Aachen University
 #include "rtps/entities/Reader.hpp"
 #include "rtps/entities/WriterProxy.hpp"
 #include "rtps/storages/MemoryPool.hpp"
+#include <mutex>
 
 namespace rtps {
 class EsppTransport;
@@ -54,6 +55,16 @@ public:
 private:
   Ip4Port_t m_srcPort; // TODO intended for reuse but buffer not used as such
   EsppTransport *m_transport;
+  /// Serializes sample DELIVERY (the expectedSN claim + the user callbacks)
+  /// without holding m_proxies_mutex across user code. A leaf in the lock
+  /// order: newChange() acquires it FIRST and only nests m_proxies_mutex
+  /// briefly inside for the claim; nothing acquires it while holding any other
+  /// engine/facade lock. This preserves the strict in-order,
+  /// one-callback-at-a-time semantics the proxies mutex used to provide while
+  /// keeping user callbacks (which may call back into the facade and from
+  /// there into SEDP/participant/proxies locks) off the proxies mutex -
+  /// breaking the callback->facade->SEDP->proxies lock-order cycle.
+  std::mutex m_delivery_mutex;
 };
 
 } // namespace rtps

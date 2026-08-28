@@ -86,6 +86,10 @@ int main() {
     for (int i = 0; i < N; ++i) {
       pool.submit(espp::ThreadPool::Job([&]() {
         std::this_thread::sleep_for(20ms);
+        // Notify UNDER the lock: main destroys the cv right after its wait()
+        // returns; wait() re-acquires mtx to return, ordering the destruction
+        // after this notify (an unlocked notify races the destruction).
+        std::lock_guard<std::mutex> lk(mtx);
         ++done;
         cv.notify_one();
       }));
@@ -217,6 +221,9 @@ int main() {
         for (int i = 0; i < jobs_per_thread; ++i) {
           pool.submit(espp::ThreadPool::Job([&]() {
             std::this_thread::sleep_for(5ms);
+            // under the wait mutex: prevents the lost-wakeup where the final
+            // notify lands between the waiter's predicate check and its block
+            std::lock_guard<std::mutex> lk(mtx);
             ++done;
             cv.notify_one();
           }));
@@ -263,6 +270,8 @@ int main() {
     for (int i = 0; i < total; ++i) {
       if (pool.submit(espp::ThreadPool::Job([&]() {
             std::this_thread::sleep_for(30ms);
+            // under the wait mutex (lost-wakeup guard, see above)
+            std::lock_guard<std::mutex> lk(mtx);
             ++done;
             cv.notify_one();
           }))) {
@@ -349,10 +358,12 @@ int main() {
     });
 
     for (int i = 0; i < num_a_jobs; ++i) {
-      pool_a.submit(espp::ThreadPool::Job([&pool_b, &done_b, &cv]() {
+      pool_a.submit(espp::ThreadPool::Job([&pool_b, &done_b, &cv, &mtx]() {
         for (int j = 0; j < b_jobs_per_a; ++j) {
-          pool_b.submit(espp::ThreadPool::Job([&done_b, &cv]() {
+          pool_b.submit(espp::ThreadPool::Job([&done_b, &cv, &mtx]() {
             std::this_thread::sleep_for(20ms);
+            // under the wait mutex (lost-wakeup guard, see above)
+            std::lock_guard<std::mutex> lk(mtx);
             ++done_b;
             cv.notify_one();
           }));
@@ -397,11 +408,16 @@ int main() {
     });
 
     for (int i = 0; i < num_initial; ++i) {
-      pool.submit(espp::ThreadPool::Job([&pool, &done, &cv]() {
-        ++done;
-        cv.notify_one();
-        pool.submit(espp::ThreadPool::Job([&done, &cv]() {
+      pool.submit(espp::ThreadPool::Job([&pool, &done, &cv, &mtx]() {
+        {
+          // under the wait mutex (lost-wakeup guard, see above)
+          std::lock_guard<std::mutex> lk(mtx);
+          ++done;
+          cv.notify_one();
+        }
+        pool.submit(espp::ThreadPool::Job([&done, &cv, &mtx]() {
           std::this_thread::sleep_for(10ms);
+          std::lock_guard<std::mutex> lk(mtx);
           ++done;
           cv.notify_one();
         }));

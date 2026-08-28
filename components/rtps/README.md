@@ -66,7 +66,7 @@ flowchart TD
         direction TB
         TR["rtps::EsppTransport"]
         SOCK["espp::UdpSocket × N ports"]
-        REACT["espp::SocketReactor → espp::ThreadPool"]
+        REACT["espp::SocketReactor → espp::ThreadPool (QosBand priority)"]
         CDR["espp::cdr (reflection CDR/XCDR)"]
         TR --> SOCK --> REACT
     end
@@ -167,6 +167,89 @@ via `include/rtps/config.hpp`.
 
 The domain id, announcement/heartbeat periods, and pool sizes live in the profile
 headers.
+
+### Per-limit capacity overrides
+
+Every capacity cap in the profile headers can be raised (or lowered)
+**individually** on top of the selected profile - so a system that only needs
+more BEST_EFFORT writers does not have to pay the RAM for a whole relaxed
+profile. Each cap `NAME` is overridable via an `RTPS_CFG_<NAME>` compile
+definition (see the `RTPS_CFG_*` blocks in `include/rtps/config_*.hpp` for the
+full knob list):
+
+- **ESP-IDF**: menuconfig, `RTPS -> Custom capacity overrides (advanced)` -
+  each option overrides one cap; `0` keeps the profile default.
+- **Host (espp.cmake / lib build)**: pass a semicolon list, e.g.
+  `-DRTPS_LIMIT_OVERRIDES="NUM_STATELESS_WRITERS=16;HISTORY_SIZE_STATEFUL=20"`.
+
+The overrides must be applied when **compiling the rtps sources** (the pools
+are sized inside the library); both mechanisms above do this and propagate the
+same values to consumer translation units. Defining `RTPS_CFG_*` for only a
+consumer TU (e.g. before including the headers in application code) would
+silently disagree with the library and must be avoided. All caps are
+capacity-only and change no bytes on the wire.
+
+Note the builtin discovery endpoints consume slots from the same pools: 1
+stateless writer + 1 stateless reader for SPDP and 2 stateful writers + 2
+stateful readers for SEDP (which also count against the per-participant caps) -
+so size pools as "usable + builtins". `add_writer()`/`add_reader()` report the
+bound limits, the reserved slots, and the usable counts when a creation fails.
+
+For a **fully custom profile**, the source-level escape hatch is defining
+`RTPS_CONFIG_HEADER` to your own header path (it replaces the profile header
+entirely).
+
+---
+
+## Priority scheduling (bands, dedicated ports, DSCP)
+
+Every transport channel is dispatched through the `SocketReactor`/`ThreadPool`
+at a **priority band** (`espp::QosBand`). Defaults: metatraffic (SPDP/SEDP
+discovery) at `High` — so discovery stays responsive when user traffic backs the
+pool up — and the shared user channels at `Normal`. Both are configurable
+(`RtpsParticipant::Config::metatraffic_band` / `user_traffic_band`); apart from
+the two default changes below, an unconfigured participant behaves exactly as
+before:
+
+1. **Metatraffic elevation** — discovery dispatches at `High` instead of
+   `Normal` (above).
+2. **Bounded transport pool queue** — the transport's worker-pool queue is now
+   bounded (64 jobs) instead of unbounded. Under sustained overload a
+   submission is rejected rather than growing an unbounded heap backlog;
+   rejection is a real backpressure signal that the reactor (re-arm the socket
+   on the next `select()`) and the deferred/guaranteed retry paths recover
+   from without loss. This changes behavior only under extreme overload, where
+   the previous unbounded queue would have grown memory without bound.
+
+Since all of a participant's user traffic shares one user-unicast port,
+per-endpoint priority uses **dedicated ports**: give a writer/reader config a
+non-default `band` (or a `dscp`) and the endpoint gets its own unicast port —
+allocated deterministically at `7400 + 250*domain + 100 + n`, probing at most
+16 consecutive candidates per request (reuse-disabled bind) from an advancing
+cursor; if the whole window is occupied the endpoint falls back to the shared
+user port and the next request resumes past the window — whose socket runs at
+the endpoint's band and is
+optionally DSCP-marked (`espp::Dscp`, e.g. `Dscp::Ef`; the endpoint also sends
+from this socket, so the marking applies to its outgoing traffic). The
+endpoint's SEDP announcement carries the dedicated port as its standard
+per-endpoint unicast locator (`PID_UNICAST_LOCATOR`), which FastDDS/ROS 2 honor
+— the wire format is unchanged, only the announced port value differs.
+
+Dedicated ports are **rationed** (`Config::max_prioritized_endpoint_ports`,
+default 4; each is one fd, and lwIP on ESP32 has ~10 total with 4 already used
+by the participant). Past the cap — or with
+`Config::enable_dedicated_endpoint_ports = false` — a banded endpoint logs a
+warning and falls back to the shared port; banded *readers* then get
+**deferred banded dispatch**: samples are queued (bounded, 32/reader) and the
+callback is re-submitted to the transport pool at the reader's band, one
+in-flight delivery per reader, preserving per-reader order. `Normal` endpoints
+keep the original inline delivery path.
+
+`ServiceConfig`/`ActionConfig` accept the same `band`/`dscp`: a service applies
+them to both of its endpoints (request + reply); an action passes them to all
+of its underlying service/topic endpoints (note a ROS action server is ~8
+endpoints — more than the default ration, so most fall back to deferred
+dispatch unless the cap is raised).
 
 ---
 

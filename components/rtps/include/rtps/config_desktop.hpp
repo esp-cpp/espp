@@ -41,6 +41,19 @@ namespace rtps {
 // storage. See storages/StorageArray.hpp. Capacity only - never touches wire bytes.
 
 namespace Config {
+// ---------------------------------------------------------------------------
+// Per-limit overrides: every capacity cap below can be raised (or lowered)
+// individually WITHOUT switching profiles by defining RTPS_CFG_<NAME> as a
+// compile definition before this header is included - e.g.
+// -DRTPS_CFG_NUM_STATELESS_WRITERS=16. On ESP-IDF the Kconfig options under
+// "RTPS -> Custom capacity overrides" wire these up (0 = keep the profile
+// default); on host builds pass RTPS_LIMIT_OVERRIDES to espp.cmake. The
+// overrides MUST be applied when compiling the rtps sources themselves (the
+// pools are sized in the library), which both mechanisms guarantee; defining
+// them for only a consumer translation unit would silently disagree with the
+// library. Capacity-only: no bytes on the wire change.
+// ---------------------------------------------------------------------------
+
 const VendorId_t VENDOR_ID = {13, 37};
 const std::array<uint8_t, 4> IP_ADDRESS = {192, 168, 4, 1}; // Needs to be set in lwipcfg.h too.
 // GUID_RANDOM: derive each participant prefix from OS entropy (see
@@ -71,29 +84,79 @@ const uint8_t DOMAIN_ID = 0; // 230 possible with UDP
 #endif
 const DataSize_t MAX_SAMPLE_SIZE = RTPS_MAX_SAMPLE_SIZE;
 
-const uint8_t MAX_NUM_PARTICIPANTS = 8;
-const uint8_t NUM_STATELESS_WRITERS = 16;
-const uint8_t NUM_STATELESS_READERS = 16;
-const uint8_t NUM_STATEFUL_READERS = 32;
-const uint8_t NUM_STATEFUL_WRITERS = 32;
-const uint8_t NUM_WRITERS_PER_PARTICIPANT = 16;
-const uint8_t NUM_READERS_PER_PARTICIPANT = 16;
-const uint8_t NUM_WRITER_PROXIES_PER_READER = 8;
-const uint8_t NUM_READER_PROXIES_PER_WRITER = 8;
+#ifndef RTPS_CFG_MAX_NUM_PARTICIPANTS
+#define RTPS_CFG_MAX_NUM_PARTICIPANTS 8
+#endif
+const uint8_t MAX_NUM_PARTICIPANTS = RTPS_CFG_MAX_NUM_PARTICIPANTS;
+#ifndef RTPS_CFG_NUM_STATELESS_WRITERS
+#define RTPS_CFG_NUM_STATELESS_WRITERS 16
+#endif
+const uint8_t NUM_STATELESS_WRITERS = RTPS_CFG_NUM_STATELESS_WRITERS;
+#ifndef RTPS_CFG_NUM_STATELESS_READERS
+#define RTPS_CFG_NUM_STATELESS_READERS 16
+#endif
+const uint8_t NUM_STATELESS_READERS = RTPS_CFG_NUM_STATELESS_READERS;
+#ifndef RTPS_CFG_NUM_STATEFUL_READERS
+#define RTPS_CFG_NUM_STATEFUL_READERS 32
+#endif
+const uint8_t NUM_STATEFUL_READERS = RTPS_CFG_NUM_STATEFUL_READERS;
+#ifndef RTPS_CFG_NUM_STATEFUL_WRITERS
+#define RTPS_CFG_NUM_STATEFUL_WRITERS 32
+#endif
+const uint8_t NUM_STATEFUL_WRITERS = RTPS_CFG_NUM_STATEFUL_WRITERS;
+#ifndef RTPS_CFG_NUM_WRITERS_PER_PARTICIPANT
+#define RTPS_CFG_NUM_WRITERS_PER_PARTICIPANT 16
+#endif
+const uint8_t NUM_WRITERS_PER_PARTICIPANT = RTPS_CFG_NUM_WRITERS_PER_PARTICIPANT;
+#ifndef RTPS_CFG_NUM_READERS_PER_PARTICIPANT
+#define RTPS_CFG_NUM_READERS_PER_PARTICIPANT 16
+#endif
+const uint8_t NUM_READERS_PER_PARTICIPANT = RTPS_CFG_NUM_READERS_PER_PARTICIPANT;
+#ifndef RTPS_CFG_NUM_WRITER_PROXIES_PER_READER
+#define RTPS_CFG_NUM_WRITER_PROXIES_PER_READER 8
+#endif
+const uint8_t NUM_WRITER_PROXIES_PER_READER = RTPS_CFG_NUM_WRITER_PROXIES_PER_READER;
+#ifndef RTPS_CFG_NUM_READER_PROXIES_PER_WRITER
+#define RTPS_CFG_NUM_READER_PROXIES_PER_WRITER 8
+#endif
+const uint8_t NUM_READER_PROXIES_PER_WRITER = RTPS_CFG_NUM_READER_PROXIES_PER_WRITER;
 
 // uint16_t (not uint8_t): these bound SEDP MemoryPool<> sizes and the host
 // value (256) already exceeds the 255 uint8_t range; host_large goes higher
 // still. MemoryPool<TYPE, uint32_t SIZE> widens the value, so uint16_t is safe.
-const uint16_t MAX_NUM_UNMATCHED_REMOTE_WRITERS = 256;
-const uint16_t MAX_NUM_UNMATCHED_REMOTE_READERS = 128;
+#ifndef RTPS_CFG_MAX_NUM_UNMATCHED_REMOTE_WRITERS
+#define RTPS_CFG_MAX_NUM_UNMATCHED_REMOTE_WRITERS 256
+#endif
+const uint16_t MAX_NUM_UNMATCHED_REMOTE_WRITERS = RTPS_CFG_MAX_NUM_UNMATCHED_REMOTE_WRITERS;
+#ifndef RTPS_CFG_MAX_NUM_UNMATCHED_REMOTE_READERS
+#define RTPS_CFG_MAX_NUM_UNMATCHED_REMOTE_READERS 128
+#endif
+const uint16_t MAX_NUM_UNMATCHED_REMOTE_READERS = RTPS_CFG_MAX_NUM_UNMATCHED_REMOTE_READERS;
 
-const uint8_t MAX_NUM_READER_CALLBACKS = 8;
+#ifndef RTPS_CFG_MAX_NUM_READER_CALLBACKS
+#define RTPS_CFG_MAX_NUM_READER_CALLBACKS 8
+#endif
+const uint8_t MAX_NUM_READER_CALLBACKS = RTPS_CFG_MAX_NUM_READER_CALLBACKS;
 
-const uint8_t HISTORY_SIZE_STATELESS = 2;
-const uint8_t HISTORY_SIZE_STATEFUL = 16;
+#ifndef RTPS_CFG_HISTORY_SIZE_STATELESS
+// 8 (was 2): with only 2 slots a saturated BEST_EFFORT publisher immediately
+// overwrites unsent samples; the relaxed host profile can afford real slack.
+#define RTPS_CFG_HISTORY_SIZE_STATELESS 8
+#endif
+const uint8_t HISTORY_SIZE_STATELESS = RTPS_CFG_HISTORY_SIZE_STATELESS;
+#ifndef RTPS_CFG_HISTORY_SIZE_STATEFUL
+#define RTPS_CFG_HISTORY_SIZE_STATEFUL 16
+#endif
+const uint8_t HISTORY_SIZE_STATEFUL = RTPS_CFG_HISTORY_SIZE_STATEFUL;
 
-const uint8_t MAX_TYPENAME_LENGTH = 64;
-const uint8_t MAX_TOPICNAME_LENGTH = 64;
+#ifndef RTPS_CFG_MAX_TYPENAME_LENGTH
+#define RTPS_CFG_MAX_TYPENAME_LENGTH 64
+#endif
+const uint8_t MAX_TYPENAME_LENGTH = RTPS_CFG_MAX_TYPENAME_LENGTH;
+#ifndef RTPS_CFG_MAX_TOPICNAME_LENGTH
+#define RTPS_CFG_MAX_TOPICNAME_LENGTH 64
+#endif
+const uint8_t MAX_TOPICNAME_LENGTH = RTPS_CFG_MAX_TOPICNAME_LENGTH;
 
 const int HEARTBEAT_STACKSIZE = 1200;          // byte
 const int THREAD_POOL_WRITER_STACKSIZE = 1100; // byte
@@ -112,7 +175,15 @@ const Duration_t SPDP_DEFAULT_REMOTE_LEASE_DURATION = {
 const Duration_t SPDP_MAX_REMOTE_LEASE_DURATION = {
     180, 0}; // Absolute maximum lease duration, ignoring remote participant info
 
-const int MAX_NUM_UDP_CONNECTIONS = 16;
+// Transport channel pool: 2 shared multicast channels (SPDP metatraffic +
+// user multicast) + 2 unicast channels per participant (builtin + user), plus
+// any dedicated endpoint ports (max_prioritized_endpoint_ports, default 4)
+// drawn at runtime. Sized so the profile's MAX_NUM_PARTICIPANTS budget fits
+// with dedicated-port headroom; cross-checked at build time.
+#ifndef RTPS_CFG_MAX_NUM_UDP_CONNECTIONS
+#define RTPS_CFG_MAX_NUM_UDP_CONNECTIONS 24
+#endif
+const int MAX_NUM_UDP_CONNECTIONS = RTPS_CFG_MAX_NUM_UDP_CONNECTIONS;
 
 const int THREAD_POOL_NUM_WRITERS = 2;
 const int THREAD_POOL_NUM_READERS = 2;
